@@ -61,7 +61,6 @@ export async function POST(req: Request) {
       department,
       role,
       category,
-      category,
       qty: Number(qty),
       gender: gender || "Any",
       experience: { min: Number(experience?.min || 0), max: Number(experience?.max || 0) },

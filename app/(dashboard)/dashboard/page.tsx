@@ -966,8 +966,8 @@ export default function UnifiedEnterpriseDashboard() {
         <HiringRequisitionModal 
           onClose={() => toggleModal("hiring", false)} 
           triggerToast={triggerToast} 
-          userCompany={session?.user?.companyName} 
-          userDepartment={session?.user?.department} 
+          userCompany={(session?.user as any)?.companyName} 
+          userDepartment={(session?.user as any)?.department} 
         />
       )}
 

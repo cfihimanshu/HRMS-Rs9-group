@@ -15,6 +15,8 @@ import Vendor from "@/models/Vendor";
 import Franchise from "@/models/Franchise";
 import Grievance from "@/models/Grievance";
 
+export const dynamic = "force-dynamic";
+
 // This should ideally be in .env, using a hardcoded fallback for demo purposes
 const EXPECTED_RS9_API_KEY = process.env.RS9_API_KEY || "rs9-secure-sync-key-2026";
 
