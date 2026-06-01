@@ -87,6 +87,10 @@ export default function LoginPage() {
                     </div>
                   )}
 
+                  <div className="bg-slate-50 border border-slate-200 text-slate-700 text-xs px-3.5 py-3 rounded-xl font-medium mb-4">
+                    <strong>Use existing DB credentials.</strong> If the database is seeded, log in with the registered user account.
+                  </div>
+
                   <Field>
                     <FieldLabel htmlFor="email">Email Address</FieldLabel>
                     <Input
