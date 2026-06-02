@@ -24,12 +24,12 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
   const handleTopCompanyChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const val = e.target.value;
     setTopCompany(val);
-    
+
     if (val) {
       const matched = companies.find(c => {
         const nameLower = c.name.toLowerCase();
         const codeLower = (c.code || "").toLowerCase();
-        
+
         if (val === "Acolyte") return nameLower.includes("acolyte");
         if (val === "Startupflora") return nameLower.includes("startupflora");
         if (val === "Startupkare") return nameLower.includes("startupkare") || nameLower.includes("startup kare") || codeLower.includes("kare");
@@ -38,7 +38,7 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
         if (val === "CFI") return nameLower.includes("cfi") || codeLower.includes("cfi");
         return false;
       });
-      
+
       if (matched) {
         setFormData(prev => ({ ...prev, companyId: matched._id }));
       } else {
@@ -59,7 +59,7 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
     setTopRole(val);
     setFormData(prev => ({ ...prev, role: val, designation: val }));
   };
-  
+
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -161,23 +161,23 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
   };
 
   const isManagement = ["Owner", "Director", "HR Head"].includes(userRole);
-  
+
   const availableRoles = [
-    "Employee", "HR Head", "HR Executive", "Department Manager", 
+    "Employee", "HR Head", "HR Executive", "Department Manager",
     "DSM", "Trainer", "Accounts", "IT Admin", "RIBP / Risk Officer"
   ];
 
   const allowedCompanies = ["Acolyte", "Startupflora", "Startupkare", "Force 009", "Citiline", "CFI"];
-  
+
   // Find current user profile
   const currentUser = employees.find(emp => emp._id === sessionUser?.id);
   const hrCompany = currentUser?.companies?.[0]; // e.g. { name: "Startupflora", code: "STARTUPFLORA" }
 
   const filteredEmployees = employees.filter(emp => {
-    const matchesSearch = emp.name.toLowerCase().includes(search.toLowerCase()) || 
-                          emp.email.toLowerCase().includes(search.toLowerCase());
+    const matchesSearch = emp.name.toLowerCase().includes(search.toLowerCase()) ||
+      emp.email.toLowerCase().includes(search.toLowerCase());
     const matchesFilter = filterRole === "All" || emp.role === filterRole;
-    
+
     // Role-based visibility check
     let matchesCompany = true;
     if (userRole === "HR Head" || userRole === "HR Executive") {
@@ -187,7 +187,7 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
         matchesCompany = false;
       }
     }
-    
+
     return matchesSearch && matchesFilter && matchesCompany;
   });
 
@@ -212,11 +212,11 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
     if (showAddForm && (userRole === "HR Head" || userRole === "HR Executive") && visibleCompanyOptions.length === 1) {
       const defaultCompany = visibleCompanyOptions[0];
       setTopCompany(defaultCompany);
-      
+
       const matched = companies.find(c => {
         const nameLower = c.name.toLowerCase();
         const codeLower = (c.code || "").toLowerCase();
-        
+
         if (defaultCompany === "Acolyte") return nameLower.includes("acolyte");
         if (defaultCompany === "Startupflora") return nameLower.includes("startupflora");
         if (defaultCompany === "Startupkare") return nameLower.includes("startupkare") || nameLower.includes("startup kare") || codeLower.includes("kare");
@@ -243,7 +243,7 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
           </p>
         </div>
         {(userRole === "Owner" || userRole === "HR Head" || userRole === "HR Executive") && (
-          <button 
+          <button
             onClick={() => setShowAddForm(!showAddForm)}
             className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2.5 rounded-lg text-sm font-bold shadow-md transition-all flex items-center gap-2"
           >
@@ -255,15 +255,15 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
       {showAddForm && (userRole === "Owner" || userRole === "HR Head" || userRole === "HR Executive") ? (
         <div className={`p-6 rounded-xl border shadow-sm ${isDark ? "bg-gray-900 border-gray-800" : "bg-white border-slate-200"}`}>
           <h2 className={`text-lg font-bold mb-6 ${isDark ? "text-white" : "text-slate-800"}`}>Onboard New Employee</h2>
-          
+
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Top Selection for Company and Role */}
             <div className={`p-4 rounded-xl border mb-6 grid grid-cols-1 md:grid-cols-2 gap-6 ${isDark ? "bg-gray-800/40 border-gray-700" : "bg-slate-50 border-slate-200"}`}>
               <div>
                 <label className={`block text-xs font-bold mb-1.5 ${isDark ? "text-indigo-400" : "text-indigo-600"}`}>Company *</label>
-                <select 
-                  value={topCompany} 
-                  onChange={handleTopCompanyChange} 
+                <select
+                  value={topCompany}
+                  onChange={handleTopCompanyChange}
                   required
                   className={`w-full p-2.5 rounded-lg border text-sm font-bold focus:border-indigo-500 focus:outline-none ${isDark ? "bg-gray-800 border-gray-700 text-white" : "bg-white border-slate-350"}`}
                 >
@@ -275,9 +275,9 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
               </div>
               <div>
                 <label className={`block text-xs font-bold mb-1.5 ${isDark ? "text-indigo-400" : "text-indigo-600"}`}>System Role *</label>
-                <select 
-                  value={topRole} 
-                  onChange={handleTopRoleChange} 
+                <select
+                  value={topRole}
+                  onChange={handleTopRoleChange}
                   required
                   className={`w-full p-2.5 rounded-lg border text-sm font-bold focus:border-indigo-500 focus:outline-none ${isDark ? "bg-gray-800 border-gray-700 text-white" : "bg-white border-slate-355"}`}
                 >
@@ -292,13 +292,13 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
               {/* Account Details */}
               <div className="space-y-4">
                 <h3 className={`text-xs font-bold uppercase tracking-wider font-mono ${isDark ? "text-indigo-400" : "text-indigo-600"}`}>1. System Account Details</h3>
-                
+
                 <div>
                   <label className={`block text-xs font-bold mb-1.5 ${isDark ? "text-gray-300" : "text-slate-700"}`}>Full Name *</label>
                   <input type="text" name="name" value={formData.name} onChange={handleChange} required
                     className={`w-full p-2.5 rounded-lg border text-sm focus:border-indigo-500 focus:outline-none ${isDark ? "bg-gray-800 border-gray-700 text-white" : "bg-slate-50 border-slate-200"}`} />
                 </div>
-                
+
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className={`block text-xs font-bold mb-1.5 ${isDark ? "text-gray-300" : "text-slate-700"}`}>Email *</label>
@@ -333,7 +333,7 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
               {/* Employment Details */}
               <div className="space-y-4">
                 <h3 className={`text-xs font-bold uppercase tracking-wider font-mono ${isDark ? "text-emerald-400" : "text-emerald-600"}`}>2. Company & Employment Profile</h3>
-                
+
                 <div>
                   <label className={`block text-xs font-bold mb-1.5 ${isDark ? "text-gray-300" : "text-slate-700"}`}>Assign to Company *</label>
                   <select name="companyId" value={formData.companyId} onChange={handleChange} required disabled
@@ -393,8 +393,8 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
           <div className={`border rounded-xl p-4 flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-sm ${isDark ? "bg-gray-900 border-gray-800" : "bg-white border-slate-200"}`}>
             <div className="flex-1 relative">
               <Search className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
-              <input 
-                type="text" 
+              <input
+                type="text"
                 className={`w-full border rounded-lg pl-9 pr-4 py-2 text-xs font-semibold focus:outline-none focus:border-indigo-500 ${isDark ? "bg-gray-800 border-gray-700 text-white" : "bg-slate-50 border-slate-200 text-slate-800"}`}
                 placeholder="Search employees by name or email..."
                 value={search}
@@ -403,7 +403,7 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
             </div>
             <div className="flex items-center gap-2">
               <span className={`text-xs font-bold font-mono ${isDark ? "text-gray-400" : "text-slate-500"}`}>Role Filter:</span>
-              <select 
+              <select
                 className={`border rounded-lg px-3 py-2 text-xs font-semibold focus:outline-none focus:border-indigo-500 ${isDark ? "bg-gray-800 border-gray-700 text-gray-300" : "bg-slate-50 border-slate-200 text-slate-700"}`}
                 value={filterRole}
                 onChange={e => setFilterRole(e.target.value)}
@@ -418,7 +418,7 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
 
           <div className={`rounded-xl border shadow-sm overflow-hidden ${isDark ? "bg-gray-900 border-gray-800" : "bg-white border-slate-200"}`}>
             {loading ? (
-               <div className="text-center py-10 font-bold text-slate-400 text-xs animate-pulse">Loading directory entries...</div>
+              <div className="text-center py-10 font-bold text-slate-400 text-xs animate-pulse">Loading directory entries...</div>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-sm whitespace-nowrap">
@@ -470,7 +470,7 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
                           </td>
                           {isManagement && (
                             <td className="px-6 py-4 text-right">
-                               <button 
+                              <button
                                 className="text-rose-500 hover:text-white hover:bg-rose-600 p-1.5 rounded transition-all ml-auto block"
                                 onClick={() => handleDelete(emp._id, emp.name)}
                                 title="Terminate Staff Member"
@@ -498,7 +498,7 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
               <ShieldAlert className="w-6 h-6 shrink-0" />
               <h3 className="text-sm font-black uppercase tracking-wider font-mono">Terminate Staff Member</h3>
             </div>
-            
+
             <p className={`text-xs leading-relaxed ${isDark ? "text-gray-400" : "text-slate-600"}`}>
               Are you absolutely sure you want to terminate <strong>{deleteTarget.name}</strong> from the active corporate staff database? This action is permanent and cannot be undone.
             </p>

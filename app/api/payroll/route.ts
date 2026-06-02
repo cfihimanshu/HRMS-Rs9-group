@@ -14,9 +14,10 @@ export async function GET(req: Request) {
 
     await dbConnect();
 
+    const user = (session?.user as any);
     // Employees see only their payslips, HR sees all
     const filter = (session.user as any).role === "Employee" ? { employee: (session.user as any).id } : {};
-    
+
     const payslips = await Payroll.find(filter)
       .populate("employee", "name email")
       .sort({ year: -1, month: -1 });

@@ -24,9 +24,9 @@ export async function POST(req: Request) {
     const profile = await EmployeeProfile.findOne({ user: (session.user as any).id });
     if (profile) {
       const balance = type === "Casual Leave" ? profile.leaveBalances.casualLeave :
-                      type === "Sick Leave" ? profile.leaveBalances.sickLeave :
-                      type === "Earned Leave" ? profile.leaveBalances.earnedLeave : 999;
-      
+        type === "Sick Leave" ? profile.leaveBalances.sickLeave :
+          type === "Earned Leave" ? profile.leaveBalances.earnedLeave : 999;
+
       if (type !== "Unpaid Leave" && balance < days) {
         return NextResponse.json({ success: false, error: `Insufficient ${type} balance. (Available: ${balance})` }, { status: 400 });
       }
@@ -58,10 +58,10 @@ export async function GET(req: Request) {
     }
 
     await dbConnect();
-    
+
     // If user is Employee, show only their leaves. Otherwise, show all leaves (for HR/Manager)
     const filter = (session.user as any).role === "Employee" ? { employee: (session.user as any).id } : {};
-    
+
     const leaves = await Leave.find(filter)
       .populate("employee", "name email")
       .populate("approvedBy", "name")
