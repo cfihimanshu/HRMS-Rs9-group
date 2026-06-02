@@ -36,7 +36,7 @@ export async function GET() {
       await Role.findOneAndUpdate(
         { name: r },
         { name: r, permissions: ["read", "write"], status: "active" },
-        { upsert: true, new: true }
+        { upsert: true, returnDocument: 'after' }
       );
     }
 
@@ -45,7 +45,7 @@ export async function GET() {
     const company = await Company.findOneAndUpdate(
       { code: "ACOLYTE" },
       { name: "Acolyte Group of Companies", code: "ACOLYTE", address: "Corporate Headquarters, Delhi", status: "active" },
-      { upsert: true, new: true }
+      { upsert: true, returnDocument: 'after' }
     );
 
     // 3. Seed Departments
@@ -56,7 +56,7 @@ export async function GET() {
       const dept = await Department.findOneAndUpdate(
         { name: d, company: company._id },
         { name: d, company: company._id, status: "active" },
-        { upsert: true, new: true }
+        { upsert: true, returnDocument: 'after' }
       );
       deptIds.push(dept._id);
     }
@@ -66,7 +66,7 @@ export async function GET() {
     const territory = await Territory.findOneAndUpdate(
       { name: "North Delhi Region" },
       { name: "North Delhi Region", status: "active" },
-      { upsert: true, new: true }
+      { upsert: true, returnDocument: 'after' }
     );
 
     // 5. Seed Default Users
@@ -143,7 +143,7 @@ export async function GET() {
       await User.findOneAndUpdate(
         { email: u.email },
         { ...u },
-        { upsert: true, new: true }
+        { upsert: true, returnDocument: 'after' }
       );
     }
 
