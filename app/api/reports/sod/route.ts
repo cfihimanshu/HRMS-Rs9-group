@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import dbConnect from "@/lib/db";
 import SodReport from "@/models/SodReport";
+import Attendance from "@/models/Attendance";
 import { logAudit } from "@/lib/audit";
 
 // GET: Fetch today's SOD for the logged-in user
@@ -64,6 +65,18 @@ export async function POST(req: Request) {
       location,
     });
     await record.save();
+
+    // Auto-punch attendance check-in (Present) if not already punched today
+    const attendanceExists = await Attendance.findOne({ employee: userId, date: today });
+    if (!attendanceExists) {
+      const attendanceRecord = new Attendance({
+        employee: userId,
+        date: today,
+        status: "Present",
+        checkIn: new Date(),
+      });
+      await attendanceRecord.save();
+    }
 
     await logAudit({
       userId,

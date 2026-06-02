@@ -918,7 +918,7 @@ export default function UnifiedEnterpriseDashboard() {
           )}
 
           {activeTab === "performance" && (
-            <PerformanceCompliance />
+            <PerformanceCompliance sessionUser={session?.user} />
           )}
 
           {activeTab === "associates" && (

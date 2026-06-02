@@ -60,7 +60,7 @@ export default function DashboardSidebar({
 
     { id: "attendance", label: "Attendance Punch & SOD", icon: CalendarCheck, category: "Daily Operations", roles: ["Owner", "Director", "HR Head", "HR Executive", "Department Manager", "Accounts", "Trainer", "IT Admin", "DSM", "RIBP / Risk Officer"] },
     { id: "tasks", label: "My Tasks (Kanban)", icon: FileEdit, category: "Daily Operations", roles: ["Owner", "Director", "HR Head", "HR Executive", "Department Manager", "Accounts", "Trainer", "Employee", "IT Admin", "DSM", "RIBP / Risk Officer"] },
-    { id: "performance", label: "Performance Compliance", icon: TrendingUp, category: "Daily Operations", roles: ["Owner", "Director", "HR Head", "HR Executive", "Department Manager", "Employee"] },
+    { id: "performance", label: "Work Report", icon: FileText, category: "Daily Operations", roles: ["Owner", "Director", "HR Head", "HR Executive", "Department Manager", "Employee"] },
 
     { id: "associates", label: "Business Associates", icon: BriefcaseIcon, category: "Network Partners", roles: ["Owner", "Director", "HR Head", "Franchisee", "Territory Partner", "Business Associate"] },
     { id: "vendors", label: "Vendor SLA Contracts", icon: Building2, category: "Network Partners", roles: ["Owner", "Director", "HR Head", "Accounts", "Vendor"] },

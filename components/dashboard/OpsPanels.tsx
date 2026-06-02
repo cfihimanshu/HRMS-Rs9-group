@@ -6,7 +6,13 @@ import {
   MapPin,
   Loader2,
   User,
-  Hash
+  Hash,
+  Search,
+  Calendar,
+  Clock,
+  Eye,
+  FileText,
+  X
 } from "lucide-react";
 
 interface OpsProps {
@@ -466,42 +472,279 @@ export function DailyCommitments({
   );
 }
 
-export function PerformanceCompliance() {
-  return (
-    <div className="space-y-8 animate-fadeIn text-slate-800">
-      <div>
-        <h1 className="text-xl font-black text-slate-850">Workforce Performance Compliance</h1>
-        <p className="text-xs text-slate-500 mt-1">Aggregate score combining KPI outputs, daily checks compliance, and manager feedback ratings</p>
-      </div>
+export function PerformanceCompliance({ sessionUser }: { sessionUser?: any }) {
+  const [loading, setLoading] = useState(true);
+  const [reports, setReports] = useState<{ sod: any[]; eod: any[] }>({ sod: [], eod: [] });
+  const [activeSubTab, setActiveSubTab] = useState<"sod" | "eod">("sod");
+  const [searchTerm, setSearchTerm] = useState("");
+  const [dateFilter, setDateFilter] = useState("");
+  const [selectedSelfie, setSelectedSelfie] = useState<string | null>(null);
 
-      <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs border-collapse">
-            <thead>
-              <tr className="border-b border-slate-200 text-slate-450 font-black uppercase font-mono tracking-wider">
-                <th className="pb-3 pr-2">Employee</th>
-                <th className="pb-3 px-2">Dept</th>
-                <th className="pb-3 px-2">KPI Score</th>
-                <th className="pb-3 px-2">Attendance</th>
-                <th className="pb-3 px-2">SOD/EOD Ratio</th>
-                <th className="pb-3 px-2">Vetting Flag</th>
-                <th className="pb-3 pl-2 text-right">Rating Grid</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100 font-semibold text-slate-650">
-              <tr className="hover:bg-slate-50/50">
-                <td className="py-3.5 font-bold text-slate-850">Kavita Nair</td>
-                <td className="py-3.5 px-2">Sales</td>
-                <td className="py-3.5 px-2 text-[#714B67] font-mono font-bold">92%</td>
-                <td className="py-3.5 px-2 font-mono">98%</td>
-                <td className="py-3.5 px-2 font-mono">100%</td>
-                <td className="py-3.5 px-2"><span className="text-[10px] font-bold px-2 py-0.5 bg-emerald-50/50 text-emerald-600 border border-emerald-250 rounded">Low</span></td>
-                <td className="py-3.5 pl-2 text-right text-amber-500">⭐⭐⭐⭐⭐</td>
-              </tr>
-            </tbody>
-          </table>
+  useEffect(() => {
+    fetchReports();
+  }, []);
+
+  const fetchReports = async () => {
+    try {
+      setLoading(true);
+      const res = await fetch("/api/reports/work-report");
+      const data = await res.json();
+      if (data.success) {
+        setReports(data.data || { sod: [], eod: [] });
+      }
+    } catch (error) {
+      console.error("Error fetching work reports:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const isOwner = sessionUser?.role === "Owner";
+
+  // Filter logic
+  const listToFilter = activeSubTab === "sod" ? reports.sod : reports.eod;
+  const filteredList = (listToFilter || []).filter((item: any) => {
+    const empName = item.employee?.name || "";
+    const empEmail = item.employee?.email || "";
+    const matchSearch = empName.toLowerCase().includes(searchTerm.toLowerCase()) || empEmail.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    let matchDate = true;
+    if (dateFilter) {
+      const reportDate = new Date(item.date).toDateString();
+      const filterDate = new Date(dateFilter).toDateString();
+      matchDate = reportDate === filterDate;
+    }
+    
+    return matchSearch && matchDate;
+  });
+
+  return (
+    <div className="space-y-6 animate-fadeIn text-slate-800">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-xl font-black text-slate-850">Work Reports</h1>
+          <p className="text-xs text-slate-500 mt-1">
+            {isOwner ? "View daily Start of Day (SOD) and End of Day (EOD) logs submitted by all staff members." : "Track your daily SOD planning and EOD submissions."}
+          </p>
+        </div>
+        
+        {/* Sub-Tabs */}
+        <div className="flex bg-slate-100 p-1 rounded-lg border border-slate-200 self-start md:self-auto">
+          <button
+            onClick={() => setActiveSubTab("sod")}
+            className={`px-4 py-2 text-xs font-black rounded-md transition-all ${
+              activeSubTab === "sod"
+                ? "bg-[#714B67] text-white shadow-md"
+                : "text-slate-650 hover:text-[#714B67]"
+            }`}
+          >
+            Start of Day (SOD)
+          </button>
+          <button
+            onClick={() => setActiveSubTab("eod")}
+            className={`px-4 py-2 text-xs font-black rounded-md transition-all ${
+              activeSubTab === "eod"
+                ? "bg-[#714B67] text-white shadow-md"
+                : "text-slate-650 hover:text-[#714B67]"
+            }`}
+          >
+            End of Day (EOD)
+          </button>
         </div>
       </div>
+
+      {/* Filters */}
+      <div className="flex flex-col md:flex-row gap-4 items-center bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
+        {isOwner && (
+          <div className="relative flex-1 w-full">
+            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
+            <input
+              type="text"
+              placeholder="Search by Employee Name or Email..."
+              className="w-full bg-slate-50 border border-slate-200 rounded-lg pl-9 pr-4 py-2.5 text-xs font-bold focus:outline-none focus:border-[#714B67] text-slate-800"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+        )}
+        <div className="relative w-full md:w-64">
+          <Calendar className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
+          <input
+            type="date"
+            className="w-full bg-slate-50 border border-slate-200 rounded-lg pl-9 pr-4 py-2.5 text-xs font-bold focus:outline-none focus:border-[#714B67] text-slate-800"
+            value={dateFilter}
+            onChange={(e) => setDateFilter(e.target.value)}
+          />
+        </div>
+        {dateFilter && (
+          <button
+            onClick={() => setDateFilter("")}
+            className="text-xs text-rose-600 hover:underline font-bold"
+          >
+            Clear Date
+          </button>
+        )}
+      </div>
+
+      {/* Data Table / List */}
+      <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
+        {loading ? (
+          <div className="text-center py-12">
+            <Loader2 className="w-8 h-8 text-[#714B67] animate-spin mx-auto mb-2" />
+            <span className="text-xs font-mono font-black text-slate-400 uppercase tracking-widest">Loading reports...</span>
+          </div>
+        ) : filteredList.length === 0 ? (
+          <div className="text-center py-12">
+            <FileText className="w-8 h-8 text-slate-300 mx-auto mb-2" />
+            <span className="text-xs font-bold text-slate-400">No {activeSubTab.toUpperCase()} submissions found for the selected criteria.</span>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs border-collapse">
+              <thead>
+                <tr className="border-b border-slate-200 bg-slate-50 text-slate-450 font-black uppercase font-mono tracking-wider">
+                  {isOwner && <th className="py-3.5 px-4 text-left">Employee</th>}
+                  <th className="py-3.5 px-4 text-left">Date & Time</th>
+                  {activeSubTab === "sod" ? (
+                    <>
+                      <th className="py-3.5 px-4 text-left">Task Type</th>
+                      <th className="py-3.5 px-4 text-left">Task Summary</th>
+                      <th className="py-3.5 px-4 text-left">Remarks</th>
+                    </>
+                  ) : (
+                    <>
+                      <th className="py-3.5 px-4 text-left">Completed Work</th>
+                      <th className="py-3.5 px-4 text-left">Pending Work</th>
+                      <th className="py-3.5 px-4 text-left">Tomorrow's Plan</th>
+                      <th className="py-3.5 px-4 text-left">Issues</th>
+                      <th className="py-3.5 px-4 text-left">Escalation</th>
+                    </>
+                  )}
+                  <th className="py-3.5 px-4 text-left">Location</th>
+                  <th className="py-3.5 px-4 text-center">Selfie</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 font-semibold text-slate-650">
+                {filteredList.map((item: any) => {
+                  const submitDate = new Date(item.createdAt);
+                  return (
+                    <tr key={item._id} className="hover:bg-slate-50/50">
+                      {isOwner && (
+                        <td className="py-3.5 px-4">
+                          <div className="flex flex-col">
+                            <span className="font-black text-slate-800">{item.employee?.name || "Unknown"}</span>
+                            <span className="text-[10px] text-slate-400 font-mono font-bold">{item.employee?.email || ""}</span>
+                          </div>
+                        </td>
+                      )}
+                      <td className="py-3.5 px-4 whitespace-nowrap">
+                        <div className="flex items-center gap-1.5">
+                          <Calendar className="w-3.5 h-3.5 text-slate-400" />
+                          <span>{submitDate.toLocaleDateString()}</span>
+                          <span className="text-slate-350">|</span>
+                          <Clock className="w-3.5 h-3.5 text-slate-400" />
+                          <span>{submitDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                        </div>
+                      </td>
+                      {activeSubTab === "sod" ? (
+                        <>
+                          <td className="py-3.5 px-4 whitespace-nowrap">
+                            <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-50 text-indigo-600 border border-indigo-100">
+                              {item.taskType}
+                            </span>
+                          </td>
+                          <td className="py-3.5 px-4 max-w-xs truncate" title={item.taskSummary}>
+                            {item.taskSummary}
+                          </td>
+                          <td className="py-3.5 px-4 max-w-xs truncate text-slate-450 italic" title={item.remarks}>
+                            {item.remarks || "—"}
+                          </td>
+                        </>
+                      ) : (
+                        <>
+                          <td className="py-3.5 px-4 max-w-xs truncate" title={item.completedWork}>
+                            {item.completedWork}
+                          </td>
+                          <td className="py-3.5 px-4 max-w-xs truncate" title={item.pendingWork}>
+                            {item.pendingWork}
+                          </td>
+                          <td className="py-3.5 px-4 max-w-xs truncate" title={item.tomorrowPlan}>
+                            {item.tomorrowPlan}
+                          </td>
+                          <td className="py-3.5 px-4 max-w-xs truncate text-slate-450 italic" title={item.issues}>
+                            {item.issues || "—"}
+                          </td>
+                          <td className="py-3.5 px-4 whitespace-nowrap">
+                            <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                              item.escalationNeeded 
+                                ? "bg-rose-50 text-rose-600 border border-rose-100" 
+                                : "bg-slate-50 text-slate-500 border border-slate-200"
+                            }`}>
+                              {item.escalationNeeded ? "Yes" : "No"}
+                            </span>
+                          </td>
+                        </>
+                      )}
+                      <td className="py-3.5 px-4 whitespace-nowrap">
+                        {item.location?.latitude && item.location?.longitude ? (
+                          <a
+                            href={`https://www.google.com/maps/search/?api=1&query=${item.location.latitude},${item.location.longitude}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-1 text-indigo-600 hover:text-indigo-850 hover:underline font-bold"
+                          >
+                            <MapPin className="w-3.5 h-3.5" />
+                            <span>GPS Map</span>
+                          </a>
+                        ) : (
+                          <span className="text-slate-400">—</span>
+                        )}
+                      </td>
+                      <td className="py-3.5 px-4 text-center">
+                        {item.selfieUrl ? (
+                          <button
+                            onClick={() => setSelectedSelfie(item.selfieUrl)}
+                            className="inline-flex items-center justify-center p-1.5 rounded-lg bg-indigo-50 border border-indigo-100 text-indigo-600 hover:bg-indigo-600 hover:text-white transition-all"
+                            title="View Captured Selfie"
+                          >
+                            <Eye className="w-3.5 h-3.5" />
+                          </button>
+                        ) : (
+                          <span className="text-slate-400">—</span>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      {/* Selfie Lightbox Modal */}
+      {selectedSelfie && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl overflow-hidden shadow-2xl max-w-sm w-full border border-slate-200 relative animate-scaleIn animate-duration-200">
+            <button
+              onClick={() => setSelectedSelfie(null)}
+              className="absolute top-3 right-3 p-1.5 rounded-full bg-slate-900/60 hover:bg-slate-900 text-white transition-all z-10"
+            >
+              <X className="w-4 h-4" />
+            </button>
+            <div className="aspect-square bg-slate-950 flex items-center justify-center">
+              <img
+                src={selectedSelfie}
+                alt="Verification Selfie"
+                className="w-full h-full object-cover"
+              />
+            </div>
+            <div className="p-4 text-center">
+              <h4 className="text-xs font-black text-[#714B67] uppercase font-mono tracking-wider">Facial Verification Capture</h4>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
