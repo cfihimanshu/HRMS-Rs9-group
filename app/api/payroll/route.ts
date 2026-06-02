@@ -1,21 +1,21 @@
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth/react";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
-import dbConnect from "@/lib/dbConnect";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+import dbConnect from "@/lib/db";
 import Payroll from "@/models/Payroll";
 
 // GET: Fetch Payslips
 export async function GET(req: Request) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session?.user?.id) {
+    if (!session || !session.user || !(session.user as any).id) {
       return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
     }
 
     await dbConnect();
 
     // Employees see only their payslips, HR sees all
-    const filter = session.user.role === "Employee" ? { employee: session.user.id } : {};
+    const filter = (session.user as any).role === "Employee" ? { employee: (session.user as any).id } : {};
     
     const payslips = await Payroll.find(filter)
       .populate("employee", "name email")
@@ -31,7 +31,7 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session?.user?.id || !["Owner", "HR Head", "Accounts"].includes(session.user.role)) {
+    if (!session || !session.user || !(session.user as any).id || !["Owner", "HR Head", "Accounts"].includes((session.user as any).role)) {
       return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
     }
 

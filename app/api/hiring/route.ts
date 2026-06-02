@@ -61,7 +61,6 @@ export async function POST(req: Request) {
       department,
       role,
       category,
-      category,
       qty: Number(qty),
       gender: gender || "Any",
       experience: { min: Number(experience?.min || 0), max: Number(experience?.max || 0) },
@@ -98,7 +97,7 @@ export async function PUT(req: Request) {
     }
 
     const body = await req.json();
-    const { id, status, remarks, sourcingBudget } = body;
+    const { id, status, remarks, sourcingBudget, postingPlatform } = body;
 
     if (!id || !status) {
       return NextResponse.json({ success: false, error: "Missing requisition ID or status" }, { status: 400 });
@@ -115,6 +114,9 @@ export async function PUT(req: Request) {
       requisition.hrSourcingRemarks = remarks || "Forwarded to Accounts.";
       if (sourcingBudget !== undefined) {
         requisition.sourcingBudget = Number(sourcingBudget);
+      }
+      if (postingPlatform !== undefined) {
+        requisition.postingPlatform = postingPlatform;
       }
 
     // ─── Stage 2 → 3: Accounts recommends → forwards to Owner ──────────
@@ -153,6 +155,7 @@ export async function PUT(req: Request) {
         salaryRange: `₹${requisition.budget?.min?.toLocaleString("en-IN")} - ₹${requisition.budget?.max?.toLocaleString("en-IN")} P.A.`,
         description: `Role: ${requisition.role}\nDepartment: ${requisition.department}\nJob Category: ${requisition.category}\nJD: ${requisition.jd}\nKRA: ${requisition.kra}\nKPI: ${requisition.kpi}\nSOP: ${requisition.sop}`,
         status: "active",
+        source: requisition.postingPlatform || "Indeed",
       });
       await job.save();
 

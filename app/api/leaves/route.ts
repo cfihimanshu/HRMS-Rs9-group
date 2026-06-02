@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth/react";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
-import dbConnect from "@/lib/dbConnect";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+import dbConnect from "@/lib/db";
 import Leave from "@/models/Leave";
 import EmployeeProfile from "@/models/EmployeeProfile";
 
@@ -9,7 +9,7 @@ import EmployeeProfile from "@/models/EmployeeProfile";
 export async function POST(req: Request) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session?.user?.id) {
+    if (!session || !session.user || !(session.user as any).id) {
       return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
     }
 
@@ -21,7 +21,7 @@ export async function POST(req: Request) {
     }
 
     // Optional: Validate leave balances (if EmployeeProfile exists)
-    const profile = await EmployeeProfile.findOne({ user: session.user.id });
+    const profile = await EmployeeProfile.findOne({ user: (session.user as any).id });
     if (profile) {
       const balance = type === "Casual Leave" ? profile.leaveBalances.casualLeave :
                       type === "Sick Leave" ? profile.leaveBalances.sickLeave :
@@ -33,7 +33,7 @@ export async function POST(req: Request) {
     }
 
     const leave = await Leave.create({
-      employee: session.user.id,
+      employee: (session.user as any).id,
       type,
       startDate,
       endDate,
@@ -53,14 +53,14 @@ export async function POST(req: Request) {
 export async function GET(req: Request) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session?.user?.id) {
+    if (!session || !session.user || !(session.user as any).id) {
       return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
     }
 
     await dbConnect();
     
     // If user is Employee, show only their leaves. Otherwise, show all leaves (for HR/Manager)
-    const filter = session.user.role === "Employee" ? { employee: session.user.id } : {};
+    const filter = (session.user as any).role === "Employee" ? { employee: (session.user as any).id } : {};
     
     const leaves = await Leave.find(filter)
       .populate("employee", "name email")

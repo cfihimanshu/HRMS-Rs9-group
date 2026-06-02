@@ -1,13 +1,14 @@
 "use client";
 import React, { useState, useEffect } from "react";
-import { Users, Plus, Building2, Mail, Phone, ShieldCheck, FileText, Trash2, Search, ShieldAlert, UserCheck } from "lucide-react";
+import { Users, Plus, Building2, Mail, Phone, ShieldCheck, FileText, Trash2, Search, ShieldAlert, UserCheck, UserPlus } from "lucide-react";
 
 interface EmployeeDirectoryProps {
   userRole: string;
   triggerToast: (msg: string) => void;
+  sessionUser?: any;
 }
 
-export default function EmployeeDirectory({ userRole, triggerToast }: EmployeeDirectoryProps) {
+export default function EmployeeDirectory({ userRole, triggerToast, sessionUser }: EmployeeDirectoryProps) {
   const [employees, setEmployees] = useState<any[]>([]);
   const [companies, setCompanies] = useState<any[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -16,6 +17,48 @@ export default function EmployeeDirectory({ userRole, triggerToast }: EmployeeDi
   const [search, setSearch] = useState<string>("");
   const [filterRole, setFilterRole] = useState<string>("All");
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
+
+  const [topCompany, setTopCompany] = useState("");
+  const [topRole, setTopRole] = useState("Employee");
+
+  const handleTopCompanyChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const val = e.target.value;
+    setTopCompany(val);
+    
+    if (val) {
+      const matched = companies.find(c => {
+        const nameLower = c.name.toLowerCase();
+        const codeLower = (c.code || "").toLowerCase();
+        
+        if (val === "Acolyte") return nameLower.includes("acolyte");
+        if (val === "Startupflora") return nameLower.includes("startupflora");
+        if (val === "Startupkare") return nameLower.includes("startupkare") || nameLower.includes("startup kare") || codeLower.includes("kare");
+        if (val === "Force 009") return nameLower.includes("force") || codeLower.includes("force") || nameLower.includes("009");
+        if (val === "Citiline") return nameLower.includes("citiline");
+        if (val === "CFI") return nameLower.includes("cfi") || codeLower.includes("cfi");
+        return false;
+      });
+      
+      if (matched) {
+        setFormData(prev => ({ ...prev, companyId: matched._id }));
+      } else {
+        const fallback = companies.find(c => c.name.toLowerCase().includes(val.toLowerCase()));
+        if (fallback) {
+          setFormData(prev => ({ ...prev, companyId: fallback._id }));
+        } else {
+          setFormData(prev => ({ ...prev, companyId: "" }));
+        }
+      }
+    } else {
+      setFormData(prev => ({ ...prev, companyId: "" }));
+    }
+  };
+
+  const handleTopRoleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const val = e.target.value;
+    setTopRole(val);
+    setFormData(prev => ({ ...prev, role: val, designation: val }));
+  };
   
   const [formData, setFormData] = useState({
     name: "",
@@ -74,6 +117,8 @@ export default function EmployeeDirectory({ userRole, triggerToast }: EmployeeDi
       if (data.success) {
         triggerToast("Employee onboarded successfully!");
         setShowAddForm(false);
+        setTopCompany("");
+        setTopRole("Employee");
         setFormData({
           name: "", email: "", password: "", role: "Employee", mobile: "",
           companyId: "", employeeId: "", designation: "", dateOfJoining: "", baseSalary: ""
@@ -122,12 +167,69 @@ export default function EmployeeDirectory({ userRole, triggerToast }: EmployeeDi
     "DSM", "Trainer", "Accounts", "IT Admin", "RIBP / Risk Officer"
   ];
 
+  const allowedCompanies = ["Acolyte", "Startupflora", "Startupkare", "Force 009", "Citiline", "CFI"];
+  
+  // Find current user profile
+  const currentUser = employees.find(emp => emp._id === sessionUser?.id);
+  const hrCompany = currentUser?.companies?.[0]; // e.g. { name: "Startupflora", code: "STARTUPFLORA" }
+
   const filteredEmployees = employees.filter(emp => {
     const matchesSearch = emp.name.toLowerCase().includes(search.toLowerCase()) || 
                           emp.email.toLowerCase().includes(search.toLowerCase());
     const matchesFilter = filterRole === "All" || emp.role === filterRole;
-    return matchesSearch && matchesFilter;
+    
+    // Role-based visibility check
+    let matchesCompany = true;
+    if (userRole === "HR Head" || userRole === "HR Executive") {
+      if (hrCompany) {
+        matchesCompany = emp.companies?.some((c: any) => c._id?.toString() === hrCompany._id?.toString()) || false;
+      } else {
+        matchesCompany = false;
+      }
+    }
+    
+    return matchesSearch && matchesFilter && matchesCompany;
   });
+
+  // Filter top company dropdown options based on role
+  let visibleCompanyOptions = allowedCompanies;
+  if (userRole === "HR Head" || userRole === "HR Executive") {
+    if (hrCompany) {
+      const hrCompName = hrCompany.name.toLowerCase();
+      const matchedOption = allowedCompanies.find(opt => {
+        if (opt === "Startupkare") return hrCompName.includes("startupkare") || hrCompName.includes("startup kare");
+        if (opt === "Force 009") return hrCompName.includes("force") || hrCompName.includes("009");
+        return hrCompName.includes(opt.toLowerCase());
+      });
+      visibleCompanyOptions = matchedOption ? [matchedOption] : [];
+    } else {
+      visibleCompanyOptions = []; // HR has no company assigned yet
+    }
+  }
+
+  // When showAddForm is toggled or visibleCompanyOptions changes, auto-select for HR
+  useEffect(() => {
+    if (showAddForm && (userRole === "HR Head" || userRole === "HR Executive") && visibleCompanyOptions.length === 1) {
+      const defaultCompany = visibleCompanyOptions[0];
+      setTopCompany(defaultCompany);
+      
+      const matched = companies.find(c => {
+        const nameLower = c.name.toLowerCase();
+        const codeLower = (c.code || "").toLowerCase();
+        
+        if (defaultCompany === "Acolyte") return nameLower.includes("acolyte");
+        if (defaultCompany === "Startupflora") return nameLower.includes("startupflora");
+        if (defaultCompany === "Startupkare") return nameLower.includes("startupkare") || nameLower.includes("startup kare") || codeLower.includes("kare");
+        if (defaultCompany === "Force 009") return nameLower.includes("force") || codeLower.includes("force") || nameLower.includes("009");
+        if (defaultCompany === "Citiline") return nameLower.includes("citiline");
+        if (defaultCompany === "CFI") return nameLower.includes("cfi") || codeLower.includes("cfi");
+        return false;
+      });
+      if (matched) {
+        setFormData(prev => ({ ...prev, companyId: matched._id }));
+      }
+    }
+  }, [showAddForm, visibleCompanyOptions, companies, userRole]);
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -140,19 +242,52 @@ export default function EmployeeDirectory({ userRole, triggerToast }: EmployeeDi
             Onboard and manage employees across multiple organizations.
           </p>
         </div>
-        <button 
-          onClick={() => setShowAddForm(!showAddForm)}
-          className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2.5 rounded-lg text-sm font-bold shadow-md transition-all flex items-center gap-2"
-        >
-          {showAddForm ? "Cancel Registration" : <><UserPlus className="w-4 h-4" /> Add Employee</>}
-        </button>
+        {(userRole === "Owner" || userRole === "HR Head" || userRole === "HR Executive") && (
+          <button 
+            onClick={() => setShowAddForm(!showAddForm)}
+            className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2.5 rounded-lg text-sm font-bold shadow-md transition-all flex items-center gap-2"
+          >
+            {showAddForm ? "Cancel Registration" : <><UserPlus className="w-4 h-4" /> Add Employee</>}
+          </button>
+        )}
       </div>
 
-      {showAddForm ? (
+      {showAddForm && (userRole === "Owner" || userRole === "HR Head" || userRole === "HR Executive") ? (
         <div className={`p-6 rounded-xl border shadow-sm ${isDark ? "bg-gray-900 border-gray-800" : "bg-white border-slate-200"}`}>
           <h2 className={`text-lg font-bold mb-6 ${isDark ? "text-white" : "text-slate-800"}`}>Onboard New Employee</h2>
           
           <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Top Selection for Company and Role */}
+            <div className={`p-4 rounded-xl border mb-6 grid grid-cols-1 md:grid-cols-2 gap-6 ${isDark ? "bg-gray-800/40 border-gray-700" : "bg-slate-50 border-slate-200"}`}>
+              <div>
+                <label className={`block text-xs font-bold mb-1.5 ${isDark ? "text-indigo-400" : "text-indigo-600"}`}>Company *</label>
+                <select 
+                  value={topCompany} 
+                  onChange={handleTopCompanyChange} 
+                  required
+                  className={`w-full p-2.5 rounded-lg border text-sm font-bold focus:border-indigo-500 focus:outline-none ${isDark ? "bg-gray-800 border-gray-700 text-white" : "bg-white border-slate-350"}`}
+                >
+                  {visibleCompanyOptions.length > 1 && <option value="">-- Choose Company --</option>}
+                  {visibleCompanyOptions.map(opt => (
+                    <option key={opt} value={opt}>{opt}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className={`block text-xs font-bold mb-1.5 ${isDark ? "text-indigo-400" : "text-indigo-600"}`}>System Role *</label>
+                <select 
+                  value={topRole} 
+                  onChange={handleTopRoleChange} 
+                  required
+                  className={`w-full p-2.5 rounded-lg border text-sm font-bold focus:border-indigo-500 focus:outline-none ${isDark ? "bg-gray-800 border-gray-700 text-white" : "bg-white border-slate-355"}`}
+                >
+                  {availableRoles.map((r, i) => (
+                    <option key={i} value={r}>{r}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Account Details */}
               <div className="space-y-4">
@@ -185,8 +320,8 @@ export default function EmployeeDirectory({ userRole, triggerToast }: EmployeeDi
                   </div>
                   <div>
                     <label className={`block text-xs font-bold mb-1.5 ${isDark ? "text-gray-300" : "text-slate-700"}`}>System Role *</label>
-                    <select name="role" value={formData.role} onChange={handleChange} required
-                      className={`w-full p-2.5 rounded-lg border text-sm focus:border-indigo-500 focus:outline-none ${isDark ? "bg-gray-800 border-gray-700 text-white" : "bg-slate-50 border-slate-200"}`}>
+                    <select name="role" value={formData.role} onChange={handleChange} required disabled
+                      className={`w-full p-2.5 rounded-lg border text-sm focus:border-indigo-500 focus:outline-none opacity-60 cursor-not-allowed ${isDark ? "bg-gray-800 border-gray-700 text-white" : "bg-slate-200 border-slate-200"}`}>
                       {availableRoles.map((r, i) => (
                         <option key={i} value={r}>{r}</option>
                       ))}
@@ -201,8 +336,8 @@ export default function EmployeeDirectory({ userRole, triggerToast }: EmployeeDi
                 
                 <div>
                   <label className={`block text-xs font-bold mb-1.5 ${isDark ? "text-gray-300" : "text-slate-700"}`}>Assign to Company *</label>
-                  <select name="companyId" value={formData.companyId} onChange={handleChange} required
-                    className={`w-full p-2.5 rounded-lg border text-sm focus:border-indigo-500 focus:outline-none ${isDark ? "bg-gray-800 border-gray-700 text-white" : "bg-slate-50 border-slate-200"}`}>
+                  <select name="companyId" value={formData.companyId} onChange={handleChange} required disabled
+                    className={`w-full p-2.5 rounded-lg border text-sm focus:border-indigo-500 focus:outline-none opacity-60 cursor-not-allowed ${isDark ? "bg-gray-800 border-gray-700 text-white" : "bg-slate-200 border-slate-200"}`}>
                     <option value="">-- Select Company --</option>
                     {companies.map(c => (
                       <option key={c._id} value={c._id}>{c.name} ({c.code})</option>

@@ -36,6 +36,7 @@ interface RecruitmentProps {
   interviews: any[];
   toggleModal: (modalId: string, open: boolean) => void;
   triggerToast: (msg: string) => void;
+  requisitions?: any[];
 }
 
 export function HiringApproval({ 
@@ -46,7 +47,7 @@ export function HiringApproval({
   userRole 
 }: { 
   requisitions: any[];
-  onApproveRequisition: (id: string, nextStatus: string, remarks: string, budget?: string) => void;
+  onApproveRequisition: (id: string, nextStatus: string, remarks: string, budget?: string, platform?: string) => void;
   toggleModal: (modalId: string, open: boolean) => void;
   triggerToast: (msg: string) => void;
   userRole?: string;
@@ -55,6 +56,7 @@ export function HiringApproval({
   const [expandedReq, setExpandedReq] = useState<string | null>(null);
   const [remarksInput, setRemarksInput] = useState<{ [key: string]: string }>({});
   const [budgetInput, setBudgetInput] = useState<{ [key: string]: string }>({});
+  const [platformInput, setPlatformInput] = useState<{ [key: string]: string }>({});
 
   const isHR = userRole === "HR Head" || userRole === "HR Executive" || userRole === "HR";
   const hrVisibleStatuses = ["Pending HR Sourcing Review", "Approved — Pending HR Post", "Job Posted"];
@@ -82,6 +84,10 @@ export function HiringApproval({
   
   const handleBudgetChange = (reqId: string, val: string) => {
     setBudgetInput(prev => ({ ...prev, [reqId]: val }));
+  };
+
+  const handlePlatformChange = (reqId: string, val: string) => {
+    setPlatformInput(prev => ({ ...prev, [reqId]: val }));
   };
 
   const stats = {
@@ -192,6 +198,7 @@ export function HiringApproval({
           const isExpanded = expandedReq === req._id;
           const remarks = remarksInput[req._id] || "";
           const budget = budgetInput[req._id] || "";
+          const platform = platformInput[req._id] || "Indeed";
 
           return (
             <div key={idx} className="bg-white border border-slate-200 rounded-xl shadow-sm hover:shadow-md transition-all overflow-hidden">
@@ -279,8 +286,11 @@ export function HiringApproval({
                       <div className="bg-white p-2.5 rounded-lg border border-slate-200">
                         <span className="block font-black text-fuchsia-600 uppercase font-mono">Step 2: HR Sourcing</span>
                         <p className="text-slate-600 mt-1 font-medium italic">{req.hrSourcingRemarks || "Pending HR review..."}</p>
-                        {req.sourcingBudget && (
-                          <div className="mt-1.5 pt-1.5 border-t border-slate-100 font-bold text-slate-700">Budget: ₹{req.sourcingBudget.toLocaleString("en-IN")}</div>
+                        {(req.sourcingBudget || req.postingPlatform) && (
+                          <div className="mt-1.5 pt-1.5 border-t border-slate-100 font-bold text-slate-750 flex flex-col gap-0.5">
+                            {req.sourcingBudget && <div>Budget: ₹{req.sourcingBudget.toLocaleString("en-IN")}</div>}
+                            {req.postingPlatform && <div>Platform: {req.postingPlatform}</div>}
+                          </div>
                         )}
                       </div>
                       <div className="bg-white p-2.5 rounded-lg border border-slate-200">
@@ -307,7 +317,7 @@ export function HiringApproval({
                           </div>
                         ) : (
                           <div className="flex flex-col md:flex-row gap-3 items-end">
-                            <div className="w-1/4">
+                            <div className="w-1/5">
                               <label className="text-[8px] uppercase font-black text-slate-400 font-mono tracking-widest">Sourcing Budget (₹)</label>
                               <input 
                                 type="number"
@@ -316,6 +326,18 @@ export function HiringApproval({
                                 value={budget}
                                 onChange={e => handleBudgetChange(req._id, e.target.value)}
                               />
+                            </div>
+                            <div className="w-1/4">
+                              <label className="text-[8px] uppercase font-black text-slate-400 font-mono tracking-widest">Posting Platform</label>
+                              <select 
+                                className="w-full bg-white border border-slate-300 p-2.5 rounded text-xs focus:outline-none mt-1 text-slate-900" 
+                                value={platform}
+                                onChange={e => handlePlatformChange(req._id, e.target.value)}
+                              >
+                                <option value="Indeed">Indeed</option>
+                                <option value="Naukri">Naukri</option>
+                                <option value="Linkedin">Linkedin</option>
+                              </select>
                             </div>
                             <div className="flex-1">
                               <label className="text-[8px] uppercase font-black text-slate-400 font-mono tracking-widest">HR Remarks / Other Details</label>
@@ -329,7 +351,7 @@ export function HiringApproval({
                             <div className="flex gap-2 shrink-0">
                               <button 
                                 className="bg-fuchsia-600 hover:bg-fuchsia-700 px-4 py-2.5 rounded-lg text-xs font-bold text-white transition-all shadow-sm"
-                                onClick={() => onApproveRequisition(req._id, "Pending Accounts Review", remarks || "Forwarded to Accounts.", budget)}
+                                onClick={() => onApproveRequisition(req._id, "Pending Accounts Review", remarks || "Forwarded to Accounts.", budget, platform)}
                               >
                                 ✅ Forward to Accounts
                               </button>
@@ -842,7 +864,8 @@ export function CandidatesPipeline({
   selectedCandidate, 
   setSelectedCandidate, 
   toggleModal, 
-  triggerToast 
+  triggerToast,
+  requisitions = []
 }: RecruitmentProps) {
   return (
     <div className="space-y-8 animate-fadeIn text-slate-800">
@@ -859,48 +882,192 @@ export function CandidatesPipeline({
         </button>
       </div>
 
-      <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs border-collapse">
-            <thead>
-              <tr className="border-b border-slate-200 text-slate-400 font-black uppercase font-mono tracking-wider">
-                <th className="pb-3 pr-2">ID</th>
-                <th className="pb-3 px-2">Applicant Name</th>
-                <th className="pb-3 px-2">Role Applied</th>
-                <th className="pb-3 px-2">Skill Score</th>
-                <th className="pb-3 px-2">Vetting Status</th>
-                <th className="pb-3 pl-2 text-right">Action</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100 font-semibold text-slate-700">
-              {candidates.map((c, idx) => (
-                <tr 
-                  key={idx} 
-                  className={`hover:bg-slate-50/50 cursor-pointer transition-all ${selectedCandidate?._id === c._id ? "bg-slate-55" : ""}`} 
-                  onClick={() => setSelectedCandidate(c)}
-                >
-                  <td className="py-3.5 text-slate-500 font-mono">{c._id.slice(-6).toUpperCase()}</td>
-                  <td className="py-3.5 px-2">
-                    <div className="font-bold text-slate-800">{c.name}</div>
-                    <div className="text-[10px] text-slate-450 mt-0.5">{c.email} · {c.mobile}</div>
-                  </td>
-                  <td className="py-3.5 px-2">{c.role || "DSM"}</td>
-                  <td className="py-3.5 px-2">
-                    <span className="font-mono text-[#714B67] font-black">82%</span>
-                  </td>
-                  <td className="py-3.5 px-2">
-                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded border ${
-                      c.status === "Selected" ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/20" : "bg-[#714B67]/10 text-[#714B67] border-[#714B67]/20"
-                    }`}>{c.status}</span>
-                  </td>
-                  <td className="py-3.5 pl-2 text-right">
-                    <button className="bg-[#714B67] hover:bg-[#5F3F56] px-2.5 py-1 rounded text-[10px] font-bold text-white shadow-sm" onClick={() => triggerToast(`Review triggered for candidate: ${c.name}`)}>Review</button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+        <div className={selectedCandidate ? "lg:col-span-2" : "lg:col-span-3"}>
+          <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs border-collapse">
+                <thead>
+                  <tr className="border-b border-slate-200 text-slate-400 font-black uppercase font-mono tracking-wider">
+                    <th className="pb-3 pr-2">ID</th>
+                    <th className="pb-3 px-2">Applicant Name</th>
+                    <th className="pb-3 px-2">Role Applied</th>
+                    <th className="pb-3 px-2">Vetting Status</th>
+                    <th className="pb-3 pl-2 text-right">Action</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 font-semibold text-slate-700">
+                  {candidates.map((c, idx) => {
+                    const matchingReq = requisitions.find(r => r.role === c.job?.title);
+                    let vettingStatusText = c.status;
+                    let statusColorClass = "bg-amber-500/10 text-amber-600 border-amber-500/20";
+                    
+                    if (matchingReq) {
+                      if (matchingReq.status === "Pending Accounts Review") {
+                        vettingStatusText = "Waiting for Accounts";
+                        statusColorClass = "bg-amber-500/10 text-amber-600 border-amber-500/20 animate-pulse";
+                      } else if (matchingReq.status === "Pending Owner Approval") {
+                        vettingStatusText = "Waiting for Owner";
+                        statusColorClass = "bg-[#714B67]/10 text-[#714B67] border-[#714B67]/20 animate-pulse";
+                      } else if (matchingReq.status === "Approved — Pending HR Post") {
+                        vettingStatusText = "Waiting for HR Posting";
+                        statusColorClass = "bg-violet-500/10 text-violet-600 border-violet-500/20 animate-pulse";
+                      }
+                    }
+
+                    if (c.status === "Selected") {
+                      vettingStatusText = "Selected";
+                      statusColorClass = "bg-emerald-500/10 text-emerald-600 border-emerald-500/20";
+                    } else if (c.status === "Rejected") {
+                      vettingStatusText = "Rejected";
+                      statusColorClass = "bg-rose-500/10 text-rose-600 border-rose-500/20";
+                    } else if (c.status === "High Risk") {
+                      vettingStatusText = "High Risk";
+                      statusColorClass = "bg-red-500/10 text-red-600 border-red-500/20";
+                    } else if (c.status === "Hold") {
+                      vettingStatusText = "Hold";
+                      statusColorClass = "bg-blue-500/10 text-blue-600 border-blue-500/20";
+                    }
+
+                    return (
+                      <tr 
+                        key={idx} 
+                        className={`hover:bg-slate-50/50 cursor-pointer transition-all ${selectedCandidate?._id === c._id ? "bg-fuchsia-50/40" : ""}`} 
+                        onClick={() => setSelectedCandidate(c)}
+                      >
+                        <td className="py-3.5 text-slate-500 font-mono">{c._id.slice(-6).toUpperCase()}</td>
+                        <td className="py-3.5 px-2">
+                          <div className="font-bold text-slate-800">{c.name}</div>
+                          <div className="text-[10px] text-slate-450 mt-0.5">{c.email} · {c.mobile}</div>
+                        </td>
+                        <td className="py-3.5 px-2">{c.job?.title || "General Inquiry"}</td>
+                        <td className="py-3.5 px-2">
+                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded border ${statusColorClass}`}>
+                            {vettingStatusText}
+                          </span>
+                        </td>
+                        <td className="py-3.5 pl-2 text-right">
+                          <button 
+                            className="bg-[#714B67] hover:bg-[#5F3F56] px-2.5 py-1 rounded text-[10px] font-bold text-white shadow-sm" 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedCandidate(c);
+                            }}
+                          >
+                            Review
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
         </div>
+
+        {/* Selected Candidate Details Panel */}
+        {selectedCandidate && (
+          <div className="lg:col-span-1 bg-white border border-slate-200 rounded-xl p-5 shadow-md space-y-5 animate-fadeIn relative">
+            <button 
+              className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 font-black text-base"
+              onClick={() => setSelectedCandidate(null)}
+            >
+              ✕
+            </button>
+            <div className="pb-3 border-b border-slate-100">
+              <h3 className="text-[9px] font-black uppercase text-slate-400 tracking-wider font-mono">Candidate Profile Details</h3>
+              <h2 className="text-base font-black text-slate-850 mt-1">{selectedCandidate.name}</h2>
+              <span className={`text-[9px] font-bold px-2 py-0.5 rounded border mt-1 inline-block ${
+                selectedCandidate.status === "Selected" ? "bg-emerald-55 border-emerald-200 text-emerald-600" : "bg-[#714B67]/10 text-[#714B67] border-[#714B67]/20"
+              }`}>
+                Status: {selectedCandidate.status}
+              </span>
+            </div>
+
+            {/* Profile Info */}
+            <div className="space-y-4 text-[11px] leading-relaxed text-slate-650">
+              <div>
+                <span className="text-[9px] font-black uppercase text-[#714B67] tracking-wider font-mono block mb-1">Contact Details</span>
+                <div className="grid grid-cols-2 gap-2 bg-slate-50 p-2.5 rounded-lg border border-slate-150">
+                  <div>
+                    <span className="text-slate-400 block text-[9px] uppercase font-mono">Mobile</span>
+                    <strong className="text-slate-800 font-bold">{selectedCandidate.mobile}</strong>
+                  </div>
+                  <div>
+                    <span className="text-slate-400 block text-[9px] uppercase font-mono">Email</span>
+                    <strong className="text-slate-800 font-bold break-all">{selectedCandidate.email}</strong>
+                  </div>
+                  <div className="col-span-2">
+                    <span className="text-slate-400 block text-[9px] uppercase font-mono">Address</span>
+                    <strong className="text-slate-800 font-semibold">{selectedCandidate.address}</strong>
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <span className="text-[9px] font-black uppercase text-[#714B67] tracking-wider font-mono block mb-1">Application Info</span>
+                <div className="grid grid-cols-2 gap-2 bg-slate-50 p-2.5 rounded-lg border border-slate-150">
+                  <div>
+                    <span className="text-slate-400 block text-[9px] uppercase font-mono">Role Applied</span>
+                    <strong className="text-slate-800 font-bold">{selectedCandidate.job?.title || "General Inquiry"}</strong>
+                  </div>
+                  <div>
+                    <span className="text-slate-400 block text-[9px] uppercase font-mono">Experience</span>
+                    <strong className="text-slate-800 font-bold">{selectedCandidate.experience}</strong>
+                  </div>
+                  <div>
+                    <span className="text-slate-400 block text-[9px] uppercase font-mono">Qualification</span>
+                    <strong className="text-slate-800 font-bold">{selectedCandidate.qualification}</strong>
+                  </div>
+                  <div>
+                    <span className="text-slate-400 block text-[9px] uppercase font-mono">Notice Period</span>
+                    <strong className="text-slate-800 font-bold">{selectedCandidate.noticePeriod}</strong>
+                  </div>
+                  <div>
+                    <span className="text-slate-400 block text-[9px] uppercase font-mono">Current Salary</span>
+                    <strong className="text-slate-800 font-bold">{selectedCandidate.currentSalary}</strong>
+                  </div>
+                  <div>
+                    <span className="text-slate-400 block text-[9px] uppercase font-mono">Expected Salary</span>
+                    <strong className="text-slate-800 font-bold">{selectedCandidate.expectedSalary}</strong>
+                  </div>
+                </div>
+              </div>
+
+              {/* Uploaded Documents */}
+              {selectedCandidate.uploads && Object.keys(selectedCandidate.uploads).length > 0 && (
+                <div>
+                  <span className="text-[9px] font-black uppercase text-[#714B67] tracking-wider font-mono block mb-1">Attachments</span>
+                  <div className="flex flex-col gap-1.5">
+                    {selectedCandidate.uploads.resume && (
+                      <a 
+                        href={selectedCandidate.uploads.resume} 
+                        target="_blank" 
+                        rel="noreferrer" 
+                        className="flex items-center justify-between p-2 bg-indigo-50/50 border border-indigo-100 rounded text-indigo-700 hover:bg-indigo-50 font-bold"
+                      >
+                        <span>📄 Resume Document</span>
+                        <span className="text-[9px] uppercase bg-indigo-600 text-white px-2 py-0.5 rounded font-mono">View</span>
+                      </a>
+                    )}
+                    {selectedCandidate.uploads.photo && (
+                      <a 
+                        href={selectedCandidate.uploads.photo} 
+                        target="_blank" 
+                        rel="noreferrer" 
+                        className="flex items-center justify-between p-2 bg-indigo-50/50 border border-indigo-100 rounded text-indigo-700 hover:bg-indigo-50 font-bold"
+                      >
+                        <span>🖼️ Profile Photo</span>
+                        <span className="text-[9px] uppercase bg-indigo-600 text-white px-2 py-0.5 rounded font-mono">View</span>
+                      </a>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

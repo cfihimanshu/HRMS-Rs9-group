@@ -29,6 +29,7 @@ export interface IHiringRequisition extends Document {
     | "Rejected"
     | "Hold";
   sourcingBudget?: number;
+  postingPlatform?: string;
   hrSourcingRemarks?: string;
   accountsRemarks?: string;
   ownerRemarks?: string;
@@ -64,6 +65,7 @@ const HiringRequisitionSchema: Schema = new Schema(
     riskLevel: { type: String, enum: ["Low", "Medium", "High", "Critical"], default: "Low" },
     expectedOutput: { type: String },
     sourcingBudget: { type: Number },
+    postingPlatform: { type: String },
     hrSourcingRemarks: { type: String },
     status: {
       type: String,

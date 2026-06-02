@@ -500,12 +500,24 @@ export default function UnifiedEnterpriseDashboard() {
     }
   };
 
-  const handleApproveRequisition = async (id: string, nextStatus: string, remarks: string) => {
+  const handleApproveRequisition = async (
+    id: string,
+    nextStatus: string,
+    remarks: string,
+    sourcingBudget?: string,
+    postingPlatform?: string
+  ) => {
     try {
       const res = await fetch("/api/hiring", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id, status: nextStatus, remarks })
+        body: JSON.stringify({ 
+          id, 
+          status: nextStatus, 
+          remarks, 
+          sourcingBudget, 
+          postingPlatform 
+        })
       });
       const data = await res.json();
       if (data.success) {
@@ -838,6 +850,7 @@ export default function UnifiedEnterpriseDashboard() {
               jobs={jobs} 
               toggleModal={toggleModal} 
               triggerToast={triggerToast} 
+              requisitions={requisitions}
             />
           )}
 
@@ -845,6 +858,7 @@ export default function UnifiedEnterpriseDashboard() {
             <EmployeeDirectory 
               userRole={(session?.user as any)?.role || "Employee"} 
               triggerToast={triggerToast} 
+              sessionUser={session?.user}
             />
           )}
 
@@ -966,8 +980,8 @@ export default function UnifiedEnterpriseDashboard() {
         <HiringRequisitionModal 
           onClose={() => toggleModal("hiring", false)} 
           triggerToast={triggerToast} 
-          userCompany={session?.user?.companyName} 
-          userDepartment={session?.user?.department} 
+          userCompany={(session?.user as any)?.companyName} 
+          userDepartment={(session?.user as any)?.department} 
         />
       )}
 
