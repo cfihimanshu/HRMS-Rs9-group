@@ -70,7 +70,8 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
     employeeId: "",
     designation: "",
     dateOfJoining: "",
-    baseSalary: ""
+    baseSalary: "",
+    department: "HR"
   });
 
   const fetchData = async () => {
@@ -101,6 +102,26 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
     return () => observer.disconnect();
   }, []);
 
+  // Auto-generate employeeId on companyId selection
+  useEffect(() => {
+    if (!formData.companyId) {
+      setFormData(prev => ({ ...prev, employeeId: "" }));
+      return;
+    }
+    const fetchNextEmployeeId = async () => {
+      try {
+        const res = await fetch(`/api/employees/next-id?companyId=${formData.companyId}`);
+        const data = await res.json();
+        if (data.success && data.employeeId) {
+          setFormData(prev => ({ ...prev, employeeId: data.employeeId }));
+        }
+      } catch (err) {
+        console.error("Error fetching next employeeId:", err);
+      }
+    };
+    fetchNextEmployeeId();
+  }, [formData.companyId]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     triggerToast("Submitting employee data...");
@@ -121,7 +142,8 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
         setTopRole("Employee");
         setFormData({
           name: "", email: "", password: "", role: "Employee", mobile: "",
-          companyId: "", employeeId: "", designation: "", dateOfJoining: "", baseSalary: ""
+          companyId: "", employeeId: "", designation: "", dateOfJoining: "", baseSalary: "",
+          department: "HR"
         });
         fetchData(); // Refresh list
       } else {
@@ -164,8 +186,10 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
 
   const availableRoles = [
     "Employee", "HR Head", "HR Executive", "Department Manager",
-    "DSM", "Trainer", "Accounts", "IT Admin", "RIBP / Risk Officer"
+    "Trainer", "Accounts", "IT Admin"
   ];
+
+  const availableDepartments = ["HR", "IT", "Sales", "Admin", "Operation", "Data Entry"];
 
   const allowedCompanies = ["Acolyte", "Startupflora", "Startupkare", "Force 009", "Citiline", "CFI"];
 
@@ -257,8 +281,8 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
           <h2 className={`text-lg font-bold mb-6 ${isDark ? "text-white" : "text-slate-800"}`}>Onboard New Employee</h2>
 
           <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Top Selection for Company and Role */}
-            <div className={`p-4 rounded-xl border mb-6 grid grid-cols-1 md:grid-cols-2 gap-6 ${isDark ? "bg-gray-800/40 border-gray-700" : "bg-slate-50 border-slate-200"}`}>
+            {/* Top Selection for Company, Department, and Role */}
+            <div className={`p-4 rounded-xl border mb-6 grid grid-cols-1 md:grid-cols-3 gap-6 ${isDark ? "bg-gray-800/40 border-gray-700" : "bg-slate-50 border-slate-200"}`}>
               <div>
                 <label className={`block text-xs font-bold mb-1.5 ${isDark ? "text-indigo-400" : "text-indigo-600"}`}>Company *</label>
                 <select
@@ -270,6 +294,20 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
                   {visibleCompanyOptions.length > 1 && <option value="">-- Choose Company --</option>}
                   {visibleCompanyOptions.map(opt => (
                     <option key={opt} value={opt}>{opt}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className={`block text-xs font-bold mb-1.5 ${isDark ? "text-indigo-400" : "text-indigo-600"}`}>Department *</label>
+                <select
+                  name="department"
+                  value={formData.department}
+                  onChange={handleChange}
+                  required
+                  className={`w-full p-2.5 rounded-lg border text-sm font-bold focus:border-indigo-500 focus:outline-none ${isDark ? "bg-gray-800 border-gray-700 text-white" : "bg-white border-slate-350"}`}
+                >
+                  {availableDepartments.map(dept => (
+                    <option key={dept} value={dept}>{dept}</option>
                   ))}
                 </select>
               </div>
@@ -348,8 +386,8 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className={`block text-xs font-bold mb-1.5 ${isDark ? "text-gray-300" : "text-slate-700"}`}>Employee ID *</label>
-                    <input type="text" name="employeeId" value={formData.employeeId} onChange={handleChange} placeholder="e.g. EMP-101" required
-                      className={`w-full p-2.5 rounded-lg border text-sm focus:border-indigo-500 focus:outline-none ${isDark ? "bg-gray-800 border-gray-700 text-white" : "bg-slate-50 border-slate-200"}`} />
+                    <input type="text" name="employeeId" value={formData.employeeId} readOnly required placeholder="Select company to auto-generate"
+                      className={`w-full p-2.5 rounded-lg border text-sm focus:outline-none opacity-80 cursor-not-allowed ${isDark ? "bg-gray-800/80 border-gray-700 text-gray-400" : "bg-slate-100 border-slate-200 text-slate-500"}`} />
                   </div>
                   <div>
                     <label className={`block text-xs font-bold mb-1.5 ${isDark ? "text-gray-300" : "text-slate-700"}`}>Designation *</label>
@@ -458,8 +496,15 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
                           <td className="px-6 py-4">
                             <span className={`px-2 py-0.5 text-[10px] font-bold rounded ${isDark ? "bg-indigo-900/50 text-indigo-300" : "bg-indigo-50 text-indigo-700"}`}>{emp.role}</span>
                             {emp.employeeProfile?.employeeId && (
-                              <div className={`text-xs font-mono mt-1 flex items-center gap-1 ${isDark ? "text-emerald-400" : "text-emerald-600"}`}>
-                                <UserCheck className="w-3 h-3" /> {emp.employeeProfile.employeeId} - {emp.employeeProfile.designation}
+                              <div className={`text-xs font-mono mt-1 flex flex-col gap-0.5 ${isDark ? "text-emerald-400" : "text-emerald-600"}`}>
+                                <div className="flex items-center gap-1">
+                                  <UserCheck className="w-3 h-3" /> {emp.employeeProfile.employeeId} - {emp.employeeProfile.designation}
+                                </div>
+                                {emp.employeeProfile.department && (
+                                  <div className="text-[10px] text-slate-450 dark:text-gray-400 italic">
+                                    Dept: {typeof emp.employeeProfile.department === "object" ? emp.employeeProfile.department.name : emp.employeeProfile.department}
+                                  </div>
+                                )}
                               </div>
                             )}
                           </td>

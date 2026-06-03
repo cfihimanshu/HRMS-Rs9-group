@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth";
 import dbConnect from "@/lib/db";
 import SodReport from "@/models/SodReport";
 import Attendance from "@/models/Attendance";
+import TaskLog from "@/models/TaskLog";
 import { logAudit } from "@/lib/audit";
 
 // GET: Fetch today's SOD for the logged-in user
@@ -77,6 +78,17 @@ export async function POST(req: Request) {
       });
       await attendanceRecord.save();
     }
+
+    // Auto-create task in Kanban from SOD declaration
+    const taskLogRecord = new TaskLog({
+      employee: userId,
+      date: new Date(), // exact current timestamp
+      taskTitle: taskSummary,
+      taskType: taskType,
+      description: remarks || "",
+      status: "Pending", // Set as Pending so it goes to "My Tasks (Kanban)" Pending column
+    });
+    await taskLogRecord.save();
 
     await logAudit({
       userId,

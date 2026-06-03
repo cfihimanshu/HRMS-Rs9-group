@@ -24,8 +24,35 @@ export async function GET(req: Request) {
     }
 
     const verifications = await Verification.find(query)
-      .populate("candidate", "name email mobile status")
+      .populate("candidate", "name email mobile status uploads")
       .sort({ createdAt: -1 });
+
+    // Sync any missing URLs from Candidate uploads to Verification record (self-healing migration)
+    for (const ver of verifications) {
+      let needsSave = false;
+      const candidateObj: any = ver.candidate;
+      if (candidateObj && candidateObj.uploads) {
+        if (!ver.aadhaarUrl && candidateObj.uploads.aadhaar) {
+          ver.aadhaarUrl = candidateObj.uploads.aadhaar;
+          needsSave = true;
+        }
+        if (!ver.panUrl && candidateObj.uploads.pan) {
+          ver.panUrl = candidateObj.uploads.pan;
+          needsSave = true;
+        }
+        if (!ver.salarySlipUrl && candidateObj.uploads.salarySlip) {
+          ver.salarySlipUrl = candidateObj.uploads.salarySlip;
+          needsSave = true;
+        }
+        if (!ver.bankStatementUrl && candidateObj.uploads.bankStatement) {
+          ver.bankStatementUrl = candidateObj.uploads.bankStatement;
+          needsSave = true;
+        }
+      }
+      if (needsSave) {
+        await ver.save();
+      }
+    }
 
     return NextResponse.json({ success: true, data: verifications });
   } catch (error: any) {
@@ -62,6 +89,10 @@ export async function POST(req: Request) {
       socialMediaStatus,
       remarks,
       status,
+      aadhaarUrl,
+      panUrl,
+      salarySlipUrl,
+      bankStatementUrl,
     } = body;
 
     if (!candidateId) {
@@ -87,14 +118,28 @@ export async function POST(req: Request) {
     if (remarks !== undefined) verObj.remarks = remarks;
     if (status) verObj.status = status;
 
+    const candidate = await Candidate.findById(candidateId);
+
+    // Map document URLs if provided
+    if (aadhaarUrl !== undefined) verObj.aadhaarUrl = aadhaarUrl;
+    if (panUrl !== undefined) verObj.panUrl = panUrl;
+    if (salarySlipUrl !== undefined) verObj.salarySlipUrl = salarySlipUrl;
+    if (bankStatementUrl !== undefined) verObj.bankStatementUrl = bankStatementUrl;
+
+    // Fallback/auto-fill from candidate uploads if not provided or empty in verification object
+    if (candidate && candidate.uploads) {
+      if (!verObj.aadhaarUrl && candidate.uploads.aadhaar) verObj.aadhaarUrl = candidate.uploads.aadhaar;
+      if (!verObj.panUrl && candidate.uploads.pan) verObj.panUrl = candidate.uploads.pan;
+      if (!verObj.salarySlipUrl && candidate.uploads.salarySlip) verObj.salarySlipUrl = candidate.uploads.salarySlip;
+      if (!verObj.bankStatementUrl && candidate.uploads.bankStatement) verObj.bankStatementUrl = candidate.uploads.bankStatement;
+    }
+
     await verObj.save();
 
     // Propagate verification high risk back to candidate status if flagged
     if (status === "High Risk" || policeStatus === "High Risk") {
       await Candidate.findByIdAndUpdate(candidateId, { status: "High Risk" });
     }
-
-    const candidate = await Candidate.findById(candidateId);
 
     // Audit Log Entry
     await logAudit({

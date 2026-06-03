@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from "react";
-import { 
-  Plus, 
-  Copy, 
-  UserPlus, 
-  Cpu, 
+import { useSession } from "next-auth/react";
+import {
+  Plus,
+  Copy,
+  UserPlus,
+  Cpu,
   ShieldCheck,
   CheckCircle2,
   ArrowRight,
@@ -25,7 +26,9 @@ import {
   ThumbsDown,
   RotateCcw,
   Sparkles,
-  Video
+  Video,
+  Trash,
+  Paperclip
 } from "lucide-react";
 
 interface RecruitmentProps {
@@ -39,13 +42,21 @@ interface RecruitmentProps {
   requisitions?: any[];
 }
 
-export function HiringApproval({ 
+const getAttachmentUrl = (url: string) => {
+  if (!url) return "";
+  if (url.includes("/fl_attachment/")) {
+    return url.replace("/fl_attachment/", "/");
+  }
+  return url;
+};
+
+export function HiringApproval({
   requisitions,
   onApproveRequisition,
-  toggleModal, 
+  toggleModal,
   triggerToast,
-  userRole 
-}: { 
+  userRole
+}: {
   requisitions: any[];
   onApproveRequisition: (id: string, nextStatus: string, remarks: string, budget?: string, platform?: string) => void;
   toggleModal: (modalId: string, open: boolean) => void;
@@ -59,18 +70,19 @@ export function HiringApproval({
   const [platformInput, setPlatformInput] = useState<{ [key: string]: string }>({});
 
   const isHR = userRole === "HR Head" || userRole === "HR Executive" || userRole === "HR";
+  const isAllowedRequisition = userRole === "Owner" || userRole === "Director" || userRole === "HR Head" || userRole === "Department Manager";
   const hrVisibleStatuses = ["Pending HR Sourcing Review", "Approved — Pending HR Post", "Job Posted"];
   const visibleRequisitions = isHR
     ? requisitions.filter((req) => hrVisibleStatuses.includes(req.status))
     : requisitions;
 
-  const filteredRequisitions = isHR
-    ? visibleRequisitions.filter((req) => {
-        if (activeTab === "HRSourcing") return req.status === "Pending HR Sourcing Review";
-        if (activeTab === "HRPosting") return req.status === "Approved — Pending HR Post" || req.status === "Job Posted";
-        return false;
-      })
-    : visibleRequisitions;
+  const filteredRequisitions = visibleRequisitions.filter((req) => {
+    if (activeTab === "HRSourcing") return req.status === "Pending HR Sourcing Review";
+    if (activeTab === "Accounts") return req.status === "Pending Accounts Review";
+    if (activeTab === "Owner") return req.status === "Pending Owner Approval";
+    if (activeTab === "HRPosting") return req.status === "Approved — Pending HR Post" || req.status === "Job Posted";
+    return true;
+  });
 
   useEffect(() => {
     if (isHR && activeTab !== "HRSourcing" && activeTab !== "HRPosting") {
@@ -81,7 +93,7 @@ export function HiringApproval({
   const handleRemarksChange = (reqId: string, val: string) => {
     setRemarksInput(prev => ({ ...prev, [reqId]: val }));
   };
-  
+
   const handleBudgetChange = (reqId: string, val: string) => {
     setBudgetInput(prev => ({ ...prev, [reqId]: val }));
   };
@@ -91,18 +103,18 @@ export function HiringApproval({
   };
 
   const stats = {
-    pendingHRSourcing: visibleRequisitions.filter(r => r.status === "Pending HR Sourcing Review").length,
-    pendingAccounts: visibleRequisitions.filter(r => r.status === "Pending Accounts Review").length,
-    pendingOwner: visibleRequisitions.filter(r => r.status === "Pending Owner Approval").length,
-    pendingHRPost: visibleRequisitions.filter(r => r.status === "Approved — Pending HR Post").length,
-    posted: visibleRequisitions.filter(r => r.status === "Job Posted").length,
+    pendingHRSourcing: requisitions.filter(r => r.status === "Pending HR Sourcing Review").length,
+    pendingAccounts: requisitions.filter(r => r.status === "Pending Accounts Review").length,
+    pendingOwner: requisitions.filter(r => r.status === "Pending Owner Approval").length,
+    pendingHRPost: requisitions.filter(r => r.status === "Approved — Pending HR Post" || r.status === "Approved").length,
+    posted: requisitions.filter(r => r.status === "Job Posted").length,
   };
 
   const statusColor = (status: string) => {
     if (status === "Job Posted") return "bg-emerald-500/10 text-emerald-600 border-emerald-500/20";
     if (status === "Rejected") return "bg-rose-500/10 text-rose-600 border-rose-500/20";
     if (status === "Hold") return "bg-blue-500/10 text-blue-600 border-blue-500/20";
-    if (status === "Approved — Pending HR Post") return "bg-violet-500/10 text-violet-600 border-violet-500/20";
+    if (status === "Approved — Pending HR Post" || status === "Approved") return "bg-violet-500/10 text-violet-600 border-violet-500/20";
     if (status === "Pending HR Sourcing Review") return "bg-fuchsia-500/10 text-fuchsia-600 border-fuchsia-500/20 animate-pulse";
     return "bg-amber-500/10 text-amber-600 border-amber-500/20 animate-pulse";
   };
@@ -115,12 +127,14 @@ export function HiringApproval({
           <h1 className="text-xl font-black text-slate-800">MODULE-2: Hiring Requisition Workflow</h1>
           <p className="text-xs text-slate-500 mt-1">Dept Manager → Accounts Budget Check → Owner Approval → HR Job Posting</p>
         </div>
-        <button 
-          className="bg-[#714B67] hover:bg-[#5F3F56] px-4 py-2.5 rounded-lg text-xs font-bold text-white transition-all flex items-center gap-1.5 shadow" 
-          onClick={() => toggleModal("hiring", true)}
-        >
-          <Plus className="w-4 h-4" /> New Requisition
-        </button>
+        {isAllowedRequisition && (
+          <button
+            className="bg-[#714B67] hover:bg-[#5F3F56] px-4 py-2.5 rounded-lg text-xs font-bold text-white transition-all flex items-center gap-1.5 shadow"
+            onClick={() => toggleModal("hiring", true)}
+          >
+            <Plus className="w-4 h-4" /> New Requisition
+          </button>
+        )}
       </div>
 
       {/* Stats */}
@@ -174,15 +188,14 @@ export function HiringApproval({
         ].map((tab) => {
           const isLocked = isHR && !["HRSourcing", "HRPosting"].includes(tab.id);
           return (
-            <button 
+            <button
               key={tab.id}
-              className={`px-4 py-2 rounded text-xs font-bold transition-all ${
-                activeTab === tab.id 
-                  ? "bg-[#714B67] text-white shadow-sm" 
-                  : isLocked
-                    ? "text-slate-400 bg-slate-100 cursor-not-allowed"
-                    : "text-slate-500 hover:text-slate-800 hover:bg-slate-200/50"
-              }`}
+              className={`px-4 py-2 rounded text-xs font-bold transition-all ${activeTab === tab.id
+                ? "bg-[#714B67] text-white shadow-sm"
+                : isLocked
+                  ? "text-slate-400 bg-slate-100 cursor-not-allowed"
+                  : "text-slate-500 hover:text-slate-800 hover:bg-slate-200/50"
+                }`}
               onClick={() => !isLocked && setActiveTab(tab.id)}
               disabled={isLocked}
             >
@@ -202,7 +215,7 @@ export function HiringApproval({
 
           return (
             <div key={idx} className="bg-white border border-slate-200 rounded-xl shadow-sm hover:shadow-md transition-all overflow-hidden">
-              
+
               {/* Card Header */}
               <div className="p-5 flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div className="space-y-1">
@@ -231,7 +244,7 @@ export function HiringApproval({
                       ₹{req.salaryBudget ? req.salaryBudget.toLocaleString("en-IN") : req.salaryRange} P.A.
                     </span>
                   </div>
-                  <button 
+                  <button
                     onClick={() => setExpandedReq(isExpanded ? null : req._id)}
                     className="bg-slate-100 hover:bg-slate-200 border border-slate-250 text-slate-700 px-3.5 py-1.5 rounded-lg text-[10px] font-black transition-all shadow-sm"
                   >
@@ -243,7 +256,7 @@ export function HiringApproval({
               {/* Expanded Details */}
               {isExpanded && (
                 <div className="px-5 pb-5 border-t border-slate-100 pt-5 bg-slate-50/50 space-y-6 text-xs animate-fadeIn">
-                  
+
                   {/* Fields Grid */}
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6 font-semibold text-slate-700">
                     {[
@@ -311,7 +324,7 @@ export function HiringApproval({
                     {activeTab === "HRSourcing" && req.status === "Pending HR Sourcing Review" && (
                       <div className="bg-gradient-to-r from-fuchsia-500/5 to-pink-500/5 border border-fuchsia-500/20 rounded-xl p-4 space-y-3">
                         <span className="block text-[10px] font-black text-fuchsia-600 uppercase tracking-wider font-mono">🎯 HR Sourcing Desk — Validate & Add Budget</span>
-                        {!userRole?.includes("HR") ? (
+                        {!userRole?.includes("HR") && userRole !== "Owner" && userRole !== "Director" ? (
                           <div className="p-3 bg-fuchsia-50/50 text-fuchsia-800 rounded-lg text-xs font-medium border border-fuchsia-200/50 flex items-center gap-2">
                             <span className="text-sm">🔒</span> You must be an HR to take action here.
                           </div>
@@ -319,9 +332,9 @@ export function HiringApproval({
                           <div className="flex flex-col md:flex-row gap-3 items-end">
                             <div className="w-1/5">
                               <label className="text-[8px] uppercase font-black text-slate-400 font-mono tracking-widest">Sourcing Budget (₹)</label>
-                              <input 
+                              <input
                                 type="number"
-                                className="w-full bg-white border border-slate-300 p-2.5 rounded text-xs focus:outline-none mt-1 text-slate-900" 
+                                className="w-full bg-white border border-slate-300 p-2.5 rounded text-xs focus:outline-none mt-1 text-slate-900"
                                 placeholder="e.g. 5000"
                                 value={budget}
                                 onChange={e => handleBudgetChange(req._id, e.target.value)}
@@ -329,8 +342,8 @@ export function HiringApproval({
                             </div>
                             <div className="w-1/4">
                               <label className="text-[8px] uppercase font-black text-slate-400 font-mono tracking-widest">Posting Platform</label>
-                              <select 
-                                className="w-full bg-white border border-slate-300 p-2.5 rounded text-xs focus:outline-none mt-1 text-slate-900" 
+                              <select
+                                className="w-full bg-white border border-slate-300 p-2.5 rounded text-xs focus:outline-none mt-1 text-slate-900"
                                 value={platform}
                                 onChange={e => handlePlatformChange(req._id, e.target.value)}
                               >
@@ -341,27 +354,27 @@ export function HiringApproval({
                             </div>
                             <div className="flex-1">
                               <label className="text-[8px] uppercase font-black text-slate-400 font-mono tracking-widest">HR Remarks / Other Details</label>
-                              <input 
-                                className="w-full bg-white border border-slate-300 p-2.5 rounded text-xs focus:outline-none mt-1 text-slate-900" 
+                              <input
+                                className="w-full bg-white border border-slate-300 p-2.5 rounded text-xs focus:outline-none mt-1 text-slate-900"
                                 placeholder="Enter sourcing strategy or notes..."
                                 value={remarks}
                                 onChange={e => handleRemarksChange(req._id, e.target.value)}
                               />
                             </div>
                             <div className="flex gap-2 shrink-0">
-                              <button 
+                              <button
                                 className="bg-fuchsia-600 hover:bg-fuchsia-700 px-4 py-2.5 rounded-lg text-xs font-bold text-white transition-all shadow-sm"
                                 onClick={() => onApproveRequisition(req._id, "Pending Accounts Review", remarks || "Forwarded to Accounts.", budget, platform)}
                               >
                                 ✅ Forward to Accounts
                               </button>
-                              <button 
+                              <button
                                 className="bg-blue-600 hover:bg-blue-700 px-3 py-2.5 rounded-lg text-xs font-bold text-white transition-all shadow-sm"
                                 onClick={() => onApproveRequisition(req._id, "Hold", remarks || "Put on hold by HR.")}
                               >
                                 Hold
                               </button>
-                              <button 
+                              <button
                                 className="bg-rose-600 hover:bg-rose-700 px-3 py-2.5 rounded-lg text-xs font-bold text-white transition-all shadow-sm"
                                 onClick={() => onApproveRequisition(req._id, "Rejected", remarks || "Rejected by HR.")}
                               >
@@ -377,7 +390,7 @@ export function HiringApproval({
                     {activeTab === "Accounts" && req.status === "Pending Accounts Review" && (
                       <div className="bg-gradient-to-r from-amber-500/5 to-yellow-500/5 border border-amber-500/20 rounded-xl p-4 space-y-3">
                         <span className="block text-[10px] font-black text-amber-600 uppercase tracking-wider font-mono">💰 Accounts Budget Desk — Review & Recommend</span>
-                        {userRole !== "Accounts" ? (
+                        {userRole !== "Accounts" && userRole !== "Owner" && userRole !== "Director" ? (
                           <div className="p-3 bg-amber-50/50 text-amber-800 rounded-lg text-xs font-medium border border-amber-200/50 flex items-center gap-2">
                             <span className="text-sm">🔒</span> You must be an Accounts representative to take action here.
                           </div>
@@ -385,27 +398,27 @@ export function HiringApproval({
                           <div className="flex flex-col md:flex-row gap-3 items-end">
                             <div className="flex-1">
                               <label className="text-[8px] uppercase font-black text-slate-400 font-mono tracking-widest">Budget Vetting Remarks</label>
-                              <input 
-                                className="w-full bg-white border border-slate-300 p-2.5 rounded text-xs focus:outline-none mt-1 text-slate-900" 
+                              <input
+                                className="w-full bg-white border border-slate-300 p-2.5 rounded text-xs focus:outline-none mt-1 text-slate-900"
                                 placeholder="Enter budget review remarks..."
                                 value={remarks}
                                 onChange={e => handleRemarksChange(req._id, e.target.value)}
                               />
                             </div>
                             <div className="flex gap-2 shrink-0">
-                              <button 
+                              <button
                                 className="bg-amber-600 hover:bg-amber-700 px-4 py-2.5 rounded-lg text-xs font-bold text-white transition-all shadow-sm"
                                 onClick={() => onApproveRequisition(req._id, "Pending Owner Approval", remarks || "Budget cleared. Forwarded to Owner for approval.")}
                               >
                                 ✅ Recommend to Owner
                               </button>
-                              <button 
+                              <button
                                 className="bg-blue-600 hover:bg-blue-700 px-3 py-2.5 rounded-lg text-xs font-bold text-white transition-all shadow-sm"
                                 onClick={() => onApproveRequisition(req._id, "Hold", remarks || "Put on hold by Accounts.")}
                               >
                                 Hold
                               </button>
-                              <button 
+                              <button
                                 className="bg-rose-600 hover:bg-rose-700 px-3 py-2.5 rounded-lg text-xs font-bold text-white transition-all shadow-sm"
                                 onClick={() => onApproveRequisition(req._id, "Rejected", remarks || "Rejected by Accounts — insufficient budget.")}
                               >
@@ -429,27 +442,27 @@ export function HiringApproval({
                           <div className="flex flex-col md:flex-row gap-3 items-end">
                             <div className="flex-1">
                               <label className="text-[8px] uppercase font-black text-slate-400 font-mono tracking-widest">Owner Remarks</label>
-                              <input 
-                                className="w-full bg-white border border-slate-300 p-2.5 rounded text-xs focus:outline-none mt-1 text-slate-900" 
+                              <input
+                                className="w-full bg-white border border-slate-300 p-2.5 rounded text-xs focus:outline-none mt-1 text-slate-900"
                                 placeholder="Enter owner decision remarks..."
                                 value={remarks}
                                 onChange={e => handleRemarksChange(req._id, e.target.value)}
                               />
                             </div>
                             <div className="flex gap-2 shrink-0">
-                              <button 
+                              <button
                                 className="bg-[#714B67] hover:bg-[#5F3F56] px-4 py-2.5 rounded-lg text-xs font-bold text-white transition-all shadow-sm"
                                 onClick={() => onApproveRequisition(req._id, "Approved — Pending HR Post", remarks || "Approved by Owner. HR to post the job.")}
                               >
                                 ✅ Approve → Send to HR
                               </button>
-                              <button 
+                              <button
                                 className="bg-blue-600 hover:bg-blue-700 px-3 py-2.5 rounded-lg text-xs font-bold text-white transition-all shadow-sm"
                                 onClick={() => onApproveRequisition(req._id, "Hold", remarks || "Put on hold by Owner.")}
                               >
                                 Hold
                               </button>
-                              <button 
+                              <button
                                 className="bg-rose-600 hover:bg-rose-700 px-3 py-2.5 rounded-lg text-xs font-bold text-white transition-all shadow-sm"
                                 onClick={() => onApproveRequisition(req._id, "Rejected", remarks || "Rejected by Owner.")}
                               >
@@ -465,7 +478,7 @@ export function HiringApproval({
                     {activeTab === "HRPosting" && req.status === "Approved — Pending HR Post" && (
                       <div className="bg-gradient-to-r from-emerald-500/5 to-teal-500/5 border border-emerald-500/20 rounded-xl p-4 space-y-3">
                         <span className="block text-[10px] font-black text-emerald-600 uppercase tracking-wider font-mono">📋 HR Posting Desk — Post Job Vacancy</span>
-                        {!userRole?.includes("HR") ? (
+                        {!userRole?.includes("HR") && userRole !== "Owner" && userRole !== "Director" ? (
                           <div className="p-3 bg-emerald-50/50 text-emerald-800 rounded-lg text-xs font-medium border border-emerald-200/50 flex items-center gap-2">
                             <span className="text-sm">🔒</span> You must be an HR to post jobs.
                           </div>
@@ -478,7 +491,7 @@ export function HiringApproval({
                               📌 Job will be posted as: <strong>{req.role}</strong> | Dept: <strong>{req.department}</strong> | Budget: <strong>₹{req.salaryBudget?.toLocaleString("en-IN")} P.A.</strong>
                               {req.sourcingBudget && <span> | Sourcing: <strong>₹{req.sourcingBudget?.toLocaleString("en-IN")}</strong></span>}
                             </div>
-                            <button 
+                            <button
                               className="bg-emerald-600 hover:bg-emerald-700 px-6 py-3 rounded-lg text-xs font-bold text-white transition-all shadow-md flex items-center gap-2"
                               onClick={() => onApproveRequisition(req._id, "Job Posted", "Job vacancy published by HR.")}
                             >
@@ -547,11 +560,11 @@ export function HiringApproval({
 }
 
 
-export function JobPostings({ 
-  jobs, 
-  toggleModal, 
-  triggerToast 
-}: { 
+export function JobPostings({
+  jobs,
+  toggleModal,
+  triggerToast
+}: {
   jobs: any[];
   toggleModal: (modalId: string, open: boolean) => void;
   triggerToast: (msg: string) => void;
@@ -579,10 +592,10 @@ export function JobPostings({
     const applyLink = `http://localhost:3001/jobs/apply/${simJobId}`;
 
     const now = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    
+
     // Add incoming message
-    const incomingText = simChannel === "WhatsApp" 
-      ? `Hi, I saw your job post for "${jobTitle}" and want to apply!` 
+    const incomingText = simChannel === "WhatsApp"
+      ? `Hi, I saw your job post for "${jobTitle}" and want to apply!`
       : `📞 [Simulated Missed Call to Acolyte Recruitment Number]`;
 
     setChatLog([
@@ -594,10 +607,10 @@ export function JobPostings({
       setIsTyping(false);
       setChatLog(prev => [
         ...prev,
-        { 
-          sender: "system", 
-          text: `Thank you. To proceed with the Acolyte Group Recruitment Process, please fill out this form. The HR Team will contact you once the form is submitted. \n\nApply here: ${applyLink}`, 
-          time: now 
+        {
+          sender: "system",
+          text: `Thank you. To proceed with the Acolyte Group Recruitment Process, please fill out this form. The HR Team will contact you once the form is submitted. \n\nApply here: ${applyLink}`,
+          time: now
         }
       ]);
       triggerToast("Auto-Reply Sent via WhatsApp/SMS Gateway!");
@@ -609,11 +622,11 @@ export function JobPostings({
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-black text-slate-800">MODULE-3 & 4: Recruitment & Auto Response Gateway</h1>
-          <p className="text-xs text-slate-500 mt-1">Configure live recruitment links and test automated candidate outreach workflows</p>
+          <h1 className="text-xl font-black text-slate-800">MODULE-3: Vacancy Postings</h1>
+          <p className="text-xs text-slate-500 mt-1">Configure live recruitment links and view active job postings</p>
         </div>
-        <button 
-          className="bg-[#714B67] hover:bg-[#5F3F56] px-4 py-2.5 rounded-lg text-xs font-bold text-white transition-all flex items-center gap-1.5 shadow" 
+        <button
+          className="bg-[#714B67] hover:bg-[#5F3F56] px-4 py-2.5 rounded-lg text-xs font-bold text-white transition-all flex items-center gap-1.5 shadow"
           onClick={() => toggleModal("job", true)}
         >
           <Plus className="w-4 h-4" /> Create Custom Job Link
@@ -622,7 +635,7 @@ export function JobPostings({
 
       {/* Main Table Card */}
       <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
-        <h2 className="text-xs font-black uppercase text-[#714B67] tracking-wider mb-4 font-mono">1. Live Job Postings (Module-3)</h2>
+        <h2 className="text-xs font-black uppercase text-[#714B67] tracking-wider mb-4 font-mono">Active Vacancy Postings</h2>
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs border-collapse">
             <thead>
@@ -640,7 +653,7 @@ export function JobPostings({
               {jobs.map((jb, idx) => {
                 const companyName = jb.company?.name || "Acolyte Group";
                 const deptName = jb.department?.name || "Sales";
-                
+
                 return (
                   <tr key={idx} className="hover:bg-slate-50/50">
                     {/* 1. Title, 2. Company, 4. Location */}
@@ -650,7 +663,7 @@ export function JobPostings({
                         🏢 {companyName} | 📍 {jb.location || "Jaipur Office"}
                       </div>
                     </td>
-                    
+
                     {/* 3. Dept, 5. Category */}
                     <td className="py-4 px-2">
                       <div className="text-slate-800">{deptName}</div>
@@ -683,9 +696,9 @@ export function JobPostings({
 
                     {/* 10. Software Form Link */}
                     <td className="py-4 px-2">
-                      <a 
-                        href={`http://localhost:3001/jobs/apply/${jb._id}`} 
-                        target="_blank" 
+                      <a
+                        href={`http://localhost:3001/jobs/apply/${jb._id}`}
+                        target="_blank"
                         rel="noopener noreferrer"
                         className="inline-flex items-center gap-1.5 text-[10px] font-black text-[#714B67] hover:text-[#5F3F56] bg-[#714B67]/5 border border-[#714B67]/15 px-2.5 py-1 rounded shadow-sm hover:shadow transition-all"
                       >
@@ -695,8 +708,8 @@ export function JobPostings({
 
                     {/* Copy Shareable Link */}
                     <td className="py-4 pl-2 text-right">
-                      <button 
-                        className="bg-slate-100 hover:bg-slate-200 border border-slate-250 text-slate-700 px-3 py-2 rounded-lg text-[10px] font-black flex items-center gap-1.5 ml-auto shadow-sm transition-all" 
+                      <button
+                        className="bg-slate-100 hover:bg-slate-200 border border-slate-250 text-slate-700 px-3 py-2 rounded-lg text-[10px] font-black flex items-center gap-1.5 ml-auto shadow-sm transition-all"
                         onClick={() => {
                           const link = jb.shareableLink || `http://localhost:3001/jobs/apply/${jb._id}`;
                           navigator.clipboard.writeText(link);
@@ -718,155 +731,20 @@ export function JobPostings({
           </table>
         </div>
       </div>
-
-      {/* MODULE-4 Simulator Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mt-6">
-        
-        {/* Left Side: Simulation Controls */}
-        <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm flex flex-col justify-between">
-          <div>
-            <div className="flex items-center gap-2 mb-2">
-              <span className="w-2.5 h-2.5 bg-green-500 rounded-full animate-ping"></span>
-              <h2 className="text-xs font-black uppercase text-[#714B67] tracking-wider font-mono">2. Candidate Auto-Response Simulator (Module-4)</h2>
-            </div>
-            <p className="text-xs text-slate-500 leading-relaxed mb-6">
-              Simulate a candidate calling Acolyte Recruitment Desk or sending a WhatsApp message. 
-              The system will automatically trigger a bilingual reply containing their personalized software form link.
-            </p>
-
-            <form onSubmit={handleSimulateAutoResponse} className="space-y-4 text-xs font-semibold text-slate-600">
-              <div>
-                <label className="text-[10px] uppercase font-black text-slate-400 font-mono tracking-widest">Candidate Mobile / WhatsApp Number</label>
-                <input 
-                  type="tel"
-                  className="w-full bg-white border border-slate-300 rounded p-2.5 text-slate-900 mt-1 focus:outline-none focus:border-[#714B67]" 
-                  placeholder="e.g. 9876543210" 
-                  value={simPhone}
-                  onChange={e => setSimPhone(e.target.value)}
-                  required 
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="text-[10px] uppercase font-black text-slate-400 font-mono tracking-widest">Select target Job Link</label>
-                  <select 
-                    className="w-full bg-white border border-slate-300 rounded p-2.5 text-slate-700 mt-1 focus:outline-none focus:border-[#714B67]"
-                    value={simJobId}
-                    onChange={e => setSimJobId(e.target.value)}
-                    required
-                  >
-                    <option value="">-- Choose Job --</option>
-                    {jobs.map(j => (
-                      <option key={j._id} value={j._id}>{j.title} ({j.location})</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="text-[10px] uppercase font-black text-slate-400 font-mono tracking-widest">Outreach Channel</label>
-                  <select 
-                    className="w-full bg-white border border-slate-300 rounded p-2.5 text-slate-700 mt-1 focus:outline-none focus:border-[#714B67]"
-                    value={simChannel}
-                    onChange={e => setSimChannel(e.target.value)}
-                  >
-                    <option value="WhatsApp">Incoming WhatsApp Msg</option>
-                    <option value="Call">Incoming Phone Call</option>
-                  </select>
-                </div>
-              </div>
-
-              <button 
-                type="submit" 
-                className="w-full bg-[#714B67] hover:bg-[#5F3F56] py-3 rounded text-xs font-bold text-white transition-all shadow-md mt-4 flex items-center justify-center gap-1.5"
-              >
-                <Cpu className="w-4 h-4" /> Simulate Candidate Incoming Action
-              </button>
-            </form>
-          </div>
-
-          <div className="mt-6 pt-4 border-t border-slate-100 bg-slate-50 -mx-6 -mb-6 p-6 rounded-b-xl text-[10px] text-slate-500 font-mono">
-            <span className="font-bold text-[#714B67]">Status:</span> Auto-responder API configured. Link targets Candidate Model schema.
-          </div>
-        </div>
-
-        {/* Right Side: Mock WhatsApp Chat Interface */}
-        <div className="bg-[#E5DDD5] border border-slate-350 rounded-xl shadow-md overflow-hidden flex flex-col h-[400px]">
-          {/* WhatsApp Header */}
-          <div className="bg-[#075E54] text-white p-3 flex items-center gap-3 shrink-0">
-            <div className="w-8 h-8 rounded-full bg-slate-100/25 flex items-center justify-center text-xs font-bold">
-              💬
-            </div>
-            <div>
-              <div className="text-xs font-black tracking-wide">Acolyte HR Gateway</div>
-              <div className="text-[9px] text-emerald-100 font-mono">Online Auto-responder active</div>
-            </div>
-          </div>
-
-          {/* Chat Bubble Area */}
-          <div className="flex-1 p-4 overflow-y-auto space-y-3 font-sans">
-            {chatLog.length === 0 ? (
-              <div className="h-full flex flex-col items-center justify-center text-center p-6 text-slate-500">
-                <Smartphone className="w-12 h-12 text-[#075E54]/30 mb-2 animate-bounce" />
-                <p className="text-xs font-bold text-slate-600">Simulated WhatsApp Device Screen</p>
-                <p className="text-[10px] text-slate-500 mt-1 max-w-[240px]">Trigger simulation from the left panel to watch real-time message exchange and test the link!</p>
-              </div>
-            ) : (
-              chatLog.map((chat, i) => (
-                <div 
-                  key={i} 
-                  className={`flex ${chat.sender === "candidate" ? "justify-end" : "justify-start"}`}
-                >
-                  <div 
-                    className={`max-w-[85%] rounded-lg p-2.5 shadow-sm text-xs relative ${
-                      chat.sender === "candidate" 
-                        ? "bg-[#DCF8C6] text-slate-800 rounded-tr-none" 
-                        : "bg-white text-slate-800 rounded-tl-none border border-slate-200"
-                    }`}
-                  >
-                    <p className="whitespace-pre-line leading-relaxed font-semibold">{chat.text}</p>
-                    
-                    {/* Render live link inside system auto message */}
-                    {chat.sender === "system" && (
-                      <div className="mt-3 pt-2 border-t border-slate-100">
-                        <a 
-                          href={chat.text.split("Apply here: ")[1]} 
-                          target="_blank" 
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#075E54] hover:bg-[#128C7E] text-white text-[10px] font-black rounded shadow transition-all"
-                        >
-                          <ExternalLink className="w-3 h-3 shrink-0" /> Open Software Form
-                        </a>
-                      </div>
-                    )}
-                    <span className="block text-[8px] text-slate-400 text-right mt-1.5 font-mono">{chat.time}</span>
-                  </div>
-                </div>
-              ))
-            )}
-
-            {isTyping && (
-              <div className="flex justify-start">
-                <div className="bg-white text-slate-500 rounded-lg p-2 text-xs rounded-tl-none border border-slate-200 font-mono italic animate-pulse">
-                  Gateway is typing reply...
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-
-      </div>
     </div>
   );
 }
 
-export function CandidatesPipeline({ 
-  candidates, 
-  selectedCandidate, 
-  setSelectedCandidate, 
-  toggleModal, 
+export function CandidatesPipeline({
+  candidates,
+  selectedCandidate,
+  setSelectedCandidate,
+  toggleModal,
   triggerToast,
   requisitions = []
 }: RecruitmentProps) {
+  const [previewFile, setPreviewFile] = useState<{ url: string; title: string } | null>(null);
+
   return (
     <div className="space-y-8 animate-fadeIn text-slate-800">
       <div className="flex items-center justify-between">
@@ -874,12 +752,6 @@ export function CandidatesPipeline({
           <h1 className="text-xl font-black text-slate-800">Candidate Pipeline</h1>
           <p className="text-xs text-slate-500 mt-1">Sourcing applications tracking roster</p>
         </div>
-        <button 
-          className="bg-[#714B67] hover:bg-[#5F3F56] px-4 py-2.5 rounded-lg text-xs font-bold text-white transition-all flex items-center gap-1.5 shadow" 
-          onClick={() => toggleModal("cand", true)}
-        >
-          <UserPlus className="w-4 h-4" /> Add Candidate
-        </button>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
@@ -901,7 +773,7 @@ export function CandidatesPipeline({
                     const matchingReq = requisitions.find(r => r.role === c.job?.title);
                     let vettingStatusText = c.status;
                     let statusColorClass = "bg-amber-500/10 text-amber-600 border-amber-500/20";
-                    
+
                     if (matchingReq) {
                       if (matchingReq.status === "Pending Accounts Review") {
                         vettingStatusText = "Waiting for Accounts";
@@ -930,9 +802,9 @@ export function CandidatesPipeline({
                     }
 
                     return (
-                      <tr 
-                        key={idx} 
-                        className={`hover:bg-slate-50/50 cursor-pointer transition-all ${selectedCandidate?._id === c._id ? "bg-fuchsia-50/40" : ""}`} 
+                      <tr
+                        key={idx}
+                        className={`hover:bg-slate-50/50 cursor-pointer transition-all ${selectedCandidate?._id === c._id ? "bg-fuchsia-50/40" : ""}`}
                         onClick={() => setSelectedCandidate(c)}
                       >
                         <td className="py-3.5 text-slate-500 font-mono">{c._id.slice(-6).toUpperCase()}</td>
@@ -947,8 +819,8 @@ export function CandidatesPipeline({
                           </span>
                         </td>
                         <td className="py-3.5 pl-2 text-right">
-                          <button 
-                            className="bg-[#714B67] hover:bg-[#5F3F56] px-2.5 py-1 rounded text-[10px] font-bold text-white shadow-sm" 
+                          <button
+                            className="bg-[#714B67] hover:bg-[#5F3F56] px-2.5 py-1 rounded text-[10px] font-bold text-white shadow-sm"
                             onClick={(e) => {
                               e.stopPropagation();
                               setSelectedCandidate(c);
@@ -969,7 +841,7 @@ export function CandidatesPipeline({
         {/* Selected Candidate Details Panel */}
         {selectedCandidate && (
           <div className="lg:col-span-1 bg-white border border-slate-200 rounded-xl p-5 shadow-md space-y-5 animate-fadeIn relative">
-            <button 
+            <button
               className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 font-black text-base"
               onClick={() => setSelectedCandidate(null)}
             >
@@ -978,9 +850,8 @@ export function CandidatesPipeline({
             <div className="pb-3 border-b border-slate-100">
               <h3 className="text-[9px] font-black uppercase text-slate-400 tracking-wider font-mono">Candidate Profile Details</h3>
               <h2 className="text-base font-black text-slate-850 mt-1">{selectedCandidate.name}</h2>
-              <span className={`text-[9px] font-bold px-2 py-0.5 rounded border mt-1 inline-block ${
-                selectedCandidate.status === "Selected" ? "bg-emerald-55 border-emerald-200 text-emerald-600" : "bg-[#714B67]/10 text-[#714B67] border-[#714B67]/20"
-              }`}>
+              <span className={`text-[9px] font-bold px-2 py-0.5 rounded border mt-1 inline-block ${selectedCandidate.status === "Selected" ? "bg-emerald-55 border-emerald-200 text-emerald-600" : "bg-[#714B67]/10 text-[#714B67] border-[#714B67]/20"
+                }`}>
                 Status: {selectedCandidate.status}
               </span>
             </div>
@@ -1041,26 +912,30 @@ export function CandidatesPipeline({
                   <span className="text-[9px] font-black uppercase text-[#714B67] tracking-wider font-mono block mb-1">Attachments</span>
                   <div className="flex flex-col gap-1.5">
                     {selectedCandidate.uploads.resume && (
-                      <a 
-                        href={selectedCandidate.uploads.resume} 
-                        target="_blank" 
-                        rel="noreferrer" 
-                        className="flex items-center justify-between p-2 bg-indigo-50/50 border border-indigo-100 rounded text-indigo-700 hover:bg-indigo-50 font-bold"
+                      <button
+                        type="button"
+                        onClick={() => setPreviewFile({
+                          url: getAttachmentUrl(selectedCandidate.uploads.resume),
+                          title: `Resume - ${selectedCandidate.name}`
+                        })}
+                        className="flex items-center justify-between p-2 bg-indigo-50/50 border border-indigo-100 rounded text-indigo-700 hover:bg-indigo-50 font-bold text-left w-full"
                       >
                         <span>📄 Resume Document</span>
                         <span className="text-[9px] uppercase bg-indigo-600 text-white px-2 py-0.5 rounded font-mono">View</span>
-                      </a>
+                      </button>
                     )}
                     {selectedCandidate.uploads.photo && (
-                      <a 
-                        href={selectedCandidate.uploads.photo} 
-                        target="_blank" 
-                        rel="noreferrer" 
-                        className="flex items-center justify-between p-2 bg-indigo-50/50 border border-indigo-100 rounded text-indigo-700 hover:bg-indigo-50 font-bold"
+                      <button
+                        type="button"
+                        onClick={() => setPreviewFile({
+                          url: getAttachmentUrl(selectedCandidate.uploads.photo),
+                          title: `Profile Photo - ${selectedCandidate.name}`
+                        })}
+                        className="flex items-center justify-between p-2 bg-indigo-50/50 border border-indigo-100 rounded text-indigo-700 hover:bg-indigo-50 font-bold text-left w-full"
                       >
                         <span>🖼️ Profile Photo</span>
                         <span className="text-[9px] uppercase bg-indigo-600 text-white px-2 py-0.5 rounded font-mono">View</span>
-                      </a>
+                      </button>
                     )}
                   </div>
                 </div>
@@ -1069,18 +944,57 @@ export function CandidatesPipeline({
           </div>
         )}
       </div>
+
+      {previewFile && (
+        <FilePreviewModal
+          url={previewFile.url}
+          title={previewFile.title}
+          onClose={() => setPreviewFile(null)}
+        />
+      )}
     </div>
   );
 }
 
-export function AiScreening({ selectedCandidate, triggerToast }: { selectedCandidate: any; triggerToast: (msg: string) => void; }) {
+export function AiScreening({
+  selectedCandidate,
+  triggerToast,
+  onCandidateUpdated,
+}: {
+  selectedCandidate: any;
+  triggerToast: (msg: string) => void;
+  onCandidateUpdated?: () => void;
+}) {
   const [candidate, setCandidate] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [scanStep, setScanStep] = useState(0);
   const [overrideLoading, setOverrideLoading] = useState(false);
+  const [previewFile, setPreviewFile] = useState<{ url: string; title: string } | null>(null);
+  const [candidates, setCandidates] = useState<any[]>([]);
+  const [loadingCands, setLoadingCands] = useState(false);
+
+  const loadCandidates = async () => {
+    setLoadingCands(true);
+    try {
+      const res = await fetch("/api/candidates");
+      const data = await res.json();
+      if (data.success && Array.isArray(data.data)) {
+        const list = data.data.filter((c: any) => c && c.status !== "inactive");
+        setCandidates(list);
+        if (selectedCandidate) {
+          const match = list.find((c: any) => c._id === selectedCandidate._id);
+          if (match) setCandidate(match);
+        }
+      }
+    } catch (err) {
+      console.error("Error loading candidates:", err);
+    } finally {
+      setLoadingCands(false);
+    }
+  };
 
   useEffect(() => {
-    setCandidate(selectedCandidate);
+    loadCandidates();
   }, [selectedCandidate]);
 
   const runAiScreening = async () => {
@@ -1106,7 +1020,7 @@ export function AiScreening({ selectedCandidate, triggerToast }: { selectedCandi
         body: JSON.stringify({ candidateId: candidate._id }),
       });
       const data = await res.json();
-      
+
       setTimeout(() => {
         if (data.success) {
           setCandidate((prev: any) => ({
@@ -1115,6 +1029,7 @@ export function AiScreening({ selectedCandidate, triggerToast }: { selectedCandi
             status: data.data.recommendation === "High Risk" ? "High Risk" : prev.status,
           }));
           triggerToast(`AI Screening completed for ${candidate.name}!`);
+          onCandidateUpdated?.();
         } else {
           triggerToast(`Screening failed: ${data.error}`);
         }
@@ -1146,6 +1061,7 @@ export function AiScreening({ selectedCandidate, triggerToast }: { selectedCandi
           status: newStatus,
         }));
         triggerToast(`Manual override successful! Candidate marked: ${newStatus}`);
+        onCandidateUpdated?.();
       } else {
         triggerToast(`Failed to update status: ${data.error}`);
       }
@@ -1159,13 +1075,38 @@ export function AiScreening({ selectedCandidate, triggerToast }: { selectedCandi
   if (!candidate) {
     return (
       <div className="space-y-8 animate-fadeIn text-slate-800">
-        <div>
-          <h1 className="text-xl font-black text-slate-800">AI Screening Module</h1>
-          <p className="text-xs text-slate-500 mt-1">Cross-referencing candidate declarations vs job description</p>
+        <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm space-y-4">
+          <div>
+            <h1 className="text-xl font-black text-slate-800">AI Screening Module</h1>
+            <p className="text-xs text-slate-500 mt-1">Cross-referencing candidate declarations vs job description</p>
+          </div>
+          
+          <div className="flex flex-col gap-1.5 max-w-sm">
+            <label className="text-[10px] font-black uppercase text-slate-400 tracking-wider font-mono">Select Candidate to Screen</label>
+            <select
+              value=""
+              onChange={(e) => {
+                const selected = candidates.find((c) => c._id === e.target.value);
+                if (selected) setCandidate(selected);
+              }}
+              className="rounded border border-slate-250 p-2 text-xs text-slate-800 focus:ring-[#714B67] bg-white font-semibold"
+            >
+              <option value="">-- Choose Candidate --</option>
+              {candidates.map((c) => {
+                const vacancy = c.job?.title || "General Application";
+                return (
+                  <option key={c._id} value={c._id}>
+                    {c.name} ({vacancy})
+                  </option>
+                );
+              })}
+            </select>
+          </div>
         </div>
+
         <div className="text-center py-20 bg-white rounded-xl border border-slate-200 shadow-sm flex flex-col items-center justify-center p-6">
           <Brain className="w-16 h-16 text-[#714B67]/30 mb-4 animate-pulse" />
-          <p className="text-sm font-bold text-slate-700">Select a candidate in Candidates Tab first</p>
+          <p className="text-sm font-bold text-slate-700">Please select a candidate above to view or run AI screening</p>
           <p className="text-xs text-slate-400 mt-1.5 max-w-[280px]">AI Screening reviews credentials, matches experiences, calculates stability scores and parses risk profiles.</p>
         </div>
       </div>
@@ -1177,12 +1118,35 @@ export function AiScreening({ selectedCandidate, triggerToast }: { selectedCandi
   return (
     <div className="space-y-8 animate-fadeIn text-slate-800">
       {/* Header Banner */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
+        <div className="space-y-2 flex-1">
           <h1 className="text-xl font-black text-slate-800">AI Screening Module</h1>
-          <p className="text-xs text-slate-500 mt-1">Automatic vetting & customized assessment question sets</p>
+          <p className="text-xs text-slate-500">Automatic vetting & customized assessment question sets</p>
+          
+          <div className="flex flex-col gap-1.5 max-w-sm pt-2">
+            <label className="text-[10px] font-black uppercase text-slate-400 tracking-wider font-mono">Select Candidate to Screen</label>
+            <select
+              value={candidate?._id || ""}
+              onChange={(e) => {
+                const selected = candidates.find((c) => c._id === e.target.value);
+                if (selected) setCandidate(selected);
+              }}
+              className="rounded border border-slate-250 p-2 text-xs text-slate-800 focus:ring-[#714B67] bg-white font-semibold"
+            >
+              <option value="">-- Choose Candidate --</option>
+              {candidates.map((c) => {
+                const vacancy = c.job?.title || "General Application";
+                return (
+                  <option key={c._id} value={c._id}>
+                    {c.name} ({vacancy})
+                  </option>
+                );
+              })}
+            </select>
+          </div>
         </div>
-        <div className="flex items-center gap-2">
+
+        <div className="flex items-center gap-2 shrink-0">
           {!result && !loading && (
             <button
               onClick={runAiScreening}
@@ -1207,7 +1171,7 @@ export function AiScreening({ selectedCandidate, triggerToast }: { selectedCandi
         <div className="bg-slate-900 border border-slate-800 rounded-2xl p-8 text-center text-white space-y-6 shadow-xl relative overflow-hidden">
           <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-[#714B67] via-indigo-500 to-[#128C7E] animate-pulse" />
           <Brain className="w-16 h-16 text-[#714B67] mx-auto animate-bounce" />
-          
+
           <div className="max-w-md mx-auto space-y-2">
             <h3 className="text-base font-bold tracking-tight">AI Screening Core Active</h3>
             <p className="text-xs text-slate-400 font-mono">Screening Candidate ID: {candidate._id.toUpperCase()}</p>
@@ -1249,8 +1213,8 @@ export function AiScreening({ selectedCandidate, triggerToast }: { selectedCandi
 
           <div className="max-w-xs mx-auto pt-2">
             <div className="w-full bg-slate-950 h-1.5 rounded-full overflow-hidden">
-              <div 
-                className="bg-indigo-500 h-full transition-all duration-1000" 
+              <div
+                className="bg-indigo-500 h-full transition-all duration-1000"
                 style={{ width: `${(scanStep + 1) * 20}%` }}
               />
             </div>
@@ -1261,7 +1225,7 @@ export function AiScreening({ selectedCandidate, triggerToast }: { selectedCandi
       {/* Side by Side Assessment Columns */}
       {!loading && (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-          
+
           {/* LEFT: Candidate Application Details */}
           <div className="lg:col-span-5 space-y-6">
             <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm space-y-6">
@@ -1366,17 +1330,19 @@ export function AiScreening({ selectedCandidate, triggerToast }: { selectedCandi
                 <h4 className="text-[10px] font-black uppercase text-[#714B67] tracking-wider font-mono">3. Document Upload Links</h4>
                 <div className="grid grid-cols-2 gap-2 text-[10px]">
                   {Object.entries(candidate.uploads || {}).map(([key, val]) => (
-                    <a
+                    <button
                       key={key}
-                      href={val as string}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-1.5 p-2 bg-indigo-50/50 hover:bg-indigo-100/50 border border-indigo-100 text-indigo-700 rounded transition-all font-semibold"
+                      type="button"
+                      onClick={() => setPreviewFile({
+                        url: getAttachmentUrl(val as string),
+                        title: `${key} - ${candidate.name}`
+                      })}
+                      className="flex items-center gap-1.5 p-2 bg-indigo-50/50 hover:bg-indigo-100/50 border border-indigo-100 text-indigo-700 rounded transition-all font-semibold text-left w-full"
                     >
                       <FileText className="w-3.5 h-3.5 shrink-0" />
                       <span className="capitalize break-all truncate">{key}</span>
                       <ExternalLink className="w-3 h-3 shrink-0 ml-auto" />
-                    </a>
+                    </button>
                   ))}
                   {Object.keys(candidate.uploads || {}).length === 0 && (
                     <span className="text-slate-400 italic font-medium col-span-2">No documents submitted.</span>
@@ -1404,7 +1370,7 @@ export function AiScreening({ selectedCandidate, triggerToast }: { selectedCandi
               </div>
             ) : (
               <div className="bg-white border border-slate-200 rounded-xl p-6 space-y-6 shadow-sm">
-                
+
                 {/* AI Scores Summary Grid */}
                 <div>
                   <h3 className="text-xs font-black uppercase text-[#714B67] tracking-wider font-mono mb-4">AI Score Analytics Vetting</h3>
@@ -1462,11 +1428,11 @@ export function AiScreening({ selectedCandidate, triggerToast }: { selectedCandi
                     </h3>
                     <span className="text-[9px] bg-indigo-50 border border-indigo-250 text-indigo-600 font-bold px-2 py-0.5 rounded">Tailored Assessment Set</span>
                   </div>
-                  
+
                   <div className="space-y-2 max-h-[250px] overflow-y-auto pr-2 custom-scrollbar">
                     {result.suggestedQuestions?.map((q: string, qIdx: number) => (
-                      <div 
-                        key={qIdx} 
+                      <div
+                        key={qIdx}
                         className="flex items-start gap-2.5 p-2 bg-slate-50/50 hover:bg-slate-50 border border-slate-150 rounded text-[11px] text-slate-700 select-none cursor-pointer"
                       >
                         <input
@@ -1486,13 +1452,12 @@ export function AiScreening({ selectedCandidate, triggerToast }: { selectedCandi
                 <div className="pt-4 border-t border-slate-150 flex items-center justify-between gap-4 flex-wrap">
                   <div className="flex items-center gap-2">
                     <span className="text-[10px] font-black uppercase text-slate-400 tracking-wider font-mono">AI Suggestion:</span>
-                    <span className={`text-[10px] font-black uppercase px-2.5 py-1 rounded border tracking-wide ${
-                      result.recommendation === "Shortlist" 
-                        ? "bg-emerald-50 border-emerald-250 text-emerald-600 animate-pulse" 
-                        : result.recommendation === "Hold"
+                    <span className={`text-[10px] font-black uppercase px-2.5 py-1 rounded border tracking-wide ${result.recommendation === "Shortlist"
+                      ? "bg-emerald-50 border-emerald-250 text-emerald-600 animate-pulse"
+                      : result.recommendation === "Hold"
                         ? "bg-amber-50 border-amber-200 text-amber-600"
                         : "bg-rose-100 border-rose-300 text-rose-700"
-                    }`}>
+                      }`}>
                       {result.recommendation}
                     </span>
                   </div>
@@ -1519,23 +1484,21 @@ export function AiScreening({ selectedCandidate, triggerToast }: { selectedCandi
                     <button
                       disabled={overrideLoading}
                       onClick={() => handleStatusOverride("Selected")}
-                      className={`text-[10px] font-black px-4 py-2.5 rounded-lg border shadow-sm transition-all flex items-center gap-1.5 ${
-                        candidate.status === "Selected"
-                          ? "bg-emerald-600 border-emerald-600 text-white"
-                          : "bg-white border-slate-250 hover:bg-emerald-50 text-emerald-600"
-                      }`}
+                      className={`text-[10px] font-black px-4 py-2.5 rounded-lg border shadow-sm transition-all flex items-center gap-1.5 ${candidate.status === "Selected"
+                        ? "bg-emerald-600 border-emerald-600 text-white"
+                        : "bg-white border-slate-250 hover:bg-emerald-50 text-emerald-600"
+                        }`}
                     >
                       <ThumbsUp className="w-3.5 h-3.5" /> Shortlist & Schedule
                     </button>
-                    
+
                     <button
                       disabled={overrideLoading}
                       onClick={() => handleStatusOverride("Hold")}
-                      className={`text-[10px] font-black px-4 py-2.5 rounded-lg border shadow-sm transition-all flex items-center gap-1.5 ${
-                        candidate.status === "Hold"
-                          ? "bg-amber-500 border-amber-500 text-white"
-                          : "bg-white border-slate-250 hover:bg-amber-50 text-amber-600"
-                      }`}
+                      className={`text-[10px] font-black px-4 py-2.5 rounded-lg border shadow-sm transition-all flex items-center gap-1.5 ${candidate.status === "Hold"
+                        ? "bg-amber-500 border-amber-500 text-white"
+                        : "bg-white border-slate-250 hover:bg-amber-50 text-amber-600"
+                        }`}
                     >
                       <RotateCcw className="w-3.5 h-3.5" /> Put on Hold
                     </button>
@@ -1543,11 +1506,10 @@ export function AiScreening({ selectedCandidate, triggerToast }: { selectedCandi
                     <button
                       disabled={overrideLoading}
                       onClick={() => handleStatusOverride("Rejected")}
-                      className={`text-[10px] font-black px-4 py-2.5 rounded-lg border shadow-sm transition-all flex items-center gap-1.5 ${
-                        candidate.status === "Rejected"
-                          ? "bg-slate-700 border-slate-700 text-white"
-                          : "bg-white border-slate-250 hover:bg-slate-100 text-slate-650"
-                      }`}
+                      className={`text-[10px] font-black px-4 py-2.5 rounded-lg border shadow-sm transition-all flex items-center gap-1.5 ${candidate.status === "Rejected"
+                        ? "bg-slate-700 border-slate-700 text-white"
+                        : "bg-white border-slate-250 hover:bg-slate-100 text-slate-650"
+                        }`}
                     >
                       <ThumbsDown className="w-3.5 h-3.5" /> Reject Profile
                     </button>
@@ -1555,11 +1517,10 @@ export function AiScreening({ selectedCandidate, triggerToast }: { selectedCandi
                     <button
                       disabled={overrideLoading}
                       onClick={() => handleStatusOverride("High Risk")}
-                      className={`text-[10px] font-black px-4 py-2.5 rounded-lg border shadow-sm transition-all flex items-center gap-1.5 ${
-                        candidate.status === "High Risk"
-                          ? "bg-rose-600 border-rose-600 text-white animate-pulse"
-                          : "bg-white border-slate-250 hover:bg-rose-50 text-rose-600"
-                      }`}
+                      className={`text-[10px] font-black px-4 py-2.5 rounded-lg border shadow-sm transition-all flex items-center gap-1.5 ${candidate.status === "High Risk"
+                        ? "bg-rose-600 border-rose-600 text-white animate-pulse"
+                        : "bg-white border-slate-250 hover:bg-rose-50 text-rose-600"
+                        }`}
                     >
                       <ShieldAlert className="w-3.5 h-3.5" /> Mark High Risk
                     </button>
@@ -1572,16 +1533,114 @@ export function AiScreening({ selectedCandidate, triggerToast }: { selectedCandi
 
         </div>
       )}
+
+      {previewFile && (
+        <FilePreviewModal
+          url={previewFile.url}
+          title={previewFile.title}
+          onClose={() => setPreviewFile(null)}
+        />
+      )}
     </div>
   );
 }
 
-export function VerificationChecklist({ selectedCandidate, triggerToast }: { selectedCandidate: any; triggerToast: (msg: string) => void; }) {
+export function VerificationChecklist({
+  selectedCandidate,
+  triggerToast,
+  onCandidateUpdated,
+}: {
+  selectedCandidate: any;
+  triggerToast: (msg: string) => void;
+  onCandidateUpdated?: () => void;
+}) {
   const [candidates, setCandidates] = useState<any[]>([]);
   const [selectedCand, setSelectedCand] = useState<any>(null);
   const [verifications, setVerifications] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [previewFile, setPreviewFile] = useState<{ url: string; title: string } | null>(null);
+  const [uploadingField, setUploadingField] = useState<string | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
+
+  const handleAttachDocument = async (field: string, file: File) => {
+    if (!selectedCand?._id) return;
+    setUploadingField(field);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const uploadRes = await fetch("/api/documents/upload", {
+        method: "POST",
+        body: formData,
+      });
+      const uploadData = await uploadRes.json();
+      if (!uploadData.success || !uploadData.url) {
+        throw new Error(uploadData.error || "Upload failed");
+      }
+
+      const fileUrl = uploadData.url;
+
+      // Update candidate database profile
+      const updateRes = await fetch(`/api/candidates/${selectedCand._id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          uploads: {
+            [field]: fileUrl,
+          },
+        }),
+      });
+      const updateData = await updateRes.json();
+      if (updateData.success) {
+        // Also update verification record with the newly uploaded document URL
+        const urlFieldMap: Record<string, string> = {
+          aadhaar: "aadhaarUrl",
+          pan: "panUrl",
+          salarySlip: "salarySlipUrl",
+          bankStatement: "bankStatementUrl",
+        };
+        const dbUrlField = urlFieldMap[field];
+        if (dbUrlField) {
+          await fetch("/api/verifications", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              candidateId: selectedCand._id,
+              [dbUrlField]: fileUrl,
+            }),
+          });
+        }
+
+        // Update selectedCand state
+        setSelectedCand((prev: any) => ({
+          ...prev,
+          uploads: {
+            ...prev.uploads,
+            [field]: fileUrl,
+          },
+        }));
+        // Update local candidates list state
+        setCandidates((prevList) =>
+          prevList.map((c) =>
+            c._id === selectedCand._id
+              ? { ...c, uploads: { ...c.uploads, [field]: fileUrl } }
+              : c
+          )
+        );
+        triggerToast(`Document attached successfully for ${field === "salarySlip" ? "Salary Slip" : field === "bankStatement" ? "Bank Statement" : field.toUpperCase()}!`);
+        if (onCandidateUpdated) {
+          onCandidateUpdated();
+        }
+      } else {
+        triggerToast(`Failed to update candidate: ${updateData.error}`);
+      }
+    } catch (err: any) {
+      triggerToast(`Upload error: ${err.message}`);
+    } finally {
+      setUploadingField(null);
+    }
+  };
 
   // 9 Check Statuses
   const [aadhaarStatus, setAadhaarStatus] = useState("Pending");
@@ -1628,18 +1687,41 @@ export function VerificationChecklist({ selectedCandidate, triggerToast }: { sel
   const loadData = async (selectId?: string) => {
     setLoading(true);
     try {
-      // 1. Fetch Candidates
-      const resCand = await fetch("/api/candidates");
+      // 1. Fetch Candidates, Interviews & Verifications
+      const [resCand, resInt, resVer] = await Promise.all([
+        fetch("/api/candidates"),
+        fetch("/api/interviews"),
+        fetch("/api/verifications")
+      ]);
       const dataCand = await resCand.json();
+      const dataInt = await resInt.json();
+      const dataVer = await resVer.json();
+
       let activeCands: any[] = [];
-      if (dataCand.success && Array.isArray(dataCand.data)) {
-        activeCands = dataCand.data.filter((c: any) => c && c.status !== "inactive");
+      if (dataCand.success && Array.isArray(dataCand.data) && dataInt.success && Array.isArray(dataInt.data)) {
+        const interviews = dataInt.data;
+        const candidateInterviewsMap: Record<string, Set<number>> = {};
+
+        interviews.forEach((iv: any) => {
+          if (iv.candidate && iv.candidate._id && iv.status === "Selected") {
+            const cid = iv.candidate._id.toString();
+            if (!candidateInterviewsMap[cid]) {
+              candidateInterviewsMap[cid] = new Set();
+            }
+            candidateInterviewsMap[cid].add(iv.round);
+          }
+        });
+
+        // Filter: Candidate ID must have 1, 2, and 3 all selected
+        const eligibleCandIds = Object.keys(candidateInterviewsMap).filter(cid => {
+          const rounds = candidateInterviewsMap[cid];
+          return rounds.has(1) && rounds.has(2) && rounds.has(3);
+        });
+
+        activeCands = dataCand.data.filter((c: any) => c && c.status !== "inactive" && eligibleCandIds.includes(c._id.toString()));
         setCandidates(activeCands);
       }
 
-      // 2. Fetch Verifications
-      const resVer = await fetch("/api/verifications");
-      const dataVer = await resVer.json();
       let verList: any[] = [];
       if (dataVer.success && Array.isArray(dataVer.data)) {
         verList = dataVer.data;
@@ -1664,9 +1746,11 @@ export function VerificationChecklist({ selectedCandidate, triggerToast }: { sel
         setSelectedCand(activeSelect);
         const matchVer = verList.find((v: any) => v.candidate?._id === activeSelect._id || v.candidate === activeSelect._id);
         applyVerificationData(matchVer);
+        setIsEditing(!matchVer);
       } else {
         setSelectedCand(null);
         applyVerificationData(null);
+        setIsEditing(false);
       }
     } catch (err) {
       triggerToast("Error loading vetting checks");
@@ -1683,6 +1767,7 @@ export function VerificationChecklist({ selectedCandidate, triggerToast }: { sel
     setSelectedCand(cand);
     const matchVer = verifications.find((v: any) => v.candidate?._id === cand._id || v.candidate === cand._id);
     applyVerificationData(matchVer);
+    setIsEditing(!matchVer);
   };
 
   const handleSave = async (e: React.FormEvent) => {
@@ -1707,12 +1792,16 @@ export function VerificationChecklist({ selectedCandidate, triggerToast }: { sel
           socialMediaStatus,
           remarks,
           status: overallStatus,
+          aadhaarUrl: selectedCand.uploads?.aadhaar || "",
+          panUrl: selectedCand.uploads?.pan || "",
+          salarySlipUrl: selectedCand.uploads?.salarySlip || "",
+          bankStatementUrl: selectedCand.uploads?.bankStatement || "",
         }),
       });
-
       const data = await res.json();
       if (data.success) {
         triggerToast("Vetting verification matrix saved successfully!");
+        setIsEditing(false);
         loadData(selectedCand._id);
       } else {
         triggerToast(`Failed: ${data.error}`);
@@ -1741,7 +1830,7 @@ export function VerificationChecklist({ selectedCandidate, triggerToast }: { sel
 
   return (
     <div className="space-y-8 animate-fadeIn text-slate-800">
-      
+
       {/* Top Header Card */}
       <div>
         <h1 className="text-xl font-black text-slate-800">Vetting Checks Registry</h1>
@@ -1760,35 +1849,33 @@ export function VerificationChecklist({ selectedCandidate, triggerToast }: { sel
         </div>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-          
+
           {/* LEFT: CANDIDATES DIRECTORY */}
           <div className="lg:col-span-4 bg-white border border-slate-200 rounded-xl p-5 shadow-sm space-y-4 max-h-[640px] overflow-y-auto custom-scrollbar">
             <h3 className="text-xs font-black uppercase text-slate-400 tracking-wider font-mono">Select Profile</h3>
-            
+
             <div className="space-y-2">
               {candidates.map((c) => {
                 const isSelected = selectedCand?._id === c._id;
                 const matchVer = verifications.find((v: any) => v.candidate?._id === c._id || v.candidate === c._id);
                 const currentOverallStatus = matchVer?.status || "Pending";
-                
+
                 return (
                   <div
                     key={c._id}
                     onClick={() => handleSelectCandidate(c)}
-                    className={`p-3 rounded-lg border cursor-pointer transition-all hover:scale-[1.01] ${
-                      isSelected 
-                        ? "bg-[#714B67]/5 border-[#714B67] shadow-sm" 
-                        : "bg-slate-50/50 border-slate-200 hover:bg-slate-50"
-                    }`}
+                    className={`p-3 rounded-lg border cursor-pointer transition-all hover:scale-[1.01] ${isSelected
+                      ? "bg-[#714B67]/5 border-[#714B67] shadow-sm"
+                      : "bg-slate-50/50 border-slate-200 hover:bg-slate-50"
+                      }`}
                   >
                     <div className="flex justify-between items-start gap-2">
                       <div>
                         <h4 className="text-xs font-black text-slate-800 leading-snug">{c.name}</h4>
                         <p className="text-[10px] text-slate-400 mt-0.5">{c.job?.title || "Direct Applicant"}</p>
                       </div>
-                      <span className={`text-[8.5px] font-black uppercase tracking-wider font-mono px-2 py-0.5 rounded border shrink-0 ${
-                        getStatusColor(currentOverallStatus)
-                      }`}>
+                      <span className={`text-[8.5px] font-black uppercase tracking-wider font-mono px-2 py-0.5 rounded border shrink-0 ${getStatusColor(currentOverallStatus)
+                        }`}>
                         {currentOverallStatus}
                       </span>
                     </div>
@@ -1802,7 +1889,6 @@ export function VerificationChecklist({ selectedCandidate, triggerToast }: { sel
           {selectedCand && (
             <div className="lg:col-span-8 space-y-4">
               <form onSubmit={handleSave} className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm space-y-6 animate-fadeIn">
-                
                 {/* Profile header bar */}
                 <div className="pb-4 border-b border-slate-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                   <div>
@@ -1812,253 +1898,426 @@ export function VerificationChecklist({ selectedCandidate, triggerToast }: { sel
                       Email: <strong className="text-slate-700 font-mono pr-2">{selectedCand.email}</strong> | Mobile: <strong className="text-slate-700 font-mono">{selectedCand.mobile}</strong>
                     </p>
                   </div>
-                  
-                  {/* General status display of candidate */}
-                  <span className="text-[9.5px] font-bold text-slate-600 bg-slate-100 border border-slate-200 px-2.5 py-1 rounded font-mono uppercase">
-                    Workflow status: <strong>{selectedCand.status}</strong>
-                  </span>
+
+                  {/* General status display and Edit button */}
+                  <div className="flex items-center gap-3">
+                    {!isEditing && (
+                      <button
+                        type="button"
+                        onClick={() => setIsEditing(true)}
+                        className="bg-[#714B67] hover:bg-[#5F3F56] text-white px-3 py-1.5 rounded text-xs font-bold shadow-sm transition-all"
+                      >
+                        Edit Details
+                      </button>
+                    )}
+                    {isEditing && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const matchVer = verifications.find((v: any) => v.candidate?._id === selectedCand._id || v.candidate === selectedCand._id);
+                          applyVerificationData(matchVer);
+                          setIsEditing(!matchVer);
+                        }}
+                        className="bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 px-3 py-1.5 rounded text-xs font-bold transition-all"
+                      >
+                        Cancel
+                      </button>
+                    )}
+                    <span className="text-[9.5px] font-bold text-slate-600 bg-slate-100 border border-slate-200 px-2.5 py-1 rounded font-mono uppercase">
+                      Workflow status: <strong>{selectedCand.status}</strong>
+                    </span>
+                  </div>
                 </div>
 
                 {/* 9-Point Compliance checklist grid */}
                 <div className="space-y-3">
-                  <h4 className="text-[10px] font-black uppercase text-[#714B67] tracking-wider font-mono">9-Point Verification Checklist</h4>
-                  
+                  <h4 className="text-[10px] font-black uppercase text-[#714B67] tracking-wider font-mono">
+                    {!isEditing ? "Attached Documents & Vetting" : "9-Point Verification Checklist"}
+                  </h4>
+
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    
+
                     {/* 1. Aadhaar Check */}
-                    <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg flex flex-col gap-1.5 justify-between">
-                      <div className="flex justify-between items-center">
-                        <span className="text-xs font-bold text-slate-800">1. Aadhaar Check</span>
-                        {selectedCand.uploads?.aadhaar && (
-                          <a 
-                            href={selectedCand.uploads.aadhaar} 
-                            target="_blank" 
-                            rel="noopener noreferrer" 
-                            className="text-[9px] font-bold text-indigo-600 hover:underline flex items-center gap-0.5"
+                    {(isEditing || !!selectedCand.uploads?.aadhaar) && (
+                      <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg flex flex-col gap-1.5 justify-between">
+                        <div className="flex justify-between items-center">
+                          <span className="text-xs font-bold text-slate-800">1. Aadhaar Check</span>
+                          <div className="flex items-center gap-2">
+                            {selectedCand.uploads?.aadhaar && (
+                              <button
+                                type="button"
+                                onClick={() => setPreviewFile({
+                                  url: getAttachmentUrl(selectedCand.uploads.aadhaar),
+                                  title: `Aadhaar Card - ${selectedCand.name}`
+                                })}
+                                className="text-[9px] font-bold text-indigo-600 hover:underline flex items-center gap-0.5"
+                              >
+                                <ExternalLink className="w-2.5 h-2.5" /> View Aadhaar
+                              </button>
+                            )}
+                            {isEditing && (
+                              <label className="text-[9px] font-bold text-[#714B67] hover:underline cursor-pointer flex items-center gap-0.5">
+                                <Paperclip className="w-2.5 h-2.5" />
+                                {uploadingField === "aadhaar" ? "Uploading..." : selectedCand.uploads?.aadhaar ? "Re-attach" : "Attach Document"}
+                                <input
+                                  type="file"
+                                  accept="image/*,application/pdf"
+                                  className="hidden"
+                                  disabled={uploadingField !== null}
+                                  onChange={(e) => {
+                                    const file = e.target.files?.[0];
+                                    if (file) handleAttachDocument("aadhaar", file);
+                                  }}
+                                />
+                              </label>
+                            )}
+                          </div>
+                        </div>
+                        {isEditing ? (
+                          <select
+                            value={aadhaarStatus}
+                            onChange={(e) => setAadhaarStatus(e.target.value)}
+                            className="rounded border border-slate-250 p-1.5 text-xs text-slate-800 focus:ring-[#714B67]"
                           >
-                            <ExternalLink className="w-2.5 h-2.5" /> View Aadhaar
-                          </a>
+                            <option value="Pending">Pending</option>
+                            <option value="Verified">Verified</option>
+                            <option value="Hold">Hold</option>
+                            <option value="Rejected">Rejected</option>
+                            <option value="High Risk">High Risk</option>
+                          </select>
+                        ) : (
+                          <div className="flex items-center mt-1">
+                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded border ${getStatusColor(aadhaarStatus)}`}>
+                              {aadhaarStatus}
+                            </span>
+                          </div>
                         )}
                       </div>
-                      <select
-                        value={aadhaarStatus}
-                        onChange={(e) => setAadhaarStatus(e.target.value)}
-                        className="rounded border border-slate-250 p-1.5 text-xs text-slate-800 focus:ring-[#714B67]"
-                      >
-                        <option value="Pending">Pending</option>
-                        <option value="Verified">Verified</option>
-                        <option value="Hold">Hold</option>
-                        <option value="Rejected">Rejected</option>
-                        <option value="High Risk">High Risk</option>
-                      </select>
-                    </div>
+                    )}
 
                     {/* 2. PAN Check */}
-                    <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg flex flex-col gap-1.5 justify-between">
-                      <div className="flex justify-between items-center">
-                        <span className="text-xs font-bold text-slate-800">2. PAN Check</span>
-                        {selectedCand.uploads?.pan && (
-                          <a 
-                            href={selectedCand.uploads.pan} 
-                            target="_blank" 
-                            rel="noopener noreferrer" 
-                            className="text-[9px] font-bold text-indigo-600 hover:underline flex items-center gap-0.5"
+                    {(isEditing || !!selectedCand.uploads?.pan) && (
+                      <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg flex flex-col gap-1.5 justify-between">
+                        <div className="flex justify-between items-center">
+                          <span className="text-xs font-bold text-slate-800">2. PAN Check</span>
+                          <div className="flex items-center gap-2">
+                            {selectedCand.uploads?.pan && (
+                              <button
+                                type="button"
+                                onClick={() => setPreviewFile({
+                                  url: getAttachmentUrl(selectedCand.uploads.pan),
+                                  title: `PAN Card - ${selectedCand.name}`
+                                })}
+                                className="text-[9px] font-bold text-indigo-600 hover:underline flex items-center gap-0.5"
+                              >
+                                <ExternalLink className="w-2.5 h-2.5" /> View PAN
+                              </button>
+                            )}
+                            {isEditing && (
+                              <label className="text-[9px] font-bold text-[#714B67] hover:underline cursor-pointer flex items-center gap-0.5">
+                                <Paperclip className="w-2.5 h-2.5" />
+                                {uploadingField === "pan" ? "Uploading..." : selectedCand.uploads?.pan ? "Re-attach" : "Attach Document"}
+                                <input
+                                  type="file"
+                                  accept="image/*,application/pdf"
+                                  className="hidden"
+                                  disabled={uploadingField !== null}
+                                  onChange={(e) => {
+                                    const file = e.target.files?.[0];
+                                    if (file) handleAttachDocument("pan", file);
+                                  }}
+                                />
+                              </label>
+                            )}
+                          </div>
+                        </div>
+                        {isEditing ? (
+                          <select
+                            value={panStatus}
+                            onChange={(e) => setPanStatus(e.target.value)}
+                            className="rounded border border-slate-250 p-1.5 text-xs text-slate-800 focus:ring-[#714B67]"
                           >
-                            <ExternalLink className="w-2.5 h-2.5" /> View PAN
-                          </a>
+                            <option value="Pending">Pending</option>
+                            <option value="Verified">Verified</option>
+                            <option value="Hold">Hold</option>
+                            <option value="Rejected">Rejected</option>
+                            <option value="High Risk">High Risk</option>
+                          </select>
+                        ) : (
+                          <div className="flex items-center mt-1">
+                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded border ${getStatusColor(panStatus)}`}>
+                              {panStatus}
+                            </span>
+                          </div>
                         )}
                       </div>
-                      <select
-                        value={panStatus}
-                        onChange={(e) => setPanStatus(e.target.value)}
-                        className="rounded border border-slate-250 p-1.5 text-xs text-slate-800 focus:ring-[#714B67]"
-                      >
-                        <option value="Pending">Pending</option>
-                        <option value="Verified">Verified</option>
-                        <option value="Hold">Hold</option>
-                        <option value="Rejected">Rejected</option>
-                        <option value="High Risk">High Risk</option>
-                      </select>
-                    </div>
+                    )}
 
                     {/* 3. Address Check */}
-                    <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg flex flex-col gap-1.5 justify-between">
-                      <span className="text-xs font-bold text-slate-800">3. Address Vetting</span>
-                      <select
-                        value={addressStatus}
-                        onChange={(e) => setAddressStatus(e.target.value)}
-                        className="rounded border border-slate-250 p-1.5 text-xs text-slate-800 focus:ring-[#714B67]"
-                      >
-                        <option value="Pending">Pending</option>
-                        <option value="Verified">Verified</option>
-                        <option value="Hold">Hold</option>
-                        <option value="Rejected">Rejected</option>
-                        <option value="High Risk">High Risk</option>
-                      </select>
-                    </div>
+                    {isEditing && (
+                      <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg flex flex-col gap-1.5 justify-between">
+                        <span className="text-xs font-bold text-slate-800">3. Address Vetting</span>
+                        <select
+                          value={addressStatus}
+                          onChange={(e) => setAddressStatus(e.target.value)}
+                          className="rounded border border-slate-250 p-1.5 text-xs text-slate-800 focus:ring-[#714B67]"
+                        >
+                          <option value="Pending">Pending</option>
+                          <option value="Verified">Verified</option>
+                          <option value="Hold">Hold</option>
+                          <option value="Rejected">Rejected</option>
+                          <option value="High Risk">High Risk</option>
+                        </select>
+                      </div>
+                    )}
 
                     {/* 4. Previous Employer Check */}
-                    <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg flex flex-col gap-1.5 justify-between">
-                      <div className="flex justify-between items-center">
-                        <span className="text-xs font-bold text-slate-800">4. Previous Employer</span>
-                        {selectedCand.uploads?.salarySlip && (
-                          <a 
-                            href={selectedCand.uploads.salarySlip} 
-                            target="_blank" 
-                            rel="noopener noreferrer" 
-                            className="text-[9px] font-bold text-indigo-600 hover:underline flex items-center gap-0.5"
+                    {(isEditing || !!selectedCand.uploads?.salarySlip) && (
+                      <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg flex flex-col gap-1.5 justify-between">
+                        <div className="flex justify-between items-center">
+                          <span className="text-xs font-bold text-slate-800">4. Previous Employer</span>
+                          <div className="flex items-center gap-2">
+                            {selectedCand.uploads?.salarySlip && (
+                              <button
+                                type="button"
+                                onClick={() => setPreviewFile({
+                                  url: getAttachmentUrl(selectedCand.uploads.salarySlip),
+                                  title: `Salary Slip - ${selectedCand.name}`
+                                })}
+                                className="text-[9px] font-bold text-indigo-600 hover:underline flex items-center gap-0.5"
+                              >
+                                <ExternalLink className="w-2.5 h-2.5" /> Salary Slip
+                              </button>
+                            )}
+                            {isEditing && (
+                              <label className="text-[9px] font-bold text-[#714B67] hover:underline cursor-pointer flex items-center gap-0.5">
+                                <Paperclip className="w-2.5 h-2.5" />
+                                {uploadingField === "salarySlip" ? "Uploading..." : selectedCand.uploads?.salarySlip ? "Re-attach" : "Attach Document"}
+                                <input
+                                  type="file"
+                                  accept="image/*,application/pdf"
+                                  className="hidden"
+                                  disabled={uploadingField !== null}
+                                  onChange={(e) => {
+                                    const file = e.target.files?.[0];
+                                    if (file) handleAttachDocument("salarySlip", file);
+                                  }}
+                                />
+                              </label>
+                            )}
+                          </div>
+                        </div>
+                        {isEditing ? (
+                          <select
+                            value={employerStatus}
+                            onChange={(e) => setEmployerStatus(e.target.value)}
+                            className="rounded border border-slate-250 p-1.5 text-xs text-slate-800 focus:ring-[#714B67]"
                           >
-                            <ExternalLink className="w-2.5 h-2.5" /> Salary Slip
-                          </a>
+                            <option value="Pending">Pending</option>
+                            <option value="Verified">Verified</option>
+                            <option value="Hold">Hold</option>
+                            <option value="Rejected">Rejected</option>
+                            <option value="High Risk">High Risk</option>
+                          </select>
+                        ) : (
+                          <div className="flex items-center mt-1">
+                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded border ${getStatusColor(employerStatus)}`}>
+                              {employerStatus}
+                            </span>
+                          </div>
                         )}
                       </div>
-                      <select
-                        value={employerStatus}
-                        onChange={(e) => setEmployerStatus(e.target.value)}
-                        className="rounded border border-slate-250 p-1.5 text-xs text-slate-800 focus:ring-[#714B67]"
-                      >
-                        <option value="Pending">Pending</option>
-                        <option value="Verified">Verified</option>
-                        <option value="Hold">Hold</option>
-                        <option value="Rejected">Rejected</option>
-                        <option value="High Risk">High Risk</option>
-                      </select>
-                    </div>
+                    )}
 
                     {/* 5. References Check */}
-                    <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg flex flex-col gap-1.5 justify-between">
-                      <span className="text-xs font-bold text-slate-800">5. References Vetting</span>
-                      <select
-                        value={referencesStatus}
-                        onChange={(e) => setReferencesStatus(e.target.value)}
-                        className="rounded border border-slate-250 p-1.5 text-xs text-slate-800 focus:ring-[#714B67]"
-                      >
-                        <option value="Pending">Pending</option>
-                        <option value="Verified">Verified</option>
-                        <option value="Hold">Hold</option>
-                        <option value="Rejected">Rejected</option>
-                        <option value="High Risk">High Risk</option>
-                      </select>
-                    </div>
+                    {isEditing && (
+                      <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg flex flex-col gap-1.5 justify-between">
+                        <span className="text-xs font-bold text-slate-800">5. References Vetting</span>
+                        <select
+                          value={referencesStatus}
+                          onChange={(e) => setReferencesStatus(e.target.value)}
+                          className="rounded border border-slate-250 p-1.5 text-xs text-slate-800 focus:ring-[#714B67]"
+                        >
+                          <option value="Pending">Pending</option>
+                          <option value="Verified">Verified</option>
+                          <option value="Hold">Hold</option>
+                          <option value="Rejected">Rejected</option>
+                          <option value="High Risk">High Risk</option>
+                        </select>
+                      </div>
+                    )}
 
                     {/* 6. CIBIL Score Check */}
-                    <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg flex flex-col gap-1.5 justify-between">
-                      <span className="text-xs font-bold text-slate-800">6. CIBIL Verification</span>
-                      <select
-                        value={cibilStatus}
-                        onChange={(e) => setCibilStatus(e.target.value)}
-                        className="rounded border border-slate-250 p-1.5 text-xs text-slate-800 focus:ring-[#714B67]"
-                      >
-                        <option value="Pending">Pending</option>
-                        <option value="Verified">Verified</option>
-                        <option value="Hold">Hold</option>
-                        <option value="Rejected">Rejected</option>
-                        <option value="High Risk">High Risk</option>
-                      </select>
-                    </div>
+                    {isEditing && (
+                      <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg flex flex-col gap-1.5 justify-between">
+                        <span className="text-xs font-bold text-slate-800">6. CIBIL Verification</span>
+                        <select
+                          value={cibilStatus}
+                          onChange={(e) => setCibilStatus(e.target.value)}
+                          className="rounded border border-slate-250 p-1.5 text-xs text-slate-800 focus:ring-[#714B67]"
+                        >
+                          <option value="Pending">Pending</option>
+                          <option value="Verified">Verified</option>
+                          <option value="Hold">Hold</option>
+                          <option value="Rejected">Rejected</option>
+                          <option value="High Risk">High Risk</option>
+                        </select>
+                      </div>
+                    )}
 
                     {/* 7. Bank Statement Check */}
-                    <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg flex flex-col gap-1.5 justify-between">
-                      <div className="flex justify-between items-center">
-                        <span className="text-xs font-bold text-slate-800">7. Bank Statement Vetting</span>
-                        {selectedCand.uploads?.bankStatement && (
-                          <a 
-                            href={selectedCand.uploads.bankStatement} 
-                            target="_blank" 
-                            rel="noopener noreferrer" 
-                            className="text-[9px] font-bold text-indigo-600 hover:underline flex items-center gap-0.5"
+                    {(isEditing || !!selectedCand.uploads?.bankStatement) && (
+                      <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg flex flex-col gap-1.5 justify-between">
+                        <div className="flex justify-between items-center">
+                          <span className="text-xs font-bold text-slate-800">7. Bank Statement Vetting</span>
+                          <div className="flex items-center gap-2">
+                            {selectedCand.uploads?.bankStatement && (
+                              <button
+                                type="button"
+                                onClick={() => setPreviewFile({
+                                  url: getAttachmentUrl(selectedCand.uploads.bankStatement),
+                                  title: `Bank Statement - ${selectedCand.name}`
+                                })}
+                                className="text-[9px] font-bold text-indigo-600 hover:underline flex items-center gap-0.5"
+                              >
+                                <ExternalLink className="w-2.5 h-2.5" /> Bank Statement
+                              </button>
+                            )}
+                            {isEditing && (
+                              <label className="text-[9px] font-bold text-[#714B67] hover:underline cursor-pointer flex items-center gap-0.5">
+                                <Paperclip className="w-2.5 h-2.5" />
+                                {uploadingField === "bankStatement" ? "Uploading..." : selectedCand.uploads?.bankStatement ? "Re-attach" : "Attach Document"}
+                                <input
+                                  type="file"
+                                  accept="image/*,application/pdf"
+                                  className="hidden"
+                                  disabled={uploadingField !== null}
+                                  onChange={(e) => {
+                                    const file = e.target.files?.[0];
+                                    if (file) handleAttachDocument("bankStatement", file);
+                                  }}
+                                />
+                              </label>
+                            )}
+                          </div>
+                        </div>
+                        {isEditing ? (
+                          <select
+                            value={bankStatus}
+                            onChange={(e) => setBankStatus(e.target.value)}
+                            className="rounded border border-slate-250 p-1.5 text-xs text-slate-800 focus:ring-[#714B67]"
                           >
-                            <ExternalLink className="w-2.5 h-2.5" /> Bank Statement
-                          </a>
+                            <option value="Pending">Pending</option>
+                            <option value="Verified">Verified</option>
+                            <option value="Hold">Hold</option>
+                            <option value="Rejected">Rejected</option>
+                            <option value="High Risk">High Risk</option>
+                          </select>
+                        ) : (
+                          <div className="flex items-center mt-1">
+                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded border ${getStatusColor(bankStatus)}`}>
+                              {bankStatus}
+                            </span>
+                          </div>
                         )}
                       </div>
-                      <select
-                        value={bankStatus}
-                        onChange={(e) => setBankStatus(e.target.value)}
-                        className="rounded border border-slate-250 p-1.5 text-xs text-slate-800 focus:ring-[#714B67]"
-                      >
-                        <option value="Pending">Pending</option>
-                        <option value="Verified">Verified</option>
-                        <option value="Hold">Hold</option>
-                        <option value="Rejected">Rejected</option>
-                        <option value="High Risk">High Risk</option>
-                      </select>
-                    </div>
+                    )}
 
                     {/* 8. Police Verification Check */}
-                    <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg flex flex-col gap-1.5 justify-between">
-                      <span className="text-xs font-bold text-slate-800">8. Police Verification</span>
-                      <select
-                        value={policeStatus}
-                        onChange={(e) => setPoliceStatus(e.target.value)}
-                        className="rounded border border-slate-250 p-1.5 text-xs text-slate-800 focus:ring-[#714B67]"
-                      >
-                        <option value="Pending">Pending</option>
-                        <option value="Verified">Verified</option>
-                        <option value="Hold">Hold</option>
-                        <option value="Rejected">Rejected</option>
-                        <option value="High Risk">High Risk</option>
-                      </select>
-                    </div>
+                    {isEditing && (
+                      <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg flex flex-col gap-1.5 justify-between">
+                        <span className="text-xs font-bold text-slate-800">8. Police Verification</span>
+                        <select
+                          value={policeStatus}
+                          onChange={(e) => setPoliceStatus(e.target.value)}
+                          className="rounded border border-slate-250 p-1.5 text-xs text-slate-800 focus:ring-[#714B67]"
+                        >
+                          <option value="Pending">Pending</option>
+                          <option value="Verified">Verified</option>
+                          <option value="Hold">Hold</option>
+                          <option value="Rejected">Rejected</option>
+                          <option value="High Risk">High Risk</option>
+                        </select>
+                      </div>
+                    )}
 
                     {/* 9. Social Media Review Check */}
-                    <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg flex flex-col gap-1.5 justify-between md:col-span-2">
-                      <span className="text-xs font-bold text-slate-800">9. Social Media Compliance Audit</span>
-                      <select
-                        value={socialMediaStatus}
-                        onChange={(e) => setSocialMediaStatus(e.target.value)}
-                        className="rounded border border-slate-250 p-1.5 text-xs text-slate-800 focus:ring-[#714B67]"
-                      >
-                        <option value="Pending">Pending</option>
-                        <option value="Verified">Verified</option>
-                        <option value="Hold">Hold</option>
-                        <option value="Rejected">Rejected</option>
-                        <option value="High Risk">High Risk</option>
-                      </select>
-                    </div>
+                    {isEditing && (
+                      <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg flex flex-col gap-1.5 justify-between md:col-span-2">
+                        <span className="text-xs font-bold text-slate-800">9. Social Media Compliance Audit</span>
+                        <select
+                          value={socialMediaStatus}
+                          onChange={(e) => setSocialMediaStatus(e.target.value)}
+                          className="rounded border border-slate-250 p-1.5 text-xs text-slate-800 focus:ring-[#714B67]"
+                        >
+                          <option value="Pending">Pending</option>
+                          <option value="Verified">Verified</option>
+                          <option value="Hold">Hold</option>
+                          <option value="Rejected">Rejected</option>
+                          <option value="High Risk">High Risk</option>
+                        </select>
+                      </div>
+                    )}
 
                   </div>
                 </div>
 
-                {/* Remarks & Audited Decision area */}
+                {/* Remarks & Notes */}
                 <div className="space-y-4 pt-2">
                   <div className="flex flex-col gap-1.5">
                     <label className="text-xs font-semibold text-slate-650">Compliance Remarks & Assessment Notes:</label>
-                    <textarea
-                      value={remarks}
-                      onChange={(e) => setRemarks(e.target.value)}
-                      placeholder="Input references log, audit markers, CIBIL score flags, and address verification notes..."
-                      className="rounded border border-slate-250 p-2 text-slate-800 focus:ring-[#714B67] focus:border-[#714B67] h-20 text-xs"
-                      required
-                    />
+                    {isEditing ? (
+                      <textarea
+                        value={remarks}
+                        onChange={(e) => setRemarks(e.target.value)}
+                        placeholder="Input references log, audit markers, CIBIL score flags, and address verification notes..."
+                        className="rounded border border-slate-250 p-2 text-slate-800 focus:ring-[#714B67] focus:border-[#714B67] h-20 text-xs font-semibold"
+                        required
+                      />
+                    ) : (
+                      <div className="w-full bg-slate-50 border border-slate-200 rounded p-3 text-xs text-slate-700 min-h-[60px] font-semibold whitespace-pre-wrap">
+                        {remarks || "No remarks entered."}
+                      </div>
+                    )}
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="flex flex-col gap-1.5">
-                      <label className="text-xs font-semibold text-slate-650">Final Background Vetting Status:</label>
-                      <select
-                        value={overallStatus}
-                        onChange={(e) => setOverallStatus(e.target.value)}
-                        className="rounded border border-slate-250 p-2 text-slate-800 focus:ring-[#714B67] focus:border-[#714B67] font-bold text-xs"
-                      >
-                        <option value="Pending">Pending Audit</option>
-                        <option value="Verified">Verified & Cleared</option>
-                        <option value="Hold">On Hold (Pending Docs)</option>
-                        <option value="Rejected">Rejected Compliance</option>
-                        <option value="High Risk">High Risk Flagged</option>
-                      </select>
-                    </div>
+                  {isEditing ? (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div className="flex flex-col gap-1.5">
+                        <label className="text-xs font-semibold text-slate-650">Final Background Vetting Status:</label>
+                        <select
+                          value={overallStatus}
+                          onChange={(e) => setOverallStatus(e.target.value)}
+                          className="rounded border border-slate-250 p-2 text-slate-800 focus:ring-[#714B67] focus:border-[#714B67] font-bold text-xs"
+                        >
+                          <option value="Pending">Pending Audit</option>
+                          <option value="Verified">Verified & Cleared</option>
+                          <option value="Hold">On Hold (Pending Docs)</option>
+                          <option value="Rejected">Rejected Compliance</option>
+                          <option value="High Risk">High Risk Flagged</option>
+                        </select>
+                      </div>
 
-                    <div className="flex items-end">
-                      <button
-                        type="submit"
-                        disabled={submitting}
-                        className="w-full bg-[#714B67] hover:bg-[#5F3F56] text-white p-2.5 rounded font-black shadow flex items-center justify-center gap-1.5 hover:scale-[1.01] active:scale-[0.99] transition-all text-xs"
-                      >
-                        {submitting ? "Saving Matrix..." : "Save Verification Record"}
-                      </button>
+                      <div className="flex items-end">
+                        <button
+                          type="submit"
+                          disabled={submitting}
+                          className="w-full bg-[#714B67] hover:bg-[#5F3F56] text-white p-2.5 rounded font-black shadow flex items-center justify-center gap-1.5 hover:scale-[1.01] active:scale-[0.99] transition-all text-xs"
+                        >
+                          {submitting ? "Saving Matrix..." : "Save Verification Record"}
+                        </button>
+                      </div>
                     </div>
-                  </div>
+                  ) : (
+                    <div className="pt-4 border-t border-slate-100 flex justify-between items-center">
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] font-black uppercase text-[#714B67] tracking-wider font-mono">Final Vetting Status:</span>
+                        <span className={`text-xs font-black uppercase px-2.5 py-1 rounded border tracking-wide ${getStatusColor(overallStatus)}`}>
+                          {overallStatus === "Verified" ? "Verified & Cleared" : overallStatus === "Hold" ? "Hold / Addl. Docs" : overallStatus}
+                        </span>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* Police high risk trigger notice */}
@@ -2078,16 +2337,28 @@ export function VerificationChecklist({ selectedCandidate, triggerToast }: { sel
         </div>
       )}
 
+      {previewFile && (
+        <FilePreviewModal
+          url={previewFile.url}
+          title={previewFile.title}
+          onClose={() => setPreviewFile(null)}
+        />
+      )}
     </div>
   );
 }
 
 export function InterviewsQueue({ triggerToast }: { triggerToast: (msg: string) => void; }) {
+  const { data: session } = useSession();
+  const userRole = (session?.user as any)?.role;
+  const isAuthorized = userRole === "HR Head" || userRole === "Owner";
+
+  const [editingInterviewId, setEditingInterviewId] = useState<string | null>(null);
   const [interviews, setInterviews] = useState<any[]>([]);
   const [candidates, setCandidates] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedInt, setSelectedInt] = useState<any>(null);
-  
+
   // Schedule Form State
   const [showScheduleForm, setShowScheduleForm] = useState(false);
   const [schedCandidateId, setSchedCandidateId] = useState("");
@@ -2095,6 +2366,7 @@ export function InterviewsQueue({ triggerToast }: { triggerToast: (msg: string) 
   const [schedDate, setSchedDate] = useState("");
   const [schedTime, setSchedTime] = useState("");
   const [schedVideoLink, setSchedVideoLink] = useState("");
+  const [schedInterviewMode, setSchedInterviewMode] = useState<"online" | "offline">("online");
 
   // Assessment State
   const [communicationScore, setCommunicationScore] = useState<number>(80);
@@ -2105,6 +2377,8 @@ export function InterviewsQueue({ triggerToast }: { triggerToast: (msg: string) 
   const [remarks, setRemarks] = useState("");
   const [roundStatus, setRoundStatus] = useState("Selected");
   const [submitting, setSubmitting] = useState(false);
+  const [customQuestions, setCustomQuestions] = useState<{ question: string; isCorrect: boolean | null }[]>([]);
+  const [newQuestionText, setNewQuestionText] = useState("");
 
   const loadData = async () => {
     setLoading(true);
@@ -2139,6 +2413,46 @@ export function InterviewsQueue({ triggerToast }: { triggerToast: (msg: string) 
     }
   }, [schedCandidateId, schedRound]);
 
+  const handleEditClick = (item: any) => {
+    setEditingInterviewId(item._id);
+    setSchedCandidateId(item.candidate?._id || "");
+    setSchedRound(item.round ? item.round.toString() : "1");
+    if (item.scheduleTime) {
+      const d = new Date(item.scheduleTime);
+      const year = d.getFullYear();
+      const month = String(d.getMonth() + 1).padStart(2, "0");
+      const day = String(d.getDate()).padStart(2, "0");
+      setSchedDate(`${year}-${month}-${day}`);
+
+      const hours = String(d.getHours()).padStart(2, "0");
+      const minutes = String(d.getMinutes()).padStart(2, "0");
+      setSchedTime(`${hours}:${minutes}`);
+    } else {
+      setSchedDate("");
+      setSchedTime("");
+    }
+    setSchedInterviewMode(item.mode || "online");
+    setSchedVideoLink(item.videoLink || "");
+    setShowScheduleForm(true);
+  };
+
+  const handleDeleteClick = async (id: string) => {
+    try {
+      const res = await fetch(`/api/interviews?id=${id}`, {
+        method: "DELETE",
+      });
+      const data = await res.json();
+      if (data.success) {
+        triggerToast("Scheduled interview deleted successfully!");
+        loadData();
+      } else {
+        triggerToast(`Failed to delete: ${data.error}`);
+      }
+    } catch (err) {
+      triggerToast("Network error deleting interview");
+    }
+  };
+
   const handleScheduleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!schedCandidateId || !schedDate || !schedTime) {
@@ -2147,27 +2461,54 @@ export function InterviewsQueue({ triggerToast }: { triggerToast: (msg: string) 
     }
 
     try {
-      const res = await fetch("/api/interviews", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          candidateId: schedCandidateId,
-          round: parseInt(schedRound),
-          scheduleTime: `${schedDate}T${schedTime}`,
-          videoLink: schedVideoLink || `https://meet.acolyte.in/round${schedRound}-${schedCandidateId.slice(-6)}`,
-        }),
-      });
-      const data = await res.json();
-      if (data.success) {
-        triggerToast(`Round-${schedRound} interview successfully scheduled!`);
-        setShowScheduleForm(false);
-        setSchedCandidateId("");
-        loadData();
+      if (editingInterviewId) {
+        const res = await fetch("/api/interviews", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            interviewId: editingInterviewId,
+            round: parseInt(schedRound),
+            scheduleTime: `${schedDate}T${schedTime}`,
+            videoLink: schedInterviewMode === "offline" ? "" : schedVideoLink,
+            mode: schedInterviewMode,
+          }),
+        });
+        const data = await res.json();
+        if (data.success) {
+          triggerToast(`Interview schedule successfully updated!`);
+          setShowScheduleForm(false);
+          setEditingInterviewId(null);
+          setSchedCandidateId("");
+          setSchedInterviewMode("online");
+          loadData();
+        } else {
+          triggerToast(`Failed to update schedule: ${data.error}`);
+        }
       } else {
-        triggerToast(`Failed to schedule: ${data.error}`);
+        const res = await fetch("/api/interviews", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            candidateId: schedCandidateId,
+            round: parseInt(schedRound),
+            scheduleTime: `${schedDate}T${schedTime}`,
+            videoLink: schedInterviewMode === "offline" ? "" : (schedVideoLink || `https://meet.acolyte.in/round${schedRound}-${schedCandidateId.slice(-6)}`),
+            mode: schedInterviewMode,
+          }),
+        });
+        const data = await res.json();
+        if (data.success) {
+          triggerToast(`Round-${schedRound} interview successfully scheduled!`);
+          setShowScheduleForm(false);
+          setSchedCandidateId("");
+          setSchedInterviewMode("online");
+          loadData();
+        } else {
+          triggerToast(`Failed to schedule: ${data.error}`);
+        }
       }
     } catch (err) {
-      triggerToast("Network error scheduling interview");
+      triggerToast("Network error submitting interview");
     }
   };
 
@@ -2189,6 +2530,7 @@ export function InterviewsQueue({ triggerToast }: { triggerToast: (msg: string) 
           riskScore,
           remarks,
           status: roundStatus,
+          customQuestions: customQuestions.filter((q: any) => q.isCorrect === true || q.isCorrect === false),
         }),
       });
       const data = await res.json();
@@ -2216,7 +2558,7 @@ export function InterviewsQueue({ triggerToast }: { triggerToast: (msg: string) 
 
   return (
     <div className="space-y-8 animate-fadeIn text-slate-800">
-      
+
       {/* Upper header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
@@ -2224,7 +2566,18 @@ export function InterviewsQueue({ triggerToast }: { triggerToast: (msg: string) 
           <p className="text-xs text-slate-500 mt-1">Schedules, Google Meet URLs, and AI custom interview question desks</p>
         </div>
         <button
-          onClick={() => setShowScheduleForm(!showScheduleForm)}
+          onClick={() => {
+            if (showScheduleForm) {
+              setEditingInterviewId(null);
+              setSchedCandidateId("");
+              setSchedRound("1");
+              setSchedDate("");
+              setSchedTime("");
+              setSchedVideoLink("");
+              setSchedInterviewMode("online");
+            }
+            setShowScheduleForm(!showScheduleForm);
+          }}
           className="bg-[#714B67] hover:bg-[#5F3F56] text-white px-4 py-2.5 rounded-lg text-xs font-black shadow transition-all flex items-center gap-1.5 self-start"
         >
           <Plus className="w-4 h-4" /> {showScheduleForm ? "Close Scheduler" : "Schedule New Interview"}
@@ -2236,18 +2589,21 @@ export function InterviewsQueue({ triggerToast }: { triggerToast: (msg: string) 
         <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm space-y-4 animate-fadeIn">
           <div className="flex items-center gap-2 pb-2 border-b border-slate-100">
             <Video className="w-4 h-4 text-[#714B67]" />
-            <h3 className="text-xs font-black uppercase text-slate-700 tracking-wider font-mono">Schedule New Virtual Interview</h3>
+            <h3 className="text-xs font-black uppercase text-slate-700 tracking-wider font-mono">
+              {editingInterviewId ? "Edit Scheduled Interview" : "Schedule New Virtual Interview"}
+            </h3>
           </div>
-          
+
           <form onSubmit={handleScheduleSubmit} className="grid grid-cols-1 md:grid-cols-4 gap-4 text-xs font-semibold text-slate-650">
-            
+
             {/* Candidate selection */}
             <div className="flex flex-col gap-1.5">
               <label>Select Candidate:</label>
               <select
                 value={schedCandidateId}
                 onChange={(e) => setSchedCandidateId(e.target.value)}
-                className="rounded border border-slate-250 p-2 text-slate-800 focus:ring-[#714B67] focus:border-[#714B67]"
+                disabled={!!editingInterviewId}
+                className="rounded border border-slate-250 p-2 text-slate-800 focus:ring-[#714B67] focus:border-[#714B67] disabled:bg-slate-50 disabled:text-slate-500"
                 required
               >
                 <option value="">-- Choose Candidate --</option>
@@ -2284,7 +2640,6 @@ export function InterviewsQueue({ triggerToast }: { triggerToast: (msg: string) 
                 required
               />
             </div>
-
             {/* Time selection */}
             <div className="flex flex-col gap-1.5">
               <label>Schedule Time:</label>
@@ -2297,27 +2652,61 @@ export function InterviewsQueue({ triggerToast }: { triggerToast: (msg: string) 
               />
             </div>
 
-            {/* Video link preview */}
-            <div className="md:col-span-3 flex flex-col gap-1.5">
-              <label>Virtual Meeting Link (Suggested Google Meet):</label>
-              <input
-                type="url"
-                value={schedVideoLink}
-                onChange={(e) => setSchedVideoLink(e.target.value)}
-                placeholder="Google Meet or Zoom Video url"
-                className="rounded border border-slate-250 p-2 text-slate-800 focus:ring-[#714B67]"
-              />
+            {/* Interview Mode selection */}
+            <div className="flex flex-col gap-1.5">
+              <label>Interview Mode:</label>
+              <select
+                value={schedInterviewMode}
+                onChange={(e) => setSchedInterviewMode(e.target.value as "online" | "offline")}
+                className="rounded border border-slate-250 p-2 text-slate-800 focus:ring-[#714B67] focus:border-[#714B67]"
+              >
+                <option value="online">Online</option>
+                <option value="offline">Offline</option>
+              </select>
             </div>
 
-            <div className="flex items-end">
+            {/* Video link preview */}
+            {schedInterviewMode === "online" ? (
+              <div className="md:col-span-2 flex flex-col gap-1.5 animate-fadeIn">
+                <label>Virtual Meeting Link (Suggested Google Meet):</label>
+                <input
+                  type="url"
+                  value={schedVideoLink}
+                  onChange={(e) => setSchedVideoLink(e.target.value)}
+                  placeholder="Google Meet or Zoom Video url"
+                  className="rounded border border-slate-250 p-2 text-slate-800 focus:ring-[#714B67]"
+                />
+              </div>
+            ) : (
+              <div className="md:col-span-2" />
+            )}
+
+            <div className="flex items-end gap-2">
+              {editingInterviewId && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEditingInterviewId(null);
+                    setShowScheduleForm(false);
+                    setSchedCandidateId("");
+                    setSchedRound("1");
+                    setSchedDate("");
+                    setSchedTime("");
+                    setSchedVideoLink("");
+                    setSchedInterviewMode("online");
+                  }}
+                  className="flex-1 bg-slate-200 hover:bg-slate-300 text-slate-700 p-2 rounded font-bold shadow text-center transition-all"
+                >
+                  Cancel
+                </button>
+              )}
               <button
                 type="submit"
-                className="w-full bg-[#714B67] hover:bg-[#5F3F56] text-white p-2 rounded font-bold shadow text-center"
+                className="flex-1 bg-[#714B67] hover:bg-[#5F3F56] text-white p-2 rounded font-bold shadow text-center transition-all"
               >
-                Confirm Schedule
+                {editingInterviewId ? "Save Changes" : "Confirm Schedule"}
               </button>
             </div>
-
           </form>
 
           {/* Round 3 warning message */}
@@ -2330,20 +2719,20 @@ export function InterviewsQueue({ triggerToast }: { triggerToast: (msg: string) 
         </div>
       )}
 
-      {/* DUAL WORKSPACE PANEL */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-        
-        {/* LEFT PANEL: LIST OF SCHEDULED INTERVIEWS */}
-        <div className={selectedInt ? "lg:col-span-6 space-y-4" : "lg:col-span-12 space-y-4"}>
+      {/* INTERVIEW QUEUE FEED PANEL */}
+      <div className="grid grid-cols-1 gap-8">
+
+        {/* PANEL: LIST OF SCHEDULED INTERVIEWS */}
+        <div className="space-y-4">
           <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm space-y-4">
             <h3 className="text-xs font-black uppercase text-slate-400 tracking-wider font-mono">Scheduled Assessment Feed</h3>
-            
+
             {loading && interviews.length === 0 ? (
               <div className="text-center py-10 font-bold text-slate-400 font-mono text-xs">Loading schedules queue...</div>
             ) : interviews.length === 0 ? (
               <div className="text-center py-12 bg-slate-50 border border-dashed rounded-lg text-slate-450 p-4">
                 <Video className="w-10 h-10 mx-auto text-[#714B67]/30 mb-2" />
-                <p className="text-xs font-bold text-slate-650">No interviews currently queued.</p>
+                <p className="text-xs font-bold text-slate-655">No interviews currently queued.</p>
                 <p className="text-[10px] text-slate-400 mt-1">Use the scheduler tool above to create assessment schedules.</p>
               </div>
             ) : (
@@ -2352,6 +2741,8 @@ export function InterviewsQueue({ triggerToast }: { triggerToast: (msg: string) 
                   <thead>
                     <tr className="border-b border-slate-200 text-slate-400 font-black uppercase font-mono tracking-wider">
                       <th className="pb-3 pr-2">Candidate</th>
+                      <th className="pb-3 px-2">Vacancy</th>
+                      <th className="pb-3 px-2">Mode</th>
                       <th className="pb-3 px-2">Round</th>
                       <th className="pb-3 px-2">Timing</th>
                       <th className="pb-3 px-2">Round Status</th>
@@ -2364,51 +2755,322 @@ export function InterviewsQueue({ triggerToast }: { triggerToast: (msg: string) 
                       const cand = item.candidate || {};
                       const isSelected = selectedInt?._id === item._id;
                       return (
-                        <tr 
-                          key={item._id}
-                          onClick={() => {
-                            setSelectedInt(item);
-                            setRemarks(item.remarks || "");
-                            setCommunicationScore(item.communicationScore || 80);
-                            setSkillScore(item.skillScore || 80);
-                            setBehaviourScore(item.behaviourScore || 80);
-                            setStabilityScore(item.stabilityScore || 80);
-                            setRiskScore(item.riskScore || 20);
-                            setRoundStatus(item.status || "Selected");
-                          }}
-                          className={`hover:bg-slate-50/50 cursor-pointer transition-all ${isSelected ? "bg-indigo-50/40" : ""}`}
-                        >
-                          <td className="py-3 pr-2">
-                            <div className="font-bold text-slate-800">{cand.name || "Deleted Candidate"}</div>
-                            <div className="text-[10px] text-slate-400 mt-0.5">{cand.mobile || "N/A"}</div>
-                          </td>
-                          <td className="py-3 px-2">
-                            <span className={`text-[9px] font-black px-2 py-0.5 rounded border ${
-                              item.round === 3 ? "bg-indigo-50 border-indigo-200 text-indigo-600" : "bg-slate-50 border-slate-200 text-slate-600"
-                            }`}>
-                              Round {item.round}
-                            </span>
-                          </td>
-                          <td className="py-3 px-2 font-mono text-[10px] text-slate-500">
-                            {formatInterviewTime(item.scheduleTime)}
-                          </td>
-                          <td className="py-3 px-2">
-                            <span className={`text-[9px] font-bold px-2 py-0.5 rounded border ${
-                              item.status === "Selected" 
-                                ? "bg-emerald-50 border-emerald-250 text-emerald-600 font-bold" 
-                                : item.status === "Pending" 
-                                ? "bg-amber-50 border-amber-250 text-amber-600" 
-                                : "bg-rose-100 border-rose-250 text-rose-700"
-                            }`}>
-                              {item.status}
-                            </span>
-                          </td>
-                          <td className="py-3 pl-2 text-right">
-                            <button className="bg-[#714B67] hover:bg-[#5F3F56] text-white font-bold px-2.5 py-1 rounded text-[10.5px]">
-                              Assess
-                            </button>
-                          </td>
-                        </tr>
+                        <React.Fragment key={item._id}>
+                          <tr
+                            onClick={() => {
+                              if (isSelected) {
+                                setSelectedInt(null);
+                              } else {
+                                setSelectedInt(item);
+                                setRemarks(item.remarks || "");
+                                setCommunicationScore(item.communicationScore || 80);
+                                setSkillScore(item.skillScore || 80);
+                                setBehaviourScore(item.behaviourScore || 80);
+                                setStabilityScore(item.stabilityScore || 80);
+                                setRiskScore(item.riskScore || 20);
+                                setRoundStatus(item.status || "Selected");
+
+                                // Set customQuestions from database, or fallback to candidate's AI screening questions if not assessed yet
+                                const isAssessed = item.status !== "Pending";
+                                const initialQuestions = isAssessed
+                                  ? (item.customQuestions || [])
+                                      .filter((q: any) => q.isCorrect === true || q.isCorrect === false)
+                                      .map((q: any) => ({ question: q.question, isCorrect: q.isCorrect }))
+                                  : (item.customQuestions && item.customQuestions.length > 0
+                                    ? item.customQuestions.map((q: any) => ({ question: q.question, isCorrect: q.isCorrect }))
+                                    : (cand.screeningResult?.suggestedQuestions || []).map((q: string) => ({ question: q, isCorrect: null })));
+                                setCustomQuestions(initialQuestions);
+                                setNewQuestionText("");
+                              }
+                            }}
+                            className={`hover:bg-slate-50/50 cursor-pointer transition-all ${isSelected ? "bg-indigo-50/40" : ""}`}
+                          >
+                            <td className="py-3 pr-2">
+                              <div className="font-bold text-slate-800">{cand.name || "Deleted Candidate"}</div>
+                              <div className="text-[10px] text-slate-400 mt-0.5">{cand.mobile || "N/A"}</div>
+                            </td>
+                            <td className="py-3 px-2">
+                              <span className="text-[10.5px] text-[#714B67] font-bold">
+                                {item.vacancyName || cand.job?.title || "General Application"}
+                              </span>
+                            </td>
+                            <td className="py-3 px-2">
+                              <span className={`text-[9px] font-black px-2 py-0.5 rounded border uppercase font-mono ${(item.mode === "offline" || (!item.mode && !item.videoLink))
+                                ? "bg-rose-50 border-rose-250 text-rose-700 font-bold"
+                                : "bg-sky-50 border-sky-250 text-sky-700 font-bold"
+                                }`}>
+                                {item.mode ? item.mode : (item.videoLink ? "online" : "offline")}
+                              </span>
+                            </td>
+                            <td className="py-3 px-2">
+                              <span className={`text-[9px] font-black px-2 py-0.5 rounded border ${item.round === 3 ? "bg-indigo-50 border-indigo-200 text-indigo-600" : "bg-slate-50 border-slate-200 text-slate-600"
+                                }`}>
+                                Round {item.round}
+                              </span>
+                            </td>
+                            <td className="py-3 px-2 font-mono text-[10px] text-slate-500">
+                              {formatInterviewTime(item.scheduleTime)}
+                            </td>
+                            <td className="py-3 px-2">
+                              <span className={`text-[9px] font-bold px-2 py-0.5 rounded border ${item.status === "Selected"
+                                ? "bg-emerald-50 border-emerald-250 text-emerald-600 font-bold"
+                                : item.status === "Pending"
+                                  ? "bg-amber-50 border-amber-250 text-amber-600"
+                                  : "bg-rose-100 border-rose-250 text-rose-700"
+                                }`}>
+                                {item.status}
+                              </span>
+                            </td>
+                            <td className="py-3 pl-2 text-right space-x-1.5 whitespace-nowrap">
+                              <button className="bg-[#714B67] hover:bg-[#5F3F56] text-white font-bold px-2.5 py-1 rounded text-[10.5px]">
+                                {isSelected ? "Hide" : "Assess"}
+                              </button>
+                              {isAuthorized && (
+                                <>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleEditClick(item);
+                                    }}
+                                    className="bg-[#714B67] hover:bg-amber-600 text-white font-bold px-2.5 py-1 rounded text-[10.5px] transition-all"
+                                  >
+                                    Edit
+                                  </button>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      if (confirm("Are you sure you want to delete this scheduled interview?")) {
+                                        handleDeleteClick(item._id);
+                                      }
+                                    }}
+                                    className="bg-[#714B67] hover:bg-rose-700 text-white font-bold px-2.5 py-1 rounded text-[10.5px] transition-all"
+                                  >
+                                    Delete
+                                  </button>
+                                </>
+                              )}
+                            </td>
+                          </tr>
+                          {isSelected && (
+                            <tr className="bg-slate-50/70 border-b border-slate-250">
+                              <td colSpan={7} className="px-6 py-5">
+                                <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-md space-y-5 animate-fadeIn max-w-4xl mx-auto text-slate-800">
+
+                                  <div className="pb-3 border-b border-slate-100 flex justify-between items-start gap-4">
+                                    <div>
+                                      <span className="text-[9px] font-black tracking-widest text-[#714B67] uppercase font-mono">Conducting Assessment Portal</span>
+                                      <h2 className="text-base font-black text-slate-800 mt-1">{item.candidate?.name || "Deleted Candidate"}</h2>
+                                      <p className="text-[10.5px] text-slate-500 mt-0.5">Round Applied: <strong className="text-slate-700">Round-{item.round}</strong></p>
+                                    </div>
+                                    {item.videoLink && (
+                                      <a
+                                        href={item.videoLink}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="bg-[#128C7E] hover:bg-[#0e7065] text-white px-3 py-2 rounded text-[10.5px] font-black shadow flex items-center gap-1.5 transition-all"
+                                      >
+                                        <Video className="w-3.5 h-3.5 shrink-0 animate-pulse" /> Join Video Interview
+                                      </a>
+                                    )}
+                                  </div>
+
+                                  <form onSubmit={handleAssessmentSubmit} className="space-y-4 text-xs font-semibold text-slate-650">
+
+                                    {/* 1. Video Meeting URL Link */}
+                                    <div className="flex flex-col gap-1.5">
+                                      <label>Scheduled Video Call url:</label>
+                                      <div className="flex items-center gap-2 p-2 bg-slate-50 border border-slate-200 rounded font-mono text-[10.5px] text-slate-600">
+                                        <Video className="w-4 h-4 shrink-0 text-slate-400" />
+                                        <span className="truncate break-all select-all flex-1">{item.videoLink || "No Link Provided"}</span>
+                                      </div>
+                                    </div>
+
+                                    {/* 2. AI Tailored Screening Questions Display */}
+                                    <div className="space-y-2">
+                                      <div className="flex justify-between items-center pb-1">
+                                        <label className="text-[10px] font-black uppercase text-[#714B67] tracking-wider font-mono">
+                                          AI Customized Assessment Questions
+                                        </label>
+                                        <span className="text-[9.5px] font-bold text-indigo-600 bg-indigo-50 border border-indigo-200 px-2 py-0.5 rounded">Tailored</span>
+                                      </div>
+
+                                      <div className="space-y-3">
+                                        <div className="bg-slate-50 border border-slate-200 rounded-lg p-3 max-h-[250px] overflow-y-auto pr-2 custom-scrollbar space-y-2.5">
+                                          {customQuestions.length > 0 ? (
+                                            customQuestions.map((qObj, idx) => (
+                                              <div key={idx} className="flex items-center justify-between gap-3 text-[10.5px] leading-relaxed border-b border-slate-150 pb-2 last:border-b-0">
+                                                <div className="flex items-start gap-1 flex-1">
+                                                  <strong className="text-[#714B67] font-mono pr-1">{idx + 1}.</strong>
+                                                  <span className="break-words text-slate-700">{qObj.question}</span>
+                                                </div>
+
+                                                <div className="flex items-center gap-3 shrink-0">
+                                                  {/* Correct Option */}
+                                                  <label className="flex items-center gap-1 cursor-pointer select-none">
+                                                    <input
+                                                      type="checkbox"
+                                                      checked={qObj.isCorrect === true}
+                                                      onChange={() => {
+                                                        const newVal = qObj.isCorrect === true ? null : true;
+                                                        setCustomQuestions(prev => prev.map((q, i) => i === idx ? { ...q, isCorrect: newVal } : q));
+                                                      }}
+                                                      className="w-3.5 h-3.5 text-emerald-600 focus:ring-emerald-500 rounded border-slate-350"
+                                                    />
+                                                    <span className={`text-[9.5px] font-bold ${qObj.isCorrect === true ? "text-emerald-600" : "text-slate-400"}`}>Correct</span>
+                                                  </label>
+
+                                                  {/* Incorrect Option */}
+                                                  <label className="flex items-center gap-1 cursor-pointer select-none">
+                                                    <input
+                                                      type="checkbox"
+                                                      checked={qObj.isCorrect === false}
+                                                      onChange={() => {
+                                                        const newVal = qObj.isCorrect === false ? null : false;
+                                                        setCustomQuestions(prev => prev.map((q, i) => i === idx ? { ...q, isCorrect: newVal } : q));
+                                                      }}
+                                                      className="w-3.5 h-3.5 text-rose-600 focus:ring-rose-500 rounded border-slate-355"
+                                                    />
+                                                    <span className={`text-[9.5px] font-bold ${qObj.isCorrect === false ? "text-rose-600" : "text-slate-400"}`}>Incorrect</span>
+                                                  </label>
+
+                                                  {/* Delete Question Button */}
+                                                  <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                      setCustomQuestions(prev => prev.filter((_, i) => i !== idx));
+                                                    }}
+                                                    className="text-slate-400 hover:text-rose-600 transition-colors p-0.5 ml-1"
+                                                    title="Remove Question"
+                                                  >
+                                                    <Trash className="w-3.5 h-3.5" />
+                                                  </button>
+                                                </div>
+                                              </div>
+                                            ))
+                                          ) : (
+                                            <span className="text-slate-400 italic block text-center py-2 font-medium">No custom questions added yet. You can add one below.</span>
+                                          )}
+                                        </div>
+
+                                        {/* Input to add a new question */}
+                                        <div className="flex gap-2">
+                                          <input
+                                            type="text"
+                                            value={newQuestionText}
+                                            onChange={(e) => setNewQuestionText(e.target.value)}
+                                            placeholder="Write a custom assessment question..."
+                                            className="flex-1 bg-white border border-slate-250 rounded px-2.5 py-1.5 text-xs text-slate-800 focus:outline-none focus:ring-1 focus:ring-[#714B67] placeholder-slate-400 font-semibold"
+                                            onKeyDown={(e) => {
+                                              if (e.key === "Enter") {
+                                                e.preventDefault();
+                                                if (newQuestionText.trim()) {
+                                                  setCustomQuestions(prev => [...prev, { question: newQuestionText.trim(), isCorrect: null }]);
+                                                  setNewQuestionText("");
+                                                }
+                                              }
+                                            }}
+                                          />
+                                          <button
+                                            type="button"
+                                            onClick={() => {
+                                              if (newQuestionText.trim()) {
+                                                setCustomQuestions(prev => [...prev, { question: newQuestionText.trim(), isCorrect: null }]);
+                                                setNewQuestionText("");
+                                              }
+                                            }}
+                                            className="bg-[#714B67] hover:bg-[#5F3F56] text-white px-3 py-1.5 rounded text-xs font-bold transition-all shadow-sm shrink-0"
+                                          >
+                                            + Add
+                                          </button>
+                                        </div>
+                                      </div>
+                                    </div>
+
+                                    {/* 3. Granular FORM-4 Score Entry */}
+                                    <div className="space-y-4 bg-slate-50 border border-slate-200 p-4 rounded-xl">
+                                      <h4 className="text-[10px] font-black uppercase text-[#714B67] tracking-wider font-mono border-b border-slate-200 pb-2 mb-2">Form-4: Assessment Metrics</h4>
+
+                                      {[
+                                        { label: "Communication Score", val: communicationScore, setter: setCommunicationScore },
+                                        { label: "Skill / Technical Score", val: skillScore, setter: setSkillScore },
+                                        { label: "Behaviour / Culture Fit", val: behaviourScore, setter: setBehaviourScore },
+                                        { label: "Stability Score", val: stabilityScore, setter: setStabilityScore },
+                                        { label: "Risk Factor (Lower is better)", val: riskScore, setter: setRiskScore }
+                                      ].map((metric, idx) => (
+                                        <div key={idx} className="flex flex-col gap-1.5">
+                                          <div className="flex justify-between items-center text-[10.5px]">
+                                            <label>{metric.label}:</label>
+                                            <strong className="text-xs font-mono text-[#714B67]">{metric.val}%</strong>
+                                          </div>
+                                          <input
+                                            type="range"
+                                            min="0"
+                                            max="100"
+                                            value={metric.val}
+                                            onChange={(e) => metric.setter(parseInt(e.target.value))}
+                                            className="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-[#714B67]"
+                                          />
+                                        </div>
+                                      ))}
+                                    </div>
+
+                                    {/* 4. Remarks entry */}
+                                    <div className="flex flex-col gap-1.5">
+                                      <label>Interviewer Feedback Remarks:</label>
+                                      <textarea
+                                        value={remarks}
+                                        onChange={(e) => setRemarks(e.target.value)}
+                                        placeholder="Enter assessment remarks, strengths, values and compliance flags..."
+                                        className="rounded border border-slate-250 p-2 text-slate-800 focus:ring-[#714B67] focus:border-[#714B67] h-20 text-xs"
+                                        required
+                                      />
+                                    </div>
+
+                                    {/* 5. Round Status & Final override */}
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                      <div className="flex flex-col gap-1.5">
+                                        <label>Assign Round Decision:</label>
+                                        <select
+                                          value={roundStatus}
+                                          onChange={(e) => setRoundStatus(e.target.value)}
+                                          className="rounded border border-slate-250 p-2 text-slate-800 focus:ring-[#714B67] focus:border-[#714B67]"
+                                        >
+                                          <option value="Selected">Select / Advance Candidate</option>
+                                          <option value="Pending">Keep Pending</option>
+                                          <option value="Hold">Put on Hold</option>
+                                          <option value="Rejected">Reject Profile</option>
+                                          <option value="High Risk">Flag High Risk</option>
+                                        </select>
+                                      </div>
+
+                                      <div className="flex items-end">
+                                        <button
+                                          type="submit"
+                                          disabled={submitting}
+                                          className="w-full bg-[#714B67] hover:bg-[#5F3F56] text-white p-2.5 rounded font-black shadow flex items-center justify-center gap-1.5 hover:scale-[1.01] active:scale-[0.99] transition-all"
+                                        >
+                                          {submitting ? "Saving..." : "Log Round Assessment"}
+                                        </button>
+                                      </div>
+                                    </div>
+
+                                    {/* Mandatory Round 3 Disclaimer */}
+                                    {item.round === 3 && (
+                                      <div className="bg-emerald-50 border border-emerald-250 rounded-lg p-3 text-[10px] text-emerald-700 font-bold flex items-start gap-2">
+                                        <CheckCircle2 className="w-3.5 h-3.5 shrink-0 text-emerald-600 mt-0.5" />
+                                        <div>
+                                          <strong>Final Phase:</strong> Since this is Round-3 (HR + DSM + Management), marking "Select / Advance" here will automatically transition the candidate's ultimate status to "Selected" for standard NDA onboarding!
+                                        </div>
+                                      </div>
+                                    )}
+
+                                  </form>
+
+                                </div>
+                              </td>
+                            </tr>
+                          )}
+                        </React.Fragment>
                       );
                     })}
                   </tbody>
@@ -2418,146 +3080,512 @@ export function InterviewsQueue({ triggerToast }: { triggerToast: (msg: string) 
           </div>
         </div>
 
-        {/* RIGHT PANEL: CONDUCT INTERVIEW & LOG ASSESSMENT */}
-        {selectedInt && (
-          <div className="lg:col-span-6 space-y-4 animate-fadeIn">
-            <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm space-y-5">
-              
-              <div className="pb-3 border-b border-slate-100 flex justify-between items-start gap-4">
-                <div>
-                  <span className="text-[9px] font-black tracking-widest text-[#714B67] uppercase font-mono">Conducting Assessment Portal</span>
-                  <h2 className="text-base font-black text-slate-800 mt-1">{selectedInt.candidate?.name || "Deleted Candidate"}</h2>
-                  <p className="text-[10.5px] text-slate-500 mt-0.5">Round Applied: <strong className="text-slate-700">Round-{selectedInt.round}</strong></p>
+      </div>
+    </div>
+  );
+}
+
+export function HrLeads({
+  candidates = [],
+  jobs = [],
+  triggerToast,
+  toggleModal
+}: {
+  candidates: any[];
+  jobs: any[];
+  triggerToast: (msg: string) => void;
+  toggleModal: (modalId: string, open: boolean) => void;
+}) {
+  const [selectedLead, setSelectedLead] = useState<any>(null);
+  const [selectedJobFilter, setSelectedJobFilter] = useState<string>("all");
+  const [searchTerm, setSearchTerm] = useState<string>("");
+  const [previewFile, setPreviewFile] = useState<{ url: string; title: string } | null>(null);
+  const [expandedJobId, setExpandedJobId] = useState<string | null>(null);
+
+  const filteredLeads = candidates.filter((cand) => {
+    if (selectedJobFilter !== "all" && cand.job?._id !== selectedJobFilter) {
+      return false;
+    }
+    if (searchTerm) {
+      const lowerSearch = searchTerm.toLowerCase();
+      const nameMatch = cand.name?.toLowerCase().includes(lowerSearch);
+      const emailMatch = cand.email?.toLowerCase().includes(lowerSearch);
+      const mobileMatch = cand.mobile?.includes(searchTerm);
+      if (!nameMatch && !emailMatch && !mobileMatch) {
+        return false;
+      }
+    }
+    return true;
+  });
+
+  const groupedLeads = React.useMemo(() => {
+    const groups: { [key: string]: { job: any; candidates: any[] } } = {};
+
+    // First initialize groups from active jobs to preserve their order/existence
+    jobs.forEach(job => {
+      groups[job._id] = {
+        job: job,
+        candidates: []
+      };
+    });
+
+    // Populate candidates into groups
+    filteredLeads.forEach(cand => {
+      const jobId = cand.job?._id;
+      if (jobId && groups[jobId]) {
+        groups[jobId].candidates.push(cand);
+      } else {
+        const key = "general";
+        if (!groups[key]) {
+          groups[key] = {
+            job: { _id: "general", title: "General Application", company: { name: "Acolyte Group" } },
+            candidates: []
+          };
+        }
+        groups[key].candidates.push(cand);
+      }
+    });
+
+    // Filter out groups that have 0 candidates, to avoid showing empty dropdowns
+    return Object.values(groups).filter(group => group.candidates.length > 0);
+  }, [filteredLeads, jobs]);
+
+  return (
+    <div className="space-y-8 animate-fadeIn text-slate-800">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-xl font-black text-slate-800">HR Leads</h1>
+          <p className="text-xs text-slate-500 mt-1">Real-time candidate submissions from job software form links</p>
+        </div>
+        <button
+          className="bg-[#714B67] hover:bg-[#5F3F56] px-4 py-2.5 rounded-lg text-xs font-bold text-white transition-all flex items-center gap-1.5 shadow"
+          onClick={() => toggleModal("cand", true)}
+        >
+          <UserPlus className="w-4 h-4" /> Add Candidate
+        </button>
+      </div>
+
+      <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm flex flex-col md:flex-row gap-4 items-center justify-between">
+        <div className="w-full md:w-1/3">
+          <label className="text-[10px] uppercase font-black text-slate-400 font-mono tracking-widest block mb-1">Search Candidates</label>
+          <input
+            type="text"
+            className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-xs focus:outline-none focus:border-[#714B67] text-slate-900"
+            placeholder="Search by Name, Email or Phone..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+        </div>
+        <div className="w-full md:w-1/3">
+          <label className="text-[10px] uppercase font-black text-slate-400 font-mono tracking-widest block mb-1">Filter By Job Posting</label>
+          <select
+            className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-xs focus:outline-none focus:border-[#714B67] text-slate-700"
+            value={selectedJobFilter}
+            onChange={(e) => setSelectedJobFilter(e.target.value)}
+          >
+            <option value="all">All Jobs</option>
+            {jobs.map((job) => (
+              <option key={job._id} value={job._id}>{job.title} ({job.company?.name || "Acolyte"})</option>
+            ))}
+          </select>
+        </div>
+        <div className="text-right text-xs font-mono font-bold text-slate-450">
+          Showing {filteredLeads.length} Lead(s)
+        </div>
+      </div>
+
+      <div className="space-y-4">
+        {groupedLeads.map((group) => {
+          const isJobExpanded = expandedJobId === group.job._id;
+          const companyName = group.job.company?.name || "Acolyte Group";
+
+          return (
+            <div key={group.job._id} className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden transition-all duration-200">
+              {/* Job Row Header */}
+              <div
+                className={`p-5 flex items-center justify-between cursor-pointer transition-colors ${isJobExpanded ? "bg-slate-50 border-b border-slate-150" : "hover:bg-slate-50/50"
+                  }`}
+                onClick={() => setExpandedJobId(isJobExpanded ? null : group.job._id)}
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-[#714B67]/10 flex items-center justify-center text-[#714B67]">
+                    <FileText className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-black text-slate-800 tracking-wide">{group.job.title}</h3>
+                    <span className="text-[10px] text-slate-450 block font-bold">{companyName}</span>
+                  </div>
                 </div>
-                {selectedInt.videoLink && (
-                  <a
-                    href={selectedInt.videoLink}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="bg-[#128C7E] hover:bg-[#0e7065] text-white px-3 py-2 rounded text-[10.5px] font-black shadow flex items-center gap-1.5 transition-all"
-                  >
-                    <Video className="w-3.5 h-3.5 shrink-0 animate-pulse" /> Join Video Interview
-                  </a>
-                )}
+
+                <div className="flex items-center gap-4">
+                  <span className="px-3 py-1 bg-slate-100 text-slate-655 text-[10px] rounded-full font-black font-mono">
+                    {group.candidates.length} Candidate(s)
+                  </span>
+                  <span className="text-slate-450 text-[11px] font-black uppercase tracking-wider font-mono">
+                    {isJobExpanded ? "Collapse ▲" : "Expand ▼"}
+                  </span>
+                </div>
               </div>
 
-              <form onSubmit={handleAssessmentSubmit} className="space-y-4 text-xs font-semibold text-slate-650">
-                
-                {/* 1. Video Meeting URL Link */}
-                <div className="flex flex-col gap-1.5">
-                  <label>Scheduled Video Call url:</label>
-                  <div className="flex items-center gap-2 p-2 bg-slate-50 border border-slate-200 rounded font-mono text-[10.5px] text-slate-600">
-                    <Video className="w-4 h-4 shrink-0 text-slate-400" />
-                    <span className="truncate break-all select-all flex-1">{selectedInt.videoLink || "No Link Provided"}</span>
-                  </div>
+              {/* Job Candidates Dropdown Table */}
+              {isJobExpanded && (
+                <div className="p-6 overflow-x-auto bg-white border-t border-slate-100">
+                  <table className="w-full text-left text-xs border-collapse">
+                    <thead>
+                      <tr className="border-b border-slate-200 text-slate-400 font-black uppercase font-mono tracking-wider">
+                        <th className="pb-3 pr-2">Date & Time</th>
+                        <th className="pb-3 px-2">Candidate Details</th>
+                        <th className="pb-3 px-2">Experience</th>
+                        <th className="pb-3 px-2">Resume</th>
+                        <th className="pb-3 pl-2 text-right">Details</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 font-semibold text-slate-700">
+                      {group.candidates.map((cand, idx) => {
+                        const appliedDate = new Date(cand.createdAt).toLocaleDateString("en-IN", {
+                          day: "2-digit",
+                          month: "short",
+                          year: "numeric"
+                        });
+                        const appliedTime = new Date(cand.createdAt).toLocaleTimeString("en-IN", {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                          hour12: true
+                        });
+                        const isExpanded = selectedLead?._id === cand._id;
+
+                        return (
+                          <React.Fragment key={cand._id || idx}>
+                            <tr
+                              className={`hover:bg-slate-50/50 cursor-pointer ${isExpanded ? "bg-slate-50 border-b-0" : ""}`}
+                              onClick={() => {
+                                if (isExpanded) {
+                                  setSelectedLead(null);
+                                } else {
+                                  setSelectedLead(cand);
+                                }
+                              }}
+                            >
+                              <td className="py-4 pr-2">
+                                <span className="block text-slate-900 font-bold">{appliedDate}</span>
+                                <span className="text-[10px] text-slate-400 block font-mono">{appliedTime}</span>
+                              </td>
+
+                              <td className="py-4 px-2">
+                                <div className="flex flex-wrap items-center gap-2 mb-0.5">
+                                  <span className="text-slate-900 font-black text-sm">{cand.name}</span>
+                                  {cand.status && (
+                                    <span className={`text-[8.5px] font-black uppercase font-mono px-2 py-0.5 rounded border ${cand.status === "Selected"
+                                      ? "bg-emerald-50 border-emerald-250 text-emerald-600 font-bold"
+                                      : cand.status === "Rejected"
+                                        ? "bg-rose-50 border-rose-250 text-rose-700"
+                                        : cand.status === "Hold"
+                                          ? "bg-amber-50 border-amber-250 text-amber-600"
+                                          : cand.status === "High Risk"
+                                            ? "bg-rose-100 border-rose-250 text-rose-700 font-bold"
+                                            : "bg-slate-50 border-slate-200 text-slate-500"
+                                      }`}>
+                                      {cand.status}
+                                    </span>
+                                  )}
+                                </div>
+                                <span className="text-[10px] text-slate-400 block font-mono">{cand.email} | {cand.mobile}</span>
+                              </td>
+
+                              <td className="py-4 px-2 font-mono text-slate-900">
+                                {cand.experience}
+                              </td>
+
+                              <td className="py-4 px-2">
+                                {cand.uploads?.resume ? (
+                                  <button
+                                    type="button"
+                                    className="inline-flex items-center gap-1 text-[10px] font-black text-emerald-600 hover:text-emerald-700 bg-emerald-50 px-2 py-1 rounded border border-emerald-250/30"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setPreviewFile({
+                                        url: getAttachmentUrl(cand.uploads.resume),
+                                        title: `Resume - ${cand.name}`
+                                      });
+                                    }}
+                                  >
+                                    <ExternalLink className="w-3 h-3" /> Resume
+                                  </button>
+                                ) : (
+                                  <span className="text-slate-400 font-mono text-[10px]">No Resume</span>
+                                )}
+                              </td>
+
+                              <td className="py-4 pl-2 text-right">
+                                <button
+                                  type="button"
+                                  className="bg-slate-100 hover:bg-slate-200 text-[#714B67] px-2.5 py-1.5 rounded text-[10px] font-black shadow-sm transition-all"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    if (isExpanded) {
+                                      setSelectedLead(null);
+                                    } else {
+                                      setSelectedLead(cand);
+                                    }
+                                  }}
+                                >
+                                  {isExpanded ? "Hide Details" : "View All"}
+                                </button>
+                              </td>
+                            </tr>
+                            {isExpanded && (
+                              <tr className="bg-slate-50/70">
+                                <td colSpan={5} className="px-6 py-4 border-b border-slate-200">
+                                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-xs text-slate-700 animate-fadeIn">
+                                    {/* Box 1: Basic Profile */}
+                                    <div className="bg-white border border-slate-150 rounded-xl p-4 shadow-sm space-y-2">
+                                      <span className="text-[10px] uppercase font-black text-[#714B67] tracking-wider block border-b pb-1 font-mono">Basic Profile</span>
+                                      <div>
+                                        <span className="text-slate-400 block text-[9px] uppercase font-mono">Full Name</span>
+                                        <strong className="text-slate-800 font-bold text-sm">{cand.name}</strong>
+                                      </div>
+                                      <div>
+                                        <span className="text-slate-400 block text-[9px] uppercase font-mono">Mobile</span>
+                                        <strong className="text-slate-800 font-bold font-mono">{cand.mobile}</strong>
+                                      </div>
+                                      <div>
+                                        <span className="text-slate-400 block text-[9px] uppercase font-mono">Email</span>
+                                        <strong className="text-slate-800 font-bold font-mono">{cand.email}</strong>
+                                      </div>
+                                      <div>
+                                        <span className="text-slate-400 block text-[9px] uppercase font-mono">Address</span>
+                                        <strong className="text-slate-800 font-bold">{cand.address}</strong>
+                                      </div>
+                                    </div>
+
+                                    {/* Box 2: Salary & Availability */}
+                                    <div className="bg-white border border-slate-150 rounded-xl p-4 shadow-sm space-y-2">
+                                      <span className="text-[10px] uppercase font-black text-[#714B67] tracking-wider block border-b pb-1 font-mono">Salary & Availability</span>
+                                      <div className="grid grid-cols-2 gap-2">
+                                        <div>
+                                          <span className="text-slate-400 block text-[9px] uppercase font-mono">Qualification</span>
+                                          <strong className="text-slate-800 font-bold">{cand.qualification}</strong>
+                                        </div>
+                                        <div>
+                                          <span className="text-slate-400 block text-[9px] uppercase font-mono">Experience</span>
+                                          <strong className="text-slate-800 font-bold">{cand.experience}</strong>
+                                        </div>
+                                        <div>
+                                          <span className="text-slate-400 block text-[9px] uppercase font-mono">Current Salary</span>
+                                          <strong className="text-slate-800 font-bold font-mono">{cand.currentSalary}</strong>
+                                        </div>
+                                        <div>
+                                          <span className="text-slate-400 block text-[9px] uppercase font-mono">Expected Salary</span>
+                                          <strong className="text-slate-800 font-bold font-mono">{cand.expectedSalary}</strong>
+                                        </div>
+                                        <div className="col-span-2">
+                                          <span className="text-slate-400 block text-[9px] uppercase font-mono">Notice Period (Days)</span>
+                                          <strong className="text-slate-800 font-bold font-mono">{cand.noticePeriod}</strong>
+                                        </div>
+                                      </div>
+                                    </div>
+
+                                    {/* Box 3: Self Declarations & Attachments */}
+                                    <div className="bg-white border border-slate-150 rounded-xl p-4 shadow-sm space-y-3">
+                                      {cand.riskAnswers && (
+                                        <div>
+                                          <span className="text-[10px] uppercase font-black text-[#714B67] tracking-wider block border-b pb-1 mb-2 font-mono">Self Declarations</span>
+                                          <div className="space-y-1.5 text-[11px]">
+                                            <div className="flex justify-between items-center py-0.5">
+                                              <span className="text-slate-500 font-medium">Side Business?</span>
+                                              <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase font-mono ${cand.riskAnswers.sideBusiness === "Yes" ? "bg-rose-100 text-rose-700" : "bg-emerald-100 text-emerald-700"
+                                                }`}>{cand.riskAnswers.sideBusiness}</span>
+                                            </div>
+                                            <div className="flex justify-between items-center py-0.5">
+                                              <span className="text-slate-500 font-medium">Loan EMI Pressure?</span>
+                                              <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase font-mono ${cand.riskAnswers.loanPressure === "Yes" ? "bg-rose-100 text-rose-700" : "bg-emerald-100 text-emerald-700"
+                                                }`}>{cand.riskAnswers.loanPressure}</span>
+                                            </div>
+                                            <div className="flex justify-between items-center py-0.5">
+                                              <span className="text-slate-500 font-medium">Police/Court Matters?</span>
+                                              <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase font-mono ${cand.riskAnswers.courtCase === "Yes" ? "bg-rose-100 text-rose-700" : "bg-emerald-100 text-emerald-700"
+                                                }`}>{cand.riskAnswers.courtCase}</span>
+                                            </div>
+                                            <div className="flex justify-between items-center py-0.5">
+                                              <span className="text-slate-500 font-medium">Comfortable with targets?</span>
+                                              <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase font-mono ${cand.riskAnswers.targetWork === "Yes" ? "bg-[#714B67]/10 text-[#714B67]" : "bg-rose-100 text-rose-700"
+                                                }`}>{cand.riskAnswers.targetWork}</span>
+                                            </div>
+                                          </div>
+                                        </div>
+                                      )}
+
+                                      {cand.uploads && Object.keys(cand.uploads).length > 0 && (
+                                        <div>
+                                          <span className="text-[10px] uppercase font-black text-[#714B67] tracking-wider block border-b pb-1 mb-2 font-mono">Attachments</span>
+                                          <div className="grid grid-cols-2 gap-2 text-[10px] font-bold">
+                                            {cand.uploads.resume && (
+                                              <button
+                                                type="button"
+                                                onClick={() => setPreviewFile({
+                                                  url: getAttachmentUrl(cand.uploads.resume),
+                                                  title: `Resume - ${cand.name}`
+                                                })}
+                                                className="flex items-center justify-between p-2 bg-indigo-50/50 border border-indigo-100 rounded text-indigo-700 hover:bg-indigo-50 text-left w-full"
+                                              >
+                                                <span>📄 Resume</span>
+                                                <span className="text-[8px] uppercase bg-indigo-600 text-white px-1.5 py-0.5 rounded font-mono">View</span>
+                                              </button>
+                                            )}
+                                            {cand.uploads.photo && (
+                                              <button
+                                                type="button"
+                                                onClick={() => setPreviewFile({
+                                                  url: getAttachmentUrl(cand.uploads.photo),
+                                                  title: `Passport Photo - ${cand.name}`
+                                                })}
+                                                className="flex items-center justify-between p-2 bg-indigo-50/50 border border-indigo-100 rounded text-indigo-700 hover:bg-indigo-50 text-left w-full"
+                                              >
+                                                <span>📷 Photo</span>
+                                                <span className="text-[8px] uppercase bg-indigo-600 text-white px-1.5 py-0.5 rounded font-mono">View</span>
+                                              </button>
+                                            )}
+                                            {cand.uploads.aadhaar && (
+                                              <button
+                                                type="button"
+                                                onClick={() => setPreviewFile({
+                                                  url: getAttachmentUrl(cand.uploads.aadhaar),
+                                                  title: `Aadhaar Card - ${cand.name}`
+                                                })}
+                                                className="flex items-center justify-between p-2 bg-indigo-50/50 border border-indigo-100 rounded text-indigo-700 hover:bg-indigo-50 text-left w-full"
+                                              >
+                                                <span>🆔 Aadhaar</span>
+                                                <span className="text-[8px] uppercase bg-indigo-600 text-white px-1.5 py-0.5 rounded font-mono">View</span>
+                                              </button>
+                                            )}
+                                            {cand.uploads.pan && (
+                                              <button
+                                                type="button"
+                                                onClick={() => setPreviewFile({
+                                                  url: getAttachmentUrl(cand.uploads.pan),
+                                                  title: `PAN Card - ${cand.name}`
+                                                })}
+                                                className="flex items-center justify-between p-2 bg-indigo-50/50 border border-indigo-100 rounded text-indigo-700 hover:bg-indigo-50 text-left w-full"
+                                              >
+                                                <span>💳 PAN</span>
+                                                <span className="text-[8px] uppercase bg-indigo-600 text-white px-1.5 py-0.5 rounded font-mono">View</span>
+                                              </button>
+                                            )}
+                                            {cand.uploads.bankStatement && (
+                                              <button
+                                                type="button"
+                                                onClick={() => setPreviewFile({
+                                                  url: getAttachmentUrl(cand.uploads.bankStatement),
+                                                  title: `Bank Statement - ${cand.name}`
+                                                })}
+                                                className="flex items-center justify-between p-2 bg-indigo-50/50 border border-indigo-100 rounded text-indigo-700 hover:bg-indigo-50 text-left w-full col-span-2"
+                                              >
+                                                <span>🏦 Bank Statement</span>
+                                                <span className="text-[8px] uppercase bg-indigo-600 text-white px-1.5 py-0.5 rounded font-mono">View</span>
+                                              </button>
+                                            )}
+                                          </div>
+                                        </div>
+                                      )}
+                                    </div>
+                                  </div>
+                                </td>
+                              </tr>
+                            )}
+                          </React.Fragment>
+                        );
+                      })}
+                    </tbody>
+                  </table>
                 </div>
-
-                {/* 2. AI Tailored Screening Questions Display */}
-                <div className="space-y-2">
-                  <div className="flex justify-between items-center pb-1">
-                    <label className="text-[10px] font-black uppercase text-[#714B67] tracking-wider font-mono">
-                      AI Customized Assessment Questions
-                    </label>
-                    <span className="text-[9.5px] font-bold text-indigo-600 bg-indigo-50 border border-indigo-200 px-2 py-0.5 rounded">Tailored</span>
-                  </div>
-                  
-                  <div className="bg-slate-50 border border-slate-200 rounded-lg p-3 max-h-[160px] overflow-y-auto pr-2 custom-scrollbar space-y-2.5">
-                    {selectedInt.candidate?.screeningResult?.suggestedQuestions && selectedInt.candidate?.screeningResult?.suggestedQuestions?.length > 0 ? (
-                      selectedInt.candidate.screeningResult.suggestedQuestions.map((q: string, idx: number) => (
-                        <div key={idx} className="text-[10.5px] leading-relaxed text-slate-700 border-b border-slate-150 pb-2 last:border-b-0">
-                          <strong className="text-[#714B67] font-mono pr-1">{idx + 1}.</strong> {q}
-                        </div>
-                      ))
-                    ) : (
-                      <span className="text-slate-400 italic block text-center py-2 font-medium">No AI custom questions. Ensure AI screening was triggered in screening tab.</span>
-                    )}
-                  </div>
-                </div>
-
-                {/* 3. Granular FORM-4 Score Entry */}
-                <div className="space-y-4 bg-slate-50 border border-slate-200 p-4 rounded-xl">
-                  <h4 className="text-[10px] font-black uppercase text-[#714B67] tracking-wider font-mono border-b border-slate-200 pb-2 mb-2">Form-4: Assessment Metrics</h4>
-                  
-                  {[
-                    { label: "Communication Score", val: communicationScore, setter: setCommunicationScore },
-                    { label: "Skill / Technical Score", val: skillScore, setter: setSkillScore },
-                    { label: "Behaviour / Culture Fit", val: behaviourScore, setter: setBehaviourScore },
-                    { label: "Stability Score", val: stabilityScore, setter: setStabilityScore },
-                    { label: "Risk Factor (Lower is better)", val: riskScore, setter: setRiskScore }
-                  ].map((metric, idx) => (
-                    <div key={idx} className="flex flex-col gap-1.5">
-                      <div className="flex justify-between items-center text-[10.5px]">
-                        <label>{metric.label}:</label>
-                        <strong className="text-xs font-mono text-[#714B67]">{metric.val}%</strong>
-                      </div>
-                      <input
-                        type="range"
-                        min="0"
-                        max="100"
-                        value={metric.val}
-                        onChange={(e) => metric.setter(parseInt(e.target.value))}
-                        className="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-[#714B67]"
-                      />
-                    </div>
-                  ))}
-                </div>
-
-                {/* 4. Remarks entry */}
-                <div className="flex flex-col gap-1.5">
-                  <label>Interviewer Feedback Remarks:</label>
-                  <textarea
-                    value={remarks}
-                    onChange={(e) => setRemarks(e.target.value)}
-                    placeholder="Enter assessment remarks, strengths, values and compliance flags..."
-                    className="rounded border border-slate-250 p-2 text-slate-800 focus:ring-[#714B67] focus:border-[#714B67] h-20 text-xs"
-                    required
-                  />
-                </div>
-
-                {/* 5. Round Status & Final override */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="flex flex-col gap-1.5">
-                    <label>Assign Round Decision:</label>
-                    <select
-                      value={roundStatus}
-                      onChange={(e) => setRoundStatus(e.target.value)}
-                      className="rounded border border-slate-250 p-2 text-slate-800 focus:ring-[#714B67] focus:border-[#714B67]"
-                    >
-                      <option value="Selected">Select / Advance Candidate</option>
-                      <option value="Pending">Keep Pending</option>
-                      <option value="Hold">Put on Hold</option>
-                      <option value="Rejected">Reject Profile</option>
-                      <option value="High Risk">Flag High Risk</option>
-                    </select>
-                  </div>
-
-                  <div className="flex items-end">
-                    <button
-                      type="submit"
-                      disabled={submitting}
-                      className="w-full bg-[#714B67] hover:bg-[#5F3F56] text-white p-2.5 rounded font-black shadow flex items-center justify-center gap-1.5 hover:scale-[1.01] active:scale-[0.99] transition-all"
-                    >
-                      {submitting ? "Saving..." : "Log Round Assessment"}
-                    </button>
-                  </div>
-                </div>
-
-                {/* Mandatory Round 3 Disclaimer */}
-                {selectedInt.round === 3 && (
-                  <div className="bg-emerald-50 border border-emerald-250 rounded-lg p-3 text-[10px] text-emerald-700 font-bold flex items-start gap-2">
-                    <CheckCircle2 className="w-3.5 h-3.5 shrink-0 text-emerald-600 mt-0.5" />
-                    <div>
-                      <strong>Final Phase:</strong> Since this is Round-3 (HR + DSM + Management), marking "Select / Advance" here will automatically transition the candidate's ultimate status to "Selected" for standard NDA onboarding!
-                    </div>
-                  </div>
-                )}
-
-              </form>
-
+              )}
             </div>
+          );
+        })}
+
+        {groupedLeads.length === 0 && (
+          <div className="bg-white border border-slate-200 rounded-xl p-8 text-center text-slate-400 font-bold">
+            No active jobs or candidate leads found.
           </div>
         )}
+      </div>
 
+      {previewFile && (
+        <FilePreviewModal
+          url={previewFile.url}
+          title={previewFile.title}
+          onClose={() => setPreviewFile(null)}
+        />
+      )}
+    </div>
+  );
+}
+
+export function FilePreviewModal({
+  url,
+  title,
+  onClose
+}: {
+  url: string;
+  title: string;
+  onClose: () => void;
+}) {
+  const cleanUrl = url.split("?")[0].toLowerCase();
+  const isImage = cleanUrl.endsWith(".png") ||
+    cleanUrl.endsWith(".jpg") ||
+    cleanUrl.endsWith(".jpeg") ||
+    cleanUrl.endsWith(".gif") ||
+    cleanUrl.endsWith(".webp") ||
+    (url.includes("image/upload") && !cleanUrl.endsWith(".pdf"));
+
+  // Check if it's a PDF and browser can display it, or use Google Docs Viewer for other docs (docx, xlsx, etc.)
+  const isPdf = cleanUrl.endsWith(".pdf") || url.toLowerCase().includes(".pdf");
+  const proxyUrl = `/api/documents/proxy?url=${encodeURIComponent(url)}`;
+  const previewUrl = isImage
+    ? url
+    : isPdf
+      ? proxyUrl
+      : `https://docs.google.com/gview?url=${encodeURIComponent(url)}&embedded=true`;
+
+  return (
+    <div className="fixed inset-0 z-[9999] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 animate-fadeIn">
+      <div className="bg-white rounded-xl shadow-2xl w-full max-w-4xl h-[85vh] flex flex-col overflow-hidden border border-slate-200">
+        <div className="bg-[#714B67] text-white px-5 py-4 flex items-center justify-between">
+          <span className="text-sm font-black tracking-wide uppercase">{title}</span>
+          <div className="flex items-center gap-3">
+            <a
+              href={url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="bg-white/10 hover:bg-white/20 text-white px-3 py-1 rounded text-xs font-bold transition-all flex items-center gap-1"
+            >
+              Open Original
+            </a>
+            <button
+              onClick={onClose}
+              className="text-white hover:text-slate-200 font-bold text-xl px-2"
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+        <div className="flex-1 bg-slate-100 p-4 flex items-center justify-center overflow-hidden">
+          {isImage ? (
+            <div className="w-full h-full flex items-center justify-center overflow-auto">
+              <img
+                src={url}
+                alt={title}
+                className="max-w-full max-h-full object-contain rounded-lg shadow-md"
+              />
+            </div>
+          ) : (
+            <iframe
+              src={previewUrl}
+              className="w-full h-full border-0 rounded-lg bg-white shadow-md"
+              title={title}
+            />
+          )}
+        </div>
       </div>
     </div>
   );

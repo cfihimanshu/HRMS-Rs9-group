@@ -31,8 +31,17 @@ export async function POST(request: Request) {
     cloudinaryFormData.append("api_key", process.env.CLOUDINARY_API_KEY!);
     cloudinaryFormData.append("folder", "acolyte_hr_documents");
 
+    const fileName = file.name.toLowerCase();
+    const isImage = file.type.startsWith("image/") || 
+                    fileName.endsWith(".png") || 
+                    fileName.endsWith(".jpg") || 
+                    fileName.endsWith(".jpeg") || 
+                    fileName.endsWith(".gif") || 
+                    fileName.endsWith(".webp");
+    const resourceType = isImage ? "image" : "raw";
+
     const cloudinaryRes = await fetch(
-      `https://api.cloudinary.com/v1_1/${process.env.CLOUDINARY_CLOUD_NAME}/auto/upload`,
+      `https://api.cloudinary.com/v1_1/${process.env.CLOUDINARY_CLOUD_NAME}/${resourceType}/upload`,
       { method: "POST", body: cloudinaryFormData }
     );
 

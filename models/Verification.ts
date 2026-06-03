@@ -15,6 +15,10 @@ export interface IVerification extends Document {
   socialMediaStatus: CheckStatus;
   remarks?: string;
   status: "Pending" | "Verified" | "Hold" | "Rejected" | "High Risk" | "inactive";
+  aadhaarUrl?: string;
+  panUrl?: string;
+  salarySlipUrl?: string;
+  bankStatementUrl?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -37,8 +41,16 @@ const VerificationSchema: Schema = new Schema(
       enum: ["Pending", "Verified", "Hold", "Rejected", "High Risk", "inactive"],
       default: "Pending",
     },
+    aadhaarUrl: { type: String },
+    panUrl: { type: String },
+    salarySlipUrl: { type: String },
+    bankStatementUrl: { type: String },
   },
   { timestamps: true }
 );
 
-export default mongoose.models.Verification || mongoose.model<IVerification>("Verification", VerificationSchema);
+if (mongoose.models.Verification) {
+  delete mongoose.models.Verification;
+}
+
+export default mongoose.model<IVerification>("Verification", VerificationSchema);

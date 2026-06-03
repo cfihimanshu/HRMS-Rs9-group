@@ -16,6 +16,8 @@ import {
   ChevronRight,
   LayoutGrid,
   AlertCircle,
+  Trash2,
+  Edit2,
 } from "lucide-react";
 
 interface Task {
@@ -53,10 +55,17 @@ export default function KanbanBoard() {
   const [desc, setDesc] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
-  // Progress Notes Modal
+  // Progress Notes Modal & Task Details
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [editNotes, setEditNotes] = useState("");
   const [savingNotes, setSavingNotes] = useState(false);
+
+  // Task Editing & Deletion
+  const [isEditingTask, setIsEditingTask] = useState(false);
+  const [editTitle, setEditTitle] = useState("");
+  const [editType, setEditType] = useState("Meeting");
+  const [editDesc, setEditDesc] = useState("");
+  const [savingEdit, setSavingEdit] = useState(false);
 
   // Drag state
   const dragIdRef = useRef<string | null>(null);
@@ -145,9 +154,63 @@ export default function KanbanBoard() {
     }
   };
 
+  const handleEditTask = async () => {
+    if (!selectedTask || !editTitle.trim()) return;
+    setSavingEdit(true);
+    try {
+      const res = await fetch("/api/tasks", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          taskId: selectedTask._id,
+          taskTitle: editTitle,
+          taskType: editType,
+          description: editDesc,
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setTasks(prev => prev.map(t => t._id === selectedTask._id ? {
+          ...t,
+          taskTitle: editTitle,
+          taskType: editType,
+          description: editDesc,
+        } : t));
+        setSelectedTask(prev => prev ? {
+          ...prev,
+          taskTitle: editTitle,
+          taskType: editType,
+          description: editDesc,
+        } : null);
+        setIsEditingTask(false);
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setSavingEdit(false);
+    }
+  };
+
+  const handleDeleteTask = async (taskId: string) => {
+    if (!confirm("Are you sure you want to delete this task?")) return;
+    try {
+      const res = await fetch(`/api/tasks?taskId=${taskId}`, {
+        method: "DELETE",
+      });
+      const data = await res.json();
+      if (data.success) {
+        setTasks(prev => prev.filter(t => t._id !== taskId));
+        setSelectedTask(null);
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   const openTask = (task: Task) => {
     setSelectedTask(task);
     setEditNotes(task.progressNotes || "");
+    setIsEditingTask(false);
   };
 
   // --- Drag & Drop ---
@@ -410,7 +473,7 @@ export default function KanbanBoard() {
                         </button>
                       </div>
                       <input
-                        className="w-full border border-slate-200 rounded-lg px-3 py-2 text-xs font-bold focus:outline-none focus:border-[#714B67] placeholder-slate-400"
+                        className="w-full border border-slate-200 rounded-lg px-3 py-2 text-xs font-bold focus:outline-none focus:border-[#714B67] placeholder-slate-400 text-slate-800"
                         placeholder="Task Title *"
                         value={title}
                         onChange={e => setTitle(e.target.value)}
@@ -431,7 +494,7 @@ export default function KanbanBoard() {
                         <option>Other</option>
                       </select>
                       <textarea
-                        className="w-full border border-slate-200 rounded-lg px-3 py-2 text-xs font-medium focus:outline-none focus:border-[#714B67] placeholder-slate-400 resize-none"
+                        className="w-full border border-slate-200 rounded-lg px-3 py-2 text-xs font-medium focus:outline-none focus:border-[#714B67] placeholder-slate-400 resize-none text-slate-800"
                         rows={2}
                         placeholder="Description (optional)..."
                         value={desc}
@@ -479,85 +542,189 @@ export default function KanbanBoard() {
       {selectedTask && (
         <div
           className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4"
-          onClick={() => setSelectedTask(null)}
+          onClick={() => {
+            setSelectedTask(null);
+            setIsEditingTask(false);
+          }}
         >
           <div
             className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto"
             onClick={e => e.stopPropagation()}
           >
-            {/* Modal header */}
-            <div className="flex items-start justify-between p-6 border-b border-slate-100">
-              <div className="flex-1 pr-4">
-                <span className={`inline-block text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full border mb-2 ${TYPE_COLORS[selectedTask.taskType] || TYPE_COLORS.Other}`}>
-                  {selectedTask.taskType}
-                </span>
-                <h2 className="text-base font-black text-slate-800 leading-tight">{selectedTask.taskTitle}</h2>
-                {selectedTask.description && (
-                  <p className="text-xs text-slate-500 mt-1 font-medium">{selectedTask.description}</p>
-                )}
-              </div>
-              <button
-                onClick={() => setSelectedTask(null)}
-                className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center transition-all shrink-0"
-              >
-                <X className="w-4 h-4 text-slate-500" />
-              </button>
-            </div>
-
-            {/* Status change buttons */}
-            <div className="px-6 py-4 border-b border-slate-100">
-              <p className="text-[10px] uppercase font-black text-slate-400 tracking-wider mb-3">Move To</p>
-              <div className="flex gap-2 flex-wrap">
-                {["Pending", "In Progress", "Completed"].map(s => (
+            {isEditingTask ? (
+              <div className="p-6 space-y-4">
+                <div className="flex items-center justify-between mb-1">
+                  <h3 className="text-sm font-black uppercase tracking-wider text-[#714B67]">Edit Task Details</h3>
                   <button
-                    key={s}
-                    onClick={() => updateStatus(selectedTask._id, s)}
-                    disabled={selectedTask.status === s || updatingId === selectedTask._id}
-                    className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all border ${
-                      selectedTask.status === s
-                        ? s === "Pending"
-                          ? "bg-slate-100 text-slate-700 border-slate-300 cursor-default"
-                          : s === "In Progress"
-                          ? "bg-amber-100 text-amber-700 border-amber-300 cursor-default"
-                          : "bg-emerald-100 text-emerald-700 border-emerald-300 cursor-default"
-                        : "bg-white text-slate-500 border-slate-200 hover:border-[#714B67] hover:text-[#714B67]"
-                    }`}
+                    type="button"
+                    onClick={() => setIsEditingTask(false)}
+                    className="text-slate-400 hover:text-slate-600"
                   >
-                    {selectedTask.status === s && <CheckCircle2 className="w-3 h-3" />}
-                    {s}
-                    {selectedTask.status !== s && <ChevronRight className="w-3 h-3" />}
+                    <X className="w-4 h-4" />
                   </button>
-                ))}
-              </div>
-            </div>
+                </div>
 
-            {/* Progress Notes */}
-            <div className="px-6 py-4">
-              <div className="flex items-center gap-2 mb-3">
-                <StickyNote className="w-4 h-4 text-indigo-500" />
-                <p className="text-[10px] uppercase font-black text-slate-700 tracking-wider">Progress Notes</p>
+                <div className="space-y-3">
+                  <div>
+                    <label className="text-[9px] uppercase font-black text-slate-800 font-mono tracking-wider">Task Title *</label>
+                    <input
+                      className="w-full border border-slate-200 rounded-lg px-3 py-2 text-xs font-bold focus:outline-none focus:border-[#714B67] text-slate-800"
+                      placeholder="Task Title *"
+                      value={editTitle}
+                      onChange={e => setEditTitle(e.target.value)}
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-[9px] uppercase font-black text-slate-450 font-mono tracking-wider">Task Type</label>
+                    <select
+                      className="w-full border border-slate-200 rounded-lg px-3 py-2 text-xs font-bold focus:outline-none focus:border-[#714B67] text-slate-700"
+                      value={editType}
+                      onChange={e => setEditType(e.target.value)}
+                    >
+                      <option>Call</option>
+                      <option>Meeting</option>
+                      <option>Development</option>
+                      <option>Field Visit</option>
+                      <option>Operations</option>
+                      <option>Support</option>
+                      <option>Other</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="text-[9px] uppercase font-black text-slate-450 font-mono tracking-wider">Description</label>
+                    <textarea
+                      className="w-full border border-slate-200 rounded-lg px-3 py-2 text-xs font-medium focus:outline-none focus:border-[#714B67] text-slate-800 resize-none"
+                      rows={3}
+                      placeholder="Description (optional)..."
+                      value={editDesc}
+                      onChange={e => setEditDesc(e.target.value)}
+                    />
+                  </div>
+                </div>
+
+                <div className="flex gap-2 pt-2 border-t border-slate-100">
+                  <button
+                    type="button"
+                    onClick={() => setIsEditingTask(false)}
+                    className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-650 py-2 rounded-lg text-[10px] font-black uppercase transition-all"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleEditTask}
+                    disabled={savingEdit}
+                    className="flex-1 bg-[#714B67] hover:bg-[#5F3F56] disabled:opacity-50 text-white py-2 rounded-lg text-[10px] font-black uppercase flex items-center justify-center gap-1 transition-all"
+                  >
+                    {savingEdit ? <Loader2 className="w-3 h-3 animate-spin" /> : "Save Changes"}
+                  </button>
+                </div>
               </div>
-              <textarea
-                className="w-full border border-slate-200 rounded-xl px-4 py-3 text-xs font-medium text-slate-800 focus:outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 resize-none placeholder-slate-400 leading-relaxed"
-                rows={5}
-                placeholder="Write your progress notes, blockers, or updates here..."
-                value={editNotes}
-                onChange={e => setEditNotes(e.target.value)}
-              />
-              <div className="flex items-center justify-between mt-3">
-                <p className="text-[9px] text-slate-400 font-medium">
-                  Created: {new Date(selectedTask.createdAt || selectedTask.date).toLocaleString("en-IN", { hour: "2-digit", minute: "2-digit", day: "2-digit", month: "short" })}
-                </p>
-                <button
-                  onClick={saveProgressNotes}
-                  disabled={savingNotes || editNotes === selectedTask.progressNotes}
-                  className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 disabled:cursor-not-allowed text-white px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all"
-                >
-                  {savingNotes ? <Loader2 className="w-3 h-3 animate-spin" /> : <Save className="w-3 h-3" />}
-                  {savingNotes ? "Saving..." : "Save Notes"}
-                </button>
-              </div>
-            </div>
+            ) : (
+              <>
+                {/* Modal header */}
+                <div className="flex items-start justify-between p-6 border-b border-slate-100">
+                  <div className="flex-1 pr-4">
+                    <span className={`inline-block text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full border mb-2 ${TYPE_COLORS[selectedTask.taskType] || TYPE_COLORS.Other}`}>
+                      {selectedTask.taskType}
+                    </span>
+                    <h2 className="text-base font-black text-slate-800 leading-tight">{selectedTask.taskTitle}</h2>
+                    {selectedTask.description && (
+                      <p className="text-xs text-slate-500 mt-1 font-medium">{selectedTask.description}</p>
+                    )}
+                  </div>
+
+                  {/* Action buttons: Edit, Delete, Close */}
+                  <div className="flex items-center gap-2 shrink-0">
+                    <button
+                      onClick={() => {
+                        setEditTitle(selectedTask.taskTitle);
+                        setEditType(selectedTask.taskType);
+                        setEditDesc(selectedTask.description || "");
+                        setIsEditingTask(true);
+                      }}
+                      className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center transition-all"
+                      title="Edit Task"
+                    >
+                      <Edit2 className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      onClick={() => handleDeleteTask(selectedTask._id)}
+                      className="w-8 h-8 rounded-full bg-rose-50 hover:bg-rose-100 text-rose-600 flex items-center justify-center transition-all"
+                      title="Delete Task"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      onClick={() => {
+                        setSelectedTask(null);
+                        setIsEditingTask(false);
+                      }}
+                      className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center transition-all"
+                      title="Close"
+                    >
+                      <X className="w-4 h-4 text-slate-500" />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Status change buttons */}
+                <div className="px-6 py-4 border-b border-slate-100">
+                  <p className="text-[10px] uppercase font-black text-slate-400 tracking-wider mb-3">Move To</p>
+                  <div className="flex gap-2 flex-wrap">
+                    {["Pending", "In Progress", "Completed"].map(s => (
+                      <button
+                        key={s}
+                        onClick={() => updateStatus(selectedTask._id, s)}
+                        disabled={selectedTask.status === s || updatingId === selectedTask._id}
+                        className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all border ${selectedTask.status === s
+                          ? s === "Pending"
+                            ? "bg-slate-100 text-slate-700 border-slate-300 cursor-default"
+                            : s === "In Progress"
+                              ? "bg-amber-100 text-amber-700 border-amber-300 cursor-default"
+                              : "bg-emerald-100 text-emerald-700 border-emerald-300 cursor-default"
+                          : "bg-white text-slate-500 border-slate-200 hover:border-[#714B67] hover:text-[#714B67]"
+                          }`}
+                      >
+                        {selectedTask.status === s && <CheckCircle2 className="w-3 h-3" />}
+                        {s}
+                        {selectedTask.status !== s && <ChevronRight className="w-3 h-3" />}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Progress Notes */}
+                <div className="px-6 py-4">
+                  <div className="flex items-center gap-2 mb-3">
+                    <StickyNote className="w-4 h-4 text-indigo-500" />
+                    <p className="text-[10px] uppercase font-black text-slate-700 tracking-wider">Progress Notes</p>
+                  </div>
+                  <textarea
+                    className="w-full border border-slate-200 rounded-xl px-4 py-3 text-xs font-medium text-slate-800 focus:outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 resize-none placeholder-slate-400 leading-relaxed"
+                    rows={5}
+                    placeholder="Write your progress notes, blockers, or updates here..."
+                    value={editNotes}
+                    onChange={e => setEditNotes(e.target.value)}
+                  />
+                  <div className="flex items-center justify-between mt-3">
+                    <p className="text-[9px] text-slate-400 font-medium">
+                      Created: {new Date(selectedTask.createdAt || selectedTask.date).toLocaleString("en-IN", { hour: "2-digit", minute: "2-digit", day: "2-digit", month: "short" })}
+                    </p>
+                    <button
+                      onClick={saveProgressNotes}
+                      disabled={savingNotes || editNotes === selectedTask.progressNotes}
+                      className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 disabled:cursor-not-allowed text-white px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all"
+                    >
+                      {savingNotes ? <Loader2 className="w-3 h-3 animate-spin" /> : <Save className="w-3 h-3" />}
+                      {savingNotes ? "Saving..." : "Save Notes"}
+                    </button>
+                  </div>
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}

@@ -3,11 +3,11 @@
 import React, { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { 
-  X, 
-  Loader2, 
-  Clock, 
-  Calendar 
+import {
+  X,
+  Loader2,
+  Clock,
+  Calendar
 } from "lucide-react";
 
 // Import modular panels
@@ -15,35 +15,36 @@ import DashboardSidebar from "@/components/dashboard/Sidebar";
 import Topbar from "@/components/dashboard/Topbar";
 import HiringRequisitionModal from "@/components/dashboard/HiringRequisitionModal";
 import { OwnerDashboard, HrDashboard, DepartmentDashboard } from "@/components/dashboard/OverviewPanels";
-import { 
-  HiringApproval, 
-  JobPostings, 
-  CandidatesPipeline, 
-  AiScreening, 
+import {
+  HiringApproval,
+  JobPostings,
+  CandidatesPipeline,
+  AiScreening,
   VerificationChecklist,
-  InterviewsQueue
+  InterviewsQueue,
+  HrLeads
 } from "@/components/dashboard/RecruitmentPanels";
-import { 
-  OnboardingRoadmap, 
-  TrainingClassroom, 
-  ProbationEvaluation 
+import {
+  OnboardingRoadmap,
+  TrainingClassroom,
+  ProbationEvaluation
 } from "@/components/dashboard/OnboardingPanels";
-import { DailyCommitments, PerformanceCompliance } from "@/components/dashboard/OpsPanels";
-import { 
-  BusinessAssociates, 
-  VendorOperations, 
-  FranchiseTerritories 
+import { DailyCommitments, PerformanceCompliance, LeaveRequestTab } from "@/components/dashboard/OpsPanels";
+import {
+  BusinessAssociates,
+  VendorOperations,
+  FranchiseTerritories
 } from "@/components/dashboard/PartnersPanels";
-import { 
-  GrievanceResolution, 
-  SystemRiskAlerts, 
-  ExitSeparation 
+import {
+  GrievanceResolution,
+  SystemRiskAlerts,
+  ExitSeparation
 } from "@/components/dashboard/CompliancePanels";
-import { 
-  ESSDashboard, 
-  ESSLeaves, 
-  ESSPayroll, 
-  ESSExpenses 
+import {
+  ESSDashboard,
+  ESSLeaves,
+  ESSPayroll,
+  ESSExpenses
 } from "@/components/dashboard/ESSPanels";
 import EmployeeDirectory from "@/components/dashboard/EmployeePanels";
 import KanbanBoard from "@/components/dashboard/KanbanBoard";
@@ -180,6 +181,11 @@ export default function UnifiedEnterpriseDashboard() {
     mobile: "",
     email: "",
     experience: "",
+    jobId: "",
+    qualification: "",
+    currentSalary: "",
+    expectedSalary: "",
+    noticePeriod: "",
     sideBusiness: false,
     loanPressure: false,
     legalMatter: false,
@@ -369,7 +375,7 @@ export default function UnifiedEnterpriseDashboard() {
   useEffect(() => {
     if (status === "authenticated") {
       loadAllData();
-      
+
       const role = (session?.user as any)?.role;
       if (role === "Owner" || role === "Director") {
         setActiveTab("dashboard");
@@ -511,12 +517,12 @@ export default function UnifiedEnterpriseDashboard() {
       const res = await fetch("/api/hiring", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
-          id, 
-          status: nextStatus, 
-          remarks, 
-          sourcingBudget, 
-          postingPlatform 
+        body: JSON.stringify({
+          id,
+          status: nextStatus,
+          remarks,
+          sourcingBudget,
+          postingPlatform
         })
       });
       const data = await res.json();
@@ -573,7 +579,7 @@ export default function UnifiedEnterpriseDashboard() {
         if (data.data?.shareableLink) {
           try {
             navigator.clipboard.writeText(data.data.shareableLink);
-          } catch (e) {}
+          } catch (e) { }
         }
         setJobForm({
           title: "",
@@ -610,15 +616,16 @@ export default function UnifiedEnterpriseDashboard() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          jobId: candForm.jobId || undefined,
           name: candForm.name,
           email: candForm.email,
           mobile: candForm.mobile,
           address: "Not Provided",
-          qualification: "Graduate",
+          qualification: candForm.qualification || "Graduate",
           experience: candForm.experience || "2 yrs",
-          currentSalary: "Not Disclosed",
-          expectedSalary: "Negotiable",
-          noticePeriod: "Immediate",
+          currentSalary: candForm.currentSalary || "Not Disclosed",
+          expectedSalary: candForm.expectedSalary || "Negotiable",
+          noticePeriod: candForm.noticePeriod || "Immediate",
           currentRound: 1,
           status: "Applied",
           riskAnswers: {
@@ -640,6 +647,11 @@ export default function UnifiedEnterpriseDashboard() {
           mobile: "",
           email: "",
           experience: "",
+          jobId: "",
+          qualification: "",
+          currentSalary: "",
+          expectedSalary: "",
+          noticePeriod: "",
           sideBusiness: false,
           loanPressure: false,
           legalMatter: false,
@@ -767,38 +779,38 @@ export default function UnifiedEnterpriseDashboard() {
 
   return (
     <div className="min-h-screen bg-[#F4F5F7] dark:bg-gray-950 flex text-slate-800 dark:text-gray-100 relative font-sans overflow-hidden transition-colors duration-300">
-      
+
       {/* Sidebar Component */}
-      <DashboardSidebar 
-        activeTab={activeTab} 
-        setActiveTab={setActiveTab} 
-        stats={stats} 
-        user={session?.user} 
+      <DashboardSidebar
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+        stats={stats}
+        user={session?.user}
       />
 
       {/* Main Command Workspace */}
       <main className="flex-1 flex flex-col h-screen overflow-hidden">
-        
+
         {/* Upper Header status bar */}
         <Topbar activeTabLabel={activeTab.replace("-", " ").toUpperCase()} />
 
         {/* Tab Panel Body container */}
         <div className="flex-1 overflow-y-auto px-8 py-8 custom-scrollbar">
-          
+
           {activeTab === "dashboard" && (
-            <OwnerDashboard 
-              stats={stats} 
-              riskAlertList={riskAlertList} 
-              onResolveAlert={handleAlertResolve} 
-              onNavigateTab={setActiveTab} 
-              triggerToast={triggerToast} 
+            <OwnerDashboard
+              stats={stats}
+              riskAlertList={riskAlertList}
+              onResolveAlert={handleAlertResolve}
+              onNavigateTab={setActiveTab}
+              triggerToast={triggerToast}
             />
           )}
 
           {activeTab === "hr-dash" && (
-            <HrDashboard 
-              stats={stats} 
-              onNavigateTab={setActiveTab} 
+            <HrDashboard
+              stats={stats}
+              onNavigateTab={setActiveTab}
             />
           )}
 
@@ -817,96 +829,107 @@ export default function UnifiedEnterpriseDashboard() {
           )}
 
           {activeTab === "dept-dash" && (
-            <DepartmentDashboard 
+            <DepartmentDashboard
               stats={stats}
-              onNavigateTab={setActiveTab} 
+              onNavigateTab={setActiveTab}
             />
           )}
 
           {activeTab === "hiring" && (
-            <HiringApproval 
+            <HiringApproval
               requisitions={requisitions}
               onApproveRequisition={handleApproveRequisition}
-              toggleModal={toggleModal} 
-              triggerToast={triggerToast} 
+              toggleModal={toggleModal}
+              triggerToast={triggerToast}
               userRole={(session?.user as any)?.role || ""}
             />
           )}
 
           {activeTab === "jobs" && (
-            <JobPostings 
-              jobs={jobs} 
-              toggleModal={toggleModal} 
-              triggerToast={triggerToast} 
+            <JobPostings
+              jobs={jobs}
+              toggleModal={toggleModal}
+              triggerToast={triggerToast}
+            />
+          )}
+
+          {activeTab === "hr-leads" && (
+            <HrLeads
+              candidates={candidates}
+              jobs={jobs}
+              triggerToast={triggerToast}
+              toggleModal={toggleModal}
             />
           )}
 
           {activeTab === "candidates" && (
-            <CandidatesPipeline 
-              candidates={candidates} 
-              selectedCandidate={selectedCandidate} 
-              setSelectedCandidate={setSelectedCandidate} 
-              interviews={interviews} 
-              jobs={jobs} 
-              toggleModal={toggleModal} 
-              triggerToast={triggerToast} 
+            <CandidatesPipeline
+              candidates={candidates}
+              selectedCandidate={selectedCandidate}
+              setSelectedCandidate={setSelectedCandidate}
+              interviews={interviews}
+              jobs={jobs}
+              toggleModal={toggleModal}
+              triggerToast={triggerToast}
               requisitions={requisitions}
             />
           )}
 
           {activeTab === "employees" && (
-            <EmployeeDirectory 
-              userRole={(session?.user as any)?.role || "Employee"} 
-              triggerToast={triggerToast} 
+            <EmployeeDirectory
+              userRole={(session?.user as any)?.role || "Employee"}
+              triggerToast={triggerToast}
               sessionUser={session?.user}
             />
           )}
 
           {activeTab === "screening" && (
-            <AiScreening 
-              selectedCandidate={selectedCandidate} 
-              triggerToast={triggerToast} 
+            <AiScreening
+              selectedCandidate={selectedCandidate}
+              triggerToast={triggerToast}
+              onCandidateUpdated={loadCandidates}
             />
           )}
 
           {activeTab === "interviews" && (
-            <InterviewsQueue 
-              triggerToast={triggerToast} 
+            <InterviewsQueue
+              triggerToast={triggerToast}
             />
           )}
 
           {activeTab === "verification" && (
-            <VerificationChecklist 
-              selectedCandidate={selectedCandidate} 
-              triggerToast={triggerToast} 
+            <VerificationChecklist
+              selectedCandidate={selectedCandidate}
+              triggerToast={triggerToast}
+              onCandidateUpdated={loadCandidates}
             />
           )}
 
           {activeTab === "onboarding" && (
-            <OnboardingRoadmap 
-              selectedCandidate={selectedCandidate} 
-              triggerToast={triggerToast} 
-              toggleModal={toggleModal} 
+            <OnboardingRoadmap
+              selectedCandidate={selectedCandidate}
+              triggerToast={triggerToast}
+              toggleModal={toggleModal}
             />
           )}
 
           {activeTab === "training" && (
-            <TrainingClassroom 
-              toggleModal={toggleModal} 
-              triggerToast={triggerToast} 
+            <TrainingClassroom
+              toggleModal={toggleModal}
+              triggerToast={triggerToast}
             />
           )}
 
           {activeTab === "probation" && (
-            <ProbationEvaluation 
-              triggerToast={triggerToast} 
+            <ProbationEvaluation
+              triggerToast={triggerToast}
             />
           )}
 
           {activeTab === "attendance" && (
-            <DailyCommitments 
+            <DailyCommitments
               sessionUser={session?.user}
-              stats={stats} 
+              stats={stats}
               handleAttendancePunch={handleAttendancePunch}
               handleSodSubmit={handleSodSubmit}
               handleEodSubmit={handleEodSubmit}
@@ -921,46 +944,50 @@ export default function UnifiedEnterpriseDashboard() {
             <PerformanceCompliance sessionUser={session?.user} />
           )}
 
+          {activeTab === "leave-request" && (
+            <LeaveRequestTab sessionUser={session?.user} />
+          )}
+
           {activeTab === "associates" && (
-            <BusinessAssociates 
-              toggleModal={toggleModal} 
-              triggerToast={triggerToast} 
+            <BusinessAssociates
+              toggleModal={toggleModal}
+              triggerToast={triggerToast}
             />
           )}
 
           {activeTab === "vendors" && (
-            <VendorOperations 
-              toggleModal={toggleModal} 
-              triggerToast={triggerToast} 
+            <VendorOperations
+              toggleModal={toggleModal}
+              triggerToast={triggerToast}
             />
           )}
 
           {activeTab === "franchise" && (
-            <FranchiseTerritories 
-              toggleModal={toggleModal} 
-              triggerToast={triggerToast} 
+            <FranchiseTerritories
+              toggleModal={toggleModal}
+              triggerToast={triggerToast}
             />
           )}
 
           {activeTab === "grievance" && (
-            <GrievanceResolution 
-              toggleModal={toggleModal} 
-              triggerToast={triggerToast} 
+            <GrievanceResolution
+              toggleModal={toggleModal}
+              triggerToast={triggerToast}
             />
           )}
 
           {activeTab === "risks" && (
-            <SystemRiskAlerts 
-              riskAlertList={riskAlertList} 
-              onResolveAlert={handleAlertResolve} 
-              triggerToast={triggerToast} 
-              toggleModal={toggleModal} 
+            <SystemRiskAlerts
+              riskAlertList={riskAlertList}
+              onResolveAlert={handleAlertResolve}
+              triggerToast={triggerToast}
+              toggleModal={toggleModal}
             />
           )}
 
           {activeTab === "exit" && (
-            <ExitSeparation 
-              triggerToast={triggerToast} 
+            <ExitSeparation
+              triggerToast={triggerToast}
             />
           )}
 
@@ -976,12 +1003,12 @@ export default function UnifiedEnterpriseDashboard() {
       )}
 
       {/* MODAL 1: HIRING REQUISITION FORM */}
-      {modals.hiring && (
-        <HiringRequisitionModal 
-          onClose={() => toggleModal("hiring", false)} 
-          triggerToast={triggerToast} 
-          userCompany={(session?.user as any)?.companyName} 
-          userDepartment={(session?.user as any)?.department} 
+      {modals.hiring && ["Owner", "Director", "HR Head", "Department Manager"].includes((session?.user as any)?.role || "") && (
+        <HiringRequisitionModal
+          onClose={() => toggleModal("hiring", false)}
+          triggerToast={triggerToast}
+          userCompany={(session?.user as any)?.companyName}
+          userDepartment={(session?.user as any)?.department}
         />
       )}
 
@@ -991,28 +1018,28 @@ export default function UnifiedEnterpriseDashboard() {
           <div className="bg-white border border-slate-200 w-full max-w-2xl rounded-xl p-6 relative shadow-2xl text-slate-800 max-h-[85vh] overflow-y-auto">
             <button className="absolute top-4 right-4 text-slate-400 hover:text-slate-600" onClick={() => toggleModal("job", false)}><X className="w-5 h-5" /></button>
             <h3 className="text-sm font-black text-[#714B67] uppercase tracking-wider mb-6">MODULE-3: Create Shareable Job Vacancy Link</h3>
-            
+
             <form onSubmit={handlePostJobSubmit} className="space-y-4 text-xs font-semibold text-slate-600">
-              
+
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="text-[10px] uppercase font-black text-slate-500 font-mono tracking-widest">1. Job Title</label>
-                  <input 
-                    className="w-full bg-white border border-slate-300 rounded p-2.5 text-slate-900 mt-1 focus:outline-none focus:border-[#714B67]" 
-                    placeholder="e.g. BDA Executive" 
-                    value={jobForm.title} 
-                    onChange={e => setJobForm({ ...jobForm, title: e.target.value })} 
-                    required 
+                  <input
+                    className="w-full bg-white border border-slate-300 rounded p-2.5 text-slate-900 mt-1 focus:outline-none focus:border-[#714B67]"
+                    placeholder="e.g. BDA Executive"
+                    value={jobForm.title}
+                    onChange={e => setJobForm({ ...jobForm, title: e.target.value })}
+                    required
                   />
                 </div>
                 <div>
                   <label className="text-[10px] uppercase font-black text-slate-500 font-mono tracking-widest">2. Company</label>
-                  <input 
-                    className="w-full bg-white border border-slate-300 rounded p-2.5 text-slate-900 mt-1 focus:outline-none focus:border-[#714B67]" 
-                    placeholder="e.g. Acolyte Group of Companies" 
-                    value={jobForm.companyName} 
-                    onChange={e => setJobForm({ ...jobForm, companyName: e.target.value })} 
-                    required 
+                  <input
+                    className="w-full bg-white border border-slate-300 rounded p-2.5 text-slate-900 mt-1 focus:outline-none focus:border-[#714B67]"
+                    placeholder="e.g. Acolyte Group of Companies"
+                    value={jobForm.companyName}
+                    onChange={e => setJobForm({ ...jobForm, companyName: e.target.value })}
+                    required
                   />
                 </div>
               </div>
@@ -1020,9 +1047,9 @@ export default function UnifiedEnterpriseDashboard() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="text-[10px] uppercase font-black text-slate-500 font-mono tracking-widest">3. Department</label>
-                  <select 
-                    className="w-full bg-white border border-slate-300 rounded p-2.5 text-slate-700 mt-1 focus:outline-none focus:border-[#714B67]" 
-                    value={jobForm.departmentName} 
+                  <select
+                    className="w-full bg-white border border-slate-300 rounded p-2.5 text-slate-700 mt-1 focus:outline-none focus:border-[#714B67]"
+                    value={jobForm.departmentName}
                     onChange={e => setJobForm({ ...jobForm, departmentName: e.target.value })}
                   >
                     <option value="Sales">Sales</option>
@@ -1035,12 +1062,12 @@ export default function UnifiedEnterpriseDashboard() {
                 </div>
                 <div>
                   <label className="text-[10px] uppercase font-black text-slate-500 font-mono tracking-widest">4. Location</label>
-                  <input 
-                    className="w-full bg-white border border-slate-300 rounded p-2.5 text-slate-900 mt-1 focus:outline-none focus:border-[#714B67]" 
-                    placeholder="e.g. Jaipur Office" 
-                    value={jobForm.location} 
-                    onChange={e => setJobForm({ ...jobForm, location: e.target.value })} 
-                    required 
+                  <input
+                    className="w-full bg-white border border-slate-300 rounded p-2.5 text-slate-900 mt-1 focus:outline-none focus:border-[#714B67]"
+                    placeholder="e.g. Jaipur Office"
+                    value={jobForm.location}
+                    onChange={e => setJobForm({ ...jobForm, location: e.target.value })}
+                    required
                   />
                 </div>
               </div>
@@ -1048,9 +1075,9 @@ export default function UnifiedEnterpriseDashboard() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="text-[10px] uppercase font-black text-slate-500 font-mono tracking-widest">5. Category</label>
-                  <select 
-                    className="w-full bg-white border border-slate-300 rounded p-2.5 text-slate-700 mt-1 focus:outline-none focus:border-[#714B67]" 
-                    value={jobForm.category} 
+                  <select
+                    className="w-full bg-white border border-slate-300 rounded p-2.5 text-slate-700 mt-1 focus:outline-none focus:border-[#714B67]"
+                    value={jobForm.category}
                     onChange={e => setJobForm({ ...jobForm, category: e.target.value as any })}
                   >
                     <option value="Staff">Staff</option>
@@ -1061,12 +1088,12 @@ export default function UnifiedEnterpriseDashboard() {
                 </div>
                 <div>
                   <label className="text-[10px] uppercase font-black text-slate-500 font-mono tracking-widest">6. Qualification Required</label>
-                  <input 
-                    className="w-full bg-white border border-slate-300 rounded p-2.5 text-slate-900 mt-1 focus:outline-none focus:border-[#714B67]" 
-                    placeholder="e.g. MBA / B.Tech / Graduate" 
-                    value={jobForm.qualification} 
-                    onChange={e => setJobForm({ ...jobForm, qualification: e.target.value })} 
-                    required 
+                  <input
+                    className="w-full bg-white border border-slate-300 rounded p-2.5 text-slate-900 mt-1 focus:outline-none focus:border-[#714B67]"
+                    placeholder="e.g. MBA / B.Tech / Graduate"
+                    value={jobForm.qualification}
+                    onChange={e => setJobForm({ ...jobForm, qualification: e.target.value })}
+                    required
                   />
                 </div>
               </div>
@@ -1074,22 +1101,22 @@ export default function UnifiedEnterpriseDashboard() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="text-[10px] uppercase font-black text-slate-500 font-mono tracking-widest">7. Experience Required</label>
-                  <input 
-                    className="w-full bg-white border border-slate-300 rounded p-2.5 text-slate-900 mt-1 focus:outline-none focus:border-[#714B67]" 
-                    placeholder="e.g. 1-3 Years" 
-                    value={jobForm.experience} 
-                    onChange={e => setJobForm({ ...jobForm, experience: e.target.value })} 
-                    required 
+                  <input
+                    className="w-full bg-white border border-slate-300 rounded p-2.5 text-slate-900 mt-1 focus:outline-none focus:border-[#714B67]"
+                    placeholder="e.g. 1-3 Years"
+                    value={jobForm.experience}
+                    onChange={e => setJobForm({ ...jobForm, experience: e.target.value })}
+                    required
                   />
                 </div>
                 <div>
                   <label className="text-[10px] uppercase font-black text-slate-500 font-mono tracking-widest">8. Salary Range / Payout P.A.</label>
-                  <input 
-                    className="w-full bg-white border border-slate-300 rounded p-2.5 text-slate-900 mt-1 focus:outline-none focus:border-[#714B67]" 
-                    placeholder="e.g. ₹3,50,000 - ₹5,00,000" 
-                    value={jobForm.salaryRange} 
-                    onChange={e => setJobForm({ ...jobForm, salaryRange: e.target.value })} 
-                    required 
+                  <input
+                    className="w-full bg-white border border-slate-300 rounded p-2.5 text-slate-900 mt-1 focus:outline-none focus:border-[#714B67]"
+                    placeholder="e.g. ₹3,50,000 - ₹5,00,000"
+                    value={jobForm.salaryRange}
+                    onChange={e => setJobForm({ ...jobForm, salaryRange: e.target.value })}
+                    required
                   />
                 </div>
               </div>
@@ -1097,18 +1124,18 @@ export default function UnifiedEnterpriseDashboard() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="text-[10px] uppercase font-black text-slate-500 font-mono tracking-widest">10. Software Form Link</label>
-                  <input 
-                    className="w-full bg-slate-100 border border-slate-300 rounded p-2.5 text-slate-500 mt-1 focus:outline-none cursor-not-allowed font-mono" 
-                    value="System Auto-Generated Form" 
-                    disabled 
+                  <input
+                    className="w-full bg-slate-100 border border-slate-300 rounded p-2.5 text-slate-500 mt-1 focus:outline-none cursor-not-allowed font-mono"
+                    value="System Auto-Generated Form"
+                    disabled
                   />
                   <p className="text-[9px] text-[#714B67] mt-1 font-bold">✓ 3-Step Risk Profiling & Document Upload form active</p>
                 </div>
                 <div>
                   <label className="text-[10px] uppercase font-black text-slate-500 font-mono tracking-widest">11. Source Linkage</label>
-                  <select 
-                    className="w-full bg-white border border-slate-300 rounded p-2.5 text-slate-700 mt-1 focus:outline-none focus:border-[#714B67]" 
-                    value={jobForm.source} 
+                  <select
+                    className="w-full bg-white border border-slate-300 rounded p-2.5 text-slate-700 mt-1 focus:outline-none focus:border-[#714B67]"
+                    value={jobForm.source}
                     onChange={e => setJobForm({ ...jobForm, source: e.target.value as any })}
                   >
                     <option value="Indeed">Indeed</option>
@@ -1123,12 +1150,12 @@ export default function UnifiedEnterpriseDashboard() {
 
               <div>
                 <label className="text-[10px] uppercase font-black text-slate-500 font-mono tracking-widest">9. Job Description (JD)</label>
-                <textarea 
-                  className="w-full bg-white border border-slate-300 rounded p-2.5 text-slate-900 mt-1 h-24 focus:outline-none focus:border-[#714B67] leading-relaxed" 
-                  placeholder="Explain candidate responsibility, targets, timing..." 
-                  value={jobForm.description} 
-                  onChange={e => setJobForm({ ...jobForm, description: e.target.value })} 
-                  required 
+                <textarea
+                  className="w-full bg-white border border-slate-300 rounded p-2.5 text-slate-900 mt-1 h-24 focus:outline-none focus:border-[#714B67] leading-relaxed"
+                  placeholder="Explain candidate responsibility, targets, timing..."
+                  value={jobForm.description}
+                  onChange={e => setJobForm({ ...jobForm, description: e.target.value })}
+                  required
                 />
               </div>
 
@@ -1142,8 +1169,8 @@ export default function UnifiedEnterpriseDashboard() {
 
       {/* MODAL 3: ADD CANDIDATE */}
       {modals.cand && (
-        <div className="fixed inset-0 bg-[#070810]/40 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
-          <div className="bg-white border border-slate-200 w-full max-w-lg rounded-xl p-6 relative shadow-2xl text-slate-800">
+        <div className="fixed inset-0 bg-[#070810]/40 z-50 flex items-center justify-center p-4 backdrop-blur-sm animate-fadeIn">
+          <div className="bg-white border border-slate-200 w-full max-w-lg rounded-xl p-6 relative shadow-2xl text-slate-800 max-h-[90vh] overflow-y-auto custom-scrollbar">
             <button className="absolute top-4 right-4 text-slate-400 hover:text-slate-600" onClick={() => toggleModal("cand", false)}><X className="w-5 h-5" /></button>
             <h3 className="text-sm font-black text-[#714B67] uppercase tracking-wider mb-6">Add Candidate Profile</h3>
             <form onSubmit={handleAddCandidateSubmit} className="space-y-4 text-xs font-semibold text-slate-600">
@@ -1157,14 +1184,53 @@ export default function UnifiedEnterpriseDashboard() {
                   <input className="w-full bg-white border border-slate-300 rounded p-2.5 text-slate-900 mt-1 font-mono focus:outline-none focus:border-[#714B67]" value={candForm.mobile} onChange={e => setCandForm({ ...candForm, mobile: e.target.value })} required />
                 </div>
               </div>
+
               <div>
                 <label className="text-[10px] uppercase font-black text-slate-500 font-mono tracking-widest">Email Address</label>
                 <input className="w-full bg-white border border-slate-300 rounded p-2.5 text-slate-900 mt-1 font-mono focus:outline-none focus:border-[#714B67]" type="email" value={candForm.email} onChange={e => setCandForm({ ...candForm, email: e.target.value })} required />
               </div>
+
               <div>
-                <label className="text-[10px] uppercase font-black text-slate-500 font-mono tracking-widest">Work Experience Details</label>
-                <input className="w-full bg-white border border-slate-300 rounded p-2.5 text-slate-900 mt-1 focus:outline-none focus:border-[#714B67]" placeholder="e.g. 2 Years at XYZ Ltd." value={candForm.experience} onChange={e => setCandForm({ ...candForm, experience: e.target.value })} />
+                <label className="text-[10px] uppercase font-black text-slate-500 font-mono tracking-widest">Select Applied Job Vacancy</label>
+                <select
+                  className="w-full bg-white border border-slate-300 rounded p-2.5 text-slate-700 mt-1 focus:outline-none focus:border-[#714B67]"
+                  value={candForm.jobId}
+                  onChange={e => setCandForm({ ...candForm, jobId: e.target.value })}
+                >
+                  <option value="">General Application (None)</option>
+                  {jobs.filter(j => j.status === "active").map(job => (
+                    <option key={job._id} value={job._id}>{job.title} ({job.company?.name || "Acolyte"})</option>
+                  ))}
+                </select>
               </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-[10px] uppercase font-black text-slate-500 font-mono tracking-widest">Qualifications</label>
+                  <input className="w-full bg-white border border-slate-300 rounded p-2.5 text-slate-900 mt-1 focus:outline-none focus:border-[#714B67]" placeholder="e.g. B.Tech / MBA / Graduate" value={candForm.qualification} onChange={e => setCandForm({ ...candForm, qualification: e.target.value })} required />
+                </div>
+                <div>
+                  <label className="text-[10px] uppercase font-black text-slate-500 font-mono tracking-widest">Work Experience Details</label>
+                  <input className="w-full bg-white border border-slate-300 rounded p-2.5 text-slate-900 mt-1 focus:outline-none focus:border-[#714B67]" placeholder="e.g. 2 Years at XYZ Ltd." value={candForm.experience} onChange={e => setCandForm({ ...candForm, experience: e.target.value })} required />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-[10px] uppercase font-black text-slate-500 font-mono tracking-widest">Current Salary</label>
+                  <input className="w-full bg-white border border-slate-300 rounded p-2.5 text-slate-900 mt-1 focus:outline-none focus:border-[#714B67]" placeholder="e.g. 30,000 / Not Disclosed" value={candForm.currentSalary} onChange={e => setCandForm({ ...candForm, currentSalary: e.target.value })} required />
+                </div>
+                <div>
+                  <label className="text-[10px] uppercase font-black text-slate-500 font-mono tracking-widest">Expected Salary</label>
+                  <input className="w-full bg-white border border-slate-300 rounded p-2.5 text-slate-900 mt-1 focus:outline-none focus:border-[#714B67]" placeholder="e.g. 40,000 / Negotiable" value={candForm.expectedSalary} onChange={e => setCandForm({ ...candForm, expectedSalary: e.target.value })} required />
+                </div>
+              </div>
+
+              <div>
+                <label className="text-[10px] uppercase font-black text-slate-500 font-mono tracking-widest">Notice Period</label>
+                <input className="w-full bg-white border border-slate-300 rounded p-2.5 text-slate-900 mt-1 focus:outline-none focus:border-[#714B67]" placeholder="e.g. Immediate / 30 Days" value={candForm.noticePeriod} onChange={e => setCandForm({ ...candForm, noticePeriod: e.target.value })} required />
+              </div>
+
               <div className="p-3.5 bg-slate-50 rounded-lg space-y-2 border border-slate-200">
                 <h4 className="text-[9px] uppercase font-black tracking-widest text-[#714B67] font-mono">AI Risks Vetting Pre-screener</h4>
                 <div className="space-y-1.5 font-bold text-slate-700">

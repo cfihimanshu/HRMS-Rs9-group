@@ -87,7 +87,7 @@ export async function POST(req: Request) {
   }
 }
 
-// PUT: Update task status
+// PUT: Update task details or status
 export async function PUT(req: Request) {
   try {
     const session = await getServerSession(authOptions);
@@ -97,7 +97,7 @@ export async function PUT(req: Request) {
 
     const userId = (session.user as any).id;
     const body = await req.json();
-    const { taskId, status, progressNotes } = body;
+    const { taskId, status, progressNotes, taskTitle, taskType, description } = body;
 
     if (!taskId) {
       return NextResponse.json({ success: false, error: "Missing required field: taskId" }, { status: 400 });
@@ -112,6 +112,9 @@ export async function PUT(req: Request) {
 
     if (status !== undefined) task.status = status;
     if (progressNotes !== undefined) task.progressNotes = progressNotes;
+    if (taskTitle !== undefined) task.taskTitle = taskTitle;
+    if (taskType !== undefined) task.taskType = taskType;
+    if (description !== undefined) task.description = description;
     await task.save();
 
     return NextResponse.json({ success: true, data: task });
@@ -120,3 +123,34 @@ export async function PUT(req: Request) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
 }
+
+// DELETE: Delete a task
+export async function DELETE(req: Request) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session || !session.user) {
+      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
+    }
+
+    const userId = (session.user as any).id;
+    const { searchParams } = new URL(req.url);
+    const taskId = searchParams.get("taskId");
+
+    if (!taskId) {
+      return NextResponse.json({ success: false, error: "Missing required query parameter: taskId" }, { status: 400 });
+    }
+
+    await dbConnect();
+
+    const task = await TaskLog.findOneAndDelete({ _id: taskId, employee: userId });
+    if (!task) {
+      return NextResponse.json({ success: false, error: "Task not found or unauthorized to delete" }, { status: 404 });
+    }
+
+    return NextResponse.json({ success: true, message: "Task deleted successfully" });
+  } catch (error: any) {
+    console.error("Failed to delete task:", error);
+    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+  }
+}
+

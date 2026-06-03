@@ -3,6 +3,7 @@ import dbConnect from "@/lib/db";
 import User from "@/models/User";
 import EmployeeProfile from "@/models/EmployeeProfile";
 import Company from "@/models/Company";
+import Department from "@/models/Department";
 import bcrypt from "bcryptjs";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
@@ -22,7 +23,7 @@ export async function GET(req: Request) {
       .sort({ createdAt: -1 });
       
     // Optionally fetch their profiles to merge data
-    const profiles = await EmployeeProfile.find({});
+    const profiles = await EmployeeProfile.find({}).populate("department", "name");
     
     // Merge the data
     const mergedData = employees.map(emp => {
@@ -51,7 +52,8 @@ export async function POST(req: Request) {
     const body = await req.json();
     const { 
       name, email, password, role, mobile, companyId, 
-      employeeId, designation, dateOfJoining, baseSalary 
+      employeeId, designation, dateOfJoining, baseSalary,
+      department
     } = body;
 
     if (!name || !email || !password || !role || !companyId || !employeeId) {
@@ -76,6 +78,23 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: false, error: "Selected Company not found" }, { status: 404 });
     }
 
+    // Resolve or create department for this company
+    let resolvedDepartmentId = null;
+    if (department) {
+      let deptDoc = await Department.findOne({ 
+        name: department, 
+        company: company._id 
+      });
+      if (!deptDoc) {
+        deptDoc = await Department.create({
+          name: department,
+          company: company._id,
+          status: "active"
+        });
+      }
+      resolvedDepartmentId = deptDoc._id;
+    }
+
     // Hash the password
     const hashedPassword = await bcrypt.hash(password, 12);
 
@@ -96,6 +115,7 @@ export async function POST(req: Request) {
       user: newUser._id,
       employeeId,
       designation: designation || "Employee",
+      department: resolvedDepartmentId,
       dateOfJoining: dateOfJoining || new Date(),
       baseSalary: baseSalary || 0,
       salaryStructure: {

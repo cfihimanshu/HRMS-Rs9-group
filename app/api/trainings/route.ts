@@ -4,6 +4,11 @@ import { authOptions } from "@/lib/auth";
 import dbConnect from "@/lib/db";
 import Training from "@/models/Training";
 import Candidate from "@/models/Candidate";
+import User from "@/models/User";
+import EmployeeProfile from "@/models/EmployeeProfile";
+import Probation from "@/models/Probation";
+import Company from "@/models/Company";
+import bcrypt from "bcryptjs";
 import { logAudit } from "@/lib/audit";
 
 // GET: Retrieve all active training logs (Restricted to HR, Trainer, Owner)
@@ -42,7 +47,7 @@ export async function POST(req: Request) {
     }
 
     const role = (session.user as any).role;
-    const permitted = ["Owner", "Director", "HR Head", "Trainer"];
+    const permitted = ["Owner", "Director", "HR Head", "HR Executive", "Trainer"];
     if (!permitted.includes(role)) {
       return NextResponse.json({ success: false, error: "Forbidden: Trainer/HR role required" }, { status: 403 });
     }
@@ -95,6 +100,93 @@ export async function POST(req: Request) {
     // Auto-update candidate status if marked for activation
     if (status === "Activation") {
       await Candidate.findByIdAndUpdate(candidateId, { status: "Selected" });
+
+      // Auto-create User & Probation track
+      const candDoc = await Candidate.findById(candidateId).populate("job");
+      if (candDoc) {
+        const jobDoc = candDoc.job as any;
+        let companyId = jobDoc?.company;
+        if (!companyId) {
+          const defaultCompany = await Company.findOne();
+          companyId = defaultCompany?._id;
+        }
+
+        // 1. Ensure User exists
+        let userDoc = await User.findOne({ email: candDoc.email });
+        if (!userDoc) {
+          const hashedPassword = await bcrypt.hash("Welcome@123", 12);
+          userDoc = await User.create({
+            name: candDoc.name,
+            email: candDoc.email,
+            password: hashedPassword,
+            role: "Associate",
+            mobile: candDoc.mobile || null,
+            status: "active",
+            companies: companyId ? [companyId] : [],
+            loginHistory: [],
+          });
+        }
+
+        // 2. Ensure EmployeeProfile exists
+        let profileDoc = await EmployeeProfile.findOne({ user: userDoc._id });
+        if (!profileDoc) {
+          const getCompanyPrefix = (name: string) => {
+            const clean = name.replace(/[^a-zA-Z]/g, "").toUpperCase();
+            if (clean.startsWith("STARTUPKARE")) return "STK";
+            if (clean.startsWith("STARTUPFLORA")) return "STA";
+            if (clean.startsWith("FORCE")) return "FOR";
+            return clean.substring(0, 3).padEnd(3, "X");
+          };
+          let prefix = "EMP";
+          if (companyId) {
+            const company = await Company.findById(companyId);
+            if (company) {
+              prefix = getCompanyPrefix(company.name);
+            }
+          }
+          const regex = new RegExp(`^${prefix}-\\d+$`, 'i');
+          const profiles = await EmployeeProfile.find({ employeeId: regex });
+          let maxNum = 0;
+          profiles.forEach(p => {
+            const parts = p.employeeId.split("-");
+            if (parts.length === 2) {
+              const num = parseInt(parts[1], 10);
+              if (!isNaN(num) && num > maxNum) {
+                maxNum = num;
+              }
+            }
+          });
+          const nextId = `${prefix}-${String(maxNum + 1).padStart(3, "0")}`;
+
+          profileDoc = await EmployeeProfile.create({
+            user: userDoc._id,
+            employeeId: nextId,
+            designation: jobDoc?.title || "Associate",
+            department: jobDoc?.department || null,
+            dateOfJoining: new Date(),
+            baseSalary: 0,
+            salaryStructure: { basic: 0, hra: 0, conveyance: 0, specialAllowance: 0 },
+            leaveBalances: { casualLeave: 12, sickLeave: 12, earnedLeave: 0 }
+          });
+        }
+
+        // 3. Ensure Probation track exists
+        let probationDoc = await Probation.findOne({ employee: userDoc._id });
+        if (!probationDoc) {
+          const startDate = new Date();
+          const endDate = new Date();
+          endDate.setMonth(endDate.getMonth() + 6); // 6 months probation
+          probationDoc = await Probation.create({
+            employee: userDoc._id,
+            startDate,
+            endDate,
+            status: "active",
+            attendanceSummary: { totalDays: 30, presentDays: 28 },
+            reportsSummary: { sodSubmitted: 22, eodSubmitted: 22 },
+            feedback: "Auto-initiated upon successful training completion."
+          });
+        }
+      }
     }
 
     const candidate = await Candidate.findById(candidateId);

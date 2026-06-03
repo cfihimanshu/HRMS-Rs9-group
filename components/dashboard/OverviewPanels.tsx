@@ -231,6 +231,7 @@ export function HrDashboard({
           trendUp={true} 
           icon={<CalendarClock className="w-5 h-5" />} 
           dark={isDark}
+          onClick={() => onNavigateTab("interviews")}
         />
         <StatCard 
           title="Verification Pending" 
@@ -239,22 +240,25 @@ export function HrDashboard({
           trendUp={false} 
           icon={<FileSearch className="w-5 h-5" />} 
           dark={isDark}
+          onClick={() => onNavigateTab("verification")}
         />
         <StatCard 
-          title="Open Grievances" 
-          value={hrStats.grievanceStatus?.toString() || "0"} 
-          trend="Priority tickets" 
-          trendUp={false} 
-          icon={<FileWarning className="w-5 h-5 text-amber-500" />} 
-          dark={isDark}
-        />
-        <StatCard 
-          title="Active Exit Cases" 
-          value={hrStats.exitCases?.toString() || "0"} 
-          trend="In progress" 
+          title="HR Logs" 
+          value={hrStats.hrLeadsCount?.toString() || "0"} 
+          trend="Candidate leads" 
           trendUp={true} 
-          icon={<LogOut className="w-5 h-5" />} 
+          icon={<Users className="w-5 h-5 text-indigo-500" />} 
           dark={isDark}
+          onClick={() => onNavigateTab("hr-leads")}
+        />
+        <StatCard 
+          title="Rejected Logs" 
+          value={hrStats.rejectedCount?.toString() || "0"} 
+          trend="Rejected candidates" 
+          trendUp={false} 
+          icon={<ShieldX className="w-5 h-5 text-rose-500" />} 
+          dark={isDark}
+          onClick={() => onNavigateTab("hr-leads")}
         />
       </div>
 

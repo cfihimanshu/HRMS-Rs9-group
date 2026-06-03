@@ -47,6 +47,7 @@ export default function DashboardSidebar({
 
     { id: "hiring", label: "Hiring Approvals", icon: FileEdit, category: "Core Workspace", roles: ["Owner", "Director", "HR Head", "HR Executive", "Department Manager", "Accounts"] },
     { id: "jobs", label: "Vacancy Postings", icon: Briefcase, category: "Core Workspace", roles: ["Owner", "Director", "HR Head", "HR Executive"] },
+    { id: "hr-leads", label: "HR Leads", icon: FileText, category: "Core Workspace", roles: ["Owner", "Director", "HR Head", "HR Executive"] },
     { id: "candidates", label: "Candidates Pipeline", icon: Users2, category: "Core Workspace", badge: stats?.candidates?.pending, roles: ["Owner", "Director", "HR Head", "HR Executive", "Department Manager"] },
     { id: "employees", label: "Employees Directory", icon: Users2, category: "Core Workspace", roles: ["Owner", "Director", "HR Head", "HR Executive"] },
 
@@ -61,6 +62,7 @@ export default function DashboardSidebar({
     { id: "attendance", label: "Attendance Punch & SOD", icon: CalendarCheck, category: "Daily Operations", roles: ["Owner", "Director", "HR Head", "HR Executive", "Department Manager", "Accounts", "Trainer", "IT Admin", "DSM", "RIBP / Risk Officer"] },
     { id: "tasks", label: "My Tasks (Kanban)", icon: FileEdit, category: "Daily Operations", roles: ["Owner", "Director", "HR Head", "HR Executive", "Department Manager", "Accounts", "Trainer", "Employee", "IT Admin", "DSM", "RIBP / Risk Officer"] },
     { id: "performance", label: "Work Report", icon: FileText, category: "Daily Operations", roles: ["Owner", "Director", "HR Head", "HR Executive", "Department Manager", "Employee"] },
+    { id: "leave-request", label: "Leave Request", icon: CalendarCheck, category: "Daily Operations", roles: ["Owner", "Director", "HR Head", "HR Executive", "Department Manager", "Accounts", "Trainer", "Employee", "IT Admin", "DSM", "RIBP / Risk Officer", "Business Associate", "Vendor", "Franchisee", "Territory Partner"] },
 
     { id: "associates", label: "Business Associates", icon: BriefcaseIcon, category: "Network Partners", roles: ["Owner", "Director", "HR Head", "Franchisee", "Territory Partner", "Business Associate"] },
     { id: "vendors", label: "Vendor SLA Contracts", icon: Building2, category: "Network Partners", roles: ["Owner", "Director", "HR Head", "Accounts", "Vendor"] },

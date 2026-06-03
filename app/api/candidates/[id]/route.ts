@@ -26,11 +26,13 @@ export async function PUT(
     await dbConnect();
     const candidateId = params.id;
     const body = await req.json();
-    const { status } = body;
+    const { status, uploads } = body;
 
-    const validStatuses = ["Pending", "Selected", "Hold", "Rejected", "High Risk"];
-    if (!status || !validStatuses.includes(status)) {
-      return NextResponse.json({ success: false, error: "Invalid status value" }, { status: 400 });
+    if (status) {
+      const validStatuses = ["Pending", "Selected", "Hold", "Rejected", "High Risk"];
+      if (!validStatuses.includes(status)) {
+        return NextResponse.json({ success: false, error: "Invalid status value" }, { status: 400 });
+      }
     }
 
     const candidate = await Candidate.findById(candidateId);
@@ -39,7 +41,15 @@ export async function PUT(
     }
 
     const oldStatus = candidate.status;
-    candidate.status = status;
+    if (status) {
+      candidate.status = status;
+    }
+    if (uploads) {
+      candidate.uploads = {
+        ...candidate.uploads,
+        ...uploads
+      };
+    }
     await candidate.save();
 
     // Log Audit Entry

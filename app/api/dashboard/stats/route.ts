@@ -17,6 +17,7 @@ import SodReport from "@/models/SodReport";
 import EodReport from "@/models/EodReport";
 import Verification from "@/models/Verification";
 import ExitRecord from "@/models/ExitRecord";
+import Leave from "@/models/Leave";
 
 export async function GET() {
   try {
@@ -53,22 +54,78 @@ export async function GET() {
 
     // 6. Attendance, SOD/EOD compliances (today's counts)
     const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    today.setUTCHours(0, 0, 0, 0);
     const endOfToday = new Date();
-    endOfToday.setHours(23, 59, 59, 999);
+    endOfToday.setUTCHours(23, 59, 59, 999);
     
-    const presentToday = await Attendance.countDocuments({ date: today, status: "Present" });
-    const sodToday = await SodReport.countDocuments({ date: today });
-    const eodToday = await EodReport.countDocuments({ date: today });
+    const sodReportsToday = await SodReport.find({ date: today });
+    const sodEmployeeIds = sodReportsToday.map((r: any) => r.employee.toString());
+    const uniqueSodEmployees = sodEmployeeIds.filter((v: any, i: number, a: any[]) => a.indexOf(v) === i);
+
+    const eodReportsToday = await EodReport.find({ date: today });
+    const eodEmployeeIds = eodReportsToday.map((r: any) => r.employee.toString());
+    const uniqueEodEmployees = eodEmployeeIds.filter((v: any, i: number, a: any[]) => a.indexOf(v) === i);
+
+    const totalEmployeesCount = await User.countDocuments({ role: { $in: ["Employee", "Trainer"] } });
+
+    const attendanceRecords = await Attendance.find({ date: today, status: "Present" });
+    const attendanceEmployeeIds = attendanceRecords.map((r: any) => r.employee.toString());
+    const combinedIds = [...uniqueSodEmployees, ...uniqueEodEmployees, ...attendanceEmployeeIds];
+    const finalPresentIds = combinedIds.filter((v: any, i: number, a: any[]) => a.indexOf(v) === i);
+    
+    const presentCount = finalPresentIds.length;
+    const absentCount = Math.max(0, totalEmployeesCount - uniqueSodEmployees.length);
+
+    const leavesCount = await Leave.countDocuments({
+      status: "Approved",
+      startDate: { $lte: endOfToday },
+      endDate: { $gte: today }
+    });
+
+    let lateCount = 0;
+    for (const sod of sodReportsToday) {
+      const localHour = new Date(sod.createdAt).getHours();
+      if (localHour >= 11) {
+        lateCount++;
+      }
+    }
+
+    const sodPercent = totalEmployeesCount > 0 ? Math.round((uniqueSodEmployees.length / totalEmployeesCount) * 100) : 0;
+    const eodPercent = totalEmployeesCount > 0 ? Math.round((uniqueEodEmployees.length / totalEmployeesCount) * 100) : 0;
 
     // 7. HR Dashboard specific metrics
-    const todayInterviews = await Interview.countDocuments({ date: { $gte: today, $lte: endOfToday } });
-    const pendingVerifications = await Verification.countDocuments({ status: "Pending" });
+    const todayInterviewsList = await Interview.find({ scheduleTime: { $gte: today, $lte: endOfToday } });
+    const uniqueCandidatesToday = new Set(todayInterviewsList.map((iv: any) => iv.candidate?.toString()).filter(Boolean));
+    const todayInterviewsCount = uniqueCandidatesToday.size;
+    
+    // Vetting registry candidates (passed all 3 rounds) who are not verified
+    const interviewsSelected = await Interview.find({ status: "Selected" });
+    const candidateInterviewsMap: Record<string, Set<number>> = {};
+    interviewsSelected.forEach((iv: any) => {
+      if (iv.candidate) {
+        const cid = iv.candidate.toString();
+        if (!candidateInterviewsMap[cid]) {
+          candidateInterviewsMap[cid] = new Set();
+        }
+        candidateInterviewsMap[cid].add(iv.round);
+      }
+    });
+    const eligibleCandIds = Object.keys(candidateInterviewsMap).filter(cid => {
+      const rounds = candidateInterviewsMap[cid];
+      return rounds.has(1) && rounds.has(2) && rounds.has(3);
+    });
+    const verifiedDocs = await Verification.find({
+      candidate: { $in: eligibleCandIds },
+      status: "Verified"
+    });
+    const verifiedIds = new Set(verifiedDocs.map(v => v.candidate.toString()));
+    const pendingVerificationsCount = eligibleCandIds.filter(cid => !verifiedIds.has(cid)).length;
+
+    const rejectedCandidatesCount = await Candidate.countDocuments({ status: "Rejected" });
     const activeExits = await ExitRecord.countDocuments({ status: "active" });
 
     // 8. Department Dashboard metrics
     // Aggregate tasks from today's SOD reports
-    const sodReportsToday = await SodReport.find({ date: today });
     const tasksToday = sodReportsToday.reduce((acc: number, curr: any) => {
       return acc + (curr.callsPlanned || 0) + (curr.meetings || 0) + (curr.fieldVisits || 0);
     }, 0);
@@ -101,24 +158,27 @@ export async function GET() {
           totalRisk: totalRiskAlerts,
         },
         todayCompliance: {
-          attendance: presentToday,
-          sod: sodToday,
-          eod: eodToday,
+          attendance: presentCount,
+          lateCheckins: lateCount,
+          absent: absentCount,
+          leaves: leavesCount,
+          sod: uniqueSodEmployees.length,
+          eod: uniqueEodEmployees.length,
         },
         hrStats: {
-          interviewsToday: todayInterviews,
-          verificationPending: pendingVerifications,
+          interviewsToday: todayInterviewsCount,
+          verificationPending: pendingVerificationsCount,
           newCandidates: pendingCandidates,
           trainingStatus: trainingPending,
           probationStatus: activeProbations,
-          grievanceStatus: activeGrievances,
-          exitCases: activeExits,
+          hrLeadsCount: totalCandidates,
+          rejectedCount: rejectedCandidatesCount,
         },
         deptStats: {
           teamMembers: totalEmployees,
           tasksToday: tasksToday,
-          sod: sodToday,
-          eod: eodToday,
+          sod: uniqueSodEmployees.length,
+          eod: uniqueEodEmployees.length,
           performanceAvg: 88, // Proxy value since no dedicated performance metric collection exists yet
           pendingApprovals: 5 // Proxy value for pending manager approvals (leaves/expenses)
         }
