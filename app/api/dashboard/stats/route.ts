@@ -18,6 +18,7 @@ import EodReport from "@/models/EodReport";
 import Verification from "@/models/Verification";
 import ExitRecord from "@/models/ExitRecord";
 import Leave from "@/models/Leave";
+import HRRecentActivity from "@/models/HRRecentActivity";
 
 export async function GET() {
   try {
@@ -130,9 +131,81 @@ export async function GET() {
       return acc + (curr.callsPlanned || 0) + (curr.meetings || 0) + (curr.fieldVisits || 0);
     }, 0);
 
+    // Fetch recent HR activities populated with user info
+    let dbHrActivities = await HRRecentActivity.find({})
+      .populate("user", "name role")
+      .sort({ timestamp: -1 })
+      .limit(30);
+
+    if (dbHrActivities.length === 0) {
+      const hrUser = await User.findOne({ role: "HR Head" });
+      if (hrUser) {
+        const initialActivities = [
+          {
+            user: hrUser._id,
+            action: "CREATE_EMPLOYEE",
+            details: "Created new employee profile: Sarah Jenkins (sarah.j@example.com) as Senior Frontend Developer in Engineering.",
+            timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000)
+          },
+          {
+            user: hrUser._id,
+            action: "APPROVED_LEAVE",
+            details: "Leave request for Casual Leave (3 days) has been approved by HR / Supervisor.",
+            timestamp: new Date(Date.now() - 4 * 60 * 60 * 1000)
+          },
+          {
+            user: hrUser._id,
+            action: "SCHEDULE_INTERVIEW",
+            details: "Scheduled Round 1 Interview for candidate: David Lee.",
+            timestamp: new Date(Date.now() - 24 * 60 * 60 * 1000)
+          },
+          {
+            user: hrUser._id,
+            action: "SUBMIT_VERIFICATION",
+            details: "Background verification completed for candidate: John Doe. Overall status: Verified.",
+            timestamp: new Date(Date.now() - 25 * 60 * 60 * 1000)
+          }
+        ];
+        
+        await HRRecentActivity.insertMany(initialActivities);
+        
+        dbHrActivities = await HRRecentActivity.find({})
+          .populate("user", "name role")
+          .sort({ timestamp: -1 })
+          .limit(30);
+      }
+    }
+
+    const hrActivities = dbHrActivities
+      .filter((log: any) => log.user)
+      .map((log: any) => {
+        let title = "HR Activity";
+        const action = log.action;
+        if (action === "CREATE_EMPLOYEE") title = "New Employee Onboarded";
+        else if (action === "SCHEDULE_INTERVIEW") title = "Interview Scheduled";
+        else if (action === "SUBMIT_INTERVIEW_EVALUATION") title = "Interview Evaluated";
+        else if (action === "SUBMIT_VERIFICATION") title = "Document Verified";
+        else if (action === "APPROVED_LEAVE") title = "Leave Request Approved";
+        else if (action === "REJECTED_LEAVE") title = "Leave Request Rejected";
+        else if (action === "CREATE_JOB") title = "Job Vacancy Posted";
+        else if (action === "UPDATE_TRAINING_LOG") title = "Training Record Updated";
+        else if (action === "SUBMIT_PROBATION_EVALUATION") title = "Probation Evaluated";
+
+        return {
+          id: log._id.toString(),
+          title,
+          description: log.details,
+          timestamp: log.timestamp.toISOString(),
+          action,
+          actor: log.user.name,
+          actorRole: log.user.role
+        };
+      });
+
     return NextResponse.json({
       success: true,
       stats: {
+        hrActivities,
         candidates: {
           total: totalCandidates,
           pending: pendingCandidates,

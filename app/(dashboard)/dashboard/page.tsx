@@ -862,19 +862,6 @@ export default function UnifiedEnterpriseDashboard() {
             />
           )}
 
-          {activeTab === "candidates" && (
-            <CandidatesPipeline
-              candidates={candidates}
-              selectedCandidate={selectedCandidate}
-              setSelectedCandidate={setSelectedCandidate}
-              interviews={interviews}
-              jobs={jobs}
-              toggleModal={toggleModal}
-              triggerToast={triggerToast}
-              requisitions={requisitions}
-            />
-          )}
-
           {activeTab === "employees" && (
             <EmployeeDirectory
               userRole={(session?.user as any)?.role || "Employee"}

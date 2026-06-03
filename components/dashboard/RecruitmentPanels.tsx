@@ -1080,7 +1080,7 @@ export function AiScreening({
             <h1 className="text-xl font-black text-slate-800">AI Screening Module</h1>
             <p className="text-xs text-slate-500 mt-1">Cross-referencing candidate declarations vs job description</p>
           </div>
-          
+
           <div className="flex flex-col gap-1.5 max-w-sm">
             <label className="text-[10px] font-black uppercase text-slate-400 tracking-wider font-mono">Select Candidate to Screen</label>
             <select
@@ -1122,7 +1122,7 @@ export function AiScreening({
         <div className="space-y-2 flex-1">
           <h1 className="text-xl font-black text-slate-800">AI Screening Module</h1>
           <p className="text-xs text-slate-500">Automatic vetting & customized assessment question sets</p>
-          
+
           <div className="flex flex-col gap-1.5 max-w-sm pt-2">
             <label className="text-[10px] font-black uppercase text-slate-400 tracking-wider font-mono">Select Candidate to Screen</label>
             <select
@@ -2515,6 +2515,13 @@ export function InterviewsQueue({ triggerToast }: { triggerToast: (msg: string) 
   const handleAssessmentSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedInt) return;
+
+    const isBeforeScheduleTime = new Date() < new Date(selectedInt.scheduleTime);
+    if (isBeforeScheduleTime) {
+      triggerToast("Assessment cannot be logged before the scheduled interview time.");
+      return;
+    }
+
     setSubmitting(true);
 
     try {
@@ -2754,6 +2761,7 @@ export function InterviewsQueue({ triggerToast }: { triggerToast: (msg: string) 
                       if (!item) return null;
                       const cand = item.candidate || {};
                       const isSelected = selectedInt?._id === item._id;
+                      const isBeforeScheduleTime = new Date() < new Date(item.scheduleTime);
                       return (
                         <React.Fragment key={item._id}>
                           <tr
@@ -2774,8 +2782,8 @@ export function InterviewsQueue({ triggerToast }: { triggerToast: (msg: string) 
                                 const isAssessed = item.status !== "Pending";
                                 const initialQuestions = isAssessed
                                   ? (item.customQuestions || [])
-                                      .filter((q: any) => q.isCorrect === true || q.isCorrect === false)
-                                      .map((q: any) => ({ question: q.question, isCorrect: q.isCorrect }))
+                                    .filter((q: any) => q.isCorrect === true || q.isCorrect === false)
+                                    .map((q: any) => ({ question: q.question, isCorrect: q.isCorrect }))
                                   : (item.customQuestions && item.customQuestions.length > 0
                                     ? item.customQuestions.map((q: any) => ({ question: q.question, isCorrect: q.isCorrect }))
                                     : (cand.screeningResult?.suggestedQuestions || []).map((q: string) => ({ question: q, isCorrect: null })));
@@ -2823,7 +2831,7 @@ export function InterviewsQueue({ triggerToast }: { triggerToast: (msg: string) 
                             </td>
                             <td className="py-3 pl-2 text-right space-x-1.5 whitespace-nowrap">
                               <button className="bg-[#714B67] hover:bg-[#5F3F56] text-white font-bold px-2.5 py-1 rounded text-[10.5px]">
-                                {isSelected ? "Hide" : "Assess"}
+                                {isSelected ? "Hide" : "Show"}
                               </button>
                               {isAuthorized && (
                                 <>
@@ -2874,6 +2882,15 @@ export function InterviewsQueue({ triggerToast }: { triggerToast: (msg: string) 
                                     )}
                                   </div>
 
+                                  {isBeforeScheduleTime && (
+                                    <div className="bg-amber-50 border border-amber-200 text-amber-800 px-4 py-3 rounded-lg text-xs font-semibold flex items-center gap-2">
+                                      <span className="text-lg">⚠️</span>
+                                      <div>
+                                        <strong>Assessment Locked:</strong> This interview is scheduled for {formatInterviewTime(item.scheduleTime)}. You can only fill out and submit the assessment form once the scheduled interview time has crossed.
+                                      </div>
+                                    </div>
+                                  )}
+
                                   <form onSubmit={handleAssessmentSubmit} className="space-y-4 text-xs font-semibold text-slate-650">
 
                                     {/* 1. Video Meeting URL Link */}
@@ -2909,12 +2926,13 @@ export function InterviewsQueue({ triggerToast }: { triggerToast: (msg: string) 
                                                   <label className="flex items-center gap-1 cursor-pointer select-none">
                                                     <input
                                                       type="checkbox"
+                                                      disabled={isBeforeScheduleTime}
                                                       checked={qObj.isCorrect === true}
                                                       onChange={() => {
                                                         const newVal = qObj.isCorrect === true ? null : true;
                                                         setCustomQuestions(prev => prev.map((q, i) => i === idx ? { ...q, isCorrect: newVal } : q));
                                                       }}
-                                                      className="w-3.5 h-3.5 text-emerald-600 focus:ring-emerald-500 rounded border-slate-350"
+                                                      className="w-3.5 h-3.5 text-emerald-600 focus:ring-emerald-500 rounded border-slate-350 disabled:opacity-50 disabled:cursor-not-allowed"
                                                     />
                                                     <span className={`text-[9.5px] font-bold ${qObj.isCorrect === true ? "text-emerald-600" : "text-slate-400"}`}>Correct</span>
                                                   </label>
@@ -2923,12 +2941,13 @@ export function InterviewsQueue({ triggerToast }: { triggerToast: (msg: string) 
                                                   <label className="flex items-center gap-1 cursor-pointer select-none">
                                                     <input
                                                       type="checkbox"
+                                                      disabled={isBeforeScheduleTime}
                                                       checked={qObj.isCorrect === false}
                                                       onChange={() => {
                                                         const newVal = qObj.isCorrect === false ? null : false;
                                                         setCustomQuestions(prev => prev.map((q, i) => i === idx ? { ...q, isCorrect: newVal } : q));
                                                       }}
-                                                      className="w-3.5 h-3.5 text-rose-600 focus:ring-rose-500 rounded border-slate-355"
+                                                      className="w-3.5 h-3.5 text-rose-600 focus:ring-rose-500 rounded border-slate-355 disabled:opacity-50 disabled:cursor-not-allowed"
                                                     />
                                                     <span className={`text-[9.5px] font-bold ${qObj.isCorrect === false ? "text-rose-600" : "text-slate-400"}`}>Incorrect</span>
                                                   </label>
@@ -2936,10 +2955,11 @@ export function InterviewsQueue({ triggerToast }: { triggerToast: (msg: string) 
                                                   {/* Delete Question Button */}
                                                   <button
                                                     type="button"
+                                                    disabled={isBeforeScheduleTime}
                                                     onClick={() => {
                                                       setCustomQuestions(prev => prev.filter((_, i) => i !== idx));
                                                     }}
-                                                    className="text-slate-400 hover:text-rose-600 transition-colors p-0.5 ml-1"
+                                                    className="text-slate-400 hover:text-rose-600 transition-colors p-0.5 ml-1 disabled:opacity-50 disabled:cursor-not-allowed"
                                                     title="Remove Question"
                                                   >
                                                     <Trash className="w-3.5 h-3.5" />
@@ -2956,10 +2976,11 @@ export function InterviewsQueue({ triggerToast }: { triggerToast: (msg: string) 
                                         <div className="flex gap-2">
                                           <input
                                             type="text"
+                                            disabled={isBeforeScheduleTime}
                                             value={newQuestionText}
                                             onChange={(e) => setNewQuestionText(e.target.value)}
-                                            placeholder="Write a custom assessment question..."
-                                            className="flex-1 bg-white border border-slate-250 rounded px-2.5 py-1.5 text-xs text-slate-800 focus:outline-none focus:ring-1 focus:ring-[#714B67] placeholder-slate-400 font-semibold"
+                                            placeholder={isBeforeScheduleTime ? "Locked until scheduled interview time" : "Write a custom assessment question..."}
+                                            className="flex-1 bg-white border border-slate-250 rounded px-2.5 py-1.5 text-xs text-slate-800 focus:outline-none focus:ring-1 focus:ring-[#714B67] placeholder-slate-400 font-semibold disabled:bg-slate-50 disabled:text-slate-400 disabled:cursor-not-allowed"
                                             onKeyDown={(e) => {
                                               if (e.key === "Enter") {
                                                 e.preventDefault();
@@ -2972,13 +2993,14 @@ export function InterviewsQueue({ triggerToast }: { triggerToast: (msg: string) 
                                           />
                                           <button
                                             type="button"
+                                            disabled={isBeforeScheduleTime}
                                             onClick={() => {
                                               if (newQuestionText.trim()) {
                                                 setCustomQuestions(prev => [...prev, { question: newQuestionText.trim(), isCorrect: null }]);
                                                 setNewQuestionText("");
                                               }
                                             }}
-                                            className="bg-[#714B67] hover:bg-[#5F3F56] text-white px-3 py-1.5 rounded text-xs font-bold transition-all shadow-sm shrink-0"
+                                            className="bg-[#714B67] hover:bg-[#5F3F56] text-white px-3 py-1.5 rounded text-xs font-bold transition-all shadow-sm shrink-0 disabled:bg-slate-300 disabled:text-slate-500 disabled:cursor-not-allowed"
                                           >
                                             + Add
                                           </button>
@@ -3006,9 +3028,10 @@ export function InterviewsQueue({ triggerToast }: { triggerToast: (msg: string) 
                                             type="range"
                                             min="0"
                                             max="100"
+                                            disabled={isBeforeScheduleTime}
                                             value={metric.val}
                                             onChange={(e) => metric.setter(parseInt(e.target.value))}
-                                            className="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-[#714B67]"
+                                            className="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-[#714B67] disabled:opacity-50 disabled:cursor-not-allowed"
                                           />
                                         </div>
                                       ))}
@@ -3019,10 +3042,11 @@ export function InterviewsQueue({ triggerToast }: { triggerToast: (msg: string) 
                                       <label>Interviewer Feedback Remarks:</label>
                                       <textarea
                                         value={remarks}
+                                        disabled={isBeforeScheduleTime}
                                         onChange={(e) => setRemarks(e.target.value)}
-                                        placeholder="Enter assessment remarks, strengths, values and compliance flags..."
-                                        className="rounded border border-slate-250 p-2 text-slate-800 focus:ring-[#714B67] focus:border-[#714B67] h-20 text-xs"
-                                        required
+                                        placeholder={isBeforeScheduleTime ? "Locked until scheduled interview time" : "Enter assessment remarks, strengths, values and compliance flags..."}
+                                        className="rounded border border-slate-250 p-2 text-slate-800 focus:ring-[#714B67] focus:border-[#714B67] h-20 text-xs disabled:bg-slate-50 disabled:text-slate-400 disabled:cursor-not-allowed"
+                                        required={!isBeforeScheduleTime}
                                       />
                                     </div>
 
@@ -3032,8 +3056,9 @@ export function InterviewsQueue({ triggerToast }: { triggerToast: (msg: string) 
                                         <label>Assign Round Decision:</label>
                                         <select
                                           value={roundStatus}
+                                          disabled={isBeforeScheduleTime}
                                           onChange={(e) => setRoundStatus(e.target.value)}
-                                          className="rounded border border-slate-250 p-2 text-slate-800 focus:ring-[#714B67] focus:border-[#714B67]"
+                                          className="rounded border border-slate-250 p-2 text-slate-800 focus:ring-[#714B67] focus:border-[#714B67] disabled:bg-slate-50 disabled:text-slate-400 disabled:cursor-not-allowed"
                                         >
                                           <option value="Selected">Select / Advance Candidate</option>
                                           <option value="Pending">Keep Pending</option>
@@ -3046,10 +3071,13 @@ export function InterviewsQueue({ triggerToast }: { triggerToast: (msg: string) 
                                       <div className="flex items-end">
                                         <button
                                           type="submit"
-                                          disabled={submitting}
-                                          className="w-full bg-[#714B67] hover:bg-[#5F3F56] text-white p-2.5 rounded font-black shadow flex items-center justify-center gap-1.5 hover:scale-[1.01] active:scale-[0.99] transition-all"
+                                          disabled={isBeforeScheduleTime || submitting}
+                                          className={`w-full p-2.5 rounded font-black shadow flex items-center justify-center gap-1.5 transition-all ${isBeforeScheduleTime
+                                              ? "bg-slate-300 text-slate-500 cursor-not-allowed"
+                                              : "bg-[#714B67] hover:bg-[#5F3F56] text-white hover:scale-[1.01] active:scale-[0.99]"
+                                            }`}
                                         >
-                                          {submitting ? "Saving..." : "Log Round Assessment"}
+                                          {submitting ? "Saving..." : isBeforeScheduleTime ? "Locked (Pre-Interview)" : "Log Round Assessment"}
                                         </button>
                                       </div>
                                     </div>

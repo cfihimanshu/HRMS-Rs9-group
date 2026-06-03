@@ -280,9 +280,10 @@ export function HrDashboard({
           <div className={`p-6 rounded-xl border shadow-sm ${isDark ? "bg-gray-900 border-gray-800" : "bg-white border-slate-200"}`}>
             <div className="flex items-center justify-between mb-6">
               <h2 className={`text-lg font-bold ${isDark ? "text-white" : "text-slate-800"}`}>Recent HR Activity</h2>
-              <button className="text-xs font-semibold text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300">View All</button>
             </div>
-            <ActivityFeed dark={isDark} />
+            <div className="max-h-[340px] overflow-y-auto pr-1 custom-scrollbar">
+              <ActivityFeed activities={stats?.hrActivities} dark={isDark} />
+            </div>
           </div>
         </div>
       </div>

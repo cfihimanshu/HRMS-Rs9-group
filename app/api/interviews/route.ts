@@ -5,6 +5,7 @@ import dbConnect from "@/lib/db";
 import Interview from "@/models/Interview";
 import Candidate from "@/models/Candidate";
 import { logAudit } from "@/lib/audit";
+import { logHRActivity } from "@/lib/hrAudit";
 
 // GET: Fetch interviews (restricted to HR, Managers, Owners)
 export async function GET(req: Request) {
@@ -110,6 +111,13 @@ export async function POST(req: Request) {
       details: `Scheduled Round ${round} Interview for candidate: ${candidate.name}. Time: ${scheduleTime}.`,
     });
 
+    await logHRActivity({
+      userId: (session.user as any).id,
+      userRole: (session.user as any).role,
+      action: "SCHEDULE_INTERVIEW",
+      details: `Scheduled Round ${round} Interview for candidate: ${candidate.name}.`
+    });
+
     return NextResponse.json({ success: true, data: interview });
   } catch (error: any) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
@@ -192,6 +200,13 @@ export async function PUT(req: Request) {
       entity: "Interview",
       entityId: interviewId,
       details: `Round ${interview.round} outcome updated for candidate: ${candidate?.name || "Unknown"}. Outcome: ${status}. Remarks: ${remarks || "None"}`,
+    });
+
+    await logHRActivity({
+      userId: (session.user as any).id,
+      userRole: (session.user as any).role,
+      action: "SUBMIT_INTERVIEW_EVALUATION",
+      details: `Round ${interview.round} outcome updated for candidate: ${candidate?.name || "Unknown"}. Outcome: ${status}.`
     });
 
     return NextResponse.json({ success: true, data: interview });

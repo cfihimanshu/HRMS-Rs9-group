@@ -488,8 +488,8 @@ export function OnboardingRoadmap({ selectedCandidate: initialCandidate, trigger
 export function TrainingClassroom({ triggerToast }: { triggerToast: (msg: string) => void; toggleModal?: any }) {
   const { data: session } = useSession();
   const userRole = (session?.user as any)?.role;
-  const isHR = userRole === "HR Head" || userRole === "HR Executive";
-  const canSubmitFinalVerdict = userRole === "HR Head" || userRole === "Owner";
+  const canLogProgress = userRole === "HR Head" || userRole === "HR Executive" || userRole === "Department Manager" || userRole === "Owner";
+  const canSubmitFinalVerdict = userRole === "HR Head" || userRole === "Owner" || userRole === "HR Executive";
 
   const [trainees, setTrainees] = useState<any[]>([]);
   const [selectedTrainee, setSelectedTrainee] = useState<any>(null);
@@ -857,7 +857,7 @@ export function TrainingClassroom({ triggerToast }: { triggerToast: (msg: string
                     <GraduationCap className="w-12 h-12 text-slate-300 mx-auto mb-4" />
                     <h4 className="text-sm font-black text-slate-800 uppercase tracking-wide">Ready for Orientation</h4>
                     <p className="text-xs text-slate-500 mt-2 mb-6 max-w-sm mx-auto">This candidate has completed onboarding and is ready to begin the Training Module.</p>
-                    {isHR ? (
+                    {canLogProgress ? (
                       <button
                         onClick={handleStartTraining}
                         disabled={submitting}
@@ -867,7 +867,7 @@ export function TrainingClassroom({ triggerToast }: { triggerToast: (msg: string
                       </button>
                     ) : (
                       <span className="text-xs font-bold text-slate-400 uppercase tracking-wide block bg-slate-50 border border-slate-200 rounded-lg p-3 max-w-xs mx-auto text-center">
-                        Awaiting HR to Start Training
+                        Awaiting Authorized Trainer/HR/Manager to Start Training
                       </span>
                     )}
                   </div>
@@ -914,114 +914,113 @@ export function TrainingClassroom({ triggerToast }: { triggerToast: (msg: string
                       {/* Right Column: Assessment Action Center */}
                       <div className="space-y-4">
 
-                        {isHR ? (
-                          <>
-                            {/* Daily Assessment Form */}
-                            {trainingRecord.status !== "Activation" && trainingRecord.status !== "Final Status" && (
-                              <form onSubmit={submitAssessment} className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm space-y-4 animate-fadeIn">
-                                <h4 className="text-[10px] font-black tracking-widest text-[#714B67] uppercase font-mono flex items-center gap-1.5 border-b border-slate-100 pb-2 mb-2">
-                                  <PenTool className="w-3.5 h-3.5" /> Log Daily FORM-6 Feedback
-                                </h4>
+                        {/* Daily Assessment Form */}
+                        {trainingRecord.status !== "Activation" && trainingRecord.status !== "Final Status" && (
+                          canLogProgress ? (
+                            <form onSubmit={submitAssessment} className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm space-y-4 animate-fadeIn">
+                              <h4 className="text-[10px] font-black tracking-widest text-[#714B67] uppercase font-mono flex items-center gap-1.5 border-b border-slate-100 pb-2 mb-2">
+                                <PenTool className="w-3.5 h-3.5" /> Log Daily FORM-6 Feedback
+                              </h4>
 
-                                <div className="mb-4">
-                                  <label className="text-[9px] uppercase font-black text-slate-500">Day Number</label>
-                                  <select
-                                    className="w-full border border-slate-200 rounded p-2 text-xs focus:border-[#714B67] outline-none mt-1"
-                                    value={assessmentForm.dayNumber}
-                                    onChange={e => setAssessmentForm({ ...assessmentForm, dayNumber: Number(e.target.value) })}
-                                  >
-                                    <option value={1}>Day 1</option>
-                                    <option value={2}>Day 2</option>
-                                    <option value={3}>Day 3</option>
-                                  </select>
-                                </div>
-
-                                <div className="space-y-3">
-                                  {[
-                                    { label: "Process Understanding", key: "sopScore" },
-                                    { label: "Tools & Systems Understanding", key: "crmScore" },
-                                    { label: "Reporting Discipline", key: "reportingScore" },
-                                    { label: "Behaviour / Attitude", key: "behaviourScore" }
-                                  ].map((item, idx) => (
-                                    <div key={idx} className="flex flex-col gap-1.5">
-                                      <div className="flex justify-between items-center text-[10.5px]">
-                                        <label className="font-bold text-slate-600">{item.label}:</label>
-                                        <strong className="text-xs font-mono text-[#714B67]">{(assessmentForm as any)[item.key]}%</strong>
-                                      </div>
-                                      <input
-                                        type="range"
-                                        min="0"
-                                        max="100"
-                                        value={(assessmentForm as any)[item.key]}
-                                        onChange={(e) => setAssessmentForm({ ...assessmentForm, [item.key]: parseInt(e.target.value) })}
-                                        className="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-[#714B67]"
-                                      />
-                                    </div>
-                                  ))}
-                                </div>
-
-                                <div className="mt-4">
-                                  <label className="text-[9px] uppercase font-black text-slate-500">Final Remarks / Observations</label>
-                                  <textarea
-                                    required rows={2}
-                                    className="w-full border border-slate-200 rounded p-2 text-xs focus:border-[#714B67] outline-none mt-1"
-                                    placeholder="Trainee engagement and learning curve..."
-                                    value={assessmentForm.remarks}
-                                    onChange={e => setAssessmentForm({ ...assessmentForm, remarks: e.target.value })}
-                                  />
-                                </div>
-                                <button
-                                  disabled={submitting} type="submit"
-                                  className="w-full bg-[#714B67] hover:bg-[#5F3F56] text-white py-2 rounded text-xs font-bold transition-all"
+                              <div className="mb-4">
+                                <label className="text-[9px] uppercase font-black text-slate-500">Day Number</label>
+                                <select
+                                  className="w-full border border-slate-200 rounded p-2 text-xs focus:border-[#714B67] outline-none mt-1"
+                                  value={assessmentForm.dayNumber}
+                                  onChange={e => setAssessmentForm({ ...assessmentForm, dayNumber: Number(e.target.value) })}
                                 >
-                                  Save Assessment
-                                </button>
-                              </form>
-                            )}
+                                  <option value={1}>Day 1</option>
+                                  <option value={2}>Day 2</option>
+                                  <option value={3}>Day 3</option>
+                                </select>
+                              </div>
 
-                            {/* Final Recommendation Action */}
-                            {isThreeDaysCompleted && (
-                              canSubmitFinalVerdict ? (
-                                <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 shadow-sm space-y-3 animate-fadeIn">
-                                  <h4 className="text-[10px] font-black tracking-widest text-amber-700 uppercase font-mono flex items-center gap-1.5">
-                                    <AlertCircle className="w-3.5 h-3.5" /> Final Verdict
-                                  </h4>
-                                  <select
-                                    className="w-full border border-amber-200 rounded p-2 text-xs text-amber-900 focus:border-amber-500 outline-none"
-                                    value={finalRec}
-                                    onChange={e => setFinalRec(e.target.value)}
-                                  >
-                                    <option value="Activation">Proceed to Activation (Passed)</option>
-                                    <option value="Extend Training">Extend Training Required</option>
-                                    <option value="Reject">Reject Trainee</option>
-                                  </select>
-                                  <button
-                                    onClick={submitFinalRecommendation}
-                                    disabled={submitting}
-                                    className="w-full bg-amber-600 hover:bg-amber-700 text-white py-2 rounded text-xs font-bold transition-all shadow-sm flex items-center justify-center gap-1.5"
-                                  >
-                                    <Send className="w-3 h-3" /> Submit Recommendation
-                                  </button>
-                                </div>
-                              ) : (
-                                <div className="bg-amber-50/50 border border-amber-200 rounded-xl p-5 text-center shadow-sm space-y-2 animate-fadeIn">
-                                  <AlertCircle className="w-5 h-5 text-amber-600 mx-auto mb-2" />
-                                  <span className="text-[11px] text-amber-800 font-black uppercase tracking-wider block">Decision Pending</span>
-                                  <p className="text-[10px] text-amber-700 font-semibold leading-relaxed">
-                                    3 days of training is complete. Awaiting final decision / verdict recommendation from HR Head or Owner.
-                                  </p>
-                                </div>
-                              )
-                            )}
-                          </>
-                        ) : (
-                          <div className="bg-slate-50 border border-slate-200 rounded-xl p-5 text-center shadow-sm">
-                            <AlertCircle className="w-5 h-5 text-slate-400 mx-auto mb-2" />
-                            <span className="text-[11px] text-slate-650 font-black uppercase tracking-wider block">Access Restricted</span>
-                            <p className="text-[10.5px] text-slate-500 mt-1 font-semibold leading-relaxed">
-                              Only HR Head or HR Executive role is authorized to submit assessments, set scores, or decide final verdicts.
-                            </p>
-                          </div>
+                              <div className="space-y-3">
+                                {[
+                                  { label: "Process Understanding", key: "sopScore" },
+                                  { label: "Tools & Systems Understanding", key: "crmScore" },
+                                  { label: "Reporting Discipline", key: "reportingScore" },
+                                  { label: "Behaviour / Attitude", key: "behaviourScore" }
+                                ].map((item, idx) => (
+                                  <div key={idx} className="flex flex-col gap-1.5">
+                                    <div className="flex justify-between items-center text-[10.5px]">
+                                      <label className="font-bold text-slate-600">{item.label}:</label>
+                                      <strong className="text-xs font-mono text-[#714B67]">{(assessmentForm as any)[item.key]}%</strong>
+                                    </div>
+                                    <input
+                                      type="range"
+                                      min="0"
+                                      max="100"
+                                      value={(assessmentForm as any)[item.key]}
+                                      onChange={(e) => setAssessmentForm({ ...assessmentForm, [item.key]: parseInt(e.target.value) })}
+                                      className="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-[#714B67]"
+                                    />
+                                  </div>
+                                ))}
+                              </div>
+
+                              <div className="mt-4">
+                                <label className="text-[9px] uppercase font-black text-slate-500">Final Remarks / Observations</label>
+                                <textarea
+                                  required rows={2}
+                                  className="w-full border border-slate-200 rounded p-2 text-xs focus:border-[#714B67] outline-none mt-1"
+                                  placeholder="Trainee engagement and learning curve..."
+                                  value={assessmentForm.remarks}
+                                  onChange={e => setAssessmentForm({ ...assessmentForm, remarks: e.target.value })}
+                                />
+                              </div>
+                              <button
+                                disabled={submitting} type="submit"
+                                className="w-full bg-[#714B67] hover:bg-[#5F3F56] text-white py-2 rounded text-xs font-bold transition-all"
+                              >
+                                Save Assessment
+                              </button>
+                            </form>
+                          ) : (
+                            <div className="bg-slate-50 border border-slate-200 rounded-xl p-5 text-center shadow-sm">
+                              <AlertCircle className="w-5 h-5 text-slate-400 mx-auto mb-2" />
+                              <span className="text-[11px] text-slate-650 font-black uppercase tracking-wider block">Access Restricted</span>
+                              <p className="text-[10.5px] text-slate-500 mt-1 font-semibold leading-relaxed">
+                                Only HR Executive, HR Head, Department Manager, or Owner are authorized to submit daily assessments.
+                              </p>
+                            </div>
+                          )
+                        )}
+
+                        {/* Final Recommendation Action */}
+                        {isThreeDaysCompleted && (
+                          canSubmitFinalVerdict ? (
+                            <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 shadow-sm space-y-3 animate-fadeIn">
+                              <h4 className="text-[10px] font-black tracking-widest text-amber-700 uppercase font-mono flex items-center gap-1.5">
+                                <AlertCircle className="w-3.5 h-3.5" /> Final Verdict
+                              </h4>
+                              <select
+                                className="w-full border border-amber-200 rounded p-2 text-xs text-amber-900 focus:border-amber-500 outline-none"
+                                value={finalRec}
+                                onChange={e => setFinalRec(e.target.value)}
+                              >
+                                <option value="Activation">Proceed to Activation (Passed)</option>
+                                <option value="Extend Training">Extend Training Required</option>
+                                <option value="Hold">Put on Hold</option>
+                                <option value="Reject">Reject Trainee</option>
+                              </select>
+                              <button
+                                onClick={submitFinalRecommendation}
+                                disabled={submitting}
+                                className="w-full bg-amber-600 hover:bg-amber-700 text-white py-2 rounded text-xs font-bold transition-all shadow-sm flex items-center justify-center gap-1.5"
+                              >
+                                <Send className="w-3 h-3" /> Submit Recommendation
+                              </button>
+                            </div>
+                          ) : (
+                            <div className="bg-amber-50/50 border border-amber-200 rounded-xl p-5 text-center shadow-sm space-y-2 animate-fadeIn">
+                              <AlertCircle className="w-5 h-5 text-amber-600 mx-auto mb-2" />
+                              <span className="text-[11px] text-amber-800 font-black uppercase tracking-wider block">Decision Pending</span>
+                              <p className="text-[10px] text-amber-700 font-semibold leading-relaxed">
+                                3 days of training is complete. Awaiting final decision / verdict recommendation from HR Head or Owner.
+                              </p>
+                            </div>
+                          )
                         )}
                       </div>
                     </div>

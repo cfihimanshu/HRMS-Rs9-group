@@ -47,9 +47,9 @@ export async function POST(req: Request) {
     }
 
     const role = (session.user as any).role;
-    const permitted = ["Owner", "Director", "HR Head", "HR Executive", "Trainer"];
+    const permitted = ["Owner", "Director", "HR Head", "HR Executive", "Trainer", "Department Manager"];
     if (!permitted.includes(role)) {
-      return NextResponse.json({ success: false, error: "Forbidden: Trainer/HR role required" }, { status: 403 });
+      return NextResponse.json({ success: false, error: "Forbidden: Trainer/HR/Manager role required" }, { status: 403 });
     }
 
     await dbConnect();
@@ -58,6 +58,12 @@ export async function POST(req: Request) {
 
     if (!candidateId) {
       return NextResponse.json({ success: false, error: "Candidate ID is required" }, { status: 400 });
+    }
+
+    if (status === "Activation" || status === "Final Status" || recommendation !== undefined) {
+      if (role !== "HR Head" && role !== "Owner" && role !== "HR Executive") {
+        return NextResponse.json({ success: false, error: "Forbidden: Only HR Head, Owner, or HR Executive can submit final recommendation / decision" }, { status: 403 });
+      }
     }
 
     let training = await Training.findOne({ candidate: candidateId });
@@ -97,9 +103,16 @@ export async function POST(req: Request) {
 
     await training.save();
 
-    // Auto-update candidate status if marked for activation
+    // Auto-update candidate status based on final decision
     if (status === "Activation") {
       await Candidate.findByIdAndUpdate(candidateId, { status: "Selected" });
+    } else if (recommendation === "Reject") {
+      await Candidate.findByIdAndUpdate(candidateId, { status: "Rejected" });
+    } else if (recommendation === "Hold") {
+      await Candidate.findByIdAndUpdate(candidateId, { status: "Hold" });
+    }
+
+    if (status === "Activation") {
 
       // Auto-create User & Probation track
       const candDoc = await Candidate.findById(candidateId).populate("job");

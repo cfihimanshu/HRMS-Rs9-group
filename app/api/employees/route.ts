@@ -7,6 +7,8 @@ import Department from "@/models/Department";
 import bcrypt from "bcryptjs";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import { logAudit } from "@/lib/audit";
+import { logHRActivity } from "@/lib/hrAudit";
 
 // GET /api/employees - Get list of all staff members
 export async function GET(req: Request) {
@@ -129,6 +131,22 @@ export async function POST(req: Request) {
         sickLeave: 12,
         earnedLeave: 0
       }
+    });
+
+    // Log Audit Entry
+    await logAudit({
+      userId: (session.user as any).id,
+      action: "CREATE_EMPLOYEE",
+      entity: "User",
+      entityId: newUser._id.toString(),
+      details: `Created new employee profile: ${name} (${email}) as ${role} for company ${company.name}`
+    });
+
+    await logHRActivity({
+      userId: (session.user as any).id,
+      userRole: (session.user as any).role,
+      action: "CREATE_EMPLOYEE",
+      details: `Created new employee profile: ${name} (${email}) as ${role} for company ${company.name}`
     });
 
     // Strip password from returned object

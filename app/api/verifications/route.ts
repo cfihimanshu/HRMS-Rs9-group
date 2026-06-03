@@ -5,6 +5,7 @@ import dbConnect from "@/lib/db";
 import Verification from "@/models/Verification";
 import Candidate from "@/models/Candidate";
 import { logAudit } from "@/lib/audit";
+import { logHRActivity } from "@/lib/hrAudit";
 
 // GET: Retrieve background checklists
 export async function GET(req: Request) {
@@ -148,6 +149,13 @@ export async function POST(req: Request) {
       entity: "Verification",
       entityId: verObj._id.toString(),
       details: `Background verification updated for candidate: ${candidate?.name || "Unknown"}. Overall status: ${status}. Remarks: ${remarks || "None"}.`,
+    });
+
+    await logHRActivity({
+      userId: (session.user as any).id,
+      userRole: (session.user as any).role,
+      action: "SUBMIT_VERIFICATION",
+      details: `Background verification updated for candidate: ${candidate?.name || "Unknown"}. Overall status: ${status}.`
     });
 
     return NextResponse.json({ success: true, data: verObj });

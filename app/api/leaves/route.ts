@@ -4,6 +4,8 @@ import { authOptions } from "@/lib/auth";
 import dbConnect from "@/lib/db";
 import Leave from "@/models/Leave";
 import EmployeeProfile from "@/models/EmployeeProfile";
+import { logAudit } from "@/lib/audit";
+import { logHRActivity } from "@/lib/hrAudit";
 
 // POST: Apply for a new leave
 export async function POST(req: Request) {
@@ -111,6 +113,22 @@ export async function PUT(req: Request) {
     if (remarks) leave.remarks = remarks;
 
     await leave.save();
+
+    // Log Audit Entry
+    await logAudit({
+      userId: loggedInUserId,
+      action: `${status.toUpperCase()}_LEAVE`,
+      entity: "Leave",
+      entityId: leave._id.toString(),
+      details: `Leave request for ${leave.type} (${leave.days} days) has been ${status.toLowerCase()} by HR / Supervisor.`
+    });
+
+    await logHRActivity({
+      userId: loggedInUserId,
+      userRole: loggedInUserRole,
+      action: `${status.toUpperCase()}_LEAVE`,
+      details: `Leave request for ${leave.type} (${leave.days} days) has been ${status.toLowerCase()} by HR / Supervisor.`
+    });
 
     // If approved, deduct leave balance
     if (status === "Approved") {
