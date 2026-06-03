@@ -10,6 +10,10 @@ import Probation from "@/models/Probation";
 import Company from "@/models/Company";
 import bcrypt from "bcryptjs";
 import { logAudit } from "@/lib/audit";
+import User from "@/models/User";
+import EmployeeProfile from "@/models/EmployeeProfile";
+import Probation from "@/models/Probation";
+import bcrypt from "bcryptjs";
 
 // GET: Retrieve all active training logs (Restricted to HR, Trainer, Owner)
 export async function GET(req: Request) {
@@ -103,6 +107,8 @@ export async function POST(req: Request) {
 
     await training.save();
 
+    const candidate = await Candidate.findById(candidateId).populate("job");
+
     // Auto-update candidate status based on final decision
     if (status === "Activation") {
       await Candidate.findByIdAndUpdate(candidateId, { status: "Selected" });
@@ -113,6 +119,7 @@ export async function POST(req: Request) {
     }
 
     if (status === "Activation") {
+
 
       // Auto-create User & Probation track
       const candDoc = await Candidate.findById(candidateId).populate("job");
@@ -202,7 +209,6 @@ export async function POST(req: Request) {
       }
     }
 
-    const candidate = await Candidate.findById(candidateId);
 
     // Audit log
     await logAudit({

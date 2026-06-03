@@ -4,9 +4,10 @@ import { Search, Bell, Moon, Sun } from "lucide-react";
 
 interface TopbarProps {
   activeTabLabel: string;
+  user?: any;
 }
 
-export default function Topbar({ activeTabLabel }: TopbarProps) {
+export default function Topbar({ activeTabLabel, user }: TopbarProps) {
   const [isDark, setIsDark] = useState(false);
 
   useEffect(() => {

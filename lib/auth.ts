@@ -2,6 +2,8 @@ import { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import dbConnect from "./db";
 import User from "@/models/User";
+import EmployeeProfile from "@/models/EmployeeProfile";
+import Department from "@/models/Department";
 import bcrypt from "bcryptjs";
 import { logAudit } from "./audit";
 
@@ -78,11 +80,30 @@ export const authOptions: NextAuthOptions = {
           ipAddress: (req.headers as any)?.["x-forwarded-for"] || "127.0.0.1",
         });
 
+        // Fetch department
+        let departmentName = "General";
+        let designation = user.role;
+        try {
+          // ensure Department is loaded so populate works
+          await Department.init(); 
+          const profile = await EmployeeProfile.findOne({ user: user._id }).populate("department");
+          if (profile) {
+            if (profile.designation) designation = profile.designation;
+            if (profile.department && profile.department.name) {
+              departmentName = profile.department.name;
+            }
+          }
+        } catch (err) {
+          console.error("Error fetching employee profile:", err);
+        }
+
         return {
           id: user._id.toString(),
           name: user.name,
           email: user.email,
           role: user.role,
+          department: departmentName,
+          designation: designation,
         };
       },
     }),
@@ -92,6 +113,8 @@ export const authOptions: NextAuthOptions = {
       if (user) {
         token.id = user.id;
         token.role = (user as any).role;
+        token.department = (user as any).department;
+        token.designation = (user as any).designation;
       }
       return token;
     },
@@ -101,6 +124,8 @@ export const authOptions: NextAuthOptions = {
           ...session.user,
           id: token.id as string,
           role: token.role as string,
+          department: token.department as string,
+          designation: token.designation as string,
         } as any;
       }
       return session;

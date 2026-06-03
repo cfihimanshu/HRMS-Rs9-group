@@ -190,7 +190,9 @@ export default function DashboardSidebar({
           </div>
           <div className="min-w-0 flex-1 text-left">
             <div className={`text-xs font-semibold truncate ${isDark ? "text-white" : "text-slate-800"}`}>{user?.name || "System User"}</div>
-            <div className="text-[10px] text-slate-400 truncate">{userRole}</div>
+            <div className="text-[10px] text-slate-400 truncate">
+              {user?.department || "General"} | {userRole}
+            </div>
           </div>
           <button
             onClick={() => signOut({ callbackUrl: `${window.location.origin}/login` })}

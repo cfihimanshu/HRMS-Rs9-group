@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import dbConnect from "@/lib/db";
+import mongoose from "mongoose";
 import Candidate from "@/models/Candidate";
 import Interview from "@/models/Interview";
 import User from "@/models/User";
@@ -20,38 +21,83 @@ import ExitRecord from "@/models/ExitRecord";
 import Leave from "@/models/Leave";
 import HRRecentActivity from "@/models/HRRecentActivity";
 
-export async function GET() {
+export async function GET(req: Request) {
   try {
     const session = await getServerSession(authOptions);
     if (!session || !session.user) {
       return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
     }
 
+    const { searchParams } = new URL(req.url);
+    const companyId = searchParams.get("companyId");
+
     await dbConnect();
 
+    // Filters based on selected company
+    let userFilter: any = { role: { $in: ["Employee", "Trainer"] } };
+    let candidateFilter: any = {};
+    let interviewFilter: any = {};
+    let generalUserFilter: any = {}; // for Probation, Grievance, Attendance, Exits, etc.
+    let generalCandidateFilter: any = {}; // for Training, Verification, etc.
+
+    if (companyId) {
+      userFilter.companies = companyId;
+      
+      const Job = mongoose.models.Job || require("@/models/Job").default;
+      const jobs = await Job.find({ company: companyId }, '_id');
+      const jobIds = jobs.map((j: any) => j._id);
+      
+      candidateFilter.job = { $in: jobIds };
+
+      const cands = await Candidate.find({ job: { $in: jobIds } }, '_id');
+      const candIds = cands.map((c: any) => c._id);
+      
+      interviewFilter.candidate = { $in: candIds };
+      generalCandidateFilter.candidate = { $in: candIds };
+      
+      const usersInCompany = await User.find({ companies: companyId }, '_id');
+      const userIds = usersInCompany.map((u: any) => u._id);
+      
+      generalUserFilter.employee = { $in: userIds }; // Probation uses 'employee'
+      
+      // Need a flexible filter for other models (Attendance uses user, Grievance uses raisedBy, etc)
+      var attendanceFilter = { user: { $in: userIds } };
+      var grievanceFilter = { raisedBy: { $in: userIds } };
+      var alertFilter = { user: { $in: userIds } };
+      var exitFilter = { employee: { $in: userIds } };
+      var reportFilter = { user: { $in: userIds } };
+    } else {
+      var attendanceFilter = {};
+      var grievanceFilter = {};
+      var alertFilter = {};
+      var exitFilter = {};
+      var reportFilter = {};
+    }
+
     // 1. Candidate Stats
-    const totalCandidates = await Candidate.countDocuments();
-    const pendingCandidates = await Candidate.countDocuments({ status: "Pending" });
-    const selectedCandidates = await Candidate.countDocuments({ status: "Selected" });
-    const highRiskCandidates = await Candidate.countDocuments({ status: "High Risk" });
+    const totalCandidates = await Candidate.countDocuments(candidateFilter);
+    const pendingCandidates = await Candidate.countDocuments({ ...candidateFilter, status: "Pending" });
+    const selectedCandidates = await Candidate.countDocuments({ ...candidateFilter, status: "Selected" });
+    const highRiskCandidates = await Candidate.countDocuments({ ...candidateFilter, status: "High Risk" });
 
     // 2. Interview Stats
-    const pendingInterviews = await Interview.countDocuments({ status: "Pending" });
+    const pendingInterviews = await Interview.countDocuments({ ...interviewFilter, status: "Pending" });
 
     // 3. User Master Roles count
-    const totalEmployees = await User.countDocuments({ role: { $in: ["Employee", "Trainer"] } });
+    const totalEmployees = await User.countDocuments(userFilter);
+    // Assuming Associates, Vendors, Franchises are not strictly bound to this company filter in the same way, or maybe we leave them unfiltered for now as they might have a different logic.
     const totalAssociates = await Associate.countDocuments({ status: "active" });
     const totalVendors = await Vendor.countDocuments({ status: "active" });
     const totalFranchises = await Franchise.countDocuments({ status: "active" });
 
     // 4. Operations metrics
-    const trainingPending = await Training.countDocuments({ status: { $ne: "Activation" } });
-    const activeProbations = await Probation.countDocuments({ status: "active" });
-    const activeGrievances = await Grievance.countDocuments({ status: "Open" });
+    const trainingPending = await Training.countDocuments({ ...generalCandidateFilter, status: { $ne: "Activation" } });
+    const activeProbations = await Probation.countDocuments({ ...generalUserFilter, status: "active" });
+    const activeGrievances = await Grievance.countDocuments({ ...grievanceFilter, status: "Open" });
 
     // 5. Alert counts
-    const criticalRiskAlerts = await RiskAlert.countDocuments({ status: "Open", level: "Critical" });
-    const totalRiskAlerts = await RiskAlert.countDocuments({ status: "Open" });
+    const criticalRiskAlerts = await RiskAlert.countDocuments({ ...alertFilter, status: "Open", level: "Critical" });
+    const totalRiskAlerts = await RiskAlert.countDocuments({ ...alertFilter, status: "Open" });
 
     // 6. Attendance, SOD/EOD compliances (today's counts)
     const today = new Date();

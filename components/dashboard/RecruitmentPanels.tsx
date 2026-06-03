@@ -894,13 +894,24 @@ export function CandidatesPipeline({
             >
               ✕
             </button>
-            <div className="pb-3 border-b border-slate-100">
-              <h3 className="text-[9px] font-black uppercase text-slate-400 tracking-wider font-mono">Candidate Profile Details</h3>
-              <h2 className="text-base font-black text-slate-850 mt-1">{selectedCandidate.name}</h2>
-              <span className={`text-[9px] font-bold px-2 py-0.5 rounded border mt-1 inline-block ${selectedCandidate.status === "Selected" ? "bg-emerald-55 border-emerald-200 text-emerald-600" : "bg-[#714B67]/10 text-[#714B67] border-[#714B67]/20"
+            <div className="pb-3 border-b border-slate-100 flex items-start justify-between">
+              <div>
+                <h3 className="text-[9px] font-black uppercase text-slate-400 tracking-wider font-mono">Candidate Profile Details</h3>
+                <h2 className="text-base font-black text-slate-850 mt-1">{selectedCandidate.name}</h2>
+                <span className={`text-[9px] font-bold px-2 py-0.5 rounded border mt-1 inline-block ${
+                  selectedCandidate.status === "Selected" ? "bg-emerald-55 border-emerald-200 text-emerald-600" : "bg-[#714B67]/10 text-[#714B67] border-[#714B67]/20"
                 }`}>
-                Status: {selectedCandidate.status}
-              </span>
+                  Status: {selectedCandidate.status}
+                </span>
+              </div>
+              {selectedCandidate.status !== "Selected" && selectedCandidate.status !== "Rejected" && (
+                <button 
+                  onClick={() => toggleModal("interview", true)}
+                  className="bg-[#714B67] hover:bg-[#5F3F56] px-3 py-1.5 rounded-lg text-xs font-bold text-white transition-all shadow-sm mt-3"
+                >
+                  Schedule Interview
+                </button>
+              )}
             </div>
 
             {/* Profile Info */}

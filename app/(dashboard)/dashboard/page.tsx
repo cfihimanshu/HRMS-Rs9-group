@@ -79,6 +79,8 @@ export default function UnifiedEnterpriseDashboard() {
   const [stats, setStats] = useState<any>(null);
   const [candidates, setCandidates] = useState<any[]>([]);
   const [interviews, setInterviews] = useState<any[]>([]);
+  const [allCompanies, setAllCompanies] = useState<any[]>([]);
+  const [selectedCompanyId, setSelectedCompanyId] = useState<string>("");
   const [jobs, setJobs] = useState<any[]>([]);
   const [probationList, setProbationList] = useState<any[]>([]);
   const [grievanceList, setGrievanceList] = useState<any[]>([]);
@@ -263,9 +265,20 @@ export default function UnifiedEnterpriseDashboard() {
   }, []);
 
   // Fetch Database Data
-  const loadStats = async () => {
+  const loadCompanies = async () => {
     try {
-      const res = await fetch("/api/dashboard/stats");
+      const res = await fetch("/api/companies");
+      const data = await res.json();
+      if (data.success) setAllCompanies(data.data);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const loadStats = async (companyId?: string) => {
+    try {
+      const url = companyId ? `/api/dashboard/stats?companyId=${companyId}` : "/api/dashboard/stats";
+      const res = await fetch(url);
       const data = await res.json();
       if (data.success) setStats(data.stats);
     } catch (err) {
@@ -361,7 +374,8 @@ export default function UnifiedEnterpriseDashboard() {
   const loadAllData = async () => {
     setLoading(true);
     await Promise.all([
-      loadStats(),
+      loadCompanies(),
+      loadStats(selectedCompanyId),
       loadCandidates(),
       loadInterviews(),
       loadPostedJobs(),
@@ -373,6 +387,13 @@ export default function UnifiedEnterpriseDashboard() {
     ]);
     setLoading(false);
   };
+
+  useEffect(() => {
+  useEffect(() => {
+    if (status === "authenticated" && !loading) {
+      loadStats(selectedCompanyId);
+    }
+  }, [selectedCompanyId]);
 
   useEffect(() => {
     if (status === "authenticated" && !dataLoaded) {
@@ -751,6 +772,9 @@ export default function UnifiedEnterpriseDashboard() {
       return;
     }
     try {
+      const isOnline = interviewForm.mode === "Video Call";
+      const link = isOnline ? `https://meet.acolyte.in/r${interviewForm.round}-${interviewForm.candidateId.slice(-6)}` : "In-Office (Offline)";
+      
       const res = await fetch("/api/interviews", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -758,7 +782,7 @@ export default function UnifiedEnterpriseDashboard() {
           candidateId: interviewForm.candidateId,
           round: parseInt(interviewForm.round),
           scheduleTime: `${interviewForm.date}T${interviewForm.time}`,
-          videoLink: `https://meet.acolyte.in/r${interviewForm.round}-${interviewForm.candidateId.slice(-6)}`,
+          videoLink: link,
         }),
       });
       const data = await res.json();
@@ -867,18 +891,21 @@ export default function UnifiedEnterpriseDashboard() {
       <main className="flex-1 flex flex-col h-screen overflow-hidden">
 
         {/* Upper Header status bar */}
-        <Topbar activeTabLabel={activeTab.replace("-", " ").toUpperCase()} />
+        <Topbar activeTabLabel={activeTab.replace("-", " ").toUpperCase()} user={session?.user} />
 
         {/* Tab Panel Body container */}
         <div className="flex-1 overflow-y-auto px-8 py-8 custom-scrollbar">
 
           {activeTab === "dashboard" && (
-            <OwnerDashboard
-              stats={stats}
-              riskAlertList={riskAlertList}
-              onResolveAlert={handleAlertResolve}
-              onNavigateTab={setActiveTab}
-              triggerToast={triggerToast}
+            <OwnerDashboard 
+              stats={stats} 
+              riskAlertList={riskAlertList} 
+              onResolveAlert={handleAlertResolve} 
+              onNavigateTab={setActiveTab} 
+              triggerToast={triggerToast} 
+              companies={allCompanies}
+              selectedCompanyId={selectedCompanyId}
+              onCompanyChange={setSelectedCompanyId}
             />
           )}
 
@@ -1361,6 +1388,17 @@ export default function UnifiedEnterpriseDashboard() {
                   <label className="text-[10px] uppercase font-black text-slate-500 font-mono tracking-widest">Schedule Date</label>
                   <input className="w-full bg-white border border-slate-300 rounded p-2.5 text-slate-900 mt-1 font-mono focus:outline-none focus:border-[#714B67]" type="date" value={interviewForm.date} onChange={e => setInterviewForm({ ...interviewForm, date: e.target.value })} required />
                 </div>
+                <div>
+                  <label className="text-[10px] uppercase font-black text-slate-500 font-mono tracking-widest">Time</label>
+                  <input className="w-full bg-white border border-slate-300 rounded p-2.5 text-slate-900 mt-1 font-mono focus:outline-none focus:border-[#714B67]" type="time" value={interviewForm.time} onChange={e => setInterviewForm({ ...interviewForm, time: e.target.value })} required />
+                </div>
+              </div>
+              <div>
+                <label className="text-[10px] uppercase font-black text-slate-500 font-mono tracking-widest">Interview Mode</label>
+                <select className="w-full bg-white border border-slate-300 rounded p-2.5 text-slate-700 mt-1 focus:outline-none focus:border-[#714B67]" value={interviewForm.mode} onChange={e => setInterviewForm({ ...interviewForm, mode: e.target.value })}>
+                  <option value="Video Call">Online (Video Call)</option>
+                  <option value="In-Office">In-Office (Offline)</option>
+                </select>
               </div>
               <button type="submit" className="w-full bg-[#714B67] hover:bg-[#5F3F56] py-3 rounded text-xs font-bold text-white transition-all shadow-md mt-4">Send Calendar Invite</button>
             </form>
