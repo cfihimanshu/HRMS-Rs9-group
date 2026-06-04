@@ -39,13 +39,23 @@ export async function GET(req: NextRequest) {
       }, { status: 500 });
     }
 
-    const blob = await response.blob();
+    const arrayBuffer = await response.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
     
     // Determine content type
     let contentType = response.headers.get("content-type") || "";
     
-    // If Cloudinary returned it as image but it is actually a PDF (due to default type detection), 
-    // force it to application/pdf so Chrome/browser inline viewer renders it correctly.
+    // Check magic bytes for PDF: %PDF (first 4 bytes: 0x25, 0x50, 0x44, 0x46)
+    const isPdfMagic = buffer.length >= 4 && 
+                       buffer[0] === 0x25 && 
+                       buffer[1] === 0x50 && 
+                       buffer[2] === 0x44 && 
+                       buffer[3] === 0x46;
+
+    if (isPdfMagic) {
+      contentType = "application/pdf";
+    }
+
     const cleanUrl = targetUrl.split("?")[0].toLowerCase();
     if (cleanUrl.endsWith(".pdf") || targetUrl.toLowerCase().includes(".pdf")) {
       contentType = "application/pdf";
@@ -64,7 +74,7 @@ export async function GET(req: NextRequest) {
     headers.set("Content-Type", contentType);
     headers.set("Content-Disposition", "inline");
 
-    return new Response(blob, {
+    return new Response(buffer, {
       status: 200,
       headers,
     });

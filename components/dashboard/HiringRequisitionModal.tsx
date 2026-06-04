@@ -25,6 +25,7 @@ export default function HiringRequisitionModal({ onClose, triggerToast, userComp
     department: userDepartment || "Sales",
     role: "",
     category: "Staff",
+    location: "",
     qty: "1",
     gender: "Any",
     expMin: "",
@@ -35,16 +36,16 @@ export default function HiringRequisitionModal({ onClose, triggerToast, userComp
     jd: "",
     kra: "",
     kpi: "",
-    sop: "",
+    qualification: "",
     monitoringBenefits: "",
     companyGrowthBenefits: "",
     dateOfRequirement: new Date().toISOString().split("T")[0],
-    reportingManager: "",
     riskLevel: "Low",
     expectedOutput: ""
   });
 
   const companies = [
+    "Acolyte Group of Companies",
     "Acolyte Technologies",
     "Startupflora",
     "Startup Kare",
@@ -73,7 +74,13 @@ export default function HiringRequisitionModal({ onClose, triggerToast, userComp
           role: form.role,
           department: form.department,
           category: form.category,
-          expectedOutput: form.expectedOutput || skillsList.join(", ")
+          gender: form.gender,
+          expMin: form.expMin,
+          expMax: form.expMax,
+          budgetMin: form.budgetMin,
+          budgetMax: form.budgetMax,
+          skills: skillsList.join(", "),
+          expectedOutput: form.expectedOutput
         })
       });
       const data = await res.json();
@@ -83,7 +90,9 @@ export default function HiringRequisitionModal({ onClose, triggerToast, userComp
           jd: data.data.jd || prev.jd,
           kra: data.data.kra || prev.kra,
           kpi: data.data.kpi || prev.kpi,
-          sop: data.data.sop || prev.sop
+          expectedOutput: data.data.expectedOutput || prev.expectedOutput,
+          monitoringBenefits: data.data.monitoringBenefits || prev.monitoringBenefits,
+          companyGrowthBenefits: data.data.companyGrowthBenefits || prev.companyGrowthBenefits
         }));
         triggerToast("AI content generated successfully! Please review.");
       } else {
@@ -99,7 +108,7 @@ export default function HiringRequisitionModal({ onClose, triggerToast, userComp
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    
+
     try {
       const res = await fetch("/api/hiring", {
         method: "POST",
@@ -129,7 +138,7 @@ export default function HiringRequisitionModal({ onClose, triggerToast, userComp
   return (
     <div className="fixed inset-0 z-[100] p-4 sm:p-6 backdrop-blur-md bg-black/40 overflow-y-auto">
       <div className={`w-full max-w-5xl mx-auto my-8 rounded-2xl shadow-2xl relative animate-scaleUp ${isDark ? "bg-gray-900 border border-gray-800 text-white" : "bg-white border border-slate-200 text-slate-800"}`}>
-        
+
         <div className={`sticky top-0 z-50 flex items-center justify-between p-6 border-b ${isDark ? "bg-gray-900/95 border-gray-800" : "bg-white/95 border-slate-100"} backdrop-blur`}>
           <div className="flex items-center gap-3">
             <div className="p-2 bg-indigo-100 text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-400 rounded-lg">
@@ -146,7 +155,7 @@ export default function HiringRequisitionModal({ onClose, triggerToast, userComp
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-8">
-          
+
           {/* Section 1: Basic Info */}
           <div>
             <h3 className={`text-xs font-black uppercase tracking-widest mb-4 font-mono ${isDark ? "text-indigo-400" : "text-indigo-600"}`}>1. Core Requirement</h3>
@@ -166,6 +175,11 @@ export default function HiringRequisitionModal({ onClose, triggerToast, userComp
               <div>
                 <label className="block text-[11px] font-bold mb-1.5 uppercase tracking-wide">Designation (Role) *</label>
                 <input type="text" name="role" value={form.role} onChange={handleChange} placeholder="e.g. BDA Sales" required
+                  className={`w-full p-2.5 rounded-lg border text-sm focus:border-indigo-500 focus:outline-none ${isDark ? "bg-gray-800 border-gray-700" : "bg-slate-50 border-slate-200"}`} />
+              </div>
+              <div>
+                <label className="block text-[11px] font-bold mb-1.5 uppercase tracking-wide">Location *</label>
+                <input type="text" name="location" value={form.location} onChange={handleChange} placeholder="e.g. Delhi Corporate Office" required
                   className={`w-full p-2.5 rounded-lg border text-sm focus:border-indigo-500 focus:outline-none ${isDark ? "bg-gray-800 border-gray-700" : "bg-slate-50 border-slate-200"}`} />
               </div>
               <div>
@@ -212,11 +226,7 @@ export default function HiringRequisitionModal({ onClose, triggerToast, userComp
                     className={`w-full p-2.5 rounded-lg border text-sm focus:border-indigo-500 focus:outline-none ${isDark ? "bg-gray-800 border-gray-700" : "bg-slate-50 border-slate-200"}`} />
                 </div>
               </div>
-              <div className="col-span-1 md:col-span-2 lg:col-span-1">
-                <label className="block text-[11px] font-bold mb-1.5 uppercase tracking-wide">Reporting Manager</label>
-                <input type="text" name="reportingManager" value={form.reportingManager} onChange={handleChange} placeholder="Name"
-                  className={`w-full p-2.5 rounded-lg border text-sm focus:border-indigo-500 focus:outline-none ${isDark ? "bg-gray-800 border-gray-700" : "bg-slate-50 border-slate-200"}`} />
-              </div>
+
               <div className="col-span-1 md:col-span-2">
                 <label className="block text-[11px] font-bold mb-1.5 uppercase tracking-wide">Budget (P.A. or Monthly) *</label>
                 <div className="flex items-center gap-3">
@@ -228,6 +238,11 @@ export default function HiringRequisitionModal({ onClose, triggerToast, userComp
                 </div>
               </div>
               <div className="col-span-1 md:col-span-2">
+                <label className="block text-[11px] font-bold mb-1.5 uppercase tracking-wide">Qualification *</label>
+                <input type="text" name="qualification" value={form.qualification} onChange={handleChange} placeholder="e.g. MBA, B.Tech, Any Graduate" required
+                  className={`w-full p-2.5 rounded-lg border text-sm focus:border-indigo-500 focus:outline-none ${isDark ? "bg-gray-800 border-gray-700" : "bg-slate-50 border-slate-200"}`} />
+              </div>
+              <div className="col-span-1 md:col-span-2 lg:col-span-4">
                 <label className="block text-[11px] font-bold mb-1.5 uppercase tracking-wide">Required Skills</label>
                 <div className={`flex flex-col gap-2 p-2 rounded-lg border ${isDark ? "bg-gray-800 border-gray-700" : "bg-slate-50 border-slate-200"}`}>
                   <div className="flex flex-wrap gap-2">
@@ -239,8 +254,8 @@ export default function HiringRequisitionModal({ onClose, triggerToast, userComp
                         </button>
                       </span>
                     ))}
-                    <input 
-                      type="text" 
+                    <input
+                      type="text"
                       placeholder={skillsList.length === 0 ? "e.g. B2B Sales, CRM (Press Enter to add)" : "Add more..."}
                       value={currentSkill}
                       onChange={(e) => setCurrentSkill(e.target.value)}
@@ -254,7 +269,7 @@ export default function HiringRequisitionModal({ onClose, triggerToast, userComp
                           }
                         }
                       }}
-                      className="flex-1 min-w-[200px] bg-transparent text-sm focus:outline-none placeholder-slate-400" 
+                      className="flex-1 min-w-[200px] bg-transparent text-sm focus:outline-none placeholder-slate-400"
                     />
                   </div>
                 </div>
@@ -268,8 +283,8 @@ export default function HiringRequisitionModal({ onClose, triggerToast, userComp
               <h4 className="font-bold text-purple-700 dark:text-purple-400 flex items-center gap-2"><Sparkles className="w-4 h-4" /> AI Auto-Generate Content</h4>
               <p className="text-xs text-purple-600/70 dark:text-purple-300/70 mt-1">Make sure Role and Department are filled above to generate precise JD, KRA & KPI.</p>
             </div>
-            <button 
-              type="button" 
+            <button
+              type="button"
               onClick={handleGenerateAI}
               disabled={generating}
               className="bg-purple-600 hover:bg-purple-700 text-white px-5 py-2.5 rounded-lg text-sm font-bold shadow-md transition-all flex items-center gap-2 whitespace-nowrap disabled:opacity-50"
@@ -295,14 +310,9 @@ export default function HiringRequisitionModal({ onClose, triggerToast, userComp
               <textarea name="kpi" value={form.kpi} onChange={handleChange} rows={3} required placeholder="Performance indicators..."
                 className={`w-full p-3 rounded-lg border text-sm focus:border-indigo-500 focus:outline-none ${isDark ? "bg-gray-800 border-gray-700" : "bg-slate-50 border-slate-200"}`} />
             </div>
-            <div>
-              <label className="block text-[11px] font-bold mb-1.5 uppercase tracking-wide">Standard Operating Procedure (SOP) *</label>
-              <textarea name="sop" value={form.sop} onChange={handleChange} rows={3} required placeholder="SOP details..."
-                className={`w-full p-3 rounded-lg border text-sm focus:border-indigo-500 focus:outline-none ${isDark ? "bg-gray-800 border-gray-700" : "bg-slate-50 border-slate-200"}`} />
-            </div>
-            <div>
-              <label className="block text-[11px] font-bold mb-1.5 uppercase tracking-wide">Expected Output / Revenue Target</label>
-              <textarea name="expectedOutput" value={form.expectedOutput} onChange={handleChange} rows={3} placeholder="Revenue/Output targets..."
+            <div className="col-span-1 md:col-span-2">
+              <label className="block text-[11px] font-bold mb-1.5 uppercase tracking-wide">Expected Output / Revenue Target *</label>
+              <textarea name="expectedOutput" value={form.expectedOutput} onChange={handleChange} rows={3} required placeholder="Revenue/Output targets..."
                 className={`w-full p-3 rounded-lg border text-sm focus:border-indigo-500 focus:outline-none ${isDark ? "bg-gray-800 border-gray-700" : "bg-slate-50 border-slate-200"}`} />
             </div>
           </div>

@@ -113,13 +113,13 @@ export default function UnifiedEnterpriseDashboard() {
     department: "Sales",
     role: "",
     category: "Staff" as "Staff" | "Associate" | "Vendor" | "Franchise",
+    location: "",
     qty: 1,
     jd: "",
     kra: "",
     kpi: "",
-    sop: "",
+    qualification: "",
     salaryBudget: "",
-    reportingManager: "",
     riskLevel: "Low" as "Low" | "Medium" | "High" | "Critical",
     expectedOutput: "",
   });
@@ -149,9 +149,8 @@ export default function UnifiedEnterpriseDashboard() {
           jd: data.data.jd || prev.jd,
           kra: data.data.kra || prev.kra,
           kpi: data.data.kpi || prev.kpi,
-          sop: data.data.sop || prev.sop,
         }));
-        triggerToast("✨ AI generated JD, KRA, KPI & SOP successfully! Review and edit if needed.");
+        triggerToast("✨ AI generated JD, KRA & KPI successfully! Review and edit if needed.");
       } else {
         triggerToast("AI generation failed: " + data.error);
       }
@@ -164,16 +163,17 @@ export default function UnifiedEnterpriseDashboard() {
 
   const [jobForm, setJobForm] = useState({
     title: "",
-    companyName: "Acolyte Group of Companies",
-    departmentName: "Sales",
-    location: "Jaipur Office",
-    category: "Staff" as "Staff" | "Associate" | "Vendor" | "Franchise",
-    qualification: "Graduate",
-    experience: "1-3 Years",
-    salaryRange: "₹25,000 - ₹35,000",
+    companyName: "",
+    departmentName: "",
+    location: "",
+    category: "" as any,
+    qualification: "",
+    experience: "",
+    salaryRange: "",
     description: "",
     applicationLink: "",
-    source: "Indeed" as "Indeed" | "Naukri" | "WhatsApp" | "Walk-in" | "Referral" | "Other"
+    source: "" as any,
+    requisitionId: ""
   });
 
   const [candForm, setCandForm] = useState({
@@ -240,6 +240,8 @@ export default function UnifiedEnterpriseDashboard() {
 
 
 
+
+  const [dataLoaded, setDataLoaded] = useState(false);
 
   // Check login
   useEffect(() => {
@@ -373,8 +375,9 @@ export default function UnifiedEnterpriseDashboard() {
   };
 
   useEffect(() => {
-    if (status === "authenticated") {
+    if (status === "authenticated" && !dataLoaded) {
       loadAllData();
+      setDataLoaded(true);
 
       const role = (session?.user as any)?.role;
       if (role === "Owner" || role === "Director") {
@@ -395,7 +398,7 @@ export default function UnifiedEnterpriseDashboard() {
         setActiveTab("attendance");
       }
     }
-  }, [status, session]);
+  }, [status, session, dataLoaded]);
 
   // Form Handlers
   const handleAttendancePunch = async () => {
@@ -458,17 +461,17 @@ export default function UnifiedEnterpriseDashboard() {
       !hiringForm.department ||
       !hiringForm.role ||
       !hiringForm.category ||
+      !hiringForm.location ||
       !hiringForm.qty ||
       !hiringForm.jd ||
       !hiringForm.kra ||
       !hiringForm.kpi ||
-      !hiringForm.sop ||
+      !hiringForm.qualification ||
       !hiringForm.salaryBudget ||
-      !hiringForm.reportingManager ||
       !hiringForm.riskLevel ||
       !hiringForm.expectedOutput
     ) {
-      triggerToast("Please fill in all 13 hiring requirement fields!");
+      triggerToast("Please fill in all 12 hiring requirement fields!");
       return;
     }
     try {
@@ -479,22 +482,22 @@ export default function UnifiedEnterpriseDashboard() {
       });
       const data = await res.json();
       if (data.success) {
-        triggerToast("Hiring requisition registered at Stage 1 (Dept Head Desk)!");
-        setHiringForm({
-          companyName: "Acolyte Group of Companies",
-          department: "Sales",
-          role: "",
-          category: "Staff",
-          qty: 1,
-          jd: "",
-          kra: "",
-          kpi: "",
-          sop: "",
-          salaryBudget: "",
-          reportingManager: "",
-          riskLevel: "Low",
-          expectedOutput: "",
-        });
+         triggerToast("Hiring requisition registered at Stage 1 (Dept Head Desk)!");
+         setHiringForm({
+           companyName: "Acolyte Group of Companies",
+           department: "Sales",
+           role: "",
+           category: "Staff",
+           location: "",
+           qty: 1,
+           jd: "",
+           kra: "",
+           kpi: "",
+           qualification: "",
+           salaryBudget: "",
+           riskLevel: "Low",
+           expectedOutput: "",
+         });
         toggleModal("hiring", false);
         await loadRequisitions();
         await loadStats();
@@ -511,7 +514,8 @@ export default function UnifiedEnterpriseDashboard() {
     nextStatus: string,
     remarks: string,
     sourcingBudget?: string,
-    postingPlatform?: string
+    postingPlatform?: string,
+    postingDuration?: number
   ) => {
     try {
       const res = await fetch("/api/hiring", {
@@ -522,7 +526,8 @@ export default function UnifiedEnterpriseDashboard() {
           status: nextStatus,
           remarks,
           sourcingBudget,
-          postingPlatform
+          postingPlatform,
+          postingDuration
         })
       });
       const data = await res.json();
@@ -549,6 +554,73 @@ export default function UnifiedEnterpriseDashboard() {
     }
   };
 
+  const handleJobTitleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newVal = e.target.value;
+    
+    if (!newVal) {
+      setJobForm({
+        title: "",
+        companyName: "",
+        departmentName: "",
+        location: "",
+        category: "" as any,
+        qualification: "",
+        experience: "",
+        salaryRange: "",
+        description: "",
+        applicationLink: "",
+        source: "" as any,
+        requisitionId: ""
+      });
+      return;
+    }
+
+    // Check if newVal matches any approved pending requisition
+    const matchedReq = requisitions.find(
+      r => r.status === "Approved — Pending HR Post" && r.role.trim().toLowerCase() === newVal.trim().toLowerCase()
+    );
+    
+    if (matchedReq) {
+      const expMin = matchedReq.experience?.min || 0;
+      const expMax = matchedReq.experience?.max || 0;
+      const expString = (expMin === 0 && expMax === 0)
+        ? "Fresher"
+        : expMin === expMax
+          ? `${expMin} Years`
+          : `${expMin}-${expMax} Years`;
+
+      const budgetMin = matchedReq.budget?.min || 0;
+      const budgetMax = matchedReq.budget?.max || 0;
+      const salaryString = (budgetMin === 0 && budgetMax === 0)
+        ? "As per industry standards"
+        : budgetMin === budgetMax
+          ? `₹${budgetMin.toLocaleString("en-IN")} P.A.`
+          : `₹${budgetMin.toLocaleString("en-IN")} - ₹${budgetMax.toLocaleString("en-IN")} P.A.`;
+
+      setJobForm({
+        title: matchedReq.role,
+        companyName: matchedReq.companyName || "",
+        departmentName: matchedReq.department || "",
+        location: matchedReq.location || "",
+        category: matchedReq.category || "" as any,
+        qualification: matchedReq.qualification || "",
+        experience: expString,
+        salaryRange: salaryString,
+        description: `Role: ${matchedReq.role}\nDepartment: ${matchedReq.department}\nJob Category: ${matchedReq.category}\nJD: ${matchedReq.jd}\nKRA: ${matchedReq.kra}\nKPI: ${matchedReq.kpi}\nQualification: ${matchedReq.qualification}`,
+        applicationLink: "",
+        source: "Indeed",
+        requisitionId: matchedReq._id
+      });
+    } else {
+      // Just update the title, clear requisitionId since it's custom
+      setJobForm(prev => ({
+        ...prev,
+        title: newVal,
+        requisitionId: ""
+      }));
+    }
+  };
+
   const handlePostJobSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!jobForm.title || !jobForm.companyName || !jobForm.departmentName || !jobForm.location || !jobForm.description) {
@@ -571,6 +643,7 @@ export default function UnifiedEnterpriseDashboard() {
           description: jobForm.description,
           applicationLink: jobForm.applicationLink,
           source: jobForm.source,
+          requisitionId: jobForm.requisitionId,
         }),
       });
       const data = await res.json();
@@ -583,19 +656,21 @@ export default function UnifiedEnterpriseDashboard() {
         }
         setJobForm({
           title: "",
-          companyName: "Acolyte Group of Companies",
-          departmentName: "Sales",
-          location: "Jaipur Office",
-          category: "Staff",
-          qualification: "Graduate",
-          experience: "1-3 Years",
-          salaryRange: "₹25,000 - ₹35,000",
+          companyName: "",
+          departmentName: "",
+          location: "",
+          category: "" as any,
+          qualification: "",
+          experience: "",
+          salaryRange: "",
           description: "",
           applicationLink: "",
-          source: "Indeed"
+          source: "" as any,
+          requisitionId: ""
         });
         toggleModal("job", false);
         await loadPostedJobs();
+        await loadRequisitions();
         await loadStats();
       } else {
         triggerToast("Failed to post: " + data.error);
@@ -627,7 +702,7 @@ export default function UnifiedEnterpriseDashboard() {
           expectedSalary: candForm.expectedSalary || "Negotiable",
           noticePeriod: candForm.noticePeriod || "Immediate",
           currentRound: 1,
-          status: "Applied",
+          status: "Pending",
           riskAnswers: {
             sideBusiness: candForm.sideBusiness ? "Yes" : "No",
             loanPressure: candForm.loanPressure ? "Yes" : "No",
@@ -810,7 +885,9 @@ export default function UnifiedEnterpriseDashboard() {
           {activeTab === "hr-dash" && (
             <HrDashboard
               stats={stats}
+              candidates={candidates}
               onNavigateTab={setActiveTab}
+              onOpenHiringModal={() => toggleModal("hiring", true)}
             />
           )}
 
@@ -832,6 +909,7 @@ export default function UnifiedEnterpriseDashboard() {
             <DepartmentDashboard
               stats={stats}
               onNavigateTab={setActiveTab}
+              onOpenHiringModal={() => toggleModal("hiring", true)}
             />
           )}
 
@@ -983,14 +1061,14 @@ export default function UnifiedEnterpriseDashboard() {
 
       {/* Floating Toast Notification */}
       {toastShow && (
-        <div className="fixed bottom-6 right-6 z-50 bg-[#714B67] text-white px-5 py-3.5 rounded-lg shadow-2xl flex items-center justify-between gap-4 animate-slideIn">
+        <div className="fixed bottom-6 right-6 z-[9999] bg-[#714B67] text-white px-5 py-3.5 rounded-lg shadow-2xl flex items-center justify-between gap-4 animate-slideIn">
           <span className="text-xs font-bold font-mono tracking-wide">{toastMsg}</span>
           <button onClick={() => setToastShow(false)} className="text-slate-200 hover:text-white"><X className="w-4 h-4" /></button>
         </div>
       )}
 
       {/* MODAL 1: HIRING REQUISITION FORM */}
-      {modals.hiring && ["Owner", "Director", "HR Head", "Department Manager"].includes((session?.user as any)?.role || "") && (
+      {modals.hiring && (
         <HiringRequisitionModal
           onClose={() => toggleModal("hiring", false)}
           triggerToast={triggerToast}
@@ -1012,12 +1090,23 @@ export default function UnifiedEnterpriseDashboard() {
                 <div>
                   <label className="text-[10px] uppercase font-black text-slate-500 font-mono tracking-widest">1. Job Title</label>
                   <input
+                    list="vacancy-options"
                     className="w-full bg-white border border-slate-300 rounded p-2.5 text-slate-900 mt-1 focus:outline-none focus:border-[#714B67]"
                     placeholder="e.g. BDA Executive"
                     value={jobForm.title}
-                    onChange={e => setJobForm({ ...jobForm, title: e.target.value })}
+                    onChange={handleJobTitleInputChange}
                     required
                   />
+                  <datalist id="vacancy-options">
+                    {requisitions
+                      .filter(r => r.status === "Approved — Pending HR Post")
+                      .map(r => (
+                        <option key={r._id} value={r.role}>
+                          {r.companyName || "Acolyte"} - {r.department}
+                        </option>
+                      ))
+                    }
+                  </datalist>
                 </div>
                 <div>
                   <label className="text-[10px] uppercase font-black text-slate-500 font-mono tracking-widest">2. Company</label>
@@ -1035,10 +1124,12 @@ export default function UnifiedEnterpriseDashboard() {
                 <div>
                   <label className="text-[10px] uppercase font-black text-slate-500 font-mono tracking-widest">3. Department</label>
                   <select
-                    className="w-full bg-white border border-slate-300 rounded p-2.5 text-slate-700 mt-1 focus:outline-none focus:border-[#714B67]"
+                    className="w-full bg-white border border-slate-300 rounded p-2.5 text-slate-750 mt-1 focus:outline-none focus:border-[#714B67]"
                     value={jobForm.departmentName}
                     onChange={e => setJobForm({ ...jobForm, departmentName: e.target.value })}
+                    required
                   >
+                    <option value="">-- Select Department --</option>
                     <option value="Sales">Sales</option>
                     <option value="Accounts">Accounts</option>
                     <option value="HR">HR</option>
@@ -1063,10 +1154,12 @@ export default function UnifiedEnterpriseDashboard() {
                 <div>
                   <label className="text-[10px] uppercase font-black text-slate-500 font-mono tracking-widest">5. Category</label>
                   <select
-                    className="w-full bg-white border border-slate-300 rounded p-2.5 text-slate-700 mt-1 focus:outline-none focus:border-[#714B67]"
+                    className="w-full bg-white border border-slate-300 rounded p-2.5 text-slate-750 mt-1 focus:outline-none focus:border-[#714B67]"
                     value={jobForm.category}
                     onChange={e => setJobForm({ ...jobForm, category: e.target.value as any })}
+                    required
                   >
+                    <option value="">-- Select Category --</option>
                     <option value="Staff">Staff</option>
                     <option value="Associate">Associate</option>
                     <option value="Vendor">Vendor</option>
@@ -1121,10 +1214,12 @@ export default function UnifiedEnterpriseDashboard() {
                 <div>
                   <label className="text-[10px] uppercase font-black text-slate-500 font-mono tracking-widest">11. Source Linkage</label>
                   <select
-                    className="w-full bg-white border border-slate-300 rounded p-2.5 text-slate-700 mt-1 focus:outline-none focus:border-[#714B67]"
+                    className="w-full bg-white border border-slate-300 rounded p-2.5 text-slate-750 mt-1 focus:outline-none focus:border-[#714B67]"
                     value={jobForm.source}
                     onChange={e => setJobForm({ ...jobForm, source: e.target.value as any })}
+                    required
                   >
+                    <option value="">-- Select Source --</option>
                     <option value="Indeed">Indeed</option>
                     <option value="Naukri">Naukri</option>
                     <option value="WhatsApp">WhatsApp</option>

@@ -14,6 +14,7 @@ export interface IJob extends Document {
   source?: string;
   status: "active" | "inactive";
   shareableLink?: string;
+  postingDuration?: number;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -41,6 +42,7 @@ const JobSchema: Schema = new Schema(
     },
     status: { type: String, enum: ["active", "inactive"], default: "active" },
     shareableLink: { type: String },
+    postingDuration: { type: Number },
   },
   { timestamps: true }
 );

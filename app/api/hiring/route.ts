@@ -31,6 +31,7 @@ export async function POST(req: Request) {
       department,
       role,
       category,
+      location,
       qty,
       gender,
       experience,
@@ -39,18 +40,17 @@ export async function POST(req: Request) {
       jd,
       kra,
       kpi,
-      sop,
+      qualification,
       monitoringBenefits,
       companyGrowthBenefits,
       dateOfRequirement,
-      reportingManager,
       riskLevel,
       expectedOutput,
     } = body;
 
     if (
-      !companyName || !department || !role || !category || !qty ||
-      !jd || !kra || !kpi || !sop || !reportingManager ||
+      !companyName || !department || !role || !location || !category || !qty ||
+      !jd || !kra || !kpi || !qualification ||
       !riskLevel || !expectedOutput || !budget
     ) {
       return NextResponse.json({ success: false, error: "Missing required fields" }, { status: 400 });
@@ -60,20 +60,20 @@ export async function POST(req: Request) {
       companyName,
       department,
       role,
+      location,
       category,
       qty: Number(qty),
       gender: gender || "Any",
       experience: { min: Number(experience?.min || 0), max: Number(experience?.max || 0) },
       budget: { min: Number(budget?.min || 0), max: Number(budget?.max || 0) },
       skills,
+      qualification,
       jd,
       kra,
       kpi,
-      sop,
       monitoringBenefits,
       companyGrowthBenefits,
       dateOfRequirement: dateOfRequirement ? new Date(dateOfRequirement) : new Date(),
-      reportingManager,
       riskLevel,
       expectedOutput,
       status: "Pending HR Sourcing Review",   // Step 1 → goes to HR Sourcing first
@@ -97,7 +97,7 @@ export async function PUT(req: Request) {
     }
 
     const body = await req.json();
-    const { id, status, remarks, sourcingBudget, postingPlatform } = body;
+    const { id, status, remarks, sourcingBudget, postingPlatform, postingDuration } = body;
 
     if (!id || !status) {
       return NextResponse.json({ success: false, error: "Missing requisition ID or status" }, { status: 400 });
@@ -117,6 +117,9 @@ export async function PUT(req: Request) {
       }
       if (postingPlatform !== undefined) {
         requisition.postingPlatform = postingPlatform;
+      }
+      if (postingDuration !== undefined) {
+        requisition.postingDuration = Number(postingDuration);
       }
 
     // ─── Stage 2 → 3: Accounts recommends → forwards to Owner ──────────
@@ -144,18 +147,35 @@ export async function PUT(req: Request) {
         (await Department.findOne()) ||
         { _id: "65edbe12f122822a12121213" };
 
+      const expMin = requisition.experience?.min || 0;
+      const expMax = requisition.experience?.max || 0;
+      const expString = (expMin === 0 && expMax === 0)
+        ? "Fresher"
+        : expMin === expMax
+          ? `${expMin} Years`
+          : `${expMin}-${expMax} Years`;
+
+      const budgetMin = requisition.budget?.min || 0;
+      const budgetMax = requisition.budget?.max || 0;
+      const salaryString = (budgetMin === 0 && budgetMax === 0)
+        ? "As per industry standards"
+        : budgetMin === budgetMax
+          ? `₹${budgetMin.toLocaleString("en-IN")} P.A.`
+          : `₹${budgetMin.toLocaleString("en-IN")} - ₹${budgetMax.toLocaleString("en-IN")} P.A.`;
+
       const job = new Job({
         title: requisition.role,
         company: comp._id,
         department: dept._id,
-        location: "Delhi Corporate Office",
+        location: requisition.location || "Delhi Corporate Office",
         category: requisition.category,
-        qualification: "Graduate / PG",
-        experience: "1-3 Years",
-        salaryRange: `₹${requisition.budget?.min?.toLocaleString("en-IN")} - ₹${requisition.budget?.max?.toLocaleString("en-IN")} P.A.`,
-        description: `Role: ${requisition.role}\nDepartment: ${requisition.department}\nJob Category: ${requisition.category}\nJD: ${requisition.jd}\nKRA: ${requisition.kra}\nKPI: ${requisition.kpi}\nSOP: ${requisition.sop}`,
+        qualification: requisition.qualification || "Graduate",
+        experience: expString,
+        salaryRange: salaryString,
+        description: `Role: ${requisition.role}\nDepartment: ${requisition.department}\nJob Category: ${requisition.category}\nJD: ${requisition.jd}\nKRA: ${requisition.kra}\nKPI: ${requisition.kpi}\nQualification: ${requisition.qualification}`,
         status: "active",
         source: requisition.postingPlatform || "Indeed",
+        postingDuration: requisition.postingDuration,
       });
       await job.save();
 

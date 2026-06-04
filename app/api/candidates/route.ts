@@ -46,6 +46,47 @@ export async function POST(req: Request) {
     let jobExists = null;
     if (jobId) {
       jobExists = await Job.findById(jobId);
+      if (!jobExists) {
+        return NextResponse.json({ success: false, error: "Job posting not found" }, { status: 400 });
+      }
+    }
+
+    // 3-month Reapply Limitation Check
+    if (jobExists && jobExists.company) {
+      const emailEscaped = email.trim().replace(/[-\/\\^$*+?.()|[\]{}]/g, "\\$&");
+      const existingCandidates = await Candidate.find({
+        $or: [
+          { email: { $regex: new RegExp("^" + emailEscaped + "$", "i") } },
+          { mobile: mobile.trim() }
+        ],
+        status: { $ne: "inactive" }
+      }).populate("job");
+
+      const threeMonthsAgo = new Date();
+      threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+
+      const recentApp = existingCandidates.find(c => {
+        if (c.job && c.job.company) {
+          const isSameCompany = c.job.company.toString() === jobExists.company.toString();
+          const isWithin3Months = new Date(c.createdAt) >= threeMonthsAgo;
+          return isSameCompany && isWithin3Months;
+        }
+        return false;
+      });
+
+      if (recentApp) {
+        const nextAllowedDate = new Date(recentApp.createdAt);
+        nextAllowedDate.setMonth(nextAllowedDate.getMonth() + 3);
+        const formattedDate = nextAllowedDate.toLocaleDateString("en-IN", {
+          day: "2-digit",
+          month: "short",
+          year: "numeric"
+        });
+        return NextResponse.json({
+          success: false,
+          error: `You have already applied to this company within the last 3 months. You can re-apply after ${formattedDate}.`
+        }, { status: 400 });
+      }
     }
 
     // Create Candidate record

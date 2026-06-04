@@ -1,6 +1,6 @@
 import React from "react";
-import { 
-  RotateCw, 
+import {
+  RotateCw,
   AlertTriangle,
   Users,
   UserCheck,
@@ -27,6 +27,7 @@ import AttendanceChart from "./AttendanceChart";
 import PerformanceChart from "./PerformanceChart";
 import ActivityFeed from "./ActivityFeed";
 import HiringRequisitionModal from "./HiringRequisitionModal";
+import HiringTrendsChart from "./HiringTrendsChart";
 
 interface OverviewProps {
   stats: any;
@@ -36,12 +37,12 @@ interface OverviewProps {
   triggerToast: (msg: string) => void;
 }
 
-export function OwnerDashboard({ 
-  stats, 
-  riskAlertList, 
-  onResolveAlert, 
-  onNavigateTab, 
-  triggerToast 
+export function OwnerDashboard({
+  stats,
+  riskAlertList,
+  onResolveAlert,
+  onNavigateTab,
+  triggerToast
 }: OverviewProps) {
   const [isDark, setIsDark] = React.useState(false);
 
@@ -66,13 +67,13 @@ export function OwnerDashboard({
           </p>
         </div>
         <div className="flex gap-3">
-          <button 
+          <button
             className={`px-4 py-2 border rounded-lg text-sm font-medium transition-colors shadow-sm ${isDark ? "bg-gray-800 border-gray-700 text-gray-300 hover:bg-gray-700" : "bg-white border-slate-200 text-slate-700 hover:bg-slate-50"}`}
             onClick={() => triggerToast("Exporting comprehensive report...")}
           >
             Export Report
           </button>
-          <button 
+          <button
             className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-sm font-medium transition-colors shadow-sm flex items-center gap-2"
             onClick={() => triggerToast("Enterprise metrics synchronized successfully")}
           >
@@ -83,36 +84,36 @@ export function OwnerDashboard({
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <StatCard 
-          title="Active Employees" 
-          value={stats?.roles?.employees?.toString() || "0"} 
-          trend="+5.2%" 
-          trendUp={true} 
-          icon={<Users className="w-5 h-5" />} 
+        <StatCard
+          title="Active Employees"
+          value={stats?.roles?.employees?.toString() || "0"}
+          trend="+5.2%"
+          trendUp={true}
+          icon={<Users className="w-5 h-5" />}
           dark={isDark}
         />
-        <StatCard 
-          title="Total Candidates" 
-          value={stats?.candidates?.total?.toString() || "0"} 
-          trend="+12 this week" 
-          trendUp={true} 
-          icon={<UserPlus className="w-5 h-5" />} 
+        <StatCard
+          title="Total Candidates"
+          value={stats?.candidates?.total?.toString() || "0"}
+          trend="+12 this week"
+          trendUp={true}
+          icon={<UserPlus className="w-5 h-5" />}
           dark={isDark}
         />
-        <StatCard 
-          title="Pending Interviews" 
-          value={stats?.interviews?.pending?.toString() || "0"} 
-          trend="Action required" 
-          trendUp={false} 
-          icon={<Clock className="w-5 h-5" />} 
+        <StatCard
+          title="Pending Interviews"
+          value={stats?.interviews?.pending?.toString() || "0"}
+          trend="Action required"
+          trendUp={false}
+          icon={<Clock className="w-5 h-5" />}
           dark={isDark}
         />
-        <StatCard 
-          title="High-Risk Alerts" 
-          value={stats?.alerts?.criticalRisk?.toString() || "0"} 
-          trend="Needs immediate review" 
-          trendUp={false} 
-          icon={<ShieldAlert className="w-5 h-5 text-rose-500" />} 
+        <StatCard
+          title="High-Risk Alerts"
+          value={stats?.alerts?.criticalRisk?.toString() || "0"}
+          trend="Needs immediate review"
+          trendUp={false}
+          icon={<ShieldAlert className="w-5 h-5 text-rose-500" />}
           dark={isDark}
         />
       </div>
@@ -163,14 +164,13 @@ export function OwnerDashboard({
                 "Add Employee", "Approve Leaves", "Process Payroll", "Post Job",
                 "Start Appraisal", "Assign Training", "Announce", "Export Data"
               ].map((action, i) => (
-                <button 
+                <button
                   key={i}
                   onClick={() => triggerToast(`Navigating to ${action}`)}
-                  className={`text-xs font-semibold p-3 rounded-lg border transition-colors ${
-                    isDark 
-                      ? "bg-gray-800 border-gray-700 text-gray-300 hover:bg-gray-700 hover:border-gray-600" 
+                  className={`text-xs font-semibold p-3 rounded-lg border transition-colors ${isDark
+                      ? "bg-gray-800 border-gray-700 text-gray-300 hover:bg-gray-700 hover:border-gray-600"
                       : "bg-slate-50 border-slate-200 text-slate-700 hover:bg-white hover:border-purple-300 hover:shadow-sm hover:text-purple-700"
-                  }`}
+                    }`}
                 >
                   {action}
                 </button>
@@ -183,15 +183,20 @@ export function OwnerDashboard({
   );
 }
 
-export function HrDashboard({ 
+export function HrDashboard({
   stats,
-  onNavigateTab 
-}: { 
+  candidates = [],
+  onNavigateTab,
+  onOpenHiringModal
+}: {
   stats: any;
+  candidates?: any[];
   onNavigateTab: (tab: string) => void;
+  onOpenHiringModal?: () => void;
 }) {
   const hrStats = stats?.hrStats || {};
   const [isDark, setIsDark] = React.useState(false);
+  const [filterType, setFilterType] = React.useState<"this-week" | "last-week" | "prev-month">("this-week");
 
   React.useEffect(() => {
     setIsDark(document.documentElement.classList.contains("dark"));
@@ -214,49 +219,52 @@ export function HrDashboard({
           </p>
         </div>
         <div className="flex gap-3">
-          <button className={`px-4 py-2 border rounded-lg text-sm font-medium transition-colors shadow-sm ${isDark ? "bg-gray-800 border-gray-700 text-gray-300 hover:bg-gray-700" : "bg-white border-slate-200 text-slate-700 hover:bg-slate-50"}`}>
+          {/* <button className={`px-4 py-2 border rounded-lg text-sm font-medium transition-colors shadow-sm ${isDark ? "bg-gray-800 border-gray-700 text-gray-300 hover:bg-gray-700" : "bg-white border-slate-200 text-slate-700 hover:bg-slate-50"}`}>
             Export HR Report
-          </button>
-          <button className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium transition-colors shadow-sm flex items-center gap-2">
+          </button> */}
+          <button
+            onClick={onOpenHiringModal}
+            className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium transition-colors shadow-sm flex items-center gap-2"
+          >
             <UserPlus className="w-4 h-4" /> New Hire
           </button>
         </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <StatCard 
-          title="Today's Interviews" 
-          value={hrStats.interviewsToday?.toString() || "0"} 
-          trend="Scheduled for today" 
-          trendUp={true} 
-          icon={<CalendarClock className="w-5 h-5" />} 
+        <StatCard
+          title="Today's Interviews"
+          value={hrStats.interviewsToday?.toString() || "0"}
+          trend="Scheduled for today"
+          trendUp={true}
+          icon={<CalendarClock className="w-5 h-5" />}
           dark={isDark}
           onClick={() => onNavigateTab("interviews")}
         />
-        <StatCard 
-          title="Verification Pending" 
-          value={hrStats.verificationPending?.toString() || "0"} 
-          trend="Requires action" 
-          trendUp={false} 
-          icon={<FileSearch className="w-5 h-5" />} 
+        <StatCard
+          title="Verification Pending"
+          value={hrStats.verificationPending?.toString() || "0"}
+          trend="Requires action"
+          trendUp={false}
+          icon={<FileSearch className="w-5 h-5" />}
           dark={isDark}
           onClick={() => onNavigateTab("verification")}
         />
-        <StatCard 
-          title="HR Logs" 
-          value={hrStats.hrLeadsCount?.toString() || "0"} 
-          trend="Candidate leads" 
-          trendUp={true} 
-          icon={<Users className="w-5 h-5 text-indigo-500" />} 
+        <StatCard
+          title="HR Logs"
+          value={hrStats.hrLeadsCount?.toString() || "0"}
+          trend="Candidate leads"
+          trendUp={true}
+          icon={<Users className="w-5 h-5 text-indigo-500" />}
           dark={isDark}
           onClick={() => onNavigateTab("hr-leads")}
         />
-        <StatCard 
-          title="Rejected Logs" 
-          value={hrStats.rejectedCount?.toString() || "0"} 
-          trend="Rejected candidates" 
-          trendUp={false} 
-          icon={<ShieldX className="w-5 h-5 text-rose-500" />} 
+        <StatCard
+          title="Rejected Logs"
+          value={hrStats.rejectedCount?.toString() || "0"}
+          trend="Rejected candidates"
+          trendUp={false}
+          icon={<ShieldX className="w-5 h-5 text-rose-500" />}
           dark={isDark}
           onClick={() => onNavigateTab("hr-leads")}
         />
@@ -267,12 +275,17 @@ export function HrDashboard({
           <div className={`p-6 rounded-xl border shadow-sm ${isDark ? "bg-gray-900 border-gray-800" : "bg-white border-slate-200"}`}>
             <div className="flex items-center justify-between mb-4">
               <h2 className={`text-lg font-bold ${isDark ? "text-white" : "text-slate-800"}`}>Hiring Pipeline Trends</h2>
-              <select className={`text-xs border rounded px-2 py-1 outline-none ${isDark ? "bg-gray-800 border-gray-700 text-gray-300" : "bg-white border-slate-200 text-slate-600"}`}>
-                <option>This Quarter</option>
-                <option>Last Quarter</option>
+              <select
+                value={filterType}
+                onChange={(e) => setFilterType(e.target.value as any)}
+                className={`text-xs border rounded px-2 py-1 outline-none ${isDark ? "bg-gray-800 border-gray-700 text-gray-300" : "bg-white border-slate-200 text-slate-600"}`}
+              >
+                <option value="this-week">This Week</option>
+                <option value="last-week">Last Week</option>
+                <option value="prev-month">Previous Month</option>
               </select>
             </div>
-            <AttendanceChart dark={isDark} />
+            <HiringTrendsChart candidates={candidates} filterType={filterType} dark={isDark} />
           </div>
         </div>
 
@@ -291,16 +304,17 @@ export function HrDashboard({
   );
 }
 
-export function DepartmentDashboard({ 
+export function DepartmentDashboard({
   stats,
-  onNavigateTab 
-}: { 
+  onNavigateTab,
+  onOpenHiringModal
+}: {
   stats: any;
   onNavigateTab: (tab: string) => void;
+  onOpenHiringModal?: () => void;
 }) {
   const deptStats = stats?.deptStats || {};
   const [isDark, setIsDark] = React.useState(false);
-  const [showHiringModal, setShowHiringModal] = React.useState(false);
 
   React.useEffect(() => {
     setIsDark(document.documentElement.classList.contains("dark"));
@@ -323,8 +337,8 @@ export function DepartmentDashboard({
           </p>
         </div>
         <div className="flex items-center gap-3">
-          <button 
-            onClick={() => setShowHiringModal(true)}
+          <button
+            onClick={onOpenHiringModal}
             className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors shadow-sm flex items-center gap-2"
           >
             <PlusCircle className="w-4 h-4" /> Add Requirement
@@ -332,44 +346,37 @@ export function DepartmentDashboard({
         </div>
       </div>
 
-      {showHiringModal && (
-        <HiringRequisitionModal 
-          onClose={() => setShowHiringModal(false)} 
-          triggerToast={(msg) => alert(msg)} 
-        />
-      )}
-
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <StatCard 
-          title="Team Members" 
-          value={deptStats.teamMembers?.toString() || "0"} 
-          trend="Total active" 
-          trendUp={true} 
-          icon={<Users className="w-5 h-5" />} 
+        <StatCard
+          title="Team Members"
+          value={deptStats.teamMembers?.toString() || "0"}
+          trend="Total active"
+          trendUp={true}
+          icon={<Users className="w-5 h-5" />}
           dark={isDark}
         />
-        <StatCard 
-          title="Today's Tasks" 
-          value={deptStats.tasksToday?.toString() || "0"} 
-          trend="Pending completion" 
-          trendUp={true} 
-          icon={<Briefcase className="w-5 h-5" />} 
+        <StatCard
+          title="Today's Tasks"
+          value={deptStats.tasksToday?.toString() || "0"}
+          trend="Pending completion"
+          trendUp={true}
+          icon={<Briefcase className="w-5 h-5" />}
           dark={isDark}
         />
-        <StatCard 
-          title="SOD / EOD" 
-          value={`${deptStats.sod || 0} / ${deptStats.eod || 0}`} 
-          trend="Team compliance" 
-          trendUp={true} 
-          icon={<Clock className="w-5 h-5" />} 
+        <StatCard
+          title="SOD / EOD"
+          value={`${deptStats.sod || 0} / ${deptStats.eod || 0}`}
+          trend="Team compliance"
+          trendUp={true}
+          icon={<Clock className="w-5 h-5" />}
           dark={isDark}
         />
-        <StatCard 
-          title="Avg Performance" 
-          value={`${deptStats.performanceAvg || 0}%`} 
-          trend="Current quarter" 
-          trendUp={true} 
-          icon={<TrendingUp className="w-5 h-5" />} 
+        <StatCard
+          title="Avg Performance"
+          value={`${deptStats.performanceAvg || 0}%`}
+          trend="Current quarter"
+          trendUp={true}
+          icon={<TrendingUp className="w-5 h-5" />}
           dark={isDark}
         />
       </div>

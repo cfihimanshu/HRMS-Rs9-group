@@ -58,16 +58,18 @@ export function HiringApproval({
   userRole
 }: {
   requisitions: any[];
-  onApproveRequisition: (id: string, nextStatus: string, remarks: string, budget?: string, platform?: string) => void;
+  onApproveRequisition: (id: string, nextStatus: string, remarks: string, budget?: string, platform?: string, postingDuration?: number) => void;
   toggleModal: (modalId: string, open: boolean) => void;
   triggerToast: (msg: string) => void;
   userRole?: string;
 }) {
   const [activeTab, setActiveTab] = useState<string>("Manager");
+  const [hasSetDefaultTab, setHasSetDefaultTab] = useState(false);
   const [expandedReq, setExpandedReq] = useState<string | null>(null);
   const [remarksInput, setRemarksInput] = useState<{ [key: string]: string }>({});
   const [budgetInput, setBudgetInput] = useState<{ [key: string]: string }>({});
   const [platformInput, setPlatformInput] = useState<{ [key: string]: string }>({});
+  const [durationInput, setDurationInput] = useState<{ [key: string]: string }>({});
 
   const isHR = userRole === "HR Head" || userRole === "HR Executive" || userRole === "HR";
   const isAllowedRequisition = userRole === "Owner" || userRole === "Director" || userRole === "HR Head" || userRole === "Department Manager";
@@ -77,12 +79,22 @@ export function HiringApproval({
     : requisitions;
 
   const filteredRequisitions = visibleRequisitions.filter((req) => {
+    if (userRole === "Accounts" && activeTab !== "Accounts") return false;
     if (activeTab === "HRSourcing") return req.status === "Pending HR Sourcing Review";
     if (activeTab === "Accounts") return req.status === "Pending Accounts Review";
     if (activeTab === "Owner") return req.status === "Pending Owner Approval";
     if (activeTab === "HRPosting") return req.status === "Approved — Pending HR Post" || req.status === "Job Posted";
     return true;
   });
+
+  useEffect(() => {
+    if (userRole && !hasSetDefaultTab) {
+      if (userRole === "Accounts") {
+        setActiveTab("Accounts");
+      }
+      setHasSetDefaultTab(true);
+    }
+  }, [userRole, hasSetDefaultTab]);
 
   useEffect(() => {
     if (isHR && activeTab !== "HRSourcing" && activeTab !== "HRPosting") {
@@ -100,6 +112,10 @@ export function HiringApproval({
 
   const handlePlatformChange = (reqId: string, val: string) => {
     setPlatformInput(prev => ({ ...prev, [reqId]: val }));
+  };
+
+  const handleDurationChange = (reqId: string, val: string) => {
+    setDurationInput(prev => ({ ...prev, [reqId]: val }));
   };
 
   const stats = {
@@ -212,6 +228,7 @@ export function HiringApproval({
           const remarks = remarksInput[req._id] || "";
           const budget = budgetInput[req._id] || "";
           const platform = platformInput[req._id] || "Indeed";
+          const duration = durationInput[req._id] || "";
 
           return (
             <div key={idx} className="bg-white border border-slate-200 rounded-xl shadow-sm hover:shadow-md transition-all overflow-hidden">
@@ -228,8 +245,16 @@ export function HiringApproval({
                       {req.status}
                     </span>
                   </div>
-                  <div className="text-[10px] text-slate-500 font-bold font-mono">
-                    🏢 {req.companyName || "Acolyte Group"} | 📂 {req.department} | 👤 By {req.createdBy}
+                  <div className="text-[10px] text-slate-500 font-bold font-mono flex items-center gap-1.5 flex-wrap">
+                    <span>🏢 {req.companyName || "Acolyte Group"}</span>
+                    <span>|</span>
+                    <span>📂 {req.department}</span>
+                    <span>|</span>
+                    <span>👤 By {req.createdBy}</span>
+                    <span>|</span>
+                    <span className="text-[#714B67] bg-[#714B67]/5 px-1.5 py-0.5 rounded border border-[#714B67]/10 font-bold">
+                      📅 Posted on: {req.createdAt ? new Date(req.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }) : "N/A"}
+                    </span>
                   </div>
                 </div>
 
@@ -266,9 +291,10 @@ export function HiringApproval({
                       { label: "4. Category", val: req.category || "Staff" },
                       { label: "5. Required Number", val: `${req.qty} Position(s)` },
                       { label: "10. Salary Budget P.A.", val: `₹${req.salaryBudget ? req.salaryBudget.toLocaleString("en-IN") : req.salaryRange}` },
-                      { label: "11. Reporting Manager", val: req.reportingManager || "Not Specified" },
-                      { label: "12. Risk Level", val: req.riskLevel || "Low" },
-                      { label: "13. Expected Output", val: req.expectedOutput || "Not Specified" },
+                      { label: "11. Risk Level", val: req.riskLevel || "Low" },
+                      { label: "12. Expected Output", val: req.expectedOutput || "Not Specified" },
+                      { label: "13. Qualification Required", val: req.qualification || "Not Specified" },
+                      { label: "14. Job Location", val: req.location || "Not Specified" },
                     ].map((f, i) => (
                       <div key={i}>
                         <span className="block text-[9px] font-black uppercase tracking-wider text-slate-400 font-mono">{f.label}</span>
@@ -277,13 +303,12 @@ export function HiringApproval({
                     ))}
                   </div>
 
-                  {/* JD/KRA/KPI/SOP */}
+                  {/* JD/KRA/KPI */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {[
                       { label: "6. Job Description (JD)", val: req.jd },
                       { label: "7. Key Result Areas (KRA)", val: req.kra },
                       { label: "8. Key Perf. Indicators (KPI)", val: req.kpi },
-                      { label: "9. Standard Operating Procedure (SOP)", val: req.sop },
                     ].map((f, i) => (
                       <div key={i} className="bg-white border border-slate-200 p-3.5 rounded-xl">
                         <span className="block text-[9px] font-black uppercase tracking-wider text-[#714B67] font-mono">{f.label}</span>
@@ -299,10 +324,11 @@ export function HiringApproval({
                       <div className="bg-white p-2.5 rounded-lg border border-slate-200">
                         <span className="block font-black text-fuchsia-600 uppercase font-mono">Step 2: HR Sourcing</span>
                         <p className="text-slate-600 mt-1 font-medium italic">{req.hrSourcingRemarks || "Pending HR review..."}</p>
-                        {(req.sourcingBudget || req.postingPlatform) && (
+                        {(req.sourcingBudget || req.postingPlatform || req.postingDuration) && (
                           <div className="mt-1.5 pt-1.5 border-t border-slate-100 font-bold text-slate-750 flex flex-col gap-0.5">
                             {req.sourcingBudget && <div>Budget: ₹{req.sourcingBudget.toLocaleString("en-IN")}</div>}
                             {req.postingPlatform && <div>Platform: {req.postingPlatform}</div>}
+                            {req.postingDuration && <div>Duration: {req.postingDuration} Days</div>}
                           </div>
                         )}
                       </div>
@@ -316,10 +342,10 @@ export function HiringApproval({
                       </div>
                     </div>
                   </div>
-
+ 
                   {/* Action Desks */}
                   <div className="pt-2">
-
+ 
                     {/* HR SOURCING DESK */}
                     {activeTab === "HRSourcing" && req.status === "Pending HR Sourcing Review" && (
                       <div className="bg-gradient-to-r from-fuchsia-500/5 to-pink-500/5 border border-fuchsia-500/20 rounded-xl p-4 space-y-3">
@@ -352,6 +378,16 @@ export function HiringApproval({
                                 <option value="Linkedin">Linkedin</option>
                               </select>
                             </div>
+                            <div className="w-1/5">
+                              <label className="text-[8px] uppercase font-black text-slate-400 font-mono tracking-widest">Posting Duration (Days)</label>
+                              <input
+                                type="number"
+                                className="w-full bg-white border border-slate-300 p-2.5 rounded text-xs focus:outline-none mt-1 text-slate-900"
+                                placeholder="e.g. 30"
+                                value={duration}
+                                onChange={e => handleDurationChange(req._id, e.target.value)}
+                              />
+                            </div>
                             <div className="flex-1">
                               <label className="text-[8px] uppercase font-black text-slate-400 font-mono tracking-widest">HR Remarks / Other Details</label>
                               <input
@@ -364,7 +400,7 @@ export function HiringApproval({
                             <div className="flex gap-2 shrink-0">
                               <button
                                 className="bg-fuchsia-600 hover:bg-fuchsia-700 px-4 py-2.5 rounded-lg text-xs font-bold text-white transition-all shadow-sm"
-                                onClick={() => onApproveRequisition(req._id, "Pending Accounts Review", remarks || "Forwarded to Accounts.", budget, platform)}
+                                onClick={() => onApproveRequisition(req._id, "Pending Accounts Review", remarks || "Forwarded to Accounts.", budget, platform, duration ? Number(duration) : undefined)}
                               >
                                 ✅ Forward to Accounts
                               </button>
@@ -653,9 +689,10 @@ export function JobPostings({
               {jobs.map((jb, idx) => {
                 const companyName = jb.company?.name || "Acolyte Group";
                 const deptName = jb.department?.name || "Sales";
+                const isExpired = !!(jb.postingDuration && (new Date().getTime() - new Date(jb.createdAt).getTime()) > jb.postingDuration * 24 * 60 * 60 * 1000);
 
                 return (
-                  <tr key={idx} className="hover:bg-slate-50/50">
+                  <tr key={idx} className={`hover:bg-slate-50/50 transition-all ${isExpired ? "bg-white opacity-40 select-none pointer-events-none" : ""}`}>
                     {/* 1. Title, 2. Company, 4. Location */}
                     <td className="py-4 pr-2 max-w-[280px]">
                       <div className="font-bold text-slate-800 text-sm">{jb.title}</div>
@@ -688,10 +725,20 @@ export function JobPostings({
                       <span className="inline-block px-2 py-0.5 bg-indigo-500/10 text-indigo-700 text-[9px] rounded font-black font-mono border border-indigo-500/15 uppercase">
                         {jb.source || "Indeed"}
                       </span>
-                      <div className="mt-1 flex items-center gap-1.5">
-                        <span className={`w-1.5 h-1.5 rounded-full ${jb.status === "active" ? "bg-emerald-500" : "bg-slate-400"}`}></span>
-                        <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400 font-mono">{jb.status || "active"}</span>
+                      <div className="mt-1 flex items-center gap-1.5 flex-wrap">
+                        <span className={`w-1.5 h-1.5 rounded-full ${isExpired ? "bg-rose-500" : (jb.status === "active" ? "bg-emerald-500" : "bg-slate-400")}`}></span>
+                        <span className={`text-[9px] font-bold uppercase tracking-wider font-mono ${isExpired ? "text-rose-500" : "text-slate-400"}`}>
+                          {isExpired ? "DEACTIVATED" : (jb.status || "active")}
+                        </span>
                       </div>
+                      {jb.postingDuration && (
+                        <div className="text-[8px] font-bold font-mono text-slate-500 mt-0.5 uppercase tracking-wide">
+                          {isExpired 
+                            ? "Duration: Over" 
+                            : `Ends in: ${Math.max(0, Math.ceil(jb.postingDuration - (new Date().getTime() - new Date(jb.createdAt).getTime()) / (24 * 60 * 60 * 1000)))} days`
+                          }
+                        </div>
+                      )}
                     </td>
 
                     {/* 10. Software Form Link */}
@@ -1096,7 +1143,7 @@ export function AiScreening({
                 const vacancy = c.job?.title || "General Application";
                 return (
                   <option key={c._id} value={c._id}>
-                    {c.name} ({vacancy})
+                    {c.name} ({vacancy}) [{c.status}]
                   </option>
                 );
               })}
@@ -1114,6 +1161,7 @@ export function AiScreening({
   }
 
   const result = candidate.screeningResult;
+  const hasScreened = !!(result && result.candidateSummary && result.skillMatchScore !== undefined);
 
   return (
     <div className="space-y-8 animate-fadeIn text-slate-800">
@@ -1138,7 +1186,7 @@ export function AiScreening({
                 const vacancy = c.job?.title || "General Application";
                 return (
                   <option key={c._id} value={c._id}>
-                    {c.name} ({vacancy})
+                    {c.name} ({vacancy}) [{c.status}]
                   </option>
                 );
               })}
@@ -1147,7 +1195,7 @@ export function AiScreening({
         </div>
 
         <div className="flex items-center gap-2 shrink-0">
-          {!result && !loading && (
+          {!hasScreened && !loading && (
             <button
               onClick={runAiScreening}
               className="bg-[#714B67] hover:bg-[#5F3F56] text-white px-5 py-2.5 rounded-lg text-xs font-black shadow-md flex items-center gap-2 hover:scale-[1.01] active:scale-[0.99] transition-all"
@@ -1155,7 +1203,7 @@ export function AiScreening({
               <Sparkles className="w-4 h-4 animate-spin" /> Run AI Screening Model
             </button>
           )}
-          {result && !loading && (
+          {hasScreened && !loading && (
             <button
               onClick={runAiScreening}
               className="bg-slate-100 hover:bg-slate-200 text-slate-750 px-4 py-2.5 rounded-lg text-xs font-bold border border-slate-300 flex items-center gap-1.5 transition-all"
@@ -1354,7 +1402,7 @@ export function AiScreening({
 
           {/* RIGHT: AI Assessment Insights & Questions Checklist */}
           <div className="lg:col-span-7 space-y-6">
-            {!result ? (
+            {!hasScreened ? (
               <div className="bg-slate-50 border-2 border-dashed border-slate-200 rounded-xl p-10 text-center flex flex-col items-center justify-center h-full min-h-[350px]">
                 <Cpu className="w-12 h-12 text-[#714B67]/40 mb-3 animate-pulse" />
                 <h3 className="text-sm font-bold text-slate-800">Candidate Screening Pending</h3>
@@ -1374,7 +1422,7 @@ export function AiScreening({
                 {/* AI Scores Summary Grid */}
                 <div>
                   <h3 className="text-xs font-black uppercase text-[#714B67] tracking-wider font-mono mb-4">AI Score Analytics Vetting</h3>
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                     <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg text-center">
                       <span className="text-[9px] uppercase font-black text-slate-450 tracking-wider block font-mono">Skill Match</span>
                       <strong className="text-xl font-mono text-[#714B67] block mt-1">{result.skillMatchScore}%</strong>
@@ -1396,12 +1444,6 @@ export function AiScreening({
                         <div className={`h-full ${result.riskScore > 50 ? "bg-rose-500" : "bg-amber-400"}`} style={{ width: `${result.riskScore}%` }} />
                       </div>
                     </div>
-                    <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg text-center">
-                      <span className="text-[9px] uppercase font-black text-slate-450 tracking-wider block font-mono">Fraud Risk</span>
-                      <strong className={`text-sm block mt-2 font-black ${result.fraudRisk === "High" ? "text-rose-600" : result.fraudRisk === "Medium" ? "text-amber-500" : "text-emerald-600"}`}>
-                        ⚠️ {result.fraudRisk}
-                      </strong>
-                    </div>
                   </div>
                 </div>
 
@@ -1420,33 +1462,7 @@ export function AiScreening({
                   </div>
                 </div>
 
-                {/* Interactive Suggested Questions Checklist (15 to 25 questions) */}
-                <div className="space-y-3">
-                  <div className="flex justify-between items-center border-b border-slate-100 pb-2">
-                    <h3 className="text-xs font-black uppercase text-[#714B67] tracking-wider font-mono">
-                      Suggested Assessment Questions ({result.suggestedQuestions?.length || 0} Questions Checklist)
-                    </h3>
-                    <span className="text-[9px] bg-indigo-50 border border-indigo-250 text-indigo-600 font-bold px-2 py-0.5 rounded">Tailored Assessment Set</span>
-                  </div>
 
-                  <div className="space-y-2 max-h-[250px] overflow-y-auto pr-2 custom-scrollbar">
-                    {result.suggestedQuestions?.map((q: string, qIdx: number) => (
-                      <div
-                        key={qIdx}
-                        className="flex items-start gap-2.5 p-2 bg-slate-50/50 hover:bg-slate-50 border border-slate-150 rounded text-[11px] text-slate-700 select-none cursor-pointer"
-                      >
-                        <input
-                          type="checkbox"
-                          id={`q-${qIdx}`}
-                          className="mt-0.5 rounded border-slate-350 text-[#714B67] focus:ring-[#714B67]"
-                        />
-                        <label htmlFor={`q-${qIdx}`} className="cursor-pointer leading-relaxed font-semibold">
-                          <strong className="text-slate-400 font-mono pr-1">{qIdx + 1}.</strong> {q}
-                        </label>
-                      </div>
-                    ))}
-                  </div>
-                </div>
 
                 {/* AI recommendation selection */}
                 <div className="pt-4 border-t border-slate-150 flex items-center justify-between gap-4 flex-wrap">
@@ -2379,6 +2395,7 @@ export function InterviewsQueue({ triggerToast }: { triggerToast: (msg: string) 
   const [submitting, setSubmitting] = useState(false);
   const [customQuestions, setCustomQuestions] = useState<{ question: string; isCorrect: boolean | null }[]>([]);
   const [newQuestionText, setNewQuestionText] = useState("");
+  const [tailoringId, setTailoringId] = useState<string | null>(null);
 
   const loadData = async () => {
     setLoading(true);
@@ -2393,7 +2410,7 @@ export function InterviewsQueue({ triggerToast }: { triggerToast: (msg: string) 
       const dataCand = await resCand.json();
       if (dataCand.success) {
         const list = Array.isArray(dataCand.data) ? dataCand.data : [];
-        setCandidates(list.filter((c: any) => c && c.status !== "inactive"));
+        setCandidates(list.filter((c: any) => c && c.status === "Selected"));
       }
     } catch (err) {
       triggerToast("Error loading interview dashboard data");
@@ -2458,6 +2475,19 @@ export function InterviewsQueue({ triggerToast }: { triggerToast: (msg: string) 
     if (!schedCandidateId || !schedDate || !schedTime) {
       triggerToast("Please fill in candidate, date and time parameters!");
       return;
+    }
+
+    // Validate round progression: Candidate can only be scheduled for round if they've cleared previous rounds
+    const targetRound = parseInt(schedRound);
+    if (targetRound > 1) {
+      const selectedCand = candidates.find(c => c._id === schedCandidateId);
+      if (selectedCand) {
+        const currentRound = selectedCand.currentRound || 1;
+        if (currentRound < targetRound) {
+          triggerToast(`Cannot schedule Round-${targetRound} interview. Candidate must clear Round-${targetRound - 1} first.`);
+          return;
+        }
+      }
     }
 
     try {
@@ -2553,6 +2583,28 @@ export function InterviewsQueue({ triggerToast }: { triggerToast: (msg: string) 
       triggerToast("Network error submitting assessment");
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleTailorQuestions = async (interviewId: string) => {
+    setTailoringId(interviewId);
+    try {
+      const res = await fetch("/api/interviews/tailor-questions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ interviewId }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setCustomQuestions(data.questions);
+        triggerToast("✨ AI customized questions generated successfully!");
+      } else {
+        triggerToast(`Failed to tailor questions: ${data.error}`);
+      }
+    } catch (err) {
+      triggerToast("Network error generating assessment questions");
+    } finally {
+      setTailoringId(null);
     }
   };
 
@@ -2908,7 +2960,14 @@ export function InterviewsQueue({ triggerToast }: { triggerToast: (msg: string) 
                                         <label className="text-[10px] font-black uppercase text-[#714B67] tracking-wider font-mono">
                                           AI Customized Assessment Questions
                                         </label>
-                                        <span className="text-[9.5px] font-bold text-indigo-600 bg-indigo-50 border border-indigo-200 px-2 py-0.5 rounded">Tailored</span>
+                                        <button
+                                          type="button"
+                                          onClick={() => handleTailorQuestions(item._id)}
+                                          disabled={tailoringId === item._id}
+                                          className="text-[9.5px] font-bold text-white bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 border border-indigo-200 px-2 py-1 rounded flex items-center gap-1 transition-all"
+                                        >
+                                          {tailoringId === item._id ? "Tailoring..." : "✨ Tailor with AI"}
+                                        </button>
                                       </div>
 
                                       <div className="space-y-3">
@@ -3073,8 +3132,8 @@ export function InterviewsQueue({ triggerToast }: { triggerToast: (msg: string) 
                                           type="submit"
                                           disabled={isBeforeScheduleTime || submitting}
                                           className={`w-full p-2.5 rounded font-black shadow flex items-center justify-center gap-1.5 transition-all ${isBeforeScheduleTime
-                                              ? "bg-slate-300 text-slate-500 cursor-not-allowed"
-                                              : "bg-[#714B67] hover:bg-[#5F3F56] text-white hover:scale-[1.01] active:scale-[0.99]"
+                                            ? "bg-slate-300 text-slate-500 cursor-not-allowed"
+                                            : "bg-[#714B67] hover:bg-[#5F3F56] text-white hover:scale-[1.01] active:scale-[0.99]"
                                             }`}
                                         >
                                           {submitting ? "Saving..." : isBeforeScheduleTime ? "Locked (Pre-Interview)" : "Log Round Assessment"}
@@ -3131,6 +3190,9 @@ export function HrLeads({
   const [expandedJobId, setExpandedJobId] = useState<string | null>(null);
 
   const filteredLeads = candidates.filter((cand) => {
+    if (cand.status !== "Selected") {
+      return false;
+    }
     if (selectedJobFilter !== "all" && cand.job?._id !== selectedJobFilter) {
       return false;
     }
@@ -3567,7 +3629,13 @@ export function FilePreviewModal({
     (url.includes("image/upload") && !cleanUrl.endsWith(".pdf"));
 
   // Check if it's a PDF and browser can display it, or use Google Docs Viewer for other docs (docx, xlsx, etc.)
-  const isPdf = cleanUrl.endsWith(".pdf") || url.toLowerCase().includes(".pdf");
+  const isPdf = cleanUrl.endsWith(".pdf") || 
+    url.toLowerCase().includes(".pdf") ||
+    url.includes("/raw/upload/") ||
+    title.toLowerCase().includes("resume") ||
+    title.toLowerCase().includes("aadhaar") ||
+    title.toLowerCase().includes("pan") ||
+    title.toLowerCase().includes("statement");
   const proxyUrl = `/api/documents/proxy?url=${encodeURIComponent(url)}`;
   const previewUrl = isImage
     ? url

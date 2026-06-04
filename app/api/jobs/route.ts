@@ -6,6 +6,7 @@ import Job from "@/models/Job";
 import Company from "@/models/Company";
 import Department from "@/models/Department";
 import { logAudit } from "@/lib/audit";
+import HiringRequisition from "@/models/HiringRequisition";
 
 // GET: List all active jobs (can be public or authenticated)
 export async function GET(req: Request) {
@@ -68,6 +69,7 @@ export async function POST(req: Request) {
       description,
       applicationLink,
       source,
+      requisitionId,
     } = body;
 
     if (
@@ -101,6 +103,14 @@ export async function POST(req: Request) {
       department = await Department.findOne({ name: departmentId }) || await Department.findOne() || await Department.create({ name: departmentId || "Sales" });
     }
 
+    let reqPostingDuration = undefined;
+    if (requisitionId) {
+      const reqDoc = await HiringRequisition.findById(requisitionId);
+      if (reqDoc) {
+        reqPostingDuration = reqDoc.postingDuration;
+      }
+    }
+
     const job = new Job({
       title,
       company: company._id,
@@ -114,6 +124,7 @@ export async function POST(req: Request) {
       applicationLink: applicationLink || "",
       source: source || "Other",
       status: "active",
+      postingDuration: reqPostingDuration,
     });
 
     // Save job first to get ID
@@ -124,6 +135,14 @@ export async function POST(req: Request) {
     const shareableLink = `${origin}/jobs/apply/${job._id}`;
     job.shareableLink = shareableLink;
     await job.save();
+
+    if (requisitionId) {
+      await HiringRequisition.findByIdAndUpdate(requisitionId, {
+        status: "Job Posted",
+        ownerRemarks: "Job vacancy posted via Module 3 Form.",
+        postingDuration: reqPostingDuration,
+      });
+    }
 
     // Log Audit entry
     await logAudit({

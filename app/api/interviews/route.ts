@@ -89,6 +89,12 @@ export async function POST(req: Request) {
       }
     }
 
+    const suggested = candidate.screeningResult?.suggestedQuestions || [];
+    const customQuestions = suggested.map((q: string) => ({
+      question: q,
+      isCorrect: null
+    }));
+
     const interview = new Interview({
       candidate: candidateId,
       round,
@@ -98,6 +104,7 @@ export async function POST(req: Request) {
       vacancyName: vacancyTitle,
       interviewer: interviewerId || (session.user as any).id,
       status: "Pending",
+      customQuestions,
     });
 
     await interview.save();
@@ -163,6 +170,26 @@ export async function PUT(req: Request) {
     const interview = await Interview.findById(interviewId).populate("candidate");
     if (!interview) {
       return NextResponse.json({ success: false, error: "Interview not found" }, { status: 404 });
+    }
+
+    // Validate progression of rounds if round is being updated
+    if (round !== undefined) {
+      const targetRound = parseInt(round);
+      if (targetRound > 1) {
+        const prevRound = targetRound - 1;
+        const prevSelectedInterview = await Interview.findOne({
+          candidate: interview.candidate._id,
+          round: prevRound,
+          status: "Selected",
+        });
+
+        if (!prevSelectedInterview) {
+          return NextResponse.json({
+            success: false,
+            error: `Cannot schedule Round-${targetRound} interview. Candidate must be marked as 'Selected' in Round-${prevRound} first.`
+          }, { status: 400 });
+        }
+      }
     }
 
     if (communicationScore !== undefined) interview.communicationScore = communicationScore;
