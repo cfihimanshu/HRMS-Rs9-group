@@ -4,6 +4,8 @@ import { authOptions } from "@/lib/auth";
 import dbConnect from "@/lib/db";
 import Probation from "@/models/Probation";
 import User from "@/models/User";
+import EmployeeProfile from "@/models/EmployeeProfile";
+import Company from "@/models/Company";
 import { logAudit } from "@/lib/audit";
 
 // GET: List all active probationers (HR & Owner only)
@@ -22,10 +24,25 @@ export async function GET(req: Request) {
 
     await dbConnect();
     const records = await Probation.find({ status: { $ne: "inactive" } })
-      .populate("employee", "name email role mobile")
+      .populate({
+        path: "employee",
+        select: "name email role mobile companies",
+        populate: { path: "companies", select: "name" }
+      })
       .sort({ createdAt: -1 });
 
-    return NextResponse.json({ success: true, data: records });
+    const profiles = await EmployeeProfile.find({});
+
+    const mergedRecords = records.map(rec => {
+      const recObj = rec.toObject();
+      if (recObj.employee) {
+        const profile = profiles.find(p => p.user.toString() === recObj.employee._id.toString());
+        recObj.employee.designation = profile ? profile.designation : "Associate";
+      }
+      return recObj;
+    });
+
+    return NextResponse.json({ success: true, data: mergedRecords });
   } catch (error: any) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
@@ -65,6 +82,15 @@ export async function POST(req: Request) {
       record.feedback = feedback || "";
       await record.save();
 
+      // Synchronize to User status
+      if (status === "Confirm") {
+        await User.findByIdAndUpdate(record.employee, { status: "active" });
+      } else if (status === "Exit") {
+        await User.findByIdAndUpdate(record.employee, { status: "deactivated" });
+      } else if (status === "active" || status === "Extend" || status === "Restrict role") {
+        await User.findByIdAndUpdate(record.employee, { status: "probation" });
+      }
+
       await logAudit({
         userId: (session.user as any).id,
         action: "PROBATION_EVALUATED",
@@ -91,6 +117,9 @@ export async function POST(req: Request) {
       reportsSummary: { sodSubmitted: 22, eodSubmitted: 22 },
     });
     await newRecord.save();
+
+    // Synchronize to User status
+    await User.findByIdAndUpdate(employeeId, { status: "probation" });
 
     return NextResponse.json({ success: true, data: newRecord });
   } catch (error: any) {

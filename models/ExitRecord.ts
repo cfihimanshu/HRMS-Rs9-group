@@ -2,6 +2,9 @@ import mongoose, { Schema, Document } from "mongoose";
 
 export interface IExitRecord extends Document {
   employee: mongoose.Types.ObjectId; // User reference
+  employeeName?: string;
+  companyName?: string;
+  role?: string;
   exitReason: string;
   assetsReturned: boolean;
   accessRevoked: boolean;
@@ -19,6 +22,9 @@ export interface IExitRecord extends Document {
 const ExitRecordSchema: Schema = new Schema(
   {
     employee: { type: Schema.Types.ObjectId, ref: "User", required: true, unique: true },
+    employeeName: { type: String },
+    companyName: { type: String },
+    role: { type: String },
     exitReason: { type: String, required: true },
     assetsReturned: { type: Boolean, default: false },
     accessRevoked: { type: Boolean, default: false },

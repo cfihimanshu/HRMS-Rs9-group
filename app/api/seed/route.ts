@@ -71,13 +71,12 @@ export async function GET() {
 
     // 5. Seed Default Users
     console.log("Seeding users...");
-    const hashedPassword = await bcrypt.hash("password123", 10);
 
     const defaultUsers = [
       {
         name: "Acolyte Owner",
         email: "owner@acolyte.com",
-        password: hashedPassword,
+        password: "password123",
         mobile: "9999999991",
         role: "Owner",
         companies: [company._id],
@@ -86,7 +85,7 @@ export async function GET() {
       {
         name: "Acolyte HR Head",
         email: "hr@acolyte.com",
-        password: hashedPassword,
+        password: "password123",
         mobile: "9999999992",
         role: "HR Head",
         companies: [company._id],
@@ -95,7 +94,7 @@ export async function GET() {
       {
         name: "Acolyte HR Executive",
         email: "executive@acolyte.com",
-        password: hashedPassword,
+        password: "password123",
         mobile: "9999999993",
         role: "HR Executive",
         companies: [company._id],
@@ -104,7 +103,7 @@ export async function GET() {
       {
         name: "Acolyte Department Head",
         email: "manager@acolyte.com",
-        password: hashedPassword,
+        password: "password123",
         mobile: "9999999994",
         role: "Department Manager",
         companies: [company._id],
@@ -113,7 +112,7 @@ export async function GET() {
       {
         name: "Acolyte Trainer",
         email: "trainer@acolyte.com",
-        password: hashedPassword,
+        password: "password123",
         mobile: "9999999995",
         role: "Trainer",
         companies: [company._id],
@@ -122,7 +121,7 @@ export async function GET() {
       {
         name: "Acolyte Employee",
         email: "employee@acolyte.com",
-        password: hashedPassword,
+        password: "password123",
         mobile: "9999999996",
         role: "Employee",
         companies: [company._id],
@@ -131,7 +130,7 @@ export async function GET() {
       {
         name: "Acolyte Partner",
         email: "partner@acolyte.com",
-        password: hashedPassword,
+        password: "password123",
         mobile: "9999999997",
         role: "Territory Partner",
         companies: [company._id],

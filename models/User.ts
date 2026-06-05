@@ -7,7 +7,9 @@ export interface IUser extends Document {
   mobile?: string;
   role: string; // 1 of 15 roles
   companies: mongoose.Types.ObjectId[];
-  status: "active" | "inactive";
+  companyName?: string;
+  departmentName?: string;
+  status: "active" | "inactive" | "probation" | "on notice";
   loginHistory: {
     ip: string;
     userAgent: string;
@@ -46,7 +48,9 @@ const UserSchema: Schema = new Schema(
       default: "Employee",
     },
     companies: [{ type: Schema.Types.ObjectId, ref: "Company" }],
-    status: { type: String, enum: ["active", "inactive"], default: "active" },
+    companyName: { type: String },
+    departmentName: { type: String },
+    status: { type: String, enum: ["active", "inactive", "probation", "on notice"], default: "active" },
     loginHistory: [
       {
         ip: { type: String },

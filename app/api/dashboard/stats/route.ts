@@ -96,8 +96,7 @@ export async function GET() {
 
     // 7. HR Dashboard specific metrics
     const todayInterviewsList = await Interview.find({ scheduleTime: { $gte: today, $lte: endOfToday } });
-    const uniqueCandidatesToday = new Set(todayInterviewsList.map((iv: any) => iv.candidate?.toString()).filter(Boolean));
-    const todayInterviewsCount = uniqueCandidatesToday.size;
+    const todayInterviewsCount = todayInterviewsList.length;
     
     // Vetting registry candidates (passed all 3 rounds) who are not verified
     const interviewsSelected = await Interview.find({ status: "Selected" });
@@ -244,7 +243,7 @@ export async function GET() {
           newCandidates: pendingCandidates,
           trainingStatus: trainingPending,
           probationStatus: activeProbations,
-          hrLeadsCount: totalCandidates,
+          hrLeadsCount: selectedCandidates,
           rejectedCount: rejectedCandidatesCount,
         },
         deptStats: {

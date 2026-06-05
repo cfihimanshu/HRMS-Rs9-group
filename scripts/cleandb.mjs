@@ -58,14 +58,11 @@ async function cleanDB() {
 
   console.log("\n🌱  Creating Owner user...");
 
-  // ── Hash password ──────────────────────────────────────────────────
-  const hashedPassword = await bcrypt.hash("admin123", 12);
-
   // ── Insert Owner ───────────────────────────────────────────────────
   await db.collection("users").insertOne({
     name: "Himanshu Sharma (Owner)",
     email: "cfi.himanshu@gmail.com",
-    password: hashedPassword,
+    password: "admin123",
     mobile: null,
     role: "Owner",
     companies: [],

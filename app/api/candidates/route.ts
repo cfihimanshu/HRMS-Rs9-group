@@ -4,6 +4,8 @@ import { authOptions } from "@/lib/auth";
 import dbConnect from "@/lib/db";
 import Candidate from "@/models/Candidate";
 import Job from "@/models/Job";
+import User from "@/models/User";
+import ExitRecord from "@/models/ExitRecord";
 import { logAudit } from "@/lib/audit";
 
 // POST: Candidate submits their application form (Public Endpoint)
@@ -54,6 +56,39 @@ export async function POST(req: Request) {
     // 3-month Reapply Limitation Check
     if (jobExists && jobExists.company) {
       const emailEscaped = email.trim().replace(/[-\/\\^$*+?.()|[\]{}]/g, "\\$&");
+      // 6-month Exited Employee Reapply Check
+      const inactiveUser = await User.findOne({
+        $or: [
+          { email: { $regex: new RegExp("^" + emailEscaped + "$", "i") } },
+          { mobile: mobile.trim() }
+        ],
+        status: "inactive"
+      });
+
+      if (inactiveUser) {
+        const exitRec = await ExitRecord.findOne({ employee: inactiveUser._id });
+        if (exitRec) {
+          const isSameCompany = inactiveUser.companies?.some((cId: any) => cId.toString() === jobExists.company.toString());
+          if (isSameCompany) {
+            const sixMonthsAgo = new Date();
+            sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+            if (new Date(exitRec.createdAt) >= sixMonthsAgo) {
+              const nextAllowedDate = new Date(exitRec.createdAt);
+              nextAllowedDate.setMonth(nextAllowedDate.getMonth() + 6);
+              const formattedDate = nextAllowedDate.toLocaleDateString("en-IN", {
+                day: "2-digit",
+                month: "short",
+                year: "numeric"
+              });
+              return NextResponse.json({
+                success: false,
+                error: `You cannot re-apply to this company within 6 months of your exit. You can re-apply after ${formattedDate}.`
+              }, { status: 400 });
+            }
+          }
+        }
+      }
+
       const existingCandidates = await Candidate.find({
         $or: [
           { email: { $regex: new RegExp("^" + emailEscaped + "$", "i") } },

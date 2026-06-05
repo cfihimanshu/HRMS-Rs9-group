@@ -35,9 +35,9 @@ export const authOptions: NextAuthOptions = {
 
           // In standard flow, match OTP. We simulate a valid OTP check for "123456" for demo convenience,
           // or verify if the mobile matches a registered user.
-          user = await User.findOne({ mobile, status: "active" });
+          user = await User.findOne({ mobile, status: { $in: ["active", "probation"] } });
           if (!user) {
-            throw new Error("Active user with this mobile number not found");
+            throw new Error("Active or probation user with this mobile number not found");
           }
 
           if (otp !== "123456") {
@@ -49,12 +49,17 @@ export const authOptions: NextAuthOptions = {
             throw new Error("Email and password are required");
           }
 
-          user = await User.findOne({ email, status: "active" });
+          user = await User.findOne({ email, status: { $in: ["active", "probation"] } });
           if (!user) {
-            throw new Error("Active user with this email not found");
+            throw new Error("Active or probation user with this email not found");
           }
 
-          const isValid = await bcrypt.compare(password, user.password);
+          let isValid = false;
+          if (user.password && (user.password.startsWith("$2a$") || user.password.startsWith("$2b$"))) {
+            isValid = await bcrypt.compare(password, user.password);
+          } else {
+            isValid = (password === user.password);
+          }
           if (!isValid) {
             throw new Error("Invalid password");
           }

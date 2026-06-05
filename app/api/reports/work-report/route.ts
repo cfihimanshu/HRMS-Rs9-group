@@ -16,7 +16,7 @@ export async function GET(req: Request) {
 
     const userId = (session.user as any).id;
     const role = (session.user as any).role;
-    const isOwner = role === "Owner";
+    const isOwner = ["owner", "director", "hr head", "hr executive", "department manager", "trainer"].includes(role?.toLowerCase() || "");
 
     await dbConnect();
 

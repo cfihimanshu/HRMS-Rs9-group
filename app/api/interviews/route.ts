@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth";
 import dbConnect from "@/lib/db";
 import Interview from "@/models/Interview";
 import Candidate from "@/models/Candidate";
+import Department from "@/models/Department";
 import { logAudit } from "@/lib/audit";
 import { logHRActivity } from "@/lib/hrAudit";
 
@@ -30,7 +31,11 @@ export async function GET(req: Request) {
         select: "name email mobile screeningResult currentRound job status",
         populate: {
           path: "job",
-          select: "title"
+          select: "title department",
+          populate: {
+            path: "department",
+            select: "name"
+          }
         }
       })
       .populate("interviewer", "name role")
@@ -64,12 +69,23 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: false, error: "Missing required fields" }, { status: 400 });
     }
 
-    const candidate = await Candidate.findById(candidateId).populate("job");
+    const candidate = await Candidate.findById(candidateId).populate({
+      path: "job",
+      populate: {
+        path: "department",
+        model: "Department"
+      }
+    });
     if (!candidate) {
       return NextResponse.json({ success: false, error: "Candidate not found" }, { status: 404 });
     }
 
-    const vacancyTitle = candidate.job ? (candidate.job as any).title : "General Application";
+    let vacancyTitle = "General Application";
+    if (candidate.job) {
+      const jobObj = candidate.job as any;
+      const deptName = jobObj.department ? jobObj.department.name : "";
+      vacancyTitle = deptName ? `${deptName} - ${jobObj.title}` : jobObj.title;
+    }
 
     // Validate progression of rounds
     const targetRound = parseInt(round);
@@ -92,11 +108,14 @@ export async function POST(req: Request) {
     const suggested = candidate.screeningResult?.suggestedQuestions || [];
     const customQuestions = suggested.map((q: string) => ({
       question: q,
-      isCorrect: null
+      isCorrect: null,
+      rating: "",
+      score: 0
     }));
 
     const interview = new Interview({
       candidate: candidateId,
+      candidateName: candidate.name,
       round,
       scheduleTime: new Date(scheduleTime),
       videoLink: mode === "offline" ? "" : videoLink,

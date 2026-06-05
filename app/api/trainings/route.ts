@@ -8,6 +8,7 @@ import User from "@/models/User";
 import EmployeeProfile from "@/models/EmployeeProfile";
 import Probation from "@/models/Probation";
 import Company from "@/models/Company";
+import Department from "@/models/Department";
 import bcrypt from "bcryptjs";
 import { logAudit } from "@/lib/audit";
 
@@ -29,7 +30,14 @@ export async function GET(req: Request) {
     }
 
     const trainings = await Training.find(query)
-      .populate("candidate", "name email mobile status")
+      .populate({
+        path: "candidate",
+        select: "name email mobile status job",
+        populate: {
+          path: "job",
+          populate: { path: "company department", select: "name" }
+        }
+      })
       .populate("trainer", "name role");
 
     return NextResponse.json({ success: true, data: trainings });
@@ -126,18 +134,67 @@ export async function POST(req: Request) {
 
         // 1. Ensure User exists
         let userDoc = await User.findOne({ email: candDoc.email });
+        
+        // Get company and department names
+        let companyName = "";
+        if (companyId) {
+          const comp = await Company.findById(companyId);
+          if (comp) {
+            companyName = comp.name;
+          }
+        }
+        let departmentName = "";
+        if (jobDoc?.department) {
+          const dept = await Department.findById(jobDoc.department);
+          if (dept) {
+            departmentName = dept.name;
+          }
+        }
+
+        // Generate a clean default password based on candidate's name (e.g. neeraj123)
+        const cleanName = candDoc.name.trim().split(" ")[0].toLowerCase().replace(/[^a-z0-9]/g, "");
+        const defaultPassword = cleanName ? `${cleanName}123` : "Welcome@123";
+        const hashedPassword = await bcrypt.hash(defaultPassword, 10);
+
         if (!userDoc) {
-          const hashedPassword = await bcrypt.hash("Welcome@123", 12);
           userDoc = await User.create({
             name: candDoc.name,
             email: candDoc.email,
             password: hashedPassword,
-            role: "Associate",
+            role: "Employee",
             mobile: candDoc.mobile || null,
-            status: "active",
+            status: "probation",
             companies: companyId ? [companyId] : [],
+            companyName,
+            departmentName,
             loginHistory: [],
           });
+        } else {
+          // If the user already exists, make sure they have the plain text password and status set
+          let isUpdated = false;
+          if (!userDoc.password) {
+            userDoc.password = hashedPassword;
+            isUpdated = true;
+          }
+          if (userDoc.role === "Associate" || userDoc.role === "Employee") {
+            userDoc.role = "Employee";
+            isUpdated = true;
+          }
+          if (userDoc.status !== "probation") {
+            userDoc.status = "probation";
+            isUpdated = true;
+          }
+          if (!userDoc.companyName && companyName) {
+            userDoc.companyName = companyName;
+            isUpdated = true;
+          }
+          if (!userDoc.departmentName && departmentName) {
+            userDoc.departmentName = departmentName;
+            isUpdated = true;
+          }
+          if (isUpdated) {
+            await userDoc.save();
+          }
         }
 
         // 2. Ensure EmployeeProfile exists

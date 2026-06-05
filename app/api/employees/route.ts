@@ -4,6 +4,8 @@ import User from "@/models/User";
 import EmployeeProfile from "@/models/EmployeeProfile";
 import Company from "@/models/Company";
 import Department from "@/models/Department";
+import Probation from "@/models/Probation";
+import ExitRecord from "@/models/ExitRecord";
 import bcrypt from "bcryptjs";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
@@ -19,20 +21,39 @@ export async function GET(req: Request) {
       return NextResponse.json({ success: false, error: "Unauthorized access" }, { status: 401 });
     }
 
-    // Fetch employees and populate their companies
-    const employees = await User.find({}, { password: 0 })
+    // Check and process expired notice periods
+    const exitRecords = await ExitRecord.find({ status: "active" });
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+    const onNoticeUsers = await User.find({ status: "on notice" });
+    for (const u of onNoticeUsers) {
+      const exitRec = exitRecords.find(er => er.employee.toString() === u._id.toString());
+      if (exitRec && new Date(exitRec.createdAt) < thirtyDaysAgo) {
+        u.status = "inactive";
+        await u.save();
+      }
+    }
+
+    // Fetch employees (excluding inactive/exited employees)
+    const employees = await User.find({ status: { $ne: "inactive" } }, { password: 0 })
       .populate("companies", "name code")
       .sort({ createdAt: -1 });
       
-    // Optionally fetch their profiles to merge data
-    const profiles = await EmployeeProfile.find({}).populate("department", "name");
+    // Optionally fetch their profiles and active probations to merge data
+    const [profiles, probations] = await Promise.all([
+      EmployeeProfile.find({}).populate("department", "name"),
+      Probation.find({ status: "active" })
+    ]);
     
     // Merge the data
     const mergedData = employees.map(emp => {
       const profile = profiles.find(p => p.user.toString() === emp._id.toString());
+      const activeProbation = probations.find(p => p.employee.toString() === emp._id.toString());
       return {
         ...emp.toObject(),
-        employeeProfile: profile || null
+        employeeProfile: profile || null,
+        isOnProbation: !!activeProbation
       };
     });
 
@@ -97,20 +118,35 @@ export async function POST(req: Request) {
       resolvedDepartmentId = deptDoc._id;
     }
 
-    // Hash the password
-    const hashedPassword = await bcrypt.hash(password, 12);
+    const userStatus = role === "Employee" ? "probation" : "active";
 
     // Create User with company linked
     const newUser = await User.create({
       name,
       email,
-      password: hashedPassword,
+      password: await bcrypt.hash(password, 10),
       role,
       mobile: mobile || null,
-      status: "active",
+      status: userStatus,
       companies: [company._id],
+      companyName: company.name,
+      departmentName: department || "",
       loginHistory: [],
     });
+
+    if (userStatus === "probation") {
+      const startDate = new Date();
+      const endDate = new Date();
+      endDate.setMonth(endDate.getMonth() + 6); // 6 months probation
+      await Probation.create({
+        employee: newUser._id,
+        startDate,
+        endDate,
+        status: "active",
+        attendanceSummary: { totalDays: 30, presentDays: 30 },
+        reportsSummary: { sodSubmitted: 3, eodSubmitted: 3 },
+      });
+    }
 
     // Create EmployeeProfile linked to User
     await EmployeeProfile.create({

@@ -89,6 +89,7 @@ export default function UnifiedEnterpriseDashboard() {
 
   // Selected Candidate for detailed view
   const [selectedCandidate, setSelectedCandidate] = useState<any>(null);
+  const [preselectedWorkReportUserId, setPreselectedWorkReportUserId] = useState<string>("");
 
   // Modal Open/Close States
   const [modals, setModals] = useState<{ [key: string]: boolean }>({
@@ -399,6 +400,31 @@ export default function UnifiedEnterpriseDashboard() {
       }
     }
   }, [status, session, dataLoaded]);
+
+  // Automatically reload stats and other relevant data when switching tabs (e.g. back to dashboard/hr-dash)
+  useEffect(() => {
+    if (status === "authenticated" && dataLoaded) {
+      if (activeTab === "dashboard" || activeTab === "hr-dash" || activeTab === "dept-dash") {
+        loadStats();
+        if (activeTab === "hr-dash") {
+          loadCandidates();
+          loadInterviews();
+        }
+      }
+      if (activeTab === "hr-leads") {
+        loadCandidates();
+      }
+      if (activeTab === "interviews") {
+        loadInterviews();
+      }
+      if (activeTab === "hiring") {
+        loadRequisitions();
+      }
+      if (activeTab === "jobs") {
+        loadPostedJobs();
+      }
+    }
+  }, [activeTab, status, dataLoaded]);
 
   // Form Handlers
   const handleAttendancePunch = async () => {
@@ -886,6 +912,7 @@ export default function UnifiedEnterpriseDashboard() {
             <HrDashboard
               stats={stats}
               candidates={candidates}
+              interviews={interviews}
               onNavigateTab={setActiveTab}
               onOpenHiringModal={() => toggleModal("hiring", true)}
             />
@@ -916,6 +943,7 @@ export default function UnifiedEnterpriseDashboard() {
           {activeTab === "hiring" && (
             <HiringApproval
               requisitions={requisitions}
+              jobs={jobs}
               onApproveRequisition={handleApproveRequisition}
               toggleModal={toggleModal}
               triggerToast={triggerToast}
@@ -988,6 +1016,10 @@ export default function UnifiedEnterpriseDashboard() {
           {activeTab === "probation" && (
             <ProbationEvaluation
               triggerToast={triggerToast}
+              onViewWorkReport={(employeeId: string) => {
+                setPreselectedWorkReportUserId(employeeId);
+                setActiveTab("performance");
+              }}
             />
           )}
 
@@ -1006,7 +1038,11 @@ export default function UnifiedEnterpriseDashboard() {
           )}
 
           {activeTab === "performance" && (
-            <PerformanceCompliance sessionUser={session?.user} />
+            <PerformanceCompliance
+              sessionUser={session?.user}
+              preselectedUserId={preselectedWorkReportUserId}
+              clearPreselectedUserId={() => setPreselectedWorkReportUserId("")}
+            />
           )}
 
           {activeTab === "leave-request" && (

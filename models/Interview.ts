@@ -2,6 +2,7 @@ import mongoose, { Schema, Document } from "mongoose";
 
 export interface IInterview extends Document {
   candidate: mongoose.Types.ObjectId;
+  candidateName?: string;
   round: number; // 1, 2, or 3
   scheduleTime: Date;
   videoLink?: string;
@@ -15,7 +16,7 @@ export interface IInterview extends Document {
   riskScore?: number;
   remarks?: string;
   status: "Pending" | "Selected" | "Hold" | "Rejected" | "High Risk" | "inactive";
-  customQuestions?: { question: string; isCorrect: boolean | null }[];
+  customQuestions?: { question: string; isCorrect: boolean | null; rating?: string; score?: number }[];
   createdAt: Date;
   updatedAt: Date;
 }
@@ -23,6 +24,7 @@ export interface IInterview extends Document {
 const InterviewSchema: Schema = new Schema(
   {
     candidate: { type: Schema.Types.ObjectId, ref: "Candidate", required: true },
+    candidateName: { type: String },
     round: { type: Number, required: true, enum: [1, 2, 3] },
     scheduleTime: { type: Date, required: true },
     videoLink: { type: String },
@@ -43,7 +45,9 @@ const InterviewSchema: Schema = new Schema(
     customQuestions: [
       {
         question: { type: String, required: true },
-        isCorrect: { type: Boolean, default: null }
+        isCorrect: { type: Boolean, default: null },
+        rating: { type: String, default: "" },
+        score: { type: Number, default: 0 }
       }
     ],
   },

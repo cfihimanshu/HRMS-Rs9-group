@@ -137,15 +137,44 @@ export async function PUT(req: Request) {
       requisition.status = "Job Posted";
       requisition.ownerRemarks = requisition.ownerRemarks || "Approved by Owner.";
 
-      // Resolve Company and Department from DB
-      const comp =
-        (await Company.findOne({ name: requisition.companyName })) ||
-        (await Company.findOne()) ||
-        { _id: "65edbe12f122822a12121212" };
-      const dept =
-        (await Department.findOne({ name: requisition.department })) ||
-        (await Department.findOne()) ||
-        { _id: "65edbe12f122822a12121213" };
+      // Resolve Company from DB with robust search
+      const trimName = requisition.companyName.trim().toLowerCase();
+      const allCompanies = await Company.find({ status: "active" });
+      const matchedComp = allCompanies.find(c => {
+        const dbName = c.name.toLowerCase();
+        const dbCode = (c.code || "").toLowerCase();
+        
+        if (trimName.includes("acolyte") || dbName.includes("acolyte")) {
+          return dbName.includes("acolyte") || dbCode.includes("acolyte");
+        }
+        if (trimName.includes("kare") || dbName.includes("kare")) {
+          return dbName.includes("kare") || dbCode.includes("kare");
+        }
+        if (trimName.includes("flora") || dbName.includes("flora")) {
+          return dbName.includes("flora") || dbCode.includes("flora");
+        }
+        if (trimName.includes("force") || dbName.includes("force") || trimName.includes("009") || dbName.includes("009")) {
+          return dbName.includes("force") || dbName.includes("009");
+        }
+        if (trimName.includes("citiline") || dbName.includes("citiline")) {
+          return dbName.includes("citiline") || dbCode.includes("citiline");
+        }
+        if (trimName === "cfi" || dbName === "cfi" || dbCode === "cfi") {
+          return dbName.includes("cfi") || dbCode.includes("cfi");
+        }
+        return dbName.includes(trimName) || trimName.includes(dbName);
+      });
+
+      const comp = matchedComp || allCompanies[0] || { _id: "65edbe12f122822a12121212" };
+
+      // Resolve or create Department from DB
+      let dept = await Department.findOne({ name: { $regex: new RegExp(`^${requisition.department.trim()}$`, "i") } });
+      if (!dept) {
+        dept = await Department.create({
+          name: requisition.department.trim(),
+          status: "active"
+        });
+      }
 
       const expMin = requisition.experience?.min || 0;
       const expMax = requisition.experience?.max || 0;

@@ -66,14 +66,19 @@ export async function POST(req: Request) {
     await dbConnect();
 
     // Check if target employee exists
-    const employeeUser = await User.findById(employeeId);
+    const employeeUser = await User.findById(employeeId).populate("companies");
     if (!employeeUser) {
       return NextResponse.json({ success: false, error: "Employee User not found" }, { status: 404 });
     }
 
+    const companyName = employeeUser.companyName || (employeeUser.companies?.[0] as any)?.name || "N/A";
+
     let record = await ExitRecord.findOne({ employee: employeeId });
 
     if (record) {
+      record.employeeName = employeeUser.name;
+      record.companyName = companyName;
+      record.role = employeeUser.role;
       record.exitReason = exitReason;
       record.assetsReturned = !!assetsReturned;
       record.accessRevoked = !!accessRevoked;
@@ -87,6 +92,9 @@ export async function POST(req: Request) {
     } else {
       record = new ExitRecord({
         employee: employeeId,
+        employeeName: employeeUser.name,
+        companyName: companyName,
+        role: employeeUser.role,
         exitReason,
         assetsReturned: !!assetsReturned,
         accessRevoked: !!accessRevoked,
@@ -99,6 +107,10 @@ export async function POST(req: Request) {
       });
       await record.save();
     }
+
+    // Set employee status to "on notice"
+    employeeUser.status = "on notice";
+    await employeeUser.save();
 
     // Auto action: If IT access is revoked, toggle status or log it
     if (accessRevoked) {

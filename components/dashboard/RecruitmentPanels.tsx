@@ -52,12 +52,14 @@ const getAttachmentUrl = (url: string) => {
 
 export function HiringApproval({
   requisitions,
+  jobs = [],
   onApproveRequisition,
   toggleModal,
   triggerToast,
   userRole
 }: {
   requisitions: any[];
+  jobs?: any[];
   onApproveRequisition: (id: string, nextStatus: string, remarks: string, budget?: string, platform?: string, postingDuration?: number) => void;
   toggleModal: (modalId: string, open: boolean) => void;
   triggerToast: (msg: string) => void;
@@ -70,6 +72,26 @@ export function HiringApproval({
   const [budgetInput, setBudgetInput] = useState<{ [key: string]: string }>({});
   const [platformInput, setPlatformInput] = useState<{ [key: string]: string }>({});
   const [durationInput, setDurationInput] = useState<{ [key: string]: string }>({});
+
+  const isJobDeactivated = (req: any) => {
+    const matchingJob = jobs?.find(jb => {
+      const jobTitle = jb.title?.trim().toLowerCase();
+      const reqRole = req.role?.trim().toLowerCase();
+
+      const jobCompany = (jb.company?.name || jb.companyName || "").trim().toLowerCase();
+      const reqCompany = (req.companyName || "").trim().toLowerCase();
+
+      return jobTitle === reqRole && jobCompany === reqCompany;
+    });
+    if (!matchingJob) return false;
+
+    const isExpired = !!(matchingJob.postingDuration &&
+      (new Date().getTime() - new Date(matchingJob.createdAt).getTime()) >
+      matchingJob.postingDuration * 24 * 60 * 60 * 1000
+    );
+
+    return isExpired || matchingJob.status === "inactive";
+  };
 
   const isHR = userRole === "HR Head" || userRole === "HR Executive" || userRole === "HR";
   const isAllowedRequisition = userRole === "Owner" || userRole === "Director" || userRole === "HR Head" || userRole === "Department Manager";
@@ -241,9 +263,15 @@ export function HiringApproval({
                     <span className="text-[9px] font-black tracking-widest px-2 py-0.5 rounded uppercase font-mono bg-slate-100 border border-slate-200 text-slate-600">
                       {req.category || "Staff"}
                     </span>
-                    <span className={`text-[9px] font-black tracking-widest px-2 py-0.5 rounded border uppercase font-mono ${statusColor(req.status)}`}>
-                      {req.status}
-                    </span>
+                    {isJobDeactivated(req) ? (
+                      <span className="text-[9px] font-black tracking-widest px-2 py-0.5 rounded border uppercase font-mono bg-rose-500/10 text-rose-600 border-rose-500/20">
+                        DEACTIVATED
+                      </span>
+                    ) : (
+                      <span className={`text-[9px] font-black tracking-widest px-2 py-0.5 rounded border uppercase font-mono ${statusColor(req.status)}`}>
+                        {req.status}
+                      </span>
+                    )}
                   </div>
                   <div className="text-[10px] text-slate-500 font-bold font-mono flex items-center gap-1.5 flex-wrap">
                     <span>🏢 {req.companyName || "Acolyte Group"}</span>
@@ -342,10 +370,10 @@ export function HiringApproval({
                       </div>
                     </div>
                   </div>
- 
+
                   {/* Action Desks */}
                   <div className="pt-2">
- 
+
                     {/* HR SOURCING DESK */}
                     {activeTab === "HRSourcing" && req.status === "Pending HR Sourcing Review" && (
                       <div className="bg-gradient-to-r from-fuchsia-500/5 to-pink-500/5 border border-fuchsia-500/20 rounded-xl p-4 space-y-3">
@@ -540,10 +568,17 @@ export function HiringApproval({
 
                     {/* Status Badges */}
                     {req.status === "Job Posted" && (
-                      <div className="text-xs font-bold text-emerald-600 bg-emerald-500/10 border border-emerald-500/20 p-3 rounded-lg flex items-center gap-2">
-                        <CheckCircle2 className="w-4 h-4 shrink-0" />
-                        Job vacancy is LIVE! Application link has been generated and posted.
-                      </div>
+                      isJobDeactivated(req) ? (
+                        <div className="text-xs font-bold text-rose-600 bg-rose-500/10 border border-rose-500/20 p-3 rounded-lg flex items-center gap-2">
+                          <AlertTriangle className="w-4 h-4 shrink-0" />
+                          Job vacancy is DEACTIVATED (expired or inactive).
+                        </div>
+                      ) : (
+                        <div className="text-xs font-bold text-emerald-600 bg-emerald-500/10 border border-emerald-500/20 p-3 rounded-lg flex items-center gap-2">
+                          <CheckCircle2 className="w-4 h-4 shrink-0" />
+                          Job vacancy is LIVE! Application link has been generated and posted.
+                        </div>
+                      )
                     )}
                     {req.status === "Rejected" && (
                       <div className="text-xs font-bold text-rose-600 bg-rose-500/10 border border-rose-500/20 p-3 rounded-lg">
@@ -733,8 +768,8 @@ export function JobPostings({
                       </div>
                       {jb.postingDuration && (
                         <div className="text-[8px] font-bold font-mono text-slate-500 mt-0.5 uppercase tracking-wide">
-                          {isExpired 
-                            ? "Duration: Over" 
+                          {isExpired
+                            ? "Duration: Over"
                             : `Ends in: ${Math.max(0, Math.ceil(jb.postingDuration - (new Date().getTime() - new Date(jb.createdAt).getTime()) / (24 * 60 * 60 * 1000)))} days`
                           }
                         </div>
@@ -2393,9 +2428,73 @@ export function InterviewsQueue({ triggerToast }: { triggerToast: (msg: string) 
   const [remarks, setRemarks] = useState("");
   const [roundStatus, setRoundStatus] = useState("Selected");
   const [submitting, setSubmitting] = useState(false);
-  const [customQuestions, setCustomQuestions] = useState<{ question: string; isCorrect: boolean | null }[]>([]);
+  const [customQuestions, setCustomQuestions] = useState<{ question: string; isCorrect: boolean | null; rating?: string; score?: number }[]>([]);
   const [newQuestionText, setNewQuestionText] = useState("");
+
   const [tailoringId, setTailoringId] = useState<string | null>(null);
+  const [generatingFeedback, setGeneratingFeedback] = useState(false);
+
+  // Follow Up State
+  const [followUpInterview, setFollowUpInterview] = useState<any>(null);
+  const [followUpDate, setFollowUpDate] = useState("");
+  const [followUpTime, setFollowUpTime] = useState("");
+  const [followUpMode, setFollowUpMode] = useState<"online" | "offline">("online");
+  const [followUpVideoLink, setFollowUpVideoLink] = useState("");
+  const [followUpSubmitting, setFollowUpSubmitting] = useState(false);
+
+  const handleFollowUpClick = (item: any) => {
+    setFollowUpInterview(item);
+    setFollowUpMode(item.mode || "online");
+    setFollowUpVideoLink(item.videoLink || "");
+    if (item.scheduleTime) {
+      const d = new Date(item.scheduleTime);
+      const year = d.getFullYear();
+      const month = String(d.getMonth() + 1).padStart(2, "0");
+      const day = String(d.getDate()).padStart(2, "0");
+      setFollowUpDate(`${year}-${month}-${day}`);
+
+      const hours = String(d.getHours()).padStart(2, "0");
+      const minutes = String(d.getMinutes()).padStart(2, "0");
+      setFollowUpTime(`${hours}:${minutes}`);
+    } else {
+      setFollowUpDate("");
+      setFollowUpTime("");
+    }
+  };
+
+  const handleFollowUpSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!followUpInterview || !followUpDate || !followUpTime) {
+      triggerToast("Please fill in date and time parameters!");
+      return;
+    }
+
+    setFollowUpSubmitting(true);
+    try {
+      const res = await fetch("/api/interviews", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          interviewId: followUpInterview._id,
+          scheduleTime: `${followUpDate}T${followUpTime}`,
+          videoLink: followUpMode === "offline" ? "" : followUpVideoLink,
+          mode: followUpMode,
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        triggerToast("Interview schedule updated successfully!");
+        setFollowUpInterview(null);
+        loadData();
+      } else {
+        triggerToast(`Failed to update schedule: ${data.error}`);
+      }
+    } catch (err) {
+      triggerToast("Network error updating schedule");
+    } finally {
+      setFollowUpSubmitting(false);
+    }
+  };
 
   const loadData = async () => {
     setLoading(true);
@@ -2567,7 +2666,21 @@ export function InterviewsQueue({ triggerToast }: { triggerToast: (msg: string) 
           riskScore,
           remarks,
           status: roundStatus,
-          customQuestions: customQuestions.filter((q: any) => q.isCorrect === true || q.isCorrect === false),
+          customQuestions: customQuestions.map((q: any) => {
+            const ratingMap: Record<string, number> = {
+              average: 20,
+              low: 40,
+              good: 60,
+              medium: 80,
+              excellent: 100
+            };
+            return {
+              question: q.question,
+              isCorrect: q.rating ? true : null,
+              rating: q.rating || "",
+              score: q.rating ? (ratingMap[q.rating] || 0) : 0
+            };
+          }),
         }),
       });
       const data = await res.json();
@@ -2605,6 +2718,44 @@ export function InterviewsQueue({ triggerToast }: { triggerToast: (msg: string) 
       triggerToast("Network error generating assessment questions");
     } finally {
       setTailoringId(null);
+    }
+  };
+
+  const handleGenerateFeedback = async (interviewItem: any) => {
+    if (!interviewItem) return;
+    const ratingMap: Record<string, number> = {
+      average: 20, low: 40, good: 60, medium: 80, excellent: 100
+    };
+    const rated = customQuestions.filter((q: any) => q.rating);
+    const totalScore = rated.length > 0
+      ? Math.round(rated.reduce((sum, q) => sum + (ratingMap[(q as any).rating] || 0), 0) / rated.length)
+      : 0;
+
+    setGeneratingFeedback(true);
+    try {
+      const res = await fetch("/api/interviews/generate-feedback", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          interviewId: interviewItem._id,
+          customQuestions,
+          overallScore: totalScore,
+          candidateName: interviewItem.candidate?.name || interviewItem.candidateName,
+          vacancyName: interviewItem.vacancyName,
+          round: interviewItem.round,
+        }),
+      });
+      const data = await res.json();
+      if (data.success && data.feedback) {
+        setRemarks(data.feedback);
+        triggerToast("✨ AI feedback generated successfully!");
+      } else {
+        triggerToast(`Failed to generate feedback: ${data.error}`);
+      }
+    } catch (err) {
+      triggerToast("Network error generating AI feedback");
+    } finally {
+      setGeneratingFeedback(false);
     }
   };
 
@@ -2683,8 +2834,8 @@ export function InterviewsQueue({ triggerToast }: { triggerToast: (msg: string) 
                 className="rounded border border-slate-250 p-2 text-slate-800 focus:ring-[#714B67] focus:border-[#714B67]"
               >
                 <option value="1">Round-1: HR Assessment</option>
-                <option value="2">Round-2: HR + Department Manager</option>
-                <option value="3">Round-3: HR + DSM + Management (Mandatory)</option>
+                <option value="2">Round-2: Department Manager</option>
+                <option value="3">Round-3: DSM + Management (Mandatory)</option>
               </select>
             </div>
 
@@ -2834,11 +2985,10 @@ export function InterviewsQueue({ triggerToast }: { triggerToast: (msg: string) 
                                 const isAssessed = item.status !== "Pending";
                                 const initialQuestions = isAssessed
                                   ? (item.customQuestions || [])
-                                    .filter((q: any) => q.isCorrect === true || q.isCorrect === false)
-                                    .map((q: any) => ({ question: q.question, isCorrect: q.isCorrect }))
+                                    .map((q: any) => ({ question: q.question, isCorrect: q.isCorrect, rating: q.rating || "", score: q.score || 0 }))
                                   : (item.customQuestions && item.customQuestions.length > 0
-                                    ? item.customQuestions.map((q: any) => ({ question: q.question, isCorrect: q.isCorrect }))
-                                    : (cand.screeningResult?.suggestedQuestions || []).map((q: string) => ({ question: q, isCorrect: null })));
+                                    ? item.customQuestions.map((q: any) => ({ question: q.question, isCorrect: q.isCorrect, rating: q.rating || "", score: q.score || 0 }))
+                                    : (cand.screeningResult?.suggestedQuestions || []).map((q: string) => ({ question: q, isCorrect: null, rating: "", score: 0 })));
                                 setCustomQuestions(initialQuestions);
                                 setNewQuestionText("");
                               }
@@ -2846,7 +2996,7 @@ export function InterviewsQueue({ triggerToast }: { triggerToast: (msg: string) 
                             className={`hover:bg-slate-50/50 cursor-pointer transition-all ${isSelected ? "bg-indigo-50/40" : ""}`}
                           >
                             <td className="py-3 pr-2">
-                              <div className="font-bold text-slate-800">{cand.name || "Deleted Candidate"}</div>
+                              <div className="font-bold text-slate-800">{item.candidateName || cand.name || "Deleted Candidate"}</div>
                               <div className="text-[10px] text-slate-400 mt-0.5">{cand.mobile || "N/A"}</div>
                             </td>
                             <td className="py-3 px-2">
@@ -2882,32 +3032,17 @@ export function InterviewsQueue({ triggerToast }: { triggerToast: (msg: string) 
                               </span>
                             </td>
                             <td className="py-3 pl-2 text-right space-x-1.5 whitespace-nowrap">
-                              <button className="bg-[#714B67] hover:bg-[#5F3F56] text-white font-bold px-2.5 py-1 rounded text-[10.5px]">
-                                {isSelected ? "Hide" : "Show"}
-                              </button>
                               {isAuthorized && (
-                                <>
-                                  <button
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleEditClick(item);
-                                    }}
-                                    className="bg-[#714B67] hover:bg-amber-600 text-white font-bold px-2.5 py-1 rounded text-[10.5px] transition-all"
-                                  >
-                                    Edit
-                                  </button>
-                                  <button
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      if (confirm("Are you sure you want to delete this scheduled interview?")) {
-                                        handleDeleteClick(item._id);
-                                      }
-                                    }}
-                                    className="bg-[#714B67] hover:bg-rose-700 text-white font-bold px-2.5 py-1 rounded text-[10.5px] transition-all"
-                                  >
-                                    Delete
-                                  </button>
-                                </>
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleFollowUpClick(item);
+                                  }}
+                                  className="bg-[#714B67] hover:bg-[#5F3F56] text-white font-bold px-2.5 py-1 rounded text-[10.5px] transition-all"
+                                >
+                                  Follow up
+                                </button>
                               )}
                             </td>
                           </tr>
@@ -2919,7 +3054,7 @@ export function InterviewsQueue({ triggerToast }: { triggerToast: (msg: string) 
                                   <div className="pb-3 border-b border-slate-100 flex justify-between items-start gap-4">
                                     <div>
                                       <span className="text-[9px] font-black tracking-widest text-[#714B67] uppercase font-mono">Conducting Assessment Portal</span>
-                                      <h2 className="text-base font-black text-slate-800 mt-1">{item.candidate?.name || "Deleted Candidate"}</h2>
+                                      <h2 className="text-base font-black text-slate-800 mt-1">{item.candidateName || item.candidate?.name || "Deleted Candidate"}</h2>
                                       <p className="text-[10.5px] text-slate-500 mt-0.5">Round Applied: <strong className="text-slate-700">Round-{item.round}</strong></p>
                                     </div>
                                     {item.videoLink && (
@@ -2957,9 +3092,20 @@ export function InterviewsQueue({ triggerToast }: { triggerToast: (msg: string) 
                                     {/* 2. AI Tailored Screening Questions Display */}
                                     <div className="space-y-2">
                                       <div className="flex justify-between items-center pb-1">
-                                        <label className="text-[10px] font-black uppercase text-[#714B67] tracking-wider font-mono">
-                                          AI Customized Assessment Questions
-                                        </label>
+                                        <div className="flex items-center gap-3">
+                                          <label className="text-[10px] font-black uppercase text-[#714B67] tracking-wider font-mono">
+                                            AI Customized Assessment Questions
+                                          </label>
+                                          {customQuestions.length > 0 && (
+                                            <span className="bg-[#714B67] text-white px-2 py-0.5 rounded text-[10px] font-black">
+                                              Score: {(() => {
+                                                const rated = customQuestions.filter((q: any) => q.rating);
+                                                const total = rated.reduce((sum, q) => sum + (q.rating === "average" ? 20 : q.rating === "low" ? 40 : q.rating === "good" ? 60 : q.rating === "medium" ? 80 : q.rating === "excellent" ? 100 : 0), 0);
+                                                return rated.length > 0 ? Math.round(total / rated.length) : 0;
+                                              })()}%
+                                            </span>
+                                          )}
+                                        </div>
                                         <button
                                           type="button"
                                           onClick={() => handleTailorQuestions(item._id)}
@@ -2980,36 +3126,30 @@ export function InterviewsQueue({ triggerToast }: { triggerToast: (msg: string) 
                                                   <span className="break-words text-slate-700">{qObj.question}</span>
                                                 </div>
 
-                                                <div className="flex items-center gap-3 shrink-0">
-                                                  {/* Correct Option */}
-                                                  <label className="flex items-center gap-1 cursor-pointer select-none">
-                                                    <input
-                                                      type="checkbox"
-                                                      disabled={isBeforeScheduleTime}
-                                                      checked={qObj.isCorrect === true}
-                                                      onChange={() => {
-                                                        const newVal = qObj.isCorrect === true ? null : true;
-                                                        setCustomQuestions(prev => prev.map((q, i) => i === idx ? { ...q, isCorrect: newVal } : q));
-                                                      }}
-                                                      className="w-3.5 h-3.5 text-emerald-600 focus:ring-emerald-500 rounded border-slate-350 disabled:opacity-50 disabled:cursor-not-allowed"
-                                                    />
-                                                    <span className={`text-[9.5px] font-bold ${qObj.isCorrect === true ? "text-emerald-600" : "text-slate-400"}`}>Correct</span>
-                                                  </label>
-
-                                                  {/* Incorrect Option */}
-                                                  <label className="flex items-center gap-1 cursor-pointer select-none">
-                                                    <input
-                                                      type="checkbox"
-                                                      disabled={isBeforeScheduleTime}
-                                                      checked={qObj.isCorrect === false}
-                                                      onChange={() => {
-                                                        const newVal = qObj.isCorrect === false ? null : false;
-                                                        setCustomQuestions(prev => prev.map((q, i) => i === idx ? { ...q, isCorrect: newVal } : q));
-                                                      }}
-                                                      className="w-3.5 h-3.5 text-rose-600 focus:ring-rose-500 rounded border-slate-355 disabled:opacity-50 disabled:cursor-not-allowed"
-                                                    />
-                                                    <span className={`text-[9.5px] font-bold ${qObj.isCorrect === false ? "text-rose-600" : "text-slate-400"}`}>Incorrect</span>
-                                                  </label>
+                                                <div className="flex items-center gap-1.5 shrink-0 flex-wrap">
+                                                  {[
+                                                    { name: "Average", val: "average", color: "bg-amber-50 border-amber-250 text-amber-700 hover:bg-amber-100", activeColor: "bg-amber-500 border-amber-500 text-white" },
+                                                    { name: "Low", val: "low", color: "bg-red-50 border-red-250 text-red-700 hover:bg-red-100", activeColor: "bg-red-500 border-red-500 text-white" },
+                                                    { name: "Good", val: "good", color: "bg-sky-50 border-sky-250 text-sky-700 hover:bg-sky-100", activeColor: "bg-sky-500 border-sky-500 text-white" },
+                                                    { name: "Medium", val: "medium", color: "bg-indigo-50 border-indigo-250 text-indigo-700 hover:bg-indigo-100", activeColor: "bg-indigo-500 border-indigo-500 text-white" },
+                                                    { name: "Excellent", val: "excellent", color: "bg-emerald-50 border-emerald-250 text-emerald-700 hover:bg-emerald-100", activeColor: "bg-emerald-500 border-emerald-500 text-white" }
+                                                  ].map((opt) => {
+                                                    const isActive = qObj.rating === opt.val;
+                                                    return (
+                                                      <button
+                                                        key={opt.val}
+                                                        type="button"
+                                                        disabled={isBeforeScheduleTime}
+                                                        onClick={() => {
+                                                          const newVal = isActive ? "" : opt.val;
+                                                          setCustomQuestions(prev => prev.map((q, i) => i === idx ? { ...q, rating: newVal } : q));
+                                                        }}
+                                                        className={`px-1.5 py-0.5 rounded text-[8.5px] font-black border transition-all ${isActive ? opt.activeColor : opt.color} disabled:opacity-50 disabled:cursor-not-allowed`}
+                                                      >
+                                                        {opt.name}
+                                                      </button>
+                                                    );
+                                                  })}
 
                                                   {/* Delete Question Button */}
                                                   <button
@@ -3044,7 +3184,7 @@ export function InterviewsQueue({ triggerToast }: { triggerToast: (msg: string) 
                                               if (e.key === "Enter") {
                                                 e.preventDefault();
                                                 if (newQuestionText.trim()) {
-                                                  setCustomQuestions(prev => [...prev, { question: newQuestionText.trim(), isCorrect: null }]);
+                                                  setCustomQuestions(prev => [...prev, { question: newQuestionText.trim(), isCorrect: null, rating: "", score: 0 }]);
                                                   setNewQuestionText("");
                                                 }
                                               }
@@ -3055,7 +3195,7 @@ export function InterviewsQueue({ triggerToast }: { triggerToast: (msg: string) 
                                             disabled={isBeforeScheduleTime}
                                             onClick={() => {
                                               if (newQuestionText.trim()) {
-                                                setCustomQuestions(prev => [...prev, { question: newQuestionText.trim(), isCorrect: null }]);
+                                                setCustomQuestions(prev => [...prev, { question: newQuestionText.trim(), isCorrect: null, rating: "", score: 0 }]);
                                                 setNewQuestionText("");
                                               }
                                             }}
@@ -3094,17 +3234,59 @@ export function InterviewsQueue({ triggerToast }: { triggerToast: (msg: string) 
                                           />
                                         </div>
                                       ))}
+                                      {/* Read-only Assessment Questions Score */}
+                                      <div className="flex flex-col gap-1.5 pt-2 border-t border-slate-200">
+                                        <div className="flex justify-between items-center text-[10.5px]">
+                                          <label className="font-bold text-[#714B67]">Assessment Questions Score (Calculated):</label>
+                                          <strong className="text-xs font-mono text-[#714B67] bg-[#714B67]/10 px-2 py-0.5 rounded">
+                                            {(() => {
+                                              const rated = customQuestions.filter((q: any) => q.rating);
+                                              const total = rated.reduce((sum, q) => sum + (q.rating === "average" ? 20 : q.rating === "low" ? 40 : q.rating === "good" ? 60 : q.rating === "medium" ? 80 : q.rating === "excellent" ? 100 : 0), 0);
+                                              return rated.length > 0 ? Math.round(total / rated.length) : 0;
+                                            })()}%
+                                          </strong>
+                                        </div>
+                                        <div className="w-full bg-slate-200 rounded-full h-2">
+                                          <div 
+                                            className="bg-[#714B67] h-2 rounded-full transition-all duration-300"
+                                            style={{ 
+                                              width: `${(() => {
+                                                const rated = customQuestions.filter((q: any) => q.rating);
+                                                const total = rated.reduce((sum, q) => sum + (q.rating === "average" ? 20 : q.rating === "low" ? 40 : q.rating === "good" ? 60 : q.rating === "medium" ? 80 : q.rating === "excellent" ? 100 : 0), 0);
+                                                return rated.length > 0 ? Math.round(total / rated.length) : 0;
+                                              })()}%` 
+                                            }}
+                                          ></div>
+                                        </div>
+                                      </div>
                                     </div>
 
                                     {/* 4. Remarks entry */}
                                     <div className="flex flex-col gap-1.5">
-                                      <label>Interviewer Feedback Remarks:</label>
+                                      <div className="flex items-center justify-between">
+                                        <label>Interviewer Feedback Remarks:</label>
+                                        <button
+                                          type="button"
+                                          disabled={isBeforeScheduleTime || generatingFeedback}
+                                          onClick={() => handleGenerateFeedback(item)}
+                                          className="text-[9px] font-black text-white bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 disabled:from-slate-300 disabled:to-slate-400 disabled:cursor-not-allowed px-2.5 py-1 rounded flex items-center gap-1 transition-all shadow-sm"
+                                        >
+                                          {generatingFeedback ? (
+                                            <>
+                                              <span className="animate-spin inline-block w-2.5 h-2.5 border border-white border-t-transparent rounded-full"></span>
+                                              Generating...
+                                            </>
+                                          ) : (
+                                            <>✨ AI Generate Feedback</>
+                                          )}
+                                        </button>
+                                      </div>
                                       <textarea
                                         value={remarks}
                                         disabled={isBeforeScheduleTime}
                                         onChange={(e) => setRemarks(e.target.value)}
-                                        placeholder={isBeforeScheduleTime ? "Locked until scheduled interview time" : "Enter assessment remarks, strengths, values and compliance flags..."}
-                                        className="rounded border border-slate-250 p-2 text-slate-800 focus:ring-[#714B67] focus:border-[#714B67] h-20 text-xs disabled:bg-slate-50 disabled:text-slate-400 disabled:cursor-not-allowed"
+                                        placeholder={isBeforeScheduleTime ? "Locked until scheduled interview time" : "Enter assessment remarks, or use ✨ AI Generate Feedback above..."}
+                                        className="rounded border border-slate-250 p-2 text-slate-800 focus:ring-[#714B67] focus:border-[#714B67] h-24 text-xs disabled:bg-slate-50 disabled:text-slate-400 disabled:cursor-not-allowed"
                                         required={!isBeforeScheduleTime}
                                       />
                                     </div>
@@ -3168,6 +3350,127 @@ export function InterviewsQueue({ triggerToast }: { triggerToast: (msg: string) 
         </div>
 
       </div>
+
+      {/* Follow Up Modal Popup */}
+      {followUpInterview && (
+        <div className="fixed inset-0 z-[9999] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 animate-fadeIn">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden border border-slate-200">
+            {/* Header */}
+            <div className="bg-[#714B67] text-white px-5 py-4 flex items-center justify-between">
+              <span className="text-sm font-black tracking-wide uppercase">Follow Up Interview</span>
+              <button
+                type="button"
+                onClick={() => setFollowUpInterview(null)}
+                className="text-white hover:text-slate-200 font-bold text-xl px-2"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Form */}
+            <form onSubmit={handleFollowUpSubmit} className="p-6 space-y-4 text-xs font-semibold text-slate-650">
+              {/* Candidate Name (Autofilled & Read-only) */}
+              <div className="flex flex-col gap-1.5">
+                <label className="text-slate-500">Candidate Name</label>
+                <input
+                  type="text"
+                  readOnly
+                  value={followUpInterview.candidate?.name || "Deleted Candidate"}
+                  className="rounded border border-slate-200 bg-slate-50 p-2.5 text-slate-500 font-bold outline-none cursor-not-allowed"
+                />
+              </div>
+
+              {/* Candidate Role (Autofilled & Read-only) */}
+              <div className="flex flex-col gap-1.5">
+                <label className="text-slate-500">Candidate Role</label>
+                <input
+                  type="text"
+                  readOnly
+                  value={followUpInterview.vacancyName || followUpInterview.candidate?.job?.title || "General Application"}
+                  className="rounded border border-slate-200 bg-slate-50 p-2.5 text-slate-500 font-bold outline-none cursor-not-allowed"
+                />
+              </div>
+
+              {/* Date selection */}
+              <div className="flex flex-col gap-1.5">
+                <label className="text-slate-700">Follow-up Date</label>
+                <input
+                  type="date"
+                  value={followUpDate}
+                  onChange={(e) => setFollowUpDate(e.target.value)}
+                  className="rounded border border-slate-250 p-2.5 text-slate-800 focus:ring-2 focus:ring-[#714B67] focus:outline-none"
+                  required
+                />
+              </div>
+
+              {/* Time selection */}
+              <div className="flex flex-col gap-1.5">
+                <label className="text-slate-700">Follow-up Time</label>
+                <input
+                  type="time"
+                  value={followUpTime}
+                  onChange={(e) => setFollowUpTime(e.target.value)}
+                  className="rounded border border-slate-250 p-2.5 text-slate-800 focus:ring-2 focus:ring-[#714B67] focus:outline-none"
+                  required
+                />
+              </div>
+
+              {/* Interview Mode selection */}
+              <div className="flex flex-col gap-1.5">
+                <label className="text-slate-700">Interview Mode</label>
+                <select
+                  value={followUpMode}
+                  onChange={(e) => {
+                    const newMode = e.target.value as "online" | "offline";
+                    setFollowUpMode(newMode);
+                    if (newMode === "online" && !followUpVideoLink) {
+                      const candId = followUpInterview.candidate?._id || "";
+                      const roundNum = followUpInterview.round || "1";
+                      setFollowUpVideoLink(`https://meet.acolyte.in/round${roundNum}-${candId.slice(-6)}`);
+                    }
+                  }}
+                  className="rounded border border-slate-250 p-2.5 text-slate-800 focus:ring-2 focus:ring-[#714B67] focus:border-[#714B67] focus:outline-none"
+                >
+                  <option value="online">Online</option>
+                  <option value="offline">Offline</option>
+                </select>
+              </div>
+
+              {/* Video link field if online */}
+              {followUpMode === "online" && (
+                <div className="flex flex-col gap-1.5 animate-fadeIn">
+                  <label className="text-slate-700">Virtual Meeting Link</label>
+                  <input
+                    type="url"
+                    value={followUpVideoLink}
+                    onChange={(e) => setFollowUpVideoLink(e.target.value)}
+                    placeholder="Google Meet or Zoom Video URL"
+                    className="rounded border border-slate-250 p-2.5 text-slate-800 focus:ring-2 focus:ring-[#714B67] focus:outline-none font-mono text-[11px]"
+                  />
+                </div>
+              )}
+
+              {/* Actions */}
+              <div className="flex gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setFollowUpInterview(null)}
+                  className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 py-2.5 rounded-lg font-black transition-all border border-slate-200"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={followUpSubmitting}
+                  className="flex-1 bg-[#714B67] hover:bg-[#5F3F56] text-white py-2.5 rounded-lg font-black transition-all shadow-md"
+                >
+                  {followUpSubmitting ? "Updating..." : "Update Schedule"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -3629,7 +3932,7 @@ export function FilePreviewModal({
     (url.includes("image/upload") && !cleanUrl.endsWith(".pdf"));
 
   // Check if it's a PDF and browser can display it, or use Google Docs Viewer for other docs (docx, xlsx, etc.)
-  const isPdf = cleanUrl.endsWith(".pdf") || 
+  const isPdf = cleanUrl.endsWith(".pdf") ||
     url.toLowerCase().includes(".pdf") ||
     url.includes("/raw/upload/") ||
     title.toLowerCase().includes("resume") ||
