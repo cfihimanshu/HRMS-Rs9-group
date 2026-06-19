@@ -46,21 +46,31 @@ export async function POST(req: Request) {
     const job = candidate.job as any;
     const jobTitle = job?.title || interview.vacancyName || "General Candidate Application";
     const jobDescription = job?.description || "Corporate operations and execution tasks.";
+    const departmentName = job?.department?.name || "";
+    const isIT = departmentName.toLowerCase().includes("it") || jobTitle.toLowerCase().includes("it") || jobTitle.toLowerCase().includes("software") || jobTitle.toLowerCase().includes("developer") || jobTitle.toLowerCase().includes("tech");
 
     const apiKey = process.env.GEMINI_API_KEY || "";
     if (!apiKey) {
       return NextResponse.json({ success: false, error: "Gemini API key is not configured in .env" }, { status: 500 });
     }
 
-    console.log(`Generating customized assessment questions for candidate ${candidate.name} applied for ${jobTitle} (Round ${interview.round})...`);
+    console.log(`Generating customized assessment questions for candidate ${candidate.name} applied for ${jobTitle} (Round ${interview.round}, Dept: ${departmentName || "N/A"})...`);
 
     let roundInstructions = "";
     if (interview.round === 1) {
       roundInstructions = "This is Round 1 (HR Round). Suggest standard, non-technical HR / behavioral questions. Focus on communication, career goals, work habits, general introduction, team work, salary/notice period expectations, and cultural fit. DO NOT suggest coding, technical, deep system design, or management/domain-specific questions.";
     } else if (interview.round === 2) {
-      roundInstructions = "This is Round 2 (Department Manager Round). Suggest standard, practical technical or operational questions tailored to the vacancy details that a manager would ask to evaluate general job readiness and day-to-day execution.";
+      if (isIT) {
+        roundInstructions = "This is Round 2 (Technical Coding Round for IT Department). Suggest exactly 5 coding questions of medium difficulty level. Do not suggest verbal, non-coding, or behavioral/HR questions. Focus on algorithmic problem-solving or basic coding logic.";
+      } else {
+        roundInstructions = `This is Round 2 (Departmental Verbal Round). Suggest exactly 5 practical, verbal technical or operational questions tailored to the department "${departmentName}" and vacancy details to evaluate domain knowledge and day-to-day execution. Do not suggest coding questions or behavioral/HR questions.`;
+      }
     } else {
-      roundInstructions = "This is Round 3 (Final Technical / Medium-Level Vacancy Round). Suggest medium-level, deep-dive technical or domain-specific questions tailored to the vacancy (problem-solving, architecture, process flow, or domain challenge scenarios).";
+      if (isIT) {
+        roundInstructions = "This is Round 3 (Advanced Technical Coding Round for IT Department). Suggest exactly 5 coding questions of medium difficulty level. Focus on algorithmic problem-solving, database querying, system design, or logic. Do not suggest verbal, non-coding, or behavioral/HR questions.";
+      } else {
+        roundInstructions = `This is Round 3 (Advanced Technical & Domain-Specific verbal round). Suggest exactly 5 medium-to-high level technical or domain-specific verbal questions tailored to the department "${departmentName}" (problem-solving, architecture, process flow, or domain challenge scenarios). Do not suggest coding questions or behavioral/HR questions.`;
+      }
     }
 
     const prompt = `You are a Senior HR Interviewer. Suggest exactly 5 concise, one-line assessment questions for the candidate's interview.
@@ -120,7 +130,6 @@ Return a valid JSON array of 5 strings ONLY. Do not write markdown blocks or tex
 
     if (!questions || questions.length === 0) {
       const isSales = jobTitle.toLowerCase().includes("sale") || jobDescription.toLowerCase().includes("sale");
-      const isIT = jobTitle.toLowerCase().includes("it") || jobTitle.toLowerCase().includes("software") || jobTitle.toLowerCase().includes("developer") || jobTitle.toLowerCase().includes("tech");
       
       if (interview.round === 1) {
         questions = [
@@ -131,7 +140,15 @@ Return a valid JSON array of 5 strings ONLY. Do not write markdown blocks or tex
           "Where do you see your career path leading over the next three years?"
         ];
       } else if (interview.round === 2) {
-        if (isSales) {
+        if (isIT) {
+          questions = [
+            "Write a function to reverse a string in place.",
+            "Write a function to check if a binary tree is a valid binary search tree (BST).",
+            "Write a function to find the middle element of a linked list in a single pass.",
+            "Write a function to merge two sorted arrays without using extra space.",
+            "Write a function to find the first non-repeating character in a string."
+          ];
+        } else if (isSales) {
           questions = [
             "How do you handle a prospect who repeatedly objects to the price?",
             "Describe your experience with cold outreach and CRM pipelines.",
@@ -139,17 +156,9 @@ Return a valid JSON array of 5 strings ONLY. Do not write markdown blocks or tex
             "How do you qualify a lead to determine if they are worth pursuing?",
             "Tell me about a time you turned a hesitant prospect into a customer."
           ];
-        } else if (isIT) {
-          questions = [
-            "Describe your experience with RESTful APIs and modern database systems.",
-            "How do you ensure data security and follow best coding practices under tight deadlines?",
-            "What is your approach to troubleshooting a critical bug in a production environment?",
-            "Explain your experience with version control, CI/CD pipelines, and cloud services.",
-            "How do you organize your code when working on a collaborative project?"
-          ];
         } else {
           questions = [
-            "What do you understand by the daily responsibilities in this role?",
+            `What do you understand by the daily responsibilities in ${departmentName || "this"} department?`,
             "How do you prioritize multiple tasks and handle pressure from stakeholders?",
             "Tell me about a time you had to resolve a workplace conflict or difficult situation.",
             "What tools or methodologies do you use to keep your work organized?",
@@ -158,7 +167,15 @@ Return a valid JSON array of 5 strings ONLY. Do not write markdown blocks or tex
         }
       } else {
         // Round 3
-        if (isSales) {
+        if (isIT) {
+          questions = [
+            "Explain how to implement a rate limiter for an API with a medium-level coding example.",
+            "Write a function to find the longest common subsequence of two strings.",
+            "Write an SQL query to find the second highest salary of an employee from the Employee table.",
+            "Write a function to find all pairs in an integer array whose sum is equal to a given number.",
+            "Explain how you would design and code a simple LRU Cache."
+          ];
+        } else if (isSales) {
           questions = [
             "Explain your process for building a sales pipeline from scratch in a new market.",
             "How do you negotiate high-value contracts and handle objections from C-level executives?",
@@ -166,17 +183,9 @@ Return a valid JSON array of 5 strings ONLY. Do not write markdown blocks or tex
             "Describe a complex sales deal that you closed and the key negotiation strategies used.",
             "How do you adjust your sales pitch when dealing with tech-savvy vs non-technical clients?"
           ];
-        } else if (isIT) {
-          questions = [
-            "How do you optimize slow query performance or API response latency in a large-scale database?",
-            "Explain the difference between SQL and NoSQL databases and when you would choose each.",
-            "What is your strategy for implementing CI/CD pipelines and microservices architecture?",
-            "Describe how you design secure, scalable authentication and authorization systems.",
-            "How do you handle state management and caching strategies in high-traffic web apps?"
-          ];
         } else {
           questions = [
-            "How do you align departmental goals with the overall business objectives of the company?",
+            `Explain the key operational challenges in the ${departmentName || "current"} department and how you address them.`,
             "Describe a time you proposed a significant process improvement and how you implemented it.",
             "How do you manage resource allocation and budget constraints for a key project?",
             "What metrics do you use to evaluate success and performance in your daily operations?",
@@ -189,7 +198,9 @@ Return a valid JSON array of 5 strings ONLY. Do not write markdown blocks or tex
     // Map questions to schema structure and save to Interview in db
     const formattedQuestions = questions.map((q: string) => ({
       question: q,
-      isCorrect: null
+      isCorrect: null,
+      rating: "",
+      score: 0
     }));
 
     (interviewInstance as any).customQuestions = formattedQuestions;

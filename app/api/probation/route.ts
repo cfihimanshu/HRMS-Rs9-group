@@ -81,6 +81,15 @@ export async function POST(req: Request) {
       record.feedback = feedback || "";
       await record.save();
 
+      // Synchronize to User status
+      if (status === "Confirm") {
+        await User.findByIdAndUpdate(record.employee, { status: "active" });
+      } else if (status === "Exit") {
+        await User.findByIdAndUpdate(record.employee, { status: "deactivated" });
+      } else if (status === "active" || status === "Extend" || status === "Restrict role") {
+        await User.findByIdAndUpdate(record.employee, { status: "probation" });
+      }
+
       await logAudit({
         userId: (session.user as any).id,
         action: "PROBATION_EVALUATED",
@@ -107,6 +116,9 @@ export async function POST(req: Request) {
       attendanceSummary: { totalDays: 30, presentDays: 28 }, // Mock default values
       reportsSummary: { sodSubmitted: 22, eodSubmitted: 22 },
     });
+
+    // Synchronize to User status
+    await User.findByIdAndUpdate(employeeId, { status: "probation" });
 
     return NextResponse.json({ success: true, data: newRecord });
   } catch (error: any) {

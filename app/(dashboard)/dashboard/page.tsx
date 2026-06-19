@@ -94,6 +94,7 @@ export default function UnifiedEnterpriseDashboard() {
 
   // Selected Candidate for detailed view
   const [selectedCandidate, setSelectedCandidate] = useState<any>(null);
+  const [preselectedWorkReportUserId, setPreselectedWorkReportUserId] = useState<string>("");
 
   // Modal Open/Close States
   const [modals, setModals] = useState<{ [key: string]: boolean }>({
@@ -985,6 +986,7 @@ export default function UnifiedEnterpriseDashboard() {
           {activeTab === "hiring" && (
             <HiringApproval
               requisitions={requisitions}
+              jobs={jobs}
               onApproveRequisition={handleApproveRequisition}
               toggleModal={toggleModal}
               triggerToast={triggerToast}
@@ -1057,6 +1059,10 @@ export default function UnifiedEnterpriseDashboard() {
           {activeTab === "probation" && (
             <ProbationEvaluation
               triggerToast={triggerToast}
+              onViewWorkReport={(employeeId: string) => {
+                setPreselectedWorkReportUserId(employeeId);
+                setActiveTab("performance");
+              }}
             />
           )}
 
@@ -1075,7 +1081,11 @@ export default function UnifiedEnterpriseDashboard() {
           )}
 
           {activeTab === "performance" && (
-            <PerformanceCompliance sessionUser={session?.user} />
+            <PerformanceCompliance
+              sessionUser={session?.user}
+              preselectedUserId={preselectedWorkReportUserId}
+              clearPreselectedUserId={() => setPreselectedWorkReportUserId("")}
+            />
           )}
 
           {activeTab === "field-visit" && (

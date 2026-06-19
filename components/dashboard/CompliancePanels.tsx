@@ -872,9 +872,10 @@ export function ExitSeparation({ triggerToast }: { triggerToast: (msg: string) =
                   <h2 className="text-lg font-black text-slate-850 flex items-center gap-2">
                     Exit Clearance — {selectedEmployee.name}
                   </h2>
-                  <div className="text-slate-500 text-[10px] mt-1.5 flex gap-4">
+                  <div className="text-slate-500 text-[10px] mt-1.5 flex flex-wrap gap-4">
                     <span>Email: <strong className="text-slate-700">{selectedEmployee.email}</strong></span>
                     <span>Role: <strong className="text-slate-700">{selectedEmployee.role}</strong></span>
+                    <span>Company: <strong className="text-slate-700">{selectedEmployee.companyName || selectedEmployee.companies?.[0]?.name || "N/A"}</strong></span>
                   </div>
                 </div>
                 

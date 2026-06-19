@@ -139,6 +139,14 @@ export default function ActivityFeed({ dark = false }: { dark?: boolean }) {
                   By {log.user?.name || "System"}
                 </span>
               </div>
+
+              {activity.actor && (
+                <div className="shrink-0 text-right self-start pt-1.5">
+                  <span className={`text-[10px] font-black text-indigo-650 dark:text-indigo-400 block whitespace-nowrap`}>
+                    By {activity.actor}
+                  </span>
+                </div>
+              )}
             </div>
           </div>
         );

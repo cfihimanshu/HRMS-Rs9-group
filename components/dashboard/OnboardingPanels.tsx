@@ -834,8 +834,11 @@ export function TrainingClassroom({ triggerToast }: { triggerToast: (msg: string
                     <GraduationCap className="w-5 h-5 text-[#714B67]" />
                     {selectedTrainee.name}
                   </h2>
-                  <div className="text-slate-500 text-[10px] mt-1">
-                    Email: <strong className="text-slate-700">{selectedTrainee.email}</strong> • Mobile: <strong className="text-slate-700">{selectedTrainee.mobile}</strong>
+                  <div className="text-slate-500 text-[10px] mt-1 flex flex-wrap gap-x-4 gap-y-1">
+                    <span>Email: <strong className="text-slate-700">{selectedTrainee.email}</strong></span>
+                    <span>Mobile: <strong className="text-slate-700">{selectedTrainee.mobile}</strong></span>
+                    <span>Company: <strong className="text-[#714B67]">{selectedTrainee.job?.company?.name || "N/A"}</strong></span>
+                    <span>Role/Designation: <strong className="text-[#714B67]">{selectedTrainee.job?.title || "N/A"}</strong></span>
                   </div>
                 </div>
 
@@ -1081,7 +1084,13 @@ export function TrainingClassroom({ triggerToast }: { triggerToast: (msg: string
   );
 }
 
-export function ProbationEvaluation({ triggerToast }: { triggerToast: (msg: string) => void; }) {
+export function ProbationEvaluation({
+  triggerToast,
+  onViewWorkReport
+}: {
+  triggerToast: (msg: string) => void;
+  onViewWorkReport?: (employeeId: string) => void;
+}) {
   const [probationers, setProbationers] = useState<any[]>([]);
   const [employees, setEmployees] = useState<any[]>([]);
   const [selectedProbationer, setSelectedProbationer] = useState<any>(null);
@@ -1346,7 +1355,7 @@ export function ProbationEvaluation({ triggerToast }: { triggerToast: (msg: stri
                   >
                     <option value="">-- Select an employee --</option>
                     {availableEmployees.map((emp, i) => (
-                      <option key={i} value={emp._id}>{emp.name} ({emp.role})</option>
+                      <option key={i} value={emp._id}>{emp.name} ({emp.employeeProfile?.designation || emp.role})</option>
                     ))}
                   </select>
                 </div>
@@ -1386,18 +1395,37 @@ export function ProbationEvaluation({ triggerToast }: { triggerToast: (msg: stri
                     <UserPlus className="w-5 h-5 text-[#714B67]" />
                     {selectedProbationer.employee?.name || "Unknown"}
                   </h2>
-                  <div className="text-slate-500 text-[10px] mt-1.5 flex gap-4">
-                    <span>Role: <strong className="text-slate-700">{selectedProbationer.employee?.role}</strong></span>
+                  <div className="text-slate-500 text-[10px] mt-1.5 flex flex-wrap gap-x-4 gap-y-1">
+                    <span>Company: <strong className="text-[#714B67]">{selectedProbationer.employee?.companies?.[0]?.name || "N/A"}</strong></span>
+                    <span>Role/Designation: <strong className="text-[#714B67]">{selectedProbationer.employee?.designation || selectedProbationer.employee?.role}</strong></span>
                     <span>Started: <strong className="text-slate-700">{new Date(selectedProbationer.startDate).toLocaleDateString()}</strong></span>
                     <span>Ends: <strong className="text-[#714B67]">{new Date(selectedProbationer.endDate).toLocaleDateString()}</strong></span>
                   </div>
                 </div>
 
-                <div className={`px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-center min-w-32`}>
-                  <span className="text-[9px] uppercase font-black tracking-widest text-slate-500 block mb-0.5">Verdict Status</span>
-                  <span className={`text-xs font-bold ${selectedProbationer.status === 'active' ? 'text-blue-600' : 'text-[#714B67]'}`}>
-                    {selectedProbationer.status === 'active' ? "In Progress" : selectedProbationer.status}
-                  </span>
+                <div className="flex items-center gap-3">
+                  {selectedProbationer.employee && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const empId = selectedProbationer.employee?._id || selectedProbationer.employee?.id;
+                        if (empId && onViewWorkReport) {
+                          onViewWorkReport(empId);
+                        }
+                      }}
+                      className="px-3.5 py-2 bg-[#714B67]/5 hover:bg-[#714B67]/10 border border-[#714B67]/25 rounded-lg flex items-center gap-1.5 text-[#714B67] font-bold text-xs transition-all duration-200 shadow-sm"
+                    >
+                      <FileText className="w-3.5 h-3.5" />
+                      Work Report
+                    </button>
+                  )}
+
+                  <div className={`px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-center min-w-32`}>
+                    <span className="text-[9px] uppercase font-black tracking-widest text-slate-500 block mb-0.5">Verdict Status</span>
+                    <span className={`text-xs font-bold ${selectedProbationer.status === 'active' ? 'text-blue-600' : 'text-[#714B67]'}`}>
+                      {selectedProbationer.status === 'active' ? "In Progress" : selectedProbationer.status}
+                    </span>
+                  </div>
                 </div>
               </div>
 

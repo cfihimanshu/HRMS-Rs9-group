@@ -5,6 +5,8 @@ import {
   Users,
   UserCheck,
   UserPlus,
+  UserMinus,
+  User,
   ShieldAlert,
   Briefcase,
   Store,
@@ -20,7 +22,10 @@ import {
   FileSearch,
   LogOut,
   TrendingUp,
-  PlusCircle
+  PlusCircle,
+  ArrowUpRight,
+  ArrowDownRight,
+  Plus
 } from "lucide-react";
 import StatCard from "./StatCard";
 import AttendanceChart from "./AttendanceChart";
@@ -67,9 +72,7 @@ export function OwnerDashboard({
           <h1 className={`text-2xl font-bold tracking-tight ${isDark ? "text-white" : "text-slate-800"}`}>
             Enterprise Owner Command Center
           </h1>
-          <p className={`text-sm mt-1 ${isDark ? "text-gray-400" : "text-slate-500"}`}>
-            Real-time enterprise metrics & compliance audits across 14 modules
-          </p>
+
         </div>
         <div className="flex items-center gap-3">
           {companies && (
@@ -221,6 +224,28 @@ export function HrDashboard({
   const hrStats = stats?.hrStats || {};
   const [isDark, setIsDark] = React.useState(false);
 
+  const recentInterviews = React.useMemo(() => {
+    return [...(interviews || [])]
+      .sort((a, b) => new Date(b.createdAt || b.scheduleTime).getTime() - new Date(a.createdAt || a.scheduleTime).getTime())
+      .slice(0, 5);
+  }, [interviews]);
+
+  const dynamicHrLeadsCount = React.useMemo(() => {
+    return (candidates || []).filter((c: any) => c.status === "Selected").length;
+  }, [candidates]);
+
+  const dynamicRejectedCount = React.useMemo(() => {
+    return (candidates || []).filter((c: any) => c.status === "Rejected").length;
+  }, [candidates]);
+
+  const dynamicInterviewsToday = React.useMemo(() => {
+    const todayStr = new Date().toDateString();
+    return (interviews || []).filter((iv: any) => {
+      if (!iv.scheduleTime) return false;
+      return new Date(iv.scheduleTime).toDateString() === todayStr;
+    }).length;
+  }, [interviews]);
+
   React.useEffect(() => {
     setIsDark(document.documentElement.classList.contains("dark"));
     const observer = new MutationObserver(() => {
@@ -231,13 +256,14 @@ export function HrDashboard({
   }, []);
 
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="space-y-6 animate-fade-in text-slate-800">
+      {/* Dashboard Top Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className={`text-2xl font-bold tracking-tight ${isDark ? "text-white" : "text-slate-800"}`}>
+          <h1 className={`text-2xl font-black tracking-tight ${isDark ? "text-white" : "text-slate-800"}`}>
             HR Operations Dashboard
           </h1>
-          <p className={`text-sm mt-1 ${isDark ? "text-gray-400" : "text-slate-500"}`}>
+          <p className={`text-xs mt-1 font-medium ${isDark ? "text-gray-400" : "text-slate-505"}`}>
             HR Head view — daily commitments, verification pipeline, and separation cases
           </p>
         </div>
@@ -289,6 +315,9 @@ export function HrDashboard({
           onClick={() => onNavigateTab("hr-leads")}
         />
       </div>
+      {/* Main Grid: Left part spans 3 columns, right part spans 1 column */}
+      <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
+        <div className="xl:col-span-3 space-y-6">
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6">

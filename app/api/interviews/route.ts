@@ -77,7 +77,12 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: false, error: "Candidate not found" }, { status: 404 });
     }
 
-    const vacancyTitle = candidate.job ? (candidate.job as any).title : "General Application";
+    let vacancyTitle = "General Application";
+    if (candidate.job) {
+      const jobObj = candidate.job as any;
+      const deptName = jobObj.department ? jobObj.department.name : "";
+      vacancyTitle = deptName ? `${deptName} - ${jobObj.title}` : jobObj.title;
+    }
 
     // Validate progression of rounds
     const targetRound = parseInt(round);
@@ -102,12 +107,15 @@ export async function POST(req: Request) {
     const suggested = candidate.screeningResult?.suggestedQuestions || [];
     const customQuestions = suggested.map((q: string) => ({
       question: q,
-      isCorrect: null
+      isCorrect: null,
+      rating: "",
+      score: 0
     }));
 
     const interview = await Interview.create({
       mongo_id: Date.now().toString(),
       candidate: candidateId,
+      candidateName: candidate.name,
       round,
       scheduleTime: new Date(scheduleTime),
       videoLink: mode === "offline" ? "" : videoLink,

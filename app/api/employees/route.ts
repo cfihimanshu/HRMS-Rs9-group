@@ -125,21 +125,34 @@ export async function POST(req: Request) {
       resolvedDepartmentId = deptDoc.mongo_id;
     }
 
-    // Hash the password
-    const hashedPassword = await bcrypt.hash(password, 12);
+    const userStatus = role === "Employee" ? "probation" : "active";
 
     // Create User with company linked
     const newUser = await User.create({
       mongo_id: Date.now().toString(),
       name,
       email,
-      password: hashedPassword,
+      password: await bcrypt.hash(password, 10),
       role,
       mobile: mobile || null,
       status: "active",
       companies: [company.mongo_id],
       loginHistory: [],
     });
+
+    if (userStatus === "probation") {
+      const startDate = new Date();
+      const endDate = new Date();
+      endDate.setMonth(endDate.getMonth() + 6); // 6 months probation
+      await Probation.create({
+        employee: newUser._id,
+        startDate,
+        endDate,
+        status: "active",
+        attendanceSummary: { totalDays: 30, presentDays: 30 },
+        reportsSummary: { sodSubmitted: 3, eodSubmitted: 3 },
+      });
+    }
 
     // Create EmployeeProfile linked to User
     await EmployeeProfile.create({

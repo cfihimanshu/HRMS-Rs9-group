@@ -915,7 +915,15 @@ export function DailyCommitments({
   );
 }
 
-export function PerformanceCompliance({ sessionUser }: { sessionUser?: any }) {
+export function PerformanceCompliance({
+  sessionUser,
+  preselectedUserId,
+  clearPreselectedUserId
+}: {
+  sessionUser?: any;
+  preselectedUserId?: string;
+  clearPreselectedUserId?: () => void;
+}) {
   const [loading, setLoading] = useState(true);
   const [reports, setReports] = useState<{ sod: any[]; eod: any[]; tasks?: any[]; fieldVisits?: any[] }>({ sod: [], eod: [], tasks: [], fieldVisits: [] });
   const [activeSubTab, setActiveSubTab] = useState<"sod" | "eod">("sod");
@@ -947,6 +955,18 @@ export function PerformanceCompliance({ sessionUser }: { sessionUser?: any }) {
     }
   }, [sessionUser]);
 
+  useEffect(() => {
+    if (preselectedUserId) {
+      setSelectedUser(preselectedUserId);
+    }
+  }, [preselectedUserId]);
+
+  useEffect(() => {
+    return () => {
+      if (clearPreselectedUserId) clearPreselectedUserId();
+    };
+  }, []);
+
   const fetchReports = async () => {
     try {
       setLoading(true);
@@ -977,12 +997,18 @@ export function PerformanceCompliance({ sessionUser }: { sessionUser?: any }) {
 
   const filteredUsers = users.filter((u: any) => {
     if (!selectedCompany) return true;
-    return u.companies && u.companies.includes(selectedCompany);
+    return u.companies && u.companies.some((c: any) => (c._id || c.id || c).toString().trim() === selectedCompany.toString().trim());
   });
 
   // Merge SOD, EOD, Tasks, and Field Visits
   const mergedList = React.useMemo(() => {
     const map = new Map<string, { sod: any; eod: any; tasks: any[]; fieldVisits: any[]; date: Date; dateStr: string; employee: any }>();
+
+    const getEmpIdStr = (emp: any): string => {
+      if (!emp) return "unknown";
+      if (typeof emp === "string") return emp.trim();
+      return (emp._id || emp.id || "unknown").toString().trim();
+    };
 
     // Process SODs
     (reports.sod || []).forEach((sod: any) => {
@@ -1182,12 +1208,15 @@ export function PerformanceCompliance({ sessionUser }: { sessionUser?: any }) {
 
     let matchCompany = true;
     if (isOwner && selectedCompany) {
-      matchCompany = item.employee?.companies && item.employee.companies.includes(selectedCompany);
+      matchCompany = item.employee?.companies && item.employee.companies.some((c: any) => (c._id || c.id || c).toString().trim() === selectedCompany.toString().trim());
     }
 
     let matchUser = true;
     if (isOwner && selectedUser) {
-      matchUser = (item.employee?._id || item.employee?.id) === selectedUser;
+      const itemEmpId = item.employee
+        ? (typeof item.employee === "object" ? (item.employee._id || item.employee.id || "") : item.employee).toString().trim()
+        : "";
+      matchUser = itemEmpId === selectedUser.toString().trim();
     }
 
     let matchDept = true;

@@ -15,10 +15,13 @@ export default function HiringRequisitionModal({ onClose, triggerToast, userComp
   const [generating, setGenerating] = useState(false);
   const [skillsList, setSkillsList] = useState<string[]>([]);
   const [currentSkill, setCurrentSkill] = useState("");
-
-  useEffect(() => {
-    setIsDark(document.documentElement.classList.contains("dark"));
-  }, []);
+  const [roles, setRoles] = useState<string[]>([
+    "Employee", "HR Head", "HR Executive", "Department Manager",
+    "Trainer", "Accounts", "IT Admin"
+  ]);
+  const [showCustomRoleInput, setShowCustomRoleInput] = useState(false);
+  const [customRoleName, setCustomRoleName] = useState("");
+  const [dbCompanies, setDbCompanies] = useState<any[]>([]);
 
   const [form, setForm] = useState({
     companyName: userCompany || "Acolyte Technologies",
@@ -44,16 +47,79 @@ export default function HiringRequisitionModal({ onClose, triggerToast, userComp
     expectedOutput: ""
   });
 
-  const companies = [
-    "Acolyte Group of Companies",
-    "Acolyte Technologies",
-    "Startupflora",
-    "Startup Kare",
-    "Force 009",
-    "Citiline Technologies",
-    "Mavics Venture",
-    "CFI"
-  ];
+  const fetchRoles = async (companyNameVal: string) => {
+    try {
+      const res = await fetch(`/api/roles?companyName=${encodeURIComponent(companyNameVal)}`);
+      const data = await res.json();
+      if (data.success && data.data) {
+        const dbRoleNames = data.data.map((r: any) => r.name);
+        const coreRoles = [
+          "Employee", "HR Head", "HR Executive", "Department Manager",
+          "Trainer", "Accounts", "IT Admin"
+        ];
+        const combined = [...coreRoles, ...dbRoleNames];
+        setRoles(Array.from(new Set(combined)));
+      }
+    } catch (err) {
+      console.error("Error fetching roles:", err);
+    }
+  };
+
+  useEffect(() => {
+    setIsDark(document.documentElement.classList.contains("dark"));
+    const fetchCompanies = async () => {
+      try {
+        const res = await fetch("/api/companies");
+        const data = await res.json();
+        if (data.success && data.data) {
+          setDbCompanies(data.data);
+          // If companyName is not custom set by prop and we have DB companies, set to the first one
+          if (!userCompany && data.data.length > 0) {
+            setForm(prev => ({ ...prev, companyName: data.data[0].name }));
+          }
+        }
+      } catch (err) {
+        console.error("Error fetching companies:", err);
+      }
+    };
+    fetchCompanies();
+  }, []);
+
+  useEffect(() => {
+    if (form.companyName) {
+      fetchRoles(form.companyName);
+    }
+  }, [form.companyName]);
+
+  const handleAddCustomRole = async () => {
+    if (!customRoleName.trim()) return;
+    try {
+      const res = await fetch("/api/roles", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ 
+          name: customRoleName.trim(), 
+          companyName: form.companyName 
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        const newRoleName = data.data.name;
+        setRoles(prev => Array.from(new Set([...prev, newRoleName])));
+        setForm(prev => ({ ...prev, role: newRoleName }));
+        setShowCustomRoleInput(false);
+        setCustomRoleName("");
+        triggerToast(`Role "${newRoleName}" added and mapped to ${form.companyName} successfully!`);
+      } else {
+        triggerToast("Failed to create role: " + data.error);
+      }
+    } catch (err) {
+      triggerToast("Error creating new role.");
+    }
+  };
+
+
+
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -164,18 +230,60 @@ export default function HiringRequisitionModal({ onClose, triggerToast, userComp
                 <label className="block text-[11px] font-bold mb-1.5 uppercase tracking-wide">Company Name *</label>
                 <select name="companyName" value={form.companyName} onChange={handleChange} required
                   className={`w-full p-2.5 rounded-lg border text-sm focus:border-indigo-500 focus:outline-none ${isDark ? "bg-gray-800 border-gray-700" : "bg-slate-50 border-slate-200"}`}>
-                  {companies.map(c => <option key={c} value={c}>{c}</option>)}
+                  {dbCompanies.length > 0 ? (
+                    dbCompanies.map(c => (
+                      <option key={c._id} value={c.name}>{c.name}</option>
+                    ))
+                  ) : (
+                    <option value={form.companyName}>{form.companyName}</option>
+                  )}
                 </select>
               </div>
               <div>
                 <label className="block text-[11px] font-bold mb-1.5 uppercase tracking-wide">Department *</label>
-                <input type="text" name="department" value={form.department} onChange={handleChange} required
-                  className={`w-full p-2.5 rounded-lg border text-sm focus:border-indigo-500 focus:outline-none ${isDark ? "bg-gray-800 border-gray-700" : "bg-slate-50 border-slate-200"}`} />
+                <select name="department" value={form.department} onChange={handleChange} required
+                  className={`w-full p-2.5 rounded-lg border text-sm focus:border-indigo-500 focus:outline-none ${isDark ? "bg-gray-800 border-gray-700" : "bg-slate-50 border-slate-200"}`}>
+                  <option value="">-- Select Department --</option>
+                  <option value="HR">HR</option>
+                  <option value="IT">IT</option>
+                  <option value="Sales">Sales</option>
+                  <option value="Admin">Admin</option>
+                  <option value="Operation">Operation</option>
+                  <option value="Data Entry">Data Entry</option>
+                </select>
               </div>
               <div>
                 <label className="block text-[11px] font-bold mb-1.5 uppercase tracking-wide">Designation (Role) *</label>
-                <input type="text" name="role" value={form.role} onChange={handleChange} placeholder="e.g. BDA Sales" required
-                  className={`w-full p-2.5 rounded-lg border text-sm focus:border-indigo-500 focus:outline-none ${isDark ? "bg-gray-800 border-gray-700" : "bg-slate-50 border-slate-200"}`} />
+                {!showCustomRoleInput ? (
+                  <select name="role" value={form.role} onChange={(e) => {
+                    if (e.target.value === "ADD_NEW") {
+                      setShowCustomRoleInput(true);
+                      setForm(prev => ({ ...prev, role: "" }));
+                    } else {
+                      handleChange(e);
+                    }
+                  }} required
+                    className={`w-full p-2.5 rounded-lg border text-sm focus:border-indigo-500 focus:outline-none ${isDark ? "bg-gray-800 border-gray-700" : "bg-slate-50 border-slate-200"}`}>
+                    <option value="">-- Select Role --</option>
+                    {roles.map(r => (
+                      <option key={r} value={r}>{r}</option>
+                    ))}
+                    <option value="ADD_NEW" className="font-bold text-indigo-650 dark:text-indigo-400">+ Add New Role...</option>
+                  </select>
+                ) : (
+                  <div className="flex gap-2">
+                    <input type="text" value={customRoleName} onChange={e => setCustomRoleName(e.target.value)} placeholder="Enter new designation..." required
+                      className={`flex-1 p-2.5 rounded-lg border text-sm focus:border-indigo-500 focus:outline-none ${isDark ? "bg-gray-800 border-gray-700" : "bg-slate-50 border-slate-200"}`} />
+                    <button type="button" onClick={handleAddCustomRole}
+                      className="px-3.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-bold transition-all shadow-sm">
+                      Add
+                    </button>
+                    <button type="button" onClick={() => { setShowCustomRoleInput(false); setCustomRoleName(""); }}
+                      className="px-3 bg-white border border-slate-200 hover:bg-slate-50 text-slate-650 rounded-lg text-xs font-bold transition-all">
+                      Cancel
+                    </button>
+                  </div>
+                )}
               </div>
               <div>
                 <label className="block text-[11px] font-bold mb-1.5 uppercase tracking-wide">Location *</label>

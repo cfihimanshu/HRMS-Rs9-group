@@ -164,18 +164,45 @@ export async function POST(req: Request) {
         // 1. Ensure User exists
         let userDoc = await User.findOne({ where: { email: candDoc.email } });
         if (!userDoc) {
-          const hashedPassword = await bcrypt.hash("Welcome@123", 12);
           userDoc = await User.create({
             mongo_id: Date.now().toString(),
             name: candDoc.name,
             email: candDoc.email,
             password: hashedPassword,
-            role: "Associate",
+            role: "Employee",
             mobile: candDoc.mobile || null,
-            status: "active",
+            status: "probation",
             companies: companyId ? [companyId] : [],
+            companyName,
+            departmentName,
             loginHistory: [],
           });
+        } else {
+          // If the user already exists, make sure they have the plain text password and status set
+          let isUpdated = false;
+          if (!userDoc.password) {
+            userDoc.password = hashedPassword;
+            isUpdated = true;
+          }
+          if (userDoc.role === "Associate" || userDoc.role === "Employee") {
+            userDoc.role = "Employee";
+            isUpdated = true;
+          }
+          if (userDoc.status !== "probation") {
+            userDoc.status = "probation";
+            isUpdated = true;
+          }
+          if (!userDoc.companyName && companyName) {
+            userDoc.companyName = companyName;
+            isUpdated = true;
+          }
+          if (!userDoc.departmentName && departmentName) {
+            userDoc.departmentName = departmentName;
+            isUpdated = true;
+          }
+          if (isUpdated) {
+            await userDoc.save();
+          }
         }
 
         // 2. Ensure EmployeeProfile exists

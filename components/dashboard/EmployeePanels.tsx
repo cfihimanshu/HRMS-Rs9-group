@@ -16,6 +16,7 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
   const [isDark, setIsDark] = useState(false);
   const [search, setSearch] = useState<string>("");
   const [filterRole, setFilterRole] = useState<string>("All");
+  const [filterCompany, setFilterCompany] = useState<string>("All");
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
 
@@ -25,6 +26,10 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
 
   const [topCompany, setTopCompany] = useState("");
   const [topRole, setTopRole] = useState("Employee");
+  const [availableRoles, setAvailableRoles] = useState<string[]>([
+    "Employee", "HR Head", "HR Executive", "Department Manager",
+    "Trainer", "Accounts", "IT Admin"
+  ]);
 
   const handleTopCompanyChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const val = e.target.value;
@@ -82,14 +87,20 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
   const fetchData = async () => {
     try {
       setLoading(true);
-      const [empRes, compRes] = await Promise.all([
+      const [empRes, compRes, roleRes] = await Promise.all([
         fetch("/api/employees"),
-        fetch("/api/companies")
+        fetch("/api/companies"),
+        fetch("/api/roles")
       ]);
       const empData = await empRes.json();
       const compData = await compRes.json();
+      const roleData = await roleRes.json();
       if (empData.success) setEmployees(empData.data);
       if (compData.success) setCompanies(compData.data);
+      if (roleData.success && roleData.data) {
+        const dbRoleNames = roleData.data.map((r: any) => r.name);
+        setAvailableRoles(prev => Array.from(new Set([...prev, ...dbRoleNames])));
+      }
     } catch (error) {
       console.error("Error fetching data:", error);
     } finally {
@@ -107,10 +118,14 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
     return () => observer.disconnect();
   }, []);
 
-  // Auto-generate employeeId on companyId selection
+  // Auto-generate employeeId and fetch roles on companyId selection
   useEffect(() => {
     if (!formData.companyId) {
       setFormData(prev => ({ ...prev, employeeId: "" }));
+      setAvailableRoles([
+        "Employee", "HR Head", "HR Executive", "Department Manager",
+        "Trainer", "Accounts", "IT Admin"
+      ]);
       return;
     }
     const fetchNextEmployeeId = async () => {
@@ -124,7 +139,24 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
         console.error("Error fetching next employeeId:", err);
       }
     };
+    const fetchCompanyRoles = async () => {
+      try {
+        const res = await fetch(`/api/roles?companyId=${formData.companyId}`);
+        const data = await res.json();
+        if (data.success && data.data) {
+          const dbRoleNames = data.data.map((r: any) => r.name);
+          const coreRoles = [
+            "Employee", "HR Head", "HR Executive", "Department Manager",
+            "Trainer", "Accounts", "IT Admin"
+          ];
+          setAvailableRoles(Array.from(new Set([...coreRoles, ...dbRoleNames])));
+        }
+      } catch (err) {
+        console.error("Error fetching company roles:", err);
+      }
+    };
     fetchNextEmployeeId();
+    fetchCompanyRoles();
   }, [formData.companyId]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -207,6 +239,12 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
       emp.email.toLowerCase().includes(search.toLowerCase());
     const matchesFilter = filterRole === "All" || emp.role === filterRole;
 
+    // Company filter from UI dropdown
+    let matchesCompanyFilter = true;
+    if (filterCompany !== "All") {
+      matchesCompanyFilter = emp.companies?.some((c: any) => c._id?.toString() === filterCompany) || false;
+    }
+
     // Role-based visibility check
     let matchesCompany = true;
     if (userRole === "HR Head" || userRole === "HR Executive") {
@@ -217,7 +255,7 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
       }
     }
 
-    return matchesSearch && matchesFilter && matchesCompany;
+    return matchesSearch && matchesFilter && matchesCompanyFilter && matchesCompany;
   });
 
   // Filter top company dropdown options based on role
@@ -423,7 +461,7 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
             <div className={`p-4 rounded-lg flex items-start gap-3 mt-4 border ${isDark ? "bg-gray-800/50 border-gray-700" : "bg-slate-50 border-slate-200"}`}>
               <ShieldCheck className="w-5 h-5 text-emerald-500 shrink-0" />
               <p className={`text-[10px] leading-relaxed ${isDark ? "text-gray-400" : "text-slate-500"}`}>
-                Submitting this form will securely create a System User Account and an Employee Profile. Passwords are automatically hashed and safely stored.
+                Submitting this form will securely create a System User Account and an Employee Profile. Passwords are safely stored.
               </p>
             </div>
 
@@ -448,18 +486,33 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
                 onChange={e => setSearch(e.target.value)}
               />
             </div>
-            <div className="flex items-center gap-2">
-              <span className={`text-xs font-bold font-mono ${isDark ? "text-gray-400" : "text-slate-500"}`}>Role Filter:</span>
-              <select
-                className={`border rounded-lg px-3 py-2 text-xs font-semibold focus:outline-none focus:border-indigo-500 ${isDark ? "bg-gray-800 border-gray-700 text-gray-300" : "bg-slate-50 border-slate-200 text-slate-700"}`}
-                value={filterRole}
-                onChange={e => setFilterRole(e.target.value)}
-              >
-                <option value="All">All Roles</option>
-                {availableRoles.map((r, i) => (
-                  <option key={i} value={r}>{r}</option>
-                ))}
-              </select>
+            <div className="flex flex-wrap items-center gap-4">
+              <div className="flex items-center gap-2">
+                <span className={`text-xs font-bold font-mono ${isDark ? "text-gray-400" : "text-slate-500"}`}>Company Filter:</span>
+                <select
+                  className={`border rounded-lg px-3 py-2 text-xs font-semibold focus:outline-none focus:border-indigo-500 ${isDark ? "bg-gray-800 border-gray-700 text-gray-300" : "bg-slate-50 border-slate-200 text-slate-700"}`}
+                  value={filterCompany}
+                  onChange={e => setFilterCompany(e.target.value)}
+                >
+                  <option value="All">All Companies</option>
+                  {companies.map((c) => (
+                    <option key={c._id} value={c._id}>{c.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className={`text-xs font-bold font-mono ${isDark ? "text-gray-400" : "text-slate-500"}`}>Role Filter:</span>
+                <select
+                  className={`border rounded-lg px-3 py-2 text-xs font-semibold focus:outline-none focus:border-indigo-500 ${isDark ? "bg-gray-800 border-gray-700 text-gray-300" : "bg-slate-50 border-slate-200 text-slate-700"}`}
+                  value={filterRole}
+                  onChange={e => setFilterRole(e.target.value)}
+                >
+                  <option value="All">All Roles</option>
+                  {availableRoles.map((r, i) => (
+                    <option key={i} value={r}>{r}</option>
+                  ))}
+                </select>
+              </div>
             </div>
           </div>
 
@@ -522,9 +575,19 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
                             )}
                           </td>
                           <td className="px-6 py-4">
-                            <span className={`px-2.5 py-1 text-[10px] font-black tracking-wider uppercase font-mono rounded ${emp.status === "active" ? "badge-active" : "badge-inactive"}`}>
-                              {emp.status}
-                            </span>
+                            {emp.isOnProbation ? (
+                              <span className="px-2.5 py-1 text-[10px] font-black tracking-wider uppercase font-mono rounded bg-amber-100 text-amber-800 dark:bg-amber-950/50 dark:text-amber-300">
+                                Probation
+                              </span>
+                            ) : emp.status === "on notice" ? (
+                              <span className="px-2.5 py-1 text-[10px] font-black tracking-wider uppercase font-mono rounded bg-orange-100 text-orange-800 dark:bg-orange-950/50 dark:text-orange-300">
+                                On Notice
+                              </span>
+                            ) : (
+                              <span className={`px-2.5 py-1 text-[10px] font-black tracking-wider uppercase font-mono rounded ${emp.status === "active" ? "badge-active" : "badge-inactive"}`}>
+                                {emp.status}
+                              </span>
+                            )}
                           </td>
                           {isManagement && (
                             <td className="px-6 py-4 text-right">

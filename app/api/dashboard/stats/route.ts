@@ -327,7 +327,7 @@ export async function GET(req: Request) {
           newCandidates: pendingCandidates,
           trainingStatus: trainingPending,
           probationStatus: activeProbations,
-          hrLeadsCount: totalCandidates,
+          hrLeadsCount: selectedCandidates,
           rejectedCount: rejectedCandidatesCount,
         },
         deptStats: {

@@ -90,6 +90,9 @@ export async function POST(req: Request) {
     let record = await ExitRecord.findOne({ where: { employee: employeeId } });
 
     if (record) {
+      record.employeeName = employeeUser.name;
+      record.companyName = companyName;
+      record.role = employeeUser.role;
       record.exitReason = exitReason;
       record.assetsReturned = !!assetsReturned;
       record.accessRevoked = !!accessRevoked;
@@ -104,6 +107,9 @@ export async function POST(req: Request) {
       record = await ExitRecord.create({
         mongo_id: Date.now().toString(),
         employee: employeeId,
+        employeeName: employeeUser.name,
+        companyName: companyName,
+        role: employeeUser.role,
         exitReason,
         assetsReturned: !!assetsReturned,
         accessRevoked: !!accessRevoked,
@@ -115,6 +121,10 @@ export async function POST(req: Request) {
         exitInterviewNotes: exitInterviewNotes || "",
       });
     }
+
+    // Set employee status to "on notice"
+    employeeUser.status = "on notice";
+    await employeeUser.save();
 
     // Auto action: If IT access is revoked, toggle status or log it
     if (accessRevoked) {

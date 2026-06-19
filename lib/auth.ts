@@ -39,7 +39,7 @@ export const authOptions: NextAuthOptions = {
           // or verify if the mobile matches a registered user.
           user = await User.findOne({ where: { mobile, status: "active" } });
           if (!user) {
-            throw new Error("Active user with this mobile number not found");
+            throw new Error("Active or probation user with this mobile number not found");
           }
 
           if (otp !== "123456") {
@@ -53,10 +53,15 @@ export const authOptions: NextAuthOptions = {
 
           user = await User.findOne({ where: { email, status: "active" } });
           if (!user) {
-            throw new Error("Active user with this email not found");
+            throw new Error("Active or probation user with this email not found");
           }
 
-          const isValid = await bcrypt.compare(password, user.password);
+          let isValid = false;
+          if (user.password && (user.password.startsWith("$2a$") || user.password.startsWith("$2b$"))) {
+            isValid = await bcrypt.compare(password, user.password);
+          } else {
+            isValid = (password === user.password);
+          }
           if (!isValid) {
             throw new Error("Invalid password");
           }
