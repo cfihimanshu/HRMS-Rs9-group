@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
-import dbConnect from "@/lib/db";
-import Candidate from "@/models/Candidate";
+import sequelize from "@/lib/sequelize";
+import Candidate from "@/models/sequelize/Candidate";
+import Job from "@/models/sequelize/Job";
 
 export async function GET(req: Request) {
   try {
@@ -13,11 +14,16 @@ export async function GET(req: Request) {
       return new Response("Missing parameters", { status: 400 });
     }
 
-    await dbConnect();
-    const candidate = await Candidate.findById(candidateId).populate("job");
+    await sequelize.authenticate();
+    const candidateInstance = await Candidate.findByPk(candidateId);
 
-    if (!candidate) {
+    if (!candidateInstance) {
       return new Response("Candidate not found", { status: 404 });
+    }
+
+    const candidate = candidateInstance.toJSON() as any;
+    if (candidate.job) {
+      candidate.job = await Job.findByPk(candidate.job);
     }
 
     const todayStr = new Date().toLocaleDateString("en-US", {

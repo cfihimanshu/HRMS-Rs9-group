@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import dbConnect from "@/lib/db";
-import AuditLog from "@/models/AuditLog";
+import sequelize from "@/lib/sequelize";
+import AuditLog from "@/models/sequelize/AuditLog";
+import User from "@/models/sequelize/User";
 
 export async function GET(req: Request) {
   try {
@@ -11,14 +12,34 @@ export async function GET(req: Request) {
       return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
     }
 
-    await dbConnect();
-    // Fetch last 15 audit logs, populate user details
-    const logs = await AuditLog.find({})
-      .sort({ timestamp: -1 })
-      .limit(15)
-      .populate("user", "name role");
+    await sequelize.authenticate();
+    // Fetch last 15 audit logs
+    const logs: any[] = await AuditLog.findAll({
+      order: [['timestamp', 'DESC']],
+      limit: 15,
+      raw: true
+    });
 
-    return NextResponse.json({ success: true, data: logs });
+    const userIds = Array.from(new Set(logs.map(log => log.user).filter(Boolean)));
+    let userMap: any = {};
+    if (userIds.length > 0) {
+      const users: any[] = await User.findAll({
+        where: { mongo_id: userIds },
+        attributes: ['mongo_id', 'name', 'role'],
+        raw: true
+      });
+      userMap = users.reduce((acc: any, user: any) => {
+        acc[user.mongo_id] = { name: user.name, role: user.role };
+        return acc;
+      }, {});
+    }
+
+    const data = logs.map(log => ({
+      ...log,
+      user: userMap[log.user as string] || { name: 'Unknown', role: 'Unknown' }
+    }));
+
+    return NextResponse.json({ success: true, data });
   } catch (error: any) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }

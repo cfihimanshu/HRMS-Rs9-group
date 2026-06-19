@@ -1,13 +1,14 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import dbConnect from "@/lib/db";
-import Company from "@/models/Company";
-import User from "@/models/User";
-import Attendance from "@/models/Attendance";
-import Leave from "@/models/Leave";
-import SodReport from "@/models/SodReport";
-import EodReport from "@/models/EodReport";
+import sequelize from "@/lib/sequelize";
+import Company from "@/models/sequelize/Company";
+import User from "@/models/sequelize/User";
+import Attendance from "@/models/sequelize/Attendance";
+import Leave from "@/models/sequelize/Leave";
+import SodReport from "@/models/sequelize/SodReport";
+import EodReport from "@/models/sequelize/EodReport";
+import { Op } from "sequelize";
 
 export async function GET(req: Request) {
   try {
@@ -19,7 +20,7 @@ export async function GET(req: Request) {
     const { searchParams } = new URL(req.url);
     const targetUserId = searchParams.get("userId");
 
-    await dbConnect();
+    await sequelize.authenticate();
 
     const loggedInUserRole = (session.user as any).role;
     const loggedInUserId = (session.user as any).id;
@@ -35,10 +36,10 @@ export async function GET(req: Request) {
       }
 
       // Fetch attendance, leaves, and SOD/EOD reports for this user
-      const attendance = await Attendance.find({ employee: targetUserId });
-      const leaves = await Leave.find({ employee: targetUserId, status: "Approved" });
-      const sods = await SodReport.find({ employee: targetUserId });
-      const eods = await EodReport.find({ employee: targetUserId });
+      const attendance = await Attendance.findAll({ where: { employee: targetUserId } });
+      const leaves = await Leave.findAll({ where: { employee: targetUserId, status: "Approved" } });
+      const sods = await SodReport.findAll({ where: { employee: targetUserId } });
+      const eods = await EodReport.findAll({ where: { employee: targetUserId } });
 
       return NextResponse.json({
         success: true,
@@ -53,18 +54,31 @@ export async function GET(req: Request) {
 
     // Otherwise, fetch metadata (Companies and Users list)
     // Privileged users get the whole list, non-privileged get only their own user record
-    let companies = [];
-    let users = [];
+    let companies: any[] = [];
+    let users: any[] = [];
 
     if (isPrivileged) {
-      companies = await Company.find({ status: "active" });
-      users = await User.find({ status: "active" }).select("name email role companies");
+      companies = await Company.findAll({ where: { status: "active" } });
+      users = await User.findAll({ 
+        where: { status: "active" },
+        attributes: ["mongo_id", "name", "email", "role", "companies"]
+      });
     } else {
       // Find logged-in user details
-      const selfUser = await User.findById(loggedInUserId).select("name email role companies");
+      const selfUser = await User.findByPk(loggedInUserId, {
+        attributes: ["mongo_id", "name", "email", "role", "companies"]
+      });
       if (selfUser) {
         users = [selfUser];
-        companies = await Company.find({ _id: { $in: selfUser.companies }, status: "active" });
+        let companyIds = [];
+        if (selfUser.companies) {
+          try {
+            companyIds = typeof selfUser.companies === 'string' ? JSON.parse(selfUser.companies) : selfUser.companies;
+          } catch (e) {
+            companyIds = [];
+          }
+        }
+        companies = await Company.findAll({ where: { mongo_id: { [Op.in]: companyIds }, status: "active" } });
       }
     }
 

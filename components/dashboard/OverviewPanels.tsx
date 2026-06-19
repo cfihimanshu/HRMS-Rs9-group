@@ -80,7 +80,7 @@ export function OwnerDashboard({
             >
               <option value="">All Companies</option>
               {companies.map((c) => (
-                <option key={c._id} value={c._id}>{c.name}</option>
+                <option key={c.mongo_id} value={c.mongo_id}>{c.name}</option>
               ))}
             </select>
           )}
@@ -180,19 +180,29 @@ export function OwnerDashboard({
               {[
                 "Add Employee", "Approve Leaves", "Process Payroll", "Post Job",
                 "Start Appraisal", "Assign Training", "Announce", "Export Data"
-              ].map((action, i) => (
-                <button 
-                  key={i}
-                  onClick={() => triggerToast(`Navigating to ${action}`)}
-                  className={`text-xs font-semibold p-3 rounded-lg border transition-colors ${
-                    isDark 
-                      ? "bg-gray-800 border-gray-700 text-gray-300 hover:bg-gray-700 hover:border-gray-600" 
-                      : "bg-slate-50 border-slate-200 text-slate-700 hover:bg-white hover:border-purple-300 hover:shadow-sm hover:text-purple-700"
-                  }`}
-                >
-                  {action}
-                </button>
-              ))}
+              ].map((action, i) => {
+                const handleClick = () => {
+                  if (action === "Add Employee") onNavigateTab("employees");
+                  else if (action === "Approve Leaves") onNavigateTab("ess-leaves");
+                  else if (action === "Process Payroll") onNavigateTab("ess-payroll");
+                  else if (action === "Post Job") onNavigateTab("jobs");
+                  else triggerToast(`Navigating to ${action}`);
+                };
+                
+                return (
+                  <button 
+                    key={i}
+                    onClick={handleClick}
+                    className={`text-xs font-semibold p-3 rounded-lg border transition-colors ${
+                      isDark 
+                        ? "bg-gray-800 border-gray-700 text-gray-300 hover:bg-gray-700 hover:border-gray-600" 
+                        : "bg-slate-50 border-slate-200 text-slate-700 hover:bg-white hover:border-purple-300 hover:shadow-sm hover:text-purple-700"
+                    }`}
+                  >
+                    {action}
+                  </button>
+                );
+              })}
             </div>
           </div>
         </div>

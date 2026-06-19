@@ -70,13 +70,13 @@ export function LoginForm({
 
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>
-      <Card className="overflow-hidden p-0">
+      <Card className="overflow-hidden p-0 bg-white/10 dark:bg-slate-900/80 backdrop-blur-2xl border-white/20 dark:border-slate-700 shadow-2xl rounded-3xl">
         <CardContent className="grid p-0 md:grid-cols-2">
-          <form onSubmit={handleSubmit} className="p-6 md:p-8">
+          <form onSubmit={handleSubmit} className="p-8 md:p-12 flex flex-col justify-center">
             <FieldGroup>
-              <div className="flex flex-col items-center gap-2 text-center">
-                <h1 className="text-2xl font-bold">Welcome back</h1>
-                <p className="text-balance text-muted-foreground">
+              <div className="flex flex-col items-center gap-2 text-center mb-4">
+                <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">Welcome back</h1>
+                <p className="text-balance text-sm text-slate-600 dark:text-indigo-200">
                   Login to your Acolyte HR account
                 </p>
               </div>
@@ -97,7 +97,7 @@ export function LoginForm({
                   name="email"
                   type="email"
                   placeholder="m@example.com"
-                  autoComplete="email"
+                  autoComplete="off"
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
@@ -118,15 +118,15 @@ export function LoginForm({
                   id="password"
                   name="password"
                   type="password"
-                  autoComplete="current-password"
+                  autoComplete="new-password"
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   disabled={loading}
                 />
               </Field>
-              <Field>
-                <Button type="submit" disabled={loading}>
+              <Field className="mt-2">
+                <Button type="submit" disabled={loading} className="w-full bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg transition-all rounded-lg py-5 text-md">
                   {loading ? "Signing in..." : "Login"}
                 </Button>
               </Field>

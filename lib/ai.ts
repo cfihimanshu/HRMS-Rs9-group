@@ -1,6 +1,6 @@
-import dbConnect from "./db";
-import Candidate from "@/models/Candidate";
-import Job from "@/models/Job";
+import sequelize from "./sequelize";
+import Candidate from "@/models/sequelize/Candidate";
+import Job from "@/models/sequelize/Job";
 
 interface AIScreeningResult {
   candidate_summary: string;
@@ -14,15 +14,20 @@ interface AIScreeningResult {
 }
 
 export async function screenCandidateWithAI(candidateId: string): Promise<AIScreeningResult> {
-  await dbConnect();
+  await sequelize.authenticate();
 
-  const candidate = await Candidate.findById(candidateId).populate("job");
-  if (!candidate) {
+  const candidateInstance = await Candidate.findByPk(candidateId);
+  if (!candidateInstance) {
     throw new Error("Candidate not found");
   }
 
-  const job = candidate.job;
-  const jdText = job ? `${job.title} - ${job.description} (Req: ${job.qualification}, ${job.experience})` : "General corporate application";
+  const candidate = candidateInstance.toJSON() as any;
+
+  let job = null;
+  if (candidate.job) {
+    job = await Job.findByPk(candidate.job);
+  }
+  const jdText = job ? `${(job as any).title} - ${(job as any).description} (Req: ${(job as any).qualification}, ${(job as any).experience})` : "General corporate application";
 
   // Use the Gemini API key from the local environment only.
   const apiKey = process.env.GEMINI_API_KEY || "";

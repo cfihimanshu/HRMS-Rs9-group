@@ -17,6 +17,11 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
   const [search, setSearch] = useState<string>("");
   const [filterRole, setFilterRole] = useState<string>("All");
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
+  const [expandedRow, setExpandedRow] = useState<string | null>(null);
+
+  const toggleRow = (id: string) => {
+    setExpandedRow(prev => prev === id ? null : id);
+  };
 
   const [topCompany, setTopCompany] = useState("");
   const [topRole, setTopRole] = useState("Employee");
@@ -30,21 +35,21 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
         const nameLower = c.name.toLowerCase();
         const codeLower = (c.code || "").toLowerCase();
 
-        if (val === "Acolyte") return nameLower.includes("acolyte");
-        if (val === "Startupflora") return nameLower.includes("startupflora");
-        if (val === "Startupkare") return nameLower.includes("startupkare") || nameLower.includes("startup kare") || codeLower.includes("kare");
-        if (val === "Force 009") return nameLower.includes("force") || codeLower.includes("force") || nameLower.includes("009");
-        if (val === "Citiline") return nameLower.includes("citiline");
-        if (val === "CFI") return nameLower.includes("cfi") || codeLower.includes("cfi");
+        if (val === "CFI") return nameLower.includes("cfi") || nameLower.includes("chartered");
+        if (val === "RAA") return nameLower.includes("raa") || nameLower.includes("ruksana");
+        if (val === "CTPL") return nameLower.includes("ctpl") || nameLower.includes("citiline");
+        if (val === "ATPL") return nameLower.includes("atpl") || nameLower.includes("acolyte");
+        if (val === "RNPL") return nameLower.includes("rnpl") || nameLower.includes("ruhan");
+        if (val === "MVPL") return nameLower.includes("mvpl") || nameLower.includes("mavics");
         return false;
       });
 
       if (matched) {
-        setFormData(prev => ({ ...prev, companyId: matched._id }));
+        setFormData(prev => ({ ...prev, companyId: matched.mongo_id }));
       } else {
         const fallback = companies.find(c => c.name.toLowerCase().includes(val.toLowerCase()));
         if (fallback) {
-          setFormData(prev => ({ ...prev, companyId: fallback._id }));
+          setFormData(prev => ({ ...prev, companyId: fallback.mongo_id }));
         } else {
           setFormData(prev => ({ ...prev, companyId: "" }));
         }
@@ -189,12 +194,12 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
     "Trainer", "Accounts", "IT Admin"
   ];
 
-  const availableDepartments = ["HR", "IT", "Sales", "Admin", "Operation", "Data Entry"];
+  const availableDepartments = ["HR", "IT", "Sales", "Admin", "Operation", "Data Entry", "Legal", "Recovery", "Management"];
 
-  const allowedCompanies = ["Acolyte", "Startupflora", "Startupkare", "Force 009", "Citiline", "CFI"];
+  const allowedCompanies = ["CFI", "RAA", "CTPL", "ATPL", "RNPL", "MVPL"];
 
   // Find current user profile
-  const currentUser = employees.find(emp => emp._id === sessionUser?.id);
+  const currentUser = employees.find(emp => emp.mongo_id === sessionUser?.id);
   const hrCompany = currentUser?.companies?.[0]; // e.g. { name: "Startupflora", code: "STARTUPFLORA" }
 
   const filteredEmployees = employees.filter(emp => {
@@ -206,7 +211,7 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
     let matchesCompany = true;
     if (userRole === "HR Head" || userRole === "HR Executive") {
       if (hrCompany) {
-        matchesCompany = emp.companies?.some((c: any) => c._id?.toString() === hrCompany._id?.toString()) || false;
+        matchesCompany = emp.companies?.some((c: any) => c.mongo_id?.toString() === hrCompany.mongo_id?.toString()) || false;
       } else {
         matchesCompany = false;
       }
@@ -221,8 +226,12 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
     if (hrCompany) {
       const hrCompName = hrCompany.name.toLowerCase();
       const matchedOption = allowedCompanies.find(opt => {
-        if (opt === "Startupkare") return hrCompName.includes("startupkare") || hrCompName.includes("startup kare");
-        if (opt === "Force 009") return hrCompName.includes("force") || hrCompName.includes("009");
+        if (opt === "CFI") return hrCompName.includes("cfi") || hrCompName.includes("chartered");
+        if (opt === "RAA") return hrCompName.includes("raa") || hrCompName.includes("ruksana");
+        if (opt === "CTPL") return hrCompName.includes("ctpl") || hrCompName.includes("citiline");
+        if (opt === "ATPL") return hrCompName.includes("atpl") || hrCompName.includes("acolyte");
+        if (opt === "RNPL") return hrCompName.includes("rnpl") || hrCompName.includes("ruhan");
+        if (opt === "MVPL") return hrCompName.includes("mvpl") || hrCompName.includes("mavics");
         return hrCompName.includes(opt.toLowerCase());
       });
       visibleCompanyOptions = matchedOption ? [matchedOption] : [];
@@ -241,16 +250,16 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
         const nameLower = c.name.toLowerCase();
         const codeLower = (c.code || "").toLowerCase();
 
-        if (defaultCompany === "Acolyte") return nameLower.includes("acolyte");
-        if (defaultCompany === "Startupflora") return nameLower.includes("startupflora");
-        if (defaultCompany === "Startupkare") return nameLower.includes("startupkare") || nameLower.includes("startup kare") || codeLower.includes("kare");
-        if (defaultCompany === "Force 009") return nameLower.includes("force") || codeLower.includes("force") || nameLower.includes("009");
-        if (defaultCompany === "Citiline") return nameLower.includes("citiline");
-        if (defaultCompany === "CFI") return nameLower.includes("cfi") || codeLower.includes("cfi");
+        if (defaultCompany === "CFI") return nameLower.includes("cfi") || nameLower.includes("chartered");
+        if (defaultCompany === "RAA") return nameLower.includes("raa") || nameLower.includes("ruksana");
+        if (defaultCompany === "CTPL") return nameLower.includes("ctpl") || nameLower.includes("citiline");
+        if (defaultCompany === "ATPL") return nameLower.includes("atpl") || nameLower.includes("acolyte");
+        if (defaultCompany === "RNPL") return nameLower.includes("rnpl") || nameLower.includes("ruhan");
+        if (defaultCompany === "MVPL") return nameLower.includes("mvpl") || nameLower.includes("mavics");
         return false;
       });
       if (matched) {
-        setFormData(prev => ({ ...prev, companyId: matched._id }));
+        setFormData(prev => ({ ...prev, companyId: matched.mongo_id }));
       }
     }
   }, [showAddForm, visibleCompanyOptions, companies, userRole]);
@@ -378,7 +387,7 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
                     className={`w-full p-2.5 rounded-lg border text-sm focus:border-indigo-500 focus:outline-none opacity-60 cursor-not-allowed ${isDark ? "bg-gray-800 border-gray-700 text-white" : "bg-slate-200 border-slate-200"}`}>
                     <option value="">-- Select Company --</option>
                     {companies.map(c => (
-                      <option key={c._id} value={c._id}>{c.name} ({c.code})</option>
+                      <option key={c.mongo_id} value={c.mongo_id}>{c.name} ({c.code})</option>
                     ))}
                   </select>
                 </div>
@@ -476,7 +485,11 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
                       </tr>
                     ) : (
                       filteredEmployees.map(emp => (
-                        <tr key={emp._id} className={`${isDark ? "hover:bg-gray-800/50" : "hover:bg-slate-50"}`}>
+                        <React.Fragment key={emp.mongo_id}>
+                          <tr 
+                            className={`cursor-pointer transition-colors ${isDark ? "hover:bg-gray-800/50" : "hover:bg-slate-50"} ${expandedRow === emp.mongo_id ? (isDark ? "bg-gray-800/30" : "bg-indigo-50/30") : ""}`}
+                            onClick={() => toggleRow(emp.mongo_id)}
+                          >
                           <td className="px-6 py-4">
                             <div className="font-bold">{emp.name}</div>
                             <div className={`text-xs mt-0.5 flex items-center gap-1 ${isDark ? "text-gray-500" : "text-slate-500"}`}>
@@ -517,14 +530,69 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
                             <td className="px-6 py-4 text-right">
                               <button
                                 className="text-rose-500 hover:text-white hover:bg-rose-600 p-1.5 rounded transition-all ml-auto block"
-                                onClick={() => handleDelete(emp._id, emp.name)}
+                                onClick={(e) => { e.stopPropagation(); handleDelete(emp.mongo_id, emp.name); }}
                                 title="Terminate Staff Member"
                               >
                                 <Trash2 className="w-4 h-4" />
                               </button>
                             </td>
                           )}
-                        </tr>
+                          </tr>
+                          {expandedRow === emp.mongo_id && (
+                            <tr className={`border-b ${isDark ? "border-gray-800" : "border-slate-100"}`}>
+                              <td colSpan={isManagement ? 5 : 4} className="p-0">
+                                <div className={`p-6 m-4 rounded-xl border shadow-inner ${isDark ? "bg-gray-900/50 border-gray-800" : "bg-white border-slate-200"}`}>
+                                  <div className="flex items-center gap-2 mb-4 pb-2 border-b border-dashed border-slate-300 dark:border-gray-700">
+                                    <ShieldCheck className="w-4 h-4 text-emerald-500" />
+                                    <h4 className="font-bold text-xs uppercase tracking-wider">Complete Employee Profile</h4>
+                                  </div>
+                                  
+                                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                    <div className="space-y-3">
+                                      <div>
+                                        <div className="text-[10px] font-bold uppercase text-slate-400 dark:text-gray-500 mb-0.5">Contact Number</div>
+                                        <div className="text-sm font-semibold">{emp.mobile || <span className="italic text-slate-300">Not provided</span>}</div>
+                                      </div>
+                                      <div>
+                                        <div className="text-[10px] font-bold uppercase text-slate-400 dark:text-gray-500 mb-0.5">Base Salary</div>
+                                        <div className="text-sm font-mono text-indigo-600 dark:text-indigo-400 font-bold">
+                                          ₹{emp.employeeProfile?.baseSalary ? emp.employeeProfile.baseSalary.toLocaleString('en-IN') : "0"} / mo
+                                        </div>
+                                      </div>
+                                    </div>
+                                    
+                                    <div className="space-y-3">
+                                      <div>
+                                        <div className="text-[10px] font-bold uppercase text-slate-400 dark:text-gray-500 mb-0.5">Date of Joining</div>
+                                        <div className="text-sm font-semibold">{emp.employeeProfile?.dateOfJoining ? new Date(emp.employeeProfile.dateOfJoining).toLocaleDateString() : "N/A"}</div>
+                                      </div>
+                                      <div>
+                                        <div className="text-[10px] font-bold uppercase text-slate-400 dark:text-gray-500 mb-0.5">System Access</div>
+                                        <div className="text-xs font-mono">{emp.role} Access Level</div>
+                                      </div>
+                                    </div>
+                                    
+                                    <div className="space-y-3">
+                                      <div>
+                                        <div className="text-[10px] font-bold uppercase text-slate-400 dark:text-gray-500 mb-0.5">Leave Balances</div>
+                                        <div className="text-xs grid grid-cols-2 gap-1 mt-1">
+                                          <div className="flex justify-between border-b border-dashed border-slate-200 dark:border-gray-700 pb-1">
+                                            <span className="text-slate-500">Casual:</span>
+                                            <span className="font-bold">{emp.employeeProfile?.leaveBalances?.casualLeave || 0}</span>
+                                          </div>
+                                          <div className="flex justify-between border-b border-dashed border-slate-200 dark:border-gray-700 pb-1">
+                                            <span className="text-slate-500">Sick:</span>
+                                            <span className="font-bold">{emp.employeeProfile?.leaveBalances?.sickLeave || 0}</span>
+                                          </div>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+                              </td>
+                            </tr>
+                          )}
+                        </React.Fragment>
                       ))
                     )}
                   </tbody>

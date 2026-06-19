@@ -1,9 +1,12 @@
+// Removed @ts-nocheck
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import dbConnect from "@/lib/db";
-import Grievance from "@/models/Grievance";
+import sequelize from "@/lib/sequelize";
+import Grievance from "@/models/sequelize/Grievance";
+import User from "@/models/sequelize/User";
 import { logAudit } from "@/lib/audit";
+import { Op } from "sequelize";
 
 // GET: Fetch all active grievances
 export async function GET(req: Request) {
@@ -17,23 +20,41 @@ export async function GET(req: Request) {
     const role = (session.user as any).role;
     const isHrOrOwner = ["Owner", "Director", "IT Admin", "HR Head", "HR Executive"].includes(role);
 
-    await dbConnect();
+    await sequelize.authenticate();
 
-    let query: any = { status: { $ne: "inactive" } };
+    let query: any = { status: { [Op.ne]: "inactive" } };
 
     // If not HR or Owner, only return grievances raised by this user
     if (!isHrOrOwner) {
       query.raisedBy = userId;
     }
 
-    const items = await Grievance.find(query)
-      .populate("raisedBy", "name email role")
-      .populate("assignedTo", "name email")
-      .sort({ createdAt: -1 });
+    const items = await Grievance.findAll({ 
+      where: query,
+      order: [['createdAt', 'DESC']],
+      raw: true
+    });
+
+    const userIds = [...new Set([
+      ...items.map((i: any) => i.raisedBy),
+      ...items.map((i: any) => i.assignedTo)
+    ].filter(Boolean))];
+
+    let userMap: any = {};
+    if (userIds.length > 0) {
+      const users = await User.findAll({ where: { mongo_id: { [Op.in]: userIds } }, raw: true });
+      users.forEach((u: any) => {
+        userMap[u.mongo_id] = { name: u.name, email: u.email, role: u.role };
+      });
+    }
 
     // Privacy Protection: Mask raisedBy if submitted anonymously
-    const maskedItems = items.map((item) => {
-      const doc = item.toObject();
+    const maskedItems = items.map((item: any) => {
+      const doc = { 
+        ...item,
+        raisedBy: userMap[item.raisedBy] || null,
+        assignedTo: userMap[item.assignedTo] || null
+      };
       if (doc.anonymous && !isHrOrOwner) {
         doc.raisedBy = { name: "Anonymous Employee", email: "hidden", role: "Employee" };
       } else if (doc.anonymous && isHrOrOwner) {
@@ -69,9 +90,10 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: false, error: "Missing required fields" }, { status: 400 });
     }
 
-    await dbConnect();
+    await sequelize.authenticate();
 
-    const record = new Grievance({
+    const record = await Grievance.create({
+      mongo_id: Date.now().toString(),
       raisedBy: userId,
       category,
       priority,
@@ -79,13 +101,12 @@ export async function POST(req: Request) {
       description,
       status: "Open",
     });
-    await record.save();
 
     await logAudit({
       userId,
       action: "GRIEVANCE_FILED",
       entity: "Grievance",
-      entityId: record._id.toString(),
+      entityId: (record as any).mongo_id ? (record as any).mongo_id.toString() : record.id,
       details: `Grievance ticket filed. Category: ${category}, Priority: ${priority}, Anonymous: ${!!anonymous}`,
     });
 
@@ -118,9 +139,9 @@ export async function PUT(req: Request) {
       return NextResponse.json({ success: false, error: "Missing parameters" }, { status: 400 });
     }
 
-    await dbConnect();
+    await sequelize.authenticate();
 
-    const record = await Grievance.findById(grievanceId);
+    const record = await Grievance.findByPk(grievanceId);
     if (!record) {
       return NextResponse.json({ success: false, error: "Ticket not found" }, { status: 404 });
     }
@@ -136,8 +157,8 @@ export async function PUT(req: Request) {
       userId,
       action: "GRIEVANCE_RESOLVED",
       entity: "Grievance",
-      entityId: record._id.toString(),
-      details: `Grievance ticket ID ${record._id.toString()} updated to status ${status}`,
+      entityId: (record as any).mongo_id ? (record as any).mongo_id.toString() : record.id,
+      details: `Grievance ticket ID ${(record as any).mongo_id ? (record as any).mongo_id.toString() : record.id} updated to status ${status}`,
     });
 
     return NextResponse.json({ success: true, data: record });

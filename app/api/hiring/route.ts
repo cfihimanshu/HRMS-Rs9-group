@@ -1,17 +1,18 @@
+// Removed @ts-nocheck
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import dbConnect from "@/lib/db";
-import HiringRequisition from "@/models/HiringRequisition";
-import Job from "@/models/Job";
-import Company from "@/models/Company";
-import Department from "@/models/Department";
+import sequelize from "@/lib/sequelize";
+import HiringRequisition from "@/models/sequelize/HiringRequisition";
+import Job from "@/models/sequelize/Job";
+import Company from "@/models/sequelize/Company";
+import Department from "@/models/sequelize/Department";
 
 // GET: List all requisitions
 export async function GET() {
   try {
-    await dbConnect();
-    const requisitions = await HiringRequisition.find().sort({ createdAt: -1 });
+    await sequelize.authenticate();
+    const requisitions = await HiringRequisition.findAll({ order: [['createdAt', 'DESC']] });
     return NextResponse.json({ success: true, data: requisitions });
   } catch (error: any) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
@@ -21,7 +22,7 @@ export async function GET() {
 // POST: Department Manager creates a new hiring requisition
 export async function POST(req: Request) {
   try {
-    await dbConnect();
+    await sequelize.authenticate();
     const session = await getServerSession(authOptions);
     const creatorName = (session?.user as any)?.name || "Department Manager";
 
@@ -56,7 +57,8 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: false, error: "Missing required fields" }, { status: 400 });
     }
 
-    const requisition = new HiringRequisition({
+    const requisition = await HiringRequisition.create({
+      mongo_id: Date.now().toString(),
       companyName,
       department,
       role,
@@ -80,7 +82,6 @@ export async function POST(req: Request) {
       createdBy: creatorName,
     });
 
-    await requisition.save();
     return NextResponse.json({ success: true, data: requisition });
   } catch (error: any) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
@@ -90,7 +91,7 @@ export async function POST(req: Request) {
 // PUT: Accounts / Owner / HR update status
 export async function PUT(req: Request) {
   try {
-    await dbConnect();
+    await sequelize.authenticate();
     const session = await getServerSession(authOptions);
     if (!session || !session.user) {
       return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
@@ -103,7 +104,7 @@ export async function PUT(req: Request) {
       return NextResponse.json({ success: false, error: "Missing requisition ID or status" }, { status: 400 });
     }
 
-    const requisition = await HiringRequisition.findById(id);
+    const requisition: any = await HiringRequisition.findByPk(id);
     if (!requisition) {
       return NextResponse.json({ success: false, error: "Requisition not found" }, { status: 404 });
     }
@@ -138,14 +139,14 @@ export async function PUT(req: Request) {
       requisition.ownerRemarks = requisition.ownerRemarks || "Approved by Owner.";
 
       // Resolve Company and Department from DB
-      const comp =
-        (await Company.findOne({ name: requisition.companyName })) ||
+      const comp: any =
+        (await Company.findOne({ where: { name: requisition.companyName } })) ||
         (await Company.findOne()) ||
-        { _id: "65edbe12f122822a12121212" };
-      const dept =
-        (await Department.findOne({ name: requisition.department })) ||
+        { mongo_id: "65edbe12f122822a12121212" };
+      const dept: any =
+        (await Department.findOne({ where: { name: requisition.department } })) ||
         (await Department.findOne()) ||
-        { _id: "65edbe12f122822a12121213" };
+        { mongo_id: "65edbe12f122822a12121213" };
 
       const expMin = requisition.experience?.min || 0;
       const expMax = requisition.experience?.max || 0;
@@ -163,10 +164,11 @@ export async function PUT(req: Request) {
           ? `₹${budgetMin.toLocaleString("en-IN")} P.A.`
           : `₹${budgetMin.toLocaleString("en-IN")} - ₹${budgetMax.toLocaleString("en-IN")} P.A.`;
 
-      const job = new Job({
+      const job = await Job.create({
+        mongo_id: Date.now().toString(),
         title: requisition.role,
-        company: comp._id,
-        department: dept._id,
+        company: comp.mongo_id,
+        department: dept.mongo_id,
         location: requisition.location || "Delhi Corporate Office",
         category: requisition.category,
         qualification: requisition.qualification || "Graduate",
@@ -177,10 +179,9 @@ export async function PUT(req: Request) {
         source: requisition.postingPlatform || "Indeed",
         postingDuration: requisition.postingDuration,
       });
-      await job.save();
 
       const origin = req.headers.get("origin") || "http://localhost:3000";
-      job.shareableLink = `${origin}/jobs/apply/${job._id}`;
+      job.shareableLink = `${origin}/jobs/apply/${job.getDataValue('mongo_id')}`;
       await job.save();
 
     // ─── Rejection at any stage ──────────────────────────────────────────

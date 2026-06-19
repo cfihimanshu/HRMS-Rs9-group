@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
-import dbConnect from "@/lib/db";
-import AssociatePerformance from "@/models/AssociatePerformance";
+import sequelize from "@/lib/sequelize";
+import AssociatePerformance from "@/models/sequelize/AssociatePerformance";
 import { logAudit } from "@/lib/audit";
 
 // POST: Submit FORM-9 Associate Performance
@@ -32,7 +32,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: false, error: "Missing required fields" }, { status: 400 });
     }
 
-    await dbConnect();
+    await sequelize.authenticate();
 
     const record = await AssociatePerformance.create({
       evaluator: evaluatorId,
@@ -62,6 +62,8 @@ export async function POST(req: Request) {
   }
 }
 
+import User from "@/models/sequelize/User";
+
 // GET: Fetch FORM-9 records
 export async function GET(req: Request) {
   try {
@@ -70,14 +72,31 @@ export async function GET(req: Request) {
       return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
     }
 
-    await dbConnect();
+    await sequelize.authenticate();
 
-    const records = await AssociatePerformance.find()
-      .populate("evaluator", "name role")
-      .sort({ createdAt: -1 })
-      .limit(50); // Get recent 50 for dashboard
+    const records = await AssociatePerformance.findAll({
+      order: [['createdAt', 'DESC']],
+      limit: 50
+    });
 
-    return NextResponse.json({ success: true, data: records });
+    const userIds = records.map(r => (r as any).evaluator).filter(Boolean);
+    const users = await User.findAll({
+      where: { mongo_id: userIds },
+      attributes: ['mongo_id', 'name', 'role']
+    });
+
+    const userMap = users.reduce((acc: any, u: any) => {
+      acc[u.mongo_id] = u.toJSON();
+      return acc;
+    }, {});
+
+    const data = records.map(r => {
+      const rJson = r.toJSON() as any;
+      rJson.evaluator = userMap[rJson.evaluator] || null;
+      return rJson;
+    });
+
+    return NextResponse.json({ success: true, data });
   } catch (error: any) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }

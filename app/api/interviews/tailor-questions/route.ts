@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import dbConnect from "@/lib/db";
-import Interview from "@/models/Interview";
-import Candidate from "@/models/Candidate";
-import Job from "@/models/Job";
+import sequelize from "@/lib/sequelize";
+import Interview from "@/models/sequelize/Interview";
+import Candidate from "@/models/sequelize/Candidate";
+import Job from "@/models/sequelize/Job";
 
 export async function POST(req: Request) {
   try {
@@ -13,7 +13,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
     }
 
-    await dbConnect();
+    await sequelize.authenticate();
     const body = await req.json();
     const { interviewId } = body;
 
@@ -21,16 +21,24 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: false, error: "Missing interviewId" }, { status: 400 });
     }
 
-    const interview = await Interview.findById(interviewId).populate({
-      path: "candidate",
-      populate: { path: "job" }
-    });
-
-    if (!interview) {
+    const interviewInstance = await Interview.findByPk(interviewId);
+    if (!interviewInstance) {
       return NextResponse.json({ success: false, error: "Interview not found" }, { status: 404 });
     }
 
-    const candidate = interview.candidate as any;
+    const interview = interviewInstance.toJSON() as any;
+
+    let candidate = null;
+    if (interview.candidate) {
+      const candidateInstance = await Candidate.findByPk(interview.candidate);
+      if (candidateInstance) {
+        candidate = candidateInstance.toJSON() as any;
+        if (candidate.job) {
+          candidate.job = await Job.findByPk(candidate.job);
+        }
+      }
+    }
+
     if (!candidate) {
       return NextResponse.json({ success: false, error: "Candidate not associated with this interview" }, { status: 404 });
     }
@@ -184,8 +192,8 @@ Return a valid JSON array of 5 strings ONLY. Do not write markdown blocks or tex
       isCorrect: null
     }));
 
-    interview.customQuestions = formattedQuestions;
-    await interview.save();
+    (interviewInstance as any).customQuestions = formattedQuestions;
+    await interviewInstance.save();
 
     return NextResponse.json({
       success: true,

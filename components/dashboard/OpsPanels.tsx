@@ -12,15 +12,17 @@ import {
   Clock,
   Eye,
   FileText,
-  X
+  X,
+  Download
 } from "lucide-react";
 
 interface OpsProps {
   sessionUser?: any;
   stats: any;
   handleAttendancePunch: () => void;
-  handleSodSubmit: (payload: any) => void;
-  handleEodSubmit: (payload: any) => void;
+  handleSodSubmit: (payload: any) => Promise<any>;
+  handleEodSubmit: (payload: any) => Promise<any>;
+  formMode?: "sod" | "eod" | "both";
 }
 
 export function DailyCommitments({
@@ -28,7 +30,8 @@ export function DailyCommitments({
   stats,
   handleAttendancePunch,
   handleSodSubmit,
-  handleEodSubmit
+  handleEodSubmit,
+  formMode = "both"
 }: OpsProps) {
   // Submission Status States
   const [sodAlreadySubmitted, setSodAlreadySubmitted] = useState(false);
@@ -340,26 +343,9 @@ export function DailyCommitments({
     }
 
     setSubmittingSOD(true);
-    setLocationStatus("Fetching GPS coordinates...");
-
-    let location = { latitude: 28.6139, longitude: 77.2090, timestamp: new Date() };
-    try {
-      const position = await new Promise<GeolocationPosition>((resolve, reject) => {
-        navigator.geolocation.getCurrentPosition(resolve, reject, {
-          enableHighAccuracy: true,
-          timeout: 4000,
-        });
-      });
-      location = {
-        latitude: position.coords.latitude,
-        longitude: position.coords.longitude,
-        timestamp: new Date(position.timestamp)
-      };
-    } catch (geoErr) {
-      console.warn("GPS access blocked or unavailable, using fallback location", geoErr);
-    }
-
     setLocationStatus("Uploading verification capture...");
+
+    const location = { latitude: 28.6139, longitude: 77.2090, timestamp: new Date() };
     let selfieUrl = "https://res.cloudinary.com/demo/image/upload/v1312461204/sample.jpg";
 
     try {
@@ -394,7 +380,7 @@ export function DailyCommitments({
 
     setLocationStatus("Syncing with RS9 ERP System...");
     try {
-      await handleSodSubmit({
+      const success = await handleSodSubmit({
         taskSummary,
         taskType,
         remarks,
@@ -402,10 +388,12 @@ export function DailyCommitments({
         location
       });
 
-      setSodAlreadySubmitted(true);
-      setShowCamera(false);
-      setTaskSummary("");
-      setRemarks("");
+      if (success) {
+        setSodAlreadySubmitted(true);
+        setShowCamera(false);
+        setTaskSummary("");
+        setRemarks("");
+      }
       setSubmittingSOD(false);
       setLocationStatus("Awaiting GPS...");
     } catch (err: any) {
@@ -478,7 +466,7 @@ export function DailyCommitments({
 
     setEodLocationStatus("Syncing with RS9 ERP System...");
     try {
-      await handleEodSubmit({
+      const success = await handleEodSubmit({
         completedWork: eodCompleted,
         pendingWork: eodPending,
         issues: eodIssues,
@@ -488,12 +476,14 @@ export function DailyCommitments({
         location
       });
 
-      setEodAlreadySubmitted(true);
-      setShowEodCamera(false);
-      setEodCompleted("");
-      setEodPending("");
-      setEodIssues("");
-      setEodTomorrowPlan("");
+      if (success) {
+        setEodAlreadySubmitted(true);
+        setShowEodCamera(false);
+        setEodCompleted("");
+        setEodPending("");
+        setEodIssues("");
+        setEodTomorrowPlan("");
+      }
       setSubmittingEOD(false);
       setEodLocationStatus("Awaiting GPS...");
     } catch (err: any) {
@@ -544,9 +534,10 @@ export function DailyCommitments({
       </div>
 
       {/* Forms */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      <div className={`grid grid-cols-1 ${formMode === "both" ? "lg:grid-cols-2" : ""} gap-8`}>
 
         {/* SOD Planner with Strict Verification */}
+        {(formMode === "both" || formMode === "sod") && (
         <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm flex flex-col">
           <h3 className="text-xs font-black tracking-widest text-[#714B67] uppercase font-mono pb-2 border-b border-slate-100 mb-4 flex items-center justify-between">
             <span>📋 FORM-7: Start Of Day Declaration</span>
@@ -607,7 +598,7 @@ export function DailyCommitments({
 
               <div className="bg-rose-50 border border-rose-200 rounded-lg p-3 text-[10px] font-bold text-rose-700 flex items-start gap-2 mt-4">
                 <MapPin className="w-4 h-4 shrink-0 mt-0.5 text-rose-600" />
-                <span><strong>Verification Required:</strong> You will need to take a live selfie and allow GPS tracking to submit your SOD.</span>
+                <span><strong>Verification Required:</strong> You will need to take a live selfie to submit your SOD.</span>
               </div>
 
               <div className="mt-4 pt-4 border-t border-slate-100 flex justify-end">
@@ -618,7 +609,7 @@ export function DailyCommitments({
             </div>
           ) : (
             <div className="flex-1 flex flex-col items-center justify-center space-y-4">
-              <h4 className="text-xs font-black text-slate-700">Live Selfie & GPS Tracking</h4>
+              <h4 className="text-xs font-black text-slate-700">Live Selfie Verification</h4>
               {cameraError ? (
                 <div className="bg-rose-50 p-4 rounded-lg text-rose-600 text-xs font-bold text-center border border-rose-200">
                   ⚠️ {cameraError} <br /><br />
@@ -654,8 +645,10 @@ export function DailyCommitments({
             </div>
           )}
         </div>
+        )}
 
         {/* EOD Form with Strict Verification */}
+        {(formMode === "both" || formMode === "eod") && (
         <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm flex flex-col">
           <h3 className="text-xs font-black tracking-widest text-[#714B67] uppercase font-mono pb-2 border-b border-slate-100 mb-4 flex items-center justify-between">
             <span>📝 FORM-8: Daily EOD Log</span>
@@ -766,8 +759,8 @@ export function DailyCommitments({
               )}
             </div>
           )}
-
         </div>
+        )}
       </div>
 
       {/* Calendar Modal */}
@@ -924,7 +917,7 @@ export function DailyCommitments({
 
 export function PerformanceCompliance({ sessionUser }: { sessionUser?: any }) {
   const [loading, setLoading] = useState(true);
-  const [reports, setReports] = useState<{ sod: any[]; eod: any[]; tasks?: any[] }>({ sod: [], eod: [], tasks: [] });
+  const [reports, setReports] = useState<{ sod: any[]; eod: any[]; tasks?: any[]; fieldVisits?: any[] }>({ sod: [], eod: [], tasks: [], fieldVisits: [] });
   const [activeSubTab, setActiveSubTab] = useState<"sod" | "eod">("sod");
   const [searchTerm, setSearchTerm] = useState("");
   const [dateFilter, setDateFilter] = useState("");
@@ -935,9 +928,17 @@ export function PerformanceCompliance({ sessionUser }: { sessionUser?: any }) {
   const [users, setUsers] = useState<any[]>([]);
   const [selectedCompany, setSelectedCompany] = useState("");
   const [selectedUser, setSelectedUser] = useState("");
+  const [selectedDept, setSelectedDept] = useState("");
   const [expandedRows, setExpandedRows] = useState<Record<string, boolean>>({});
 
-  const isOwner = sessionUser?.role === "Owner";
+  const isOwner = ["Owner", "Director", "HR Head", "HR Executive", "Department Manager"].includes(sessionUser?.role);
+
+  const departmentsList = React.useMemo(() => {
+    const depts = new Set<string>();
+    (reports.sod || []).forEach((s: any) => s.employee?.department && depts.add(s.employee.department));
+    (reports.eod || []).forEach((e: any) => e.employee?.department && depts.add(e.employee.department));
+    return Array.from(depts).sort();
+  }, [reports]);
 
   useEffect(() => {
     fetchReports();
@@ -952,7 +953,7 @@ export function PerformanceCompliance({ sessionUser }: { sessionUser?: any }) {
       const res = await fetch("/api/reports/work-report");
       const data = await res.json();
       if (data.success) {
-        setReports(data.data || { sod: [], eod: [], tasks: [] });
+        setReports(data.data || { sod: [], eod: [], tasks: [], fieldVisits: [] });
       }
     } catch (error) {
       console.error("Error fetching work reports:", error);
@@ -979,23 +980,23 @@ export function PerformanceCompliance({ sessionUser }: { sessionUser?: any }) {
     return u.companies && u.companies.includes(selectedCompany);
   });
 
-  // Merge SOD, EOD, and Tasks
+  // Merge SOD, EOD, Tasks, and Field Visits
   const mergedList = React.useMemo(() => {
-    const map = new Map<string, { sod: any; eod: any; tasks: any[]; date: Date; dateStr: string; employee: any }>();
+    const map = new Map<string, { sod: any; eod: any; tasks: any[]; fieldVisits: any[]; date: Date; dateStr: string; employee: any }>();
 
     // Process SODs
     (reports.sod || []).forEach((sod: any) => {
-      const empId = sod.employee?._id || sod.employee?.id || "unknown";
+      const empId = sod.employee?.mongo_id || sod.employee?._id || sod.employee?.id || "unknown";
       if (!sod.date) return;
       const dObj = new Date(sod.date);
       const dateStr = dObj.toDateString();
       const key = `${empId}_${dateStr}`;
-      map.set(key, { sod, eod: null, tasks: [], date: dObj, dateStr, employee: sod.employee });
+      map.set(key, { sod, eod: null, tasks: [], fieldVisits: [], date: dObj, dateStr, employee: sod.employee });
     });
 
     // Process EODs
     (reports.eod || []).forEach((eod: any) => {
-      const empId = eod.employee?._id || eod.employee?.id || "unknown";
+      const empId = eod.employee?.mongo_id || eod.employee?._id || eod.employee?.id || "unknown";
       if (!eod.date) return;
       const dObj = new Date(eod.date);
       const dateStr = dObj.toDateString();
@@ -1004,13 +1005,13 @@ export function PerformanceCompliance({ sessionUser }: { sessionUser?: any }) {
       if (existing) {
         existing.eod = eod;
       } else {
-        map.set(key, { sod: null, eod, tasks: [], date: dObj, dateStr, employee: eod.employee });
+        map.set(key, { sod: null, eod, tasks: [], fieldVisits: [], date: dObj, dateStr, employee: eod.employee });
       }
     });
 
     // Process Tasks
     (reports.tasks || []).forEach((task: any) => {
-      const empId = task.employee?._id || task.employee?.id || "unknown";
+      const empId = task.employee?.mongo_id || task.employee?._id || task.employee?.id || "unknown";
       if (!task.date) return;
       const dObj = new Date(task.date);
       const dateStr = dObj.toDateString();
@@ -1019,13 +1020,152 @@ export function PerformanceCompliance({ sessionUser }: { sessionUser?: any }) {
       if (existing) {
         existing.tasks.push(task);
       } else {
-        map.set(key, { sod: null, eod: null, tasks: [task], date: dObj, dateStr, employee: task.employee });
+        map.set(key, { sod: null, eod: null, tasks: [task], fieldVisits: [], date: dObj, dateStr, employee: task.employee });
+      }
+    });
+
+    // Process Field Visits
+    (reports.fieldVisits || []).forEach((visit: any) => {
+      const empId = visit.employee_id || (visit.employee?.mongo_id || visit.employee?._id || visit.employee?.id || "unknown");
+      if (!visit.date) return;
+      const dObj = new Date(visit.date);
+      const dateStr = dObj.toDateString();
+      const key = `${empId}_${dateStr}`;
+      const existing = map.get(key);
+      if (existing) {
+        existing.fieldVisits.push(visit);
+      } else {
+        map.set(key, { sod: null, eod: null, tasks: [], fieldVisits: [visit], date: dObj, dateStr, employee: visit.employee });
       }
     });
 
     // Sort by date (descending)
     return Array.from(map.values()).sort((a, b) => b.date.getTime() - a.date.getTime());
   }, [reports]);
+
+  const exportConsolidatedCSV = () => {
+    try {
+      const headers = [
+        "Date",
+        "Employee Name",
+        "Employee Email",
+        "Department",
+        "SOD Submitted At",
+        "SOD Planned Task Type",
+        "SOD Planned Summary",
+        "EOD Submitted At",
+        "EOD Completed Work",
+        "EOD Pending Work",
+        "EOD Issues Faced",
+        "EOD Escalation Required",
+        "EOD Tomorrow Plan",
+        "Tasks Logged (Count)",
+        "Tasks Details",
+        "Field Visits Travelled (KM)",
+        "Field Visits Details"
+      ];
+
+      const exportList = mergedList.filter((item: any) => {
+        const empName = item.employee?.name || "";
+        const empEmail = item.employee?.email || "";
+        const matchSearch = empName.toLowerCase().includes(searchTerm.toLowerCase()) || empEmail.toLowerCase().includes(searchTerm.toLowerCase());
+
+        let matchDate = true;
+        if (dateFilter) {
+          const reportDate = item.date.toDateString();
+          const filterDate = new Date(dateFilter).toDateString();
+          matchDate = reportDate === filterDate;
+        }
+
+        let matchCompany = true;
+        if (isOwner && selectedCompany) {
+          matchCompany = item.employee?.companies && item.employee.companies.includes(selectedCompany);
+        }
+
+        let matchUser = true;
+        if (isOwner && selectedUser) {
+          matchUser = (item.employee?._id || item.employee?.id) === selectedUser;
+        }
+
+        let matchDept = true;
+        if (isOwner && selectedDept) {
+          matchDept = item.employee?.department === selectedDept;
+        }
+
+        return matchSearch && matchDate && matchCompany && matchUser && matchDept;
+      });
+
+      const csvRows = exportList.map((item: any) => {
+        const sodTime = item.sod ? new Date(item.sod.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "-";
+        const sodTaskType = item.sod?.taskType || "-";
+        const sodSummary = item.sod?.taskSummary || "-";
+
+        const eodTime = item.eod ? new Date(item.eod.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "-";
+        const eodCompleted = item.eod?.completedWork || "-";
+        const eodPending = item.eod?.pendingWork || "-";
+        const eodIssues = item.eod?.issuesFaced || "-";
+        const eodEscalation = item.eod?.escalationRequired || "No";
+        const eodTomorrow = item.eod?.tomorrowPlan || "-";
+
+        const tasksCount = item.tasks ? item.tasks.length : 0;
+        const tasksDetails = item.tasks && item.tasks.length > 0
+          ? item.tasks.map((t: any) => `[${t.status}] ${t.taskTitle} (${t.taskType})`).join(" | ")
+          : "-";
+
+        const fieldVisitKm = item.fieldVisits && item.fieldVisits.length > 0
+          ? item.fieldVisits.reduce((sum: number, v: any) => sum + (v.distance_travelled || 0), 0)
+          : 0;
+        
+        const fieldVisitDetails = item.fieldVisits && item.fieldVisits.length > 0
+          ? item.fieldVisits.map((v: any) => `Client: ${v.client_name || "N/A"}, Purpose: ${v.purpose || "N/A"}, Dist: ${v.distance_travelled || 0} KM, Notes: ${v.visit_notes || "N/A"}`).join(" | ")
+          : "-";
+
+        return [
+          item.date.toLocaleDateString(),
+          item.employee?.name || "Unknown",
+          item.employee?.email || "N/A",
+          item.employee?.department || "General",
+          sodTime,
+          sodTaskType,
+          sodSummary,
+          eodTime,
+          eodCompleted,
+          eodPending,
+          eodIssues,
+          eodEscalation,
+          eodTomorrow,
+          tasksCount,
+          tasksDetails,
+          fieldVisitKm,
+          fieldVisitDetails
+        ];
+      });
+
+      const escapeCSV = (val: any) => {
+        if (val === null || val === undefined) return '""';
+        let str = String(val);
+        str = str.replace(/"/g, '""');
+        return `"${str}"`;
+      };
+
+      const csvContent = [
+        headers.map(escapeCSV).join(","),
+        ...csvRows.map((row: any[]) => row.map(escapeCSV).join(","))
+      ].join("\n");
+
+      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.setAttribute("href", url);
+      link.setAttribute("download", `Consolidated_Work_Report_${new Date().toISOString().split('T')[0]}.csv`);
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (error) {
+      console.error("Failed to export consolidated CSV:", error);
+    }
+  };
 
   // Filter logic
   const filteredList = mergedList.filter((item: any) => {
@@ -1050,6 +1190,11 @@ export function PerformanceCompliance({ sessionUser }: { sessionUser?: any }) {
       matchUser = (item.employee?._id || item.employee?.id) === selectedUser;
     }
 
+    let matchDept = true;
+    if (isOwner && selectedDept) {
+      matchDept = item.employee?.department === selectedDept;
+    }
+
     let matchSubTab = true;
     if (activeSubTab === "sod") {
       matchSubTab = !!item.sod;
@@ -1057,7 +1202,7 @@ export function PerformanceCompliance({ sessionUser }: { sessionUser?: any }) {
       matchSubTab = !!item.eod;
     }
 
-    return matchSearch && matchDate && matchCompany && matchUser && matchSubTab;
+    return matchSearch && matchDate && matchCompany && matchUser && matchSubTab && matchDept;
   });
 
   return (
@@ -1070,26 +1215,35 @@ export function PerformanceCompliance({ sessionUser }: { sessionUser?: any }) {
           </p>
         </div>
 
-        {/* Sub-Tabs */}
-        <div className="flex bg-slate-100 p-1 rounded-lg border border-slate-200 self-start md:self-auto">
+        <div className="flex flex-wrap gap-2 items-center self-start md:self-auto">
           <button
-            onClick={() => setActiveSubTab("sod")}
-            className={`px-4 py-2 text-xs font-black rounded-md transition-all ${activeSubTab === "sod"
-              ? "bg-[#714B67] text-white shadow-md"
-              : "text-slate-650 hover:text-[#714B67]"
-              }`}
+            onClick={exportConsolidatedCSV}
+            className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-black shadow-md shadow-emerald-600/10 flex items-center gap-1.5 transition-all"
           >
-            Start of Day (SOD)
+            <Download className="w-4 h-4" /> Export Consolidated Report (CSV)
           </button>
-          <button
-            onClick={() => setActiveSubTab("eod")}
-            className={`px-4 py-2 text-xs font-black rounded-md transition-all ${activeSubTab === "eod"
-              ? "bg-[#714B67] text-white shadow-md"
-              : "text-slate-650 hover:text-[#714B67]"
-              }`}
-          >
-            End of Day (EOD)
-          </button>
+
+          {/* Sub-Tabs */}
+          <div className="flex bg-slate-100 p-1 rounded-lg border border-slate-200">
+            <button
+              onClick={() => setActiveSubTab("sod")}
+              className={`px-4 py-2 text-xs font-black rounded-md transition-all ${activeSubTab === "sod"
+                ? "bg-[#714B67] text-white shadow-md"
+                : "text-slate-655 hover:text-[#714B67]"
+                }`}
+            >
+              Start of Day (SOD)
+            </button>
+            <button
+              onClick={() => setActiveSubTab("eod")}
+              className={`px-4 py-2 text-xs font-black rounded-md transition-all ${activeSubTab === "eod"
+                ? "bg-[#714B67] text-white shadow-md"
+                : "text-slate-655 hover:text-[#714B67]"
+                }`}
+            >
+              End of Day (EOD)
+            </button>
+          </div>
         </div>
       </div>
 
@@ -1125,6 +1279,20 @@ export function PerformanceCompliance({ sessionUser }: { sessionUser?: any }) {
               </select>
             </div>
 
+            {/* Filter by Department */}
+            <div className="w-full md:w-48">
+              <select
+                className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2.5 text-xs font-bold focus:outline-none focus:border-[#714B67] text-slate-800"
+                value={selectedDept}
+                onChange={(e) => setSelectedDept(e.target.value)}
+              >
+                <option value="">All Departments</option>
+                {departmentsList.map((dept) => (
+                  <option key={dept} value={dept}>{dept}</option>
+                ))}
+              </select>
+            </div>
+
             {/* Filter by Employee */}
             <div className="w-full md:w-48">
               <select
@@ -1149,12 +1317,13 @@ export function PerformanceCompliance({ sessionUser }: { sessionUser?: any }) {
             onChange={(e) => setDateFilter(e.target.value)}
           />
         </div>
-        {(dateFilter || selectedCompany || selectedUser) && (
+        {(dateFilter || selectedCompany || selectedUser || selectedDept) && (
           <button
             onClick={() => {
               setDateFilter("");
               setSelectedCompany("");
               setSelectedUser("");
+              setSelectedDept("");
             }}
             className="text-xs text-rose-600 hover:underline font-bold whitespace-nowrap"
           >
@@ -1222,7 +1391,9 @@ export function PerformanceCompliance({ sessionUser }: { sessionUser?: any }) {
                           <td className="py-3.5 px-4">
                             <div className="flex flex-col">
                               <span className="font-black text-slate-800">{item.employee?.name || "Unknown"}</span>
-                              <span className="text-[10px] text-slate-400 font-mono font-bold">{item.employee?.email || ""}</span>
+                              <span className="text-[10px] text-slate-400 font-mono font-bold">
+                                {item.employee?.email || ""} {item.employee?.department ? `| ${item.employee.department}` : ""}
+                              </span>
                             </div>
                           </td>
                         )}
@@ -1341,7 +1512,7 @@ export function PerformanceCompliance({ sessionUser }: { sessionUser?: any }) {
                                 )}
                               </div>
 
-                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-3 border-t border-slate-200/80">
+                              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-3 border-t border-slate-200/80">
                                 {/* SOD Block */}
                                 <div className="space-y-1.5">
                                   <span className="text-[10px] uppercase font-mono font-bold text-emerald-600 flex items-center gap-1">
@@ -1352,16 +1523,16 @@ export function PerformanceCompliance({ sessionUser }: { sessionUser?: any }) {
                                       <div><strong>Planned Task Type:</strong> {item.sod.taskType}</div>
                                       <div><strong>Summary:</strong> {item.sod.taskSummary}</div>
                                       {item.sod.remarks && <div><strong>Remarks:</strong> {item.sod.remarks}</div>}
-                                      {item.sod.location?.latitude && (
+                                      {item.sod.latitude && (
                                         <a
-                                          href={`https://www.google.com/maps/search/?api=1&query=${item.sod.location.latitude},${item.sod.location.longitude}`}
+                                          href={`https://www.google.com/maps/search/?api=1&query=${item.sod.latitude},${item.sod.longitude}`}
                                           target="_blank"
                                           rel="noopener noreferrer"
                                           className="flex items-center gap-1 text-indigo-650 hover:underline font-bold text-[10px] mt-1"
                                           onClick={(e) => e.stopPropagation()}
                                         >
                                           <MapPin className="w-3 h-3 text-indigo-500" />
-                                          <span>Lat: {item.sod.location.latitude.toFixed(4)}, Long: {item.sod.location.longitude.toFixed(4)}</span>
+                                          <span>Lat: {item.sod.latitude.toFixed(4)}, Long: {item.sod.longitude.toFixed(4)}</span>
                                         </a>
                                       )}
                                     </div>
@@ -1381,9 +1552,47 @@ export function PerformanceCompliance({ sessionUser }: { sessionUser?: any }) {
                                       <div><strong>Pending Work:</strong> {item.eod.pendingWork}</div>
                                       <div><strong>Tomorrow's Plan:</strong> {item.eod.tomorrowPlan}</div>
                                       {item.eod.issues && <div className="text-rose-700"><strong>Issues:</strong> {item.eod.issues}</div>}
+                                      {item.eod.latitude && (
+                                        <a
+                                          href={`https://www.google.com/maps/search/?api=1&query=${item.eod.latitude},${item.eod.longitude}`}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          className="flex items-center gap-1 text-indigo-650 hover:underline font-bold text-[10px] mt-1"
+                                          onClick={(e) => e.stopPropagation()}
+                                        >
+                                          <MapPin className="w-3 h-3 text-indigo-500" />
+                                          <span>Lat: {item.eod.latitude.toFixed(4)}, Long: {item.eod.longitude.toFixed(4)}</span>
+                                        </a>
+                                      )}
                                     </div>
                                   ) : (
                                     <div className="text-[10px] italic text-slate-400 bg-white p-3 rounded-lg border border-slate-200 shadow-sm">No EOD submitted.</div>
+                                  )}
+                                </div>
+
+                                {/* Field Visit Block */}
+                                <div className="space-y-1.5">
+                                  <span className="text-[10px] uppercase font-mono font-bold text-indigo-600 flex items-center gap-1">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-indigo-550"></span> Field Visits ({item.fieldVisits ? item.fieldVisits.length : 0})
+                                  </span>
+                                  {item.fieldVisits && item.fieldVisits.length > 0 ? (
+                                    <div className="text-[11px] text-slate-600 bg-white p-3 rounded-lg border border-slate-200 space-y-2 shadow-sm max-h-[160px] overflow-y-auto">
+                                      {item.fieldVisits.map((v: any, vIdx: number) => (
+                                        <div key={v._id || vIdx} className={`${vIdx > 0 ? "pt-2 border-t border-slate-100" : ""}`}>
+                                          <div><strong>Client:</strong> {v.client_name || "N/A"}</div>
+                                          <div><strong>Purpose:</strong> {v.purpose || "N/A"}</div>
+                                          <div><strong>Distance:</strong> {v.distance_travelled || 0} KM</div>
+                                          {v.visit_summary && <div><strong>Summary:</strong> {v.visit_summary}</div>}
+                                          {v.opening_location && (
+                                            <div className="text-[10px] text-slate-400 mt-0.5">
+                                              Loc: {v.opening_location} ➔ {v.closing_location || "Open"}
+                                            </div>
+                                          )}
+                                        </div>
+                                      ))}
+                                    </div>
+                                  ) : (
+                                    <div className="text-[10px] italic text-slate-400 bg-white p-3 rounded-lg border border-slate-200 shadow-sm">No Field Visits logged.</div>
                                   )}
                                 </div>
                               </div>

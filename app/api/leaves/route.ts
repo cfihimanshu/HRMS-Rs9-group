@@ -1,11 +1,13 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import dbConnect from "@/lib/db";
-import Leave from "@/models/Leave";
-import EmployeeProfile from "@/models/EmployeeProfile";
+import sequelize from "@/lib/sequelize";
+import Leave from "@/models/sequelize/Leave";
+import EmployeeProfile from "@/models/sequelize/EmployeeProfile";
 import { logAudit } from "@/lib/audit";
 import { logHRActivity } from "@/lib/hrAudit";
+
+import User from "@/models/sequelize/User";
 
 // POST: Apply for a new leave
 export async function POST(req: Request) {
@@ -15,19 +17,23 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
     }
 
-    await dbConnect();
+    await sequelize.authenticate();
     const { type, startDate, endDate, days, reason } = await req.json();
 
     if (!type || !startDate || !endDate || !days || !reason) {
       return NextResponse.json({ success: false, error: "Missing required fields" }, { status: 400 });
     }
 
-    // Optional: Validate leave balances (if EmployeeProfile exists)
-    const profile = await EmployeeProfile.findOne({ user: (session.user as any).id });
+    // Validate leave balances (if EmployeeProfile exists)
+    const profile = await EmployeeProfile.findOne({ where: { user: (session.user as any).id } });
     if (profile) {
-      const balance = type === "Casual Leave" ? profile.leaveBalances.casualLeave :
-        type === "Sick Leave" ? profile.leaveBalances.sickLeave :
-          type === "Earned Leave" ? profile.leaveBalances.earnedLeave : 999;
+      const casualVal = (profile.get("leaveBalances.casualLeave") as number) || 0;
+      const sickVal = (profile.get("leaveBalances.sickLeave") as number) || 0;
+      const earnedVal = (profile.get("leaveBalances.earnedLeave") as number) || 0;
+
+      const balance = type === "Casual Leave" ? casualVal :
+        type === "Sick Leave" ? sickVal :
+          type === "Earned Leave" ? earnedVal : 999;
 
       if (type !== "Unpaid Leave" && balance < days) {
         return NextResponse.json({ success: false, error: `Insufficient ${type} balance. (Available: ${balance})` }, { status: 400 });
@@ -35,6 +41,7 @@ export async function POST(req: Request) {
     }
 
     const leave = await Leave.create({
+      mongo_id: Date.now().toString(),
       employee: (session.user as any).id,
       type,
       startDate,
@@ -59,17 +66,39 @@ export async function GET(req: Request) {
       return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
     }
 
-    await dbConnect();
+    await sequelize.authenticate();
 
     // If user is Employee, show only their leaves. Otherwise, show all leaves (for HR/Manager)
     const filter = (session.user as any).role === "Employee" ? { employee: (session.user as any).id } : {};
 
-    const leaves = await Leave.find(filter)
-      .populate("employee", "name email")
-      .populate("approvedBy", "name")
-      .sort({ createdAt: -1 });
+    const leaves = await Leave.findAll({ 
+      where: filter,
+      order: [['createdAt', 'DESC']]
+    });
 
-    return NextResponse.json({ success: true, data: leaves });
+    const userIds = Array.from(new Set([
+      ...leaves.map(l => (l as any).employee).filter(Boolean),
+      ...leaves.map(l => (l as any).approvedBy).filter(Boolean)
+    ]));
+
+    const users = await User.findAll({
+      where: { mongo_id: userIds },
+      attributes: ['mongo_id', 'name', 'email']
+    });
+
+    const userMap = users.reduce((acc: any, u: any) => {
+      acc[u.mongo_id] = u.toJSON();
+      return acc;
+    }, {});
+
+    const data = leaves.map(l => {
+      const lJson = l.toJSON() as any;
+      lJson.employee = userMap[lJson.employee] || null;
+      lJson.approvedBy = userMap[lJson.approvedBy] || null;
+      return lJson;
+    });
+
+    return NextResponse.json({ success: true, data });
   } catch (error: any) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
@@ -92,25 +121,25 @@ export async function PUT(req: Request) {
       return NextResponse.json({ success: false, error: "Access Denied" }, { status: 403 });
     }
 
-    await dbConnect();
+    await sequelize.authenticate();
     const { leaveId, status, remarks } = await req.json();
 
     if (!leaveId || !status) {
       return NextResponse.json({ success: false, error: "Missing required fields" }, { status: 400 });
     }
 
-    const leave = await Leave.findById(leaveId);
+    const leave = await Leave.findByPk(leaveId);
     if (!leave) {
       return NextResponse.json({ success: false, error: "Leave request not found" }, { status: 404 });
     }
 
-    if (leave.status !== "Pending") {
+    if ((leave as any).status !== "Pending") {
       return NextResponse.json({ success: false, error: "Leave has already been processed" }, { status: 400 });
     }
 
-    leave.status = status;
-    leave.approvedBy = loggedInUserId;
-    if (remarks) leave.remarks = remarks;
+    (leave as any).status = status;
+    (leave as any).approvedBy = loggedInUserId;
+    if (remarks) (leave as any).remarks = remarks;
 
     await leave.save();
 
@@ -119,27 +148,30 @@ export async function PUT(req: Request) {
       userId: loggedInUserId,
       action: `${status.toUpperCase()}_LEAVE`,
       entity: "Leave",
-      entityId: leave._id.toString(),
-      details: `Leave request for ${leave.type} (${leave.days} days) has been ${status.toLowerCase()} by HR / Supervisor.`
+      entityId: (leave as any).mongo_id,
+      details: `Leave request for ${(leave as any).type} (${(leave as any).days} days) has been ${status.toLowerCase()} by HR / Supervisor.`
     });
 
     await logHRActivity({
       userId: loggedInUserId,
       userRole: loggedInUserRole,
       action: `${status.toUpperCase()}_LEAVE`,
-      details: `Leave request for ${leave.type} (${leave.days} days) has been ${status.toLowerCase()} by HR / Supervisor.`
+      details: `Leave request for ${(leave as any).type} (${(leave as any).days} days) has been ${status.toLowerCase()} by HR / Supervisor.`
     });
 
     // If approved, deduct leave balance
     if (status === "Approved") {
-      const profile = await EmployeeProfile.findOne({ user: leave.employee });
+      const profile = await EmployeeProfile.findOne({ where: { user: (leave as any).employee } });
       if (profile) {
-        if (leave.type === "Casual Leave") {
-          profile.leaveBalances.casualLeave = Math.max(0, profile.leaveBalances.casualLeave - leave.days);
-        } else if (leave.type === "Sick Leave") {
-          profile.leaveBalances.sickLeave = Math.max(0, profile.leaveBalances.sickLeave - leave.days);
-        } else if (leave.type === "Earned Leave") {
-          profile.leaveBalances.earnedLeave = Math.max(0, profile.leaveBalances.earnedLeave - leave.days);
+        if ((leave as any).type === "Casual Leave") {
+          const balance = (profile.get("leaveBalances.casualLeave") as number) || 0;
+          profile.set("leaveBalances.casualLeave", Math.max(0, balance - (leave as any).days));
+        } else if ((leave as any).type === "Sick Leave") {
+          const balance = (profile.get("leaveBalances.sickLeave") as number) || 0;
+          profile.set("leaveBalances.sickLeave", Math.max(0, balance - (leave as any).days));
+        } else if ((leave as any).type === "Earned Leave") {
+          const balance = (profile.get("leaveBalances.earnedLeave") as number) || 0;
+          profile.set("leaveBalances.earnedLeave", Math.max(0, balance - (leave as any).days));
         }
         await profile.save();
       }

@@ -1,13 +1,14 @@
 import { NextResponse } from "next/server";
-import dbConnect from "@/lib/db";
-import Company from "@/models/Company";
-import EmployeeProfile from "@/models/EmployeeProfile";
+import sequelize from "@/lib/sequelize";
+import Company from "@/models/sequelize/Company";
+import EmployeeProfile from "@/models/sequelize/EmployeeProfile";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import { Op } from "sequelize";
 
 export async function GET(req: Request) {
   try {
-    await dbConnect();
+    await sequelize.authenticate();
     const session = await getServerSession(authOptions);
     if (!session) {
       return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
@@ -20,32 +21,41 @@ export async function GET(req: Request) {
       return NextResponse.json({ success: false, error: "companyId is required" }, { status: 400 });
     }
 
-    const company = await Company.findById(companyId);
+    const company = await Company.findByPk(companyId);
     if (!company) {
       return NextResponse.json({ success: false, error: "Company not found" }, { status: 404 });
     }
 
     const getCompanyPrefix = (name: string) => {
-      const clean = name.replace(/[^a-zA-Z]/g, "").toUpperCase();
-      if (clean.startsWith("STARTUPKARE")) return "STK";
-      if (clean.startsWith("STARTUPFLORA")) return "STA";
-      if (clean.startsWith("FORCE")) return "FOR";
-      return clean.substring(0, 3).padEnd(3, "X");
+      const upper = name.toUpperCase();
+      if (upper.includes("CFI") || upper.includes("CHARTERED")) return "CFI";
+      if (upper.includes("RAA") || upper.includes("RUKSANA")) return "RAA";
+      if (upper.includes("CTPL") || upper.includes("CITILINE")) return "CTP";
+      if (upper.includes("ATPL") || upper.includes("ACOLYTE")) return "ATP";
+      if (upper.includes("RNPL") || upper.includes("RUHAN")) return "RNP";
+      if (upper.includes("MVPL") || upper.includes("MAVICS")) return "MVP";
+      return name.replace(/[^a-zA-Z]/g, "").substring(0, 3).toUpperCase().padEnd(3, "X");
     };
 
     const prefix = getCompanyPrefix(company.name);
     
-    // Find all profiles matching the prefix pattern e.g., CFI-001
-    const regex = new RegExp(`^${prefix}-\\d+$`, 'i');
-    const profiles = await EmployeeProfile.find({ employeeId: regex });
+    const profiles = await EmployeeProfile.findAll({ 
+      where: { 
+        employeeId: {
+          [Op.like]: `${prefix}-%`
+        }
+      } 
+    });
 
     let maxNum = 0;
     profiles.forEach(p => {
-      const parts = p.employeeId.split("-");
-      if (parts.length === 2) {
-        const num = parseInt(parts[1], 10);
-        if (!isNaN(num) && num > maxNum) {
-          maxNum = num;
+      if (p.employeeId) {
+        const parts = p.employeeId.split("-");
+        if (parts.length === 2 && parts[0].toUpperCase() === prefix.toUpperCase()) {
+          const num = parseInt(parts[1], 10);
+          if (!isNaN(num) && num > maxNum) {
+            maxNum = num;
+          }
         }
       }
     });

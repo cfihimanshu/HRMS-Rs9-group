@@ -1,5 +1,5 @@
-import dbConnect from "./db";
-import HRRecentActivity from "@/models/HRRecentActivity";
+import sequelize from "./sequelize";
+import HRRecentActivity from "@/models/sequelize/HRRecentActivity";
 
 interface HRActivityParams {
   userId: string;
@@ -18,7 +18,7 @@ export async function logHRActivity({
     return; // Only log activities performed by HR Head or HR Executive
   }
   try {
-    await dbConnect();
+    await sequelize.authenticate();
     await HRRecentActivity.create({
       user: userId,
       action,

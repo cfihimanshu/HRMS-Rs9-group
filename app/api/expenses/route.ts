@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import dbConnect from "@/lib/db";
-import Expense from "@/models/Expense";
+import sequelize from "@/lib/sequelize";
+import User from "@/models/sequelize/User";
+import Expense from "@/models/sequelize/Expense";
 
 // GET: Fetch Expenses
 export async function GET(req: Request) {
@@ -12,16 +13,38 @@ export async function GET(req: Request) {
       return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
     }
 
-    await dbConnect();
+    await sequelize.authenticate();
 
     const filter = (session.user as any).role === "Employee" ? { employee: (session.user as any).id } : {};
     
-    const expenses = await Expense.find(filter)
-      .populate("employee", "name email")
-      .populate("approvedBy", "name")
-      .sort({ createdAt: -1 });
+    const expenses = await Expense.findAll({ 
+      where: filter,
+      order: [['createdAt', 'DESC']]
+    });
 
-    return NextResponse.json({ success: true, data: expenses });
+    const userIds = Array.from(new Set([
+      ...expenses.map(e => (e as any).employee).filter(Boolean),
+      ...expenses.map(e => (e as any).approvedBy).filter(Boolean)
+    ]));
+
+    const users = await User.findAll({
+      where: { mongo_id: userIds },
+      attributes: ['mongo_id', 'name', 'email']
+    });
+
+    const userMap = users.reduce((acc: any, u: any) => {
+      acc[u.mongo_id] = u.toJSON();
+      return acc;
+    }, {});
+
+    const data = expenses.map(e => {
+      const eJson = e.toJSON() as any;
+      eJson.employee = userMap[eJson.employee] || null;
+      eJson.approvedBy = userMap[eJson.approvedBy] || null;
+      return eJson;
+    });
+
+    return NextResponse.json({ success: true, data });
   } catch (error: any) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
@@ -35,7 +58,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
     }
 
-    await dbConnect();
+    await sequelize.authenticate();
     const { amount, category, dateIncurred, description, receiptUrl } = await req.json();
 
     if (!amount || !category || !dateIncurred || !description) {
@@ -43,6 +66,7 @@ export async function POST(req: Request) {
     }
 
     const expense = await Expense.create({
+      mongo_id: Date.now().toString(),
       employee: (session.user as any).id,
       amount,
       category,

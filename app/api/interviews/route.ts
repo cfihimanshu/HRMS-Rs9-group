@@ -1,9 +1,11 @@
+// Removed @ts-nocheck
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import dbConnect from "@/lib/db";
-import Interview from "@/models/Interview";
-import Candidate from "@/models/Candidate";
+import sequelize from "@/lib/sequelize";
+import Interview from "@/models/sequelize/Interview";
+import Candidate from "@/models/sequelize/Candidate";
+import { Op } from "sequelize";
 import { logAudit } from "@/lib/audit";
 import { logHRActivity } from "@/lib/hrAudit";
 
@@ -18,25 +20,31 @@ export async function GET(req: Request) {
     const { searchParams } = new URL(req.url);
     const candidateId = searchParams.get("candidateId");
 
-    await dbConnect();
-    const query: any = { status: { $ne: "inactive" } };
+    await sequelize.authenticate();
+    const query: any = { status: { [Op.ne]: "inactive" } };
     if (candidateId) {
       query.candidate = candidateId;
     }
 
-    const interviews = await Interview.find(query)
-      .populate({
-        path: "candidate",
-        select: "name email mobile screeningResult currentRound job status",
-        populate: {
-          path: "job",
-          select: "title"
-        }
-      })
-      .populate("interviewer", "name role")
-      .sort({ scheduleTime: 1 });
+    const interviews = await Interview.findAll({ 
+      where: query,
+      order: [['scheduleTime', 'ASC']],
+      raw: true
+    });
 
-    return NextResponse.json({ success: true, data: interviews });
+    const candIds = [...new Set(interviews.map((i: any) => i.candidate).filter(Boolean))];
+    let candsMap: any = {};
+    if (candIds.length > 0) {
+      const cands = await Candidate.findAll({ where: { mongo_id: { [Op.in]: candIds } }, raw: true });
+      cands.forEach((c: any) => { candsMap[c.mongo_id] = { _id: c.mongo_id, name: c.name, email: c.email, mobile: c.mobile }; });
+    }
+
+    const data = interviews.map((i: any) => ({
+      ...i,
+      candidate: candsMap[i.candidate] || { _id: i.candidate, name: 'Unknown' }
+    }));
+
+    return NextResponse.json({ success: true, data });
   } catch (error: any) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
@@ -56,7 +64,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: false, error: "Forbidden: HR role required" }, { status: 403 });
     }
 
-    await dbConnect();
+    await sequelize.authenticate();
     const body = await req.json();
     const { candidateId, round, scheduleTime, videoLink, interviewerId, mode } = body;
 
@@ -64,7 +72,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: false, error: "Missing required fields" }, { status: 400 });
     }
 
-    const candidate = await Candidate.findById(candidateId).populate("job");
+    const candidate = await Candidate.findByPk(candidateId);
     if (!candidate) {
       return NextResponse.json({ success: false, error: "Candidate not found" }, { status: 404 });
     }
@@ -76,9 +84,11 @@ export async function POST(req: Request) {
     if (targetRound > 1) {
       const prevRound = targetRound - 1;
       const prevSelectedInterview = await Interview.findOne({
-        candidate: candidateId,
-        round: prevRound,
-        status: "Selected",
+        where: {
+          candidate: candidateId,
+          round: prevRound,
+          status: "Selected",
+        }
       });
 
       if (!prevSelectedInterview) {
@@ -95,7 +105,8 @@ export async function POST(req: Request) {
       isCorrect: null
     }));
 
-    const interview = new Interview({
+    const interview = await Interview.create({
+      mongo_id: Date.now().toString(),
       candidate: candidateId,
       round,
       scheduleTime: new Date(scheduleTime),
@@ -107,14 +118,12 @@ export async function POST(req: Request) {
       customQuestions,
     });
 
-    await interview.save();
-
     // Track Audit Log
     await logAudit({
       userId: (session.user as any).id,
       action: "SCHEDULE_INTERVIEW",
       entity: "Interview",
-      entityId: interview._id.toString(),
+      entityId: interview.mongo_id.toString(),
       details: `Scheduled Round ${round} Interview for candidate: ${candidate.name}. Time: ${scheduleTime}.`,
     });
 
@@ -139,7 +148,7 @@ export async function PUT(req: Request) {
       return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
     }
 
-    await dbConnect();
+    await sequelize.authenticate();
     const body = await req.json();
     const { 
       interviewId, 
@@ -167,7 +176,7 @@ export async function PUT(req: Request) {
       return NextResponse.json({ success: false, error: "Forbidden: HR Head or Owner role required to edit schedule" }, { status: 403 });
     }
 
-    const interview = await Interview.findById(interviewId).populate("candidate");
+    const interview = await Interview.findByPk(interviewId);
     if (!interview) {
       return NextResponse.json({ success: false, error: "Interview not found" }, { status: 404 });
     }
@@ -178,9 +187,11 @@ export async function PUT(req: Request) {
       if (targetRound > 1) {
         const prevRound = targetRound - 1;
         const prevSelectedInterview = await Interview.findOne({
-          candidate: interview.candidate._id,
-          round: prevRound,
-          status: "Selected",
+          where: {
+            candidate: interview.candidate,
+            round: prevRound,
+            status: "Selected",
+          }
         });
 
         if (!prevSelectedInterview) {
@@ -208,7 +219,7 @@ export async function PUT(req: Request) {
     await interview.save();
 
     // Update candidate profile state based on interview output
-    const candidate = await Candidate.findById(interview.candidate._id);
+    const candidate = await Candidate.findByPk(interview.candidate);
     if (status !== undefined && candidate) {
       candidate.status = status;
       if (status === "Selected") {
@@ -255,7 +266,7 @@ export async function DELETE(req: Request) {
       return NextResponse.json({ success: false, error: "Forbidden: HR Head or Owner role required" }, { status: 403 });
     }
 
-    await dbConnect();
+    await sequelize.authenticate();
     const { searchParams } = new URL(req.url);
     const id = searchParams.get("id");
 
@@ -263,12 +274,12 @@ export async function DELETE(req: Request) {
       return NextResponse.json({ success: false, error: "Missing interview ID" }, { status: 400 });
     }
 
-    const interview = await Interview.findById(id).populate("candidate");
+    const interview = await Interview.findByPk(id);
     if (!interview) {
       return NextResponse.json({ success: false, error: "Interview not found" }, { status: 404 });
     }
 
-    await Interview.findByIdAndDelete(id);
+    await Interview.destroy({ where: { mongo_id: id } });
 
     // Track Audit Log
     await logAudit({

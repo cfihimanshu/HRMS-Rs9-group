@@ -1,19 +1,18 @@
+// Removed @ts-nocheck
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import dbConnect from "@/lib/db";
-import Training from "@/models/Training";
-import Candidate from "@/models/Candidate";
-import User from "@/models/User";
-import EmployeeProfile from "@/models/EmployeeProfile";
-import Probation from "@/models/Probation";
-import Company from "@/models/Company";
+import sequelize from "@/lib/sequelize";
+import Training from "@/models/sequelize/Training";
+import Candidate from "@/models/sequelize/Candidate";
+import User from "@/models/sequelize/User";
+import EmployeeProfile from "@/models/sequelize/EmployeeProfile";
+import Probation from "@/models/sequelize/Probation";
+import Company from "@/models/sequelize/Company";
+import Job from "@/models/sequelize/Job";
 import bcrypt from "bcryptjs";
 import { logAudit } from "@/lib/audit";
-import User from "@/models/User";
-import EmployeeProfile from "@/models/EmployeeProfile";
-import Probation from "@/models/Probation";
-import bcrypt from "bcryptjs";
+import { Op } from "sequelize";
 
 // GET: Retrieve all active training logs (Restricted to HR, Trainer, Owner)
 export async function GET(req: Request) {
@@ -26,17 +25,37 @@ export async function GET(req: Request) {
     const { searchParams } = new URL(req.url);
     const trainerId = searchParams.get("trainerId");
 
-    await dbConnect();
-    const query: any = { status: { $ne: "inactive" } };
+    await sequelize.authenticate();
+    const query: any = { status: { [Op.ne]: "inactive" } };
     if (trainerId) {
       query.trainer = trainerId;
     }
 
-    const trainings = await Training.find(query)
-      .populate("candidate", "name email mobile status")
-      .populate("trainer", "name role");
+    const trainings = await Training.findAll({ where: query });
 
-    return NextResponse.json({ success: true, data: trainings });
+    const candIds = trainings.map((t: any) => t.candidate).filter(Boolean);
+    const trainerIds = trainings.map((t: any) => t.trainer).filter(Boolean);
+
+    const candidates = await Candidate.findAll({
+      where: { mongo_id: { [Op.in]: candIds } },
+      attributes: ["mongo_id", "name", "email", "mobile", "status"]
+    });
+    const trainers = await User.findAll({
+      where: { mongo_id: { [Op.in]: trainerIds } },
+      attributes: ["mongo_id", "name", "role"]
+    });
+
+    const candMap = new Map(candidates.map((c: any) => [c.mongo_id, c.toJSON()]));
+    const trainerMap = new Map(trainers.map((t: any) => [t.mongo_id, t.toJSON()]));
+
+    const hydratedTrainings = trainings.map((t: any) => {
+      const plain = t.toJSON();
+      plain.candidate = candMap.get(plain.candidate) || null;
+      plain.trainer = trainerMap.get(plain.trainer) || null;
+      return plain;
+    });
+
+    return NextResponse.json({ success: true, data: hydratedTrainings });
   } catch (error: any) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
@@ -56,7 +75,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: false, error: "Forbidden: Trainer/HR/Manager role required" }, { status: 403 });
     }
 
-    await dbConnect();
+    await sequelize.authenticate();
     const body = await req.json();
     const { candidateId, status, assessment, recommendation } = body;
 
@@ -70,9 +89,10 @@ export async function POST(req: Request) {
       }
     }
 
-    let training = await Training.findOne({ candidate: candidateId });
+    let training = await Training.findOne({ where: { candidate: candidateId } });
     if (!training) {
-      training = new Training({
+      training = await Training.create({
+        mongo_id: Date.now().toString(),
         candidate: candidateId,
         trainer: (session.user as any).id,
         status: status || "Orientation",
@@ -87,9 +107,17 @@ export async function POST(req: Request) {
     if (assessment) {
       const { dayNumber, sopScore, crmScore, reportingScore, behaviourScore, remarks } = assessment;
       if (dayNumber !== undefined && sopScore !== undefined && crmScore !== undefined && reportingScore !== undefined && behaviourScore !== undefined) {
+        let assessmentsArr = [];
+        if (training.assessments) {
+          try {
+            assessmentsArr = typeof training.assessments === 'string' ? JSON.parse(training.assessments) : training.assessments;
+          } catch (e) {
+            assessmentsArr = [];
+          }
+        }
         // Remove prior assessment for the same day if exists
-        training.assessments = training.assessments.filter((a: any) => a.dayNumber !== dayNumber);
-        training.assessments.push({
+        assessmentsArr = assessmentsArr.filter((a: any) => a.dayNumber !== dayNumber);
+        assessmentsArr.push({
           dayNumber,
           sopScore,
           crmScore,
@@ -98,6 +126,7 @@ export async function POST(req: Request) {
           remarks: remarks || "",
           date: new Date(),
         });
+        training.assessments = assessmentsArr;
       }
     }
 
@@ -107,35 +136,37 @@ export async function POST(req: Request) {
 
     await training.save();
 
-    const candidate = await Candidate.findById(candidateId).populate("job");
+    const candidate = await Candidate.findByPk(candidateId);
 
     // Auto-update candidate status based on final decision
     if (status === "Activation") {
-      await Candidate.findByIdAndUpdate(candidateId, { status: "Selected" });
+      await Candidate.update({ status: "Selected" }, { where: { mongo_id: candidateId } });
     } else if (recommendation === "Reject") {
-      await Candidate.findByIdAndUpdate(candidateId, { status: "Rejected" });
+      await Candidate.update({ status: "Rejected" }, { where: { mongo_id: candidateId } });
     } else if (recommendation === "Hold") {
-      await Candidate.findByIdAndUpdate(candidateId, { status: "Hold" });
+      await Candidate.update({ status: "Hold" }, { where: { mongo_id: candidateId } });
     }
 
     if (status === "Activation") {
-
-
       // Auto-create User & Probation track
-      const candDoc = await Candidate.findById(candidateId).populate("job");
+      const candDoc = await Candidate.findByPk(candidateId);
       if (candDoc) {
-        const jobDoc = candDoc.job as any;
+        let jobDoc = null;
+        if (candDoc.job) {
+          jobDoc = await Job.findByPk(candDoc.job);
+        }
         let companyId = jobDoc?.company;
         if (!companyId) {
           const defaultCompany = await Company.findOne();
-          companyId = defaultCompany?._id;
+          companyId = defaultCompany?.mongo_id;
         }
 
         // 1. Ensure User exists
-        let userDoc = await User.findOne({ email: candDoc.email });
+        let userDoc = await User.findOne({ where: { email: candDoc.email } });
         if (!userDoc) {
           const hashedPassword = await bcrypt.hash("Welcome@123", 12);
           userDoc = await User.create({
+            mongo_id: Date.now().toString(),
             name: candDoc.name,
             email: candDoc.email,
             password: hashedPassword,
@@ -148,7 +179,7 @@ export async function POST(req: Request) {
         }
 
         // 2. Ensure EmployeeProfile exists
-        let profileDoc = await EmployeeProfile.findOne({ user: userDoc._id });
+        let profileDoc = await EmployeeProfile.findOne({ where: { user: userDoc.mongo_id } });
         if (!profileDoc) {
           const getCompanyPrefix = (name: string) => {
             const clean = name.replace(/[^a-zA-Z]/g, "").toUpperCase();
@@ -159,13 +190,13 @@ export async function POST(req: Request) {
           };
           let prefix = "EMP";
           if (companyId) {
-            const company = await Company.findById(companyId);
+            const company = await Company.findByPk(companyId);
             if (company) {
               prefix = getCompanyPrefix(company.name);
             }
           }
-          const regex = new RegExp(`^${prefix}-\\d+$`, 'i');
-          const profiles = await EmployeeProfile.find({ employeeId: regex });
+          const regex = `%${prefix}-%`;
+          const profiles = await EmployeeProfile.findAll({ where: { employeeId: { [Op.like]: regex } } });
           let maxNum = 0;
           profiles.forEach(p => {
             const parts = p.employeeId.split("-");
@@ -179,7 +210,8 @@ export async function POST(req: Request) {
           const nextId = `${prefix}-${String(maxNum + 1).padStart(3, "0")}`;
 
           profileDoc = await EmployeeProfile.create({
-            user: userDoc._id,
+            mongo_id: Date.now().toString(),
+            user: userDoc.mongo_id,
             employeeId: nextId,
             designation: jobDoc?.title || "Associate",
             department: jobDoc?.department || null,
@@ -191,32 +223,34 @@ export async function POST(req: Request) {
         }
 
         // 3. Ensure Probation track exists
-        let probationDoc = await Probation.findOne({ employee: userDoc._id });
+        let probationDoc = await Probation.findOne({ where: { employee: userDoc.mongo_id } });
         if (!probationDoc) {
           const startDate = new Date();
           const endDate = new Date();
           endDate.setMonth(endDate.getMonth() + 6); // 6 months probation
           probationDoc = await Probation.create({
-            employee: userDoc._id,
+            mongo_id: Date.now().toString(),
+            employee: userDoc.mongo_id,
             startDate,
             endDate,
             status: "active",
-            attendanceSummary: { totalDays: 30, presentDays: 28 },
-            reportsSummary: { sodSubmitted: 22, eodSubmitted: 22 },
+            totalDays: 30,
+            presentDays: 28,
+            sodSubmitted: 22,
+            eodSubmitted: 22,
             feedback: "Auto-initiated upon successful training completion."
           });
         }
       }
     }
 
-
     // Audit log
     await logAudit({
       userId: (session.user as any).id,
       action: "UPDATE_TRAINING_LOG",
       entity: "Training",
-      entityId: training._id.toString(),
-      details: `Updated training record for candidate: ${candidate?.name || "Unknown"}. Status: ${training.status}. Total Assessments: ${training.assessments.length}.`,
+      entityId: training.mongo_id,
+      details: `Updated training record for candidate: ${candidate?.name || "Unknown"}. Status: ${training.status}.`,
     });
 
     return NextResponse.json({ success: true, data: training });

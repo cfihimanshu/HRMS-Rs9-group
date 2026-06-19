@@ -4,7 +4,7 @@ import {
   LayoutDashboard, UserSquare2, FileEdit, Briefcase, Users2, ScanLine,
   Video, ShieldCheck, FileText, GraduationCap, Clock, CalendarCheck,
   TrendingUp, BriefcaseIcon, Building2, Coins, HelpCircle, AlertTriangle,
-  LogOut, ChevronDown, ChevronRight
+  LogOut, ChevronDown, ChevronRight, MapPin, Cpu
 } from "lucide-react";
 import { signOut } from "next-auth/react";
 
@@ -13,13 +13,21 @@ interface SidebarProps {
   setActiveTab: (tab: string) => void;
   stats: any;
   user: any;
+  triggerToast?: (msg: string) => void;
+  toggleModal?: (modalId: string, open: boolean) => void;
+  mobileMenuOpen?: boolean;
+  setMobileMenuOpen?: (open: boolean) => void;
 }
 
 export default function DashboardSidebar({
   activeTab,
   setActiveTab,
   stats,
-  user
+  user,
+  triggerToast,
+  toggleModal,
+  mobileMenuOpen,
+  setMobileMenuOpen
 }: SidebarProps) {
 
   const userRole = user?.role || "Employee";
@@ -42,8 +50,9 @@ export default function DashboardSidebar({
     // Employee Self Service (ESS)
     { id: "ess-dashboard", label: "ESS Dashboard", icon: LayoutDashboard, category: "Employee Self Service", roles: ["Employee"] },
     { id: "ess-leaves", label: "Leave Management", icon: CalendarCheck, category: "Employee Self Service", roles: ["Employee"] },
-    { id: "ess-payroll", label: "My Payslips & Salary", icon: FileText, category: "Employee Self Service", roles: ["Employee"] },
+    { id: "ess-payroll", label: "My Payslips & Salary", icon: FileText, category: "Employee Self Service", roles: ["Owner", "Director", "HR Head", "HR Executive"] },
     { id: "ess-expenses", label: "Expense Claims", icon: Coins, category: "Employee Self Service", roles: ["Employee"] },
+    { id: "asset-request", label: "Asset Request", icon: Cpu, category: "Employee Self Service", roles: ["Employee", "Owner", "Director", "HR Head", "HR Executive"] },
 
     { id: "hiring", label: "Hiring Approvals", icon: FileEdit, category: "Core Workspace", roles: ["Owner", "Director", "HR Head", "HR Executive", "Department Manager", "Accounts"] },
     { id: "jobs", label: "Vacancy Postings", icon: Briefcase, category: "Core Workspace", roles: ["Owner", "Director", "HR Head", "HR Executive"] },
@@ -53,7 +62,7 @@ export default function DashboardSidebar({
     { id: "screening", label: "AI Screening Module", icon: ScanLine, category: "AI & Vetting Hub", roles: ["Owner", "Director", "HR Head", "HR Executive"] },
     { id: "interviews", label: "Interviews Queue", icon: Video, category: "AI & Vetting Hub", badge: stats?.interviews?.pending, roles: ["Owner", "Director", "HR Head", "HR Executive", "Trainer"] },
     { id: "verification", label: "Vetting Checks Registry", icon: ShieldCheck, category: "AI & Vetting Hub", roles: ["Owner", "Director", "HR Head", "HR Executive", "RIBP / Risk Officer"] },
-    { id: "onboarding", label: "NDA Onboarding SLA", icon: FileText, category: "AI & Vetting Hub", roles: ["Owner", "Director", "HR Head", "HR Executive", "Employee"] },
+    { id: "onboarding", label: "NDA Onboarding SLA", icon: FileText, category: "AI & Vetting Hub", roles: ["Owner", "Director", "HR Head", "HR Executive"] },
 
     { id: "training", label: "Training Classroom", icon: GraduationCap, category: "Training & Probation", roles: ["Owner", "Director", "HR Head", "HR Executive", "Trainer"] },
     { id: "probation", label: "6-Month Probation Audit", icon: Clock, category: "Training & Probation", badge: stats?.operations?.probationCases, roles: ["Owner", "Director", "HR Head", "HR Executive", "Trainer"] },
@@ -61,13 +70,14 @@ export default function DashboardSidebar({
     { id: "attendance", label: "Attendance Punch & SOD", icon: CalendarCheck, category: "Daily Operations", roles: ["Owner", "Director", "HR Head", "HR Executive", "Department Manager", "Accounts", "Trainer", "IT Admin", "DSM", "RIBP / Risk Officer"] },
     { id: "tasks", label: "My Tasks (Kanban)", icon: FileEdit, category: "Daily Operations", roles: ["Owner", "Director", "HR Head", "HR Executive", "Department Manager", "Accounts", "Trainer", "Employee", "IT Admin", "DSM", "RIBP / Risk Officer"] },
     { id: "performance", label: "Work Report", icon: FileText, category: "Daily Operations", roles: ["Owner", "Director", "HR Head", "HR Executive", "Department Manager", "Employee"] },
+    { id: "field-visit", label: "Field Visit Logs", icon: MapPin, category: "Daily Operations", roles: ["Owner", "Director", "HR Head", "HR Executive", "Department Manager", "Employee"] },
     { id: "leave-request", label: "Leave Request", icon: CalendarCheck, category: "Daily Operations", roles: ["Owner", "Director", "HR Head", "HR Executive", "Department Manager", "Accounts", "Trainer", "Employee", "IT Admin", "DSM", "RIBP / Risk Officer", "Business Associate", "Vendor", "Franchisee", "Territory Partner"] },
 
     { id: "associates", label: "Business Associates", icon: BriefcaseIcon, category: "Network Partners", roles: ["Owner", "Director", "HR Head", "Franchisee", "Territory Partner", "Business Associate"] },
     { id: "vendors", label: "Vendor SLA Contracts", icon: Building2, category: "Network Partners", roles: ["Owner", "Director", "HR Head", "Accounts", "Vendor"] },
     { id: "franchise", label: "Franchise Brand Audits", icon: Coins, category: "Network Partners", roles: ["Owner", "Director", "HR Head", "Accounts", "Franchisee", "Territory Partner"] },
 
-    { id: "grievance", label: "Anonymous Grievance", icon: HelpCircle, category: "Compliance & Exit", badge: stats?.operations?.grievanceCases, roles: ["Owner", "Director", "HR Head", "HR Executive", "Department Manager", "Accounts", "Trainer", "Employee", "Business Associate", "Vendor", "Franchisee", "Territory Partner"] },
+    { id: "grievance", label: "Anonymous Grievance", icon: HelpCircle, category: "Compliance & Exit", badge: stats?.operations?.grievanceCases, roles: ["Owner", "Director", "HR Head", "HR Executive", "Department Manager", "Accounts", "Trainer", "Business Associate", "Vendor", "Franchisee", "Territory Partner"] },
     { id: "risks", label: "Critical Risk Warnings", icon: AlertTriangle, category: "Compliance & Exit", badge: stats?.alerts?.criticalRisk, urgent: true, roles: ["Owner", "Director", "HR Head", "RIBP / Risk Officer"] },
     { id: "exit", label: "Exit Separation Clearance", icon: LogOut, category: "Compliance & Exit", roles: ["Owner", "Director", "HR Head", "Employee"] }
   ];
@@ -100,8 +110,9 @@ export default function DashboardSidebar({
 
   return (
     <aside
-      className={`w-64 flex-shrink-0 flex flex-col h-screen overflow-y-auto border-r transition-colors duration-300 ${isDark ? "bg-gray-900 border-gray-800" : "bg-slate-50 border-slate-200"
-        }`}
+      className={`fixed lg:static top-0 bottom-0 left-0 z-40 w-64 flex-shrink-0 flex flex-col h-screen overflow-y-auto border-r transition-all duration-300 transform ${
+        mobileMenuOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
+      } ${isDark ? "bg-gray-900 border-gray-800" : "bg-slate-50 border-slate-200"}`}
     >
       <div className={`flex items-center gap-2.5 px-4 py-4 border-b ${isDark ? "border-gray-800" : "border-slate-200"}`}>
         <div className="w-8 h-8 rounded-lg bg-purple-600 flex items-center justify-center shrink-0 shadow-sm text-white font-bold text-sm">
@@ -153,7 +164,25 @@ export default function DashboardSidebar({
                     return (
                       <button
                         key={item.id}
-                        onClick={() => setActiveTab(item.id)}
+                        onClick={() => {
+                          if (userRole === "Employee" && stats?.currentUserCompliance && !stats.currentUserCompliance.hasSod) {
+                            if (item.id !== "attendance" && item.id !== "ess-dashboard") {
+                              if (triggerToast) {
+                                triggerToast("⚠️ Please submit your Start of Day (SOD) declaration first to unlock other modules.");
+                              }
+                              if (toggleModal) {
+                                toggleModal("sodModal", true);
+                              } else {
+                                setActiveTab("attendance");
+                              }
+                              return;
+                            }
+                          }
+                          setActiveTab(item.id);
+                          if (setMobileMenuOpen) {
+                            setMobileMenuOpen(false);
+                          }
+                        }}
                         className={`w-full flex items-center justify-between text-[11px] py-2 px-2 rounded-md font-medium transition-all ${isActive
                             ? isDark ? "bg-gray-800 text-white font-semibold" : "bg-white text-slate-900 font-semibold shadow-sm border border-slate-100"
                             : isDark ? "text-gray-400 hover:bg-gray-800/50 hover:text-gray-200" : "text-slate-500 hover:bg-white/50 hover:text-slate-700"

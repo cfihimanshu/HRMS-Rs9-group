@@ -1,13 +1,15 @@
 "use client";
 import React, { useEffect, useState } from "react";
-import { Search, Bell, Moon, Sun } from "lucide-react";
+import { Search, Bell, Moon, Sun, Menu } from "lucide-react";
 
 interface TopbarProps {
   activeTabLabel: string;
   user?: any;
+  mobileMenuOpen?: boolean;
+  setMobileMenuOpen?: (open: boolean) => void;
 }
 
-export default function Topbar({ activeTabLabel, user }: TopbarProps) {
+export default function Topbar({ activeTabLabel, user, mobileMenuOpen, setMobileMenuOpen }: TopbarProps) {
   const [isDark, setIsDark] = useState(false);
 
   useEffect(() => {
@@ -28,13 +30,25 @@ export default function Topbar({ activeTabLabel, user }: TopbarProps) {
   return (
     <header className={`h-14 border-b px-4 lg:px-8 flex items-center justify-between shrink-0 transition-colors duration-300 ${isDark ? "bg-gray-900 border-gray-800" : "bg-white border-slate-200 shadow-sm"}`}>
 
-      {/* Breadcrumbs */}
-      <div className="hidden md:flex items-center gap-2 text-sm">
-        <span className={isDark ? "text-gray-400" : "text-slate-400 font-medium"}>HRMS</span>
-        <span className={isDark ? "text-gray-600" : "text-slate-300"}>/</span>
-        <span className={`font-bold ${isDark ? "text-gray-200" : "text-slate-700"}`}>
-          {activeTabLabel}
-        </span>
+      {/* Mobile Toggle & Breadcrumbs */}
+      <div className="flex items-center gap-2">
+        <button
+          onClick={() => setMobileMenuOpen?.(!mobileMenuOpen)}
+          className={`p-2 -ml-2 mr-1 rounded-lg lg:hidden transition-colors focus:outline-none ${
+            isDark ? "text-gray-300 hover:bg-gray-800" : "text-slate-600 hover:bg-slate-100"
+          }`}
+          title="Toggle Sidebar Menu"
+        >
+          <Menu className="w-5 h-5" />
+        </button>
+
+        <div className="hidden md:flex items-center gap-2 text-sm">
+          <span className={isDark ? "text-gray-400" : "text-slate-400 font-medium"}>HRMS</span>
+          <span className={isDark ? "text-gray-600" : "text-slate-300"}>/</span>
+          <span className={`font-bold ${isDark ? "text-gray-200" : "text-slate-700"}`}>
+            {activeTabLabel}
+          </span>
+        </div>
       </div>
 
       {/* Right side actions */}

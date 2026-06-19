@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import dbConnect from "@/lib/db";
-import Candidate from "@/models/Candidate";
+import sequelize from "@/lib/sequelize";
+import Candidate from "@/models/sequelize/Candidate";
 import { logAudit } from "@/lib/audit";
 
 // PUT: Update Candidate Status (HR + Management override)
@@ -23,7 +23,7 @@ export async function PUT(
       return NextResponse.json({ success: false, error: "Forbidden: HR role required" }, { status: 403 });
     }
 
-    await dbConnect();
+    await sequelize.authenticate();
     const candidateId = params.id;
     const body = await req.json();
     const { status, uploads } = body;
@@ -35,7 +35,7 @@ export async function PUT(
       }
     }
 
-    const candidate = await Candidate.findById(candidateId);
+    const candidate = await Candidate.findByPk(candidateId);
     if (!candidate) {
       return NextResponse.json({ success: false, error: "Candidate not found" }, { status: 404 });
     }

@@ -30,6 +30,7 @@ import {
   ProbationEvaluation
 } from "@/components/dashboard/OnboardingPanels";
 import { DailyCommitments, PerformanceCompliance, LeaveRequestTab } from "@/components/dashboard/OpsPanels";
+import { FieldVisitLogs } from "@/components/dashboard/FieldVisitPanels";
 import {
   BusinessAssociates,
   VendorOperations,
@@ -48,6 +49,7 @@ import {
 } from "@/components/dashboard/ESSPanels";
 import EmployeeDirectory from "@/components/dashboard/EmployeePanels";
 import KanbanBoard from "@/components/dashboard/KanbanBoard";
+import { AssetRequestLogs } from "@/components/dashboard/AssetRequestPanels";
 
 export default function UnifiedEnterpriseDashboard() {
   const { data: session, status } = useSession();
@@ -55,6 +57,7 @@ export default function UnifiedEnterpriseDashboard() {
 
   // Active navigation tab matching hr.html panel toggles
   const [activeTab, setActiveTab] = useState<string>("dashboard");
+  const [mobileMenuOpen, setMobileMenuOpen] = useState<boolean>(false);
 
   // Dynamic Clock States
   const [localTime, setLocalTime] = useState<string>("");
@@ -102,7 +105,9 @@ export default function UnifiedEnterpriseDashboard() {
     grievance: false,
     assoc: false,
     vendor: false,
-    franchise: false
+    franchise: false,
+    sodModal: false,
+    eodModal: false
   });
 
   const toggleModal = (modalId: string, open: boolean) => {
@@ -389,7 +394,6 @@ export default function UnifiedEnterpriseDashboard() {
   };
 
   useEffect(() => {
-  useEffect(() => {
     if (status === "authenticated" && !loading) {
       loadStats(selectedCompanyId);
     }
@@ -397,29 +401,44 @@ export default function UnifiedEnterpriseDashboard() {
 
   useEffect(() => {
     if (status === "authenticated" && !dataLoaded) {
+      if (typeof window !== "undefined") {
+        const urlParams = new URLSearchParams(window.location.search);
+        const tab = urlParams.get("tab");
+        const role = (session?.user as any)?.role;
+
+        if (tab && tab !== activeTab) {
+           setActiveTab(tab);
+        } else if (role === "Owner" || role === "Director") {
+          setActiveTab("dashboard");
+        } else if (role === "HR Head" || role === "HR Executive") {
+          setActiveTab("hr-dash");
+        } else if (role === "Trainer") {
+          setActiveTab("training");
+        } else if (role === "Employee") {
+          setActiveTab("ess-dashboard"); // Stay on ESS dashboard
+        } else if (role === "Vendor") {
+          setActiveTab("vendors");
+        } else if (role === "Franchisee" || role === "Territory Partner") {
+          setActiveTab("franchise");
+        } else if (role === "Accounts") {
+          setActiveTab("hiring");
+        } else {
+          setActiveTab("attendance");
+        }
+      }
       loadAllData();
       setDataLoaded(true);
-
-      const role = (session?.user as any)?.role;
-      if (role === "Owner" || role === "Director") {
-        setActiveTab("dashboard");
-      } else if (role === "HR Head" || role === "HR Executive") {
-        setActiveTab("hr-dash");
-      } else if (role === "Trainer") {
-        setActiveTab("training");
-      } else if (role === "Employee") {
-        setActiveTab("attendance");
-      } else if (role === "Vendor") {
-        setActiveTab("vendors");
-      } else if (role === "Franchisee" || role === "Territory Partner") {
-        setActiveTab("franchise");
-      } else if (role === "Accounts") {
-        setActiveTab("hiring");
-      } else {
-        setActiveTab("attendance");
-      }
     }
   }, [status, session, dataLoaded]);
+
+  // Auto popup SOD on load if missing
+  useEffect(() => {
+    if (stats?.currentUserCompliance && (session?.user as any)?.role === "Employee") {
+       if (!stats.currentUserCompliance.hasSod && !modals.sodModal && activeTab !== "attendance") {
+           toggleModal("sodModal", true);
+       }
+    }
+  }, [stats]);
 
   // Form Handlers
   const handleAttendancePunch = async () => {
@@ -437,7 +456,7 @@ export default function UnifiedEnterpriseDashboard() {
     }
   };
 
-  const handleSodSubmit = async (payload: any) => {
+  const handleSodSubmit = async (payload: any): Promise<boolean> => {
     try {
       const res = await fetch("/api/reports/sod", {
         method: "POST",
@@ -448,15 +467,18 @@ export default function UnifiedEnterpriseDashboard() {
       if (data.success) {
         triggerToast("SOD commitments saved successfully!");
         await loadStats();
+        return true;
       } else {
         triggerToast("Submission failed: " + data.error);
+        return false;
       }
     } catch (err: any) {
       triggerToast("Error: " + err.message);
+      return false;
     }
   };
 
-  const handleEodSubmit = async (payload: any) => {
+  const handleEodSubmit = async (payload: any): Promise<boolean> => {
     try {
       const res = await fetch("/api/reports/eod", {
         method: "POST",
@@ -467,11 +489,14 @@ export default function UnifiedEnterpriseDashboard() {
       if (data.success) {
         triggerToast("EOD outcomes registered successfully!");
         await loadStats();
+        return true;
       } else {
         triggerToast("Submission failed: " + data.error);
+        return false;
       }
     } catch (err: any) {
       triggerToast("Error: " + err.message);
+      return false;
     }
   };
 
@@ -885,16 +910,33 @@ export default function UnifiedEnterpriseDashboard() {
         setActiveTab={setActiveTab}
         stats={stats}
         user={session?.user}
+        triggerToast={triggerToast}
+        toggleModal={toggleModal}
+        mobileMenuOpen={mobileMenuOpen}
+        setMobileMenuOpen={setMobileMenuOpen}
       />
+
+      {/* Mobile Sidebar Backdrop overlay */}
+      {mobileMenuOpen && (
+        <div
+          className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-30 lg:hidden"
+          onClick={() => setMobileMenuOpen(false)}
+        />
+      )}
 
       {/* Main Command Workspace */}
       <main className="flex-1 flex flex-col h-screen overflow-hidden">
 
         {/* Upper Header status bar */}
-        <Topbar activeTabLabel={activeTab.replace("-", " ").toUpperCase()} user={session?.user} />
+        <Topbar
+          activeTabLabel={activeTab.replace("-", " ").toUpperCase()}
+          user={session?.user}
+          mobileMenuOpen={mobileMenuOpen}
+          setMobileMenuOpen={setMobileMenuOpen}
+        />
 
         {/* Tab Panel Body container */}
-        <div className="flex-1 overflow-y-auto px-8 py-8 custom-scrollbar">
+        <div className="flex-1 overflow-y-auto px-4 py-4 md:px-8 md:py-8 custom-scrollbar">
 
           {activeTab === "dashboard" && (
             <OwnerDashboard 
@@ -912,15 +954,13 @@ export default function UnifiedEnterpriseDashboard() {
           {activeTab === "hr-dash" && (
             <HrDashboard
               stats={stats}
-              candidates={candidates}
               onNavigateTab={setActiveTab}
-              onOpenHiringModal={() => toggleModal("hiring", true)}
             />
           )}
 
           {/* ESS Panels */}
           {activeTab === "ess-dashboard" && (
-            <ESSDashboard user={session?.user} triggerToast={triggerToast} />
+            <ESSDashboard user={session?.user} triggerToast={triggerToast} setActiveTab={setActiveTab} toggleModal={toggleModal} stats={stats} />
           )}
           {activeTab === "ess-leaves" && (
             <ESSLeaves user={session?.user} triggerToast={triggerToast} />
@@ -931,12 +971,14 @@ export default function UnifiedEnterpriseDashboard() {
           {activeTab === "ess-expenses" && (
             <ESSExpenses user={session?.user} triggerToast={triggerToast} />
           )}
+          {activeTab === "asset-request" && (
+            <AssetRequestLogs sessionUser={session?.user} triggerToast={triggerToast} />
+          )}
 
           {activeTab === "dept-dash" && (
             <DepartmentDashboard
               stats={stats}
               onNavigateTab={setActiveTab}
-              onOpenHiringModal={() => toggleModal("hiring", true)}
             />
           )}
 
@@ -1034,6 +1076,10 @@ export default function UnifiedEnterpriseDashboard() {
 
           {activeTab === "performance" && (
             <PerformanceCompliance sessionUser={session?.user} />
+          )}
+
+          {activeTab === "field-visit" && (
+            <FieldVisitLogs sessionUser={session?.user} triggerToast={triggerToast} />
           )}
 
           {activeTab === "leave-request" && (
@@ -1362,7 +1408,7 @@ export default function UnifiedEnterpriseDashboard() {
       {/* MODAL 4: SCHEDULE INTERVIEW */}
       {modals.interview && (
         <div className="fixed inset-0 bg-[#070810]/40 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
-          <div className="bg-white border border-slate-200 w-full max-w-lg rounded-xl p-6 relative shadow-2xl text-slate-800">
+          <div className="bg-white border border-slate-200 w-full max-w-lg rounded-xl p-6 relative shadow-2xl text-slate-800 max-h-[90vh] overflow-y-auto custom-scrollbar">
             <button className="absolute top-4 right-4 text-slate-400 hover:text-slate-600" onClick={() => toggleModal("interview", false)}><X className="w-5 h-5" /></button>
             <h3 className="text-sm font-black text-[#714B67] uppercase tracking-wider mb-6">Schedule Vetting Interview</h3>
             <form onSubmit={handleScheduleInterviewSubmit} className="space-y-4 text-xs font-semibold text-slate-600">
@@ -1410,7 +1456,7 @@ export default function UnifiedEnterpriseDashboard() {
       {/* MODAL 6: FILE CONFIDENTIAL GRIEVANCE */}
       {modals.grievance && (
         <div className="fixed inset-0 bg-[#070810]/40 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
-          <div className="bg-white border border-slate-200 w-full max-w-lg rounded-xl p-6 relative shadow-2xl text-slate-800">
+          <div className="bg-white border border-slate-200 w-full max-w-lg rounded-xl p-6 relative shadow-2xl text-slate-800 max-h-[90vh] overflow-y-auto custom-scrollbar">
             <button className="absolute top-4 right-4 text-slate-400 hover:text-slate-600" onClick={() => toggleModal("grievance", false)}><X className="w-5 h-5" /></button>
             <h3 className="text-sm font-black text-[#714B67] uppercase tracking-wider mb-6">Anonymous Grievance Filing</h3>
             <form onSubmit={handleGrievanceFormSubmit} className="space-y-4 text-xs font-semibold text-slate-600">
@@ -1446,7 +1492,7 @@ export default function UnifiedEnterpriseDashboard() {
       {/* MODAL 7: ADD BUSINESS ASSOCIATE */}
       {modals.assoc && (
         <div className="fixed inset-0 bg-[#070810]/40 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
-          <div className="bg-white border border-slate-200 w-full max-w-lg rounded-xl p-6 relative shadow-2xl text-slate-800">
+          <div className="bg-white border border-slate-200 w-full max-w-lg rounded-xl p-6 relative shadow-2xl text-slate-800 max-h-[90vh] overflow-y-auto custom-scrollbar">
             <button className="absolute top-4 right-4 text-slate-400 hover:text-slate-600" onClick={() => toggleModal("assoc", false)}><X className="w-5 h-5" /></button>
             <h3 className="text-sm font-black text-[#714B67] uppercase tracking-wider mb-6">Register Business Associate</h3>
             <form onSubmit={(e) => {
@@ -1481,7 +1527,7 @@ export default function UnifiedEnterpriseDashboard() {
       {/* MODAL 8: REGISTER VENDOR CONTRACT */}
       {modals.vendor && (
         <div className="fixed inset-0 bg-[#070810]/40 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
-          <div className="bg-white border border-slate-200 w-full max-w-lg rounded-xl p-6 relative shadow-2xl text-slate-800">
+          <div className="bg-white border border-slate-200 w-full max-w-lg rounded-xl p-6 relative shadow-2xl text-slate-800 max-h-[90vh] overflow-y-auto custom-scrollbar">
             <button className="absolute top-4 right-4 text-slate-400 hover:text-slate-600" onClick={() => toggleModal("vendor", false)}><X className="w-5 h-5" /></button>
             <h3 className="text-sm font-black text-[#714B67] uppercase tracking-wider mb-6">Register Contractor Vendor</h3>
             <form onSubmit={(e) => {
@@ -1520,7 +1566,7 @@ export default function UnifiedEnterpriseDashboard() {
       {/* MODAL 9: REGISTER FRANCHISE OWNER */}
       {modals.franchise && (
         <div className="fixed inset-0 bg-[#070810]/40 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
-          <div className="bg-white border border-slate-200 w-full max-w-lg rounded-xl p-6 relative shadow-2xl text-slate-800">
+          <div className="bg-white border border-slate-200 w-full max-w-lg rounded-xl p-6 relative shadow-2xl text-slate-800 max-h-[90vh] overflow-y-auto custom-scrollbar">
             <button className="absolute top-4 right-4 text-slate-400 hover:text-slate-600" onClick={() => toggleModal("franchise", false)}><X className="w-5 h-5" /></button>
             <h3 className="text-sm font-black text-[#714B67] uppercase tracking-wider mb-6">Register Franchise Partner</h3>
             <form onSubmit={(e) => {
@@ -1545,6 +1591,50 @@ export default function UnifiedEnterpriseDashboard() {
               <button type="submit" className="w-full bg-[#714B67] hover:bg-[#5F3F56] py-3 rounded text-xs font-bold text-white transition-all shadow-md mt-4">Save Franchise Partner</button>
             </form>
           </div>
+        </div>
+      )}
+
+      {/* MODAL 10: SOD MODAL */}
+      {modals.sodModal && (
+        <div className="fixed inset-0 bg-[#070810]/40 z-[90] flex items-center justify-center p-4 backdrop-blur-sm animate-fadeIn">
+           <div className="bg-[#F4F5F7] w-full max-w-3xl max-h-[90vh] overflow-y-auto custom-scrollbar rounded-2xl shadow-2xl relative border border-slate-200">
+              <button className="absolute top-6 right-6 text-slate-500 hover:text-slate-800 bg-white hover:bg-slate-100 rounded-full p-1.5 border shadow-sm z-10 transition-all" onClick={() => toggleModal("sodModal", false)}><X className="w-5 h-5" /></button>
+              <div className="p-8">
+                 <DailyCommitments 
+                    sessionUser={session?.user} 
+                    stats={stats} 
+                    handleAttendancePunch={handleAttendancePunch}
+                    formMode="sod"
+                    handleSodSubmit={async (payload) => {
+                      const success = await handleSodSubmit(payload);
+                      if (success) toggleModal("sodModal", false);
+                    }}
+                    handleEodSubmit={handleEodSubmit}
+                 />
+              </div>
+           </div>
+        </div>
+      )}
+
+      {/* MODAL 11: EOD MODAL */}
+      {modals.eodModal && (
+        <div className="fixed inset-0 bg-[#070810]/40 z-[90] flex items-center justify-center p-4 backdrop-blur-sm animate-fadeIn">
+           <div className="bg-[#F4F5F7] w-full max-w-3xl max-h-[90vh] overflow-y-auto custom-scrollbar rounded-2xl shadow-2xl relative border border-slate-200">
+              <button className="absolute top-6 right-6 text-slate-500 hover:text-slate-800 bg-white hover:bg-slate-100 rounded-full p-1.5 border shadow-sm z-10 transition-all" onClick={() => toggleModal("eodModal", false)}><X className="w-5 h-5" /></button>
+              <div className="p-8">
+                 <DailyCommitments 
+                    sessionUser={session?.user} 
+                    stats={stats} 
+                    handleAttendancePunch={handleAttendancePunch}
+                    formMode="eod"
+                    handleSodSubmit={handleSodSubmit}
+                    handleEodSubmit={async (payload) => {
+                      const success = await handleEodSubmit(payload);
+                      if (success) toggleModal("eodModal", false);
+                    }}
+                 />
+              </div>
+           </div>
         </div>
       )}
 

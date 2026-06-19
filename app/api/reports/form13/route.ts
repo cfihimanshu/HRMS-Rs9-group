@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
-import dbConnect from "@/lib/db";
-import ExitForm from "@/models/ExitForm";
+import sequelize from "@/lib/sequelize";
+import ExitForm from "@/models/sequelize/ExitForm";
 import { logAudit } from "@/lib/audit";
 
 // POST: Submit FORM-13 Exit Form
@@ -32,7 +32,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: false, error: "Missing required fields" }, { status: 400 });
     }
 
-    await dbConnect();
+    await sequelize.authenticate();
 
     const record = await ExitForm.create({
       submittedBy,
@@ -62,6 +62,8 @@ export async function POST(req: Request) {
   }
 }
 
+import User from "@/models/sequelize/User";
+
 // GET: Fetch FORM-13 records
 export async function GET(req: Request) {
   try {
@@ -70,14 +72,31 @@ export async function GET(req: Request) {
       return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
     }
 
-    await dbConnect();
+    await sequelize.authenticate();
 
-    const records = await ExitForm.find()
-      .populate("submittedBy", "name role")
-      .sort({ createdAt: -1 })
-      .limit(50);
+    const records = await ExitForm.findAll({
+      order: [['createdAt', 'DESC']],
+      limit: 50
+    });
 
-    return NextResponse.json({ success: true, data: records });
+    const userIds = records.map(r => (r as any).submittedBy).filter(Boolean);
+    const users = await User.findAll({
+      where: { mongo_id: userIds },
+      attributes: ['mongo_id', 'name', 'role']
+    });
+
+    const userMap = users.reduce((acc: any, u: any) => {
+      acc[u.mongo_id] = u.toJSON();
+      return acc;
+    }, {});
+
+    const data = records.map(r => {
+      const rJson = r.toJSON() as any;
+      rJson.submittedBy = userMap[rJson.submittedBy] || null;
+      return rJson;
+    });
+
+    return NextResponse.json({ success: true, data });
   } catch (error: any) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }

@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
+export const dynamic = "force-dynamic";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import dbConnect from "@/lib/db";
-import EodReport from "@/models/EodReport";
+import sequelize from "@/lib/sequelize";
+import EodReport from "@/models/sequelize/EodReport";
 import { logAudit } from "@/lib/audit";
 
 // GET: Fetch today's EOD for the logged-in user
@@ -14,12 +15,13 @@ export async function GET(req: Request) {
     }
 
     const userId = (session.user as any).id;
-    await dbConnect();
+    await sequelize.authenticate();
+    await EodReport.sync({ alter: true });
 
     const today = new Date();
     today.setUTCHours(0, 0, 0, 0);
 
-    const record = await EodReport.findOne({ employee: userId, date: today, status: "active" });
+    const record = await EodReport.findOne({ where: { employee: userId, date: today } });
     return NextResponse.json({ success: true, data: record });
   } catch (error: any) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
@@ -43,18 +45,19 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: false, error: "Missing strict required fields (Completed Tasks, Tomorrow Plan, Selfie, or GPS)" }, { status: 400 });
     }
 
-    await dbConnect();
+    await sequelize.authenticate();
+    await EodReport.sync({ alter: true });
 
     const today = new Date();
     today.setUTCHours(0, 0, 0, 0);
 
     // Prevent duplicates
-    const exists = await EodReport.findOne({ employee: userId, date: today });
+    const exists = await EodReport.findOne({ where: { employee: userId, date: today } });
     if (exists) {
       return NextResponse.json({ success: false, error: "EOD already submitted for today" }, { status: 400 });
     }
 
-    const record = new EodReport({
+    const record = await EodReport.create({
       employee: userId,
       date: today,
       completedWork,
@@ -63,15 +66,15 @@ export async function POST(req: Request) {
       escalationNeeded: !!escalationNeeded,
       tomorrowPlan,
       selfieUrl,
-      location,
+      latitude: location?.latitude || null,
+      longitude: location?.longitude || null,
     });
-    await record.save();
 
     await logAudit({
       userId,
       action: "EOD_SUBMITTED",
       entity: "EodReport",
-      entityId: record._id.toString(),
+      entityId: (record as any).id.toString(),
       details: `${userName} submitted End of Day (EOD) outcomes.`,
     });
 

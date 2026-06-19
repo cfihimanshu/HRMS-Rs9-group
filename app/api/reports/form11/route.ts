@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
-import dbConnect from "@/lib/db";
-import FranchiseRegistration from "@/models/FranchiseRegistration";
+import sequelize from "@/lib/sequelize";
+import FranchiseRegistration from "@/models/sequelize/FranchiseRegistration";
 import { logAudit } from "@/lib/audit";
 
 // POST: Submit FORM-11 Franchise / Territory Form
@@ -31,7 +31,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: false, error: "Missing required fields" }, { status: 400 });
     }
 
-    await dbConnect();
+    await sequelize.authenticate();
 
     const record = await FranchiseRegistration.create({
       registeredBy,
@@ -60,6 +60,8 @@ export async function POST(req: Request) {
   }
 }
 
+import User from "@/models/sequelize/User";
+
 // GET: Fetch FORM-11 records
 export async function GET(req: Request) {
   try {
@@ -68,14 +70,31 @@ export async function GET(req: Request) {
       return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
     }
 
-    await dbConnect();
+    await sequelize.authenticate();
 
-    const records = await FranchiseRegistration.find()
-      .populate("registeredBy", "name role")
-      .sort({ createdAt: -1 })
-      .limit(50);
+    const records = await FranchiseRegistration.findAll({
+      order: [['createdAt', 'DESC']],
+      limit: 50
+    });
 
-    return NextResponse.json({ success: true, data: records });
+    const userIds = records.map(r => (r as any).registeredBy).filter(Boolean);
+    const users = await User.findAll({
+      where: { mongo_id: userIds },
+      attributes: ['mongo_id', 'name', 'role']
+    });
+
+    const userMap = users.reduce((acc: any, u: any) => {
+      acc[u.mongo_id] = u.toJSON();
+      return acc;
+    }, {});
+
+    const data = records.map(r => {
+      const rJson = r.toJSON() as any;
+      rJson.registeredBy = userMap[rJson.registeredBy] || null;
+      return rJson;
+    });
+
+    return NextResponse.json({ success: true, data });
   } catch (error: any) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }

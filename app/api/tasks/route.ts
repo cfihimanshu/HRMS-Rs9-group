@@ -1,9 +1,12 @@
+// Removed @ts-nocheck
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import dbConnect from "@/lib/db";
-import TaskLog from "@/models/TaskLog";
+import sequelize from "@/lib/sequelize";
+import TaskLog from "@/models/sequelize/TaskLog";
+import User from "@/models/sequelize/User";
 import { logAudit } from "@/lib/audit";
+import { Op } from "sequelize";
 
 // GET: Fetch today's tasks
 export async function GET(req: Request) {
@@ -16,25 +19,46 @@ export async function GET(req: Request) {
     const userId = (session.user as any).id;
     const userRole = (session.user as any).role || "Employee";
     
-    await dbConnect();
+    await sequelize.authenticate();
 
     const today = new Date();
     today.setUTCHours(0, 0, 0, 0);
     const tomorrow = new Date(today);
     tomorrow.setDate(tomorrow.getDate() + 1);
 
-    let query: any = { date: { $gte: today, $lt: tomorrow } };
+    let query: any = { date: { [Op.gte]: today, [Op.lt]: tomorrow } };
     
     // If regular employee, only see own tasks. Otherwise see all.
     if (userRole === "Employee") {
       query.employee = userId;
     }
 
-    const records = await TaskLog.find(query)
-      .populate("employee", "name role")
-      .sort({ createdAt: -1 });
+    const records = await TaskLog.findAll({ 
+      where: query,
+      order: [["createdAt", "DESC"]]
+    });
 
-    return NextResponse.json({ success: true, data: records });
+    const empIds = records.map((r: any) => r.employee).filter(Boolean);
+    const employees = await User.findAll({
+      where: { mongo_id: { [Op.in]: empIds } },
+      attributes: ["mongo_id", "name", "role"],
+      raw: true
+    });
+    const empMap = new Map(employees.map((e: any) => [e.mongo_id, e]));
+
+    const hydratedRecords = records.map((r: any) => {
+      const plain = r.toJSON();
+      plain._id = plain.id.toString();
+      if (plain.employee) {
+        const empDetail = empMap.get(plain.employee);
+        plain.employee = empDetail ? { ...empDetail, _id: empDetail.mongo_id } : { _id: plain.employee, name: "Unknown", role: "Employee" };
+      } else {
+        plain.employee = { _id: "unknown", name: "Unknown", role: "Employee" };
+      }
+      return plain;
+    });
+
+    return NextResponse.json({ success: true, data: hydratedRecords });
   } catch (error: any) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
@@ -57,12 +81,9 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: false, error: "Missing required fields (Task Title, Task Type)" }, { status: 400 });
     }
 
-    await dbConnect();
+    await sequelize.authenticate();
 
-    const today = new Date(); // exact timestamp for sorting later, but the "date" field can be start of day or exact.
-    // We'll save exact timestamp in createdAt, but let's store the current time in date as well for querying by day easily.
-    
-    const record = new TaskLog({
+    const record = await TaskLog.create({
       employee: userId,
       date: new Date(),
       taskTitle,
@@ -70,13 +91,12 @@ export async function POST(req: Request) {
       description: description || "",
       status: status || "Completed",
     });
-    await record.save();
 
     await logAudit({
       userId,
       action: "TASK_LOGGED",
       entity: "TaskLog",
-      entityId: record._id.toString(),
+      entityId: record.id.toString(),
       details: `${userName} logged a new task: ${taskTitle} (${taskType})`,
     });
 
@@ -103,9 +123,9 @@ export async function PUT(req: Request) {
       return NextResponse.json({ success: false, error: "Missing required field: taskId" }, { status: 400 });
     }
 
-    await dbConnect();
+    await sequelize.authenticate();
 
-    const task = await TaskLog.findOne({ _id: taskId, employee: userId });
+    const task = await TaskLog.findOne({ where: { id: taskId, employee: userId } });
     if (!task) {
       return NextResponse.json({ success: false, error: "Task not found" }, { status: 404 });
     }
@@ -140,12 +160,14 @@ export async function DELETE(req: Request) {
       return NextResponse.json({ success: false, error: "Missing required query parameter: taskId" }, { status: 400 });
     }
 
-    await dbConnect();
+    await sequelize.authenticate();
 
-    const task = await TaskLog.findOneAndDelete({ _id: taskId, employee: userId });
+    const task = await TaskLog.findOne({ where: { id: taskId, employee: userId } });
     if (!task) {
       return NextResponse.json({ success: false, error: "Task not found or unauthorized to delete" }, { status: 404 });
     }
+
+    await task.destroy();
 
     return NextResponse.json({ success: true, message: "Task deleted successfully" });
   } catch (error: any) {

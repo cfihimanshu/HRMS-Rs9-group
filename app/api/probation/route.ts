@@ -1,10 +1,12 @@
+// Removed @ts-nocheck
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import dbConnect from "@/lib/db";
-import Probation from "@/models/Probation";
-import User from "@/models/User";
+import sequelize from "@/lib/sequelize";
+import Probation from "@/models/sequelize/Probation";
+import User from "@/models/sequelize/User";
 import { logAudit } from "@/lib/audit";
+import { Op } from "sequelize";
 
 // GET: List all active probationers (HR & Owner only)
 export async function GET(req: Request) {
@@ -20,12 +22,26 @@ export async function GET(req: Request) {
       return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 });
     }
 
-    await dbConnect();
-    const records = await Probation.find({ status: { $ne: "inactive" } })
-      .populate("employee", "name email role mobile")
-      .sort({ createdAt: -1 });
+    await sequelize.authenticate();
+    const records = await Probation.findAll({ 
+      where: { status: { [Op.ne]: "inactive" } },
+      order: [['createdAt', 'DESC']],
+      raw: true
+    });
 
-    return NextResponse.json({ success: true, data: records });
+    const empIds = [...new Set(records.map((r: any) => r.employee).filter(Boolean))];
+    let empMap: any = {};
+    if (empIds.length > 0) {
+      const emps = await User.findAll({ where: { mongo_id: { [Op.in]: empIds } }, raw: true });
+      emps.forEach((e: any) => { empMap[e.mongo_id] = { _id: e.mongo_id, name: e.name, email: e.email, role: e.role, mobile: e.mobile }; });
+    }
+
+    const data = records.map((r: any) => ({
+      ...r,
+      employee: empMap[r.employee] || { _id: r.employee, name: 'Unknown' }
+    }));
+
+    return NextResponse.json({ success: true, data });
   } catch (error: any) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
@@ -46,7 +62,7 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json();
-    await dbConnect();
+    await sequelize.authenticate();
 
     // Case A: Evaluate an existing probationer record
     if (body.probationId) {
@@ -55,9 +71,9 @@ export async function POST(req: Request) {
         return NextResponse.json({ success: false, error: "Missing evaluation inputs" }, { status: 400 });
       }
 
-      const record = await Probation.findById(probationId).populate("employee", "name");
+      const record: any = await Probation.findByPk(probationId);
       if (!record) {
-        return NextResponse.json({ success: false, error: "Probation record not found" }, { status: 404 });
+        return NextResponse.json({ success: false, error: "Probation not found" }, { status: 404 });
       }
 
       record.status = status;
@@ -69,8 +85,8 @@ export async function POST(req: Request) {
         userId: (session.user as any).id,
         action: "PROBATION_EVALUATED",
         entity: "Probation",
-        entityId: record._id.toString(),
-        details: `Manager evaluated probation for ${(record.employee as any).name}. Verdict: ${status}`,
+        entityId: (record as any).mongo_id ? (record as any).mongo_id.toString() : record.id,
+        details: `Manager evaluated probation. Verdict: ${status}`,
       });
 
       return NextResponse.json({ success: true, data: record });
@@ -82,7 +98,8 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: false, error: "Missing required parameters" }, { status: 400 });
     }
 
-    const newRecord = new Probation({
+    const newRecord = await Probation.create({
+      mongo_id: Date.now().toString(),
       employee: employeeId,
       startDate: new Date(startDate),
       endDate: new Date(endDate),
@@ -90,7 +107,6 @@ export async function POST(req: Request) {
       attendanceSummary: { totalDays: 30, presentDays: 28 }, // Mock default values
       reportsSummary: { sodSubmitted: 22, eodSubmitted: 22 },
     });
-    await newRecord.save();
 
     return NextResponse.json({ success: true, data: newRecord });
   } catch (error: any) {
