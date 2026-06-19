@@ -1,9 +1,12 @@
+// Removed @ts-nocheck
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import dbConnect from "@/lib/db";
-import RiskAlert from "@/models/RiskAlert";
+import sequelize from "@/lib/sequelize";
+import RiskAlert from "@/models/sequelize/RiskAlert";
+import User from "@/models/sequelize/User";
 import { logAudit } from "@/lib/audit";
+import { Op } from "sequelize";
 
 // GET: Fetch all active risk alerts (HR & Owner only)
 export async function GET(req: Request) {
@@ -19,12 +22,26 @@ export async function GET(req: Request) {
       return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 });
     }
 
-    await dbConnect();
-    const alerts = await RiskAlert.find({ status: { $ne: "inactive" } })
-      .populate("triggeredBy", "name email role")
-      .sort({ createdAt: -1 });
+    await sequelize.authenticate();
+    const alerts = await RiskAlert.findAll({ 
+      where: { status: { [Op.ne]: "inactive" } },
+      order: [['createdAt', 'DESC']],
+      raw: true
+    });
 
-    return NextResponse.json({ success: true, data: alerts });
+    const userIds = [...new Set(alerts.map((a: any) => a.triggeredBy).filter(Boolean))];
+    let userMap: any = {};
+    if (userIds.length > 0) {
+      const users = await User.findAll({ where: { mongo_id: { [Op.in]: userIds } }, raw: true });
+      users.forEach((u: any) => { userMap[u.mongo_id] = { name: u.name, email: u.email, role: u.role }; });
+    }
+
+    const data = alerts.map((a: any) => ({
+      ...a,
+      triggeredBy: userMap[a.triggeredBy] || null
+    }));
+
+    return NextResponse.json({ success: true, data });
   } catch (error: any) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
@@ -33,7 +50,7 @@ export async function GET(req: Request) {
 // POST: Trigger a new system risk alert (Internal / Screening automation endpoint)
 export async function POST(req: Request) {
   try {
-    await dbConnect();
+    await sequelize.authenticate();
     const body = await req.json();
     const { source, level, description, triggeredBy } = body;
 
@@ -41,14 +58,14 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: false, error: "Missing required fields" }, { status: 400 });
     }
 
-    const alert = new RiskAlert({
+    const alert = await RiskAlert.create({
+      mongo_id: Date.now().toString(),
       source,
       level,
       description,
       triggeredBy: triggeredBy || null,
       status: "Open",
     });
-    await alert.save();
 
     return NextResponse.json({ success: true, data: alert });
   } catch (error: any) {
@@ -77,9 +94,9 @@ export async function PUT(req: Request) {
       return NextResponse.json({ success: false, error: "Missing parameters" }, { status: 400 });
     }
 
-    await dbConnect();
+    await sequelize.authenticate();
 
-    const alert = await RiskAlert.findById(alertId);
+    const alert: any = await RiskAlert.findByPk(alertId);
     if (!alert) {
       return NextResponse.json({ success: false, error: "Risk alert not found" }, { status: 404 });
     }
@@ -91,7 +108,7 @@ export async function PUT(req: Request) {
       userId: (session.user as any).id,
       action: "RISK_ALERT_RESOLVED",
       entity: "RiskAlert",
-      entityId: alert._id.toString(),
+      entityId: (alert as any).mongo_id ? (alert as any).mongo_id.toString() : alert.id,
       details: `System risk alert (source: ${alert.source}, severity: ${alert.level}) marked as ${status}`,
     });
 

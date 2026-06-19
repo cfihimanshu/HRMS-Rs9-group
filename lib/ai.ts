@@ -1,6 +1,6 @@
-import dbConnect from "./db";
-import Candidate from "@/models/Candidate";
-import Job from "@/models/Job";
+import sequelize from "./sequelize";
+import Candidate from "@/models/sequelize/Candidate";
+import Job from "@/models/sequelize/Job";
 
 interface AIScreeningResult {
   candidate_summary: string;
@@ -14,15 +14,20 @@ interface AIScreeningResult {
 }
 
 export async function screenCandidateWithAI(candidateId: string): Promise<AIScreeningResult> {
-  await dbConnect();
+  await sequelize.authenticate();
 
-  const candidate = await Candidate.findById(candidateId).populate("job");
-  if (!candidate) {
+  const candidateInstance = await Candidate.findByPk(candidateId);
+  if (!candidateInstance) {
     throw new Error("Candidate not found");
   }
 
-  const job = candidate.job;
-  const jdText = job ? `${job.title} - ${job.description} (Req: ${job.qualification}, ${job.experience})` : "General corporate application";
+  const candidate = candidateInstance.toJSON() as any;
+
+  let job = null;
+  if (candidate.job) {
+    job = await Job.findByPk(candidate.job);
+  }
+  const jdText = job ? `${(job as any).title} - ${(job as any).description} (Req: ${(job as any).qualification}, ${(job as any).experience})` : "General corporate application";
 
   // Use the Gemini API key from the local environment only.
   const apiKey = process.env.GEMINI_API_KEY || "";
@@ -31,7 +36,9 @@ export async function screenCandidateWithAI(candidateId: string): Promise<AIScre
     try {
       console.log("Calling live Google Gemini API for screening...");
       
-      const prompt = `You are a professional HR Screening Agent. Screen the following candidate application details and resume against the Job Description.
+      const prompt = `You are a professional HR Screening Agent. Screen the following candidate application details and their attached resume document against the Job Description.
+
+Analyze the attached resume file carefully. Extract their skills, education, work experience, tenure/stability at previous jobs, and match them with the requirements of the job.
 
 Candidate Details:
 Name: ${candidate.name}
@@ -57,17 +64,55 @@ ${jdText}
 
 Return a valid JSON object ONLY. Do not write markdown blocks or text wrapper. Use exactly this format:
 {
-  "candidate_summary": "Provide a brief 3-sentence summary of the candidate profile, highlights, and potential fit.",
-  "skill_match_score": 0,
-  "stability_score": 0,
-  "risk_score": 0,
-  "loyalty_possibility": 0,
-  "fraud_risk": "Low",
-  "suggested_questions": ["Question 1", "Question 2"],
-  "recommendation": "Shortlist"
+  "candidate_summary": "Provide a brief 3-sentence summary of the candidate's profile, including their qualification, key skills extracted from the resume, and why they fit or don't fit the job.",
+  "skill_match_score": 0, // Score from 0 to 100 based on matching resume skills & experience to Job Description
+  "stability_score": 0, // Score from 0 to 100 based on resume job durations/tenure stability
+  "risk_score": 0, // Score from 0 to 100. Penalize if they answered Yes to side business, court cases, EMI pressure, or No to target/field work/BG check
+  "loyalty_possibility": 0, // Score from 0 to 100 based on predicted loyalty
+  "fraud_risk": "Low", // "Low" or "Medium" or "High". High if active court cases or suspicious details.
+  "suggested_questions": ["Provide exactly 5 medium-level, concise, one-line technical/situational questions tailored to vacancy details and resume (each question must fit in a single line)"],
+  "recommendation": "Shortlist" // Must be one of: "Shortlist", "Hold", "Reject", "High Risk"
 }`;
 
-      const apiUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=" + apiKey;
+      const parts: any[] = [{ text: prompt }];
+
+      // Retrieve resume from Cloudinary and attach as inlineData
+      if (candidate.uploads?.resume) {
+        try {
+          console.log("Fetching resume from:", candidate.uploads.resume);
+          const resumeRes = await fetch(candidate.uploads.resume);
+          if (resumeRes.ok) {
+            const arrayBuffer = await resumeRes.arrayBuffer();
+            const base64Data = Buffer.from(arrayBuffer).toString("base64");
+            
+            let mimeType = "application/pdf";
+            const lowerResume = candidate.uploads.resume.toLowerCase();
+            if (lowerResume.endsWith(".docx")) {
+              mimeType = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+            } else if (lowerResume.endsWith(".doc")) {
+              mimeType = "application/msword";
+            } else if (lowerResume.endsWith(".png")) {
+              mimeType = "image/png";
+            } else if (lowerResume.endsWith(".jpg") || lowerResume.endsWith(".jpeg")) {
+              mimeType = "image/jpeg";
+            }
+            
+            parts.push({
+              inlineData: {
+                mimeType: mimeType,
+                data: base64Data
+              }
+            });
+            console.log(`Resume successfully fetched and encoded to base64 with mimeType ${mimeType}.`);
+          } else {
+            console.warn(`Failed to fetch resume, status: ${resumeRes.status}`);
+          }
+        } catch (fetchErr) {
+          console.warn("Failed to fetch resume file from Cloudinary:", fetchErr);
+        }
+      }
+
+      const apiUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=" + apiKey;
 
       const response = await fetch(apiUrl, {
         method: "POST",
@@ -76,7 +121,7 @@ Return a valid JSON object ONLY. Do not write markdown blocks or text wrapper. U
         },
         body: JSON.stringify({
           contents: [{
-            parts: [{ text: prompt }]
+            parts: parts
           }]
         }),
       });
@@ -84,10 +129,23 @@ Return a valid JSON object ONLY. Do not write markdown blocks or text wrapper. U
       const resData = await response.json();
       if (resData.candidates && resData.candidates[0].content.parts[0].text) {
         let textResponse = resData.candidates[0].content.parts[0].text;
-        // Clean up markdown if Gemini wrapped it
-        textResponse = textResponse.replace(/```json/g, "").replace(/```/g, "").trim();
+        console.log("Gemini API raw response:", textResponse);
+        // Clean up markdown wrapper and extract the JSON block
+        const jsonMatch = textResponse.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          textResponse = jsonMatch[0];
+        }
         const parsed = JSON.parse(textResponse);
-        return parsed as AIScreeningResult;
+        return {
+          candidate_summary: parsed.candidate_summary || "",
+          skill_match_score: parsed.skill_match_score !== undefined ? Number(parsed.skill_match_score) : 50,
+          stability_score: parsed.stability_score !== undefined ? Number(parsed.stability_score) : 50,
+          risk_score: parsed.risk_score !== undefined ? Number(parsed.risk_score) : 50,
+          loyalty_possibility: parsed.loyalty_possibility !== undefined ? Number(parsed.loyalty_possibility) : 50,
+          fraud_risk: parsed.fraud_risk || "Low",
+          suggested_questions: parsed.suggested_questions || [],
+          recommendation: parsed.recommendation || "Hold"
+        } as AIScreeningResult;
       }
     } catch (apiError) {
       console.warn("Gemini live call failed, falling back to heuristics engine:", apiError);

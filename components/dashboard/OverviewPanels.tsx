@@ -5,6 +5,8 @@ import {
   Users,
   UserCheck,
   UserPlus,
+  UserMinus,
+  User,
   ShieldAlert,
   Briefcase,
   Store,
@@ -20,7 +22,10 @@ import {
   FileSearch,
   LogOut,
   TrendingUp,
-  PlusCircle
+  PlusCircle,
+  ArrowUpRight,
+  ArrowDownRight,
+  Plus
 } from "lucide-react";
 import StatCard from "./StatCard";
 import AttendanceChart from "./AttendanceChart";
@@ -34,6 +39,9 @@ interface OverviewProps {
   onResolveAlert: (id: string) => void;
   onNavigateTab: (tab: string) => void;
   triggerToast: (msg: string) => void;
+  companies?: any[];
+  selectedCompanyId?: string;
+  onCompanyChange?: (id: string) => void;
 }
 
 export function OwnerDashboard({ 
@@ -41,7 +49,10 @@ export function OwnerDashboard({
   riskAlertList, 
   onResolveAlert, 
   onNavigateTab, 
-  triggerToast 
+  triggerToast,
+  companies,
+  selectedCompanyId,
+  onCompanyChange
 }: OverviewProps) {
   const [isDark, setIsDark] = React.useState(false);
 
@@ -61,11 +72,21 @@ export function OwnerDashboard({
           <h1 className={`text-2xl font-bold tracking-tight ${isDark ? "text-white" : "text-slate-800"}`}>
             Enterprise Owner Command Center
           </h1>
-          <p className={`text-sm mt-1 ${isDark ? "text-gray-400" : "text-slate-500"}`}>
-            Real-time enterprise metrics & compliance audits across 14 modules
-          </p>
+
         </div>
-        <div className="flex gap-3">
+        <div className="flex items-center gap-3">
+          {companies && (
+            <select
+              value={selectedCompanyId || ""}
+              onChange={(e) => onCompanyChange?.(e.target.value)}
+              className={`text-xs font-bold px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 transition-colors shadow-sm ${isDark ? "bg-gray-800 border-gray-700 text-white" : "bg-white border-slate-200 text-slate-800"}`}
+            >
+              <option value="">All Companies</option>
+              {companies.map((c) => (
+                <option key={c.mongo_id} value={c.mongo_id}>{c.name}</option>
+              ))}
+            </select>
+          )}
           <button 
             className={`px-4 py-2 border rounded-lg text-sm font-medium transition-colors shadow-sm ${isDark ? "bg-gray-800 border-gray-700 text-gray-300 hover:bg-gray-700" : "bg-white border-slate-200 text-slate-700 hover:bg-slate-50"}`}
             onClick={() => triggerToast("Exporting comprehensive report...")}
@@ -162,19 +183,29 @@ export function OwnerDashboard({
               {[
                 "Add Employee", "Approve Leaves", "Process Payroll", "Post Job",
                 "Start Appraisal", "Assign Training", "Announce", "Export Data"
-              ].map((action, i) => (
-                <button 
-                  key={i}
-                  onClick={() => triggerToast(`Navigating to ${action}`)}
-                  className={`text-xs font-semibold p-3 rounded-lg border transition-colors ${
-                    isDark 
-                      ? "bg-gray-800 border-gray-700 text-gray-300 hover:bg-gray-700 hover:border-gray-600" 
-                      : "bg-slate-50 border-slate-200 text-slate-700 hover:bg-white hover:border-purple-300 hover:shadow-sm hover:text-purple-700"
-                  }`}
-                >
-                  {action}
-                </button>
-              ))}
+              ].map((action, i) => {
+                const handleClick = () => {
+                  if (action === "Add Employee") onNavigateTab("employees");
+                  else if (action === "Approve Leaves") onNavigateTab("ess-leaves");
+                  else if (action === "Process Payroll") onNavigateTab("ess-payroll");
+                  else if (action === "Post Job") onNavigateTab("jobs");
+                  else triggerToast(`Navigating to ${action}`);
+                };
+                
+                return (
+                  <button 
+                    key={i}
+                    onClick={handleClick}
+                    className={`text-xs font-semibold p-3 rounded-lg border transition-colors ${
+                      isDark 
+                        ? "bg-gray-800 border-gray-700 text-gray-300 hover:bg-gray-700 hover:border-gray-600" 
+                        : "bg-slate-50 border-slate-200 text-slate-700 hover:bg-white hover:border-purple-300 hover:shadow-sm hover:text-purple-700"
+                    }`}
+                  >
+                    {action}
+                  </button>
+                );
+              })}
             </div>
           </div>
         </div>
@@ -185,13 +216,39 @@ export function OwnerDashboard({
 
 export function HrDashboard({ 
   stats,
+  candidates = [],
+  interviews = [],
   onNavigateTab 
 }: { 
   stats: any;
+  candidates?: any[];
+  interviews?: any[];
   onNavigateTab: (tab: string) => void;
 }) {
   const hrStats = stats?.hrStats || {};
   const [isDark, setIsDark] = React.useState(false);
+
+  const recentInterviews = React.useMemo(() => {
+    return [...(interviews || [])]
+      .sort((a, b) => new Date(b.createdAt || b.scheduleTime).getTime() - new Date(a.createdAt || a.scheduleTime).getTime())
+      .slice(0, 5);
+  }, [interviews]);
+
+  const dynamicHrLeadsCount = React.useMemo(() => {
+    return (candidates || []).filter((c: any) => c.status === "Selected").length;
+  }, [candidates]);
+
+  const dynamicRejectedCount = React.useMemo(() => {
+    return (candidates || []).filter((c: any) => c.status === "Rejected").length;
+  }, [candidates]);
+
+  const dynamicInterviewsToday = React.useMemo(() => {
+    const todayStr = new Date().toDateString();
+    return (interviews || []).filter((iv: any) => {
+      if (!iv.scheduleTime) return false;
+      return new Date(iv.scheduleTime).toDateString() === todayStr;
+    }).length;
+  }, [interviews]);
 
   React.useEffect(() => {
     setIsDark(document.documentElement.classList.contains("dark"));
@@ -203,13 +260,14 @@ export function HrDashboard({
   }, []);
 
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="space-y-6 animate-fade-in text-slate-800">
+      {/* Dashboard Top Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className={`text-2xl font-bold tracking-tight ${isDark ? "text-white" : "text-slate-800"}`}>
+          <h1 className={`text-2xl font-black tracking-tight ${isDark ? "text-white" : "text-slate-800"}`}>
             HR Operations Dashboard
           </h1>
-          <p className={`text-sm mt-1 ${isDark ? "text-gray-400" : "text-slate-500"}`}>
+          <p className={`text-xs mt-1 font-medium ${isDark ? "text-gray-400" : "text-slate-505"}`}>
             HR Head view — daily commitments, verification pipeline, and separation cases
           </p>
         </div>
@@ -231,6 +289,7 @@ export function HrDashboard({
           trendUp={true} 
           icon={<CalendarClock className="w-5 h-5" />} 
           dark={isDark}
+          onClick={() => onNavigateTab("interviews")}
         />
         <StatCard 
           title="Verification Pending" 
@@ -239,25 +298,27 @@ export function HrDashboard({
           trendUp={false} 
           icon={<FileSearch className="w-5 h-5" />} 
           dark={isDark}
+          onClick={() => onNavigateTab("verification")}
         />
         <StatCard 
-          title="Open Grievances" 
-          value={hrStats.grievanceStatus?.toString() || "0"} 
-          trend="Priority tickets" 
-          trendUp={false} 
-          icon={<FileWarning className="w-5 h-5 text-amber-500" />} 
-          dark={isDark}
-        />
-        <StatCard 
-          title="Active Exit Cases" 
-          value={hrStats.exitCases?.toString() || "0"} 
-          trend="In progress" 
+          title="HR Logs" 
+          value={hrStats.hrLeadsCount?.toString() || "0"} 
+          trend="Candidate leads" 
           trendUp={true} 
-          icon={<LogOut className="w-5 h-5" />} 
+          icon={<Users className="w-5 h-5 text-indigo-500" />} 
           dark={isDark}
+          onClick={() => onNavigateTab("hr-leads")}
+        />
+        <StatCard 
+          title="Rejected Logs" 
+          value={hrStats.rejectedCount?.toString() || "0"} 
+          trend="Rejected candidates" 
+          trendUp={false} 
+          icon={<ShieldX className="w-5 h-5 text-rose-500" />} 
+          dark={isDark}
+          onClick={() => onNavigateTab("hr-leads")}
         />
       </div>
-
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6">
           <div className={`p-6 rounded-xl border shadow-sm ${isDark ? "bg-gray-900 border-gray-800" : "bg-white border-slate-200"}`}>

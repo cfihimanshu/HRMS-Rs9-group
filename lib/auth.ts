@@ -1,7 +1,9 @@
 import { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
-import dbConnect from "./db";
-import User from "@/models/User";
+import sequelize from "./sequelize";
+import User from "@/models/sequelize/User";
+import EmployeeProfile from "@/models/sequelize/EmployeeProfile";
+import Department from "@/models/sequelize/Department";
 import bcrypt from "bcryptjs";
 import { logAudit } from "./audit";
 
@@ -18,7 +20,7 @@ export const authOptions: NextAuthOptions = {
         loginType: { label: "Login Type", type: "text" }, // "password" or "otp"
       },
       async authorize(credentials, req) {
-        await dbConnect();
+        await sequelize.authenticate();
 
         if (!credentials) {
           throw new Error("Missing credentials");
@@ -35,9 +37,9 @@ export const authOptions: NextAuthOptions = {
 
           // In standard flow, match OTP. We simulate a valid OTP check for "123456" for demo convenience,
           // or verify if the mobile matches a registered user.
-          user = await User.findOne({ mobile, status: "active" });
+          user = await User.findOne({ where: { mobile, status: "active" } });
           if (!user) {
-            throw new Error("Active user with this mobile number not found");
+            throw new Error("Active or probation user with this mobile number not found");
           }
 
           if (otp !== "123456") {
@@ -49,40 +51,70 @@ export const authOptions: NextAuthOptions = {
             throw new Error("Email and password are required");
           }
 
-          user = await User.findOne({ email, status: "active" });
+          user = await User.findOne({ where: { email, status: "active" } });
           if (!user) {
-            throw new Error("Active user with this email not found");
+            throw new Error("Active or probation user with this email not found");
           }
 
-          const isValid = await bcrypt.compare(password, user.password);
+          let isValid = false;
+          if (user.password && (user.password.startsWith("$2a$") || user.password.startsWith("$2b$"))) {
+            isValid = await bcrypt.compare(password, user.password);
+          } else {
+            isValid = (password === user.password);
+          }
           if (!isValid) {
             throw new Error("Invalid password");
           }
         }
 
         // Save login history in User collection
-        user.loginHistory.push({
+        let loginHistory = user.loginHistory ? (typeof user.loginHistory === 'string' ? JSON.parse(user.loginHistory) : user.loginHistory) : [];
+        if (!Array.isArray(loginHistory)) loginHistory = [];
+        loginHistory.push({
           ip: (req.headers as any)?.["x-forwarded-for"] || "127.0.0.1",
           userAgent: (req.headers as any)?.["user-agent"] || "Unknown",
           timestamp: new Date(),
         });
+        user.loginHistory = JSON.stringify(loginHistory);
         await user.save();
 
         // Write to Audit Log
         await logAudit({
-          userId: user._id.toString(),
+          userId: user.mongo_id?.toString() || user.id.toString(),
           action: "USER_LOGIN",
           entity: "User",
-          entityId: user._id.toString(),
+          entityId: user.mongo_id?.toString() || user.id.toString(),
           details: `User logged in successfully via ${loginType === "otp" ? "OTP" : "Password"}.`,
           ipAddress: (req.headers as any)?.["x-forwarded-for"] || "127.0.0.1",
         });
 
+        // Fetch department
+        let departmentName = "General";
+        let designation = user.role;
+        try {
+          // ensure Department is loaded so populate works
+          const profile = await EmployeeProfile.findOne({ where: { user: user.mongo_id || user.id.toString() } });
+          let deptDoc = null;
+          if (profile && profile.department) {
+             deptDoc = await Department.findOne({ where: { mongo_id: profile.department } });
+          }
+          if (profile) {
+            if (profile.designation) designation = profile.designation;
+            if (deptDoc && deptDoc.name) {
+              departmentName = deptDoc.name;
+            }
+          }
+        } catch (err) {
+          console.error("Error fetching employee profile:", err);
+        }
+
         return {
-          id: user._id.toString(),
+          id: user.mongo_id?.toString() || user.id.toString(),
           name: user.name,
           email: user.email,
           role: user.role,
+          department: departmentName,
+          designation: designation,
         };
       },
     }),
@@ -92,6 +124,8 @@ export const authOptions: NextAuthOptions = {
       if (user) {
         token.id = user.id;
         token.role = (user as any).role;
+        token.department = (user as any).department;
+        token.designation = (user as any).designation;
       }
       return token;
     },
@@ -101,6 +135,8 @@ export const authOptions: NextAuthOptions = {
           ...session.user,
           id: token.id as string,
           role: token.role as string,
+          department: token.department as string,
+          designation: token.designation as string,
         } as any;
       }
       return session;

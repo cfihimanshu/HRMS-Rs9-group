@@ -1,19 +1,23 @@
+// Removed @ts-nocheck
 import { NextResponse } from "next/server";
-import dbConnect from "@/lib/db";
-import User from "@/models/User";
-import Company from "@/models/Company";
-import Department from "@/models/Department";
-import Role from "@/models/Role";
-import RiskAlert from "@/models/RiskAlert";
-import AuditLog from "@/models/AuditLog";
-import Notification from "@/models/Notification";
-import SodReport from "@/models/SodReport";
-import EodReport from "@/models/EodReport";
-import Candidate from "@/models/Candidate";
-import Associate from "@/models/Associate";
-import Vendor from "@/models/Vendor";
-import Franchise from "@/models/Franchise";
-import Grievance from "@/models/Grievance";
+import sequelize from "@/lib/sequelize";
+import User from "@/models/sequelize/User";
+import Company from "@/models/sequelize/Company";
+import Department from "@/models/sequelize/Department";
+import Role from "@/models/sequelize/Role";
+import RiskAlert from "@/models/sequelize/RiskAlert";
+import AuditLog from "@/models/sequelize/AuditLog";
+import Notification from "@/models/sequelize/Notification";
+import SodReport from "@/models/sequelize/SodReport";
+import EodReport from "@/models/sequelize/EodReport";
+import Candidate from "@/models/sequelize/Candidate";
+import Associate from "@/models/sequelize/Associate";
+import Vendor from "@/models/sequelize/Vendor";
+import Franchise from "@/models/sequelize/Franchise";
+import Grievance from "@/models/sequelize/Grievance";
+import { Op } from "sequelize";
+
+export const dynamic = "force-dynamic";
 
 // This should ideally be in .env, using a hardcoded fallback for demo purposes
 const EXPECTED_RS9_API_KEY = process.env.RS9_API_KEY || "rs9-secure-sync-key-2026";
@@ -26,7 +30,7 @@ export async function GET(request: Request) {
       return NextResponse.json({ success: false, error: "Unauthorized. Invalid RS9 API Key." }, { status: 401 });
     }
 
-    await dbConnect();
+    await sequelize.authenticate();
 
     // 2. Fetch all required Master Data in parallel
     const [
@@ -38,13 +42,13 @@ export async function GET(request: Request) {
       recentAuditLogs,
       recentNotifications
     ] = await Promise.all([
-      User.find({}, "name email role status companies").lean(),
-      Company.find({}).lean(),
-      Department.find({}).lean(),
-      Role.find({}).lean(),
-      RiskAlert.find({ status: "Open" }).lean(),
-      AuditLog.find({}).sort({ timestamp: -1 }).limit(100).lean(),
-      Notification.find({}).sort({ createdAt: -1 }).limit(100).lean()
+      User.findAll({ where: {}, attributes: ["name", "email", "role", "status", "companies"] }),
+      Company.findAll({ raw: true }),
+      Department.findAll({ raw: true }),
+      Role.findAll({ raw: true }),
+      RiskAlert.findAll({ where: { status: "Open" }, raw: true }),
+      AuditLog.findAll({ order: [["timestamp", "DESC"]], limit: 100, raw: true }),
+      Notification.findAll({ order: [["createdAt", "DESC"]], limit: 100, raw: true })
     ]);
 
     // 3. Fetch Owner Dashboard Figures (Aggregations)
@@ -56,12 +60,12 @@ export async function GET(request: Request) {
       activeFranchises,
       openGrievances
     ] = await Promise.all([
-      Candidate.countDocuments(),
-      User.countDocuments({ role: { $in: ["Employee", "Trainer"] } }),
-      Associate.countDocuments({ status: "active" }),
-      Vendor.countDocuments({ status: "active" }),
-      Franchise.countDocuments({ status: "active" }),
-      Grievance.countDocuments({ status: "Open" })
+      Candidate.count({ where: {} }),
+      User.count({ where: { role: { [Op.in]: ["Employee", "Trainer"] } } }),
+      Associate.count({ where: { status: "active" } }),
+      Vendor.count({ where: { status: "active" } }),
+      Franchise.count({ where: { status: "active" } }),
+      Grievance.count({ where: { status: "Open" } })
     ]);
 
     const ownerDashboardFigures = {
@@ -78,10 +82,34 @@ export async function GET(request: Request) {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    const [sodToday, eodToday] = await Promise.all([
-      SodReport.find({ date: today }).populate("employee", "name role").lean(),
-      EodReport.find({ date: today }).populate("employee", "name role").lean()
+    const [sodTodayRaw, eodTodayRaw] = await Promise.all([
+      SodReport.findAll({ where: { date: today } }),
+      EodReport.findAll({ where: { date: today } })
     ]);
+
+    const employeeIds = [
+      ...sodTodayRaw.map((s: any) => s.employee),
+      ...eodTodayRaw.map((e: any) => e.employee)
+    ].filter(Boolean);
+
+    const employees = await User.findAll({
+      where: { mongo_id: { [Op.in]: employeeIds } },
+      attributes: ["mongo_id", "name", "role"],
+      raw: true
+    });
+    const employeeMap = new Map(employees.map((e: any) => [e.mongo_id, e]));
+
+    const sodToday = sodTodayRaw.map((s: any) => {
+      const plain = s.toJSON();
+      plain.employee = employeeMap.get(plain.employee) || null;
+      return plain;
+    });
+
+    const eodToday = eodTodayRaw.map((e: any) => {
+      const plain = e.toJSON();
+      plain.employee = employeeMap.get(plain.employee) || null;
+      return plain;
+    });
 
     const sodSummary = {
       totalSubmitted: sodToday.length,

@@ -1,11 +1,22 @@
 import { NextResponse } from "next/server";
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`;
+const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`;
 
 export async function POST(req: Request) {
   try {
-    const { role, department, category, expectedOutput } = await req.json();
+    const {
+      role,
+      department,
+      category,
+      gender,
+      expMin,
+      expMax,
+      budgetMin,
+      budgetMax,
+      skills,
+      expectedOutput
+    } = await req.json();
 
     if (!role || !department) {
       return NextResponse.json(
@@ -14,20 +25,28 @@ export async function POST(req: Request) {
       );
     }
 
-    const prompt = `You are an expert HR consultant. Generate a professional Job Description (JD), Key Result Areas (KRA), Key Performance Indicators (KPI), and Standard Operating Procedure (SOP) for the following role.
+    const prompt = `You are an expert HR consultant. Generate a highly customized, professional Job Description (JD), Key Result Areas (KRA), Key Performance Indicators (KPI), Expected Output/Revenue Target, Monitoring Benefits, and Company Growth Benefits for the following role based on these constraints:
 
 Role: ${role}
 Department: ${department}
 Category: ${category || "Staff"}
-Expected Output / Revenue Target: ${expectedOutput || "As per company standards"}
+Target Gender Preference: ${gender || "Any"}
+Required Experience Range: ${expMin || "0"} to ${expMax || "Not Specified"} Years
+Compensation/Budget Range: ${budgetMin || "As per industry"} to ${budgetMax || "As per industry"}
+Required Skills: ${skills || "Relevant domain skills"}
+Expected Output / Target Hint: ${expectedOutput || "General excellence"}
 
-Return ONLY a valid JSON object in this exact format (no markdown, no extra text):
+Make sure the generated content is customized specifically for this role's seniority, required skills, and constraints. For example, if the required experience is high or budget is high, the responsibilities (JD, KRA, KPI) should reflect senior management or advanced skills.
+
+Return ONLY a valid JSON object in this exact format (no markdown, no extra text). All fields must be strings (do not use arrays):
 {
-  "jd": "Detailed job description listing all responsibilities and requirements in bullet points...",
-  "kra": "Key Result Areas for this role listed as bullet points...",
-  "kpi": "Key Performance Indicators with measurable metrics listed as bullet points...",
-  "sop": "Step by step Standard Operating Procedure for this role..."
-}`;
+  "jd": "Detailed job description listing all responsibilities and requirements as bullet points separated by newlines...",
+  "kra": "Key Result Areas for this role listed as bullet points separated by newlines...",
+  "kpi": "Key Performance Indicators with measurable metrics listed as bullet points separated by newlines...",
+  "expectedOutput": "Specific and measurable Expected Output / Revenue Target based on role separated by newlines...",
+  "monitoringBenefits": "What monitoring tools/metrics will be used to review performance/benefits separated by newlines...",
+  "companyGrowthBenefits": "Key value propositions of this role for the company's growth separated by newlines..."
+}`.trim();
 
     const geminiRes = await fetch(GEMINI_URL, {
       method: "POST",
@@ -36,7 +55,8 @@ Return ONLY a valid JSON object in this exact format (no markdown, no extra text
         contents: [{ parts: [{ text: prompt }] }],
         generationConfig: {
           temperature: 0.7,
-          maxOutputTokens: 1500,
+          maxOutputTokens: 4000,
+          responseMimeType: "application/json"
         },
       }),
     });
@@ -50,7 +70,9 @@ Return ONLY a valid JSON object in this exact format (no markdown, no extra text
         jd: `• Execute day-to-day operations for the ${role} position.\n• Collaborate with the ${department} team to achieve departmental goals.\n• Maintain high standards of quality and ensure compliance with company policies.`,
         kra: "• Goal Achievement\n• Process Optimization\n• Team Collaboration",
         kpi: "• 100% completion of assigned tasks\n• Zero compliance issues\n• Positive feedback from stakeholders",
-        sop: "• Log in to the system daily at 9 AM.\n• Review pending tasks and prioritize.\n• Submit End of Day (EOD) report to the manager."
+        expectedOutput: `• Achieve quarterly milestones for the ${role} function.\n• Deliver high quality deliverables on time.`,
+        monitoringBenefits: "• Weekly KPI review sessions.\n• Performance dashboard metrics tracking.",
+        companyGrowthBenefits: "• Drives efficiency across departmental operational workflows.\n• Facilitates scaling and execution speed."
       };
       
       return NextResponse.json({ success: true, data: fallbackData });
@@ -58,27 +80,86 @@ Return ONLY a valid JSON object in this exact format (no markdown, no extra text
 
     const geminiData = await geminiRes.json();
     const rawText = geminiData?.candidates?.[0]?.content?.parts?.[0]?.text || "";
+    console.log("Raw response from generate-jd Gemini:", rawText);
 
-    // Extract JSON from response (strip any markdown code blocks if present)
-    const cleaned = rawText
-      .replace(/```json\n?/g, "")
-      .replace(/```\n?/g, "")
-      .trim();
+    let cleaned = rawText.trim();
+    const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      cleaned = jsonMatch[0];
+    }
 
-    let parsed: { jd: string; kra: string; kpi: string; sop: string };
+    const formatField = (val: any): string => {
+      if (!val) return "";
+      if (Array.isArray(val)) {
+        return val
+          .map((v: any) => {
+            const cleanStr = String(v)
+              .replace(/\\n/g, "\n")
+              .replace(/\\"/g, '"')
+              .trim();
+            if (cleanStr && !cleanStr.startsWith("•") && !cleanStr.startsWith("-") && !/^\d+\./.test(cleanStr)) {
+              return `• ${cleanStr}`;
+            }
+            return cleanStr;
+          })
+          .filter(Boolean)
+          .join("\n");
+      }
+      return String(val)
+        .replace(/\\n/g, "\n")
+        .replace(/\\"/g, '"')
+        .trim();
+    };
+
+    let parsed: any = {};
     try {
       parsed = JSON.parse(cleaned);
-    } catch {
-      // Fallback: return raw text split across fields
+    } catch (pe) {
+      console.warn("JSON.parse failed for generate-jd response, using regex extraction fallback...", pe);
+      
+      const jdMatch = cleaned.match(/"jd"\s*:\s*([\s\S]*?)(?:,"kra"|}$)/i);
+      const kraMatch = cleaned.match(/"kra"\s*:\s*([\s\S]*?)(?:,"kpi"|}$)/i);
+      const kpiMatch = cleaned.match(/"kpi"\s*:\s*([\s\S]*?)(?:,"expectedOutput"|}$)/i);
+      const expMatch = cleaned.match(/"expectedOutput"\s*:\s*([\s\S]*?)(?:,"monitoringBenefits"|}$)/i);
+      const monMatch = cleaned.match(/"monitoringBenefits"\s*:\s*([\s\S]*?)(?:,"companyGrowthBenefits"|}$)/i);
+      const growMatch = cleaned.match(/"companyGrowthBenefits"\s*:\s*([\s\S]*?)(?:}$)/i);
+
+      const cleanMatchValue = (matchResult: any) => {
+        if (!matchResult) return "";
+        let val = matchResult[1].trim();
+        // Remove leading/trailing quotes if matching a string, or bracket characters
+        if (val.startsWith('"') && val.endsWith('"')) {
+          val = val.substring(1, val.length - 1);
+        } else if (val.startsWith('[') && val.endsWith(']')) {
+          try {
+            return JSON.parse(val);
+          } catch {
+            val = val.substring(1, val.length - 1);
+          }
+        }
+        return val;
+      };
+
       parsed = {
-        jd: rawText.slice(0, 600) || "AI could not generate JD. Please type manually.",
-        kra: "• Achieve assigned targets\n• Maintain customer relationships\n• Report daily progress",
-        kpi: "• Monthly revenue target achievement\n• Customer satisfaction score\n• Attendance and punctuality",
-        sop: "• Follow company onboarding procedure\n• Attend daily team meeting\n• Submit EOD report by 6 PM",
+        jd: cleanMatchValue(jdMatch) || "• Execute day-to-day operations.\n• Achieve departmental goals.",
+        kra: cleanMatchValue(kraMatch) || "• Goal Achievement\n• Process Optimization",
+        kpi: cleanMatchValue(kpiMatch) || "• task completion\n• client satisfaction",
+        expectedOutput: cleanMatchValue(expMatch) || "• Complete assigned metrics.",
+        monitoringBenefits: cleanMatchValue(monMatch) || "• Activity dashboard and time tracking.",
+        companyGrowthBenefits: cleanMatchValue(growMatch) || "• Increases business delivery capability."
       };
     }
 
-    return NextResponse.json({ success: true, data: parsed });
+    const formattedResponse = {
+      jd: formatField(parsed.jd),
+      kra: formatField(parsed.kra),
+      kpi: formatField(parsed.kpi),
+      expectedOutput: formatField(parsed.expectedOutput),
+      monitoringBenefits: formatField(parsed.monitoringBenefits),
+      companyGrowthBenefits: formatField(parsed.companyGrowthBenefits),
+    };
+
+    return NextResponse.json({ success: true, data: formattedResponse });
   } catch (error: any) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }

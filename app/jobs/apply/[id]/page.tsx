@@ -14,6 +14,8 @@ interface Job {
   description: string;
   qualification: string;
   experience: string;
+  postingDuration?: number;
+  createdAt?: string;
 }
 
 export default function CandidateApplyPage() {
@@ -159,19 +161,35 @@ export default function CandidateApplyPage() {
 
   if (jobLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-950 text-slate-100">
-        <div className="w-8 h-8 border-2 border-indigo-500/30 border-t-indigo-500 rounded-full animate-spin" />
+      <div className="min-h-screen flex items-center justify-center bg-white text-slate-900">
+        <div className="w-8 h-8 border-2 border-slate-200 border-t-slate-800 rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  const isExpired = !!(job?.postingDuration && job?.createdAt && (new Date().getTime() - new Date(job.createdAt).getTime()) > job.postingDuration * 24 * 60 * 60 * 1000);
+
+  if (isExpired) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-50 px-4">
+        <div className="w-full max-w-lg bg-white border border-slate-200 rounded-3xl p-8 text-center shadow-lg relative">
+          <div className="w-16 h-16 bg-rose-50 border border-rose-200 text-rose-600 rounded-2xl flex items-center justify-center mx-auto mb-6 text-2xl">
+            ⚠️
+          </div>
+          <h1 className="text-xl font-bold text-slate-900 tracking-tight">Job Posting Expired</h1>
+          <p className="text-slate-600 text-sm mt-3 px-2 leading-relaxed">
+            This job vacancy posting has expired and is no longer accepting new applications.
+          </p>
+        </div>
       </div>
     );
   }
 
   if (submitted) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-950 px-4">
-        <div className="w-full max-w-lg bg-slate-900/60 backdrop-blur-xl border border-slate-800 rounded-3xl p-8 text-center shadow-2xl relative">
-          <div className="absolute top-[-10%] left-[-10%] w-60 h-60 rounded-full bg-emerald-500/10 blur-[80px] pointer-events-none" />
-          
-          <div className="w-16 h-16 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-2xl flex items-center justify-center mx-auto mb-6">
+      <div className="min-h-screen flex items-center justify-center bg-slate-50 px-4">
+        <div className="w-full max-w-lg bg-white border border-slate-200 rounded-3xl p-8 text-center shadow-lg relative">
+          <div className="w-16 h-16 bg-emerald-50 border border-emerald-200 text-emerald-600 rounded-2xl flex items-center justify-center mx-auto mb-6">
             <svg
               xmlns="http://www.w3.org/2000/svg"
               fill="none"
@@ -184,24 +202,24 @@ export default function CandidateApplyPage() {
             </svg>
           </div>
 
-          <h1 className="text-2xl font-bold text-white tracking-tight">Application Submitted!</h1>
-          <p className="text-slate-400 text-sm mt-3 px-2 leading-relaxed">
+          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Application Submitted!</h1>
+          <p className="text-slate-600 text-sm mt-3 px-2 leading-relaxed">
             Thank you for applying to Acolyte Group of Companies. Your details have been securely logged in our system.
           </p>
 
-          <div className="mt-8 bg-slate-950 border border-slate-800 rounded-2xl p-5 text-left space-y-3">
-            <div className="flex items-center gap-2 text-xs font-semibold text-indigo-400">
-              <span className="w-2 h-2 bg-indigo-500 rounded-full" />
+          <div className="mt-8 bg-slate-50 border border-slate-200 rounded-2xl p-5 text-left space-y-3">
+            <div className="flex items-center gap-2 text-xs font-semibold text-slate-700">
+              <span className="w-2 h-2 bg-slate-800 rounded-full" />
               Automated HR Notification
             </div>
-            <p className="text-xs text-slate-300 italic font-mono leading-relaxed">
+            <p className="text-xs text-slate-600 italic font-mono leading-relaxed">
               "{autoResponseMsg}"
             </p>
           </div>
 
           <button
             onClick={() => router.push("/login")}
-            className="w-full mt-8 bg-gradient-to-r from-indigo-500 to-violet-600 hover:from-indigo-600 hover:to-violet-700 text-white rounded-xl py-3.5 text-sm font-semibold transition-all shadow-lg shadow-indigo-500/20 hover:scale-[1.01] active:scale-[0.99]"
+            className="w-full mt-8 bg-slate-900 hover:bg-slate-800 text-white rounded-xl py-3.5 text-sm font-semibold transition-all shadow-md active:scale-[0.99]"
           >
             Acolyte Employee Portal
           </button>
@@ -211,47 +229,76 @@ export default function CandidateApplyPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 py-10 px-4 md:px-8 relative overflow-hidden">
-      <div className="absolute top-[-10%] right-[-10%] w-[35rem] h-[35rem] rounded-full bg-indigo-500/5 blur-[120px] pointer-events-none" />
-      <div className="absolute bottom-[-10%] left-[-10%] w-[35rem] h-[35rem] rounded-full bg-violet-600/5 blur-[120px] pointer-events-none" />
+    <div className="min-h-screen bg-slate-50 text-slate-800 py-10 px-4 md:px-8 relative overflow-hidden">
+      <div className="absolute top-[-10%] right-[-10%] w-[35rem] h-[35rem] rounded-full bg-slate-200/50 blur-[120px] pointer-events-none" />
+      <div className="absolute bottom-[-10%] left-[-10%] w-[35rem] h-[35rem] rounded-full bg-slate-200/50 blur-[120px] pointer-events-none" />
 
       <div className="max-w-3xl mx-auto relative z-10">
         {/* Company Header */}
         <div className="text-center mb-8">
-          <div className="w-12 h-12 bg-gradient-to-tr from-indigo-500 to-violet-600 rounded-xl flex items-center justify-center mx-auto mb-3">
+          <div className="w-12 h-12 bg-slate-900 rounded-xl flex items-center justify-center mx-auto mb-3 shadow">
             <span className="text-white text-lg font-bold font-serif">A</span>
           </div>
-          <h2 className="text-sm font-bold text-indigo-400 tracking-widest uppercase">
+          <h2 className="text-sm font-bold text-slate-500 tracking-widest uppercase">
             Recruitment Portal
           </h2>
-          <h1 className="text-2xl font-bold text-white mt-1">Acolyte Group of Companies</h1>
+          <h1 className="text-2xl font-bold text-slate-900 mt-1">Acolyte Group of Companies</h1>
         </div>
 
         {/* Job Info Banner */}
         {job && (
-          <div className="bg-slate-900/60 border border-slate-800 rounded-3xl p-6 mb-8 backdrop-blur-xl">
+          <div className="bg-white border border-slate-200 rounded-3xl p-6 mb-8 shadow-sm">
             <div className="flex justify-between items-start gap-4 flex-wrap">
               <div>
-                <span className="text-xs font-semibold text-indigo-400 uppercase tracking-wider">
+                <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
                   Applying For
                 </span>
-                <h2 className="text-xl font-bold text-white mt-0.5">{job.title}</h2>
-                <div className="text-xs text-slate-400 mt-1.5 flex gap-4 flex-wrap">
+                <h2 className="text-xl font-bold text-slate-900 mt-0.5">{job.title}</h2>
+                <div className="text-xs text-slate-500 mt-1.5 flex gap-4 flex-wrap">
                   <span>🏢 {job.company?.name}</span>
                   <span>📁 {job.department?.name}</span>
                   <span>📍 {job.location}</span>
                 </div>
               </div>
-              <div className="bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 text-xs px-3 py-1.5 rounded-xl font-semibold">
+              <div className="bg-slate-100 border border-slate-200 text-slate-700 text-xs px-3 py-1.5 rounded-xl font-semibold">
                 💰 {job.salaryRange}
               </div>
             </div>
-            <div className="mt-4 pt-4 border-t border-slate-800/80 text-xs text-slate-400 leading-relaxed">
-              <p className="font-semibold text-slate-300 mb-1">Job Brief & Qualifications:</p>
-              <p>{job.description}</p>
-              <p className="mt-2">
-                <span className="font-semibold text-slate-300">Required Experience:</span> {job.experience} |{" "}
-                <span className="font-semibold text-slate-300">Qualifications:</span> {job.qualification}
+            <div className="mt-4 pt-4 border-t border-slate-200 text-xs text-slate-600 leading-relaxed space-y-3">
+              <p className="font-semibold text-slate-800 mb-2">Job Brief & Qualifications:</p>
+              {(() => {
+                const desc = job.description || "";
+                const jdIndex = desc.indexOf("JD:");
+                const kraIndex = desc.indexOf("KRA:");
+                const kpiIndex = desc.indexOf("KPI:");
+                const qualIndex = desc.indexOf("Qualification:");
+
+                if (jdIndex !== -1 && kraIndex !== -1 && kpiIndex !== -1) {
+                  const jdText = desc.substring(jdIndex + 3, kraIndex).trim();
+                  const kraText = desc.substring(kraIndex + 4, kpiIndex).trim();
+                  const kpiText = desc.substring(kpiIndex + 4, qualIndex !== -1 ? qualIndex : desc.length).trim();
+                  return (
+                    <div className="space-y-4">
+                      <div>
+                        <span className="font-bold text-slate-800 block mb-1">Job Description (JD):</span>
+                        <p className="whitespace-pre-line text-slate-600">{jdText}</p>
+                      </div>
+                      <div>
+                        <span className="font-bold text-slate-800 block mb-1">Key Result Areas (KRA):</span>
+                        <p className="whitespace-pre-line text-slate-600">{kraText}</p>
+                      </div>
+                      <div>
+                        <span className="font-bold text-slate-800 block mb-1">Key Performance Indicators (KPI):</span>
+                        <p className="whitespace-pre-line text-slate-600">{kpiText}</p>
+                      </div>
+                    </div>
+                  );
+                }
+                return <p className="whitespace-pre-line">{desc}</p>;
+              })()}
+              <p className="mt-3 pt-2 border-t border-slate-200">
+                <span className="font-semibold text-slate-800">Required Experience:</span> {job.experience} |{" "}
+                <span className="font-semibold text-slate-800">Qualifications:</span> {job.qualification}
               </p>
             </div>
           </div>
@@ -259,47 +306,47 @@ export default function CandidateApplyPage() {
 
         {/* Step Indicator */}
         <div className="grid grid-cols-3 gap-2 mb-8 text-center text-xs font-semibold text-slate-400">
-          <div className={`pb-2 border-b-2 transition-all ${step >= 1 ? "border-indigo-500 text-white" : "border-slate-800"}`}>
+          <div className={`pb-2 border-b-2 transition-all ${step >= 1 ? "border-slate-800 text-slate-900 font-bold" : "border-slate-200"}`}>
             1. Basic Information
           </div>
-          <div className={`pb-2 border-b-2 transition-all ${step >= 2 ? "border-indigo-500 text-white" : "border-slate-800"}`}>
+          <div className={`pb-2 border-b-2 transition-all ${step >= 2 ? "border-slate-800 text-slate-900 font-bold" : "border-slate-200"}`}>
             2. Risk Profiling
           </div>
-          <div className={`pb-2 border-b-2 transition-all ${step >= 3 ? "border-indigo-500 text-white" : "border-slate-800"}`}>
+          <div className={`pb-2 border-b-2 transition-all ${step >= 3 ? "border-slate-800 text-slate-900 font-bold" : "border-slate-200"}`}>
             3. Upload Documents
           </div>
         </div>
 
         {submitError && (
-          <div className="bg-red-500/10 border border-red-500/20 text-red-300 text-xs p-3.5 rounded-2xl mb-6">
+          <div className="bg-rose-50 border border-rose-200 text-rose-700 text-xs p-3.5 rounded-2xl mb-6">
             {submitError}
           </div>
         )}
 
         {/* Multi-Step Form */}
-        <div className="bg-slate-900/40 border border-slate-800/80 rounded-3xl p-6 md:p-8 backdrop-blur-xl shadow-xl">
+        <div className="bg-white border border-slate-200 rounded-3xl p-6 md:p-8 shadow-sm">
           {step === 1 && (
             <div className="space-y-6">
-              <h3 className="text-base font-bold text-white border-b border-slate-800/60 pb-3">Basic Information</h3>
+              <h3 className="text-base font-bold text-slate-900 border-b border-slate-200 pb-3">Basic Information</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-medium text-slate-300 mb-1.5">Full Name</label>
+                  <label className="block text-xs font-medium text-slate-700 mb-1.5">Full Name</label>
                   <input
                     type="text"
                     required
                     placeholder="John Doe"
-                    className="w-full bg-slate-950/80 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all"
+                    className="w-full bg-white border border-slate-300 rounded-xl px-4 py-2.5 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-500/30 transition-all"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-slate-300 mb-1.5">Mobile Number</label>
+                  <label className="block text-xs font-medium text-slate-700 mb-1.5">Mobile Number</label>
                   <input
                     type="tel"
                     required
                     placeholder="9876543210"
-                    className="w-full bg-slate-950/80 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all"
+                    className="w-full bg-white border border-slate-300 rounded-xl px-4 py-2.5 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-500/30 transition-all"
                     value={mobile}
                     onChange={(e) => setMobile(e.target.value)}
                   />
@@ -308,23 +355,23 @@ export default function CandidateApplyPage() {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-medium text-slate-300 mb-1.5">Email Address</label>
+                  <label className="block text-xs font-medium text-slate-700 mb-1.5">Email Address</label>
                   <input
                     type="email"
                     required
                     placeholder="john@example.com"
-                    className="w-full bg-slate-950/80 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all"
+                    className="w-full bg-white border border-slate-300 rounded-xl px-4 py-2.5 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-500/30 transition-all"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-slate-300 mb-1.5">Highest Qualification</label>
+                  <label className="block text-xs font-medium text-slate-700 mb-1.5">Highest Qualification</label>
                   <input
                     type="text"
                     required
                     placeholder="e.g. B.Tech / MBA / Graduate"
-                    className="w-full bg-slate-950/80 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all"
+                    className="w-full bg-white border border-slate-300 rounded-xl px-4 py-2.5 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-500/30 transition-all"
                     value={qualification}
                     onChange={(e) => setQualification(e.target.value)}
                   />
@@ -332,12 +379,12 @@ export default function CandidateApplyPage() {
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-slate-300 mb-1.5">Current Address</label>
+                <label className="block text-xs font-medium text-slate-700 mb-1.5">Current Address</label>
                 <input
                   type="text"
                   required
                   placeholder="Street, City, Pin code"
-                  className="w-full bg-slate-950/80 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all"
+                  className="w-full bg-white border border-slate-300 rounded-xl px-4 py-2.5 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-500/30 transition-all"
                   value={address}
                   onChange={(e) => setAddress(e.target.value)}
                 />
@@ -345,23 +392,23 @@ export default function CandidateApplyPage() {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-medium text-slate-300 mb-1.5">Total Experience</label>
+                  <label className="block text-xs font-medium text-slate-700 mb-1.5">Total Experience</label>
                   <input
                     type="text"
                     required
                     placeholder="e.g. 2 Years / Fresher"
-                    className="w-full bg-slate-950/80 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all"
+                    className="w-full bg-white border border-slate-300 rounded-xl px-4 py-2.5 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-500/30 transition-all"
                     value={experience}
                     onChange={(e) => setExperience(e.target.value)}
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-slate-300 mb-1.5">Notice Period</label>
+                  <label className="block text-xs font-medium text-slate-700 mb-1.5">Notice Period</label>
                   <input
                     type="text"
                     required
                     placeholder="e.g. Immediate / 30 Days"
-                    className="w-full bg-slate-950/80 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all"
+                    className="w-full bg-white border border-slate-300 rounded-xl px-4 py-2.5 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-500/30 transition-all"
                     value={noticePeriod}
                     onChange={(e) => setNoticePeriod(e.target.value)}
                   />
@@ -370,23 +417,23 @@ export default function CandidateApplyPage() {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-medium text-slate-300 mb-1.5">Current Salary (Monthly)</label>
+                  <label className="block text-xs font-medium text-slate-700 mb-1.5">Current Salary (Monthly)</label>
                   <input
                     type="text"
                     required
                     placeholder="e.g. 25,000 INR"
-                    className="w-full bg-slate-950/80 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all"
+                    className="w-full bg-white border border-slate-300 rounded-xl px-4 py-2.5 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-500/30 transition-all"
                     value={currentSalary}
                     onChange={(e) => setCurrentSalary(e.target.value)}
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-slate-300 mb-1.5">Expected Salary (Monthly)</label>
+                  <label className="block text-xs font-medium text-slate-700 mb-1.5">Expected Salary (Monthly)</label>
                   <input
                     type="text"
                     required
                     placeholder="e.g. 35,000 INR"
-                    className="w-full bg-slate-950/80 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all"
+                    className="w-full bg-white border border-slate-300 rounded-xl px-4 py-2.5 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-500/30 transition-all"
                     value={expectedSalary}
                     onChange={(e) => setExpectedSalary(e.target.value)}
                   />
@@ -404,7 +451,7 @@ export default function CandidateApplyPage() {
                     setSubmitError("");
                     setStep(2);
                   }}
-                  className="bg-indigo-500 hover:bg-indigo-600 text-white rounded-xl px-6 py-2.5 text-sm font-semibold transition-all shadow-lg hover:scale-[1.01]"
+                  className="bg-slate-900 hover:bg-slate-800 text-white rounded-xl px-6 py-2.5 text-sm font-semibold transition-all shadow hover:scale-[1.01]"
                 >
                   Proceed to Step 2 →
                 </button>
@@ -415,19 +462,19 @@ export default function CandidateApplyPage() {
           {step === 2 && (
             <div className="space-y-6">
               <div>
-                <h3 className="text-base font-bold text-white border-b border-slate-800/60 pb-3">
+                <h3 className="text-base font-bold text-slate-900 border-b border-slate-200 pb-3">
                   Verification & Risk Screening Questions
                 </h3>
-                <p className="text-slate-400 text-xs mt-1.5 leading-relaxed">
+                <p className="text-slate-500 text-xs mt-1.5 leading-relaxed">
                   These responses are verified during detailed background verification rounds. Please provide honest declarations.
                 </p>
               </div>
 
               <div className="space-y-4">
                 {/* Q1 */}
-                <div className="flex items-center justify-between p-4 bg-slate-950/60 border border-slate-850 rounded-2xl">
+                <div className="flex items-center justify-between p-4 bg-slate-50 border border-slate-200 rounded-2xl">
                   <div className="pr-4">
-                    <p className="text-sm font-semibold text-slate-200">1. क्या आपका कोई side business है? / Side Business</p>
+                    <p className="text-sm font-semibold text-slate-800">1. क्या आपका कोई side business है? / Side Business</p>
                     <p className="text-xs text-slate-500 mt-0.5">Do you possess, run, or associate with any side business or other dual employment?</p>
                   </div>
                   <div className="flex gap-2">
@@ -438,8 +485,8 @@ export default function CandidateApplyPage() {
                         onClick={() => setSideBusiness(v as any)}
                         className={`text-xs font-bold px-4 py-2 rounded-lg transition-all border ${
                           sideBusiness === v
-                            ? "bg-indigo-500 border-indigo-500 text-white"
-                            : "bg-slate-900 border-slate-800 text-slate-400 hover:text-slate-200"
+                            ? "bg-slate-900 border-slate-900 text-white"
+                            : "bg-white border-slate-300 text-slate-600 hover:bg-slate-100 hover:text-slate-800"
                         }`}
                       >
                         {v}
@@ -449,9 +496,9 @@ export default function CandidateApplyPage() {
                 </div>
 
                 {/* Q2 */}
-                <div className="flex items-center justify-between p-4 bg-slate-950/60 border border-slate-850 rounded-2xl">
+                <div className="flex items-center justify-between p-4 bg-slate-50 border border-slate-200 rounded-2xl">
                   <div className="pr-4">
-                    <p className="text-sm font-semibold text-slate-200">2. क्या आपके ऊपर loan / EMI pressure है? / Financial EMI Pressures</p>
+                    <p className="text-sm font-semibold text-slate-800">2. क्या आपके ऊपर loan / EMI pressure है? / Financial EMI Pressures</p>
                     <p className="text-xs text-slate-500 mt-0.5">Do you have any severe financial liabilities, personal loans, or ongoing EMI pressure?</p>
                   </div>
                   <div className="flex gap-2">
@@ -462,8 +509,8 @@ export default function CandidateApplyPage() {
                         onClick={() => setLoanPressure(v as any)}
                         className={`text-xs font-bold px-4 py-2 rounded-lg transition-all border ${
                           loanPressure === v
-                            ? "bg-indigo-500 border-indigo-500 text-white"
-                            : "bg-slate-900 border-slate-800 text-slate-400 hover:text-slate-200"
+                            ? "bg-slate-900 border-slate-900 text-white"
+                            : "bg-white border-slate-300 text-slate-600 hover:bg-slate-100 hover:text-slate-800"
                         }`}
                       >
                         {v}
@@ -473,9 +520,9 @@ export default function CandidateApplyPage() {
                 </div>
 
                 {/* Q3 */}
-                <div className="flex items-center justify-between p-4 bg-slate-950/60 border border-slate-850 rounded-2xl">
+                <div className="flex items-center justify-between p-4 bg-slate-50 border border-slate-200 rounded-2xl">
                   <div className="pr-4">
-                    <p className="text-sm font-semibold text-slate-200">3. क्या आपके खिलाफ कोई police / court matter है? / Police or Court Matter</p>
+                    <p className="text-sm font-semibold text-slate-800">3. क्या आपके खिलाफ कोई police / court matter है? / Police or Court Matter</p>
                     <p className="text-xs text-slate-500 mt-0.5">Is there any active police case, complaint, or court matter pending against you?</p>
                   </div>
                   <div className="flex gap-2">
@@ -486,8 +533,8 @@ export default function CandidateApplyPage() {
                         onClick={() => setCourtCase(v as any)}
                         className={`text-xs font-bold px-4 py-2 rounded-lg transition-all border ${
                           courtCase === v
-                            ? "bg-indigo-500 border-indigo-500 text-white"
-                            : "bg-slate-900 border-slate-800 text-slate-400 hover:text-slate-200"
+                            ? "bg-slate-900 border-slate-900 text-white"
+                            : "bg-white border-slate-300 text-slate-600 hover:bg-slate-100 hover:text-slate-800"
                         }`}
                       >
                         {v}
@@ -497,9 +544,9 @@ export default function CandidateApplyPage() {
                 </div>
 
                 {/* Q4 */}
-                <div className="flex items-center justify-between p-4 bg-slate-950/60 border border-slate-850 rounded-2xl">
+                <div className="flex items-center justify-between p-4 bg-slate-50 border border-slate-200 rounded-2xl">
                   <div className="pr-4">
-                    <p className="text-sm font-semibold text-slate-200">4. क्या आप target-based काम कर सकते हैं? / Target-Based Comfort</p>
+                    <p className="text-sm font-semibold text-slate-800">4. क्या आप target-based काम कर सकते हैं? / Target-Based Comfort</p>
                     <p className="text-xs text-slate-500 mt-0.5">Are you completely comfortable working on high-performance target-oriented tasks?</p>
                   </div>
                   <div className="flex gap-2">
@@ -510,8 +557,8 @@ export default function CandidateApplyPage() {
                         onClick={() => setTargetWork(v as any)}
                         className={`text-xs font-bold px-4 py-2 rounded-lg transition-all border ${
                           targetWork === v
-                            ? "bg-indigo-500 border-indigo-500 text-white"
-                            : "bg-slate-900 border-slate-800 text-slate-400 hover:text-slate-200"
+                            ? "bg-slate-900 border-slate-900 text-white"
+                            : "bg-white border-slate-300 text-slate-600 hover:bg-slate-100 hover:text-slate-800"
                         }`}
                       >
                         {v}
@@ -521,9 +568,9 @@ export default function CandidateApplyPage() {
                 </div>
 
                 {/* Q5 */}
-                <div className="flex items-center justify-between p-4 bg-slate-950/60 border border-slate-850 rounded-2xl">
+                <div className="flex items-center justify-between p-4 bg-slate-50 border border-slate-200 rounded-2xl">
                   <div className="pr-4">
-                    <p className="text-sm font-semibold text-slate-200">5. क्या आप field / touring work कर सकते हैं? / Field Operations & Touring</p>
+                    <p className="text-sm font-semibold text-slate-800">5. क्या आप field / touring work कर सकते हैं? / Field Operations & Touring</p>
                     <p className="text-xs text-slate-500 mt-0.5">Are you comfortable with client field visits, operations touring, or traveling?</p>
                   </div>
                   <div className="flex gap-2">
@@ -534,8 +581,8 @@ export default function CandidateApplyPage() {
                         onClick={() => setFieldWork(v as any)}
                         className={`text-xs font-bold px-4 py-2 rounded-lg transition-all border ${
                           fieldWork === v
-                            ? "bg-indigo-500 border-indigo-500 text-white"
-                            : "bg-slate-900 border-slate-800 text-slate-400 hover:text-slate-200"
+                            ? "bg-slate-900 border-slate-900 text-white"
+                            : "bg-white border-slate-300 text-slate-600 hover:bg-slate-100 hover:text-slate-800"
                         }`}
                       >
                         {v}
@@ -545,9 +592,9 @@ export default function CandidateApplyPage() {
                 </div>
 
                 {/* Q6 */}
-                <div className="flex items-center justify-between p-4 bg-slate-950/60 border border-slate-850 rounded-2xl">
+                <div className="flex items-center justify-between p-4 bg-slate-50 border border-slate-200 rounded-2xl">
                   <div className="pr-4">
-                    <p className="text-sm font-semibold text-slate-200">6. क्या आप background verification के लिए ready हैं? / Background Verification Consent</p>
+                    <p className="text-sm font-semibold text-slate-800">6. क्या आप background verification के लिए ready हैं? / Background Verification Consent</p>
                     <p className="text-xs text-slate-500 mt-0.5">Do you authorize the company to verify your past employment, police record, and qualifications?</p>
                   </div>
                   <div className="flex gap-2">
@@ -558,8 +605,8 @@ export default function CandidateApplyPage() {
                         onClick={() => setBackgroundVerification(v as any)}
                         className={`text-xs font-bold px-4 py-2 rounded-lg transition-all border ${
                           backgroundVerification === v
-                            ? "bg-indigo-500 border-indigo-500 text-white"
-                            : "bg-slate-900 border-slate-800 text-slate-400 hover:text-slate-200"
+                            ? "bg-slate-900 border-slate-900 text-white"
+                            : "bg-white border-slate-300 text-slate-600 hover:bg-slate-100 hover:text-slate-800"
                         }`}
                       >
                         {v}
@@ -569,9 +616,9 @@ export default function CandidateApplyPage() {
                 </div>
 
                 {/* Q7 */}
-                <div className="flex items-center justify-between p-4 bg-slate-950/60 border border-slate-850 rounded-2xl">
+                <div className="flex items-center justify-between p-4 bg-slate-50 border border-slate-200 rounded-2xl">
                   <div className="pr-4">
-                    <p className="text-sm font-semibold text-slate-200">7. क्या आप company data confidentiality follow करेंगे? / Data Confidentiality</p>
+                    <p className="text-sm font-semibold text-slate-800">7. क्या आप company data confidentiality follow करेंगे? / Data Confidentiality</p>
                     <p className="text-xs text-slate-500 mt-0.5">Will you maintain 100% data secrecy, privacy, and sign standard legal NDAs?</p>
                   </div>
                   <div className="flex gap-2">
@@ -582,8 +629,8 @@ export default function CandidateApplyPage() {
                         onClick={() => setConfidentialityAgreement(v as any)}
                         className={`text-xs font-bold px-4 py-2 rounded-lg transition-all border ${
                           confidentialityAgreement === v
-                            ? "bg-indigo-500 border-indigo-500 text-white"
-                            : "bg-slate-900 border-slate-800 text-slate-400 hover:text-slate-200"
+                            ? "bg-slate-900 border-slate-900 text-white"
+                            : "bg-white border-slate-300 text-slate-600 hover:bg-slate-100 hover:text-slate-800"
                         }`}
                       >
                         {v}
@@ -597,14 +644,14 @@ export default function CandidateApplyPage() {
                 <button
                   type="button"
                   onClick={() => setStep(1)}
-                  className="bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl px-5 py-2.5 text-sm font-semibold transition-all border border-slate-700"
+                  className="bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl px-5 py-2.5 text-sm font-semibold transition-all border border-slate-300"
                 >
                   ← Back to Step 1
                 </button>
                 <button
                   type="button"
                   onClick={() => setStep(3)}
-                  className="bg-indigo-500 hover:bg-indigo-600 text-white rounded-xl px-6 py-2.5 text-sm font-semibold transition-all shadow-lg hover:scale-[1.01]"
+                  className="bg-slate-900 hover:bg-slate-800 text-white rounded-xl px-6 py-2.5 text-sm font-semibold transition-all shadow hover:scale-[1.01]"
                 >
                   Proceed to Step 3 →
                 </button>
@@ -614,7 +661,7 @@ export default function CandidateApplyPage() {
 
           {step === 3 && (
             <div className="space-y-6">
-              <h3 className="text-base font-bold text-white border-b border-slate-800/60 pb-3">Document Upload (Cloudinary)</h3>
+              <h3 className="text-base font-bold text-slate-900 border-b border-slate-200 pb-3">Document Upload (Cloudinary)</h3>
 
               {/* Real upload cards */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -626,21 +673,21 @@ export default function CandidateApplyPage() {
                   { key: "salarySlip", label: "Previous Salary Slip (Optional)", accept: "image/*,.pdf" },
                   { key: "bankStatement", label: "Last 6 Months Bank Statement", accept: "image/*,.pdf" },
                 ].map(({ key, label, accept }) => (
-                  <div key={key} className="bg-slate-950 border border-slate-800 rounded-2xl p-4 flex flex-col items-center justify-center text-center gap-2">
-                    <div className="text-xs font-semibold text-slate-300">{label}</div>
+                  <div key={key} className="bg-slate-50 border border-slate-200 rounded-2xl p-4 flex flex-col items-center justify-center text-center gap-2">
+                    <div className="text-xs font-semibold text-slate-800">{label}</div>
                     {uploads[key] ? (
                       <div className="space-y-1">
-                        <div className="text-xs text-emerald-400 font-semibold">✓ Uploaded Successfully</div>
+                        <div className="text-xs text-emerald-600 font-semibold">✓ Uploaded Successfully</div>
                         <button
                           type="button"
                           onClick={() => setUploads(prev => ({ ...prev, [key]: "" }))}
-                          className="text-[10px] text-rose-400 underline"
+                          className="text-[10px] text-rose-600 hover:text-rose-700 underline"
                         >
                           Remove
                         </button>
                       </div>
                     ) : (
-                      <label className={`cursor-pointer bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 hover:bg-indigo-500 hover:text-white transition-all text-xs font-semibold px-4 py-2 rounded-lg ${
+                      <label className={`cursor-pointer bg-slate-200 border border-slate-300 text-slate-800 hover:bg-slate-900 hover:text-white hover:border-slate-900 transition-all text-xs font-semibold px-4 py-2 rounded-lg ${
                         uploadingField === key ? "opacity-60 cursor-wait" : ""
                       }`}>
                         {uploadingField === key ? "Uploading..." : "Select File"}
@@ -661,11 +708,11 @@ export default function CandidateApplyPage() {
                 ))}
               </div>
 
-              <div className="pt-6 flex justify-between border-t border-slate-800/80 mt-6">
+              <div className="pt-6 flex justify-between border-t border-slate-200 mt-6">
                 <button
                   type="button"
                   onClick={() => setStep(2)}
-                  className="bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl px-5 py-2.5 text-sm font-semibold transition-all border border-slate-700"
+                  className="bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl px-5 py-2.5 text-sm font-semibold transition-all border border-slate-300"
                 >
                   ← Back to Step 2
                 </button>
@@ -673,7 +720,7 @@ export default function CandidateApplyPage() {
                   type="button"
                   disabled={loading}
                   onClick={handleSubmit}
-                  className="bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white rounded-xl px-8 py-3 text-sm font-semibold transition-all shadow-lg shadow-emerald-500/20 hover:scale-[1.01] active:scale-[0.99] flex items-center gap-2"
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl px-8 py-3 text-sm font-semibold transition-all shadow hover:scale-[1.01] active:scale-[0.99] flex items-center gap-2"
                 >
                   {loading ? (
                     <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />

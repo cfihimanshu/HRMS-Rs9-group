@@ -1,16 +1,19 @@
+// Removed @ts-nocheck
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import dbConnect from "@/lib/db";
-import Job from "@/models/Job";
-import Company from "@/models/Company";
-import Department from "@/models/Department";
+import sequelize from "@/lib/sequelize";
+import Job from "@/models/sequelize/Job";
+import Company from "@/models/sequelize/Company";
+import Department from "@/models/sequelize/Department";
 import { logAudit } from "@/lib/audit";
+import HiringRequisition from "@/models/sequelize/HiringRequisition";
+import { Op } from "sequelize";
 
 // GET: List all active jobs (can be public or authenticated)
 export async function GET(req: Request) {
   try {
-    await dbConnect();
+    await sequelize.authenticate();
     
     // Get optional company filter or active filter
     const url = new URL(req.url);
@@ -21,12 +24,34 @@ export async function GET(req: Request) {
       query.category = category;
     }
 
-    const jobs = await Job.find(query)
-      .populate("company", "name code")
-      .populate("department", "name")
-      .sort({ createdAt: -1 });
+    const jobs = await Job.findAll({ 
+      where: query,
+      order: [['createdAt', 'DESC']],
+      raw: true
+    });
 
-    return NextResponse.json({ success: true, data: jobs });
+    const companyIds = [...new Set(jobs.map((j: any) => j.company).filter(Boolean))];
+    const deptIds = [...new Set(jobs.map((j: any) => j.department).filter(Boolean))];
+
+    let companiesMap: any = {};
+    if (companyIds.length > 0) {
+      const companies = await Company.findAll({ where: { mongo_id: { [Op.in]: companyIds } }, raw: true });
+      companies.forEach((c: any) => { companiesMap[c.mongo_id] = { name: c.name, code: c.code }; });
+    }
+
+    let deptsMap: any = {};
+    if (deptIds.length > 0) {
+      const depts = await Department.findAll({ where: { mongo_id: { [Op.in]: deptIds } }, raw: true });
+      depts.forEach((d: any) => { deptsMap[d.mongo_id] = { name: d.name }; });
+    }
+
+    const data = jobs.map((job: any) => ({
+      ...job,
+      company: companiesMap[job.company] || { name: job.company },
+      department: deptsMap[job.department] || { name: job.department }
+    }));
+
+    return NextResponse.json({ success: true, data });
   } catch (error: any) {
     return NextResponse.json(
       { success: false, error: error.message || "Failed to fetch jobs" },
@@ -53,7 +78,7 @@ export async function POST(req: Request) {
       );
     }
 
-    await dbConnect();
+    await sequelize.authenticate();
     const body = await req.json();
 
     const {
@@ -68,6 +93,7 @@ export async function POST(req: Request) {
       description,
       applicationLink,
       source,
+      requisitionId,
     } = body;
 
     if (
@@ -85,26 +111,35 @@ export async function POST(req: Request) {
     }
 
     // Verify company & department exists
-    let company;
+    let company: any;
     if (/^[0-9a-fA-F]{24}$/.test(companyId)) {
-      company = await Company.findById(companyId);
+      company = await Company.findByPk(companyId);
     }
     if (!company) {
-      company = await Company.findOne({ name: companyId }) || await Company.findOne() || await Company.create({ name: companyId || "Acolyte Group", code: "ACO" });
+      company = await Company.findOne({ where: { name: companyId } }) || await Company.findOne() || await Company.create({ mongo_id: Date.now().toString(), name: companyId || "Acolyte Group", code: "ACO" });
     }
 
-    let department;
+    let department: any;
     if (/^[0-9a-fA-F]{24}$/.test(departmentId)) {
-      department = await Department.findById(departmentId);
+      department = await Department.findByPk(departmentId);
     }
     if (!department) {
-      department = await Department.findOne({ name: departmentId }) || await Department.findOne() || await Department.create({ name: departmentId || "Sales" });
+      department = await Department.findOne({ where: { name: departmentId } }) || await Department.findOne() || await Department.create({ mongo_id: Date.now().toString(), name: departmentId || "Sales" });
     }
 
-    const job = new Job({
+    let reqPostingDuration = undefined;
+    if (requisitionId) {
+      const reqDoc: any = await HiringRequisition.findByPk(requisitionId);
+      if (reqDoc) {
+        reqPostingDuration = reqDoc.postingDuration;
+      }
+    }
+
+    const job = await Job.create({
+      mongo_id: Date.now().toString(),
       title,
-      company: company._id,
-      department: department._id,
+      company: company.mongo_id,
+      department: department.mongo_id,
       location,
       category,
       qualification,
@@ -114,23 +149,29 @@ export async function POST(req: Request) {
       applicationLink: applicationLink || "",
       source: source || "Other",
       status: "active",
+      postingDuration: reqPostingDuration,
     });
-
-    // Save job first to get ID
-    await job.save();
 
     // Generate and save shareable link
     const origin = req.headers.get("origin") || "http://localhost:3000";
-    const shareableLink = `${origin}/jobs/apply/${job._id}`;
+    const shareableLink = `${origin}/jobs/apply/${job.mongo_id}`;
     job.shareableLink = shareableLink;
     await job.save();
+
+    if (requisitionId) {
+      await HiringRequisition.update({
+        status: "Job Posted",
+        ownerRemarks: "Job vacancy posted via Module 3 Form.",
+        postingDuration: reqPostingDuration,
+      }, { where: { mongo_id: requisitionId } });
+    }
 
     // Log Audit entry
     await logAudit({
       userId: (session.user as any).id,
       action: "CREATE_JOB",
       entity: "Job",
-      entityId: job._id.toString(),
+      entityId: job.mongo_id.toString(),
       details: `HR Job posted: ${title} for ${company.name} (${department.name}). Category: ${category}.`,
     });
 

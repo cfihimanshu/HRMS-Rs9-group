@@ -1,10 +1,11 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import dbConnect from "@/lib/db";
-import Verification from "@/models/Verification";
-import Candidate from "@/models/Candidate";
+import sequelize from "@/lib/sequelize";
+import Verification from "@/models/sequelize/Verification";
+import Candidate from "@/models/sequelize/Candidate";
 import { logAudit } from "@/lib/audit";
+import { logHRActivity } from "@/lib/hrAudit";
 
 // GET: Retrieve background checklists
 export async function GET(req: Request) {
@@ -17,17 +18,63 @@ export async function GET(req: Request) {
     const { searchParams } = new URL(req.url);
     const candidateId = searchParams.get("candidateId");
 
-    await dbConnect();
+    await sequelize.authenticate();
     const query: any = {};
     if (candidateId) {
       query.candidate = candidateId;
     }
 
-    const verifications = await Verification.find(query)
-      .populate("candidate", "name email mobile status")
-      .sort({ createdAt: -1 });
+    const verifications = await Verification.findAll({
+      where: query,
+      order: [['createdAt', 'DESC']]
+    });
 
-    return NextResponse.json({ success: true, data: verifications });
+    const candidateIds = verifications.map(v => (v as any).candidate).filter(Boolean);
+    const candidates = await Candidate.findAll({
+      where: { mongo_id: candidateIds }
+    });
+
+    const candidateMap = candidates.reduce((acc: any, c: any) => {
+      acc[c.mongo_id] = c.toJSON();
+      return acc;
+    }, {});
+
+    const updatedVerifications = [];
+    for (const verInstance of verifications) {
+      const ver = verInstance.toJSON() as any;
+      const candidateObj = candidateMap[ver.candidate];
+      ver.candidate = candidateObj || null;
+
+      let needsSave = false;
+      if (candidateObj && candidateObj.uploads) {
+        if (!verInstance.aadhaarUrl && candidateObj.uploads.aadhaar) {
+          verInstance.aadhaarUrl = candidateObj.uploads.aadhaar;
+          needsSave = true;
+        }
+        if (!verInstance.panUrl && candidateObj.uploads.pan) {
+          verInstance.panUrl = candidateObj.uploads.pan;
+          needsSave = true;
+        }
+        if (!verInstance.salarySlipUrl && candidateObj.uploads.salarySlip) {
+          verInstance.salarySlipUrl = candidateObj.uploads.salarySlip;
+          needsSave = true;
+        }
+        if (!verInstance.bankStatementUrl && candidateObj.uploads.bankStatement) {
+          verInstance.bankStatementUrl = candidateObj.uploads.bankStatement;
+          needsSave = true;
+        }
+      }
+      if (needsSave) {
+        await verInstance.save();
+        ver.aadhaarUrl = verInstance.aadhaarUrl;
+        ver.panUrl = verInstance.panUrl;
+        ver.salarySlipUrl = verInstance.salarySlipUrl;
+        ver.bankStatementUrl = verInstance.bankStatementUrl;
+      }
+      updatedVerifications.push(ver);
+    }
+
+    return NextResponse.json({ success: true, data: updatedVerifications });
   } catch (error: any) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
@@ -47,7 +94,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: false, error: "Forbidden: Risk/HR role required" }, { status: 403 });
     }
 
-    await dbConnect();
+    await sequelize.authenticate();
     const body = await req.json();
     const {
       candidateId,
@@ -62,6 +109,10 @@ export async function POST(req: Request) {
       socialMediaStatus,
       remarks,
       status,
+      aadhaarUrl,
+      panUrl,
+      salarySlipUrl,
+      bankStatementUrl,
     } = body;
 
     if (!candidateId) {
@@ -69,9 +120,12 @@ export async function POST(req: Request) {
     }
 
     // Find or create verification checklist
-    let verObj = await Verification.findOne({ candidate: candidateId });
+    let verObj = await Verification.findOne({ where: { candidate: candidateId } });
     if (!verObj) {
-      verObj = new Verification({ candidate: candidateId });
+      verObj = await Verification.create({
+        mongo_id: Date.now().toString(),
+        candidate: candidateId
+      });
     }
 
     // Map statuses
@@ -87,22 +141,44 @@ export async function POST(req: Request) {
     if (remarks !== undefined) verObj.remarks = remarks;
     if (status) verObj.status = status;
 
+    const candidateInstance = await Candidate.findByPk(candidateId);
+    const candidate = candidateInstance ? (candidateInstance.toJSON() as any) : null;
+
+    // Map document URLs if provided
+    if (aadhaarUrl !== undefined) verObj.aadhaarUrl = aadhaarUrl;
+    if (panUrl !== undefined) verObj.panUrl = panUrl;
+    if (salarySlipUrl !== undefined) verObj.salarySlipUrl = salarySlipUrl;
+    if (bankStatementUrl !== undefined) verObj.bankStatementUrl = bankStatementUrl;
+
+    // Fallback/auto-fill from candidate uploads if not provided or empty in verification object
+    if (candidate && candidate.uploads) {
+      if (!verObj.aadhaarUrl && candidate.uploads.aadhaar) verObj.aadhaarUrl = candidate.uploads.aadhaar;
+      if (!verObj.panUrl && candidate.uploads.pan) verObj.panUrl = candidate.uploads.pan;
+      if (!verObj.salarySlipUrl && candidate.uploads.salarySlip) verObj.salarySlipUrl = candidate.uploads.salarySlip;
+      if (!verObj.bankStatementUrl && candidate.uploads.bankStatement) verObj.bankStatementUrl = candidate.uploads.bankStatement;
+    }
+
     await verObj.save();
 
     // Propagate verification high risk back to candidate status if flagged
     if (status === "High Risk" || policeStatus === "High Risk") {
-      await Candidate.findByIdAndUpdate(candidateId, { status: "High Risk" });
+      await Candidate.update({ status: "High Risk" }, { where: { mongo_id: candidateId } });
     }
-
-    const candidate = await Candidate.findById(candidateId);
 
     // Audit Log Entry
     await logAudit({
       userId: (session.user as any).id,
       action: "UPDATE_BACKGROUND_VERIFICATION",
       entity: "Verification",
-      entityId: verObj._id.toString(),
+      entityId: verObj.mongo_id,
       details: `Background verification updated for candidate: ${candidate?.name || "Unknown"}. Overall status: ${status}. Remarks: ${remarks || "None"}.`,
+    });
+
+    await logHRActivity({
+      userId: (session.user as any).id,
+      userRole: (session.user as any).role,
+      action: "SUBMIT_VERIFICATION",
+      details: `Background verification updated for candidate: ${candidate?.name || "Unknown"}. Overall status: ${status}.`
     });
 
     return NextResponse.json({ success: true, data: verObj });

@@ -1,19 +1,39 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import dbConnect from "@/lib/db";
-import Vendor from "@/models/Vendor";
+import sequelize from "@/lib/sequelize";
+import Vendor from "@/models/sequelize/Vendor";
 import { logAudit } from "@/lib/audit";
+
+import User from "@/models/sequelize/User";
 
 // GET: Retrieve vendors list
 export async function GET() {
   try {
-    await dbConnect();
-    const vendors = await Vendor.find({ status: "active" })
-      .populate("user", "name email mobile status")
-      .sort({ createdAt: -1 });
+    await sequelize.authenticate();
+    const vendors = await Vendor.findAll({
+      where: { status: "active" },
+      order: [['createdAt', 'DESC']]
+    });
 
-    return NextResponse.json({ success: true, data: vendors });
+    const userIds = vendors.map(v => v.user).filter(Boolean);
+    const users = await User.findAll({
+      where: { mongo_id: userIds },
+      attributes: ['mongo_id', 'name', 'email', 'mobile', 'status']
+    });
+
+    const userMap = users.reduce((acc: any, u: any) => {
+      acc[u.mongo_id] = u.toJSON();
+      return acc;
+    }, {});
+
+    const data = vendors.map(v => {
+      const vJson = v.toJSON() as any;
+      vJson.user = userMap[vJson.user] || null;
+      return vJson;
+    });
+
+    return NextResponse.json({ success: true, data });
   } catch (error: any) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
@@ -27,7 +47,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
     }
 
-    await dbConnect();
+    await sequelize.authenticate();
     const body = await req.json();
     const { userId, category, agreementUrl, serviceType, paymentTerms, riskCategory, performanceScore, complaintsCount, renewalDate } = body;
 
@@ -35,9 +55,15 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: false, error: "Missing required vendor fields" }, { status: 400 });
     }
 
-    let vendor = await Vendor.findOne({ user: userId });
+    let vendor = await Vendor.findOne({ where: { user: userId } });
     if (!vendor) {
-      vendor = new Vendor({ user: userId, category, paymentTerms });
+      vendor = await Vendor.create({
+        mongo_id: Date.now().toString(),
+        user: userId,
+        category,
+        paymentTerms,
+        status: "active"
+      });
     }
 
     if (category !== undefined) vendor.category = category;
@@ -56,7 +82,7 @@ export async function POST(req: Request) {
       userId: (session.user as any).id,
       action: "UPDATE_VENDOR_PROFILE",
       entity: "Vendor",
-      entityId: vendor._id.toString(),
+      entityId: vendor.mongo_id,
       details: `Updated Vendor profile for user: ${userId} (${category}). Risk: ${riskCategory || "Low"}. Score: ${performanceScore || 100}%.`,
     });
 

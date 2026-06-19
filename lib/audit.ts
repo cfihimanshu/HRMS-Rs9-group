@@ -1,5 +1,5 @@
-import dbConnect from "./db";
-import AuditLog from "@/models/AuditLog";
+import sequelize from "./sequelize";
+import AuditLog from "../models/sequelize/AuditLog";
 
 interface AuditParams {
   userId?: string | null;
@@ -19,7 +19,7 @@ export async function logAudit({
   ipAddress,
 }: AuditParams) {
   try {
-    await dbConnect();
+    await sequelize.authenticate();
     const audit = new AuditLog({
       user: userId || null,
       action,

@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import dbConnect from "@/lib/db";
-import Candidate from "@/models/Candidate";
+import sequelize from "@/lib/sequelize";
+import Candidate from "@/models/sequelize/Candidate";
 import { screenCandidateWithAI } from "@/lib/ai";
 import { logAudit } from "@/lib/audit";
 
@@ -20,7 +20,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: false, error: "Forbidden: HR role required" }, { status: 403 });
     }
 
-    await dbConnect();
+    await sequelize.authenticate();
     const body = await req.json();
     const { candidateId } = body;
 
@@ -28,7 +28,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: false, error: "Candidate ID is required" }, { status: 400 });
     }
 
-    const candidate = await Candidate.findById(candidateId);
+    const candidate = await Candidate.findByPk(candidateId);
     if (!candidate) {
       return NextResponse.json({ success: false, error: "Candidate not found" }, { status: 404 });
     }

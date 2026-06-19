@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import dbConnect from "@/lib/db";
-import Onboarding from "@/models/Onboarding";
-import Candidate from "@/models/Candidate";
+import sequelize from "@/lib/sequelize";
+import Onboarding from "@/models/sequelize/Onboarding";
+import Candidate from "@/models/sequelize/Candidate";
+import Job from "@/models/sequelize/Job";
 import { logAudit } from "@/lib/audit";
 
 // GET: Fetch onboarding files
@@ -21,9 +22,24 @@ export async function GET(req: Request) {
       return NextResponse.json({ success: false, error: "Candidate ID required" }, { status: 400 });
     }
 
-    await dbConnect();
-    const onboarding = await Onboarding.findOne({ candidate: candidateId })
-      .populate("candidate", "name email mobile status");
+    await sequelize.authenticate();
+    const onboardingInstance = await Onboarding.findOne({ where: { candidate: candidateId } });
+
+    if (!onboardingInstance) {
+      return NextResponse.json({ success: true, data: null });
+    }
+
+    const onboarding = onboardingInstance.toJSON() as any;
+    const candidate = await Candidate.findByPk(onboarding.candidate);
+    if (candidate) {
+      onboarding.candidate = {
+        mongo_id: (candidate as any).mongo_id,
+        name: (candidate as any).name,
+        email: (candidate as any).email,
+        mobile: (candidate as any).mobile,
+        status: (candidate as any).status
+      };
+    }
 
     return NextResponse.json({ success: true, data: onboarding });
   } catch (error: any) {
@@ -45,7 +61,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: false, error: "Forbidden: HR Head or Owner role required" }, { status: 403 });
     }
 
-    await dbConnect();
+    await sequelize.authenticate();
     const body = await req.json();
     const { candidateId, category } = body; // category: Staff | Associate | Vendor | Franchise
 
@@ -53,9 +69,13 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: false, error: "Candidate ID and Category are required" }, { status: 400 });
     }
 
-    const candidate = await Candidate.findById(candidateId).populate("job");
-    if (!candidate) {
+    const candidateInstance = await Candidate.findByPk(candidateId);
+    if (!candidateInstance) {
       return NextResponse.json({ success: false, error: "Candidate not found" }, { status: 404 });
+    }
+    const candidate = candidateInstance.toJSON() as any;
+    if (candidate.job) {
+      candidate.job = await Job.findByPk(candidate.job);
     }
 
     // Determine documents to generate based on category
@@ -98,9 +118,10 @@ export async function POST(req: Request) {
     }
 
     // Find or create Onboarding record
-    let onboarding = await Onboarding.findOne({ candidate: candidateId });
+    let onboarding = await Onboarding.findOne({ where: { candidate: candidateId } });
     if (!onboarding) {
-      onboarding = new Onboarding({
+      onboarding = await Onboarding.create({
+        mongo_id: Date.now().toString(),
         candidate: candidateId,
         category,
         generatedDocs: [],
@@ -110,7 +131,7 @@ export async function POST(req: Request) {
     }
 
     // Add generated docs
-    onboarding.generatedDocs = docsToGen.map((docName) => ({
+    (onboarding as any).generatedDocs = docsToGen.map((docName) => ({
       name: docName,
       url: `/api/documents/download?candidateId=${candidateId}&docName=${encodeURIComponent(
         docName
@@ -125,7 +146,7 @@ export async function POST(req: Request) {
       userId: (session.user as any).id,
       action: "GENERATE_ONBOARDING_PAPERS",
       entity: "Onboarding",
-      entityId: onboarding._id.toString(),
+      entityId: (onboarding as any).mongo_id,
       details: `Generated onboarding documentation pack (${docsToGen.join(
         ", "
       )}) for candidate: ${candidate.name} under category: ${category}.`,
@@ -145,7 +166,7 @@ export async function PUT(req: Request) {
       return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
     }
 
-    await dbConnect();
+    await sequelize.authenticate();
     const body = await req.json();
     const { candidateId, docName } = body;
 
@@ -153,25 +174,32 @@ export async function PUT(req: Request) {
       return NextResponse.json({ success: false, error: "Candidate ID and Document Name are required" }, { status: 400 });
     }
 
-    const onboarding = await Onboarding.findOne({ candidate: candidateId });
+    const onboarding = await Onboarding.findOne({ where: { candidate: candidateId } });
     if (!onboarding) {
       return NextResponse.json({ success: false, error: "Onboarding record not found" }, { status: 404 });
     }
 
     // Check if document is already signed
-    const isAlreadySigned = onboarding.signedDocs.some((d: any) => d.name === docName);
+    const signedDocs = (onboarding as any).signedDocs || [];
+    const generatedDocs = (onboarding as any).generatedDocs || [];
+
+    const isAlreadySigned = signedDocs.some((d: any) => d.name === docName);
     if (!isAlreadySigned) {
-      onboarding.signedDocs.push({
-        name: docName,
-        url: `/api/documents/signed?candidateId=${candidateId}&docName=${encodeURIComponent(docName)}`,
-        signedAt: new Date(),
-      });
+      const updatedSignedDocs = [
+        ...signedDocs,
+        {
+          name: docName,
+          url: `/api/documents/signed?candidateId=${candidateId}&docName=${encodeURIComponent(docName)}`,
+          signedAt: new Date(),
+        }
+      ];
+      (onboarding as any).signedDocs = updatedSignedDocs;
 
       // Update overall status to Completed if all generated docs are signed
-      const totalGen = onboarding.generatedDocs.length;
-      const totalSigned = onboarding.signedDocs.length;
+      const totalGen = generatedDocs.length;
+      const totalSigned = updatedSignedDocs.length;
       if (totalGen > 0 && totalSigned >= totalGen) {
-        onboarding.status = "Completed";
+        (onboarding as any).status = "Completed";
       }
 
       await onboarding.save();
@@ -181,7 +209,7 @@ export async function PUT(req: Request) {
         userId: (session.user as any).id,
         action: "SIGN_ONBOARDING_DOCUMENT",
         entity: "Onboarding",
-        entityId: onboarding._id.toString(),
+        entityId: (onboarding as any).mongo_id,
         details: `Simulated signature of onboarding document '${docName}' for candidate: ${candidateId}.`,
       });
     }

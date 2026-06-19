@@ -17,10 +17,26 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, error: "No file uploaded" }, { status: 400 });
     }
 
+    const fileName = file.name.toLowerCase();
+    const isImage = file.type.startsWith("image/") || 
+                    fileName.endsWith(".png") || 
+                    fileName.endsWith(".jpg") || 
+                    fileName.endsWith(".jpeg") || 
+                    fileName.endsWith(".gif") || 
+                    fileName.endsWith(".webp");
+    const resourceType = isImage ? "image" : "raw";
+
+    const ext = fileName.includes(".") ? fileName.slice(fileName.lastIndexOf(".")) : "";
+    const publicId = `doc_${Date.now()}_${Math.random().toString(36).substring(2, 11)}${ext}`;
+
     // Upload to Cloudinary using REST API instead of stream to prevent timeout
     const timestamp = Math.round(new Date().getTime() / 1000);
     const signature = cloudinary.utils.api_sign_request(
-      { timestamp, folder: "acolyte_hr_documents" },
+      { 
+        timestamp, 
+        folder: "acolyte_hr_documents",
+        public_id: publicId
+      },
       process.env.CLOUDINARY_API_SECRET!
     );
 
@@ -30,9 +46,10 @@ export async function POST(request: Request) {
     cloudinaryFormData.append("signature", signature);
     cloudinaryFormData.append("api_key", process.env.CLOUDINARY_API_KEY!);
     cloudinaryFormData.append("folder", "acolyte_hr_documents");
+    cloudinaryFormData.append("public_id", publicId);
 
     const cloudinaryRes = await fetch(
-      `https://api.cloudinary.com/v1_1/${process.env.CLOUDINARY_CLOUD_NAME}/auto/upload`,
+      `https://api.cloudinary.com/v1_1/${process.env.CLOUDINARY_CLOUD_NAME}/${resourceType}/upload`,
       { method: "POST", body: cloudinaryFormData }
     );
 

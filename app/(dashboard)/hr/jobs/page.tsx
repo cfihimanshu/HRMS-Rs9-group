@@ -24,6 +24,8 @@ interface Job {
   salaryRange: string;
   shareableLink?: string;
   status: string;
+  postingDuration?: number;
+  createdAt?: string;
 }
 
 export default function HrJobsPage() {
@@ -367,35 +369,46 @@ export default function HrJobsPage() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-800/60">
-                      {jobs.map((job) => (
-                        <tr key={job._id} className="text-slate-300 hover:bg-slate-900/20 transition-all">
-                          <td className="py-4 pr-4 font-semibold text-white">{job.title}</td>
-                          <td className="py-4 px-4 text-xs">
-                            <div className="font-semibold text-slate-200">{job.company?.name}</div>
-                            <div className="text-slate-400">{job.department?.name}</div>
-                          </td>
-                          <td className="py-4 px-4 text-xs font-semibold text-indigo-400">
-                            {job.category}
-                          </td>
-                          <td className="py-4 px-4 text-xs text-slate-400">{job.location}</td>
-                          <td className="py-4 pl-4 text-right">
-                            {job.shareableLink ? (
-                              <button
-                                onClick={() => handleCopyLink(job.shareableLink!, job._id)}
-                                className={`text-xs font-medium px-3 py-1.5 rounded-lg border transition-all ${
-                                  copiedId === job._id
-                                    ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400"
-                                    : "bg-slate-950 hover:bg-indigo-600 hover:text-white border-slate-800 text-slate-400"
-                                }`}
-                              >
-                                {copiedId === job._id ? "Copied! ✓" : "Copy Link"}
-                              </button>
-                            ) : (
-                              <span className="text-xs text-slate-500">Not Generated</span>
-                            )}
-                          </td>
-                        </tr>
-                      ))}
+                      {jobs.map((job) => {
+                        const isExpired = !!(job.postingDuration && job.createdAt && (new Date().getTime() - new Date(job.createdAt).getTime()) > job.postingDuration * 24 * 60 * 60 * 1000);
+                        return (
+                          <tr key={job._id} className={`text-slate-300 hover:bg-slate-900/20 transition-all ${isExpired ? "opacity-40 bg-slate-950/20 select-none pointer-events-none" : ""}`}>
+                            <td className="py-4 pr-4 font-semibold text-white">
+                              {job.title}
+                              {isExpired && (
+                                <span className="ml-2 inline-block px-1.5 py-0.5 bg-rose-500/10 text-rose-400 text-[8px] rounded border border-rose-500/20 font-mono font-bold uppercase">
+                                  Expired
+                                </span>
+                              )}
+                            </td>
+                            <td className="py-4 px-4 text-xs">
+                              <div className="font-semibold text-slate-200">{job.company?.name}</div>
+                              <div className="text-slate-400">{job.department?.name}</div>
+                            </td>
+                            <td className="py-4 px-4 text-xs font-semibold text-indigo-400">
+                              {job.category}
+                            </td>
+                            <td className="py-4 px-4 text-xs text-slate-400">{job.location}</td>
+                            <td className="py-4 pl-4 text-right">
+                              {job.shareableLink ? (
+                                <button
+                                  onClick={() => handleCopyLink(job.shareableLink!, job._id)}
+                                  className={`text-xs font-medium px-3 py-1.5 rounded-lg border transition-all ${
+                                    copiedId === job._id
+                                      ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400"
+                                      : "bg-slate-950 hover:bg-indigo-600 hover:text-white border-slate-800 text-slate-400"
+                                  }`}
+                                  disabled={isExpired}
+                                >
+                                  {copiedId === job._id ? "Copied! ✓" : "Copy Link"}
+                                </button>
+                              ) : (
+                                <span className="text-xs text-slate-500">Not Generated</span>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })}
                     </tbody>
                   </table>
                 </div>

@@ -1,15 +1,17 @@
+// Removed @ts-nocheck
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import dbConnect from "@/lib/db";
-import Candidate from "@/models/Candidate";
-import Job from "@/models/Job";
+import sequelize from "@/lib/sequelize";
+import Candidate from "@/models/sequelize/Candidate";
+import Job from "@/models/sequelize/Job";
 import { logAudit } from "@/lib/audit";
+import { Op } from "sequelize";
 
 // POST: Candidate submits their application form (Public Endpoint)
 export async function POST(req: Request) {
   try {
-    await dbConnect();
+    await sequelize.authenticate();
     const body = await req.json();
 
     const {
@@ -43,13 +45,53 @@ export async function POST(req: Request) {
     }
 
     // Verify job if provided
-    let jobExists = null;
+    let jobExists: any = null;
     if (jobId) {
-      jobExists = await Job.findById(jobId);
+      jobExists = await Job.findByPk(jobId);
+      if (!jobExists) {
+        return NextResponse.json({ success: false, error: "Job posting not found" }, { status: 400 });
+      }
+    }
+
+    // 3-month Reapply Limitation Check
+    if (jobExists && jobExists.company) {
+      const companyJobs = await Job.findAll({ where: { company: jobExists.company }, attributes: ["mongo_id"] });
+      const companyJobIds = companyJobs.map((j: any) => j.mongo_id);
+
+      const existingCandidates = await Candidate.findAll({ where: {
+        [Op.or]: [
+          { email: email.trim() },
+          { mobile: mobile.trim() }
+        ],
+        job: { [Op.in]: companyJobIds },
+        status: { [Op.ne]: "inactive" }
+      } });
+
+      const threeMonthsAgo = new Date();
+      threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+
+      const recentApp = existingCandidates.find((c: any) => {
+        return new Date(c.createdAt) >= threeMonthsAgo;
+      });
+
+      if (recentApp) {
+        const nextAllowedDate = new Date(recentApp.createdAt);
+        nextAllowedDate.setMonth(nextAllowedDate.getMonth() + 3);
+        const formattedDate = nextAllowedDate.toLocaleDateString("en-IN", {
+          day: "2-digit",
+          month: "short",
+          year: "numeric"
+        });
+        return NextResponse.json({
+          success: false,
+          error: `You have already applied to this company within the last 3 months. You can re-apply after ${formattedDate}.`
+        }, { status: 400 });
+      }
     }
 
     // Create Candidate record
-    const candidate = new Candidate({
+    const candidate = await Candidate.create({
+      mongo_id: Date.now().toString(),
       job: jobId || null,
       name,
       mobile,
@@ -66,14 +108,12 @@ export async function POST(req: Request) {
       currentRound: 1,
     });
 
-    await candidate.save();
-
     // Log Audit Entry (Public Action, user reference is null)
     await logAudit({
       userId: null,
       action: "SUBMIT_CANDIDATE",
       entity: "Candidate",
-      entityId: candidate._id.toString(),
+      entityId: candidate.mongo_id.toString(),
       details: `Candidate application submitted: ${name} (${email}) for Job: ${
         jobExists ? jobExists.title : "General Inquiry"
       }.`,
@@ -115,13 +155,8 @@ export async function GET(req: Request) {
       return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 });
     }
 
-    await dbConnect();
-    const candidates = await Candidate.find({ status: { $ne: "inactive" } })
-      .populate({
-        path: "job",
-        populate: { path: "company department", select: "name" },
-      })
-      .sort({ createdAt: -1 });
+    await sequelize.authenticate();
+    const candidates = await Candidate.findAll({ where: { status: { [Op.ne]: "inactive" } } });
 
     return NextResponse.json({ success: true, data: candidates });
   } catch (error: any) {

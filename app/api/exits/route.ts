@@ -1,10 +1,12 @@
+// Removed @ts-nocheck
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import dbConnect from "@/lib/db";
-import ExitRecord from "@/models/ExitRecord";
-import User from "@/models/User";
+import sequelize from "@/lib/sequelize";
+import ExitRecord from "@/models/sequelize/ExitRecord";
+import User from "@/models/sequelize/User";
 import { logAudit } from "@/lib/audit";
+import { Op } from "sequelize";
 
 // GET: Fetch all active exit records (HR & Owner only)
 export async function GET(req: Request) {
@@ -20,12 +22,26 @@ export async function GET(req: Request) {
       return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 });
     }
 
-    await dbConnect();
-    const records = await ExitRecord.find({ status: "active" })
-      .populate("employee", "name email role mobile")
-      .sort({ createdAt: -1 });
+    await sequelize.authenticate();
+    const records = await ExitRecord.findAll({ 
+      where: { status: "active" },
+      order: [['createdAt', 'DESC']],
+      raw: true
+    });
 
-    return NextResponse.json({ success: true, data: records });
+    const empIds = [...new Set(records.map((r: any) => r.employee).filter(Boolean))];
+    let empMap: any = {};
+    if (empIds.length > 0) {
+      const emps = await User.findAll({ where: { mongo_id: { [Op.in]: empIds } }, raw: true });
+      emps.forEach((e: any) => { empMap[e.mongo_id] = { _id: e.mongo_id, name: e.name, email: e.email, role: e.role, mobile: e.mobile }; });
+    }
+
+    const data = records.map((r: any) => ({
+      ...r,
+      employee: empMap[r.employee] || { _id: r.employee, name: 'Unknown' }
+    }));
+
+    return NextResponse.json({ success: true, data });
   } catch (error: any) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
@@ -63,15 +79,15 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: false, error: "Missing required fields" }, { status: 400 });
     }
 
-    await dbConnect();
+    await sequelize.authenticate();
 
     // Check if target employee exists
-    const employeeUser = await User.findById(employeeId);
+    const employeeUser = await User.findByPk(employeeId);
     if (!employeeUser) {
       return NextResponse.json({ success: false, error: "Employee User not found" }, { status: 404 });
     }
 
-    let record = await ExitRecord.findOne({ employee: employeeId });
+    let record = await ExitRecord.findOne({ where: { employee: employeeId } });
 
     if (record) {
       record.exitReason = exitReason;
@@ -85,7 +101,8 @@ export async function POST(req: Request) {
       record.exitInterviewNotes = exitInterviewNotes || "";
       await record.save();
     } else {
-      record = new ExitRecord({
+      record = await ExitRecord.create({
+        mongo_id: Date.now().toString(),
         employee: employeeId,
         exitReason,
         assetsReturned: !!assetsReturned,
@@ -96,9 +113,13 @@ export async function POST(req: Request) {
         postExitWatch: !!postExitWatch,
         finalSettlementStatus: finalSettlementStatus || "Pending",
         exitInterviewNotes: exitInterviewNotes || "",
+        status: "active"
       });
-      await record.save();
     }
+
+    // Set employee status to "on notice"
+    employeeUser.status = "on notice";
+    await employeeUser.save();
 
     // Auto action: If IT access is revoked, toggle status or log it
     if (accessRevoked) {
@@ -109,7 +130,7 @@ export async function POST(req: Request) {
       userId: (session.user as any).id,
       action: "EXIT_RECORD_UPDATED",
       entity: "ExitRecord",
-      entityId: record._id.toString(),
+      entityId: (record as any).mongo_id ? (record as any).mongo_id.toString() : record.id,
       details: `Exit checklist filed for employee ${employeeUser.name}. IT Revoked: ${!!accessRevoked}, Assets returned: ${!!assetsReturned}`,
     });
 

@@ -8,11 +8,17 @@ interface StatCardProps {
   trendUp: boolean;
   icon: ReactNode;
   dark?: boolean;
+  onClick?: () => void;
 }
 
-export default function StatCard({ title, value, trend, trendUp, icon, dark = false }: StatCardProps) {
+export default function StatCard({ title, value, trend, trendUp, icon, dark = false, onClick }: StatCardProps) {
   return (
-    <div className={`stat-card relative overflow-hidden group transition-all duration-300 hover:shadow-md ${dark ? "hover:border-gray-600" : "hover:border-purple-200"}`}>
+    <div 
+      onClick={onClick}
+      className={`stat-card relative overflow-hidden group transition-all duration-300 hover:shadow-md ${
+        onClick ? "cursor-pointer active:scale-[0.98]" : ""
+      } ${dark ? "hover:border-gray-600" : "hover:border-purple-200"}`}
+    >
       <div className="flex justify-between items-start mb-4">
         <div>
           <p className={`text-sm font-medium mb-1 ${dark ? "text-gray-400" : "text-slate-500"}`}>{title}</p>
