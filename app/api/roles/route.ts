@@ -1,11 +1,12 @@
 import { NextResponse } from "next/server";
-import dbConnect from "@/lib/db";
-import Role from "@/models/Role";
-import Company from "@/models/Company";
+import sequelize from "@/lib/sequelize";
+import Role from "@/models/sequelize/Role";
+import Company from "@/models/sequelize/Company";
+import { Op } from "sequelize";
 
 export async function GET(req: Request) {
   try {
-    await dbConnect();
+    await sequelize.authenticate();
     const { searchParams } = new URL(req.url);
     const companyId = searchParams.get("companyId");
     const companyName = searchParams.get("companyName");
@@ -14,8 +15,8 @@ export async function GET(req: Request) {
 
     if (!targetCompanyId && companyName) {
       const trimName = companyName.trim().toLowerCase();
-      const allCompanies = await Company.find({ status: "active" });
-      const matchedComp = allCompanies.find(c => {
+      const allCompanies = await Company.findAll({ where: { status: "active" }, raw: true });
+      const matchedComp = allCompanies.find((c: any) => {
         const dbName = c.name.toLowerCase();
         const dbCode = (c.code || "").toLowerCase();
         
@@ -41,38 +42,36 @@ export async function GET(req: Request) {
         return dbName.includes(trimName) || trimName.includes(dbName);
       });
       if (matchedComp) {
-        targetCompanyId = matchedComp._id.toString();
+        targetCompanyId = matchedComp.mongo_id || (matchedComp as any).id;
       }
     }
 
     // Default global roles query
-    let query: any = {
-      status: "active",
-      $or: [
-        { companies: { $size: 0 } },
-        { companies: { $exists: false } }
-      ]
-    };
+    const roles = await Role.findAll({ 
+      where: { status: "active" },
+      order: [['name', 'ASC']],
+      raw: true
+    });
 
-    if (targetCompanyId) {
-      query.$or.push({ companies: targetCompanyId });
-    }
-
-    // Fetch matching roles
-    const roles = await Role.find(query).sort({ name: 1 });
-    
-    // Filter out unwanted roles (like DSM, RIBP, RIBP / Risk Officer, Franchisee, Business Associate)
-    // ONLY keep global roles if they are part of the core 7 or company-mapped.
     const allowedCoreRoles = [
       "Employee", "HR Head", "HR Executive", "Department Manager",
       "Trainer", "Accounts", "IT Admin"
     ];
 
     const filteredRoles = roles.filter((r: any) => {
-      // If it has companies mapping, it is custom, so allow it!
-      if (r.companies && r.companies.length > 0) return true;
-      // If it is a global role, check if it's one of the core 7 roles
-      return allowedCoreRoles.includes(r.name);
+      let comps = r.companies;
+      if (typeof comps === 'string') {
+        try { comps = JSON.parse(comps); } catch(e) { comps = []; }
+      }
+      if (!Array.isArray(comps)) comps = [];
+
+      if (targetCompanyId && comps.some((id: any) => id.toString() === targetCompanyId.toString())) {
+        return true;
+      }
+      if (comps.length === 0) {
+        return allowedCoreRoles.includes(r.name);
+      }
+      return false;
     });
 
     return NextResponse.json({ success: true, data: filteredRoles });
@@ -83,7 +82,7 @@ export async function GET(req: Request) {
 
 export async function POST(req: Request) {
   try {
-    await dbConnect();
+    await sequelize.authenticate();
     const body = await req.json();
     const { name, companyName, companyId } = body;
 
@@ -95,8 +94,8 @@ export async function POST(req: Request) {
 
     if (!targetCompanyId && companyName) {
       const trimName = companyName.trim().toLowerCase();
-      const allCompanies = await Company.find({ status: "active" });
-      const matchedComp = allCompanies.find(c => {
+      const allCompanies = await Company.findAll({ where: { status: "active" }, raw: true });
+      const matchedComp = allCompanies.find((c: any) => {
         const dbName = c.name.toLowerCase();
         const dbCode = (c.code || "").toLowerCase();
         
@@ -121,7 +120,7 @@ export async function POST(req: Request) {
         return dbName.includes(trimName) || trimName.includes(dbName);
       });
       if (matchedComp) {
-        targetCompanyId = matchedComp._id.toString();
+        targetCompanyId = matchedComp.mongo_id || (matchedComp as any).id;
       }
     }
 
@@ -129,21 +128,31 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: false, error: "Valid Company is required to map the custom role" }, { status: 400 });
     }
 
-    // Check if role already exists globally or for this company
-    let existingRole = await Role.findOne({ name: { $regex: new RegExp(`^${name.trim()}$`, "i") } });
+    // Check if role already exists globally or for this company (case insensitive)
+    let existingRole = await Role.findOne({ 
+      where: sequelize.where(
+        sequelize.fn('lower', sequelize.col('name')),
+        name.trim().toLowerCase()
+      )
+    });
+
     if (existingRole) {
-      // Add company mapping if not already present
-      if (!existingRole.companies) {
-        existingRole.companies = [];
+      let comps = existingRole.companies;
+      if (typeof comps === 'string') {
+        try { comps = JSON.parse(comps); } catch(e) { comps = []; }
       }
-      if (!existingRole.companies.some((id: any) => id.toString() === targetCompanyId.toString())) {
-        existingRole.companies.push(targetCompanyId);
+      if (!Array.isArray(comps)) comps = [];
+
+      if (!comps.some((id: any) => id.toString() === targetCompanyId.toString())) {
+        comps.push(targetCompanyId);
+        existingRole.companies = comps;
         await existingRole.save();
       }
       return NextResponse.json({ success: true, data: existingRole });
     }
 
     const newRole = await Role.create({
+      mongo_id: Date.now().toString(),
       name: name.trim(),
       permissions: ["read", "write"],
       status: "active",

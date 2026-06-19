@@ -221,11 +221,6 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
 
   const isManagement = ["Owner", "Director", "HR Head"].includes(userRole);
 
-  const availableRoles = [
-    "Employee", "HR Head", "HR Executive", "Department Manager",
-    "Trainer", "Accounts", "IT Admin"
-  ];
-
   const availableDepartments = ["HR", "IT", "Sales", "Admin", "Operation", "Data Entry", "Legal", "Recovery", "Management"];
 
   const allowedCompanies = ["CFI", "RAA", "CTPL", "ATPL", "RNPL", "MVPL"];

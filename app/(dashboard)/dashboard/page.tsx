@@ -955,6 +955,8 @@ export default function UnifiedEnterpriseDashboard() {
           {activeTab === "hr-dash" && (
             <HrDashboard
               stats={stats}
+              candidates={candidates}
+              interviews={interviews}
               onNavigateTab={setActiveTab}
             />
           )}

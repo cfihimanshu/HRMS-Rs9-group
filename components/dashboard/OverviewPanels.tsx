@@ -216,9 +216,13 @@ export function OwnerDashboard({
 
 export function HrDashboard({ 
   stats,
+  candidates = [],
+  interviews = [],
   onNavigateTab 
 }: { 
   stats: any;
+  candidates?: any[];
+  interviews?: any[];
   onNavigateTab: (tab: string) => void;
 }) {
   const hrStats = stats?.hrStats || {};
@@ -315,10 +319,6 @@ export function HrDashboard({
           onClick={() => onNavigateTab("hr-leads")}
         />
       </div>
-      {/* Main Grid: Left part spans 3 columns, right part spans 1 column */}
-      <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
-        <div className="xl:col-span-3 space-y-6">
-
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6">
           <div className={`p-6 rounded-xl border shadow-sm ${isDark ? "bg-gray-900 border-gray-800" : "bg-white border-slate-200"}`}>

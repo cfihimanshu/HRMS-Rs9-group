@@ -4,6 +4,7 @@ import User from "@/models/sequelize/User";
 import EmployeeProfile from "@/models/sequelize/EmployeeProfile";
 import Company from "@/models/sequelize/Company";
 import Department from "@/models/sequelize/Department";
+import Probation from "@/models/sequelize/Probation";
 import bcrypt from "bcryptjs";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
@@ -145,7 +146,7 @@ export async function POST(req: Request) {
       const endDate = new Date();
       endDate.setMonth(endDate.getMonth() + 6); // 6 months probation
       await Probation.create({
-        employee: newUser._id,
+        employee: newUser.mongo_id,
         startDate,
         endDate,
         status: "active",

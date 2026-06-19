@@ -1,8 +1,6 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import dbConnect from "@/lib/db";
-import Interview from "@/models/Interview";
 
 export async function POST(req: Request) {
   try {
@@ -11,7 +9,6 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
     }
 
-    await dbConnect();
     const body = await req.json();
     const { interviewId, customQuestions, overallScore, candidateName, vacancyName, round } = body;
 

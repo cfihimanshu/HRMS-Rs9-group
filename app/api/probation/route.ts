@@ -83,11 +83,11 @@ export async function POST(req: Request) {
 
       // Synchronize to User status
       if (status === "Confirm") {
-        await User.findByIdAndUpdate(record.employee, { status: "active" });
+        await User.update({ status: "active" }, { where: { mongo_id: record.employee } });
       } else if (status === "Exit") {
-        await User.findByIdAndUpdate(record.employee, { status: "deactivated" });
+        await User.update({ status: "deactivated" }, { where: { mongo_id: record.employee } });
       } else if (status === "active" || status === "Extend" || status === "Restrict role") {
-        await User.findByIdAndUpdate(record.employee, { status: "probation" });
+        await User.update({ status: "probation" }, { where: { mongo_id: record.employee } });
       }
 
       await logAudit({
@@ -118,7 +118,7 @@ export async function POST(req: Request) {
     });
 
     // Synchronize to User status
-    await User.findByIdAndUpdate(employeeId, { status: "probation" });
+    await User.update({ status: "probation" }, { where: { mongo_id: employeeId } });
 
     return NextResponse.json({ success: true, data: newRecord });
   } catch (error: any) {
