@@ -36,12 +36,10 @@ export async function POST(request: Request) {
         });
 
         const stream = Readable.from(buffer);
-        const ftpDir = process.env.FTP_DIR !== undefined ? process.env.FTP_DIR : "/public_html/hrms";
-        const ftpPath = ftpDir ? (ftpDir.endsWith("/") ? `${ftpDir}${uniqueFileName}` : `${ftpDir}/${uniqueFileName}`) : uniqueFileName;
+        const ftpDir = process.env.FTP_DIR || "/public_html/hrms";
+        const ftpPath = `${ftpDir}/${uniqueFileName}`;
 
-        await client.ensureDir(ftpDir);
-        // Switch back to root before using full path or just use the filename since we are in the dir
-        await client.uploadFrom(stream, uniqueFileName);
+        await client.uploadFrom(stream, ftpPath);
         client.close();
 
         const urlPrefix = process.env.UPLOAD_URL_PREFIX || "https://ruhannetwork.com/hrms";

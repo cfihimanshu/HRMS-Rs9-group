@@ -8,6 +8,21 @@ interface EmployeeDirectoryProps {
   sessionUser?: any;
 }
 
+const departmentRoles: Record<string, string[]> = {
+  "Management": ["CEO", "Managing Director", "COO", "CTO", "CFO", "CIO", "VP", "General Manager", "Business Head"],
+  "Human Resources (HR)": ["HR Executive", "HR Recruiter", "HR Generalist", "HR Manager", "HR Business Partner", "Payroll Executive", "Training Executive"],
+  "Information Technology (IT)": ["Software Developer", "Frontend Developer", "Backend Developer", "Full Stack Developer", "Mobile Developer", "QA Tester", "DevOps Engineer", "System Administrator", "Network Engineer", "Database Administrator", "IT Support Engineer", "Cyber Security Analyst", "UI/UX Designer"],
+  "Sales": ["Sales Executive", "Sales Representative", "Sales Manager", "Area Sales Manager", "Regional Sales Manager", "Business Development Executive (BDE)", "Business Development Manager (BDM)", "Key Account Manager"],
+  "Marketing": ["Marketing Executive", "Digital Marketing Executive", "SEO Executive", "SEM Specialist", "Social Media Manager", "Content Writer", "Graphic Designer", "Brand Manager", "Marketing Manager"],
+  "Accounts": ["Accounts Assistant", "Accounts Executive", "Senior Accountant", "Billing Executive", "GST Executive", "Audit Executive"],
+  "Administration (Admin)": ["Admin Executive", "Office Administrator", "Office Manager", "Facility Manager", "Receptionist"],
+  "Operations": ["Operation Executive", "Operation Coordinator", "Operation Manager", "Process Manager", "Logistics Coordinator"],
+  "Customer Support": ["Customer Support Executive", "Customer Success Executive", "Customer Relationship Manager (CRM)", "Helpdesk Executive", "Technical Support Engineer"],
+  "Legal": ["Legal Executive", "Legal Advisor", "Compliance Officer", "Corporate Lawyer", "Legal Manager"],
+  "Data Entry": ["Data Entry Operator", "Documentation Executive", "MIS Executive", "Data Processing Executive"],
+  "Business Analyst": ["Business Analyst", "Senior Business Analyst", "Product Analyst"]
+};
+
 export default function EmployeeDirectory({ userRole, triggerToast, sessionUser }: EmployeeDirectoryProps) {
   const [employees, setEmployees] = useState<any[]>([]);
   const [companies, setCompanies] = useState<any[]>([]);
@@ -26,10 +41,11 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
 
   const [topCompany, setTopCompany] = useState("");
   const [topRole, setTopRole] = useState("Employee");
-  const [availableRoles, setAvailableRoles] = useState<string[]>([
-    "Employee", "HR Head", "HR Executive", "Department Manager",
-    "Trainer", "Accounts", "IT Admin"
-  ]);
+  const [dbRoles, setDbRoles] = useState<any[]>([]);
+  const [customDeptName, setCustomDeptName] = useState("");
+  const [customRoleName, setCustomRoleName] = useState("");
+  const [showCustomDeptInput, setShowCustomDeptInput] = useState(false);
+  const [showCustomRoleInput, setShowCustomRoleInput] = useState(false);
 
   const handleTopCompanyChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const val = e.target.value;
@@ -66,6 +82,10 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
 
   const handleTopRoleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const val = e.target.value;
+    if (val === "add_custom_role") {
+      setShowCustomRoleInput(true);
+      return;
+    }
     setTopRole(val);
     setFormData(prev => ({ ...prev, role: val, designation: val }));
   };
@@ -81,7 +101,7 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
     designation: "",
     dateOfJoining: "",
     baseSalary: "",
-    department: "HR"
+    department: "Human Resources (HR)"
   });
 
   const fetchData = async () => {
@@ -98,8 +118,7 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
       if (empData.success) setEmployees(empData.data);
       if (compData.success) setCompanies(compData.data);
       if (roleData.success && roleData.data) {
-        const dbRoleNames = roleData.data.map((r: any) => r.name);
-        setAvailableRoles(prev => Array.from(new Set([...prev, ...dbRoleNames])));
+        setDbRoles(roleData.data);
       }
     } catch (error) {
       console.error("Error fetching data:", error);
@@ -118,84 +137,60 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
     return () => observer.disconnect();
   }, []);
 
+  const fetchGlobalRoles = async () => {
+    try {
+      const res = await fetch("/api/roles");
+      const data = await res.json();
+      if (data.success && data.data) {
+        setDbRoles(data.data);
+      }
+    } catch (err) {
+      console.error("Error fetching global roles:", err);
+    }
+  };
+
+  const fetchCompanyRoles = async (compId: string) => {
+    try {
+      const res = await fetch(`/api/roles?companyId=${compId}`);
+      const data = await res.json();
+      if (data.success && data.data) {
+        setDbRoles(data.data);
+      }
+    } catch (err) {
+      console.error("Error fetching company roles:", err);
+    }
+  };
+
+  const fetchNextEmployeeId = async (compId: string) => {
+    try {
+      const res = await fetch(`/api/employees/next-id?companyId=${compId}`);
+      const data = await res.json();
+      if (data.success && data.employeeId) {
+        setFormData(prev => ({ ...prev, employeeId: data.employeeId }));
+      }
+    } catch (err) {
+      console.error("Error fetching next employeeId:", err);
+    }
+  };
+
   // Auto-generate employeeId and fetch roles on companyId selection
   useEffect(() => {
     if (!formData.companyId) {
       setFormData(prev => ({ ...prev, employeeId: "" }));
-      setAvailableRoles([
-        "Employee", "HR Head", "HR Executive", "Department Manager",
-        "Trainer", "Accounts", "IT Admin"
-      ]);
+      fetchGlobalRoles();
       return;
     }
-    const fetchNextEmployeeId = async () => {
-      try {
-        const res = await fetch(`/api/employees/next-id?companyId=${formData.companyId}`);
-        const data = await res.json();
-        if (data.success && data.employeeId) {
-          setFormData(prev => ({ ...prev, employeeId: data.employeeId }));
-        }
-      } catch (err) {
-        console.error("Error fetching next employeeId:", err);
-      }
-    };
-    const fetchCompanyRoles = async () => {
-      try {
-        const res = await fetch(`/api/roles?companyId=${formData.companyId}`);
-        const data = await res.json();
-        if (data.success && data.data) {
-          const dbRoleNames = data.data.map((r: any) => r.name);
-          const coreRoles = [
-            "Employee", "HR Head", "HR Executive", "Department Manager",
-            "Trainer", "Accounts", "IT Admin"
-          ];
-          setAvailableRoles(Array.from(new Set([...coreRoles, ...dbRoleNames])));
-        }
-      } catch (err) {
-        console.error("Error fetching company roles:", err);
-      }
-    };
-    fetchNextEmployeeId();
-    fetchCompanyRoles();
+    fetchNextEmployeeId(formData.companyId);
+    fetchCompanyRoles(formData.companyId);
   }, [formData.companyId]);
 
-  // Synchronize topRole and formData.role when department or availableRoles changes
+  // Synchronize topRole and formData.role when department or dbRoles changes
   useEffect(() => {
-    const deptLower = (formData.department || "HR").toLowerCase();
-    const matchingRoles = availableRoles.filter(role => {
-      const roleNameLower = role.toLowerCase();
-      if (deptLower === "hr") {
-        return ["hr head", "hr executive", "recruiter", "employee"].includes(roleNameLower) || roleNameLower.includes("hr") || roleNameLower.includes("recruit");
-      }
-      if (deptLower === "it") {
-        return ["it admin", "employee"].includes(roleNameLower) || roleNameLower.includes("it") || roleNameLower.includes("tech") || roleNameLower.includes("network");
-      }
-      if (deptLower === "sales") {
-        return ["bda", "associate", "partner", "employee"].includes(roleNameLower) || roleNameLower.includes("sale") || roleNameLower.includes("bda") || roleNameLower.includes("marketing");
-      }
-      if (deptLower === "admin") {
-        return ["admin", "it admin", "employee"].includes(roleNameLower) || roleNameLower.includes("admin");
-      }
-      if (deptLower === "operation") {
-        return ["operation head", "operation executive", "senior forensics investigator", "employee"].includes(roleNameLower) || roleNameLower.includes("operat") || roleNameLower.includes("forensic");
-      }
-      if (deptLower === "data entry") {
-        return roleNameLower === "employee" || roleNameLower.includes("data") || roleNameLower.includes("entry");
-      }
-      if (deptLower === "legal") {
-        return ["compliance head", "compliance executive", "employee"].includes(roleNameLower) || roleNameLower.includes("legal") || roleNameLower.includes("complian");
-      }
-      if (deptLower === "recovery") {
-        return ["vetting executive", "employee"].includes(roleNameLower) || roleNameLower.includes("vetting") || roleNameLower.includes("recover");
-      }
-      if (deptLower === "management") {
-        return ["owner", "director", "management", "employee"].includes(roleNameLower) || roleNameLower.includes("manage") || roleNameLower.includes("owner") || roleNameLower.includes("director");
-      }
-      return roleNameLower === "employee";
-    });
+    const currentList = dbRoles.length > 0
+      ? Array.from(new Set(dbRoles.filter((r: any) => (r.department || "").toLowerCase() === (formData.department || "Human Resources (HR)").toLowerCase()).map((r: any) => r.name)))
+      : (departmentRoles[formData.department || "Human Resources (HR)"] || ["Employee"]);
 
-    const finalRoles = matchingRoles.length > 0 ? matchingRoles : ["Employee"];
-    
+    const finalRoles = currentList.length > 0 ? currentList : ["Employee"];
     if (!finalRoles.includes(formData.role)) {
       const defaultRole = finalRoles[0];
       setTopRole(defaultRole);
@@ -205,7 +200,7 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
         designation: defaultRole
       }));
     }
-  }, [formData.department, availableRoles]);
+  }, [formData.department, dbRoles]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -226,9 +221,9 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
         setTopCompany("");
         setTopRole("Employee");
         setFormData({
-          name: "", email: "", password: "", role: "Employee", mobile: "",
+          name: "", email: "", password: "", role: "HR Executive", mobile: "",
           companyId: "", employeeId: "", designation: "", dateOfJoining: "", baseSalary: "",
-          department: "HR"
+          department: "Human Resources (HR)"
         });
         fetchData(); // Refresh list
       } else {
@@ -244,40 +239,15 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
     
     if (name === "department") {
       const newDept = value;
-      const deptLower = newDept.toLowerCase();
-      const matchingRoles = availableRoles.filter(role => {
-        const roleNameLower = role.toLowerCase();
-        if (deptLower === "hr") {
-          return ["hr head", "hr executive", "recruiter", "employee"].includes(roleNameLower) || roleNameLower.includes("hr") || roleNameLower.includes("recruit");
-        }
-        if (deptLower === "it") {
-          return ["it admin", "employee"].includes(roleNameLower) || roleNameLower.includes("it") || roleNameLower.includes("tech") || roleNameLower.includes("network");
-        }
-        if (deptLower === "sales") {
-          return ["bda", "associate", "partner", "employee"].includes(roleNameLower) || roleNameLower.includes("sale") || roleNameLower.includes("bda") || roleNameLower.includes("marketing");
-        }
-        if (deptLower === "admin") {
-          return ["admin", "it admin", "employee"].includes(roleNameLower) || roleNameLower.includes("admin");
-        }
-        if (deptLower === "operation") {
-          return ["operation head", "operation executive", "senior forensics investigator", "employee"].includes(roleNameLower) || roleNameLower.includes("operat") || roleNameLower.includes("forensic");
-        }
-        if (deptLower === "data entry") {
-          return roleNameLower === "employee" || roleNameLower.includes("data") || roleNameLower.includes("entry");
-        }
-        if (deptLower === "legal") {
-          return ["compliance head", "compliance executive", "employee"].includes(roleNameLower) || roleNameLower.includes("legal") || roleNameLower.includes("complian");
-        }
-        if (deptLower === "recovery") {
-          return ["vetting executive", "employee"].includes(roleNameLower) || roleNameLower.includes("vetting") || roleNameLower.includes("recover");
-        }
-        if (deptLower === "management") {
-          return ["owner", "director", "management", "employee"].includes(roleNameLower) || roleNameLower.includes("manage") || roleNameLower.includes("owner") || roleNameLower.includes("director");
-        }
-        return roleNameLower === "employee";
-      });
+      if (newDept === "add_custom_department") {
+        setShowCustomDeptInput(true);
+        return;
+      }
+      const currentList = dbRoles.length > 0
+        ? Array.from(new Set(dbRoles.filter((r: any) => (r.department || "").toLowerCase() === newDept.toLowerCase()).map((r: any) => r.name)))
+        : (departmentRoles[newDept] || ["Employee"]);
 
-      const finalRoles = matchingRoles.length > 0 ? matchingRoles : ["Employee"];
+      const finalRoles = currentList.length > 0 ? currentList : ["Employee"];
       const defaultRole = finalRoles[0];
       
       setTopRole(defaultRole);
@@ -289,6 +259,89 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
       }));
     } else {
       setFormData(prev => ({ ...prev, [name]: value }));
+    }
+  };
+
+  const handleAddCustomDept = async () => {
+    if (!customDeptName.trim()) {
+      triggerToast("Department name cannot be empty");
+      return;
+    }
+    try {
+      const res = await fetch("/api/roles", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: "Employee",
+          department: customDeptName.trim(),
+          companyId: formData.companyId || undefined
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        triggerToast(`Department "${customDeptName.trim()}" created successfully!`);
+        setShowCustomDeptInput(false);
+        setCustomDeptName("");
+        
+        if (formData.companyId) {
+          await fetchCompanyRoles(formData.companyId);
+        } else {
+          await fetchGlobalRoles();
+        }
+        
+        setFormData(prev => ({
+          ...prev,
+          department: customDeptName.trim(),
+          role: "Employee",
+          designation: "Employee"
+        }));
+        setTopRole("Employee");
+      } else {
+        triggerToast("Failed to create department: " + data.error);
+      }
+    } catch (err) {
+      triggerToast("Error creating custom department");
+    }
+  };
+
+  const handleAddCustomRole = async () => {
+    if (!customRoleName.trim()) {
+      triggerToast("Role name cannot be empty");
+      return;
+    }
+    try {
+      const res = await fetch("/api/roles", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: customRoleName.trim(),
+          department: formData.department,
+          companyId: formData.companyId || undefined
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        triggerToast(`Role "${customRoleName.trim()}" created under "${formData.department}" successfully!`);
+        setShowCustomRoleInput(false);
+        setCustomRoleName("");
+        
+        if (formData.companyId) {
+          await fetchCompanyRoles(formData.companyId);
+        } else {
+          await fetchGlobalRoles();
+        }
+        
+        setFormData(prev => ({
+          ...prev,
+          role: customRoleName.trim(),
+          designation: customRoleName.trim()
+        }));
+        setTopRole(customRoleName.trim());
+      } else {
+        triggerToast("Failed to create role: " + data.error);
+      }
+    } catch (err) {
+      triggerToast("Error creating custom role");
     }
   };
 
@@ -318,7 +371,23 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
 
   const isManagement = ["Owner", "Director", "HR Head"].includes(userRole);
 
-  const availableDepartments = ["HR", "IT", "Sales", "Admin", "Operation", "Data Entry", "Legal", "Recovery", "Management"];
+  const defaultDepts = [
+    "Management",
+    "Human Resources (HR)",
+    "Information Technology (IT)",
+    "Sales",
+    "Marketing",
+    "Accounts",
+    "Administration (Admin)",
+    "Operations",
+    "Customer Support",
+    "Legal",
+    "Data Entry",
+    "Business Analyst"
+  ];
+  const availableDepartments = dbRoles.length > 0
+    ? Array.from(new Set(dbRoles.map((r: any) => r.department).filter(Boolean))).sort()
+    : defaultDepts;
 
   const allowedCompanies = ["CFI", "RAA", "CTPL", "ATPL", "RNPL", "MVPL"];
 
@@ -443,42 +512,15 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showAddForm, visibleCompanyOptions.join(','), companies, userRole]);
 
-  // Filter availableRoles based on selected department for display
-  const displayRoles = availableRoles.filter(role => {
-    const roleNameLower = role.toLowerCase();
-    const deptLower = (formData.department || "HR").toLowerCase();
+  // Filter roles based on selected department for display
+  const finalRolesList = dbRoles.length > 0
+    ? Array.from(new Set(dbRoles.filter((r: any) => (r.department || "").toLowerCase() === (formData.department || "Human Resources (HR)").toLowerCase()).map((r: any) => r.name)))
+    : (departmentRoles[formData.department || "Human Resources (HR)"] || ["Employee"]);
 
-    if (deptLower === "hr") {
-      return ["hr head", "hr executive", "recruiter", "employee"].includes(roleNameLower) || roleNameLower.includes("hr") || roleNameLower.includes("recruit");
-    }
-    if (deptLower === "it") {
-      return ["it admin", "employee"].includes(roleNameLower) || roleNameLower.includes("it") || roleNameLower.includes("tech") || roleNameLower.includes("network");
-    }
-    if (deptLower === "sales") {
-      return ["bda", "associate", "partner", "employee"].includes(roleNameLower) || roleNameLower.includes("sale") || roleNameLower.includes("bda") || roleNameLower.includes("marketing");
-    }
-    if (deptLower === "admin") {
-      return ["admin", "it admin", "employee"].includes(roleNameLower) || roleNameLower.includes("admin");
-    }
-    if (deptLower === "operation") {
-      return ["operation head", "operation executive", "senior forensics investigator", "employee"].includes(roleNameLower) || roleNameLower.includes("operat") || roleNameLower.includes("forensic");
-    }
-    if (deptLower === "data entry") {
-      return roleNameLower === "employee" || roleNameLower.includes("data") || roleNameLower.includes("entry");
-    }
-    if (deptLower === "legal") {
-      return ["compliance head", "compliance executive", "employee"].includes(roleNameLower) || roleNameLower.includes("legal") || roleNameLower.includes("complian");
-    }
-    if (deptLower === "recovery") {
-      return ["vetting executive", "employee"].includes(roleNameLower) || roleNameLower.includes("vetting") || roleNameLower.includes("recover");
-    }
-    if (deptLower === "management") {
-      return ["owner", "director", "management", "employee"].includes(roleNameLower) || roleNameLower.includes("manage") || roleNameLower.includes("owner") || roleNameLower.includes("director");
-    }
-    return roleNameLower === "employee";
-  });
-
-  const finalRolesList = displayRoles.length > 0 ? displayRoles : ["Employee"];
+  // Get all unique roles from dbRoles for filtering
+  const uniqueRoleNames = dbRoles.length > 0
+    ? Array.from(new Set(dbRoles.map((r: any) => r.name).filter(Boolean)))
+    : Array.from(new Set(Object.values(departmentRoles).flat()));
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -534,7 +576,33 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
                   {availableDepartments.map(dept => (
                     <option key={dept} value={dept}>{dept}</option>
                   ))}
+                  <option value="add_custom_department">+ Add Custom Department...</option>
                 </select>
+                {showCustomDeptInput && (
+                  <div className="mt-2 flex gap-2">
+                    <input
+                      type="text"
+                      value={customDeptName}
+                      onChange={e => setCustomDeptName(e.target.value)}
+                      placeholder="New Dept Name"
+                      className={`flex-1 p-2 rounded border text-xs focus:outline-none focus:border-indigo-500 ${isDark ? "bg-gray-800 border-gray-700 text-white" : "bg-slate-50 border-slate-200 text-slate-700"}`}
+                    />
+                    <button
+                      type="button"
+                      onClick={handleAddCustomDept}
+                      className="bg-indigo-600 hover:bg-indigo-700 text-white text-xs px-3 py-1.5 rounded font-bold transition-all"
+                    >
+                      Add
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { setShowCustomDeptInput(false); setCustomDeptName(""); }}
+                      className={`text-xs px-3 py-1.5 rounded font-bold border transition-all ${isDark ? "bg-gray-800 border-gray-700 text-gray-300 hover:bg-gray-700" : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"}`}
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                )}
               </div>
               <div>
                 <label className={`block text-xs font-bold mb-1.5 ${isDark ? "text-indigo-400" : "text-indigo-600"}`}>System Role *</label>
@@ -547,7 +615,33 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
                   {finalRolesList.map((r, i) => (
                     <option key={i} value={r}>{r}</option>
                   ))}
+                  <option value="add_custom_role">+ Add Custom Role...</option>
                 </select>
+                {showCustomRoleInput && (
+                  <div className="mt-2 flex gap-2">
+                    <input
+                      type="text"
+                      value={customRoleName}
+                      onChange={e => setCustomRoleName(e.target.value)}
+                      placeholder="New Role Name"
+                      className={`flex-1 p-2 rounded border text-xs focus:outline-none focus:border-indigo-500 ${isDark ? "bg-gray-800 border-gray-700 text-white" : "bg-slate-50 border-slate-200 text-slate-700"}`}
+                    />
+                    <button
+                      type="button"
+                      onClick={handleAddCustomRole}
+                      className="bg-indigo-600 hover:bg-indigo-700 text-white text-xs px-3 py-1.5 rounded font-bold transition-all"
+                    >
+                      Add
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { setShowCustomRoleInput(false); setCustomRoleName(""); }}
+                      className={`text-xs px-3 py-1.5 rounded font-bold border transition-all ${isDark ? "bg-gray-800 border-gray-700 text-gray-300 hover:bg-gray-700" : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"}`}
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -686,8 +780,8 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
                   onChange={e => setFilterRole(e.target.value)}
                 >
                   <option value="All">All Roles</option>
-                  {availableRoles.map((r, i) => (
-                    <option key={i} value={r}>{r}</option>
+                  {uniqueRoleNames.map((r, i) => (
+                    <option key={i} value={r as string}>{r as string}</option>
                   ))}
                 </select>
               </div>

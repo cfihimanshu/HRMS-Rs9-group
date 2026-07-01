@@ -41,10 +41,14 @@ export async function POST(req: Request) {
     const userId = (session.user as any).id;
     const userName = session.user.name || "Employee";
     const body = await req.json();
-    const { taskSummary, taskType, remarks, selfieUrl, location } = body;
+    const { taskSummary, taskType, remarks, selfieUrl, location, projectName } = body;
 
     if (!taskSummary || !taskType || !selfieUrl) {
-      return NextResponse.json({ success: false, error: "Missing strict required fields (Task Summary, Type, or Selfie)" }, { status: 400 });
+       return NextResponse.json({ success: false, error: "Missing strict required fields (Task Summary, Type, or Selfie)" }, { status: 400 });
+    }
+
+    if (taskType === "Development" && !projectName) {
+       return NextResponse.json({ success: false, error: "Project name is required for Development task type" }, { status: 400 });
     }
 
     await sequelize.authenticate();
@@ -66,6 +70,7 @@ export async function POST(req: Request) {
       taskType,
       remarks: remarks || "",
       selfieUrl,
+      projectName: taskType === "Development" ? (projectName || "") : null,
       latitude: location?.latitude || null,
       longitude: location?.longitude || null,
     });
@@ -88,7 +93,7 @@ export async function POST(req: Request) {
       date: new Date(), // exact current timestamp
       taskTitle: taskSummary,
       taskType: taskType,
-      description: remarks || "",
+      description: taskType === "Development" && projectName ? `[Project: ${projectName}] ${remarks || ""}` : (remarks || ""),
       status: "Pending", // Set as Pending so it goes to "My Tasks (Kanban)" Pending column
     });
 

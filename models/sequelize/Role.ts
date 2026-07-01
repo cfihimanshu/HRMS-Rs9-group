@@ -15,6 +15,18 @@ Role.init(
       type: DataTypes.STRING,
       allowNull: true,
     },
+    department: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    companies: {
+      type: DataTypes.JSON,
+      allowNull: true,
+    },
+    permissions: {
+      type: DataTypes.JSON,
+      allowNull: true,
+    },
     status: {
       type: DataTypes.STRING,
       allowNull: true,

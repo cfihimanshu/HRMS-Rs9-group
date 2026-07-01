@@ -42,6 +42,7 @@ export function DailyCommitments({
   const [taskType, setTaskType] = useState("Meeting");
   const [remarks, setRemarks] = useState("");
   const [customTaskType, setCustomTaskType] = useState("");
+  const [projectName, setProjectName] = useState("");
   const [showCamera, setShowCamera] = useState(false);
   const [submittingSOD, setSubmittingSOD] = useState(false);
   const [locationStatus, setLocationStatus] = useState("Awaiting GPS...");
@@ -349,6 +350,12 @@ export function DailyCommitments({
       return;
     }
 
+    if (taskType === "Development" && !projectName.trim()) {
+      alert("Please specify the Project Name.");
+      setShowCamera(false);
+      return;
+    }
+
     setSubmittingSOD(true);
     setLocationStatus("Uploading verification capture...");
 
@@ -401,6 +408,7 @@ export function DailyCommitments({
       const success = await handleSodSubmit({
         taskSummary,
         taskType: taskType === "Other" ? (customTaskType.trim() || "Other") : taskType,
+        projectName: taskType === "Development" ? (projectName.trim() || "") : undefined,
         remarks,
         selfieUrl,
         location
@@ -412,6 +420,7 @@ export function DailyCommitments({
         setTaskSummary("");
         setRemarks("");
         setCustomTaskType("");
+        setProjectName("");
       }
       setSubmittingSOD(false);
       setLocationStatus("Awaiting GPS...");
@@ -628,6 +637,12 @@ export function DailyCommitments({
                   <div className="md:col-span-2">
                     <label className="text-[10px] uppercase font-black text-slate-500 font-mono tracking-wider">Specify Task Type *</label>
                     <input className="w-full bg-white border border-slate-300 rounded p-2 text-xs font-bold text-slate-900 mt-1.5 focus:outline-none focus:border-[#714B67]" placeholder="Please specify task type..." value={customTaskType} onChange={e => setCustomTaskType(e.target.value)} required />
+                  </div>
+                )}
+                {taskType === "Development" && (
+                  <div className="md:col-span-2">
+                    <label className="text-[10px] uppercase font-black text-slate-500 font-mono tracking-wider">Project Name *</label>
+                    <input className="w-full bg-white border border-slate-300 rounded p-2 text-xs font-bold text-slate-900 mt-1.5 focus:outline-none focus:border-[#714B67]" placeholder="Please enter project name..." value={projectName} onChange={e => setProjectName(e.target.value)} required />
                   </div>
                 )}
                 <div className="md:col-span-2">
@@ -1606,6 +1621,7 @@ export function PerformanceCompliance({
                                   {item.sod ? (
                                     <div className="text-[11px] text-slate-600 bg-white p-3 rounded-lg border border-slate-200 space-y-1.5 shadow-sm">
                                       <div><strong>Planned Task Type:</strong> {item.sod.taskType}</div>
+                                      {item.sod.projectName && <div><strong>Project Name:</strong> {item.sod.projectName}</div>}
                                       <div><strong>Summary:</strong> {item.sod.taskSummary}</div>
                                       {item.sod.remarks && <div><strong>Remarks:</strong> {item.sod.remarks}</div>}
                                       {item.sod.latitude && (
