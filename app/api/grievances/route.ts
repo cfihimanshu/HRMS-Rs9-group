@@ -42,9 +42,9 @@ export async function GET(req: Request) {
 
     let userMap: any = {};
     if (userIds.length > 0) {
-      const users = await User.findAll({ where: { mongo_id: { [Op.in]: userIds } }, raw: true });
+      const users = await User.findAll({ where: { id: { [Op.in]: userIds } }, raw: true });
       users.forEach((u: any) => {
-        userMap[u.mongo_id] = { name: u.name, email: u.email, role: u.role };
+        userMap[u.id] = { name: u.name, email: u.email, role: u.role };
       });
     }
 
@@ -93,7 +93,7 @@ export async function POST(req: Request) {
     await sequelize.authenticate();
 
     const record = await Grievance.create({
-      mongo_id: Date.now().toString(),
+      id: Date.now().toString(),
       raisedBy: userId,
       category,
       priority,
@@ -106,7 +106,7 @@ export async function POST(req: Request) {
       userId,
       action: "GRIEVANCE_FILED",
       entity: "Grievance",
-      entityId: (record as any).mongo_id ? (record as any).mongo_id.toString() : record.id,
+      entityId: (record as any).id ? (record as any).id.toString() : record.id,
       details: `Grievance ticket filed. Category: ${category}, Priority: ${priority}, Anonymous: ${!!anonymous}`,
     });
 
@@ -157,8 +157,8 @@ export async function PUT(req: Request) {
       userId,
       action: "GRIEVANCE_RESOLVED",
       entity: "Grievance",
-      entityId: (record as any).mongo_id ? (record as any).mongo_id.toString() : record.id,
-      details: `Grievance ticket ID ${(record as any).mongo_id ? (record as any).mongo_id.toString() : record.id} updated to status ${status}`,
+      entityId: (record as any).id ? (record as any).id.toString() : record.id,
+      details: `Grievance ticket ID ${(record as any).id ? (record as any).id.toString() : record.id} updated to status ${status}`,
     });
 
     return NextResponse.json({ success: true, data: record });

@@ -17,12 +17,12 @@ export async function GET() {
 
     const userIds = associates.map(a => (a as any).user).filter(Boolean);
     const users = await User.findAll({
-      where: { mongo_id: userIds },
-      attributes: ['mongo_id', 'name', 'email', 'mobile', 'status']
+      where: { id: userIds },
+      attributes: ['id', 'name', 'email', 'mobile', 'status']
     });
 
     const userMap = users.reduce((acc: any, u: any) => {
-      acc[u.mongo_id] = u.toJSON();
+      acc[u.id] = u.toJSON();
       return acc;
     }, {});
 
@@ -57,7 +57,7 @@ export async function POST(req: Request) {
     let associate = await Associate.findOne({ where: { user: userId } });
     if (!associate) {
       associate = await Associate.create({
-        mongo_id: Date.now().toString(),
+        id: Date.now().toString(),
         user: userId,
         payoutTerms,
         status: "active"
@@ -82,7 +82,7 @@ export async function POST(req: Request) {
       userId: (session.user as any).id,
       action: "UPDATE_ASSOCIATE_PROFILE",
       entity: "Associate",
-      entityId: (associate as any).mongo_id,
+      entityId: (associate as any).id,
       details: `Updated Associate profile for user: ${userId}. Risk Score: ${riskScore || 0}%, Exit Risk: ${exitRisk || "Low"}.`,
     });
 

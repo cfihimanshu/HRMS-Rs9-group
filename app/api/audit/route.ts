@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth";
 import sequelize from "@/lib/sequelize";
 import AuditLog from "@/models/sequelize/AuditLog";
 import User from "@/models/sequelize/User";
+import { Op } from "sequelize";
 
 export async function GET(req: Request) {
   try {
@@ -12,9 +13,33 @@ export async function GET(req: Request) {
       return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
     }
 
+    const { searchParams } = new URL(req.url);
+    const companyId = searchParams.get("companyId");
+
     await sequelize.authenticate();
+
+    let auditLogFilter: any = {};
+
+    if (companyId) {
+      const usersOfCompany = await User.findAll({
+        where: {
+          companies: {
+            [Op.like]: `%${companyId}%`
+          }
+        },
+        attributes: ['id'],
+        raw: true
+      });
+      const targetUserIds = usersOfCompany.map((u: any) => u.id);
+      
+      auditLogFilter.user = {
+        [Op.in]: targetUserIds
+      };
+    }
+
     // Fetch last 15 audit logs
     const logs: any[] = await AuditLog.findAll({
+      where: auditLogFilter,
       order: [['timestamp', 'DESC']],
       limit: 15,
       raw: true
@@ -24,12 +49,12 @@ export async function GET(req: Request) {
     let userMap: any = {};
     if (userIds.length > 0) {
       const users: any[] = await User.findAll({
-        where: { mongo_id: userIds },
-        attributes: ['mongo_id', 'name', 'role'],
+        where: { id: userIds },
+        attributes: ['id', 'name', 'role'],
         raw: true
       });
       userMap = users.reduce((acc: any, user: any) => {
-        acc[user.mongo_id] = { name: user.name, role: user.role };
+        acc[user.id] = { name: user.name, role: user.role };
         return acc;
       }, {});
     }

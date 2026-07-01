@@ -6,7 +6,7 @@ class Notification extends Model<any, any> { [key: string]: any; }
 Notification.init(
   {
     
-    mongo_id: {
+    id: {
       type: DataTypes.STRING,
       primaryKey: true,
       allowNull: false,

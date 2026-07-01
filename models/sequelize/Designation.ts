@@ -6,7 +6,7 @@ class Designation extends Model<any, any> { [key: string]: any; }
 
 Designation.init(
   {
-    mongo_id: {
+    id: {
       type: DataTypes.STRING,
       primaryKey: true,
       allowNull: false,

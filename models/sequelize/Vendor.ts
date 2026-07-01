@@ -2,7 +2,7 @@ import { DataTypes, Model } from "sequelize";
 import sequelize from "../../lib/sequelize";
 
 class Vendor extends Model {
-  public mongo_id!: string;
+  public id!: string;
   public user!: string;
   public category!: string;
   public agreementUrl!: string;
@@ -18,7 +18,7 @@ class Vendor extends Model {
 Vendor.init(
   {
     
-    mongo_id: {
+    id: {
       type: DataTypes.STRING,
       primaryKey: true,
       allowNull: false,

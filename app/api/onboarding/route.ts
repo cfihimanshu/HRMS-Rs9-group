@@ -33,7 +33,7 @@ export async function GET(req: Request) {
     const candidate = await Candidate.findByPk(onboarding.candidate);
     if (candidate) {
       onboarding.candidate = {
-        mongo_id: (candidate as any).mongo_id,
+        id: (candidate as any).id,
         name: (candidate as any).name,
         email: (candidate as any).email,
         mobile: (candidate as any).mobile,
@@ -121,7 +121,7 @@ export async function POST(req: Request) {
     let onboarding = await Onboarding.findOne({ where: { candidate: candidateId } });
     if (!onboarding) {
       onboarding = await Onboarding.create({
-        mongo_id: Date.now().toString(),
+        id: Date.now().toString(),
         candidate: candidateId,
         category,
         generatedDocs: [],
@@ -146,7 +146,7 @@ export async function POST(req: Request) {
       userId: (session.user as any).id,
       action: "GENERATE_ONBOARDING_PAPERS",
       entity: "Onboarding",
-      entityId: (onboarding as any).mongo_id,
+      entityId: (onboarding as any).id,
       details: `Generated onboarding documentation pack (${docsToGen.join(
         ", "
       )}) for candidate: ${candidate.name} under category: ${category}.`,
@@ -209,7 +209,7 @@ export async function PUT(req: Request) {
         userId: (session.user as any).id,
         action: "SIGN_ONBOARDING_DOCUMENT",
         entity: "Onboarding",
-        entityId: (onboarding as any).mongo_id,
+        entityId: (onboarding as any).id,
         details: `Simulated signature of onboarding document '${docName}' for candidate: ${candidateId}.`,
       });
     }

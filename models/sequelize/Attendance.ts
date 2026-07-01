@@ -2,7 +2,7 @@ import { DataTypes, Model } from "sequelize";
 import sequelize from "../../lib/sequelize";
 
 class Attendance extends Model {
-  public mongo_id!: string;
+  public id!: string;
   public employee!: string;
   public date!: Date;
   public status!: string;
@@ -13,7 +13,7 @@ class Attendance extends Model {
 Attendance.init(
   {
     
-    mongo_id: {
+    id: {
       type: DataTypes.STRING,
       primaryKey: true,
       allowNull: false,

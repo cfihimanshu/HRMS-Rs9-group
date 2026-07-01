@@ -32,8 +32,8 @@ export async function GET(req: Request) {
     const userIds = [...new Set(alerts.map((a: any) => a.triggeredBy).filter(Boolean))];
     let userMap: any = {};
     if (userIds.length > 0) {
-      const users = await User.findAll({ where: { mongo_id: { [Op.in]: userIds } }, raw: true });
-      users.forEach((u: any) => { userMap[u.mongo_id] = { name: u.name, email: u.email, role: u.role }; });
+      const users = await User.findAll({ where: { id: { [Op.in]: userIds } }, raw: true });
+      users.forEach((u: any) => { userMap[u.id] = { name: u.name, email: u.email, role: u.role }; });
     }
 
     const data = alerts.map((a: any) => ({
@@ -59,7 +59,7 @@ export async function POST(req: Request) {
     }
 
     const alert = await RiskAlert.create({
-      mongo_id: Date.now().toString(),
+      id: Date.now().toString(),
       source,
       level,
       description,
@@ -108,7 +108,7 @@ export async function PUT(req: Request) {
       userId: (session.user as any).id,
       action: "RISK_ALERT_RESOLVED",
       entity: "RiskAlert",
-      entityId: (alert as any).mongo_id ? (alert as any).mongo_id.toString() : alert.id,
+      entityId: (alert as any).id ? (alert as any).id.toString() : alert.id,
       details: `System risk alert (source: ${alert.source}, severity: ${alert.level}) marked as ${status}`,
     });
 

@@ -1,5 +1,6 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
+import ReactDOM from "react-dom";
 import {
   LayoutDashboard, UserSquare2, FileEdit, Briefcase, Users2, ScanLine,
   Video, ShieldCheck, FileText, GraduationCap, Clock, CalendarCheck,
@@ -29,6 +30,25 @@ export default function DashboardSidebar({
   mobileMenuOpen,
   setMobileMenuOpen
 }: SidebarProps) {
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+
+  const handleLogout = useCallback(() => {
+    setShowLogoutConfirm(true);
+  }, []);
+
+  const confirmLogout = useCallback(() => {
+    setShowLogoutConfirm(false);
+    signOut({ callbackUrl: `${window.location.origin}/login` });
+  }, []);
+
+  // Close modal on Escape key
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setShowLogoutConfirm(false);
+    };
+    if (showLogoutConfirm) window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [showLogoutConfirm]);
 
   const userRole = user?.role || "Employee";
   const [isDark, setIsDark] = useState(false);
@@ -58,6 +78,8 @@ export default function DashboardSidebar({
     { id: "jobs", label: "Vacancy Postings", icon: Briefcase, category: "Core Workspace", roles: ["Owner", "Director", "HR Head", "HR Executive"] },
     { id: "hr-leads", label: "HR Leads", icon: FileText, category: "Core Workspace", roles: ["Owner", "Director", "HR Head", "HR Executive"] },
     { id: "employees", label: "Employees Directory", icon: Users2, category: "Core Workspace", roles: ["Owner", "Director", "HR Head", "HR Executive"] },
+    { id: "bda-directory", label: "BDA Network (Sales)", icon: Users2, category: "Core Workspace", roles: ["Owner", "Director", "HR Head", "HR Executive", "Department Manager"] },
+    { id: "assets-registry", label: "Assets Registry", icon: Cpu, category: "Core Workspace", roles: ["Owner", "Director", "HR Head", "HR Executive"] },
 
     { id: "screening", label: "AI Screening Module", icon: ScanLine, category: "AI & Vetting Hub", roles: ["Owner", "Director", "HR Head", "HR Executive"] },
     { id: "interviews", label: "Interviews Queue", icon: Video, category: "AI & Vetting Hub", badge: stats?.interviews?.pending, roles: ["Owner", "Director", "HR Head", "HR Executive", "Trainer"] },
@@ -112,19 +134,19 @@ export default function DashboardSidebar({
     <aside
       className={`fixed lg:static top-0 bottom-0 left-0 z-40 w-64 flex-shrink-0 flex flex-col h-screen overflow-y-auto border-r transition-all duration-300 transform ${
         mobileMenuOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
-      } ${isDark ? "bg-gray-900 border-gray-800" : "bg-slate-50 border-slate-200"}`}
+      } bg-[#FAFAF7] border-[#E8E4DF]`}
     >
-      <div className={`flex items-center gap-2.5 px-4 py-4 border-b ${isDark ? "border-gray-800" : "border-slate-200"}`}>
-        <div className="w-8 h-8 rounded-lg bg-purple-600 flex items-center justify-center shrink-0 shadow-sm text-white font-bold text-sm">
-          A
+      <div className="flex items-center gap-3 px-6 py-5 border-b border-[#E8E4DF]">
+        <div className="text-xl font-light tracking-widest text-[#1C1C1A] font-serif" style={{ fontFamily: "'Playfair Display', serif" }}>
+          RS9
         </div>
-        <div>
-          <div className={`text-sm font-bold leading-tight ${isDark ? "text-white" : "text-slate-900"}`}>Rs9 Group</div>
-          <div className="text-[10px] text-purple-500 font-medium tracking-wide uppercase">HRMS</div>
+        <div className="h-4 w-px bg-[#E8E4DF]" />
+        <div className="text-[10px] font-bold tracking-widest text-[#9C9890] uppercase">
+          Group
         </div>
       </div>
 
-      <nav className="flex-1 py-3 px-2 space-y-0.5 custom-scrollbar">
+      <nav className="flex-1 py-4 px-3 space-y-1.5 custom-scrollbar">
         {categories.map((cat) => {
           const isAI = cat === "AI & Vetting Hub";
           const isOpen = openSections[cat];
@@ -134,30 +156,30 @@ export default function DashboardSidebar({
           return (
             <div key={cat}>
               {isAI && (
-                <div className={`mx-2 my-3 border-t text-[10px] font-bold uppercase tracking-widest pt-3 ${isDark ? "border-gray-700 text-purple-400" : "border-slate-200 text-purple-600"}`}>
+                <div className="mx-2.5 my-3 border-t border-[#E8E4DF]/85 text-[9px] font-bold uppercase tracking-widest pt-3 text-[#C9A84C]">
                   ✦ AI Features
                 </div>
               )}
 
               <button
                 onClick={() => toggle(cat)}
-                className={`w-full flex items-center justify-between px-2.5 py-2 rounded-md text-xs font-semibold transition-all ${anyActive
-                    ? isDark ? "bg-purple-900/40 text-purple-300" : "bg-purple-50 text-purple-700"
-                    : isDark ? "text-gray-400 hover:bg-gray-800 hover:text-gray-200" : "text-slate-600 hover:bg-white hover:text-slate-800"
+                className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-[10px] font-bold tracking-wider transition-all uppercase ${anyActive
+                    ? "bg-[#F0EAE4] text-[#1C1C1A]"
+                    : "text-[#5D5B57] hover:bg-[#F0EAE4]/50 hover:text-[#1C1C1A]"
                   }`}
               >
-                <div className="flex items-center gap-2 min-w-0">
-                  <Icon className={`w-4 h-4 shrink-0 ${isAI ? "text-purple-500" : anyActive ? "text-purple-600" : ""}`} />
-                  <span className="truncate uppercase">{cat}</span>
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <Icon className={`w-4 h-4 shrink-0 ${anyActive ? "text-[#C9A84C]" : "text-[#9C9890]"}`} />
+                  <span className="truncate">{cat}</span>
                 </div>
                 {isOpen
-                  ? <ChevronDown className="w-3 h-3 shrink-0 opacity-60" />
-                  : <ChevronRight className="w-3 h-3 shrink-0 opacity-60" />
+                  ? <ChevronDown className="w-3.5 h-3.5 shrink-0 opacity-60" />
+                  : <ChevronRight className="w-3.5 h-3.5 shrink-0 opacity-60" />
                 }
               </button>
 
               {isOpen && (
-                <div className="ml-6 mt-0.5 space-y-0.5">
+                <div className="ml-4 mt-1 space-y-1 pl-2 border-l border-[#E8E4DF]">
                   {groupedMenu[cat].map((item) => {
                     const isActive = activeTab === item.id;
                     const ItemIcon = item.icon;
@@ -183,21 +205,20 @@ export default function DashboardSidebar({
                             setMobileMenuOpen(false);
                           }
                         }}
-                        className={`w-full flex items-center justify-between text-[11px] py-2 px-2 rounded-md font-medium transition-all ${isActive
-                            ? isDark ? "bg-gray-800 text-white font-semibold" : "bg-white text-slate-900 font-semibold shadow-sm border border-slate-100"
-                            : isDark ? "text-gray-400 hover:bg-gray-800/50 hover:text-gray-200" : "text-slate-500 hover:bg-white/50 hover:text-slate-700"
+                        className={`w-full flex items-center justify-between text-[11px] py-2 px-2.5 rounded-lg font-medium transition-all ${isActive
+                            ? "bg-[#F0EAE4] text-[#1C1C1A] font-semibold border-l-2 border-[#C9A84C]"
+                            : "text-[#5D5B57] hover:bg-[#F5F0EA] hover:text-[#1C1C1A]"
                           }`}
                       >
                         <div className="flex items-center gap-2">
-                          <span className={`w-1 h-1 rounded-full shrink-0 ${isActive ? "bg-purple-600" : isDark ? "bg-gray-600" : "bg-slate-300"}`} />
-                          <ItemIcon className={`w-3 h-3 shrink-0 opacity-70`} />
+                          <ItemIcon className="w-3.5 h-3.5 shrink-0 opacity-80" />
                           <span className="truncate">{item.label}</span>
                         </div>
 
                         {item.badge !== undefined && item.badge > 0 && (
                           <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${item.urgent
                               ? "bg-rose-500 text-white animate-pulse"
-                              : "bg-purple-600 text-white"
+                              : "bg-[#C9A84C] text-white"
                             }`}>
                             {item.badge}
                           </span>
@@ -212,26 +233,57 @@ export default function DashboardSidebar({
         })}
       </nav>
 
-      <div className={`p-3 border-t ${isDark ? "border-gray-800" : "border-slate-200"}`}>
-        <div className={`flex items-center gap-2.5 p-2 rounded-lg ${isDark ? "bg-gray-800" : "bg-white border border-slate-200"}`}>
-          <div className="w-7 h-7 rounded-full bg-purple-600 flex items-center justify-center text-white text-xs font-bold shrink-0">
+      <div className="p-4 border-t border-[#E8E4DF]">
+        <div className="flex items-center gap-3 p-2.5 rounded-xl bg-[#FCFBF9] border border-[#E8E4DF] shadow-[0_2px_10px_rgba(0,0,0,0.02)]">
+          <div className="w-8 h-8 rounded-full bg-[#C9A84C] flex items-center justify-center text-white text-xs font-semibold shrink-0 shadow-sm">
             {user?.name ? user.name[0].toUpperCase() : "U"}
           </div>
           <div className="min-w-0 flex-1 text-left">
-            <div className={`text-xs font-semibold truncate ${isDark ? "text-white" : "text-slate-800"}`}>{user?.name || "System User"}</div>
-            <div className="text-[10px] text-slate-400 truncate">
-              {user?.department || "General"} | {userRole}
+            <div className="text-xs font-semibold truncate text-[#1C1C1A]">{user?.name || "System User"}</div>
+            <div className="text-[10px] text-[#9C9890] truncate font-medium uppercase tracking-wide">
+              {userRole}
             </div>
           </div>
           <button
-            onClick={() => signOut({ callbackUrl: `${window.location.origin}/login` })}
-            className={`p-1.5 rounded-md hover:bg-rose-50 hover:text-rose-600 transition-colors ${isDark ? "text-gray-400 hover:bg-rose-900/30" : "text-slate-400"}`}
+            onClick={handleLogout}
+            className="p-2 rounded-lg text-[#9C9890] hover:bg-red-50 hover:text-red-600 transition-colors"
             title="Log Out"
           >
             <LogOut className="w-4 h-4" />
           </button>
         </div>
       </div>
+
+      {/* Logout Confirmation Modal — via Portal */}
+      {showLogoutConfirm && typeof document !== "undefined" && ReactDOM.createPortal(
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center" style={{ backgroundColor: "rgba(0,0,0,0.45)" }} onClick={() => setShowLogoutConfirm(false)}>
+          <div
+            className="bg-white rounded-2xl shadow-2xl p-6 w-[340px] max-w-[90vw] text-center"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="w-14 h-14 rounded-full bg-red-50 flex items-center justify-center mx-auto mb-4">
+              <LogOut className="w-7 h-7 text-red-500" />
+            </div>
+            <h3 className="text-lg font-semibold text-[#1C1C1A] mb-1">Logout</h3>
+            <p className="text-sm text-[#9C9890] mb-6">Are you sure you want to logout?</p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowLogoutConfirm(false)}
+                className="flex-1 px-4 py-2.5 rounded-xl border border-[#E8E4DF] text-sm font-medium text-[#1C1C1A] hover:bg-[#F5F3F0] transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmLogout}
+                className="flex-1 px-4 py-2.5 rounded-xl bg-red-500 text-white text-sm font-medium hover:bg-red-600 transition-colors shadow-sm"
+              >
+                Yes, Logout
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
     </aside>
   );
 }

@@ -32,13 +32,13 @@ export async function GET(req: Request) {
     const empIds = [...new Set(records.map((r: any) => r.employee).filter(Boolean))];
     let empMap: any = {};
     if (empIds.length > 0) {
-      const emps = await User.findAll({ where: { mongo_id: { [Op.in]: empIds } }, raw: true });
-      emps.forEach((e: any) => { empMap[e.mongo_id] = { _id: e.mongo_id, name: e.name, email: e.email, role: e.role, mobile: e.mobile }; });
+      const emps = await User.findAll({ where: { id: { [Op.in]: empIds } }, raw: true });
+      emps.forEach((e: any) => { empMap[e.id] = { id: e.id, name: e.name, email: e.email, role: e.role, mobile: e.mobile }; });
     }
 
     const data = records.map((r: any) => ({
       ...r,
-      employee: empMap[r.employee] || { _id: r.employee, name: 'Unknown' }
+      employee: empMap[r.employee] || { id: r.employee, name: 'Unknown' }
     }));
 
     return NextResponse.json({ success: true, data });
@@ -83,18 +83,18 @@ export async function POST(req: Request) {
 
       // Synchronize to User status
       if (status === "Confirm") {
-        await User.update({ status: "active" }, { where: { mongo_id: record.employee } });
+        await User.update({ status: "active" }, { where: { id: record.employee } });
       } else if (status === "Exit") {
-        await User.update({ status: "deactivated" }, { where: { mongo_id: record.employee } });
+        await User.update({ status: "deactivated" }, { where: { id: record.employee } });
       } else if (status === "active" || status === "Extend" || status === "Restrict role") {
-        await User.update({ status: "probation" }, { where: { mongo_id: record.employee } });
+        await User.update({ status: "probation" }, { where: { id: record.employee } });
       }
 
       await logAudit({
         userId: (session.user as any).id,
         action: "PROBATION_EVALUATED",
         entity: "Probation",
-        entityId: (record as any).mongo_id ? (record as any).mongo_id.toString() : record.id,
+        entityId: (record as any).id ? (record as any).id.toString() : record.id,
         details: `Manager evaluated probation. Verdict: ${status}`,
       });
 
@@ -108,7 +108,7 @@ export async function POST(req: Request) {
     }
 
     const newRecord = await Probation.create({
-      mongo_id: Date.now().toString(),
+      id: Date.now().toString(),
       employee: employeeId,
       startDate: new Date(startDate),
       endDate: new Date(endDate),
@@ -118,7 +118,7 @@ export async function POST(req: Request) {
     });
 
     // Synchronize to User status
-    await User.update({ status: "probation" }, { where: { mongo_id: employeeId } });
+    await User.update({ status: "probation" }, { where: { id: employeeId } });
 
     return NextResponse.json({ success: true, data: newRecord });
   } catch (error: any) {

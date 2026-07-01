@@ -35,13 +35,13 @@ export async function GET(req: Request) {
     const candIds = [...new Set(interviews.map((i: any) => i.candidate).filter(Boolean))];
     let candsMap: any = {};
     if (candIds.length > 0) {
-      const cands = await Candidate.findAll({ where: { mongo_id: { [Op.in]: candIds } }, raw: true });
-      cands.forEach((c: any) => { candsMap[c.mongo_id] = { _id: c.mongo_id, name: c.name, email: c.email, mobile: c.mobile }; });
+      const cands = await Candidate.findAll({ where: { id: { [Op.in]: candIds } }, raw: true });
+      cands.forEach((c: any) => { candsMap[c.id] = { id: c.id, name: c.name, email: c.email, mobile: c.mobile }; });
     }
 
     const data = interviews.map((i: any) => ({
       ...i,
-      candidate: candsMap[i.candidate] || { _id: i.candidate, name: 'Unknown' }
+      candidate: candsMap[i.candidate] || { id: i.candidate, name: 'Unknown' }
     }));
 
     return NextResponse.json({ success: true, data });
@@ -113,7 +113,7 @@ export async function POST(req: Request) {
     }));
 
     const interview = await Interview.create({
-      mongo_id: Date.now().toString(),
+      id: Date.now().toString(),
       candidate: candidateId,
       candidateName: candidate.name,
       round,
@@ -131,7 +131,7 @@ export async function POST(req: Request) {
       userId: (session.user as any).id,
       action: "SCHEDULE_INTERVIEW",
       entity: "Interview",
-      entityId: interview.mongo_id.toString(),
+      entityId: interview.id.toString(),
       details: `Scheduled Round ${round} Interview for candidate: ${candidate.name}. Time: ${scheduleTime}.`,
     });
 
@@ -287,7 +287,7 @@ export async function DELETE(req: Request) {
       return NextResponse.json({ success: false, error: "Interview not found" }, { status: 404 });
     }
 
-    await Interview.destroy({ where: { mongo_id: id } });
+    await Interview.destroy({ where: { id: id } });
 
     // Track Audit Log
     await logAudit({

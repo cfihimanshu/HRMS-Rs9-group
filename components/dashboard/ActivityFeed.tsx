@@ -76,14 +76,15 @@ function getIconForAction(action: string): { icon: ReactNode, bg: string, darkBg
   };
 }
 
-export default function ActivityFeed({ dark = false }: { dark?: boolean }) {
+export default function ActivityFeed({ dark = false, companyId = "" }: { dark?: boolean; companyId?: string }) {
   const [logs, setLogs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    setLoading(true);
     const fetchLogs = async () => {
       try {
-        const res = await fetch("/api/audit");
+        const res = await fetch(`/api/audit?companyId=${companyId}`);
         const data = await res.json();
         if (data.success) {
           setLogs(data.data);
@@ -99,7 +100,7 @@ export default function ActivityFeed({ dark = false }: { dark?: boolean }) {
     // Auto-refresh every 30 seconds
     const intervalId = setInterval(fetchLogs, 30000);
     return () => clearInterval(intervalId);
-  }, []);
+  }, [companyId]);
 
   if (loading) {
     return <div className={`text-xs p-4 text-center ${dark ? 'text-gray-400' : 'text-slate-500'}`}>Loading activity feed...</div>;
@@ -114,7 +115,7 @@ export default function ActivityFeed({ dark = false }: { dark?: boolean }) {
       {logs.map((log, idx) => {
         const style = getIconForAction(log.action);
         return (
-          <div key={log._id || idx} className="relative flex gap-4">
+          <div key={log.id || idx} className="relative flex gap-4">
             {/* Vertical line connector */}
             {idx !== logs.length - 1 && (
               <div className={`absolute left-4 top-8 bottom-[-24px] w-0.5 ${dark ? "bg-gray-700" : "bg-slate-200"}`} />

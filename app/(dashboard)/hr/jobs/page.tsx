@@ -5,17 +5,17 @@ import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 
 interface Company {
-  _id: string;
+  id: string;
   name: string;
 }
 
 interface Department {
-  _id: string;
+  id: string;
   name: string;
 }
 
 interface Job {
-  _id: string;
+  id: string;
   title: string;
   company: Company;
   department: Department;
@@ -212,7 +212,7 @@ export default function HrJobsPage() {
                   >
                     <option value="">Select Company</option>
                     {companies.map((c) => (
-                      <option key={c._id} value={c._id}>
+                      <option key={c.id} value={c.id}>
                         {c.name}
                       </option>
                     ))}
@@ -229,7 +229,7 @@ export default function HrJobsPage() {
                   >
                     <option value="">Select Dept</option>
                     {departments.map((d) => (
-                      <option key={d._id} value={d._id}>
+                      <option key={d.id} value={d.id}>
                         {d.name}
                       </option>
                     ))}
@@ -372,7 +372,7 @@ export default function HrJobsPage() {
                       {jobs.map((job) => {
                         const isExpired = !!(job.postingDuration && job.createdAt && (new Date().getTime() - new Date(job.createdAt).getTime()) > job.postingDuration * 24 * 60 * 60 * 1000);
                         return (
-                          <tr key={job._id} className={`text-slate-300 hover:bg-slate-900/20 transition-all ${isExpired ? "opacity-40 bg-slate-950/20 select-none pointer-events-none" : ""}`}>
+                          <tr key={job.id} className={`text-slate-300 hover:bg-slate-900/20 transition-all ${isExpired ? "opacity-40 bg-slate-950/20 select-none pointer-events-none" : ""}`}>
                             <td className="py-4 pr-4 font-semibold text-white">
                               {job.title}
                               {isExpired && (
@@ -392,15 +392,15 @@ export default function HrJobsPage() {
                             <td className="py-4 pl-4 text-right">
                               {job.shareableLink ? (
                                 <button
-                                  onClick={() => handleCopyLink(job.shareableLink!, job._id)}
+                                  onClick={() => handleCopyLink(job.shareableLink!, job.id)}
                                   className={`text-xs font-medium px-3 py-1.5 rounded-lg border transition-all ${
-                                    copiedId === job._id
+                                    copiedId === job.id
                                       ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400"
                                       : "bg-slate-950 hover:bg-indigo-600 hover:text-white border-slate-800 text-slate-400"
                                   }`}
                                   disabled={isExpired}
                                 >
-                                  {copiedId === job._id ? "Copied! ✓" : "Copy Link"}
+                                  {copiedId === job.id ? "Copied! ✓" : "Copy Link"}
                                 </button>
                               ) : (
                                 <span className="text-xs text-slate-500">Not Generated</span>

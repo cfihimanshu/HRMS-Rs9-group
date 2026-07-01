@@ -2,7 +2,7 @@ import { DataTypes, Model } from "sequelize";
 import sequelize from "../../lib/sequelize";
 
 class Verification extends Model {
-  public mongo_id!: string;
+  public id!: string;
   public candidate!: string;
   public aadhaarStatus!: string;
   public panStatus!: string;
@@ -26,7 +26,7 @@ class Verification extends Model {
 Verification.init(
   {
     
-    mongo_id: {
+    id: {
       type: DataTypes.STRING,
       primaryKey: true,
       allowNull: false,

@@ -42,7 +42,7 @@ export async function GET(req: Request) {
         return dbName.includes(trimName) || trimName.includes(dbName);
       });
       if (matchedComp) {
-        targetCompanyId = matchedComp.mongo_id || (matchedComp as any).id;
+        targetCompanyId = matchedComp.id || (matchedComp as any).id;
       }
     }
 
@@ -120,7 +120,7 @@ export async function POST(req: Request) {
         return dbName.includes(trimName) || trimName.includes(dbName);
       });
       if (matchedComp) {
-        targetCompanyId = matchedComp.mongo_id || (matchedComp as any).id;
+        targetCompanyId = matchedComp.id || (matchedComp as any).id;
       }
     }
 
@@ -152,7 +152,7 @@ export async function POST(req: Request) {
     }
 
     const newRole = await Role.create({
-      mongo_id: Date.now().toString(),
+      id: Date.now().toString(),
       name: name.trim(),
       permissions: ["read", "write"],
       status: "active",

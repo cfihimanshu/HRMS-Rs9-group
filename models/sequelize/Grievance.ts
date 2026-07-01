@@ -6,7 +6,7 @@ class Grievance extends Model<any, any> { [key: string]: any; }
 Grievance.init(
   {
     
-    mongo_id: {
+    id: {
       type: DataTypes.STRING,
       primaryKey: true,
       allowNull: false,

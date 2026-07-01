@@ -55,13 +55,13 @@ export async function POST(req: Request) {
         userId,
         action: "ATTENDANCE_CHECKOUT",
         entity: "Attendance",
-        entityId: record.mongo_id,
+        entityId: record.id,
         details: `${userName} checked out at ${record.checkOut.toLocaleTimeString()}`,
       });
     } else {
       // Create new check-in record
       record = await Attendance.create({
-        mongo_id: Date.now().toString(),
+        id: Date.now().toString(),
         employee: userId,
         date: today,
         status: "Present",
@@ -72,7 +72,7 @@ export async function POST(req: Request) {
         userId,
         action: "ATTENDANCE_CHECKIN",
         entity: "Attendance",
-        entityId: record.mongo_id,
+        entityId: record.id,
         details: `${userName} checked in at ${record.checkIn.toLocaleTimeString()}`,
       });
     }

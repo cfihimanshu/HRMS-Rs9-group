@@ -19,23 +19,23 @@ export async function GET() {
 
     const userIds = franchises.map(f => f.user).filter(Boolean);
     const users = await User.findAll({
-      where: { mongo_id: userIds },
-      attributes: ['mongo_id', 'name', 'email', 'mobile', 'status']
+      where: { id: userIds },
+      attributes: ['id', 'name', 'email', 'mobile', 'status']
     });
 
     const territoryIds = franchises.map(f => f.territory).filter(Boolean);
     const territories = await Territory.findAll({
-      where: { mongo_id: territoryIds },
-      attributes: ['mongo_id', 'name']
+      where: { id: territoryIds },
+      attributes: ['id', 'name']
     });
 
     const userMap = users.reduce((acc: any, u: any) => {
-      acc[u.mongo_id] = u.toJSON();
+      acc[u.id] = u.toJSON();
       return acc;
     }, {});
 
     const territoryMap = territories.reduce((acc: any, t: any) => {
-      acc[t.mongo_id] = t.toJSON();
+      acc[t.id] = t.toJSON();
       return acc;
     }, {});
 
@@ -71,7 +71,7 @@ export async function POST(req: Request) {
     let franchise = await Franchise.findOne({ where: { user: userId } });
     if (!franchise) {
       franchise = await Franchise.create({
-        mongo_id: Date.now().toString(),
+        id: Date.now().toString(),
         user: userId,
         territory: territoryId,
         revenueSharing,
@@ -96,7 +96,7 @@ export async function POST(req: Request) {
       userId: (session.user as any).id,
       action: "UPDATE_FRANCHISE_PROFILE",
       entity: "Franchise",
-      entityId: franchise.mongo_id,
+      entityId: franchise.id,
       details: `Updated Franchise profile for partner: ${userId}. Compliance: ${brandingCompliance || "Compliant"}, Risk: ${territoryRisk || "Low"}.`,
     });
 

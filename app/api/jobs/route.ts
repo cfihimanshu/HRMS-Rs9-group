@@ -35,14 +35,14 @@ export async function GET(req: Request) {
 
     let companiesMap: any = {};
     if (companyIds.length > 0) {
-      const companies = await Company.findAll({ where: { mongo_id: { [Op.in]: companyIds } }, raw: true });
-      companies.forEach((c: any) => { companiesMap[c.mongo_id] = { name: c.name, code: c.code }; });
+      const companies = await Company.findAll({ where: { id: { [Op.in]: companyIds } }, raw: true });
+      companies.forEach((c: any) => { companiesMap[c.id] = { name: c.name, code: c.code }; });
     }
 
     let deptsMap: any = {};
     if (deptIds.length > 0) {
-      const depts = await Department.findAll({ where: { mongo_id: { [Op.in]: deptIds } }, raw: true });
-      depts.forEach((d: any) => { deptsMap[d.mongo_id] = { name: d.name }; });
+      const depts = await Department.findAll({ where: { id: { [Op.in]: deptIds } }, raw: true });
+      depts.forEach((d: any) => { deptsMap[d.id] = { name: d.name }; });
     }
 
     const data = jobs.map((job: any) => ({
@@ -116,7 +116,7 @@ export async function POST(req: Request) {
       company = await Company.findByPk(companyId);
     }
     if (!company) {
-      company = await Company.findOne({ where: { name: companyId } }) || await Company.findOne() || await Company.create({ mongo_id: Date.now().toString(), name: companyId || "Acolyte Group", code: "ACO" });
+      company = await Company.findOne({ where: { name: companyId } }) || await Company.findOne() || await Company.create({ id: Date.now().toString(), name: companyId || "Acolyte Group", code: "ACO" });
     }
 
     let department: any;
@@ -124,7 +124,7 @@ export async function POST(req: Request) {
       department = await Department.findByPk(departmentId);
     }
     if (!department) {
-      department = await Department.findOne({ where: { name: departmentId } }) || await Department.findOne() || await Department.create({ mongo_id: Date.now().toString(), name: departmentId || "Sales" });
+      department = await Department.findOne({ where: { name: departmentId } }) || await Department.findOne() || await Department.create({ id: Date.now().toString(), name: departmentId || "Sales" });
     }
 
     let reqPostingDuration = undefined;
@@ -136,10 +136,10 @@ export async function POST(req: Request) {
     }
 
     const job = await Job.create({
-      mongo_id: Date.now().toString(),
+      id: Date.now().toString(),
       title,
-      company: company.mongo_id,
-      department: department.mongo_id,
+      company: company.id,
+      department: department.id,
       location,
       category,
       qualification,
@@ -154,7 +154,7 @@ export async function POST(req: Request) {
 
     // Generate and save shareable link
     const origin = req.headers.get("origin") || "http://localhost:3000";
-    const shareableLink = `${origin}/jobs/apply/${job.mongo_id}`;
+    const shareableLink = `${origin}/jobs/apply/${job.id}`;
     job.shareableLink = shareableLink;
     await job.save();
 
@@ -163,7 +163,7 @@ export async function POST(req: Request) {
         status: "Job Posted",
         ownerRemarks: "Job vacancy posted via Module 3 Form.",
         postingDuration: reqPostingDuration,
-      }, { where: { mongo_id: requisitionId } });
+      }, { where: { id: requisitionId } });
     }
 
     // Log Audit entry
@@ -171,7 +171,7 @@ export async function POST(req: Request) {
       userId: (session.user as any).id,
       action: "CREATE_JOB",
       entity: "Job",
-      entityId: job.mongo_id.toString(),
+      entityId: job.id.toString(),
       details: `HR Job posted: ${title} for ${company.name} (${department.name}). Category: ${category}.`,
     });
 

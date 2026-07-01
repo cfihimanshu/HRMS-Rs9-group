@@ -15,6 +15,7 @@ import { logHRActivity } from "@/lib/hrAudit";
 export async function GET(req: Request) {
   try {
     await sequelize.authenticate();
+    await EmployeeProfile.sync({ alter: true });
     const session = await getServerSession(authOptions);
     if (!session || !session.user || !["Owner", "Director", "HR Head", "HR Executive"].includes((session.user as any).role)) {
       return NextResponse.json({ success: false, error: "Unauthorized access" }, { status: 401 });
@@ -29,12 +30,12 @@ export async function GET(req: Request) {
     const allCompanies = await Company.findAll({ where: {} });
     
     const deptMap = departments.reduce((acc: any, dept: any) => {
-      acc[dept.mongo_id] = dept.toJSON();
+      acc[dept.id] = dept.toJSON();
       return acc;
     }, {});
 
     const compMap = allCompanies.reduce((acc: any, comp: any) => {
-      acc[comp.mongo_id] = comp.toJSON();
+      acc[comp.id] = comp.toJSON();
       return acc;
     }, {});
 
@@ -49,11 +50,11 @@ export async function GET(req: Request) {
     // Merge the data
     const mergedData = employees.map(emp => {
       const empJson = emp.toJSON() as any;
-      const profile = profilesWithDept.find((p: any) => p.user?.toString() === empJson.mongo_id?.toString());
+      const profile = profilesWithDept.find((p: any) => p.user?.toString() === empJson.id?.toString());
       
       // Populate companies
       if (empJson.companies && Array.isArray(empJson.companies)) {
-        empJson.companies = empJson.companies.map((compId: string) => compMap[compId] || { mongo_id: compId, name: "Unknown Company", code: "N/A" });
+        empJson.companies = empJson.companies.map((compId: string) => compMap[compId] || { id: compId, name: "Unknown Company", code: "N/A" });
       }
 
       return {
@@ -72,6 +73,7 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   try {
     await sequelize.authenticate();
+    await EmployeeProfile.sync({ alter: true });
     const session = await getServerSession(authOptions);
     if (!session || !session.user || !["Owner", "Director", "HR Head", "HR Executive"].includes((session.user as any).role)) {
       return NextResponse.json({ success: false, error: "Unauthorized access" }, { status: 401 });
@@ -112,32 +114,32 @@ export async function POST(req: Request) {
       let deptDoc = await Department.findOne({ 
         where: {
           name: department, 
-          company: company.mongo_id 
+          company: company.id 
         }
       });
       if (!deptDoc) {
         deptDoc = await Department.create({
-          mongo_id: Date.now().toString(),
+          id: Date.now().toString(),
           name: department,
-          company: company.mongo_id,
+          company: company.id,
           status: "active"
         });
       }
-      resolvedDepartmentId = deptDoc.mongo_id;
+      resolvedDepartmentId = deptDoc.id;
     }
 
     const userStatus = role === "Employee" ? "probation" : "active";
 
     // Create User with company linked
     const newUser = await User.create({
-      mongo_id: Date.now().toString(),
+      id: Date.now().toString(),
       name,
       email,
       password: await bcrypt.hash(password, 10),
       role,
       mobile: mobile || null,
       status: "active",
-      companies: [company.mongo_id],
+      companies: [company.id],
       loginHistory: [],
     });
 
@@ -146,7 +148,8 @@ export async function POST(req: Request) {
       const endDate = new Date();
       endDate.setMonth(endDate.getMonth() + 6); // 6 months probation
       await Probation.create({
-        employee: newUser.mongo_id,
+        id: Date.now().toString() + "PROB",
+        employee: newUser.id,
         startDate,
         endDate,
         status: "active",
@@ -157,8 +160,8 @@ export async function POST(req: Request) {
 
     // Create EmployeeProfile linked to User
     await EmployeeProfile.create({
-      mongo_id: Date.now().toString(),
-      user: newUser.mongo_id,
+      id: Date.now().toString(),
+      user: newUser.id,
       employeeId,
       designation: designation || "Employee",
       department: resolvedDepartmentId,
@@ -170,7 +173,11 @@ export async function POST(req: Request) {
       "salaryStructure.specialAllowance": baseSalary ? baseSalary * 0.4 : 0,
       "leaveBalances.casualLeave": 12,
       "leaveBalances.sickLeave": 12,
-      "leaveBalances.earnedLeave": 0
+      "leaveBalances.earnedLeave": 0,
+      allocatedAsset: "",
+      allocatedSim: "",
+      allocatedGmail: "",
+      allocatedWhatsapp: ""
     });
 
     // Log Audit Entry
@@ -178,7 +185,7 @@ export async function POST(req: Request) {
       userId: (session.user as any).id,
       action: "CREATE_EMPLOYEE",
       entity: "User",
-      entityId: newUser.mongo_id,
+      entityId: newUser.id,
       details: `Created new employee profile: ${name} (${email}) as ${role} for company ${company.name}`
     });
 
@@ -194,6 +201,61 @@ export async function POST(req: Request) {
     delete returnedUser.password;
 
     return NextResponse.json({ success: true, data: returnedUser, message: "Employee onboarded successfully" });
+  } catch (err: any) {
+    return NextResponse.json({ success: false, error: err.message }, { status: 500 });
+  }
+}
+
+// PUT /api/employees - Update an employee's profile/assets
+export async function PUT(req: Request) {
+  try {
+    await sequelize.authenticate();
+    await EmployeeProfile.sync({ alter: true });
+    const session = await getServerSession(authOptions);
+    if (!session || !session.user || !["Owner", "Director", "HR Head", "HR Executive"].includes((session.user as any).role)) {
+      return NextResponse.json({ success: false, error: "Unauthorized access" }, { status: 401 });
+    }
+
+    const body = await req.json();
+    const { 
+      employeeId, 
+      allocatedAsset, 
+      allocatedSim, 
+      allocatedGmail, 
+      allocatedWhatsapp,
+      designation,
+      baseSalary,
+    } = body;
+
+    if (!employeeId) {
+      return NextResponse.json({ success: false, error: "Missing employeeId" }, { status: 400 });
+    }
+
+    const profile = await EmployeeProfile.findOne({ where: { employeeId } });
+    if (!profile) {
+      return NextResponse.json({ success: false, error: "Employee profile not found" }, { status: 404 });
+    }
+
+    // Update fields if provided
+    if (allocatedAsset !== undefined) profile.allocatedAsset = allocatedAsset;
+    if (allocatedSim !== undefined) profile.allocatedSim = allocatedSim;
+    if (allocatedGmail !== undefined) profile.allocatedGmail = allocatedGmail;
+    if (allocatedWhatsapp !== undefined) profile.allocatedWhatsapp = allocatedWhatsapp;
+    if (designation !== undefined) profile.designation = designation;
+    if (baseSalary !== undefined) profile.baseSalary = baseSalary;
+
+    await profile.save();
+
+    // Log Audit Entry
+    await logAudit({
+      userId: (session.user as any).id,
+      action: "UPDATE_EMPLOYEE_ASSETS",
+      entity: "EmployeeProfile",
+      entityId: profile.id,
+      details: `Updated assets/profile for employee ID ${employeeId}. Asset: ${allocatedAsset}, SIM: ${allocatedSim}, Gmail: ${allocatedGmail}, WhatsApp: ${allocatedWhatsapp}`
+    });
+
+    return NextResponse.json({ success: true, data: profile, message: "Employee profile updated successfully" });
   } catch (err: any) {
     return NextResponse.json({ success: false, error: err.message }, { status: 500 });
   }

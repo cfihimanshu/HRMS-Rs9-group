@@ -58,7 +58,7 @@ export async function POST(req: Request) {
     }
 
     const requisition = await HiringRequisition.create({
-      mongo_id: Date.now().toString(),
+      id: Date.now().toString(),
       companyName,
       department,
       role,
@@ -142,11 +142,11 @@ export async function PUT(req: Request) {
       const comp: any =
         (await Company.findOne({ where: { name: requisition.companyName } })) ||
         (await Company.findOne()) ||
-        { mongo_id: "65edbe12f122822a12121212" };
+        { id: "65edbe12f122822a12121212" };
       const dept: any =
         (await Department.findOne({ where: { name: requisition.department } })) ||
         (await Department.findOne()) ||
-        { mongo_id: "65edbe12f122822a12121213" };
+        { id: "65edbe12f122822a12121213" };
 
       const expMin = requisition.experience?.min || 0;
       const expMax = requisition.experience?.max || 0;
@@ -165,10 +165,10 @@ export async function PUT(req: Request) {
           : `₹${budgetMin.toLocaleString("en-IN")} - ₹${budgetMax.toLocaleString("en-IN")} P.A.`;
 
       const job = await Job.create({
-        mongo_id: Date.now().toString(),
+        id: Date.now().toString(),
         title: requisition.role,
-        company: comp.mongo_id,
-        department: dept.mongo_id,
+        company: comp.id,
+        department: dept.id,
         location: requisition.location || "Delhi Corporate Office",
         category: requisition.category,
         qualification: requisition.qualification || "Graduate",
@@ -181,7 +181,7 @@ export async function PUT(req: Request) {
       });
 
       const origin = req.headers.get("origin") || "http://localhost:3000";
-      job.shareableLink = `${origin}/jobs/apply/${job.getDataValue('mongo_id')}`;
+      job.shareableLink = `${origin}/jobs/apply/${job.getDataValue('id')}`;
       await job.save();
 
     // ─── Rejection at any stage ──────────────────────────────────────────

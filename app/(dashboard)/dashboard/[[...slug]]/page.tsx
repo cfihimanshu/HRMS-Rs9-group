@@ -48,6 +48,8 @@ import {
   ESSExpenses
 } from "@/components/dashboard/ESSPanels";
 import EmployeeDirectory from "@/components/dashboard/EmployeePanels";
+import BDADirectory from "@/components/dashboard/BDAPanels";
+import AssetsRegistry from "@/components/dashboard/AssetsRegistry";
 import KanbanBoard from "@/components/dashboard/KanbanBoard";
 import { AssetRequestLogs } from "@/components/dashboard/AssetRequestPanels";
 
@@ -251,12 +253,23 @@ export default function UnifiedEnterpriseDashboard() {
 
   const [dataLoaded, setDataLoaded] = useState(false);
 
-  // Check login
+  // Check login and update URL based on user info
   useEffect(() => {
     if (status === "unauthenticated") {
       router.push("/login");
+    } else if (status === "authenticated" && session?.user) {
+      const u = session.user as any;
+      const comp = u.company ? u.company.replace(/\\s+/g, '-') : "Company";
+      const dept = u.department ? u.department.replace(/\\s+/g, '-') : "Department";
+      const role = u.role ? u.role.replace(/\\s+/g, '-') : "Role";
+      const empId = u.employeeId || u.id || "EMP";
+      const expectedPath = `/dashboard/${encodeURIComponent(comp)}/${encodeURIComponent(dept)}/${encodeURIComponent(role)}/${encodeURIComponent(empId)}`;
+      
+      if (window.location.pathname !== expectedPath && window.location.pathname.startsWith('/dashboard')) {
+        window.history.replaceState(null, '', expectedPath + window.location.search);
+      }
     }
-  }, [status, router]);
+  }, [status, session, router]);
 
   // Tick clock (IST)
   useEffect(() => {
@@ -656,7 +669,7 @@ export default function UnifiedEnterpriseDashboard() {
         description: `Role: ${matchedReq.role}\nDepartment: ${matchedReq.department}\nJob Category: ${matchedReq.category}\nJD: ${matchedReq.jd}\nKRA: ${matchedReq.kra}\nKPI: ${matchedReq.kpi}\nQualification: ${matchedReq.qualification}`,
         applicationLink: "",
         source: "Indeed",
-        requisitionId: matchedReq._id
+        requisitionId: matchedReq.id
       });
     } else {
       // Just update the title, clear requisitionId since it's custom
@@ -897,7 +910,7 @@ export default function UnifiedEnterpriseDashboard() {
     return (
       <div className="min-h-screen bg-[#F4F5F7] flex flex-col justify-center items-center gap-4 select-none">
         <Loader2 className="w-10 h-10 text-[#714B67] animate-spin" />
-        <span className="text-[10px] font-black tracking-widest text-slate-400 uppercase font-mono">Loading HR Suite...</span>
+        <span className="text-[10px] font-black tracking-widest text-slate-400 uppercase font-mono">Loading...</span>
       </div>
     );
   }
@@ -931,6 +944,8 @@ export default function UnifiedEnterpriseDashboard() {
         {/* Upper Header status bar */}
         <Topbar
           activeTabLabel={activeTab.replace("-", " ").toUpperCase()}
+          activeTab={activeTab}
+          setActiveTab={setActiveTab}
           user={session?.user}
           mobileMenuOpen={mobileMenuOpen}
           setMobileMenuOpen={setMobileMenuOpen}
@@ -1015,6 +1030,22 @@ export default function UnifiedEnterpriseDashboard() {
 
           {activeTab === "employees" && (
             <EmployeeDirectory
+              userRole={(session?.user as any)?.role || "Employee"}
+              triggerToast={triggerToast}
+              sessionUser={session?.user}
+            />
+          )}
+
+          {activeTab === "bda-directory" && (
+            <BDADirectory
+              userRole={(session?.user as any)?.role || "Employee"}
+              triggerToast={triggerToast}
+              sessionUser={session?.user}
+            />
+          )}
+
+          {activeTab === "assets-registry" && (
+            <AssetsRegistry
               userRole={(session?.user as any)?.role || "Employee"}
               triggerToast={triggerToast}
               sessionUser={session?.user}
@@ -1186,7 +1217,7 @@ export default function UnifiedEnterpriseDashboard() {
                     {requisitions
                       .filter(r => r.status === "Approved — Pending HR Post")
                       .map(r => (
-                        <option key={r._id} value={r.role}>
+                        <option key={r.id} value={r.role}>
                           {r.companyName || "Acolyte"} - {r.department}
                         </option>
                       ))
@@ -1366,7 +1397,7 @@ export default function UnifiedEnterpriseDashboard() {
                 >
                   <option value="">General Application (None)</option>
                   {jobs.filter(j => j.status === "active").map(job => (
-                    <option key={job._id} value={job._id}>{job.title} ({job.company?.name || "Acolyte"})</option>
+                    <option key={job.id} value={job.id}>{job.title} ({job.company?.name || "Acolyte"})</option>
                   ))}
                 </select>
               </div>
@@ -1429,7 +1460,7 @@ export default function UnifiedEnterpriseDashboard() {
                 <select className="w-full bg-white border border-slate-300 rounded p-2.5 text-slate-700 mt-1 focus:outline-none focus:border-[#714B67]" value={interviewForm.candidateId} onChange={e => setInterviewForm({ ...interviewForm, candidateId: e.target.value })} required>
                   <option value="">Select Candidate...</option>
                   {candidates.map((c, i) => (
-                    <option key={i} value={c._id}>{c.name} ({c.role || "DSM"})</option>
+                    <option key={i} value={c.id}>{c.name} ({c.role || "DSM"})</option>
                   ))}
                 </select>
               </div>

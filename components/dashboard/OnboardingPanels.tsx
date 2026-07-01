@@ -80,10 +80,10 @@ export function OnboardingRoadmap({ selectedCandidate: initialCandidate, trigger
         // Get verified candidate IDs
         const verifiedCandIds = (verData.data || [])
           .filter((v: any) => v.status === "Verified")
-          .map((v: any) => (v.candidate?._id || v.candidate)?.toString());
+          .map((v: any) => (v.candidate?.id || v.candidate)?.toString());
 
         const filtered = data.data.filter((c: any) => 
-          verifiedCandIds.includes(c._id.toString())
+          verifiedCandIds.includes(c.id.toString())
         );
 
         const sorted = filtered.sort((a: any, b: any) => {
@@ -93,13 +93,13 @@ export function OnboardingRoadmap({ selectedCandidate: initialCandidate, trigger
         setCandidates(sorted);
 
         // Auto-select candidate if none is selected or if current is not in the eligible list
-        const isEligible = selectedCandidate && sorted.some((c: any) => c._id === selectedCandidate._id);
+        const isEligible = selectedCandidate && sorted.some((c: any) => c.id === selectedCandidate.id);
         if (!isEligible) {
           if (sorted.length > 0) {
-            const initialEligible = initialCandidate && sorted.find((c: any) => c._id === initialCandidate._id);
+            const initialEligible = initialCandidate && sorted.find((c: any) => c.id === initialCandidate.id);
             const defaultSelect = initialEligible || sorted[0];
             setSelectedCandidate(defaultSelect);
-            loadOnboardingRecord(defaultSelect._id);
+            loadOnboardingRecord(defaultSelect.id);
           } else {
             setSelectedCandidate(null);
             setOnboardingRecord(null);
@@ -134,17 +134,17 @@ export function OnboardingRoadmap({ selectedCandidate: initialCandidate, trigger
   // Update when external prop changes
   useEffect(() => {
     if (initialCandidate && candidates.length > 0) {
-      const isEligible = candidates.some(c => c._id === initialCandidate._id);
+      const isEligible = candidates.some(c => c.id === initialCandidate.id);
       if (isEligible) {
         setSelectedCandidate(initialCandidate);
-        loadOnboardingRecord(initialCandidate._id);
+        loadOnboardingRecord(initialCandidate.id);
       }
     }
   }, [initialCandidate, candidates]);
 
   const handleSelectCandidate = (candidate: any) => {
     setSelectedCandidate(candidate);
-    loadOnboardingRecord(candidate._id);
+    loadOnboardingRecord(candidate.id);
   };
 
   // Generate compliance package
@@ -156,7 +156,7 @@ export function OnboardingRoadmap({ selectedCandidate: initialCandidate, trigger
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          candidateId: selectedCandidate._id,
+          candidateId: selectedCandidate.id,
           category: selectedCategory
         })
       });
@@ -183,7 +183,7 @@ export function OnboardingRoadmap({ selectedCandidate: initialCandidate, trigger
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          candidateId: selectedCandidate._id,
+          candidateId: selectedCandidate.id,
           docName
         })
       });
@@ -250,7 +250,7 @@ export function OnboardingRoadmap({ selectedCandidate: initialCandidate, trigger
               <div className="text-center py-10 text-slate-400 font-bold text-[10px]">No active candidates found</div>
             ) : (
               filteredCandidates.map((c, i) => {
-                const isSelected = selectedCandidate && selectedCandidate._id === c._id;
+                const isSelected = selectedCandidate && selectedCandidate.id === c.id;
                 return (
                   <button
                     key={i}
@@ -542,13 +542,13 @@ export function TrainingClassroom({ triggerToast }: { triggerToast: (msg: string
         // Get verified candidate IDs
         const verifiedCandIds = verifications
           .filter((v: any) => v.status === "Verified")
-          .map((v: any) => (v.candidate?._id || v.candidate)?.toString());
+          .map((v: any) => (v.candidate?.id || v.candidate)?.toString());
 
         // Identify candidates with exactly 3 selected interview rounds
         const candidateInterviewsMap: Record<string, Set<number>> = {};
         interviews.forEach((iv: any) => {
-          if (iv.candidate && iv.candidate._id && iv.status === "Selected") {
-            const cid = iv.candidate._id.toString();
+          if (iv.candidate && iv.candidate.id && iv.status === "Selected") {
+            const cid = iv.candidate.id.toString();
             if (!candidateInterviewsMap[cid]) {
               candidateInterviewsMap[cid] = new Set();
             }
@@ -570,14 +570,14 @@ export function TrainingClassroom({ triggerToast }: { triggerToast: (msg: string
 
         // Add candidates from training records ONLY if they are eligible
         activeTrainings.forEach((tr: any) => {
-          if (tr.candidate && eligibleCandIds.includes(tr.candidate._id)) {
+          if (tr.candidate && eligibleCandIds.includes(tr.candidate.id)) {
             traineesList.push({ ...tr.candidate, trainingRecord: tr });
           }
         });
 
         // Add eligible candidates who aren't in training yet
         candidates.forEach((c: any) => {
-          if (eligibleCandIds.includes(c._id) && !activeTrainings.some((tr: any) => tr.candidate && tr.candidate._id === c._id)) {
+          if (eligibleCandIds.includes(c.id) && !activeTrainings.some((tr: any) => tr.candidate && tr.candidate.id === c.id)) {
             traineesList.push({ ...c, trainingRecord: null });
           }
         });
@@ -586,11 +586,11 @@ export function TrainingClassroom({ triggerToast }: { triggerToast: (msg: string
 
         // Auto-select first or update selected
         if (traineesList.length > 0) {
-          const stillExists = selectedTrainee && traineesList.some(t => t._id === selectedTrainee._id);
+          const stillExists = selectedTrainee && traineesList.some(t => t.id === selectedTrainee.id);
           if (!stillExists) {
             handleSelectTrainee(traineesList[0]);
           } else {
-            const updatedTrainee = traineesList.find(t => t._id === selectedTrainee._id);
+            const updatedTrainee = traineesList.find(t => t.id === selectedTrainee.id);
             handleSelectTrainee(updatedTrainee);
           }
         } else {
@@ -628,7 +628,7 @@ export function TrainingClassroom({ triggerToast }: { triggerToast: (msg: string
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          candidateId: selectedTrainee._id,
+          candidateId: selectedTrainee.id,
           status: "Orientation"
         })
       });
@@ -660,7 +660,7 @@ export function TrainingClassroom({ triggerToast }: { triggerToast: (msg: string
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          candidateId: selectedTrainee._id,
+          candidateId: selectedTrainee.id,
           status: nextStatus,
           assessment: {
             dayNumber: assessmentForm.dayNumber,
@@ -698,7 +698,7 @@ export function TrainingClassroom({ triggerToast }: { triggerToast: (msg: string
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          candidateId: selectedTrainee._id,
+          candidateId: selectedTrainee.id,
           status: nextStatus,
           recommendation: finalRec
         })
@@ -775,7 +775,7 @@ export function TrainingClassroom({ triggerToast }: { triggerToast: (msg: string
               <div className="text-center py-10 text-slate-400 font-bold text-[10px]">No trainees found</div>
             ) : (
               filteredTrainees.map((t, i) => {
-                const isSelected = selectedTrainee && selectedTrainee._id === t._id;
+                const isSelected = selectedTrainee && selectedTrainee.id === t.id;
                 const status = t.trainingRecord?.status || "Awaiting Orientation";
                 const vacancyName = t.job?.title || "General Inquiry";
                 const candidateStatus = t.status || "Pending";
@@ -1221,7 +1221,7 @@ export function ProbationEvaluation({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          probationId: selectedProbationer._id,
+          probationId: selectedProbationer.id,
           status: evalForm.verdict,
           kpis: kpisArray,
           feedback: evalForm.feedback
@@ -1245,7 +1245,7 @@ export function ProbationEvaluation({
   const filteredProbationers = probationers.filter(p => p.employee?.name?.toLowerCase().includes(searchQuery.toLowerCase()));
 
   // Filter out employees who are already in the probation list
-  const availableEmployees = employees.filter(emp => !probationers.some(p => p.employee?._id === emp._id));
+  const availableEmployees = employees.filter(emp => !probationers.some(p => p.employee?.id === emp.id));
 
   return (
     <div className="space-y-8 animate-fadeIn text-slate-800">
@@ -1296,7 +1296,7 @@ export function ProbationEvaluation({
               <div className="text-center py-10 text-slate-400 font-bold text-[10px]">No active probationers found</div>
             ) : (
               filteredProbationers.map((p, i) => {
-                const isSelected = selectedProbationer && selectedProbationer._id === p._id && !showInitForm;
+                const isSelected = selectedProbationer && selectedProbationer.id === p.id && !showInitForm;
                 const status = p.status;
                 const monthsElapsed = Math.round((new Date().getTime() - new Date(p.startDate).getTime()) / (1000 * 60 * 60 * 24 * 30));
 
@@ -1355,7 +1355,7 @@ export function ProbationEvaluation({
                   >
                     <option value="">-- Select an employee --</option>
                     {availableEmployees.map((emp, i) => (
-                      <option key={i} value={emp._id}>{emp.name} ({emp.employeeProfile?.designation || emp.role})</option>
+                      <option key={i} value={emp.id}>{emp.name} ({emp.employeeProfile?.designation || emp.role})</option>
                     ))}
                   </select>
                 </div>
@@ -1408,7 +1408,7 @@ export function ProbationEvaluation({
                     <button
                       type="button"
                       onClick={() => {
-                        const empId = selectedProbationer.employee?._id || selectedProbationer.employee?.id;
+                        const empId = selectedProbationer.employee?.id || selectedProbationer.employee?.id;
                         if (empId && onViewWorkReport) {
                           onViewWorkReport(empId);
                         }

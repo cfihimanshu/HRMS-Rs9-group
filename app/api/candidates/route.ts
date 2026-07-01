@@ -55,8 +55,8 @@ export async function POST(req: Request) {
 
     // 3-month Reapply Limitation Check
     if (jobExists && jobExists.company) {
-      const companyJobs = await Job.findAll({ where: { company: jobExists.company }, attributes: ["mongo_id"] });
-      const companyJobIds = companyJobs.map((j: any) => j.mongo_id);
+      const companyJobs = await Job.findAll({ where: { company: jobExists.company }, attributes: ["id"] });
+      const companyJobIds = companyJobs.map((j: any) => j.id);
 
       const existingCandidates = await Candidate.findAll({ where: {
         [Op.or]: [
@@ -91,7 +91,7 @@ export async function POST(req: Request) {
 
     // Create Candidate record
     const candidate = await Candidate.create({
-      mongo_id: Date.now().toString(),
+      id: Date.now().toString(),
       job: jobId || null,
       name,
       mobile,
@@ -113,7 +113,7 @@ export async function POST(req: Request) {
       userId: null,
       action: "SUBMIT_CANDIDATE",
       entity: "Candidate",
-      entityId: candidate.mongo_id.toString(),
+      entityId: candidate.id.toString(),
       details: `Candidate application submitted: ${name} (${email}) for Job: ${
         jobExists ? jobExists.title : "General Inquiry"
       }.`,

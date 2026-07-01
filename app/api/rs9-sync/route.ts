@@ -93,11 +93,11 @@ export async function GET(request: Request) {
     ].filter(Boolean);
 
     const employees = await User.findAll({
-      where: { mongo_id: { [Op.in]: employeeIds } },
-      attributes: ["mongo_id", "name", "role"],
+      where: { id: { [Op.in]: employeeIds } },
+      attributes: ["id", "name", "role"],
       raw: true
     });
-    const employeeMap = new Map(employees.map((e: any) => [e.mongo_id, e]));
+    const employeeMap = new Map(employees.map((e: any) => [e.id, e]));
 
     const sodToday = sodTodayRaw.map((s: any) => {
       const plain = s.toJSON();

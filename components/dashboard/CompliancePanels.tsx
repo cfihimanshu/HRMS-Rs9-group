@@ -61,14 +61,14 @@ export function GrievanceResolution({ toggleModal, triggerToast }: { toggleModal
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          grievanceId: selectedGrievance._id,
+          grievanceId: selectedGrievance.id,
           status: formState.status,
           resolutionReport: formState.resolutionReport
         })
       });
       const data = await res.json();
       if (data.success) {
-        triggerToast(`Grievance ${selectedGrievance._id.slice(-4).toUpperCase()} updated successfully!`);
+        triggerToast(`Grievance ${selectedGrievance.id.slice(-4).toUpperCase()} updated successfully!`);
         loadGrievances();
       } else {
         triggerToast("Error: " + data.error);
@@ -83,7 +83,7 @@ export function GrievanceResolution({ toggleModal, triggerToast }: { toggleModal
   const filteredGrievances = grievances.filter(g => 
     g.category?.toLowerCase().includes(searchQuery.toLowerCase()) ||
     g.raisedBy?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    g._id.slice(-4).toLowerCase().includes(searchQuery.toLowerCase())
+    g.id.slice(-4).toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   return (
@@ -135,7 +135,7 @@ export function GrievanceResolution({ toggleModal, triggerToast }: { toggleModal
               <div className="text-center py-10 text-slate-400 font-bold text-[10px]">No grievances found</div>
             ) : (
               filteredGrievances.map((grievance, i) => {
-                const isSelected = selectedGrievance && selectedGrievance._id === grievance._id;
+                const isSelected = selectedGrievance && selectedGrievance.id === grievance.id;
                 
                 return (
                   <button
@@ -149,7 +149,7 @@ export function GrievanceResolution({ toggleModal, triggerToast }: { toggleModal
                   >
                     <div className="flex items-center justify-between">
                       <div className="font-bold text-slate-800 text-xs truncate flex items-center gap-1.5">
-                        <span className="text-[10px] font-mono text-slate-400">GR-{grievance._id.slice(-4).toUpperCase()}</span>
+                        <span className="text-[10px] font-mono text-slate-400">GR-{grievance.id.slice(-4).toUpperCase()}</span>
                         {grievance.raisedBy?.name}
                       </div>
                       {grievance.priority === 'High' && <AlertCircle className="w-4 h-4 text-rose-500" />}
@@ -177,7 +177,7 @@ export function GrievanceResolution({ toggleModal, triggerToast }: { toggleModal
                 <div>
                   <h2 className="text-lg font-black text-slate-850 flex items-center gap-2">
                     <ShieldAlert className="w-5 h-5 text-rose-600" />
-                    Grievance Report — GR-{selectedGrievance._id.slice(-4).toUpperCase()}
+                    Grievance Report — GR-{selectedGrievance.id.slice(-4).toUpperCase()}
                   </h2>
                   <div className="text-slate-500 text-[10px] mt-1.5 flex gap-4">
                     <span>Filed By: <strong className={`text-slate-700 ${selectedGrievance.anonymous ? 'text-rose-600 flex items-center gap-1' : ''}`}>{selectedGrievance.anonymous && <EyeOff className="w-3 h-3"/>} {selectedGrievance.raisedBy?.name || "Unknown"}</strong></span>
@@ -341,13 +341,13 @@ export function SystemRiskAlerts({ toggleModal, triggerToast, riskAlertList, onR
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          alertId: selectedAlert._id,
+          alertId: selectedAlert.id,
           status: resolutionStatus
         })
       });
       const data = await res.json();
       if (data.success) {
-        triggerToast(`Alert RA-${selectedAlert._id.slice(-4).toUpperCase()} marked as ${resolutionStatus}`);
+        triggerToast(`Alert RA-${selectedAlert.id.slice(-4).toUpperCase()} marked as ${resolutionStatus}`);
         loadAlerts();
       } else {
         triggerToast("Error: " + data.error);
@@ -390,7 +390,7 @@ export function SystemRiskAlerts({ toggleModal, triggerToast, riskAlertList, onR
 
   const filteredAlerts = alerts.filter(a => 
     a.source?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    a._id.slice(-4).toLowerCase().includes(searchQuery.toLowerCase())
+    a.id.slice(-4).toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   return (
@@ -442,7 +442,7 @@ export function SystemRiskAlerts({ toggleModal, triggerToast, riskAlertList, onR
               <div className="text-center py-10 text-slate-400 font-bold text-[10px]">No alerts found</div>
             ) : (
               filteredAlerts.map((alert, i) => {
-                const isSelected = selectedAlert && selectedAlert._id === alert._id;
+                const isSelected = selectedAlert && selectedAlert.id === alert.id;
                 
                 return (
                   <button
@@ -456,7 +456,7 @@ export function SystemRiskAlerts({ toggleModal, triggerToast, riskAlertList, onR
                   >
                     <div className="flex items-center justify-between">
                       <div className="font-bold text-slate-800 text-xs truncate flex items-center gap-1.5">
-                        <span className="text-[10px] font-mono text-slate-400">RA-{alert._id.slice(-4).toUpperCase()}</span>
+                        <span className="text-[10px] font-mono text-slate-400">RA-{alert.id.slice(-4).toUpperCase()}</span>
                         <span className="truncate max-w-[140px]">{alert.source}</span>
                       </div>
                       {(alert.level === 'High' || alert.level === 'Critical') && <AlertCircle className="w-4 h-4 text-rose-500" />}
@@ -548,7 +548,7 @@ export function SystemRiskAlerts({ toggleModal, triggerToast, riskAlertList, onR
                 <div>
                   <h2 className="text-lg font-black text-slate-850 flex items-center gap-2">
                     <ShieldAlert className="w-5 h-5 text-rose-600" />
-                    Risk Alert — RA-{selectedAlert._id.slice(-4).toUpperCase()}
+                    Risk Alert — RA-{selectedAlert.id.slice(-4).toUpperCase()}
                   </h2>
                   <div className="text-slate-500 text-[10px] mt-1.5 flex gap-4">
                     <span>Triggered By: <strong className="text-slate-700">{selectedAlert.triggeredBy?.name || "System Automation"}</strong></span>
@@ -716,7 +716,7 @@ export function ExitSeparation({ triggerToast }: { triggerToast: (msg: string) =
 
   const handleSelectEmployee = (employee: any, currentExits: any[] = exits) => {
     setSelectedEmployee(employee);
-    const existingExit = currentExits.find((ex: any) => ex.employee?._id === employee._id || ex.employee === employee._id);
+    const existingExit = currentExits.find((ex: any) => ex.employee?.id === employee.id || ex.employee === employee.id);
     
     if (existingExit) {
       setFormState({
@@ -759,7 +759,7 @@ export function ExitSeparation({ triggerToast }: { triggerToast: (msg: string) =
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          employeeId: selectedEmployee._id,
+          employeeId: selectedEmployee.id,
           ...formState
         })
       });
@@ -831,8 +831,8 @@ export function ExitSeparation({ triggerToast }: { triggerToast: (msg: string) =
               <div className="text-center py-10 text-slate-400 font-bold text-[10px]">No employees found</div>
             ) : (
               filteredEmployees.map((emp, i) => {
-                const isSelected = selectedEmployee && selectedEmployee._id === emp._id;
-                const hasExitRecord = exits.some(ex => ex.employee?._id === emp._id || ex.employee === emp._id);
+                const isSelected = selectedEmployee && selectedEmployee.id === emp.id;
+                const hasExitRecord = exits.some(ex => ex.employee?.id === emp.id || ex.employee === emp.id);
                 
                 return (
                   <button

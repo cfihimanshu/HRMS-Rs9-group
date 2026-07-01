@@ -6,7 +6,7 @@ class ExitRecord extends Model<any, any> { [key: string]: any; }
 ExitRecord.init(
   {
     
-    mongo_id: {
+    id: {
       type: DataTypes.STRING,
       primaryKey: true,
       allowNull: false,

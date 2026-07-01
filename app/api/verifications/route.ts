@@ -31,11 +31,11 @@ export async function GET(req: Request) {
 
     const candidateIds = verifications.map(v => (v as any).candidate).filter(Boolean);
     const candidates = await Candidate.findAll({
-      where: { mongo_id: candidateIds }
+      where: { id: candidateIds }
     });
 
     const candidateMap = candidates.reduce((acc: any, c: any) => {
-      acc[c.mongo_id] = c.toJSON();
+      acc[c.id] = c.toJSON();
       return acc;
     }, {});
 
@@ -123,7 +123,7 @@ export async function POST(req: Request) {
     let verObj = await Verification.findOne({ where: { candidate: candidateId } });
     if (!verObj) {
       verObj = await Verification.create({
-        mongo_id: Date.now().toString(),
+        id: Date.now().toString(),
         candidate: candidateId
       });
     }
@@ -162,7 +162,7 @@ export async function POST(req: Request) {
 
     // Propagate verification high risk back to candidate status if flagged
     if (status === "High Risk" || policeStatus === "High Risk") {
-      await Candidate.update({ status: "High Risk" }, { where: { mongo_id: candidateId } });
+      await Candidate.update({ status: "High Risk" }, { where: { id: candidateId } });
     }
 
     // Audit Log Entry
@@ -170,7 +170,7 @@ export async function POST(req: Request) {
       userId: (session.user as any).id,
       action: "UPDATE_BACKGROUND_VERIFICATION",
       entity: "Verification",
-      entityId: verObj.mongo_id,
+      entityId: verObj.id,
       details: `Background verification updated for candidate: ${candidate?.name || "Unknown"}. Overall status: ${status}. Remarks: ${remarks || "None"}.`,
     });
 

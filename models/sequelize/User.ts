@@ -3,7 +3,6 @@ import sequelize from "../../lib/sequelize";
 
 class User extends Model {
   public id!: string;
-  public mongo_id!: string;
   public name!: string;
   public email!: string;
   public password!: string;
@@ -16,7 +15,7 @@ class User extends Model {
 
 User.init(
   {
-    mongo_id: {
+    id: {
       type: DataTypes.STRING,
       primaryKey: true,
       allowNull: false,

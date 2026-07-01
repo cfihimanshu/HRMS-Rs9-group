@@ -6,7 +6,7 @@ class Associate extends Model<any, any> { [key: string]: any; }
 Associate.init(
   {
     
-    mongo_id: {
+    id: {
       type: DataTypes.STRING,
       primaryKey: true,
       allowNull: false,

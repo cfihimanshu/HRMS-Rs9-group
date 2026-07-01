@@ -5,6 +5,8 @@ import sequelize from "@/lib/sequelize";
 import User from "@/models/sequelize/User";
 import EmployeeProfile from "@/models/sequelize/EmployeeProfile";
 import AssetRequest from "@/models/sequelize/AssetRequest";
+import Notification from "@/models/sequelize/Notification";
+import { sendEmail } from "@/lib/email";
 
 export async function GET(req: Request) {
   try {
@@ -35,14 +37,14 @@ export async function GET(req: Request) {
 
     // Resolve employee details to attach to requests
     const users = await User.findAll({
-      attributes: ["mongo_id", "name", "email"]
+      attributes: ["id", "name", "email"]
     });
     const profiles = await EmployeeProfile.findAll({
       attributes: ["user", "department"]
     });
 
     const userMap = users.reduce((acc: any, u: any) => {
-      acc[u.mongo_id] = { name: u.name, email: u.email };
+      acc[u.id] = { name: u.name, email: u.email };
       return acc;
     }, {});
 
@@ -102,6 +104,61 @@ export async function POST(req: Request) {
         priority: priority || "Medium",
         status: "Pending"
       });
+
+      // --- Send Notification to Admins ---
+      try {
+        await Notification.sync({ alter: true });
+        const requester = await User.findByPk(userId);
+        const requesterCompanies = requester?.companies || [];
+        const requesterName = requester?.name || "An employee";
+
+        const admins = await User.findAll({
+          where: {
+            role: ["Owner", "Director", "HR Head", "HR Executive", "Department Manager"]
+          }
+        });
+
+        // Filter admins who belong to the same company, plus Owners who see everything
+        const targetAdmins = admins.filter((admin: any) => {
+          if (admin.role === "Owner" || admin.role === "Director") return true;
+          const adminComps = admin.companies || [];
+          return adminComps.some((c: string) => requesterCompanies.includes(c));
+        });
+
+        // Create a notification for each admin
+        const adminEmails: string[] = [];
+        for (const admin of targetAdmins) {
+          if (admin.email) adminEmails.push(admin.email);
+          await Notification.create({
+            id: Date.now().toString() + Math.random().toString(36).substring(2, 8),
+            recipient: admin.id,
+            title: "New Asset Request",
+            message: `${requesterName} has requested a new asset: ${asset_type}`,
+            read: false
+          });
+        }
+
+        // Send Email to all Admins
+        if (adminEmails.length > 0) {
+          await sendEmail({
+            to: adminEmails,
+            subject: `New Asset Request from ${requesterName}`,
+            html: `
+              <div style="font-family: Arial, sans-serif; padding: 20px; border: 1px solid #ddd; border-radius: 8px;">
+                <h2 style="color: #333;">New Asset Request</h2>
+                <p><strong>Employee:</strong> ${requesterName}</p>
+                <p><strong>Asset Type:</strong> ${asset_type}</p>
+                <p><strong>Priority:</strong> ${priority || "Medium"}</p>
+                <p><strong>Reason:</strong> ${reason}</p>
+                <br />
+                <p>Please log in to the HR Management portal to approve or reject this request.</p>
+              </div>
+            `
+          });
+        }
+      } catch (notifErr) {
+        console.error("Error creating notifications:", notifErr);
+      }
 
       return NextResponse.json({
         success: true,

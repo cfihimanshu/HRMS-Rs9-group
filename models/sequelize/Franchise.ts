@@ -2,7 +2,7 @@ import { DataTypes, Model } from "sequelize";
 import sequelize from "../../lib/sequelize";
 
 class Franchise extends Model {
-  public mongo_id!: string;
+  public id!: string;
   public user!: string;
   public territory!: string;
   public agreementUrl!: string;
@@ -19,7 +19,7 @@ class Franchise extends Model {
 Franchise.init(
   {
     
-    mongo_id: {
+    id: {
       type: DataTypes.STRING,
       primaryKey: true,
       allowNull: false,

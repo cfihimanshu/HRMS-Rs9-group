@@ -6,7 +6,7 @@ class ExitForm extends Model<any, any> { [key: string]: any; }
 ExitForm.init(
   {
     
-    mongo_id: {
+    id: {
       type: DataTypes.STRING,
       primaryKey: true,
       allowNull: false,

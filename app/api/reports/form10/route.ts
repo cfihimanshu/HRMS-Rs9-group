@@ -79,12 +79,12 @@ export async function GET(req: Request) {
 
     const userIds = records.map(r => (r as any).registeredBy).filter(Boolean);
     const users = await User.findAll({
-      where: { mongo_id: userIds },
-      attributes: ['mongo_id', 'name', 'role']
+      where: { id: userIds },
+      attributes: ['id', 'name', 'role']
     });
 
     const userMap = users.reduce((acc: any, u: any) => {
-      acc[u.mongo_id] = u.toJSON();
+      acc[u.id] = u.toJSON();
       return acc;
     }, {});
 

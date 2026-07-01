@@ -6,7 +6,7 @@ class RiskAlert extends Model<any, any> { [key: string]: any; }
 RiskAlert.init(
   {
     
-    mongo_id: {
+    id: {
       type: DataTypes.STRING,
       primaryKey: true,
       allowNull: false,
