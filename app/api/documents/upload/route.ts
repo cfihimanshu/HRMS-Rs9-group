@@ -36,10 +36,21 @@ export async function POST(request: Request) {
         });
         
         const stream = Readable.from(buffer);
-        const ftpDir = process.env.FTP_DIR || "/public_html/hrms";
-        const ftpPath = `${ftpDir}/${uniqueFileName}`;
+        const ftpDir = process.env.FTP_DIR !== undefined ? process.env.FTP_DIR : "/public_html/hrms";
+        const ftpPath = ftpDir ? (ftpDir.endsWith("/") ? `${ftpDir}${uniqueFileName}` : `${ftpDir}/${uniqueFileName}`) : uniqueFileName;
         
-        await client.uploadFrom(stream, ftpPath);
+        try {
+          await client.uploadFrom(stream, ftpPath);
+        } catch (uploadError: any) {
+          // Fallback to FTP root if folder doesn't exist
+          if (ftpDir && ftpDir !== "/" && (uploadError.message.includes("553") || uploadError.message.includes("directory") || uploadError.message.includes("No such file"))) {
+            console.warn(`FTP upload to ${ftpDir} failed, attempting fallback to root '/'`, uploadError.message);
+            const fallbackStream = Readable.from(buffer);
+            await client.uploadFrom(fallbackStream, uniqueFileName);
+          } else {
+            throw uploadError;
+          }
+        }
         client.close();
         
         const urlPrefix = process.env.UPLOAD_URL_PREFIX || "https://ruhannetwork.com/hrms";
