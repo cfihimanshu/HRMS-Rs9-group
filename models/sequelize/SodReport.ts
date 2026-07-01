@@ -56,6 +56,10 @@ SodReport.init(
       type: DataTypes.STRING,
       allowNull: true,
     },
+    projectName: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
     latitude: {
       type: DataTypes.FLOAT,
       allowNull: true,
