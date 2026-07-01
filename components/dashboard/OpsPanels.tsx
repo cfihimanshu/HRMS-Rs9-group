@@ -41,6 +41,7 @@ export function DailyCommitments({
   const [taskSummary, setTaskSummary] = useState("");
   const [taskType, setTaskType] = useState("Meeting");
   const [remarks, setRemarks] = useState("");
+  const [customTaskType, setCustomTaskType] = useState("");
   const [showCamera, setShowCamera] = useState(false);
   const [submittingSOD, setSubmittingSOD] = useState(false);
   const [locationStatus, setLocationStatus] = useState("Awaiting GPS...");
@@ -342,6 +343,12 @@ export function DailyCommitments({
       return;
     }
 
+    if (taskType === "Other" && !customTaskType.trim()) {
+      alert("Please specify the task type.");
+      setShowCamera(false);
+      return;
+    }
+
     setSubmittingSOD(true);
     setLocationStatus("Uploading verification capture...");
 
@@ -382,7 +389,7 @@ export function DailyCommitments({
     try {
       const success = await handleSodSubmit({
         taskSummary,
-        taskType,
+        taskType: taskType === "Other" ? (customTaskType.trim() || "Other") : taskType,
         remarks,
         selfieUrl,
         location
@@ -393,6 +400,7 @@ export function DailyCommitments({
         setShowCamera(false);
         setTaskSummary("");
         setRemarks("");
+        setCustomTaskType("");
       }
       setSubmittingSOD(false);
       setLocationStatus("Awaiting GPS...");
@@ -594,6 +602,12 @@ export function DailyCommitments({
                     <option>Other</option>
                   </select>
                 </div>
+                {taskType === "Other" && (
+                  <div className="md:col-span-2">
+                    <label className="text-[10px] uppercase font-black text-slate-500 font-mono tracking-wider">Specify Task Type *</label>
+                    <input className="w-full bg-white border border-slate-300 rounded p-2 text-xs font-bold text-slate-900 mt-1.5 focus:outline-none focus:border-[#714B67]" placeholder="Please specify task type..." value={customTaskType} onChange={e => setCustomTaskType(e.target.value)} required />
+                  </div>
+                )}
                 <div className="md:col-span-2">
                   <label className="text-[10px] uppercase font-black text-slate-500 font-mono tracking-wider">Remarks (Optional)</label>
                   <textarea className="w-full bg-white border border-slate-300 rounded p-2 text-xs font-bold text-slate-900 mt-1.5 focus:outline-none focus:border-[#714B67]" rows={2} value={remarks} onChange={e => setRemarks(e.target.value)} placeholder="Any special notes..." />
@@ -617,10 +631,18 @@ export function DailyCommitments({
               {cameraError ? (
                 <div className="bg-rose-50 p-4 rounded-lg text-rose-600 text-xs font-bold text-center border border-rose-200">
                   ⚠️ {cameraError} <br /><br />
-                  Note: Camera access is blocked because you are using an IP address (Insecure Origin). You can bypass verification to submit.
-                  <div className="flex gap-2 justify-center mt-4">
+                  <div className="text-left space-y-2 mb-4 font-normal text-slate-600">
+                    <p><strong>How to allow camera access:</strong></p>
+                    <ol className="list-decimal pl-4 space-y-1 text-[11px]">
+                      <li>Click the <strong>camera / settings icon</strong> in the browser's address bar.</li>
+                      <li>Set camera access to <strong>"Allow"</strong> and reload the page.</li>
+                    </ol>
+                    <p className="text-[10px] text-rose-500 mt-2 font-semibold">
+                      Note: Local IP addresses (e.g. <code>http://192.168.1.46:3000</code>) are blocked by browser security guidelines (Insecure Origin). To test, please use <code>http://localhost:3000</code> or run a secure HTTPS tunnel (e.g., using Ngrok).
+                    </p>
+                  </div>
+                  <div className="flex gap-2 justify-center">
                     <button onClick={() => setShowCamera(false)} className="bg-white px-4 py-2 rounded border border-rose-200 text-slate-700 font-bold">Go Back</button>
-                    <button onClick={captureSodPhotoAndSubmit} className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded border border-indigo-700 font-black">Bypass & Submit</button>
                   </div>
                 </div>
               ) : (
@@ -732,10 +754,18 @@ export function DailyCommitments({
               {eodCameraError ? (
                 <div className="bg-rose-50 p-4 rounded-lg text-rose-600 text-xs font-bold text-center border border-rose-200">
                   ⚠️ {eodCameraError} <br /><br />
-                  Note: Camera access is blocked because you are using an IP address (Insecure Origin). You can bypass verification to submit.
-                  <div className="flex gap-2 justify-center mt-4">
+                  <div className="text-left space-y-2 mb-4 font-normal text-slate-660">
+                    <p><strong>How to allow camera access:</strong></p>
+                    <ol className="list-decimal pl-4 space-y-1 text-[11px]">
+                      <li>Click the <strong>camera / settings icon</strong> in the browser's address bar.</li>
+                      <li>Set camera access to <strong>"Allow"</strong> and reload the page.</li>
+                    </ol>
+                    <p className="text-[10px] text-rose-500 mt-2 font-semibold">
+                      Note: Local IP addresses (e.g. <code>http://192.168.1.46:3000</code>) are blocked by browser security guidelines (Insecure Origin). To test, please use <code>http://localhost:3000</code> or run a secure HTTPS tunnel (e.g., using Ngrok).
+                    </p>
+                  </div>
+                  <div className="flex gap-2 justify-center">
                     <button onClick={() => setShowEodCamera(false)} className="bg-white px-4 py-2 rounded border border-rose-200 text-slate-700 font-bold">Go Back</button>
-                    <button onClick={captureEodPhotoAndSubmit} className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded border border-emerald-700 font-black">Bypass & Submit EOD</button>
                   </div>
                 </div>
               ) : (

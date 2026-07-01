@@ -10,6 +10,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
 import { logHRActivity } from "@/lib/hrAudit";
+import { sendEmail } from "@/lib/email";
 
 // GET /api/employees - Get list of all staff members
 export async function GET(req: Request) {
@@ -198,6 +199,231 @@ export async function POST(req: Request) {
       action: "CREATE_EMPLOYEE",
       details: `Created new employee profile: ${name} (${email}) as ${role} for company ${company.name}`
     });
+
+    // Send email notification to new employee and all owners
+    try {
+      const owners = await User.findAll({
+        where: { role: "Owner" },
+        raw: true
+      });
+      const ownerEmails = owners.map((o: any) => o.email).filter(Boolean);
+      const recipients = Array.from(new Set([email, ...ownerEmails])).filter(Boolean);
+
+      if (recipients.length > 0) {
+        const portalUrl = process.env.NEXTAUTH_URL || "http://localhost:3000";
+        await sendEmail({
+          to: recipients,
+          subject: `Welcome Onboard & Account Details - ${name}`,
+          html: `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>New Employee Onboarded</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+    body {
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      background-color: #f8fafc;
+      color: #1e293b;
+      margin: 0;
+      padding: 0;
+      -webkit-font-smoothing: antialiased;
+    }
+    .wrapper {
+      width: 100%;
+      background-color: #f8fafc;
+      padding: 40px 20px;
+      box-sizing: border-box;
+    }
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+      background-color: #ffffff;
+      border-radius: 16px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+      overflow: hidden;
+      border: 1px solid #e2e8f0;
+    }
+    .header {
+      background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+      padding: 32px 24px;
+      text-align: center;
+      color: #ffffff;
+    }
+    .header h1 {
+      margin: 0;
+      font-size: 24px;
+      font-weight: 700;
+      letter-spacing: -0.025em;
+    }
+    .header p {
+      margin: 8px 0 0 0;
+      font-size: 14px;
+      opacity: 0.9;
+    }
+    .content {
+      padding: 32px 24px;
+    }
+    .section-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: #4f46e5;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 16px;
+      padding-bottom: 8px;
+      border-bottom: 2px solid #f1f5f9;
+    }
+    .details-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 28px;
+    }
+    .details-table th, .details-table td {
+      padding: 12px 0;
+      text-align: left;
+      font-size: 14px;
+    }
+    .details-table th {
+      color: #64748b;
+      font-weight: 500;
+      width: 40%;
+      vertical-align: top;
+    }
+    .details-table td {
+      color: #0f172a;
+      font-weight: 600;
+    }
+    .badge {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 9999px;
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: capitalize;
+    }
+    .badge-role {
+      background-color: #e0e7ff;
+      color: #4338ca;
+    }
+    .badge-dept {
+      background-color: #f3e8ff;
+      color: #6b21a8;
+    }
+    .welcome-box {
+      background-color: #f0fdf4;
+      border: 1px solid #bbf7d0;
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 28px;
+    }
+    .welcome-box h3 {
+      margin: 0 0 8px 0;
+      color: #166534;
+      font-size: 16px;
+      font-weight: 600;
+    }
+    .welcome-box p {
+      margin: 0 0 12px 0;
+      color: #1e293b;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+    .credentials {
+      background-color: #ffffff;
+      border: 1px dashed #bbf7d0;
+      padding: 12px;
+      border-radius: 8px;
+      font-family: monospace;
+      font-size: 14px;
+      color: #0f172a;
+    }
+    .footer {
+      background-color: #f1f5f9;
+      padding: 24px;
+      text-align: center;
+      font-size: 12px;
+      color: #64748b;
+      border-top: 1px solid #e2e8f0;
+    }
+    .footer p {
+      margin: 4px 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrapper">
+    <div class="container">
+      <div class="header">
+        <h1>New Employee Registration</h1>
+        <p>A new employee account has been successfully created</p>
+      </div>
+      <div class="content">
+        <div class="welcome-box">
+          <h3>Welcome onboard, ${name}!</h3>
+          <p>Your official HRMS portal login credentials are listed below. Please login and complete your onboarding process.</p>
+          <div class="credentials">
+            <strong>Portal URL:</strong> <a href="${portalUrl}" style="color: #4f46e5; text-decoration: none;">${portalUrl}</a><br>
+            <strong>Email ID:</strong> ${email}<br>
+            <strong>Password:</strong> ${password}
+          </div>
+        </div>
+
+        <div class="section-title">Employee Profile Details</div>
+        <table class="details-table">
+          <tr>
+            <th>Full Name</th>
+            <td>${name}</td>
+          </tr>
+          <tr>
+            <th>Employee ID</th>
+            <td>${employeeId}</td>
+          </tr>
+          <tr>
+            <th>Company</th>
+            <td>${company.name}</td>
+          </tr>
+          <tr>
+            <th>Department</th>
+            <td><span class="badge badge-dept">${department || 'N/A'}</span></td>
+          </tr>
+          <tr>
+            <th>Designation</th>
+            <td>${designation || 'Employee'}</td>
+          </tr>
+          <tr>
+            <th>System Role</th>
+            <td><span class="badge badge-role">${role}</span></td>
+          </tr>
+          <tr>
+            <th>Mobile Number</th>
+            <td>${mobile || 'N/A'}</td>
+          </tr>
+          <tr>
+            <th>Date of Joining</th>
+            <td>${dateOfJoining ? new Date(dateOfJoining).toLocaleDateString() : new Date().toLocaleDateString()}</td>
+          </tr>
+          <tr>
+            <th>Base Salary</th>
+            <td>₹${baseSalary ? Number(baseSalary).toLocaleString('en-IN') : '0'} / month</td>
+          </tr>
+        </table>
+      </div>
+      <div class="footer">
+        <p>This is an automated system email from the HRMS portal.</p>
+        <p>&copy; ${new Date().getFullYear()} ${company.name}. All rights reserved.</p>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
+          `
+        });
+      }
+    } catch (emailErr) {
+      console.error("Error sending onboarding email:", emailErr);
+    }
 
     // Strip password from returned object
     const returnedUser = newUser.toJSON() as any;
