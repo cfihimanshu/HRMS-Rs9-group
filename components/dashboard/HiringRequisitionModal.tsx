@@ -232,7 +232,7 @@ export default function HiringRequisitionModal({ onClose, triggerToast, userComp
                   className={`w-full p-2.5 rounded-lg border text-sm focus:border-indigo-500 focus:outline-none ${isDark ? "bg-gray-800 border-gray-700" : "bg-slate-50 border-slate-200"}`}>
                   {dbCompanies.length > 0 ? (
                     dbCompanies.map(c => (
-                      <option key={c._id} value={c.name}>{c.name}</option>
+                      <option key={c.id} value={c.name}>{c.name}</option>
                     ))
                   ) : (
                     <option value={form.companyName}>{form.companyName}</option>

@@ -18,12 +18,12 @@ export async function GET() {
 
     const userIds = vendors.map(v => v.user).filter(Boolean);
     const users = await User.findAll({
-      where: { mongo_id: userIds },
-      attributes: ['mongo_id', 'name', 'email', 'mobile', 'status']
+      where: { id: userIds },
+      attributes: ['id', 'name', 'email', 'mobile', 'status']
     });
 
     const userMap = users.reduce((acc: any, u: any) => {
-      acc[u.mongo_id] = u.toJSON();
+      acc[u.id] = u.toJSON();
       return acc;
     }, {});
 
@@ -58,7 +58,7 @@ export async function POST(req: Request) {
     let vendor = await Vendor.findOne({ where: { user: userId } });
     if (!vendor) {
       vendor = await Vendor.create({
-        mongo_id: Date.now().toString(),
+        id: Date.now().toString(),
         user: userId,
         category,
         paymentTerms,
@@ -82,7 +82,7 @@ export async function POST(req: Request) {
       userId: (session.user as any).id,
       action: "UPDATE_VENDOR_PROFILE",
       entity: "Vendor",
-      entityId: vendor.mongo_id,
+      entityId: vendor.id,
       details: `Updated Vendor profile for user: ${userId} (${category}). Risk: ${riskCategory || "Low"}. Score: ${performanceScore || 100}%.`,
     });
 

@@ -28,12 +28,12 @@ export async function GET(req: Request) {
     ]));
 
     const users = await User.findAll({
-      where: { mongo_id: userIds },
-      attributes: ['mongo_id', 'name', 'email']
+      where: { id: userIds },
+      attributes: ['id', 'name', 'email']
     });
 
     const userMap = users.reduce((acc: any, u: any) => {
-      acc[u.mongo_id] = u.toJSON();
+      acc[u.id] = u.toJSON();
       return acc;
     }, {});
 
@@ -66,7 +66,7 @@ export async function POST(req: Request) {
     }
 
     const expense = await Expense.create({
-      mongo_id: Date.now().toString(),
+      id: Date.now().toString(),
       employee: (session.user as any).id,
       amount,
       category,

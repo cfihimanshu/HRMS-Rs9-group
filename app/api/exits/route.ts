@@ -32,13 +32,13 @@ export async function GET(req: Request) {
     const empIds = [...new Set(records.map((r: any) => r.employee).filter(Boolean))];
     let empMap: any = {};
     if (empIds.length > 0) {
-      const emps = await User.findAll({ where: { mongo_id: { [Op.in]: empIds } }, raw: true });
-      emps.forEach((e: any) => { empMap[e.mongo_id] = { _id: e.mongo_id, name: e.name, email: e.email, role: e.role, mobile: e.mobile }; });
+      const emps = await User.findAll({ where: { id: { [Op.in]: empIds } }, raw: true });
+      emps.forEach((e: any) => { empMap[e.id] = { id: e.id, name: e.name, email: e.email, role: e.role, mobile: e.mobile }; });
     }
 
     const data = records.map((r: any) => ({
       ...r,
-      employee: empMap[r.employee] || { _id: r.employee, name: 'Unknown' }
+      employee: empMap[r.employee] || { id: r.employee, name: 'Unknown' }
     }));
 
     return NextResponse.json({ success: true, data });
@@ -102,7 +102,7 @@ export async function POST(req: Request) {
       await record.save();
     } else {
       record = await ExitRecord.create({
-        mongo_id: Date.now().toString(),
+        id: Date.now().toString(),
         employee: employeeId,
         exitReason,
         assetsReturned: !!assetsReturned,
@@ -130,7 +130,7 @@ export async function POST(req: Request) {
       userId: (session.user as any).id,
       action: "EXIT_RECORD_UPDATED",
       entity: "ExitRecord",
-      entityId: (record as any).mongo_id ? (record as any).mongo_id.toString() : record.id,
+      entityId: (record as any).id ? (record as any).id.toString() : record.id,
       details: `Exit checklist filed for employee ${employeeUser.name}. IT Revoked: ${!!accessRevoked}, Assets returned: ${!!assetsReturned}`,
     });
 

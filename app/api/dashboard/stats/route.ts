@@ -7,6 +7,7 @@ import Job from "@/models/sequelize/Job";
 import Candidate from "@/models/sequelize/Candidate";
 import Interview from "@/models/sequelize/Interview";
 import User from "@/models/sequelize/User";
+import EmployeeProfile from "@/models/sequelize/EmployeeProfile";
 import Associate from "@/models/sequelize/Associate";
 import { Op } from "sequelize";
 import Vendor from "@/models/sequelize/Vendor";
@@ -51,19 +52,19 @@ export async function GET(req: Request) {
     if (companyId) {
       userFilter.companies = { [Op.like]: `%${companyId}%` };
       
-      const jobs = await Job.findAll({ where: { company: companyId }, attributes: ['mongo_id'] });
-      const jobIds = jobs.map((j: any) => j.mongo_id);
+      const jobs = await Job.findAll({ where: { company: companyId }, attributes: ['id'] });
+      const jobIds = jobs.map((j: any) => j.id);
       
       candidateFilter.job = { [Op.in]: jobIds };
 
-      const cands = await Candidate.findAll({ where: { job: { [Op.in]: jobIds } }, attributes: ['mongo_id'] });
-      const candIds = cands.map((c: any) => c.mongo_id);
+      const cands = await Candidate.findAll({ where: { job: { [Op.in]: jobIds } }, attributes: ['id'] });
+      const candIds = cands.map((c: any) => c.id);
       
       interviewFilter.candidate = { [Op.in]: candIds };
       generalCandidateFilter.candidate = { [Op.in]: candIds };
       
-      const usersInCompany = await User.findAll({ where: { companies: { [Op.like]: `%${companyId}%` } }, attributes: ['mongo_id'] });
-      const userIds = usersInCompany.map((u: any) => u.mongo_id);
+      const usersInCompany = await User.findAll({ where: { companies: { [Op.like]: `%${companyId}%` } }, attributes: ['id'] });
+      const userIds = usersInCompany.map((u: any) => u.id);
       
       generalUserFilter.employee = { [Op.in]: userIds }; // Probation uses 'employee'
       
@@ -85,7 +86,13 @@ export async function GET(req: Request) {
     const pendingInterviews = await Interview.count({ where: { ...interviewFilter, status: "Pending" } });
 
     // 3. User Master Roles count
-    const totalEmployees = await User.count({ where: userFilter });
+    // Using User to accurately reflect all staff accounts configured in the system.
+    let userRoleFilter: any = {};
+    if (companyId) {
+      userRoleFilter.companies = { [Op.like]: `%${companyId}%` };
+    }
+    const totalEmployees = await User.count({ where: userRoleFilter });
+    
     // Assuming Associates, Vendors, Franchises are not strictly bound to this company filter in the same way, or maybe we leave them unfiltered for now as they might have a different logic.
     const totalAssociates = await Associate.count({ where: { status: "active" } });
     const totalVendors = await Vendor.count({ where: { status: "active" } });
@@ -114,7 +121,7 @@ export async function GET(req: Request) {
     const eodEmployeeIds = eodReportsToday.map((r: any) => r.employee?.toString()).filter(Boolean);
     const uniqueEodEmployees = eodEmployeeIds.filter((v: any, i: number, a: any[]) => a.indexOf(v) === i);
 
-    const totalEmployeesCount = await User.count({ where: { role: { [Op.in]: ["Employee", "Trainer"] } } });
+    const totalEmployeesCount = await User.count({ where: userRoleFilter });
 
     const attendanceRecords = await Attendance.findAll({ where: { date: today, status: "Present" } });
     const attendanceEmployeeIds = attendanceRecords.map((r: any) => r.employee?.toString()).filter(Boolean);
@@ -189,8 +196,8 @@ export async function GET(req: Request) {
     const actorIds = [...new Set(dbHrActivities.map((a: any) => a.user).filter(Boolean))];
     let actorMap: any = {};
     if (actorIds.length > 0) {
-      const users = await User.findAll({ where: { mongo_id: { [Op.in]: actorIds } }, raw: true });
-      users.forEach((u: any) => { actorMap[u.mongo_id] = { name: u.name, role: u.role }; });
+      const users = await User.findAll({ where: { id: { [Op.in]: actorIds } }, raw: true });
+      users.forEach((u: any) => { actorMap[u.id] = { name: u.name, role: u.role }; });
     }
 
     dbHrActivities = dbHrActivities.map((a: any) => ({
@@ -203,29 +210,29 @@ export async function GET(req: Request) {
       if (hrUser) {
         const initialActivities = [
           {
-            mongo_id: Date.now().toString() + "_1",
-            user: hrUser.mongo_id,
+            id: Date.now().toString() + "_1",
+            user: hrUser.id,
             action: "CREATE_EMPLOYEE",
             details: "Created new employee profile: Sarah Jenkins (sarah.j@example.com) as Senior Frontend Developer in Engineering.",
             timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000)
           },
           {
-            mongo_id: Date.now().toString() + "_2",
-            user: hrUser.mongo_id,
+            id: Date.now().toString() + "_2",
+            user: hrUser.id,
             action: "APPROVED_LEAVE",
             details: "Leave request for Casual Leave (3 days) has been approved by HR / Supervisor.",
             timestamp: new Date(Date.now() - 4 * 60 * 60 * 1000)
           },
           {
-            mongo_id: Date.now().toString() + "_3",
-            user: hrUser.mongo_id,
+            id: Date.now().toString() + "_3",
+            user: hrUser.id,
             action: "SCHEDULE_INTERVIEW",
             details: "Scheduled Round 1 Interview for candidate: David Lee.",
             timestamp: new Date(Date.now() - 24 * 60 * 60 * 1000)
           },
           {
-            mongo_id: Date.now().toString() + "_4",
-            user: hrUser.mongo_id,
+            id: Date.now().toString() + "_4",
+            user: hrUser.id,
             action: "SUBMIT_VERIFICATION",
             details: "Background verification completed for candidate: John Doe. Overall status: Verified.",
             timestamp: new Date(Date.now() - 25 * 60 * 60 * 1000)
@@ -244,8 +251,8 @@ export async function GET(req: Request) {
         const newActorIds = [...new Set(dbHrActivities.map((a: any) => a.user).filter(Boolean))];
         let newActorMap: any = {};
         if (newActorIds.length > 0) {
-          const users = await User.findAll({ where: { mongo_id: { [Op.in]: newActorIds } }, raw: true });
-          users.forEach((u: any) => { newActorMap[u.mongo_id] = { name: u.name, role: u.role }; });
+          const users = await User.findAll({ where: { id: { [Op.in]: newActorIds } }, raw: true });
+          users.forEach((u: any) => { newActorMap[u.id] = { name: u.name, role: u.role }; });
         }
 
         dbHrActivities = dbHrActivities.map((a: any) => ({
@@ -271,7 +278,7 @@ export async function GET(req: Request) {
         else if (action === "SUBMIT_PROBATION_EVALUATION") title = "Probation Evaluated";
 
         return {
-          id: (log.mongo_id || log.id || "").toString(),
+          id: (log.id || log.id || "").toString(),
           title,
           description: log.details,
           timestamp: log.timestamp ? new Date(log.timestamp).toISOString() : new Date().toISOString(),

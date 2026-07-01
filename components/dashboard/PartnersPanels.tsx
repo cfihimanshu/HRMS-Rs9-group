@@ -104,7 +104,7 @@ export function BusinessAssociates({ toggleModal, triggerToast }: PartnerProps) 
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          userId: selectedAssociate.user._id,
+          userId: selectedAssociate.user.id,
           ...formState
         })
       });
@@ -133,7 +133,7 @@ export function BusinessAssociates({ toggleModal, triggerToast }: PartnerProps) 
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           associateName: selectedAssociate.user?.name || "Unknown",
-          associateId: selectedAssociate.user?._id,
+          associateId: selectedAssociate.user?.id,
           ...form9
         })
       });
@@ -206,7 +206,7 @@ export function BusinessAssociates({ toggleModal, triggerToast }: PartnerProps) 
               <div className="text-center py-10 text-slate-400 font-bold text-[10px]">No associates found</div>
             ) : (
               filteredAssociates.map((assoc, i) => {
-                const isSelected = selectedAssociate && selectedAssociate._id === assoc._id;
+                const isSelected = selectedAssociate && selectedAssociate.id === assoc.id;
                 const flagCount = assoc.flags?.length || 0;
                 
                 return (
@@ -521,16 +521,15 @@ export function VendorOperations({ toggleModal, triggerToast }: PartnerProps) {
     setUploadingDoc(true);
     const formData = new FormData();
     formData.append("file", file);
-    formData.append("upload_preset", "hr_erp_uploads");
 
     try {
-      // Hardcoded cloudinary URL for now (we usually use env vars, but mirroring existing patterns)
-      const res = await fetch("https://api.cloudinary.com/v1_1/dnd0y1qaa/auto/upload", {
+      const res = await fetch("/api/documents/upload", {
         method: "POST",
         body: formData,
       });
       const data = await res.json();
-      setForm10(prev => ({ ...prev, agreementUrl: data.secure_url }));
+      if (!data.success) throw new Error(data.error || "Upload failed");
+      setForm10(prev => ({ ...prev, agreementUrl: data.url }));
       triggerToast("Agreement uploaded successfully");
     } catch (err) {
       triggerToast("Failed to upload agreement");
@@ -617,7 +616,7 @@ export function VendorOperations({ toggleModal, triggerToast }: PartnerProps) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          userId: selectedVendor.user._id,
+          userId: selectedVendor.user.id,
           category: selectedVendor.category, // required by API
           ...formState
         })
@@ -696,7 +695,7 @@ export function VendorOperations({ toggleModal, triggerToast }: PartnerProps) {
               <div className="text-center py-10 text-slate-400 font-bold text-[10px]">No vendors found</div>
             ) : (
               filteredVendors.map((vendor, i) => {
-                const isSelected = selectedVendor && selectedVendor._id === vendor._id;
+                const isSelected = selectedVendor && selectedVendor.id === vendor.id;
                 
                 // Calculate if renewal is within 30 days
                 let renewalUrgent = false;
@@ -980,15 +979,15 @@ export function FranchiseTerritories({ toggleModal, triggerToast }: PartnerProps
     setUploadingDoc(true);
     const formData = new FormData();
     formData.append("file", file);
-    formData.append("upload_preset", "hr_erp_uploads");
 
     try {
-      const res = await fetch("https://api.cloudinary.com/v1_1/dnd0y1qaa/auto/upload", {
+      const res = await fetch("/api/documents/upload", {
         method: "POST",
         body: formData,
       });
       const data = await res.json();
-      setForm11(prev => ({ ...prev, agreementUrl: data.secure_url }));
+      if (!data.success) throw new Error(data.error || "Upload failed");
+      setForm11(prev => ({ ...prev, agreementUrl: data.url }));
       triggerToast("Agreement uploaded successfully");
     } catch (err) {
       triggerToast("Failed to upload agreement");
@@ -1068,8 +1067,8 @@ export function FranchiseTerritories({ toggleModal, triggerToast }: PartnerProps
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          userId: selectedFranchise.user._id,
-          territoryId: selectedFranchise.territory?._id, // required by API
+          userId: selectedFranchise.user.id,
+          territoryId: selectedFranchise.territory?.id, // required by API
           ...formState
         })
       });
@@ -1147,7 +1146,7 @@ export function FranchiseTerritories({ toggleModal, triggerToast }: PartnerProps
               <div className="text-center py-10 text-slate-400 font-bold text-[10px]">No partners found</div>
             ) : (
               filteredFranchises.map((franchise, i) => {
-                const isSelected = selectedFranchise && selectedFranchise._id === franchise._id;
+                const isSelected = selectedFranchise && selectedFranchise.id === franchise.id;
                 
                 return (
                   <button

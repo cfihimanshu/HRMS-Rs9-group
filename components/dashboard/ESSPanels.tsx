@@ -129,8 +129,27 @@ export function ESSDashboard({ user, triggerToast, setActiveTab, toggleModal, st
 
 export function ESSLeaves({ user, triggerToast }: ESSProps) {
   const [showApply, setShowApply] = useState(false);
-  const [leaves, setLeaves] = useState<any[]>([]); // Will fetch from DB later
+  const [leaves, setLeaves] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
+  const fetchLeaves = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch("/api/leaves");
+      const data = await res.json();
+      if (data.success) {
+        setLeaves(data.data || []);
+      }
+    } catch (err) {
+      console.error("Error fetching leaves:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchLeaves();
+  }, []);
   return (
     <div className="space-y-6 animate-fadeIn text-slate-800">
       <div className="flex items-center justify-between">
@@ -168,6 +187,7 @@ export function ESSLeaves({ user, triggerToast }: ESSProps) {
               if (data.success) {
                 triggerToast("Leave request submitted successfully.");
                 setShowApply(false);
+                fetchLeaves();
               } else {
                 triggerToast("Failed: " + data.error);
               }
@@ -223,9 +243,37 @@ export function ESSLeaves({ user, triggerToast }: ESSProps) {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 text-slate-700 font-medium">
-              <tr>
-                <td colSpan={5} className="py-8 text-center text-slate-400 italic">No leave records found.</td>
-              </tr>
+              {loading ? (
+                <tr>
+                  <td colSpan={5} className="py-8 text-center text-slate-400 italic">Loading...</td>
+                </tr>
+              ) : leaves.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="py-8 text-center text-slate-400 italic">No leave records found.</td>
+                </tr>
+              ) : (
+                leaves.map((l: any) => (
+                  <tr key={l.id} className="hover:bg-slate-50/50 border-b border-slate-50">
+                    <td className="py-3 pr-2 whitespace-nowrap">{new Date(l.startDate).toLocaleDateString()}</td>
+                    <td className="py-3 px-2">
+                      <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-50 text-indigo-600 border border-indigo-100">
+                        {l.type}
+                      </span>
+                    </td>
+                    <td className="py-3 px-2 font-mono">{l.days}</td>
+                    <td className="py-3 px-2">
+                       <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${l.status === 'Approved' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : l.status === 'Rejected' ? 'bg-rose-50 text-rose-700 border border-rose-200' : l.status === 'Pending HR Approval' ? 'bg-blue-50 text-blue-700 border border-blue-200' : 'bg-amber-50 text-amber-700 border border-amber-200'}`}>
+                         {l.status}
+                       </span>
+                    </td>
+                    <td className="py-3 pl-2 text-slate-500 text-[11px] italic">
+                       {l.status !== "Pending Manager Approval" && l.status !== "Pending HR Approval" ? 
+                         (l.approvedBy?.name ? `By: ${l.approvedBy?.name} ${l.remarks ? `(${l.remarks})` : ''}` : '') : 
+                         'Awaiting Approval'}
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
@@ -246,14 +294,9 @@ export function ESSPayroll({ user, triggerToast }: ESSProps) {
   const [processedPayslips, setProcessedPayslips] = useState<any[]>([]);
   
   const [loading, setLoading] = useState(false);
-  const [isDark, setIsDark] = useState(false);
-
   const isAdmin = ["Owner", "Director", "HR Head"].includes(user?.role);
 
-  // Math Calculations based on the rules:
-  // Base Month: 30 days - 4 Sundays - 1 PL = 25 payable days
   const standardPayableDays = 25;
-  
   const timingWeight = 0.30;
   const taskWeight = 0.30;
   const outputWeight = 0.40;
@@ -269,28 +312,25 @@ export function ESSPayroll({ user, triggerToast }: ESSProps) {
   const calculatedNetSalary = Math.round(timingContribution + taskContribution + outputContribution);
 
   useEffect(() => {
-    setIsDark(document.documentElement.classList.contains("dark"));
     fetchData();
   }, []);
 
   const fetchData = async () => {
     setLoading(true);
     try {
-      // Fetch processed payslips
       const pRes = await fetch("/api/payroll");
       const pData = await pRes.json();
       if (pData.success) {
         setProcessedPayslips(pData.data);
       }
 
-      // If Admin, fetch employee list
       if (isAdmin) {
         const empRes = await fetch("/api/employees");
         const empData = await empRes.json();
         if (empData.success) {
           setEmployees(empData.data);
           if (empData.data.length > 0) {
-            setSelectedEmpId(empData.data[0].mongo_id);
+            setSelectedEmpId(empData.data[0].id);
             setBaseSalary(empData.data[0].employeeProfile?.baseSalary || 13000);
           }
         }
@@ -304,7 +344,7 @@ export function ESSPayroll({ user, triggerToast }: ESSProps) {
 
   const handleEmployeeChange = (empId: string) => {
     setSelectedEmpId(empId);
-    const emp = employees.find(e => e.mongo_id === empId);
+    const emp = employees.find(e => e.id === empId);
     if (emp && emp.employeeProfile?.baseSalary) {
       setBaseSalary(emp.employeeProfile.baseSalary);
     } else {
@@ -354,48 +394,53 @@ export function ESSPayroll({ user, triggerToast }: ESSProps) {
   };
 
   return (
-    <div className="space-y-6 animate-fadeIn text-slate-800 dark:text-gray-100">
-      <div>
-        <h1 className="text-xl font-black text-slate-800 dark:text-white">Payroll & Dynamic Salary Command</h1>
-        <p className="text-xs text-slate-500 dark:text-gray-400 mt-1">
+    <div className="space-y-8 animate-fade-in text-[#1C1C1A]">
+      
+      {/* Header */}
+      <div className="border-b border-[#E8E4DF] pb-5">
+        <span className="text-[9px] uppercase tracking-widest text-[#C9A84C] font-bold">Compensation</span>
+        <h1 className="text-xl font-light tracking-wide font-serif" style={{ fontFamily: "'Playfair Display', serif" }}>
+          Payroll & Salary Administration
+        </h1>
+        <p className="text-[10px] text-[#9C9890] uppercase tracking-wider mt-1.5 font-semibold">
           {isAdmin 
-            ? "Calculate, audit and process employee salaries based on timing, tasks, and output performance weights."
-            : "Monitor salary structures, payslips and use the payout simulator."
+            ? "Calculate, audit and process employee salaries based on performance weights."
+            : "Monitor salary structures, payslips and run simulators."
           }
         </p>
       </div>
 
       {isAdmin && (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Payroll Generator Form */}
-          <div className="lg:col-span-2 bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-xl p-6 shadow-sm">
-            <h2 className="text-xs font-black uppercase text-[#714B67] dark:text-[#a78bfa] tracking-wider mb-6 font-mono">
+          <div className="lg:col-span-2 bg-[#FCFBF9] border border-[#E8E4DF] rounded-xl p-6 shadow-[0_2px_20px_rgba(0,0,0,0.02)]">
+            <h2 className="text-[10px] font-bold uppercase text-[#C9A84C] tracking-widest mb-6">
               Calculate Salary & Generate Payslip
             </h2>
             
             <form onSubmit={handleProcessPayroll} className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
-                  <label className="text-[10px] uppercase font-black text-slate-400 font-mono">Select Employee</label>
+                  <label className="text-[9px] uppercase font-bold text-[#9C9890] tracking-wider">Select Employee</label>
                   <select 
                     value={selectedEmpId} 
                     onChange={(e) => handleEmployeeChange(e.target.value)}
-                    className="w-full bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 p-2.5 rounded text-xs mt-1 text-slate-800 dark:text-gray-100" 
+                    className="w-full bg-[#FCFBF9] border border-[#E8E4DF] focus:border-[#C9A84C] p-2.5 rounded-lg text-xs mt-1 text-[#1C1C1A] outline-none" 
                     required
                   >
                     {employees.map(emp => (
-                      <option key={emp.mongo_id} value={emp.mongo_id}>
+                      <option key={emp.id} value={emp.id}>
                         {emp.name} ({emp.employeeProfile?.employeeId || "Staff"})
                       </option>
                     ))}
                   </select>
                 </div>
                 <div>
-                  <label className="text-[10px] uppercase font-black text-slate-400 font-mono">Payroll Month</label>
+                  <label className="text-[9px] uppercase font-bold text-[#9C9890] tracking-wider">Payroll Month</label>
                   <select 
                     value={payrollMonth} 
                     onChange={(e) => setPayrollMonth(e.target.value)}
-                    className="w-full bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 p-2.5 rounded text-xs mt-1 text-slate-800 dark:text-gray-100" 
+                    className="w-full bg-[#FCFBF9] border border-[#E8E4DF] focus:border-[#C9A84C] p-2.5 rounded-lg text-xs mt-1 text-[#1C1C1A] outline-none" 
                     required
                   >
                     {["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"].map(m => (
@@ -404,30 +449,30 @@ export function ESSPayroll({ user, triggerToast }: ESSProps) {
                   </select>
                 </div>
                 <div>
-                  <label className="text-[10px] uppercase font-black text-slate-400 font-mono">Payroll Year</label>
+                  <label className="text-[9px] uppercase font-bold text-[#9C9890] tracking-wider">Payroll Year</label>
                   <input 
                     type="number" 
                     value={payrollYear} 
                     onChange={(e) => setPayrollYear(Number(e.target.value))}
-                    className="w-full bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 p-2.5 rounded text-xs mt-1 text-slate-800 dark:text-gray-100" 
+                    className="w-full bg-[#FCFBF9] border border-[#E8E4DF] focus:border-[#C9A84C] p-2.5 rounded-lg text-xs mt-1 text-[#1C1C1A] outline-none" 
                     required
                   />
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 p-4 bg-slate-50 dark:bg-gray-800/40 rounded-xl border border-slate-200/50 dark:border-gray-800">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 p-4 bg-[#FAFAF7] rounded-xl border border-[#E8E4DF]">
                 <div>
-                  <label className="text-[10px] uppercase font-black text-slate-500 dark:text-gray-400 font-mono block">Base Salary</label>
+                  <label className="text-[9px] uppercase font-bold text-[#9C9890] tracking-wider block">Base Salary</label>
                   <input 
                     type="number" 
                     value={baseSalary} 
                     onChange={(e) => setBaseSalary(Number(e.target.value))}
-                    className="w-full bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-700 p-2 rounded text-xs mt-1 font-bold" 
+                    className="w-full bg-[#FCFBF9] border border-[#E8E4DF] focus:border-[#C9A84C] p-2 rounded text-xs mt-1 font-bold text-[#1C1C1A] outline-none" 
                     required
                   />
                 </div>
                 <div>
-                  <label className="text-[10px] uppercase font-black text-slate-500 dark:text-gray-400 font-mono block">Timing Days (Max 25)</label>
+                  <label className="text-[9px] uppercase font-bold text-[#9C9890] tracking-wider block">Timing Days (Max 25)</label>
                   <input 
                     type="number" 
                     min="0" 
@@ -435,12 +480,12 @@ export function ESSPayroll({ user, triggerToast }: ESSProps) {
                     step="0.5"
                     value={timingDays} 
                     onChange={(e) => setTimingDays(parseFloat(e.target.value) || 0)}
-                    className="w-full bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-700 p-2 rounded text-xs mt-1" 
+                    className="w-full bg-[#FCFBF9] border border-[#E8E4DF] focus:border-[#C9A84C] p-2 rounded text-xs mt-1 text-[#1C1C1A] outline-none" 
                     required
                   />
                 </div>
                 <div>
-                  <label className="text-[10px] uppercase font-black text-slate-500 dark:text-gray-400 font-mono block">Work Task Days (Max 25)</label>
+                  <label className="text-[9px] uppercase font-bold text-[#9C9890] tracking-wider block">Task Days (Max 25)</label>
                   <input 
                     type="number" 
                     min="0" 
@@ -448,54 +493,54 @@ export function ESSPayroll({ user, triggerToast }: ESSProps) {
                     step="0.5"
                     value={taskDays} 
                     onChange={(e) => setTaskDays(parseFloat(e.target.value) || 0)}
-                    className="w-full bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-700 p-2 rounded text-xs mt-1" 
+                    className="w-full bg-[#FCFBF9] border border-[#E8E4DF] focus:border-[#C9A84C] p-2 rounded text-xs mt-1 text-[#1C1C1A] outline-none" 
                     required
                   />
                 </div>
                 <div>
-                  <label className="text-[10px] uppercase font-black text-slate-500 dark:text-gray-400 font-mono block">Output Level (%)</label>
+                  <label className="text-[9px] uppercase font-bold text-[#9C9890] tracking-wider block">Output Level (%)</label>
                   <input 
                     type="number" 
                     min="0" 
                     max="100"
                     value={outputPercent} 
                     onChange={(e) => setOutputPercent(parseInt(e.target.value) || 0)}
-                    className="w-full bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-700 p-2 rounded text-xs mt-1" 
+                    className="w-full bg-[#FCFBF9] border border-[#E8E4DF] focus:border-[#C9A84C] p-2 rounded text-xs mt-1 text-[#1C1C1A] outline-none" 
                     required
                   />
                 </div>
               </div>
 
               {/* Dynamic Formula Board */}
-              <div className="border border-slate-100 dark:border-gray-800 rounded-xl p-4 space-y-3 bg-white dark:bg-gray-900">
-                <div className="flex justify-between border-b dark:border-gray-800 pb-2 text-xs font-semibold">
-                  <div className="text-slate-500 dark:text-gray-400">
-                    Timing Weight (30%): <span className="text-slate-400">({timingDays}/25 days)</span>
+              <div className="border border-[#E8E4DF] rounded-xl p-4 space-y-3 bg-[#FCFBF9]">
+                <div className="flex justify-between border-b border-[#E8E4DF]/50 pb-2 text-[11px] font-medium">
+                  <div className="text-[#5D5B57]">
+                    Timing Portion (30%): <span className="text-[#9C9890]">({timingDays}/25 days)</span>
                   </div>
-                  <div className="text-slate-800 dark:text-gray-100 font-bold">₹{Math.round(timingContribution).toLocaleString()} / ₹{Math.round(maxTimingAmount).toLocaleString()}</div>
+                  <div className="text-[#1C1C1A] font-bold">₹{Math.round(timingContribution).toLocaleString()} / ₹{Math.round(maxTimingAmount).toLocaleString()}</div>
                 </div>
-                <div className="flex justify-between border-b dark:border-gray-800 pb-2 text-xs font-semibold">
-                  <div className="text-slate-500 dark:text-gray-400">
-                    Work Task Input (30%): <span className="text-slate-400">({taskDays}/25 days)</span>
+                <div className="flex justify-between border-b border-[#E8E4DF]/50 pb-2 text-[11px] font-medium">
+                  <div className="text-[#5D5B57]">
+                    Work Task Input (30%): <span className="text-[#9C9890]">({taskDays}/25 days)</span>
                   </div>
-                  <div className="text-slate-800 dark:text-gray-100 font-bold">₹{Math.round(taskContribution).toLocaleString()} / ₹{Math.round(maxTaskAmount).toLocaleString()}</div>
+                  <div className="text-[#1C1C1A] font-bold">₹{Math.round(taskContribution).toLocaleString()} / ₹{Math.round(maxTaskAmount).toLocaleString()}</div>
                 </div>
-                <div className="flex justify-between border-b dark:border-gray-800 pb-2 text-xs font-semibold">
-                  <div className="text-slate-500 dark:text-gray-400">
-                    Output Performance (40%): <span className="text-slate-400">({outputPercent}%)</span>
+                <div className="flex justify-between border-b border-[#E8E4DF]/50 pb-2 text-[11px] font-medium">
+                  <div className="text-[#5D5B57]">
+                    Output Performance (40%): <span className="text-[#9C9890]">({outputPercent}%)</span>
                   </div>
-                  <div className="text-slate-800 dark:text-gray-100 font-bold">₹{Math.round(outputContribution).toLocaleString()} / ₹{Math.round(maxOutputAmount).toLocaleString()}</div>
+                  <div className="text-[#1C1C1A] font-bold">₹{Math.round(outputContribution).toLocaleString()} / ₹{Math.round(maxOutputAmount).toLocaleString()}</div>
                 </div>
-                <div className="flex justify-between pt-2 text-sm font-black uppercase">
-                  <div className="text-slate-850 dark:text-white">Calculated Net Payout</div>
-                  <div className="text-emerald-600 dark:text-emerald-400 text-lg">₹{calculatedNetSalary.toLocaleString()}</div>
+                <div className="flex justify-between pt-2 text-xs font-bold uppercase tracking-widest text-[#1C1C1A]">
+                  <div>Calculated Net Payout</div>
+                  <div className="text-[#6B8F71] text-sm">₹{calculatedNetSalary.toLocaleString()}</div>
                 </div>
               </div>
 
               <button 
                 type="submit" 
                 disabled={loading || !selectedEmpId}
-                className="w-full bg-[#714B67] hover:bg-[#5F3F56] text-white py-3 rounded-lg text-xs font-bold shadow-md transition-all flex items-center justify-center gap-2"
+                className="w-full bg-[#C9A84C] hover:bg-[#B3923E] text-white py-3 rounded-lg text-[10px] font-semibold uppercase tracking-widest transition-all shadow-[0_2px_15px_rgba(201,168,76,0.15)]"
               >
                 {loading ? "Processing..." : "Approve & Save Processed Payslip"}
               </button>
@@ -503,29 +548,29 @@ export function ESSPayroll({ user, triggerToast }: ESSProps) {
           </div>
 
           {/* Configuration Card */}
-          <div className="bg-slate-50 dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-xl p-6 space-y-4">
-            <h2 className="text-xs font-black uppercase text-[#714B67] dark:text-[#a78bfa] tracking-wider font-mono">
+          <div className="bg-[#FCFBF9] border border-[#E8E4DF] rounded-xl p-6 space-y-4 shadow-[0_2px_20px_rgba(0,0,0,0.02)]">
+            <h2 className="text-[10px] font-bold uppercase text-[#C9A84C] tracking-widest">
               Calculation Rules
             </h2>
             
-            <div className="text-xs leading-relaxed space-y-3 font-semibold text-slate-600 dark:text-gray-300">
-              <div className="p-3 bg-white dark:bg-gray-800 rounded-lg border border-slate-100 dark:border-gray-700">
-                <span className="font-black text-slate-800 dark:text-white block mb-1">📅 Base Month Duration</span>
-                30 Days Month - 4 Sundays - 1 PL = <strong className="text-purple-600 dark:text-purple-400">25 Payable Days</strong>.
+            <div className="text-[11px] leading-relaxed space-y-3 font-medium text-[#5D5B57]">
+              <div className="p-3 bg-[#FAFAF7] rounded-lg border border-[#E8E4DF]">
+                <span className="font-semibold text-[#1C1C1A] block mb-1">📅 Base Month Duration</span>
+                30 Days Month - 4 Sundays - 1 PL = <strong className="text-[#C9A84C]">25 Payable Days</strong>.
               </div>
 
-              <div className="p-3 bg-white dark:bg-gray-800 rounded-lg border border-slate-100 dark:border-gray-700">
-                <span className="font-black text-slate-800 dark:text-white block mb-1">⏱️ Timing Portion (30%)</span>
+              <div className="p-3 bg-[#FAFAF7] rounded-lg border border-[#E8E4DF]">
+                <span className="font-semibold text-[#1C1C1A] block mb-1">⏱️ Timing Portion (30%)</span>
                 Calculated on check-in timing logs and compliance ratio over 25 days.
               </div>
 
-              <div className="p-3 bg-white dark:bg-gray-800 rounded-lg border border-slate-100 dark:border-gray-700">
-                <span className="font-black text-slate-800 dark:text-white block mb-1">📋 Work Task Input (30%)</span>
+              <div className="p-3 bg-[#FAFAF7] rounded-lg border border-[#E8E4DF]">
+                <span className="font-semibold text-[#1C1C1A] block mb-1">📋 Work Task Input (30%)</span>
                 Weighted on daily task commitments (SOD/EOD task reports submitted).
               </div>
 
-              <div className="p-3 bg-white dark:bg-gray-800 rounded-lg border border-slate-100 dark:border-gray-700">
-                <span className="font-black text-slate-800 dark:text-white block mb-1">🚀 Quality Output (40%)</span>
+              <div className="p-3 bg-[#FAFAF7] rounded-lg border border-[#E8E4DF]">
+                <span className="font-semibold text-[#1C1C1A] block mb-1">🚀 Quality Output (40%)</span>
                 Linked directly to final output achievements and quality scores.
               </div>
             </div>
@@ -533,87 +578,87 @@ export function ESSPayroll({ user, triggerToast }: ESSProps) {
         </div>
       )}
 
-      {/* Payslip History section */}
+      {/* Payslip History Section */}
       <div className="grid grid-cols-1 gap-6">
-        <div className="bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-xl p-6 shadow-sm">
-          <h2 className="text-xs font-black uppercase text-[#714B67] dark:text-[#a78bfa] tracking-wider mb-4 font-mono">
+        <div className="bg-[#FCFBF9] border border-[#E8E4DF] rounded-xl p-6 shadow-[0_2px_20px_rgba(0,0,0,0.02)]">
+          <h2 className="text-[10px] font-bold uppercase text-[#C9A84C] tracking-widest mb-6">
             {isAdmin ? "Processed Payslip Registry" : "My Personal Salary structure & Simulator"}
           </h2>
 
           {!isAdmin && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
               {/* Employee Payout Simulator */}
-              <div className="p-5 bg-slate-50 dark:bg-gray-800/40 rounded-xl border border-slate-200 dark:border-gray-800">
-                <h3 className="text-xs font-black text-[#714B67] dark:text-[#a78bfa] uppercase mb-4 tracking-wider">Salary Calculator & Simulator</h3>
-                <div className="space-y-4 text-xs font-bold">
+              <div className="p-5 bg-[#FAFAF7] rounded-xl border border-[#E8E4DF]">
+                <h3 className="text-[10px] font-bold text-[#C9A84C] uppercase mb-4 tracking-widest">Salary Calculator & Simulator</h3>
+                <div className="space-y-4 text-[11px] font-medium">
                   <div>
-                    <label className="text-[10px] uppercase font-black text-slate-500 font-mono">Base Salary Target</label>
+                    <label className="text-[9px] uppercase font-bold text-[#9C9890] tracking-wider">Base Salary Target</label>
                     <input 
                       type="number" 
                       value={baseSalary} 
                       onChange={(e) => setBaseSalary(Number(e.target.value))}
-                      className="w-full bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-700 p-2 rounded text-xs mt-1" 
+                      className="w-full bg-[#FCFBF9] border border-[#E8E4DF] focus:border-[#C9A84C] p-2 rounded text-xs mt-1 text-[#1C1C1A] outline-none" 
                     />
                   </div>
                   <div className="grid grid-cols-3 gap-2">
                     <div>
-                      <label className="text-[9px] uppercase font-black text-slate-500 font-mono">Timing Days</label>
+                      <label className="text-[9px] uppercase font-bold text-[#9C9890] tracking-wider">Timing Days</label>
                       <input 
                         type="number" 
                         min="0" 
                         max="25"
                         value={timingDays} 
                         onChange={(e) => setTimingDays(parseFloat(e.target.value) || 0)}
-                        className="w-full bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-700 p-2 rounded text-xs mt-1" 
+                        className="w-full bg-[#FCFBF9] border border-[#E8E4DF] focus:border-[#C9A84C] p-2 rounded text-xs mt-1 text-[#1C1C1A] outline-none" 
                       />
                     </div>
                     <div>
-                      <label className="text-[9px] uppercase font-black text-slate-500 font-mono">Task Days</label>
+                      <label className="text-[9px] uppercase font-bold text-[#9C9890] tracking-wider">Task Days</label>
                       <input 
                         type="number" 
                         min="0" 
                         max="25"
                         value={taskDays} 
                         onChange={(e) => setTaskDays(parseFloat(e.target.value) || 0)}
-                        className="w-full bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-700 p-2 rounded text-xs mt-1" 
+                        className="w-full bg-[#FCFBF9] border border-[#E8E4DF] focus:border-[#C9A84C] p-2 rounded text-xs mt-1 text-[#1C1C1A] outline-none" 
                       />
                     </div>
                     <div>
-                      <label className="text-[9px] uppercase font-black text-slate-500 font-mono">Output %</label>
+                      <label className="text-[9px] uppercase font-bold text-[#9C9890] tracking-wider">Output %</label>
                       <input 
                         type="number" 
                         min="0" 
                         max="100"
                         value={outputPercent} 
                         onChange={(e) => setOutputPercent(parseInt(e.target.value) || 0)}
-                        className="w-full bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-700 p-2 rounded text-xs mt-1" 
+                        className="w-full bg-[#FCFBF9] border border-[#E8E4DF] focus:border-[#C9A84C] p-2 rounded text-xs mt-1 text-[#1C1C1A] outline-none" 
                       />
                     </div>
                   </div>
-                  <div className="p-3 bg-white dark:bg-gray-900 rounded-lg space-y-2 border">
-                    <div className="flex justify-between text-[11px]">
-                      <span className="text-slate-500">Timing (30%):</span>
+                  <div className="p-3 bg-[#FCFBF9] rounded-lg space-y-2 border border-[#E8E4DF]">
+                    <div className="flex justify-between">
+                      <span className="text-[#5D5B57]">Timing (30%):</span>
                       <span>₹{Math.round(timingContribution)}</span>
                     </div>
-                    <div className="flex justify-between text-[11px]">
-                      <span className="text-slate-500">Tasks (30%):</span>
+                    <div className="flex justify-between">
+                      <span className="text-[#5D5B57]">Tasks (30%):</span>
                       <span>₹{Math.round(taskContribution)}</span>
                     </div>
-                    <div className="flex justify-between text-[11px]">
-                      <span className="text-slate-500">Output (40%):</span>
+                    <div className="flex justify-between">
+                      <span className="text-[#5D5B57]">Output (40%):</span>
                       <span>₹{Math.round(outputContribution)}</span>
                     </div>
-                    <div className="flex justify-between pt-1 border-t text-xs font-black uppercase text-slate-800 dark:text-white">
+                    <div className="flex justify-between pt-1 border-t border-[#E8E4DF] text-xs font-semibold uppercase tracking-wider text-[#1C1C1A]">
                       <span>Simulated Net Payout:</span>
-                      <span className="text-indigo-600 dark:text-indigo-400">₹{calculatedNetSalary}</span>
+                      <span className="text-[#C9A84C]">₹{calculatedNetSalary}</span>
                     </div>
                   </div>
                 </div>
               </div>
 
               {/* Explanatory Policy Card */}
-              <div className="p-5 bg-indigo-50/50 dark:bg-indigo-950/10 rounded-xl border border-indigo-100 dark:border-indigo-900/40 text-xs leading-relaxed space-y-3 font-semibold text-slate-600 dark:text-gray-300">
-                <h3 className="text-xs font-black text-indigo-800 dark:text-indigo-300 uppercase tracking-wider">Salary Payout Policy</h3>
+              <div className="p-5 bg-[#FAFAF7] rounded-xl border border-[#E8E4DF] text-[11px] leading-relaxed space-y-3 font-medium text-[#5D5B57]">
+                <h3 className="text-[10px] font-bold text-[#C9A84C] uppercase tracking-widest">Salary Payout Policy</h3>
                 <p>Your monthly salary is dynamically calculated based on three metrics over a <strong>25-day payable month</strong> (30 days total - 4 Sundays - 1 PL):</p>
                 <ul className="list-disc pl-4 space-y-1">
                   <li><strong>30% Timing Weight</strong>: Attendance hours, check-in and check-out logs.</li>
@@ -626,50 +671,54 @@ export function ESSPayroll({ user, triggerToast }: ESSProps) {
 
           {/* Payslips Registry List */}
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs min-w-[600px]">
+            <table className="w-full text-left text-xs min-w-[700px]">
               <thead>
-                <tr className="border-b border-slate-200 dark:border-gray-800 text-slate-400 dark:text-gray-500 font-black uppercase font-mono tracking-wider">
+                <tr className="border-b border-[#E8E4DF] text-[#9C9890] font-bold uppercase tracking-wider">
                   {isAdmin && <th className="pb-3 pr-2">Employee</th>}
                   <th className="pb-3 px-2">Month / Year</th>
-                  <th className="pb-3 px-2">Timing portion (30%)</th>
-                  <th className="pb-3 px-2">Task portion (30%)</th>
-                  <th className="pb-3 px-2">Output portion (40%)</th>
-                  <th className="pb-3 px-2">Net Pay</th>
+                  <th className="pb-3 px-2">Basic Salary</th>
+                  <th className="pb-3 px-2">Timing Portion</th>
+                  <th className="pb-3 px-2">Task Portion</th>
+                  <th className="pb-3 px-2 text-center">Net Salary</th>
                   <th className="pb-3 px-2">Status</th>
                   <th className="pb-3 pl-2 text-right">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-gray-800 text-slate-700 dark:text-gray-300 font-medium">
+              <tbody className="divide-y divide-[#E8E4DF] text-[#5D5B57] font-medium">
                 {processedPayslips.length === 0 ? (
                   <tr>
-                    <td colSpan={isAdmin ? 8 : 7} className="py-8 text-center text-slate-400 dark:text-gray-500 italic">
+                    <td colSpan={isAdmin ? 8 : 7} className="py-8 text-center text-[#9C9890] italic">
                       No processed payroll records found.
                     </td>
                   </tr>
                 ) : (
                   processedPayslips.map((slip, i) => (
-                    <tr key={i} className="hover:bg-slate-50 dark:hover:bg-gray-800/40">
+                    <tr key={i} className="hover:bg-[#FAFAF7]">
                       {isAdmin && (
-                        <td className="py-3 pr-2 font-bold text-slate-800 dark:text-white">
+                        <td className="py-4 pr-2 font-serif text-sm font-light text-[#1C1C1A]">
                           {slip.employee?.name || "Employee"}
                         </td>
                       )}
-                      <td className="py-3 px-2 font-mono">{slip.month} {slip.year}</td>
-                      <td className="py-3 px-2">₹{slip.basicPay?.toLocaleString()}</td>
-                      <td className="py-3 px-2">₹{slip.conveyance?.toLocaleString()}</td>
-                      <td className="py-3 px-2">₹{slip.specialAllowance?.toLocaleString()}</td>
-                      <td className="py-3 px-2 text-emerald-600 dark:text-emerald-400 font-black">₹{slip.netPay?.toLocaleString()}</td>
-                      <td className="py-3 px-2">
-                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/20 dark:text-emerald-400 dark:border-emerald-900/40">
+                      <td className="py-4 px-2 font-semibold text-[#1C1C1A]">{slip.month} {slip.year}</td>
+                      <td className="py-4 px-2">₹{baseSalary.toLocaleString()}</td>
+                      <td className="py-4 px-2">₹{slip.basicPay?.toLocaleString()}</td>
+                      <td className="py-4 px-2">₹{slip.conveyance?.toLocaleString()}</td>
+                      <td className="py-4 px-2 text-center">
+                        <span className="px-3 py-1.5 rounded bg-[#C9A84C] text-white font-bold text-xs tracking-wider shadow-[0_2px_10px_rgba(201,168,76,0.15)]">
+                          ₹{slip.netPay?.toLocaleString()}
+                        </span>
+                      </td>
+                      <td className="py-4 px-2">
+                        <span className="px-2.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-widest bg-[#E2EFE0] text-[#4E6D53]">
                           {slip.status}
                         </span>
                       </td>
-                      <td className="py-3 pl-2 text-right">
+                      <td className="py-4 pl-2 text-right">
                         <button 
-                          className="bg-white dark:bg-gray-800 border border-slate-300 dark:border-gray-700 hover:border-indigo-500 hover:text-indigo-650 p-1.5 rounded shadow-sm transition-all"
-                          onClick={() => triggerToast(`Downloading payslip invoice for ${slip.month} ${slip.year}`)}
+                          onClick={() => triggerToast(`Payslip generated for ${slip.employee?.name || "Staff"}`)}
+                          className="border border-[#C9A84C] text-[#C9A84C] hover:bg-[#C9A84C] hover:text-white px-3 py-1.5 rounded-lg text-[9px] uppercase tracking-wider font-bold transition-all"
                         >
-                          <Download className="w-3.5 h-3.5" />
+                          Generate Payslip
                         </button>
                       </td>
                     </tr>

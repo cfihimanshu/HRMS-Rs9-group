@@ -11,7 +11,7 @@ AiPerformance.init(
       primaryKey: true,
     },
     employee_id: {
-      type: DataTypes.STRING, // mongo_id
+      type: DataTypes.STRING, // id
       allowNull: false,
     },
     month: {

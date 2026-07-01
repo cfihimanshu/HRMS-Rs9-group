@@ -4,6 +4,7 @@ import sequelize from "./sequelize";
 import User from "@/models/sequelize/User";
 import EmployeeProfile from "@/models/sequelize/EmployeeProfile";
 import Department from "@/models/sequelize/Department";
+import Company from "@/models/sequelize/Company";
 import bcrypt from "bcryptjs";
 import { logAudit } from "./audit";
 
@@ -80,41 +81,63 @@ export const authOptions: NextAuthOptions = {
 
         // Write to Audit Log
         await logAudit({
-          userId: user.mongo_id?.toString() || user.id.toString(),
+          userId: user.id?.toString() || user.id.toString(),
           action: "USER_LOGIN",
           entity: "User",
-          entityId: user.mongo_id?.toString() || user.id.toString(),
+          entityId: user.id?.toString() || user.id.toString(),
           details: `User logged in successfully via ${loginType === "otp" ? "OTP" : "Password"}.`,
           ipAddress: (req.headers as any)?.["x-forwarded-for"] || "127.0.0.1",
         });
 
-        // Fetch department
+        // Fetch department and company
         let departmentName = "General";
         let designation = user.role;
+        let employeeId = "EMP-UNKNOWN";
+        let companyName = "Company";
         try {
-          // ensure Department is loaded so populate works
-          const profile = await EmployeeProfile.findOne({ where: { user: user.mongo_id || user.id.toString() } });
+          const profile = await EmployeeProfile.findOne({ where: { user: user.id || user.id.toString() } });
           let deptDoc = null;
           if (profile && profile.department) {
-             deptDoc = await Department.findOne({ where: { mongo_id: profile.department } });
+             deptDoc = await Department.findOne({ where: { id: profile.department } });
           }
           if (profile) {
             if (profile.designation) designation = profile.designation;
+            if (profile.employeeId) employeeId = profile.employeeId;
             if (deptDoc && deptDoc.name) {
               departmentName = deptDoc.name;
             }
           }
+          // Assuming user.companies contains an array of company IDs or names,
+          // or we can just fetch the first company if it's an array.
+          // Since we might not have a direct relation here, let's parse companies.
+          let userCompanies = user.companies;
+          if (typeof userCompanies === "string") {
+            try { userCompanies = JSON.parse(userCompanies); } catch(e) {}
+          }
+          if (Array.isArray(userCompanies) && userCompanies.length > 0) {
+             // For simplicity, we just take the first one or assume it's the company string
+             // Try to fetch Company doc
+             const compDoc = await Company.findOne({ where: { id: userCompanies[0] } });
+             if (compDoc) {
+               companyName = compDoc.name;
+             } else {
+               companyName = String(userCompanies[0]);
+             }
+          }
+
         } catch (err) {
           console.error("Error fetching employee profile:", err);
         }
 
         return {
-          id: user.mongo_id?.toString() || user.id.toString(),
+          id: user.id?.toString() || user.id.toString(),
           name: user.name,
           email: user.email,
           role: user.role,
           department: departmentName,
           designation: designation,
+          employeeId: employeeId,
+          company: companyName,
         };
       },
     }),
@@ -126,6 +149,8 @@ export const authOptions: NextAuthOptions = {
         token.role = (user as any).role;
         token.department = (user as any).department;
         token.designation = (user as any).designation;
+        token.employeeId = (user as any).employeeId;
+        token.company = (user as any).company;
       }
       return token;
     },
@@ -137,6 +162,8 @@ export const authOptions: NextAuthOptions = {
           role: token.role as string,
           department: token.department as string,
           designation: token.designation as string,
+          employeeId: token.employeeId as string,
+          company: token.company as string,
         } as any;
       }
       return session;

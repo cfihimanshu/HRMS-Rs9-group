@@ -6,7 +6,7 @@ class Job extends Model<any, any> { [key: string]: any; }
 Job.init(
   {
     
-    mongo_id: {
+    id: {
       type: DataTypes.STRING,
       primaryKey: true,
       allowNull: false,

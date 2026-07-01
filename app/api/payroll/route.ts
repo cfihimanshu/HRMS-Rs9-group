@@ -21,22 +21,24 @@ export async function GET(req: Request) {
 
     const payslips = await Payroll.findAll({ 
       where: filter,
-      order: [['year', 'DESC'], ['month', 'DESC']]
+      order: [['year', 'DESC'], ['month', 'DESC']],
+      raw: true
     });
 
     const userIds = payslips.map(p => (p as any).employee).filter(Boolean);
     const users = await User.findAll({
-      where: { mongo_id: userIds },
-      attributes: ['mongo_id', 'name', 'email']
+      where: { id: userIds },
+      attributes: ['id', 'name', 'email'],
+      raw: true
     });
 
     const userMap = users.reduce((acc: any, u: any) => {
-      acc[u.mongo_id] = u.toJSON();
+      acc[u.id] = u;
       return acc;
     }, {});
 
-    const data = payslips.map(p => {
-      const pJson = p.toJSON() as any;
+    const data = payslips.map((p: any) => {
+      const pJson = { ...p };
       pJson.employee = userMap[pJson.employee] || null;
       return pJson;
     });
@@ -67,7 +69,7 @@ export async function POST(req: Request) {
     const netPay = totalEarnings - totalDeductions;
 
     const payslip = await Payroll.create({
-      mongo_id: Date.now().toString(),
+      id: Date.now().toString(),
       employee: employeeId,
       month,
       year,

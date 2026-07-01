@@ -40,20 +40,20 @@ export async function GET(req: Request) {
 
     const empIds = records.map((r: any) => r.employee).filter(Boolean);
     const employees = await User.findAll({
-      where: { mongo_id: { [Op.in]: empIds } },
-      attributes: ["mongo_id", "name", "role"],
+      where: { id: { [Op.in]: empIds } },
+      attributes: ["id", "name", "role"],
       raw: true
     });
-    const empMap = new Map(employees.map((e: any) => [e.mongo_id, e]));
+    const empMap = new Map(employees.map((e: any) => [e.id, e]));
 
     const hydratedRecords = records.map((r: any) => {
       const plain = r.toJSON();
-      plain._id = plain.id.toString();
+      plain.id = plain.id.toString();
       if (plain.employee) {
         const empDetail = empMap.get(plain.employee);
-        plain.employee = empDetail ? { ...empDetail, _id: empDetail.mongo_id } : { _id: plain.employee, name: "Unknown", role: "Employee" };
+        plain.employee = empDetail ? { ...empDetail, id: empDetail.id } : { id: plain.employee, name: "Unknown", role: "Employee" };
       } else {
-        plain.employee = { _id: "unknown", name: "Unknown", role: "Employee" };
+        plain.employee = { id: "unknown", name: "Unknown", role: "Employee" };
       }
       return plain;
     });

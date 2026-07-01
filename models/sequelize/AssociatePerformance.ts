@@ -6,7 +6,7 @@ class AssociatePerformance extends Model<any, any> { [key: string]: any; }
 AssociatePerformance.init(
   {
     
-    mongo_id: {
+    id: {
       type: DataTypes.STRING,
       primaryKey: true,
       allowNull: false,

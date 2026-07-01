@@ -1,88 +1,141 @@
 "use client";
-import React, { useEffect, useState } from "react";
-import { Search, Bell, Moon, Sun, Menu } from "lucide-react";
+import React, { useEffect, useState, useCallback } from "react";
+import ReactDOM from "react-dom";
+import { Bell, Menu, LogOut, Sun, Moon } from "lucide-react";
+import { signOut } from "next-auth/react";
 
 interface TopbarProps {
   activeTabLabel: string;
+  activeTab: string;
+  setActiveTab?: (tab: string) => void;
   user?: any;
   mobileMenuOpen?: boolean;
   setMobileMenuOpen?: (open: boolean) => void;
 }
 
-export default function Topbar({ activeTabLabel, user, mobileMenuOpen, setMobileMenuOpen }: TopbarProps) {
+export default function Topbar({
+  activeTabLabel,
+  mobileMenuOpen,
+  setMobileMenuOpen,
+}: TopbarProps) {
   const [isDark, setIsDark] = useState(false);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
   useEffect(() => {
     setIsDark(document.documentElement.classList.contains("dark"));
   }, []);
 
-  const toggleDark = () => {
-    if (isDark) {
-      document.documentElement.classList.remove("dark");
-      localStorage.setItem("theme", "light");
-    } else {
+  const toggleTheme = () => {
+    const nextDark = !isDark;
+    setIsDark(nextDark);
+    if (nextDark) {
       document.documentElement.classList.add("dark");
-      localStorage.setItem("theme", "dark");
+    } else {
+      document.documentElement.classList.remove("dark");
     }
-    setIsDark(!isDark);
   };
 
-  return (
-    <header className={`h-14 border-b px-4 lg:px-8 flex items-center justify-between shrink-0 transition-colors duration-300 ${isDark ? "bg-gray-900 border-gray-800" : "bg-white border-slate-200 shadow-sm"}`}>
+  const handleLogout = useCallback(() => {
+    setShowLogoutConfirm(true);
+  }, []);
 
-      {/* Mobile Toggle & Breadcrumbs */}
-      <div className="flex items-center gap-2">
+  const confirmLogout = useCallback(() => {
+    setShowLogoutConfirm(false);
+    signOut({ callbackUrl: `${window.location.origin}/login` });
+  }, []);
+
+  // Close modal on Escape key
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setShowLogoutConfirm(false);
+    };
+    if (showLogoutConfirm) window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [showLogoutConfirm]);
+
+  return (
+    <>
+    <header className="h-14 border-b px-6 lg:px-8 flex items-center justify-between shrink-0 bg-[#FCFBF9] border-[#E8E4DF] relative z-20">
+      
+      {/* Left side: Mobile menu toggle and breadcrumb */}
+      <div className="flex items-center gap-3">
         <button
           onClick={() => setMobileMenuOpen?.(!mobileMenuOpen)}
-          className={`p-2 -ml-2 mr-1 rounded-lg lg:hidden transition-colors focus:outline-none ${
-            isDark ? "text-gray-300 hover:bg-gray-800" : "text-slate-600 hover:bg-slate-100"
-          }`}
+          className="p-2 -ml-2 mr-1 rounded-lg lg:hidden text-[#1C1C1A] hover:bg-[#F0EAE4] transition-colors focus:outline-none"
           title="Toggle Sidebar Menu"
         >
           <Menu className="w-5 h-5" />
         </button>
 
-        <div className="hidden md:flex items-center gap-2 text-sm">
-          <span className={isDark ? "text-gray-400" : "text-slate-400 font-medium"}>HRMS</span>
-          <span className={isDark ? "text-gray-600" : "text-slate-300"}>/</span>
-          <span className={`font-bold ${isDark ? "text-gray-200" : "text-slate-700"}`}>
-            {activeTabLabel}
-          </span>
-        </div>
+        <span className="font-serif text-lg font-light tracking-wide text-[#1C1C1A]" style={{ fontFamily: "'Playfair Display', serif" }}>
+          {activeTabLabel}
+        </span>
       </div>
 
       {/* Right side actions */}
-      <div className="flex items-center gap-3 w-full md:w-auto justify-end">
-        {/* Search */}
-        <div className={`hidden lg:flex items-center gap-2 px-3 py-1.5 rounded-lg border transition-colors ${isDark ? "bg-gray-800 border-gray-700 text-gray-300" : "bg-slate-50 border-slate-200 text-slate-600"}`}>
-          <Search className="w-4 h-4 opacity-50" />
-          <input
-            type="text"
-            placeholder="Search across modules..."
-            className="bg-transparent text-sm outline-none w-48"
-          />
-          <kbd className={`text-[10px] px-1.5 py-0.5 rounded font-mono ${isDark ? "bg-gray-700 text-gray-400" : "bg-white text-slate-400 border border-slate-200 shadow-sm"}`}>
-            ⌘K
-          </kbd>
-        </div>
+      <div className="flex items-center gap-2">
+        {/* Notifications */}
+        <button 
+          className="p-2 rounded-full text-[#9C9890] hover:text-[#1C1C1A] hover:bg-[#F0EAE4]/60 transition-all relative focus:outline-none"
+          title="Notifications"
+        >
+          <Bell className="w-4 h-4" />
+          <span className="absolute top-2 right-2 w-1.5 h-1.5 rounded-full bg-[#C9A84C]" />
+        </button>
 
-        <div className={`w-px h-6 mx-1 ${isDark ? "bg-gray-800" : "bg-slate-200"}`}></div>
-
-        {/* Dark mode toggle */}
-        <button
-          onClick={toggleDark}
-          className={`p-2 rounded-full transition-colors ${isDark ? "hover:bg-gray-800 text-yellow-400" : "hover:bg-slate-100 text-slate-600"}`}
+        {/* Theme Toggle */}
+        <button 
+          onClick={toggleTheme}
+          className="p-2 rounded-full text-[#9C9890] hover:text-[#1C1C1A] hover:bg-[#F0EAE4]/60 transition-all focus:outline-none"
+          title="Toggle Theme"
         >
           {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
         </button>
 
-        {/* Notifications */}
-        <button className={`p-2 rounded-full transition-colors relative ${isDark ? "hover:bg-gray-800 text-gray-300" : "hover:bg-slate-100 text-slate-600"}`}>
-          <Bell className="w-4 h-4" />
-          <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-rose-500 border-2 border-white dark:border-gray-900"></span>
-        </button>
+        <div className="h-5 w-px bg-[#E8E4DF] mx-1" />
 
+        {/* Logout */}
+        <button 
+          onClick={handleLogout}
+          className="p-2 rounded-full text-[#9C9890] hover:text-[#B4463D] hover:bg-rose-50 transition-all focus:outline-none"
+          title="Logout"
+        >
+          <LogOut className="w-4 h-4" />
+        </button>
       </div>
     </header>
+
+    {/* Logout Confirmation Modal — via Portal */}
+    {showLogoutConfirm && typeof document !== "undefined" && ReactDOM.createPortal(
+      <div className="fixed inset-0 z-[9999] flex items-center justify-center" style={{ backgroundColor: "rgba(0,0,0,0.45)" }} onClick={() => setShowLogoutConfirm(false)}>
+        <div
+          className="bg-white rounded-2xl shadow-2xl p-6 w-[340px] max-w-[90vw] text-center"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="w-14 h-14 rounded-full bg-red-50 flex items-center justify-center mx-auto mb-4">
+            <LogOut className="w-7 h-7 text-red-500" />
+          </div>
+          <h3 className="text-lg font-semibold text-[#1C1C1A] mb-1">Logout</h3>
+          <p className="text-sm text-[#9C9890] mb-6">Are you sure you want to logout?</p>
+          <div className="flex gap-3">
+            <button
+              onClick={() => setShowLogoutConfirm(false)}
+              className="flex-1 px-4 py-2.5 rounded-xl border border-[#E8E4DF] text-sm font-medium text-[#1C1C1A] hover:bg-[#F5F3F0] transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={confirmLogout}
+              className="flex-1 px-4 py-2.5 rounded-xl bg-red-500 text-white text-sm font-medium hover:bg-red-600 transition-colors shadow-sm"
+            >
+              Yes, Logout
+            </button>
+          </div>
+        </div>
+      </div>,
+      document.body
+    )}
+    </>
   );
 }
+

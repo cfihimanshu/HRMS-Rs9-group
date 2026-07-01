@@ -41,6 +41,7 @@ export function DailyCommitments({
   const [taskSummary, setTaskSummary] = useState("");
   const [taskType, setTaskType] = useState("Meeting");
   const [remarks, setRemarks] = useState("");
+  const [customTaskType, setCustomTaskType] = useState("");
   const [showCamera, setShowCamera] = useState(false);
   const [submittingSOD, setSubmittingSOD] = useState(false);
   const [locationStatus, setLocationStatus] = useState("Awaiting GPS...");
@@ -85,14 +86,14 @@ export function DailyCommitments({
         setUsers(data.data.users || []);
 
         // Find default selections
-        const selfUser = data.data.users.find((u: any) => u.id === sessionUser?.id || u._id === sessionUser?.id);
+        const selfUser = data.data.users.find((u: any) => u.id === sessionUser?.id || u.id === sessionUser?.id);
         if (selfUser) {
-          setSelectedUser(selfUser._id || selfUser.id);
+          setSelectedUser(selfUser.id || selfUser.id);
           if (selfUser.companies && selfUser.companies.length > 0) {
             setSelectedCompany(selfUser.companies[0]);
           }
         } else if (data.data.users.length > 0) {
-          setSelectedUser(data.data.users[0]._id || data.data.users[0].id);
+          setSelectedUser(data.data.users[0].id || data.data.users[0].id);
           if (data.data.users[0].companies && data.data.users[0].companies.length > 0) {
             setSelectedCompany(data.data.users[0].companies[0]);
           }
@@ -163,7 +164,7 @@ export function DailyCommitments({
     setSelectedCompany(companyId);
     const firstUserInCompany = users.find((u: any) => u.companies && u.companies.includes(companyId));
     if (firstUserInCompany) {
-      setSelectedUser(firstUserInCompany._id || firstUserInCompany.id);
+      setSelectedUser(firstUserInCompany.id || firstUserInCompany.id);
     } else {
       setSelectedUser("");
       setCalendarAttendance([]);
@@ -208,17 +209,17 @@ export function DailyCommitments({
   });
 
   const isOwner = sessionUser?.role === "Owner";
-  const selfUser = users.find((u: any) => (u.id || u._id) === sessionUser?.id);
+  const selfUser = users.find((u: any) => (u.id || u.id) === sessionUser?.id);
 
   const displayCompanies = isOwner
     ? companies
     : (selfUser?.companies
-      ? companies.filter((c: any) => selfUser.companies.includes(c._id || c.id))
+      ? companies.filter((c: any) => selfUser.companies.includes(c.id || c.id))
       : companies);
 
   const displayUsers = isOwner
     ? filteredUsers
-    : filteredUsers.filter((u: any) => (u._id || u.id) === sessionUser?.id);
+    : filteredUsers.filter((u: any) => (u.id || u.id) === sessionUser?.id);
 
   const renderCalendarDays = () => {
     const days = [];
@@ -342,6 +343,12 @@ export function DailyCommitments({
       return;
     }
 
+    if (taskType === "Other" && !customTaskType.trim()) {
+      alert("Please specify the task type.");
+      setShowCamera(false);
+      return;
+    }
+
     setSubmittingSOD(true);
     setLocationStatus("Uploading verification capture...");
 
@@ -382,7 +389,7 @@ export function DailyCommitments({
     try {
       const success = await handleSodSubmit({
         taskSummary,
-        taskType,
+        taskType: taskType === "Other" ? (customTaskType.trim() || "Other") : taskType,
         remarks,
         selfieUrl,
         location
@@ -393,6 +400,7 @@ export function DailyCommitments({
         setShowCamera(false);
         setTaskSummary("");
         setRemarks("");
+        setCustomTaskType("");
       }
       setSubmittingSOD(false);
       setLocationStatus("Awaiting GPS...");
@@ -496,42 +504,46 @@ export function DailyCommitments({
 
   return (
     <div className="space-y-8 animate-fadeIn text-slate-800">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-xl font-black text-slate-850">Daily Commitment Audits</h1>
-          <p className="text-xs text-slate-500 mt-1">Mark attendance punch-in registry, declare Start of Day planner, EOD outcomes</p>
-        </div>
-        <button
-          className="bg-[#714B67] hover:bg-[#5F3F56] px-4 py-2.5 rounded-lg text-xs font-bold text-white transition-all flex items-center gap-1.5 shadow"
-          onClick={() => setShowCalendarModal(true)}
-        >
-          <CalendarCheck className="w-4 h-4" /> Punch Attendance Check
-        </button>
-      </div>
+      {formMode === "both" && (
+        <>
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-xl font-black text-slate-850">Daily Commitment Audits</h1>
+              <p className="text-xs text-slate-500 mt-1">Mark attendance punch-in registry, declare Start of Day planner, EOD outcomes</p>
+            </div>
+            <button
+              className="bg-[#714B67] hover:bg-[#5F3F56] px-4 py-2.5 rounded-lg text-xs font-bold text-white transition-all flex items-center gap-1.5 shadow"
+              onClick={() => setShowCalendarModal(true)}
+            >
+              <CalendarCheck className="w-4 h-4" /> Punch Attendance Check
+            </button>
+          </div>
 
-      {/* Stats widgets */}
-      <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
-        <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
-          <div className="text-[9px] uppercase font-black text-slate-450 font-mono tracking-widest">Present</div>
-          <div className="text-2xl font-black text-slate-855 font-mono mt-2">{stats?.todayCompliance?.attendance ?? 0}</div>
-        </div>
-        <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
-          <div className="text-[9px] uppercase font-black text-slate-455 font-mono tracking-widest">Late Checkins</div>
-          <div className="text-2xl font-black text-slate-855 font-mono mt-2">{stats?.todayCompliance?.lateCheckins ?? 0}</div>
-        </div>
-        <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
-          <div className="text-[9px] uppercase font-black text-slate-455 font-mono tracking-widest">Leaves Count</div>
-          <div className="text-2xl font-black text-slate-855 font-mono mt-2">{stats?.todayCompliance?.leaves ?? 0}</div>
-        </div>
-        <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
-          <div className="text-[9px] uppercase font-black text-slate-455 font-mono tracking-widest">SOD Declarations</div>
-          <div className="text-2xl font-black text-emerald-600 font-mono mt-2">{stats?.todayCompliance?.sod ?? 0}</div>
-        </div>
-        <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
-          <div className="text-[9px] uppercase font-black text-slate-455 font-mono tracking-widest">EOD Logs Submitted</div>
-          <div className="text-2xl font-black text-[#714B67] font-mono mt-2">{stats?.todayCompliance?.eod ?? 0}</div>
-        </div>
-      </div>
+          {/* Stats widgets */}
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
+            <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
+              <div className="text-[9px] uppercase font-black text-slate-450 font-mono tracking-widest">Present</div>
+              <div className="text-2xl font-black text-slate-855 font-mono mt-2">{stats?.todayCompliance?.attendance ?? 0}</div>
+            </div>
+            <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
+              <div className="text-[9px] uppercase font-black text-slate-455 font-mono tracking-widest">Late Checkins</div>
+              <div className="text-2xl font-black text-slate-855 font-mono mt-2">{stats?.todayCompliance?.lateCheckins ?? 0}</div>
+            </div>
+            <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
+              <div className="text-[9px] uppercase font-black text-slate-455 font-mono tracking-widest">Leaves Count</div>
+              <div className="text-2xl font-black text-slate-855 font-mono mt-2">{stats?.todayCompliance?.leaves ?? 0}</div>
+            </div>
+            <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
+              <div className="text-[9px] uppercase font-black text-slate-455 font-mono tracking-widest">SOD Declarations</div>
+              <div className="text-2xl font-black text-emerald-600 font-mono mt-2">{stats?.todayCompliance?.sod ?? 0}</div>
+            </div>
+            <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
+              <div className="text-[9px] uppercase font-black text-slate-455 font-mono tracking-widest">EOD Logs Submitted</div>
+              <div className="text-2xl font-black text-[#714B67] font-mono mt-2">{stats?.todayCompliance?.eod ?? 0}</div>
+            </div>
+          </div>
+        </>
+      )}
 
       {/* Forms */}
       <div className={`grid grid-cols-1 ${formMode === "both" ? "lg:grid-cols-2" : ""} gap-8`}>
@@ -540,7 +552,7 @@ export function DailyCommitments({
         {(formMode === "both" || formMode === "sod") && (
         <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm flex flex-col">
           <h3 className="text-xs font-black tracking-widest text-[#714B67] uppercase font-mono pb-2 border-b border-slate-100 mb-4 flex items-center justify-between">
-            <span>📋 FORM-7: Start Of Day Declaration</span>
+            <span>📋 SOD</span>
             {sodAlreadySubmitted && (
               <span className="bg-emerald-50 text-emerald-700 border border-emerald-200 text-[9px] font-mono font-bold px-2 py-0.5 rounded-full">
                 ALREADY FILED
@@ -590,6 +602,12 @@ export function DailyCommitments({
                     <option>Other</option>
                   </select>
                 </div>
+                {taskType === "Other" && (
+                  <div className="md:col-span-2">
+                    <label className="text-[10px] uppercase font-black text-slate-500 font-mono tracking-wider">Specify Task Type *</label>
+                    <input className="w-full bg-white border border-slate-300 rounded p-2 text-xs font-bold text-slate-900 mt-1.5 focus:outline-none focus:border-[#714B67]" placeholder="Please specify task type..." value={customTaskType} onChange={e => setCustomTaskType(e.target.value)} required />
+                  </div>
+                )}
                 <div className="md:col-span-2">
                   <label className="text-[10px] uppercase font-black text-slate-500 font-mono tracking-wider">Remarks (Optional)</label>
                   <textarea className="w-full bg-white border border-slate-300 rounded p-2 text-xs font-bold text-slate-900 mt-1.5 focus:outline-none focus:border-[#714B67]" rows={2} value={remarks} onChange={e => setRemarks(e.target.value)} placeholder="Any special notes..." />
@@ -613,10 +631,18 @@ export function DailyCommitments({
               {cameraError ? (
                 <div className="bg-rose-50 p-4 rounded-lg text-rose-600 text-xs font-bold text-center border border-rose-200">
                   ⚠️ {cameraError} <br /><br />
-                  Note: Camera access is blocked because you are using an IP address (Insecure Origin). You can bypass verification to submit.
-                  <div className="flex gap-2 justify-center mt-4">
+                  <div className="text-left space-y-2 mb-4 font-normal text-slate-600">
+                    <p><strong>How to allow camera access:</strong></p>
+                    <ol className="list-decimal pl-4 space-y-1 text-[11px]">
+                      <li>Click the <strong>camera / settings icon</strong> in the browser's address bar.</li>
+                      <li>Set camera access to <strong>"Allow"</strong> and reload the page.</li>
+                    </ol>
+                    <p className="text-[10px] text-rose-500 mt-2 font-semibold">
+                      Note: Local IP addresses (e.g. <code>http://192.168.1.46:3000</code>) are blocked by browser security guidelines (Insecure Origin). To test, please use <code>http://localhost:3000</code> or run a secure HTTPS tunnel (e.g., using Ngrok).
+                    </p>
+                  </div>
+                  <div className="flex gap-2 justify-center">
                     <button onClick={() => setShowCamera(false)} className="bg-white px-4 py-2 rounded border border-rose-200 text-slate-700 font-bold">Go Back</button>
-                    <button onClick={captureSodPhotoAndSubmit} className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded border border-indigo-700 font-black">Bypass & Submit</button>
                   </div>
                 </div>
               ) : (
@@ -651,7 +677,7 @@ export function DailyCommitments({
         {(formMode === "both" || formMode === "eod") && (
         <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm flex flex-col">
           <h3 className="text-xs font-black tracking-widest text-[#714B67] uppercase font-mono pb-2 border-b border-slate-100 mb-4 flex items-center justify-between">
-            <span>📝 FORM-8: Daily EOD Log</span>
+            <span>📝 EOD</span>
             {eodAlreadySubmitted && (
               <span className="bg-emerald-50 text-emerald-700 border border-emerald-200 text-[9px] font-mono font-bold px-2 py-0.5 rounded-full">
                 ALREADY FILED
@@ -728,10 +754,18 @@ export function DailyCommitments({
               {eodCameraError ? (
                 <div className="bg-rose-50 p-4 rounded-lg text-rose-600 text-xs font-bold text-center border border-rose-200">
                   ⚠️ {eodCameraError} <br /><br />
-                  Note: Camera access is blocked because you are using an IP address (Insecure Origin). You can bypass verification to submit.
-                  <div className="flex gap-2 justify-center mt-4">
+                  <div className="text-left space-y-2 mb-4 font-normal text-slate-660">
+                    <p><strong>How to allow camera access:</strong></p>
+                    <ol className="list-decimal pl-4 space-y-1 text-[11px]">
+                      <li>Click the <strong>camera / settings icon</strong> in the browser's address bar.</li>
+                      <li>Set camera access to <strong>"Allow"</strong> and reload the page.</li>
+                    </ol>
+                    <p className="text-[10px] text-rose-500 mt-2 font-semibold">
+                      Note: Local IP addresses (e.g. <code>http://192.168.1.46:3000</code>) are blocked by browser security guidelines (Insecure Origin). To test, please use <code>http://localhost:3000</code> or run a secure HTTPS tunnel (e.g., using Ngrok).
+                    </p>
+                  </div>
+                  <div className="flex gap-2 justify-center">
                     <button onClick={() => setShowEodCamera(false)} className="bg-white px-4 py-2 rounded border border-rose-200 text-slate-700 font-bold">Go Back</button>
-                    <button onClick={captureEodPhotoAndSubmit} className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded border border-emerald-700 font-black">Bypass & Submit EOD</button>
                   </div>
                 </div>
               ) : (
@@ -795,7 +829,7 @@ export function DailyCommitments({
                 >
                   <option value="">Select Company</option>
                   {displayCompanies.map((c: any) => (
-                    <option key={c._id || c.id} value={c._id || c.id}>{c.name}</option>
+                    <option key={c.id || c.id} value={c.id || c.id}>{c.name}</option>
                   ))}
                 </select>
               </div>
@@ -810,7 +844,7 @@ export function DailyCommitments({
                 >
                   <option value="">Select Employee</option>
                   {displayUsers.map((u: any) => (
-                    <option key={u._id || u.id} value={u._id || u.id}>{u.name} ({u.role})</option>
+                    <option key={u.id || u.id} value={u.id || u.id}>{u.name} ({u.role})</option>
                   ))}
                 </select>
               </div>
@@ -997,7 +1031,7 @@ export function PerformanceCompliance({
 
   const filteredUsers = users.filter((u: any) => {
     if (!selectedCompany) return true;
-    return u.companies && u.companies.some((c: any) => (c._id || c.id || c).toString().trim() === selectedCompany.toString().trim());
+    return u.companies && u.companies.some((c: any) => (c.id || c.id || c).toString().trim() === selectedCompany.toString().trim());
   });
 
   // Merge SOD, EOD, Tasks, and Field Visits
@@ -1007,12 +1041,12 @@ export function PerformanceCompliance({
     const getEmpIdStr = (emp: any): string => {
       if (!emp) return "unknown";
       if (typeof emp === "string") return emp.trim();
-      return (emp._id || emp.id || "unknown").toString().trim();
+      return (emp.id || emp.id || "unknown").toString().trim();
     };
 
     // Process SODs
     (reports.sod || []).forEach((sod: any) => {
-      const empId = sod.employee?.mongo_id || sod.employee?._id || sod.employee?.id || "unknown";
+      const empId = sod.employee?.id || sod.employee?.id || sod.employee?.id || "unknown";
       if (!sod.date) return;
       const dObj = new Date(sod.date);
       const dateStr = dObj.toDateString();
@@ -1022,7 +1056,7 @@ export function PerformanceCompliance({
 
     // Process EODs
     (reports.eod || []).forEach((eod: any) => {
-      const empId = eod.employee?.mongo_id || eod.employee?._id || eod.employee?.id || "unknown";
+      const empId = eod.employee?.id || eod.employee?.id || eod.employee?.id || "unknown";
       if (!eod.date) return;
       const dObj = new Date(eod.date);
       const dateStr = dObj.toDateString();
@@ -1037,7 +1071,7 @@ export function PerformanceCompliance({
 
     // Process Tasks
     (reports.tasks || []).forEach((task: any) => {
-      const empId = task.employee?.mongo_id || task.employee?._id || task.employee?.id || "unknown";
+      const empId = task.employee?.id || task.employee?.id || task.employee?.id || "unknown";
       if (!task.date) return;
       const dObj = new Date(task.date);
       const dateStr = dObj.toDateString();
@@ -1052,7 +1086,7 @@ export function PerformanceCompliance({
 
     // Process Field Visits
     (reports.fieldVisits || []).forEach((visit: any) => {
-      const empId = visit.employee_id || (visit.employee?.mongo_id || visit.employee?._id || visit.employee?.id || "unknown");
+      const empId = visit.employee_id || (visit.employee?.id || visit.employee?.id || visit.employee?.id || "unknown");
       if (!visit.date) return;
       const dObj = new Date(visit.date);
       const dateStr = dObj.toDateString();
@@ -1110,7 +1144,7 @@ export function PerformanceCompliance({
 
         let matchUser = true;
         if (isOwner && selectedUser) {
-          matchUser = (item.employee?._id || item.employee?.id) === selectedUser;
+          matchUser = (item.employee?.id || item.employee?.id) === selectedUser;
         }
 
         let matchDept = true;
@@ -1208,13 +1242,13 @@ export function PerformanceCompliance({
 
     let matchCompany = true;
     if (isOwner && selectedCompany) {
-      matchCompany = item.employee?.companies && item.employee.companies.some((c: any) => (c._id || c.id || c).toString().trim() === selectedCompany.toString().trim());
+      matchCompany = item.employee?.companies && item.employee.companies.some((c: any) => (c.id || c.id || c).toString().trim() === selectedCompany.toString().trim());
     }
 
     let matchUser = true;
     if (isOwner && selectedUser) {
       const itemEmpId = item.employee
-        ? (typeof item.employee === "object" ? (item.employee._id || item.employee.id || "") : item.employee).toString().trim()
+        ? (typeof item.employee === "object" ? (item.employee.id || item.employee.id || "") : item.employee).toString().trim()
         : "";
       matchUser = itemEmpId === selectedUser.toString().trim();
     }
@@ -1303,7 +1337,7 @@ export function PerformanceCompliance({
               >
                 <option value="">All Companies</option>
                 {companies.map((c: any) => (
-                  <option key={c._id || c.id} value={c._id || c.id}>{c.name}</option>
+                  <option key={c.id || c.id} value={c.id || c.id}>{c.name}</option>
                 ))}
               </select>
             </div>
@@ -1331,7 +1365,7 @@ export function PerformanceCompliance({
               >
                 <option value="">All Employees</option>
                 {filteredUsers.map((u: any) => (
-                  <option key={u._id || u.id} value={u._id || u.id}>{u.name} ({u.role})</option>
+                  <option key={u.id || u.id} value={u.id || u.id}>{u.name} ({u.role})</option>
                 ))}
               </select>
             </div>
@@ -1400,7 +1434,7 @@ export function PerformanceCompliance({
                     return `${diffHrs}h ${diffMins}m`;
                   };
                   const durationStr = getDuration(item.sod, item.eod);
-                  const rowKey = `${item.employee?._id || item.employee?.id || "unknown"}_${item.dateStr}`;
+                  const rowKey = `${item.employee?.id || item.employee?.id || "unknown"}_${item.dateStr}`;
                   const isExpanded = !!expandedRows[rowKey];
 
                   const toggleRow = () => {
@@ -1510,7 +1544,7 @@ export function PerformanceCompliance({
                                 {item.tasks && item.tasks.length > 0 ? (
                                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                                     {item.tasks.map((task: any) => (
-                                      <div key={task._id} className="p-3 bg-white rounded-lg border border-slate-200 shadow-sm flex flex-col gap-1.5">
+                                      <div key={task.id} className="p-3 bg-white rounded-lg border border-slate-200 shadow-sm flex flex-col gap-1.5">
                                         <div className="flex items-center justify-between">
                                           <span className="font-bold text-slate-800 text-xs">{task.taskTitle}</span>
                                           <span className={`px-2 py-0.5 text-[9px] font-black tracking-wider uppercase font-mono rounded ${task.status === "Completed" ? "bg-emerald-50 text-emerald-700 border border-emerald-100" :
@@ -1607,7 +1641,7 @@ export function PerformanceCompliance({
                                   {item.fieldVisits && item.fieldVisits.length > 0 ? (
                                     <div className="text-[11px] text-slate-600 bg-white p-3 rounded-lg border border-slate-200 space-y-2 shadow-sm max-h-[160px] overflow-y-auto">
                                       {item.fieldVisits.map((v: any, vIdx: number) => (
-                                        <div key={v._id || vIdx} className={`${vIdx > 0 ? "pt-2 border-t border-slate-100" : ""}`}>
+                                        <div key={v.id || vIdx} className={`${vIdx > 0 ? "pt-2 border-t border-slate-100" : ""}`}>
                                           <div><strong>Client:</strong> {v.client_name || "N/A"}</div>
                                           <div><strong>Purpose:</strong> {v.purpose || "N/A"}</div>
                                           <div><strong>Distance:</strong> {v.distance_travelled || 0} KM</div>
@@ -1666,7 +1700,13 @@ export function PerformanceCompliance({
 }
 
 export function LeaveRequestTab({ sessionUser }: { sessionUser?: any }) {
-  const isOwner = sessionUser?.role === "Owner" || sessionUser?.role === "Director";
+  const userRole = sessionUser?.role;
+  const isManager = userRole === "Department Manager";
+  const isHR = ["HR Head", "HR Executive"].includes(userRole);
+  const isOwnerOrDirector = userRole === "Owner" || userRole === "Director";
+
+  const canApprove = isOwnerOrDirector || isHR || isManager;
+  const canApply = userRole === "Employee" || isManager;
 
   // Form states
   const [leaveType, setLeaveType] = useState("Casual Leave");
@@ -1679,7 +1719,7 @@ export function LeaveRequestTab({ sessionUser }: { sessionUser?: any }) {
   const [leavesList, setLeavesList] = useState<any[]>([]);
   const [loadingList, setLoadingList] = useState(true);
 
-  // Action state (for Owner approving/rejecting)
+  // Action state
   const [actionRemarks, setActionRemarks] = useState<{ [key: string]: string }>({});
 
   const fetchLeaves = async () => {
@@ -1779,23 +1819,22 @@ export function LeaveRequestTab({ sessionUser }: { sessionUser?: any }) {
       <div>
         <h1 className="text-xl font-black text-slate-850">Leave Management Hub</h1>
         <p className="text-xs text-slate-500 mt-1">
-          {isOwner
-            ? "Approve, reject and monitor employee leave requests across all departments"
+          {canApprove
+            ? "Review, approve, and track department-level or company-level leave applications."
             : "Submit casual, sick, or unpaid leave requests and track approval history"}
         </p>
       </div>
 
       <div className="grid grid-cols-1 gap-8">
 
-        {/* Form View for Employees (Non-Owners) */}
-        {!isOwner && (
+        {/* Form View for Applicants */}
+        {canApply && (
           <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm max-w-xl">
             <h3 className="text-xs font-black tracking-widest text-[#714B67] uppercase font-mono pb-2 border-b border-slate-100 mb-4 flex items-center justify-between">
               <span>📋 Apply for Leave Request</span>
             </h3>
 
             <form onSubmit={handleApplyLeave} className="space-y-4 font-semibold text-slate-650">
-              {/* Pre-populated Profile Name */}
               <div className="bg-slate-50 border border-slate-100 rounded-lg p-3 flex justify-between items-center">
                 <div className="flex items-center gap-2">
                   <User className="w-4 h-4 text-indigo-500" />
@@ -1870,10 +1909,10 @@ export function LeaveRequestTab({ sessionUser }: { sessionUser?: any }) {
           </div>
         )}
 
-        {/* List of Leave Requests (All for Owner, Personal for Employee) */}
+        {/* List of Leave Requests */}
         <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
           <h3 className="text-xs font-black tracking-widest text-[#714B67] uppercase font-mono pb-2 border-b border-slate-100 mb-4 flex items-center justify-between">
-            <span>📋 {isOwner ? "All Employee Leave Requests" : "Your Leave Request History"}</span>
+            <span>📋 {canApprove ? "Leave Requests Registry" : "Your Leave Request History"}</span>
           </h3>
 
           {loadingList ? (
@@ -1891,23 +1930,29 @@ export function LeaveRequestTab({ sessionUser }: { sessionUser?: any }) {
               <table className="w-full text-left text-xs border-collapse">
                 <thead>
                   <tr className="border-b border-slate-200 bg-slate-50 text-slate-450 font-black uppercase font-mono tracking-wider">
-                    {isOwner && <th className="py-3.5 px-4 text-left">Employee</th>}
+                    {canApprove && <th className="py-3.5 px-4 text-left">Employee</th>}
                     <th className="py-3.5 px-4 text-left">Type</th>
                     <th className="py-3.5 px-4 text-left">Duration</th>
                     <th className="py-3.5 px-4 text-center">Days</th>
                     <th className="py-3.5 px-4 text-left">Reason</th>
                     <th className="py-3.5 px-4 text-center">Status</th>
-                    {isOwner && <th className="py-3.5 px-4 text-left">Remarks & Actions</th>}
-                    {!isOwner && <th className="py-3.5 px-4 text-left">Processed By & Remarks</th>}
+                    {canApprove && <th className="py-3.5 px-4 text-left">Remarks & Actions</th>}
+                    {!canApprove && <th className="py-3.5 px-4 text-left">Processed By & Remarks</th>}
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 font-semibold text-slate-650">
                   {leavesList.map((leave: any) => {
                     const start = new Date(leave.startDate);
                     const end = new Date(leave.endDate);
+
+                    // Show actions if the current user is authorized to approve this specific status level
+                    const showActions = 
+                      (isManager && (leave.status === "Pending Manager Approval" || leave.status === "Pending")) ||
+                      ((isHR || isOwnerOrDirector) && (leave.status === "Pending HR Approval" || leave.status === "Pending Manager Approval" || leave.status === "Pending"));
+
                     return (
-                      <tr key={leave._id} className="hover:bg-slate-50/50">
-                        {isOwner && (
+                      <tr key={leave.id} className="hover:bg-slate-50/50">
+                        {canApprove && (
                           <td className="py-3.5 px-4">
                             <div className="flex flex-col">
                               <span className="font-black text-slate-800">{leave.employee?.name || "Unknown"}</span>
@@ -1934,31 +1979,33 @@ export function LeaveRequestTab({ sessionUser }: { sessionUser?: any }) {
                             ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
                             : leave.status === "Rejected"
                               ? "bg-rose-50 text-rose-700 border border-rose-200"
-                              : "bg-amber-50 text-amber-700 border border-amber-200"
+                              : leave.status === "Pending HR Approval"
+                                ? "bg-blue-50 text-blue-700 border border-blue-200"
+                                : "bg-amber-50 text-amber-700 border border-amber-200"
                             }`}>
                             {leave.status}
                           </span>
                         </td>
 
-                        {/* Actions for Owner */}
-                        {isOwner && (
+                        {/* Actions for Managers/HR/Owners */}
+                        {canApprove && (
                           <td className="py-3.5 px-4 whitespace-nowrap">
-                            {leave.status === "Pending" ? (
+                            {showActions ? (
                               <div className="flex items-center gap-2">
                                 <input
                                   className="bg-white border border-slate-300 rounded px-2 py-1 text-xs font-bold text-slate-900 focus:outline-none focus:border-[#714B67]"
-                                  placeholder="Admin remarks..."
-                                  value={actionRemarks[leave._id] || ""}
-                                  onChange={(e) => setActionRemarks({ ...actionRemarks, [leave._id]: e.target.value })}
+                                  placeholder="remarks..."
+                                  value={actionRemarks[leave.id] || ""}
+                                  onChange={(e) => setActionRemarks({ ...actionRemarks, [leave.id]: e.target.value })}
                                 />
                                 <button
-                                  onClick={() => handleUpdateStatus(leave._id, "Approved")}
+                                  onClick={() => handleUpdateStatus(leave.id, "Approved")}
                                   className="bg-emerald-600 hover:bg-emerald-700 text-white px-2.5 py-1 rounded text-[10px] font-bold transition-all shadow"
                                 >
-                                  Approve
+                                  {isManager ? "Approve & Forward" : "Final Approve"}
                                 </button>
                                 <button
-                                  onClick={() => handleUpdateStatus(leave._id, "Rejected")}
+                                  onClick={() => handleUpdateStatus(leave.id, "Rejected")}
                                   className="bg-rose-600 hover:bg-rose-700 text-white px-2.5 py-1 rounded text-[10px] font-bold transition-all shadow"
                                 >
                                   Reject
@@ -1966,22 +2013,26 @@ export function LeaveRequestTab({ sessionUser }: { sessionUser?: any }) {
                               </div>
                             ) : (
                               <span className="text-slate-450 text-[11px] italic">
-                                {leave.remarks ? `Remarks: ${leave.remarks}` : "No remarks"}
+                                {leave.status === "Pending HR Approval" 
+                                  ? "Forwarded to HR - Awaiting HR Review"
+                                  : leave.remarks ? `Remarks: ${leave.remarks}` : "Awaiting Manager Review"}
                               </span>
                             )}
                           </td>
                         )}
 
                         {/* processed info for Employees */}
-                        {!isOwner && (
+                        {!canApprove && (
                           <td className="py-3.5 px-4 text-slate-500 text-[11px] italic max-w-xs truncate">
-                            {leave.status !== "Pending" ? (
+                            {leave.status !== "Pending" && leave.status !== "Pending Manager Approval" && leave.status !== "Pending HR Approval" ? (
                               <span>
                                 By: {leave.approvedBy?.name || "HR/Manager"}
                                 {leave.remarks ? ` (${leave.remarks})` : ""}
                               </span>
                             ) : (
-                              <span>Awaiting review</span>
+                              <span>
+                                {leave.status === "Pending Manager Approval" ? "Awaiting Manager Review" : "Awaiting HR Review"}
+                              </span>
                             )}
                           </td>
                         )}

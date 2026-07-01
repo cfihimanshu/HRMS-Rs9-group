@@ -21,7 +21,7 @@ import {
 } from "lucide-react";
 
 interface Task {
-  _id: string;
+  id: string;
   taskTitle: string;
   taskType: string;
   description: string;
@@ -29,7 +29,7 @@ interface Task {
   status: "Pending" | "In Progress" | "Completed";
   createdAt: string;
   date: string;
-  employee?: { _id: string; name: string; role: string } | null;
+  employee?: { id: string; name: string; role: string } | null;
 }
 
 const TYPE_COLORS: Record<string, string> = {
@@ -114,9 +114,9 @@ export default function KanbanBoard() {
   const updateStatus = async (taskId: string, newStatus: string) => {
     setUpdatingId(taskId);
     // Optimistic UI
-    setTasks(prev => prev.map(t => t._id === taskId ? { ...t, status: newStatus as Task["status"] } : t));
+    setTasks(prev => prev.map(t => t.id === taskId ? { ...t, status: newStatus as Task["status"] } : t));
     // Also update selectedTask if open
-    if (selectedTask?._id === taskId) {
+    if (selectedTask?.id === taskId) {
       setSelectedTask(prev => prev ? { ...prev, status: newStatus as Task["status"] } : null);
     }
     try {
@@ -140,11 +140,11 @@ export default function KanbanBoard() {
       const res = await fetch("/api/tasks", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ taskId: selectedTask._id, progressNotes: editNotes }),
+        body: JSON.stringify({ taskId: selectedTask.id, progressNotes: editNotes }),
       });
       const data = await res.json();
       if (data.success) {
-        setTasks(prev => prev.map(t => t._id === selectedTask._id ? { ...t, progressNotes: editNotes } : t));
+        setTasks(prev => prev.map(t => t.id === selectedTask.id ? { ...t, progressNotes: editNotes } : t));
         setSelectedTask(prev => prev ? { ...prev, progressNotes: editNotes } : null);
       }
     } catch (err) {
@@ -162,7 +162,7 @@ export default function KanbanBoard() {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          taskId: selectedTask._id,
+          taskId: selectedTask.id,
           taskTitle: editTitle,
           taskType: editType,
           description: editDesc,
@@ -170,7 +170,7 @@ export default function KanbanBoard() {
       });
       const data = await res.json();
       if (data.success) {
-        setTasks(prev => prev.map(t => t._id === selectedTask._id ? {
+        setTasks(prev => prev.map(t => t.id === selectedTask.id ? {
           ...t,
           taskTitle: editTitle,
           taskType: editType,
@@ -199,7 +199,7 @@ export default function KanbanBoard() {
       });
       const data = await res.json();
       if (data.success) {
-        setTasks(prev => prev.filter(t => t._id !== taskId));
+        setTasks(prev => prev.filter(t => t.id !== taskId));
         setSelectedTask(null);
       }
     } catch (err) {
@@ -230,7 +230,7 @@ export default function KanbanBoard() {
     setDragOverCol(null);
     const taskId = dragIdRef.current;
     if (!taskId) return;
-    const task = tasks.find(t => t._id === taskId);
+    const task = tasks.find(t => t.id === taskId);
     if (task && task.status !== newStatus) {
       updateStatus(taskId, newStatus);
     }
@@ -301,15 +301,15 @@ export default function KanbanBoard() {
   ];
 
   const renderCard = (task: Task) => {
-    const isUpdating = updatingId === task._id;
+    const isUpdating = updatingId === task.id;
     const typeColor = TYPE_COLORS[task.taskType] || TYPE_COLORS.Other;
     const creatorName = (task.employee as any)?.name || "Unknown User";
 
     return (
       <div
-        key={task._id}
+        key={task.id}
         draggable
-        onDragStart={e => handleDragStart(e, task._id)}
+        onDragStart={e => handleDragStart(e, task.id)}
         onDragEnd={handleDragEnd}
         onClick={() => openTask(task)}
         className={`bg-white p-4 rounded-xl border border-slate-200 shadow-sm cursor-grab active:cursor-grabbing hover:border-[#714B67]/40 hover:shadow-md transition-all group select-none ${isUpdating ? "opacity-50 scale-95" : "opacity-100"}`}
@@ -354,7 +354,7 @@ export default function KanbanBoard() {
           <div className="flex lg:hidden gap-1" onClick={e => e.stopPropagation()}>
             {task.status !== "In Progress" && task.status !== "Completed" && (
               <button
-                onClick={() => updateStatus(task._id, "In Progress")}
+                onClick={() => updateStatus(task.id, "In Progress")}
                 className="p-1.5 bg-amber-50 text-amber-600 rounded-lg hover:bg-amber-100 transition-all"
                 title="Move to In Progress"
               >
@@ -363,7 +363,7 @@ export default function KanbanBoard() {
             )}
             {task.status === "In Progress" && (
               <button
-                onClick={() => updateStatus(task._id, "Pending")}
+                onClick={() => updateStatus(task.id, "Pending")}
                 className="p-1.5 bg-slate-50 text-slate-600 rounded-lg hover:bg-slate-100 transition-all"
                 title="Move to Pending"
               >
@@ -372,7 +372,7 @@ export default function KanbanBoard() {
             )}
             {task.status !== "Completed" && (
               <button
-                onClick={() => updateStatus(task._id, "Completed")}
+                onClick={() => updateStatus(task.id, "Completed")}
                 className="p-1.5 bg-emerald-50 text-emerald-600 rounded-lg hover:bg-emerald-100 transition-all"
                 title="Mark Complete"
               >
@@ -651,7 +651,7 @@ export default function KanbanBoard() {
                       <Edit2 className="w-3.5 h-3.5" />
                     </button>
                     <button
-                      onClick={() => handleDeleteTask(selectedTask._id)}
+                      onClick={() => handleDeleteTask(selectedTask.id)}
                       className="w-8 h-8 rounded-full bg-rose-50 hover:bg-rose-100 text-rose-600 flex items-center justify-center transition-all"
                       title="Delete Task"
                     >
@@ -677,8 +677,8 @@ export default function KanbanBoard() {
                     {["Pending", "In Progress", "Completed"].map(s => (
                       <button
                         key={s}
-                        onClick={() => updateStatus(selectedTask._id, s)}
-                        disabled={selectedTask.status === s || updatingId === selectedTask._id}
+                        onClick={() => updateStatus(selectedTask.id, s)}
+                        disabled={selectedTask.status === s || updatingId === selectedTask.id}
                         className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all border ${selectedTask.status === s
                           ? s === "Pending"
                             ? "bg-slate-100 text-slate-700 border-slate-300 cursor-default"

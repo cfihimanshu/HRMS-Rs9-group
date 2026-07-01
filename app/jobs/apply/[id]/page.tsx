@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 
 interface Job {
-  _id: string;
+  id: string;
   title: string;
   location: string;
   category: string;
@@ -68,7 +68,7 @@ export default function CandidateApplyPage() {
         const res = await fetch("/api/jobs");
         const data = await res.json();
         if (data.success) {
-          const matched = data.data.find((j: any) => j._id === jobId);
+          const matched = data.data.find((j: any) => j.id === jobId);
           if (matched) {
             setJob(matched);
           }

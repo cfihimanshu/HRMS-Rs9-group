@@ -2,7 +2,7 @@ import { DataTypes, Model } from "sequelize";
 import sequelize from "../../lib/sequelize";
 
 class EmployeeProfile extends Model {
-  public mongo_id!: string;
+  public id!: string;
   public user!: string;
   public employeeId!: string;
   public designation!: string;
@@ -20,11 +20,15 @@ class EmployeeProfile extends Model {
   public accountNumber!: string;
   public ifscCode!: string;
   public baseSalary!: number;
+  public allocatedAsset!: string;
+  public allocatedSim!: string;
+  public allocatedGmail!: string;
+  public allocatedWhatsapp!: string;
 }
 
 EmployeeProfile.init(
   {
-    mongo_id: {
+    id: {
       type: DataTypes.STRING,
       primaryKey: true,
       allowNull: false,
@@ -124,6 +128,26 @@ EmployeeProfile.init(
     "leaveBalances.earnedLeave": {
       type: DataTypes.FLOAT,
       allowNull: true,
+    },
+    allocatedAsset: {
+      type: DataTypes.STRING,
+      allowNull: true,
+      defaultValue: "",
+    },
+    allocatedSim: {
+      type: DataTypes.STRING,
+      allowNull: true,
+      defaultValue: "",
+    },
+    allocatedGmail: {
+      type: DataTypes.STRING,
+      allowNull: true,
+      defaultValue: "",
+    },
+    allocatedWhatsapp: {
+      type: DataTypes.STRING,
+      allowNull: true,
+      defaultValue: "",
     },
   },
   {

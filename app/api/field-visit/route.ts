@@ -43,14 +43,14 @@ export async function GET(req: Request) {
 
     // Resolve employee details to attach to visits
     const users = await User.findAll({
-      attributes: ["mongo_id", "name", "email"]
+      attributes: ["id", "name", "email"]
     });
     const profiles = await EmployeeProfile.findAll({
       attributes: ["user", "department"]
     });
 
     const userMap = users.reduce((acc: any, u: any) => {
-      acc[u.mongo_id] = { name: u.name, email: u.email };
+      acc[u.id] = { name: u.name, email: u.email };
       return acc;
     }, {});
 

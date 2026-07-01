@@ -2,7 +2,7 @@ import { DataTypes, Model } from "sequelize";
 import sequelize from "../../lib/sequelize";
 
 class Department extends Model {
-  public mongo_id!: string;
+  public id!: string;
   public name!: string;
   public company!: string;
   public status!: string;
@@ -11,7 +11,7 @@ class Department extends Model {
 Department.init(
   {
     
-    mongo_id: {
+    id: {
       type: DataTypes.STRING,
       primaryKey: true,
       allowNull: false,
