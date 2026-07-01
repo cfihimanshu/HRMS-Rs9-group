@@ -6,7 +6,7 @@ class Leave extends Model<any, any> { [key: string]: any; }
 Leave.init(
   {
     
-    mongo_id: {
+    id: {
       type: DataTypes.STRING,
       primaryKey: true,
       allowNull: false,
@@ -53,6 +53,29 @@ Leave.init(
     },
     updatedAt: {
       type: DataTypes.DATE,
+      allowNull: true,
+    },
+    type: {
+      type: DataTypes.STRING,
+      allowNull: true,
+      defaultValue: 'Casual Leave'
+    },
+    managerStatus: {
+      type: DataTypes.STRING,
+      allowNull: true,
+      defaultValue: 'Pending'
+    },
+    managerRemarks: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    hrStatus: {
+      type: DataTypes.STRING,
+      allowNull: true,
+      defaultValue: 'Pending'
+    },
+    hrRemarks: {
+      type: DataTypes.STRING,
       allowNull: true,
     },
   },

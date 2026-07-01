@@ -6,7 +6,7 @@ class FranchiseRegistration extends Model<any, any> { [key: string]: any; }
 FranchiseRegistration.init(
   {
     
-    mongo_id: {
+    id: {
       type: DataTypes.STRING,
       primaryKey: true,
       allowNull: false,

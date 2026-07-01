@@ -6,7 +6,7 @@ class VendorRegistration extends Model<any, any> { [key: string]: any; }
 VendorRegistration.init(
   {
     
-    mongo_id: {
+    id: {
       type: DataTypes.STRING,
       primaryKey: true,
       allowNull: false,

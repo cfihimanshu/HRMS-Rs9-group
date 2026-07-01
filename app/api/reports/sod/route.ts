@@ -74,7 +74,7 @@ export async function POST(req: Request) {
     const attendanceExists = await Attendance.findOne({ where: { employee: userId, date: today } });
     if (!attendanceExists) {
       await Attendance.create({
-        mongo_id: Date.now().toString(),
+        id: Date.now().toString(),
         employee: userId,
         date: today,
         status: "Present",

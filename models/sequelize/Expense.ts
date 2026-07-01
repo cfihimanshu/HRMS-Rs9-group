@@ -6,7 +6,7 @@ class Expense extends Model<any, any> { [key: string]: any; }
 Expense.init(
   {
     
-    mongo_id: {
+    id: {
       type: DataTypes.STRING,
       primaryKey: true,
       allowNull: false,

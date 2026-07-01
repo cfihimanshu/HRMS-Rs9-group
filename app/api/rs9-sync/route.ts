@@ -42,7 +42,7 @@ export async function GET(request: Request) {
       recentAuditLogs,
       recentNotifications
     ] = await Promise.all([
-      User.findAll({ where: {}, attributes: ["name", "email", "role", "status", "companies"] }),
+      User.findAll({ where: {}, attributes: ["name", "email", "role", "status", "companies"], raw: true }),
       Company.findAll({ raw: true }),
       Department.findAll({ raw: true }),
       Role.findAll({ raw: true }),
@@ -83,8 +83,8 @@ export async function GET(request: Request) {
     today.setHours(0, 0, 0, 0);
 
     const [sodTodayRaw, eodTodayRaw] = await Promise.all([
-      SodReport.findAll({ where: { date: today } }),
-      EodReport.findAll({ where: { date: today } })
+      SodReport.findAll({ where: { date: today }, raw: true }),
+      EodReport.findAll({ where: { date: today }, raw: true })
     ]);
 
     const employeeIds = [
@@ -93,20 +93,20 @@ export async function GET(request: Request) {
     ].filter(Boolean);
 
     const employees = await User.findAll({
-      where: { mongo_id: { [Op.in]: employeeIds } },
-      attributes: ["mongo_id", "name", "role"],
+      where: { id: { [Op.in]: employeeIds } },
+      attributes: ["id", "name", "role"],
       raw: true
     });
-    const employeeMap = new Map(employees.map((e: any) => [e.mongo_id, e]));
+    const employeeMap = new Map(employees.map((e: any) => [e.id, e]));
 
     const sodToday = sodTodayRaw.map((s: any) => {
-      const plain = s.toJSON();
+      const plain = { ...s };
       plain.employee = employeeMap.get(plain.employee) || null;
       return plain;
     });
 
     const eodToday = eodTodayRaw.map((e: any) => {
-      const plain = e.toJSON();
+      const plain = { ...e };
       plain.employee = employeeMap.get(plain.employee) || null;
       return plain;
     });

@@ -5,17 +5,17 @@ import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 
 interface Company {
-  _id: string;
+  id: string;
   name: string;
 }
 
 interface Department {
-  _id: string;
+  id: string;
   name: string;
 }
 
 interface Job {
-  _id: string;
+  id: string;
   title: string;
   company: Company;
   department: Department;
@@ -35,6 +35,13 @@ export default function HrJobsPage() {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [companies, setCompanies] = useState<Company[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
+
+  // Pagination & Search States
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(10);
+  const [totalPages, setTotalPages] = useState(1);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchTrigger, setSearchTrigger] = useState(0);
 
   // Form States
   const [title, setTitle] = useState("");
@@ -62,7 +69,7 @@ export default function HrJobsPage() {
   const fetchData = async () => {
     try {
       const [jobsRes, companiesRes, departmentsRes] = await Promise.all([
-        fetch("/api/jobs"),
+        fetch(`/api/jobs?page=${page}&limit=${limit}&search=${encodeURIComponent(searchQuery)}`),
         fetch("/api/companies"),
         fetch("/api/departments"),
       ]);
@@ -71,7 +78,12 @@ export default function HrJobsPage() {
       const companiesData = await companiesRes.json();
       const departmentsData = await departmentsRes.json();
 
-      if (jobsData.success) setJobs(jobsData.data);
+      if (jobsData.success) {
+        setJobs(jobsData.data);
+        if (jobsData.pagination) {
+          setTotalPages(jobsData.pagination.totalPages);
+        }
+      }
       if (companiesData.success) setCompanies(companiesData.data);
       if (departmentsData.success) setDepartments(departmentsData.data);
     } catch (error) {
@@ -83,7 +95,7 @@ export default function HrJobsPage() {
     if (status === "authenticated") {
       fetchData();
     }
-  }, [status]);
+  }, [status, page, limit, searchTrigger]);
 
   const handleCreateJob = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -212,7 +224,7 @@ export default function HrJobsPage() {
                   >
                     <option value="">Select Company</option>
                     {companies.map((c) => (
-                      <option key={c._id} value={c._id}>
+                      <option key={c.id} value={c.id}>
                         {c.name}
                       </option>
                     ))}
@@ -229,7 +241,7 @@ export default function HrJobsPage() {
                   >
                     <option value="">Select Dept</option>
                     {departments.map((d) => (
-                      <option key={d._id} value={d._id}>
+                      <option key={d.id} value={d.id}>
                         {d.name}
                       </option>
                     ))}
@@ -349,8 +361,26 @@ export default function HrJobsPage() {
 
           {/* Active Jobs List (Right 2 Columns) */}
           <div className="lg:col-span-2 space-y-6">
-            <div className="bg-slate-900/40 border border-slate-800 backdrop-blur-xl rounded-3xl p-6 shadow-xl">
-              <h2 className="text-lg font-bold text-white mb-6">Active Openings</h2>
+            <div className="bg-slate-900/40 border border-slate-800 backdrop-blur-xl rounded-3xl p-6 shadow-xl flex-1 flex flex-col">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-lg font-bold text-white">Active Openings</h2>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    placeholder="Search jobs..."
+                    className="bg-slate-950/80 border border-slate-800 rounded-xl px-4 py-2 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && setSearchTrigger(prev => prev + 1)}
+                  />
+                  <button 
+                    onClick={() => setSearchTrigger(prev => prev + 1)}
+                    className="bg-slate-800 hover:bg-slate-700 text-white px-3 py-2 rounded-xl text-sm"
+                  >
+                    Search
+                  </button>
+                </div>
+              </div>
 
               {jobs.length === 0 ? (
                 <div className="text-center py-16 text-slate-500 border border-dashed border-slate-800 rounded-2xl">
@@ -372,7 +402,7 @@ export default function HrJobsPage() {
                       {jobs.map((job) => {
                         const isExpired = !!(job.postingDuration && job.createdAt && (new Date().getTime() - new Date(job.createdAt).getTime()) > job.postingDuration * 24 * 60 * 60 * 1000);
                         return (
-                          <tr key={job._id} className={`text-slate-300 hover:bg-slate-900/20 transition-all ${isExpired ? "opacity-40 bg-slate-950/20 select-none pointer-events-none" : ""}`}>
+                          <tr key={job.id} className={`text-slate-300 hover:bg-slate-900/20 transition-all ${isExpired ? "opacity-40 bg-slate-950/20 select-none pointer-events-none" : ""}`}>
                             <td className="py-4 pr-4 font-semibold text-white">
                               {job.title}
                               {isExpired && (
@@ -392,15 +422,15 @@ export default function HrJobsPage() {
                             <td className="py-4 pl-4 text-right">
                               {job.shareableLink ? (
                                 <button
-                                  onClick={() => handleCopyLink(job.shareableLink!, job._id)}
+                                  onClick={() => handleCopyLink(job.shareableLink!, job.id)}
                                   className={`text-xs font-medium px-3 py-1.5 rounded-lg border transition-all ${
-                                    copiedId === job._id
+                                    copiedId === job.id
                                       ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400"
                                       : "bg-slate-950 hover:bg-indigo-600 hover:text-white border-slate-800 text-slate-400"
                                   }`}
                                   disabled={isExpired}
                                 >
-                                  {copiedId === job._id ? "Copied! ✓" : "Copy Link"}
+                                  {copiedId === job.id ? "Copied! ✓" : "Copy Link"}
                                 </button>
                               ) : (
                                 <span className="text-xs text-slate-500">Not Generated</span>
@@ -411,6 +441,29 @@ export default function HrJobsPage() {
                       })}
                     </tbody>
                   </table>
+                </div>
+              )}
+              
+              {/* Pagination Controls */}
+              {totalPages > 1 && (
+                <div className="mt-4 flex items-center justify-between border-t border-slate-800 pt-4">
+                  <button
+                    disabled={page === 1}
+                    onClick={() => setPage(p => p - 1)}
+                    className="text-sm bg-slate-800 hover:bg-slate-700 text-slate-300 px-4 py-2 rounded-xl disabled:opacity-50"
+                  >
+                    Previous
+                  </button>
+                  <span className="text-slate-400 text-sm">
+                    Page {page} of {totalPages}
+                  </span>
+                  <button
+                    disabled={page === totalPages}
+                    onClick={() => setPage(p => p + 1)}
+                    className="text-sm bg-slate-800 hover:bg-slate-700 text-slate-300 px-4 py-2 rounded-xl disabled:opacity-50"
+                  >
+                    Next
+                  </button>
                 </div>
               )}
             </div>

@@ -6,7 +6,7 @@ class Role extends Model<any, any> { [key: string]: any; }
 Role.init(
   {
     
-    mongo_id: {
+    id: {
       type: DataTypes.STRING,
       primaryKey: true,
       allowNull: false,

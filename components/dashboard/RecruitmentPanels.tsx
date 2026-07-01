@@ -246,11 +246,11 @@ export function HiringApproval({
       {/* Requisition Cards */}
       <div className="space-y-4">
         {filteredRequisitions.map((req, idx) => {
-          const isExpanded = expandedReq === req._id;
-          const remarks = remarksInput[req._id] || "";
-          const budget = budgetInput[req._id] || "";
-          const platform = platformInput[req._id] || "Indeed";
-          const duration = durationInput[req._id] || "";
+          const isExpanded = expandedReq === req.id;
+          const remarks = remarksInput[req.id] || "";
+          const budget = budgetInput[req.id] || "";
+          const platform = platformInput[req.id] || "Indeed";
+          const duration = durationInput[req.id] || "";
 
           return (
             <div key={idx} className="bg-white border border-slate-200 rounded-xl shadow-sm hover:shadow-md transition-all overflow-hidden">
@@ -298,7 +298,7 @@ export function HiringApproval({
                     </span>
                   </div>
                   <button
-                    onClick={() => setExpandedReq(isExpanded ? null : req._id)}
+                    onClick={() => setExpandedReq(isExpanded ? null : req.id)}
                     className="bg-slate-100 hover:bg-slate-200 border border-slate-250 text-slate-700 px-3.5 py-1.5 rounded-lg text-[10px] font-black transition-all shadow-sm"
                   >
                     {isExpanded ? "Hide Details" : "View All Fields"}
@@ -391,7 +391,7 @@ export function HiringApproval({
                                 className="w-full bg-white border border-slate-300 p-2.5 rounded text-xs focus:outline-none mt-1 text-slate-900"
                                 placeholder="e.g. 5000"
                                 value={budget}
-                                onChange={e => handleBudgetChange(req._id, e.target.value)}
+                                onChange={e => handleBudgetChange(req.id, e.target.value)}
                               />
                             </div>
                             <div className="w-1/4">
@@ -399,7 +399,7 @@ export function HiringApproval({
                               <select
                                 className="w-full bg-white border border-slate-300 p-2.5 rounded text-xs focus:outline-none mt-1 text-slate-900"
                                 value={platform}
-                                onChange={e => handlePlatformChange(req._id, e.target.value)}
+                                onChange={e => handlePlatformChange(req.id, e.target.value)}
                               >
                                 <option value="Indeed">Indeed</option>
                                 <option value="Naukri">Naukri</option>
@@ -413,7 +413,7 @@ export function HiringApproval({
                                 className="w-full bg-white border border-slate-300 p-2.5 rounded text-xs focus:outline-none mt-1 text-slate-900"
                                 placeholder="e.g. 30"
                                 value={duration}
-                                onChange={e => handleDurationChange(req._id, e.target.value)}
+                                onChange={e => handleDurationChange(req.id, e.target.value)}
                               />
                             </div>
                             <div className="flex-1">
@@ -422,25 +422,25 @@ export function HiringApproval({
                                 className="w-full bg-white border border-slate-300 p-2.5 rounded text-xs focus:outline-none mt-1 text-slate-900"
                                 placeholder="Enter sourcing strategy or notes..."
                                 value={remarks}
-                                onChange={e => handleRemarksChange(req._id, e.target.value)}
+                                onChange={e => handleRemarksChange(req.id, e.target.value)}
                               />
                             </div>
                             <div className="flex gap-2 shrink-0">
                               <button
                                 className="bg-fuchsia-600 hover:bg-fuchsia-700 px-4 py-2.5 rounded-lg text-xs font-bold text-white transition-all shadow-sm"
-                                onClick={() => onApproveRequisition(req._id, "Pending Accounts Review", remarks || "Forwarded to Accounts.", budget, platform, duration ? Number(duration) : undefined)}
+                                onClick={() => onApproveRequisition(req.id, "Pending Accounts Review", remarks || "Forwarded to Accounts.", budget, platform, duration ? Number(duration) : undefined)}
                               >
                                 ✅ Forward to Accounts
                               </button>
                               <button
                                 className="bg-blue-600 hover:bg-blue-700 px-3 py-2.5 rounded-lg text-xs font-bold text-white transition-all shadow-sm"
-                                onClick={() => onApproveRequisition(req._id, "Hold", remarks || "Put on hold by HR.")}
+                                onClick={() => onApproveRequisition(req.id, "Hold", remarks || "Put on hold by HR.")}
                               >
                                 Hold
                               </button>
                               <button
                                 className="bg-rose-600 hover:bg-rose-700 px-3 py-2.5 rounded-lg text-xs font-bold text-white transition-all shadow-sm"
-                                onClick={() => onApproveRequisition(req._id, "Rejected", remarks || "Rejected by HR.")}
+                                onClick={() => onApproveRequisition(req.id, "Rejected", remarks || "Rejected by HR.")}
                               >
                                 Reject
                               </button>
@@ -466,25 +466,25 @@ export function HiringApproval({
                                 className="w-full bg-white border border-slate-300 p-2.5 rounded text-xs focus:outline-none mt-1 text-slate-900"
                                 placeholder="Enter budget review remarks..."
                                 value={remarks}
-                                onChange={e => handleRemarksChange(req._id, e.target.value)}
+                                onChange={e => handleRemarksChange(req.id, e.target.value)}
                               />
                             </div>
                             <div className="flex gap-2 shrink-0">
                               <button
                                 className="bg-amber-600 hover:bg-amber-700 px-4 py-2.5 rounded-lg text-xs font-bold text-white transition-all shadow-sm"
-                                onClick={() => onApproveRequisition(req._id, "Pending Owner Approval", remarks || "Budget cleared. Forwarded to Owner for approval.")}
+                                onClick={() => onApproveRequisition(req.id, "Pending Owner Approval", remarks || "Budget cleared. Forwarded to Owner for approval.")}
                               >
                                 ✅ Recommend to Owner
                               </button>
                               <button
                                 className="bg-blue-600 hover:bg-blue-700 px-3 py-2.5 rounded-lg text-xs font-bold text-white transition-all shadow-sm"
-                                onClick={() => onApproveRequisition(req._id, "Hold", remarks || "Put on hold by Accounts.")}
+                                onClick={() => onApproveRequisition(req.id, "Hold", remarks || "Put on hold by Accounts.")}
                               >
                                 Hold
                               </button>
                               <button
                                 className="bg-rose-600 hover:bg-rose-700 px-3 py-2.5 rounded-lg text-xs font-bold text-white transition-all shadow-sm"
-                                onClick={() => onApproveRequisition(req._id, "Rejected", remarks || "Rejected by Accounts — insufficient budget.")}
+                                onClick={() => onApproveRequisition(req.id, "Rejected", remarks || "Rejected by Accounts — insufficient budget.")}
                               >
                                 Reject
                               </button>
@@ -510,25 +510,25 @@ export function HiringApproval({
                                 className="w-full bg-white border border-slate-300 p-2.5 rounded text-xs focus:outline-none mt-1 text-slate-900"
                                 placeholder="Enter owner decision remarks..."
                                 value={remarks}
-                                onChange={e => handleRemarksChange(req._id, e.target.value)}
+                                onChange={e => handleRemarksChange(req.id, e.target.value)}
                               />
                             </div>
                             <div className="flex gap-2 shrink-0">
                               <button
                                 className="bg-[#714B67] hover:bg-[#5F3F56] px-4 py-2.5 rounded-lg text-xs font-bold text-white transition-all shadow-sm"
-                                onClick={() => onApproveRequisition(req._id, "Approved — Pending HR Post", remarks || "Approved by Owner. HR to post the job.")}
+                                onClick={() => onApproveRequisition(req.id, "Approved — Pending HR Post", remarks || "Approved by Owner. HR to post the job.")}
                               >
                                 ✅ Approve → Send to HR
                               </button>
                               <button
                                 className="bg-blue-600 hover:bg-blue-700 px-3 py-2.5 rounded-lg text-xs font-bold text-white transition-all shadow-sm"
-                                onClick={() => onApproveRequisition(req._id, "Hold", remarks || "Put on hold by Owner.")}
+                                onClick={() => onApproveRequisition(req.id, "Hold", remarks || "Put on hold by Owner.")}
                               >
                                 Hold
                               </button>
                               <button
                                 className="bg-rose-600 hover:bg-rose-700 px-3 py-2.5 rounded-lg text-xs font-bold text-white transition-all shadow-sm"
-                                onClick={() => onApproveRequisition(req._id, "Rejected", remarks || "Rejected by Owner.")}
+                                onClick={() => onApproveRequisition(req.id, "Rejected", remarks || "Rejected by Owner.")}
                               >
                                 Reject
                               </button>
@@ -557,7 +557,7 @@ export function HiringApproval({
                             </div>
                             <button
                               className="bg-emerald-600 hover:bg-emerald-700 px-6 py-3 rounded-lg text-xs font-bold text-white transition-all shadow-md flex items-center gap-2"
-                              onClick={() => onApproveRequisition(req._id, "Job Posted", "Job vacancy published by HR.")}
+                              onClick={() => onApproveRequisition(req.id, "Job Posted", "Job vacancy published by HR.")}
                             >
                               <CheckCircle2 className="w-4 h-4" /> Post Job & Generate Application Link
                             </button>
@@ -658,7 +658,7 @@ export function JobPostings({
       return;
     }
 
-    const job = jobs.find(j => j._id === simJobId);
+    const job = jobs.find(j => j.id === simJobId);
     const jobTitle = job ? job.title : "BDA Sales";
     const applyLink = `http://localhost:3001/jobs/apply/${simJobId}`;
 
@@ -779,7 +779,7 @@ export function JobPostings({
                     {/* 10. Software Form Link */}
                     <td className="py-4 px-2">
                       <a
-                        href={`http://localhost:3001/jobs/apply/${jb._id}`}
+                        href={`http://localhost:3001/jobs/apply/${jb.id}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="inline-flex items-center gap-1.5 text-[10px] font-black text-[#714B67] hover:text-[#5F3F56] bg-[#714B67]/5 border border-[#714B67]/15 px-2.5 py-1 rounded shadow-sm hover:shadow transition-all"
@@ -793,7 +793,7 @@ export function JobPostings({
                       <button
                         className="bg-slate-100 hover:bg-slate-200 border border-slate-250 text-slate-700 px-3 py-2 rounded-lg text-[10px] font-black flex items-center gap-1.5 ml-auto shadow-sm transition-all"
                         onClick={() => {
-                          const link = jb.shareableLink || `http://localhost:3001/jobs/apply/${jb._id}`;
+                          const link = jb.shareableLink || `http://localhost:3001/jobs/apply/${jb.id}`;
                           navigator.clipboard.writeText(link);
                           triggerToast(`Job Share Link Copied!`);
                         }}
@@ -886,10 +886,10 @@ export function CandidatesPipeline({
                     return (
                       <tr
                         key={idx}
-                        className={`hover:bg-slate-50/50 cursor-pointer transition-all ${selectedCandidate?._id === c._id ? "bg-fuchsia-50/40" : ""}`}
+                        className={`hover:bg-slate-50/50 cursor-pointer transition-all ${selectedCandidate?.id === c.id ? "bg-fuchsia-50/40" : ""}`}
                         onClick={() => setSelectedCandidate(c)}
                       >
-                        <td className="py-3.5 text-slate-500 font-mono">{c._id.slice(-6).toUpperCase()}</td>
+                        <td className="py-3.5 text-slate-500 font-mono">{c.id.slice(-6).toUpperCase()}</td>
                         <td className="py-3.5 px-2">
                           <div className="font-bold text-slate-800">{c.name}</div>
                           <div className="text-[10px] text-slate-450 mt-0.5">{c.email} · {c.mobile}</div>
@@ -1075,7 +1075,7 @@ export function AiScreening({
         const list = data.data.filter((c: any) => c && c.status !== "inactive");
         setCandidates(list);
         if (selectedCandidate) {
-          const match = list.find((c: any) => c._id === selectedCandidate._id);
+          const match = list.find((c: any) => c.id === selectedCandidate.id);
           if (match) setCandidate(match);
         }
       }
@@ -1091,7 +1091,7 @@ export function AiScreening({
   }, [selectedCandidate]);
 
   const runAiScreening = async () => {
-    if (!candidate?._id) return;
+    if (!candidate?.id) return;
     setLoading(true);
     setScanStep(0);
 
@@ -1110,7 +1110,7 @@ export function AiScreening({
       const res = await fetch("/api/candidates/screen", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ candidateId: candidate._id }),
+        body: JSON.stringify({ candidateId: candidate.id }),
       });
       const data = await res.json();
 
@@ -1138,11 +1138,11 @@ export function AiScreening({
   };
 
   const handleStatusOverride = async (newStatus: string) => {
-    if (!candidate?._id) return;
+    if (!candidate?.id) return;
     setOverrideLoading(true);
 
     try {
-      const res = await fetch(`/api/candidates/${candidate._id}`, {
+      const res = await fetch(`/api/candidates/${candidate.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status: newStatus }),
@@ -1179,7 +1179,7 @@ export function AiScreening({
             <select
               value=""
               onChange={(e) => {
-                const selected = candidates.find((c) => c._id === e.target.value);
+                const selected = candidates.find((c) => c.id === e.target.value);
                 if (selected) setCandidate(selected);
               }}
               className="rounded border border-slate-250 p-2 text-xs text-slate-800 focus:ring-[#714B67] bg-white font-semibold"
@@ -1188,7 +1188,7 @@ export function AiScreening({
               {candidates.map((c) => {
                 const vacancy = c.job?.title || "General Application";
                 return (
-                  <option key={c._id} value={c._id}>
+                  <option key={c.id} value={c.id}>
                     {c.name} ({vacancy}) [{c.status}]
                   </option>
                 );
@@ -1220,9 +1220,9 @@ export function AiScreening({
           <div className="flex flex-col gap-1.5 max-w-sm pt-2">
             <label className="text-[10px] font-black uppercase text-slate-400 tracking-wider font-mono">Select Candidate to Screen</label>
             <select
-              value={candidate?._id || ""}
+              value={candidate?.id || ""}
               onChange={(e) => {
-                const selected = candidates.find((c) => c._id === e.target.value);
+                const selected = candidates.find((c) => c.id === e.target.value);
                 if (selected) setCandidate(selected);
               }}
               className="rounded border border-slate-250 p-2 text-xs text-slate-800 focus:ring-[#714B67] bg-white font-semibold"
@@ -1231,7 +1231,7 @@ export function AiScreening({
               {candidates.map((c) => {
                 const vacancy = c.job?.title || "General Application";
                 return (
-                  <option key={c._id} value={c._id}>
+                  <option key={c.id} value={c.id}>
                     {c.name} ({vacancy}) [{c.status}]
                   </option>
                 );
@@ -1268,7 +1268,7 @@ export function AiScreening({
 
           <div className="max-w-md mx-auto space-y-2">
             <h3 className="text-base font-bold tracking-tight">AI Screening Core Active</h3>
-            <p className="text-xs text-slate-400 font-mono">Screening Candidate ID: {candidate._id.toUpperCase()}</p>
+            <p className="text-xs text-slate-400 font-mono">Screening Candidate ID: {candidate.id.toUpperCase()}</p>
           </div>
 
           {/* Stepper progress */}
@@ -1626,7 +1626,7 @@ export function VerificationChecklist({
   const [isEditing, setIsEditing] = useState(false);
 
   const handleAttachDocument = async (field: string, file: File) => {
-    if (!selectedCand?._id) return;
+    if (!selectedCand?.id) return;
     setUploadingField(field);
     try {
       const formData = new FormData();
@@ -1644,7 +1644,7 @@ export function VerificationChecklist({
       const fileUrl = uploadData.url;
 
       // Update candidate database profile
-      const updateRes = await fetch(`/api/candidates/${selectedCand._id}`, {
+      const updateRes = await fetch(`/api/candidates/${selectedCand.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -1668,7 +1668,7 @@ export function VerificationChecklist({
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-              candidateId: selectedCand._id,
+              candidateId: selectedCand.id,
               [dbUrlField]: fileUrl,
             }),
           });
@@ -1685,7 +1685,7 @@ export function VerificationChecklist({
         // Update local candidates list state
         setCandidates((prevList) =>
           prevList.map((c) =>
-            c._id === selectedCand._id
+            c.id === selectedCand.id
               ? { ...c, uploads: { ...c.uploads, [field]: fileUrl } }
               : c
           )
@@ -1765,8 +1765,8 @@ export function VerificationChecklist({
         const candidateInterviewsMap: Record<string, Set<number>> = {};
 
         interviews.forEach((iv: any) => {
-          if (iv.candidate && iv.candidate._id && iv.status === "Selected") {
-            const cid = iv.candidate._id.toString();
+          if (iv.candidate && iv.candidate.id && iv.status === "Selected") {
+            const cid = iv.candidate.id.toString();
             if (!candidateInterviewsMap[cid]) {
               candidateInterviewsMap[cid] = new Set();
             }
@@ -1780,7 +1780,7 @@ export function VerificationChecklist({
           return rounds.has(1) && rounds.has(2) && rounds.has(3);
         });
 
-        activeCands = dataCand.data.filter((c: any) => c && c.status !== "inactive" && eligibleCandIds.includes(c._id.toString()));
+        activeCands = dataCand.data.filter((c: any) => c && c.status !== "inactive" && eligibleCandIds.includes(c.id.toString()));
         setCandidates(activeCands);
       }
 
@@ -1793,12 +1793,12 @@ export function VerificationChecklist({
       // Determine candidate to auto-select
       let currentSelectId = selectId;
       if (!currentSelectId && selectedCandidate) {
-        currentSelectId = selectedCandidate._id;
+        currentSelectId = selectedCandidate.id;
       }
 
       let activeSelect = null;
       if (currentSelectId) {
-        activeSelect = activeCands.find((c: any) => c._id === currentSelectId);
+        activeSelect = activeCands.find((c: any) => c.id === currentSelectId);
       }
       if (!activeSelect && activeCands.length > 0) {
         activeSelect = activeCands[0];
@@ -1806,7 +1806,7 @@ export function VerificationChecklist({
 
       if (activeSelect) {
         setSelectedCand(activeSelect);
-        const matchVer = verList.find((v: any) => v.candidate?._id === activeSelect._id || v.candidate === activeSelect._id);
+        const matchVer = verList.find((v: any) => v.candidate?.id === activeSelect.id || v.candidate === activeSelect.id);
         applyVerificationData(matchVer);
         setIsEditing(!matchVer);
       } else {
@@ -1827,7 +1827,7 @@ export function VerificationChecklist({
 
   const handleSelectCandidate = (cand: any) => {
     setSelectedCand(cand);
-    const matchVer = verifications.find((v: any) => v.candidate?._id === cand._id || v.candidate === cand._id);
+    const matchVer = verifications.find((v: any) => v.candidate?.id === cand.id || v.candidate === cand.id);
     applyVerificationData(matchVer);
     setIsEditing(!matchVer);
   };
@@ -1842,7 +1842,7 @@ export function VerificationChecklist({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          candidateId: selectedCand._id,
+          candidateId: selectedCand.id,
           aadhaarStatus,
           panStatus,
           addressStatus,
@@ -1864,7 +1864,7 @@ export function VerificationChecklist({
       if (data.success) {
         triggerToast("Vetting verification matrix saved successfully!");
         setIsEditing(false);
-        loadData(selectedCand._id);
+        loadData(selectedCand.id);
       } else {
         triggerToast(`Failed: ${data.error}`);
       }
@@ -1918,13 +1918,13 @@ export function VerificationChecklist({
 
             <div className="space-y-2">
               {candidates.map((c) => {
-                const isSelected = selectedCand?._id === c._id;
-                const matchVer = verifications.find((v: any) => v.candidate?._id === c._id || v.candidate === c._id);
+                const isSelected = selectedCand?.id === c.id;
+                const matchVer = verifications.find((v: any) => v.candidate?.id === c.id || v.candidate === c.id);
                 const currentOverallStatus = matchVer?.status || "Pending";
 
                 return (
                   <div
-                    key={c._id}
+                    key={c.id}
                     onClick={() => handleSelectCandidate(c)}
                     className={`p-3 rounded-lg border cursor-pointer transition-all hover:scale-[1.01] ${isSelected
                       ? "bg-[#714B67]/5 border-[#714B67] shadow-sm"
@@ -1976,7 +1976,7 @@ export function VerificationChecklist({
                       <button
                         type="button"
                         onClick={() => {
-                          const matchVer = verifications.find((v: any) => v.candidate?._id === selectedCand._id || v.candidate === selectedCand._id);
+                          const matchVer = verifications.find((v: any) => v.candidate?.id === selectedCand.id || v.candidate === selectedCand.id);
                           applyVerificationData(matchVer);
                           setIsEditing(!matchVer);
                         }}
@@ -2486,7 +2486,7 @@ export function InterviewsQueue({ triggerToast }: { triggerToast: (msg: string) 
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          interviewId: followUpInterview._id,
+          interviewId: followUpInterview.id,
           scheduleTime: `${followUpDate}T${followUpTime}`,
           videoLink: followUpMode === "offline" ? "" : followUpVideoLink,
           mode: followUpMode,
@@ -2541,8 +2541,8 @@ export function InterviewsQueue({ triggerToast }: { triggerToast: (msg: string) 
   }, [schedCandidateId, schedRound]);
 
   const handleEditClick = (item: any) => {
-    setEditingInterviewId(item._id);
-    setSchedCandidateId(item.candidate?._id || "");
+    setEditingInterviewId(item.id);
+    setSchedCandidateId(item.candidate?.id || "");
     setSchedRound(item.round ? item.round.toString() : "1");
     if (item.scheduleTime) {
       const d = new Date(item.scheduleTime);
@@ -2590,7 +2590,7 @@ export function InterviewsQueue({ triggerToast }: { triggerToast: (msg: string) 
     // Validate round progression: Candidate can only be scheduled for round if they've cleared previous rounds
     const targetRound = parseInt(schedRound);
     if (targetRound > 1) {
-      const selectedCand = candidates.find(c => c._id === schedCandidateId);
+      const selectedCand = candidates.find(c => c.id === schedCandidateId);
       if (selectedCand) {
         const currentRound = selectedCand.currentRound || 1;
         if (currentRound < targetRound) {
@@ -2669,7 +2669,7 @@ export function InterviewsQueue({ triggerToast }: { triggerToast: (msg: string) 
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          interviewId: selectedInt._id,
+          interviewId: selectedInt.id,
           communicationScore,
           skillScore,
           behaviourScore,
@@ -2748,7 +2748,7 @@ export function InterviewsQueue({ triggerToast }: { triggerToast: (msg: string) 
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          interviewId: interviewItem._id,
+          interviewId: interviewItem.id,
           customQuestions,
           overallScore: totalScore,
           candidateName: interviewItem.candidate?.name || interviewItem.candidateName,
@@ -2829,7 +2829,7 @@ export function InterviewsQueue({ triggerToast }: { triggerToast: (msg: string) 
               >
                 <option value="">-- Choose Candidate --</option>
                 {candidates.map((c) => (
-                  <option key={c._id} value={c._id}>
+                  <option key={c.id} value={c.id}>
                     {c.name} ({c.job?.title || "DSM"} - Round {c.currentRound || 1})
                   </option>
                 ))}
@@ -2974,10 +2974,10 @@ export function InterviewsQueue({ triggerToast }: { triggerToast: (msg: string) 
                     {interviews.map((item) => {
                       if (!item) return null;
                       const cand = item.candidate || {};
-                      const isSelected = selectedInt?._id === item._id;
+                      const isSelected = selectedInt?.id === item.id;
                       const isBeforeScheduleTime = new Date() < new Date(item.scheduleTime);
                       return (
-                        <React.Fragment key={item._id}>
+                        <React.Fragment key={item.id}>
                           <tr
                             onClick={() => {
                               if (isSelected) {
@@ -3119,11 +3119,11 @@ export function InterviewsQueue({ triggerToast }: { triggerToast: (msg: string) 
                                         </div>
                                         <button
                                           type="button"
-                                          onClick={() => handleTailorQuestions(item._id)}
-                                          disabled={tailoringId === item._id}
+                                          onClick={() => handleTailorQuestions(item.id)}
+                                          disabled={tailoringId === item.id}
                                           className="text-[9.5px] font-bold text-white bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 border border-indigo-200 px-2 py-1 rounded flex items-center gap-1 transition-all"
                                         >
-                                          {tailoringId === item._id ? "Tailoring..." : "✨ Tailor with AI"}
+                                          {tailoringId === item.id ? "Tailoring..." : "✨ Tailor with AI"}
                                         </button>
                                       </div>
 
@@ -3435,7 +3435,7 @@ export function InterviewsQueue({ triggerToast }: { triggerToast: (msg: string) 
                     const newMode = e.target.value as "online" | "offline";
                     setFollowUpMode(newMode);
                     if (newMode === "online" && !followUpVideoLink) {
-                      const candId = followUpInterview.candidate?._id || "";
+                      const candId = followUpInterview.candidate?.id || "";
                       const roundNum = followUpInterview.round || "1";
                       setFollowUpVideoLink(`https://meet.acolyte.in/round${roundNum}-${candId.slice(-6)}`);
                     }
@@ -3507,7 +3507,7 @@ export function HrLeads({
     if (cand.status !== "Selected") {
       return false;
     }
-    if (selectedJobFilter !== "all" && cand.job?._id !== selectedJobFilter) {
+    if (selectedJobFilter !== "all" && cand.job?.id !== selectedJobFilter) {
       return false;
     }
     if (searchTerm) {
@@ -3527,7 +3527,7 @@ export function HrLeads({
 
     // First initialize groups from active jobs to preserve their order/existence
     jobs.forEach(job => {
-      groups[job._id] = {
+      groups[job.id] = {
         job: job,
         candidates: []
       };
@@ -3535,14 +3535,14 @@ export function HrLeads({
 
     // Populate candidates into groups
     filteredLeads.forEach(cand => {
-      const jobId = cand.job?._id;
+      const jobId = cand.job?.id;
       if (jobId && groups[jobId]) {
         groups[jobId].candidates.push(cand);
       } else {
         const key = "general";
         if (!groups[key]) {
           groups[key] = {
-            job: { _id: "general", title: "General Application", company: { name: "Acolyte Group" } },
+            job: { id: "general", title: "General Application", company: { name: "Acolyte Group" } },
             candidates: []
           };
         }
@@ -3589,7 +3589,7 @@ export function HrLeads({
           >
             <option value="all">All Jobs</option>
             {jobs.map((job) => (
-              <option key={job._id} value={job._id}>{job.title} ({job.company?.name || "Acolyte"})</option>
+              <option key={job.id} value={job.id}>{job.title} ({job.company?.name || "Acolyte"})</option>
             ))}
           </select>
         </div>
@@ -3600,16 +3600,16 @@ export function HrLeads({
 
       <div className="space-y-4">
         {groupedLeads.map((group) => {
-          const isJobExpanded = expandedJobId === group.job._id;
+          const isJobExpanded = expandedJobId === group.job.id;
           const companyName = group.job.company?.name || "Acolyte Group";
 
           return (
-            <div key={group.job._id} className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden transition-all duration-200">
+            <div key={group.job.id} className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden transition-all duration-200">
               {/* Job Row Header */}
               <div
                 className={`p-5 flex items-center justify-between cursor-pointer transition-colors ${isJobExpanded ? "bg-slate-50 border-b border-slate-150" : "hover:bg-slate-50/50"
                   }`}
-                onClick={() => setExpandedJobId(isJobExpanded ? null : group.job._id)}
+                onClick={() => setExpandedJobId(isJobExpanded ? null : group.job.id)}
               >
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-lg bg-[#714B67]/10 flex items-center justify-center text-[#714B67]">
@@ -3656,10 +3656,10 @@ export function HrLeads({
                           minute: "2-digit",
                           hour12: true
                         });
-                        const isExpanded = selectedLead?._id === cand._id;
+                        const isExpanded = selectedLead?.id === cand.id;
 
                         return (
-                          <React.Fragment key={cand._id || idx}>
+                          <React.Fragment key={cand.id || idx}>
                             <tr
                               className={`hover:bg-slate-50/50 cursor-pointer ${isExpanded ? "bg-slate-50 border-b-0" : ""}`}
                               onClick={() => {

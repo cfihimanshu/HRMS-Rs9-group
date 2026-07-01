@@ -2,7 +2,7 @@ import { DataTypes, Model } from "sequelize";
 import sequelize from "../../lib/sequelize";
 
 class Onboarding extends Model {
-  public mongo_id!: string;
+  public id!: string;
   public candidate!: string;
   public category!: string;
   public generatedDocs!: any;
@@ -14,7 +14,7 @@ class Onboarding extends Model {
 
 Onboarding.init(
   {
-    mongo_id: {
+    id: {
       type: DataTypes.STRING,
       primaryKey: true,
       allowNull: false,

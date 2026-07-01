@@ -35,11 +35,10 @@ export async function GET(req: Request) {
     if (!isManagerial) {
       filter = { employee: userId };
     } else if (role === "Department Manager") {
-      const deptName = (session.user as any).department;
-      const dept = await Department.findOne({ where: { name: deptName } });
-      if (dept) {
+      const managerProfile = await EmployeeProfile.findOne({ where: { user: userId } });
+      if (managerProfile && managerProfile.department) {
         const profilesInDept = await EmployeeProfile.findAll({
-          where: { department: dept.mongo_id },
+          where: { department: managerProfile.department },
           attributes: ['user']
         });
         deptUserIds = profilesInDept.map((p: any) => p.user).filter(Boolean);
@@ -95,12 +94,12 @@ export async function GET(req: Request) {
 
     const deptIds = Array.from(new Set(profiles.map((p: any) => p.department).filter(Boolean)));
     const departments = await Department.findAll({
-      where: { mongo_id: deptIds },
-      attributes: ['mongo_id', 'name']
+      where: { id: deptIds },
+      attributes: ['id', 'name']
     });
 
     const deptMap = departments.reduce((acc: any, d: any) => {
-      acc[d.mongo_id] = d.name;
+      acc[d.id] = d.name;
       return acc;
     }, {});
 
@@ -110,41 +109,41 @@ export async function GET(req: Request) {
     }, {});
 
     const employees = await User.findAll({
-      where: { mongo_id: employeeIds },
-      attributes: ['mongo_id', 'name', 'email', 'role', 'companies']
+      where: { id: employeeIds },
+      attributes: ['id', 'name', 'email', 'role', 'companies']
     });
 
     const employeeMap = employees.reduce((acc: any, emp: any) => {
       const empJson = emp.toJSON();
-      empJson.department = userDeptMap[emp.mongo_id] || "General";
-      acc[emp.mongo_id] = empJson;
+      empJson.department = userDeptMap[emp.id] || "General";
+      acc[emp.id] = empJson;
       return acc;
     }, {});
 
     const mappedSods = sods.map(s => {
       const json = s.toJSON() as any;
-      json._id = json.id ? json.id.toString() : (json.mongo_id ? json.mongo_id.toString() : "");
+      json.id = json.id ? json.id.toString() : (json.id ? json.id.toString() : "");
       json.employee = employeeMap[json.employee] || null;
       return json;
     });
 
     const mappedEods = eods.map(e => {
       const json = e.toJSON() as any;
-      json._id = json.id ? json.id.toString() : (json.mongo_id ? json.mongo_id.toString() : "");
+      json.id = json.id ? json.id.toString() : (json.id ? json.id.toString() : "");
       json.employee = employeeMap[json.employee] || null;
       return json;
     });
 
     const mappedTasks = tasks.map(t => {
       const json = t.toJSON() as any;
-      json._id = json.id ? json.id.toString() : (json.mongo_id ? json.mongo_id.toString() : "");
+      json.id = json.id ? json.id.toString() : (json.id ? json.id.toString() : "");
       json.employee = employeeMap[json.employee] || null;
       return json;
     });
 
     const mappedFieldVisits = fieldVisits.map(v => {
       const json = v.toJSON() as any;
-      json._id = json.id ? json.id.toString() : (json.mongo_id ? json.mongo_id.toString() : "");
+      json.id = json.id ? json.id.toString() : (json.id ? json.id.toString() : "");
       json.employee = employeeMap[json.employee_id] || null;
       return json;
     });

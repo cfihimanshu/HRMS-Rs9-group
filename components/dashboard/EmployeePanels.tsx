@@ -50,11 +50,11 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
       });
 
       if (matched) {
-        setFormData(prev => ({ ...prev, companyId: matched.mongo_id }));
+        setFormData(prev => ({ ...prev, companyId: matched.id }));
       } else {
         const fallback = companies.find(c => c.name.toLowerCase().includes(val.toLowerCase()));
         if (fallback) {
-          setFormData(prev => ({ ...prev, companyId: fallback.mongo_id }));
+          setFormData(prev => ({ ...prev, companyId: fallback.id }));
         } else {
           setFormData(prev => ({ ...prev, companyId: "" }));
         }
@@ -226,25 +226,69 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
   const allowedCompanies = ["CFI", "RAA", "CTPL", "ATPL", "RNPL", "MVPL"];
 
   // Find current user profile
-  const currentUser = employees.find(emp => emp.mongo_id === sessionUser?.id);
-  const hrCompany = currentUser?.companies?.[0]; // e.g. { name: "Startupflora", code: "STARTUPFLORA" }
+  const currentUser = employees.find(emp => emp.id === sessionUser?.id);
+  
+  let currentUserComps: any[] = [];
+  if (currentUser) {
+    if (Array.isArray(currentUser.companies)) {
+      currentUserComps = currentUser.companies;
+    } else if (typeof currentUser.companies === 'string') {
+      try {
+        const parsed = JSON.parse(currentUser.companies);
+        currentUserComps = Array.isArray(parsed) ? parsed : (parsed ? [parsed] : []);
+      } catch (e) {
+        currentUserComps = [];
+      }
+    } else if (currentUser.companies) {
+      currentUserComps = [currentUser.companies];
+    }
+  }
+
+  let hrCompany: any = null;
+  if (currentUserComps.length > 0) {
+    const compRef = currentUserComps[0];
+    const compId = typeof compRef === 'string' ? compRef : compRef?.id?.toString();
+    hrCompany = companies.find((c: any) => c.id?.toString() === compId) || (typeof compRef === 'object' ? compRef : null);
+  }
 
   const filteredEmployees = employees.filter(emp => {
     const matchesSearch = emp.name.toLowerCase().includes(search.toLowerCase()) ||
       emp.email.toLowerCase().includes(search.toLowerCase());
     const matchesFilter = filterRole === "All" || emp.role === filterRole;
 
+    let empComps: any[] = [];
+    if (Array.isArray(emp.companies)) {
+      empComps = emp.companies;
+    } else if (typeof emp.companies === 'string') {
+      try {
+        const parsed = JSON.parse(emp.companies);
+        empComps = Array.isArray(parsed) ? parsed : (parsed ? [parsed] : []);
+      } catch (e) {
+        empComps = [];
+      }
+    } else if (emp.companies) {
+      empComps = [emp.companies];
+    }
+
     // Company filter from UI dropdown
     let matchesCompanyFilter = true;
     if (filterCompany !== "All") {
-      matchesCompanyFilter = emp.companies?.some((c: any) => c._id?.toString() === filterCompany) || false;
+      matchesCompanyFilter = empComps.some((c: any) => {
+        const cid = typeof c === 'string' ? c : c?.id?.toString();
+        return cid === filterCompany;
+      });
     }
 
     // Role-based visibility check
     let matchesCompany = true;
-    if (userRole === "HR Head" || userRole === "HR Executive") {
+    const normalizedRole = (userRole || "").trim().toLowerCase();
+    const isHrRole = normalizedRole === "hr head" || normalizedRole === "hr executive";
+    if (isHrRole) {
       if (hrCompany) {
-        matchesCompany = emp.companies?.some((c: any) => c.mongo_id?.toString() === hrCompany.mongo_id?.toString()) || false;
+        matchesCompany = empComps.some((c: any) => {
+          const cid = typeof c === 'string' ? c : c?.id?.toString();
+          return cid === hrCompany.id?.toString();
+        });
       } else {
         matchesCompany = false;
       }
@@ -255,8 +299,10 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
 
   // Filter top company dropdown options based on role
   let visibleCompanyOptions = allowedCompanies;
-  if (userRole === "HR Head" || userRole === "HR Executive") {
-    if (hrCompany) {
+  const normalizedRoleOptions = (userRole || "").trim().toLowerCase();
+  const isHrRoleOptions = normalizedRoleOptions === "hr head" || normalizedRoleOptions === "hr executive";
+  if (isHrRoleOptions) {
+    if (hrCompany && hrCompany.name) {
       const hrCompName = hrCompany.name.toLowerCase();
       const matchedOption = allowedCompanies.find(opt => {
         if (opt === "CFI") return hrCompName.includes("cfi") || hrCompName.includes("chartered");
@@ -275,7 +321,9 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
 
   // When showAddForm is toggled or visibleCompanyOptions changes, auto-select for HR
   useEffect(() => {
-    if (showAddForm && (userRole === "HR Head" || userRole === "HR Executive") && visibleCompanyOptions.length === 1) {
+    const nRole = (userRole || "").trim().toLowerCase();
+    const isHr = nRole === "hr head" || nRole === "hr executive";
+    if (showAddForm && isHr && visibleCompanyOptions.length === 1) {
       const defaultCompany = visibleCompanyOptions[0];
       setTopCompany(defaultCompany);
 
@@ -292,10 +340,11 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
         return false;
       });
       if (matched) {
-        setFormData(prev => ({ ...prev, companyId: matched.mongo_id }));
+        setFormData(prev => ({ ...prev, companyId: matched.id }));
       }
     }
-  }, [showAddForm, visibleCompanyOptions, companies, userRole]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showAddForm, visibleCompanyOptions.join(','), companies, userRole]);
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -420,7 +469,7 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
                     className={`w-full p-2.5 rounded-lg border text-sm focus:border-indigo-500 focus:outline-none opacity-60 cursor-not-allowed ${isDark ? "bg-gray-800 border-gray-700 text-white" : "bg-slate-200 border-slate-200"}`}>
                     <option value="">-- Select Company --</option>
                     {companies.map(c => (
-                      <option key={c.mongo_id} value={c.mongo_id}>{c.name} ({c.code})</option>
+                      <option key={c.id} value={c.id}>{c.name} ({c.code})</option>
                     ))}
                   </select>
                 </div>
@@ -491,7 +540,7 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
                 >
                   <option value="All">All Companies</option>
                   {companies.map((c) => (
-                    <option key={c._id} value={c._id}>{c.name}</option>
+                    <option key={c.id} value={c.id}>{c.name}</option>
                   ))}
                 </select>
               </div>
@@ -533,10 +582,10 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
                       </tr>
                     ) : (
                       filteredEmployees.map(emp => (
-                        <React.Fragment key={emp.mongo_id}>
+                        <React.Fragment key={emp.id}>
                           <tr 
-                            className={`cursor-pointer transition-colors ${isDark ? "hover:bg-gray-800/50" : "hover:bg-slate-50"} ${expandedRow === emp.mongo_id ? (isDark ? "bg-gray-800/30" : "bg-indigo-50/30") : ""}`}
-                            onClick={() => toggleRow(emp.mongo_id)}
+                            className={`cursor-pointer transition-colors ${isDark ? "hover:bg-gray-800/50" : "hover:bg-slate-50"} ${expandedRow === emp.id ? (isDark ? "bg-gray-800/30" : "bg-indigo-50/30") : ""}`}
+                            onClick={() => toggleRow(emp.id)}
                           >
                           <td className="px-6 py-4">
                             <div className="font-bold">{emp.name}</div>
@@ -588,7 +637,7 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
                             <td className="px-6 py-4 text-right">
                               <button
                                 className="text-rose-500 hover:text-white hover:bg-rose-600 p-1.5 rounded transition-all ml-auto block"
-                                onClick={(e) => { e.stopPropagation(); handleDelete(emp.mongo_id, emp.name); }}
+                                onClick={(e) => { e.stopPropagation(); handleDelete(emp.id, emp.name); }}
                                 title="Terminate Staff Member"
                               >
                                 <Trash2 className="w-4 h-4" />
@@ -596,7 +645,7 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
                             </td>
                           )}
                           </tr>
-                          {expandedRow === emp.mongo_id && (
+                          {expandedRow === emp.id && (
                             <tr className={`border-b ${isDark ? "border-gray-800" : "border-slate-100"}`}>
                               <td colSpan={isManagement ? 5 : 4} className="p-0">
                                 <div className={`p-6 m-4 rounded-xl border shadow-inner ${isDark ? "bg-gray-900/50 border-gray-800" : "bg-white border-slate-200"}`}>

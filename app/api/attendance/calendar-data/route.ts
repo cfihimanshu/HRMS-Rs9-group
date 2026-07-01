@@ -61,12 +61,12 @@ export async function GET(req: Request) {
       companies = await Company.findAll({ where: { status: "active" } });
       users = await User.findAll({ 
         where: { status: "active" },
-        attributes: ["mongo_id", "name", "email", "role", "companies"]
+        attributes: ["id", "name", "email", "role", "companies"]
       });
     } else {
       // Find logged-in user details
       const selfUser = await User.findByPk(loggedInUserId, {
-        attributes: ["mongo_id", "name", "email", "role", "companies"]
+        attributes: ["id", "name", "email", "role", "companies"]
       });
       if (selfUser) {
         users = [selfUser];
@@ -78,7 +78,7 @@ export async function GET(req: Request) {
             companyIds = [];
           }
         }
-        companies = await Company.findAll({ where: { mongo_id: { [Op.in]: companyIds }, status: "active" } });
+        companies = await Company.findAll({ where: { id: { [Op.in]: companyIds }, status: "active" } });
       }
     }
 

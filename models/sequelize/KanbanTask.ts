@@ -33,11 +33,11 @@ KanbanTask.init(
       allowNull: true,
     },
     assigned_by: {
-      type: DataTypes.STRING, // mongo_id or employee id
+      type: DataTypes.STRING, // id or employee id
       allowNull: true,
     },
     assigned_to: {
-      type: DataTypes.STRING, // mongo_id or employee id
+      type: DataTypes.STRING, // id or employee id
       allowNull: true,
     },
     due_date: {

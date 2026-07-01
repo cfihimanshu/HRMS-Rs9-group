@@ -37,16 +37,16 @@ export async function GET(req: Request) {
     const trainerIds = trainings.map((t: any) => t.trainer).filter(Boolean);
 
     const candidates = await Candidate.findAll({
-      where: { mongo_id: { [Op.in]: candIds } },
-      attributes: ["mongo_id", "name", "email", "mobile", "status"]
+      where: { id: { [Op.in]: candIds } },
+      attributes: ["id", "name", "email", "mobile", "status"]
     });
     const trainers = await User.findAll({
-      where: { mongo_id: { [Op.in]: trainerIds } },
-      attributes: ["mongo_id", "name", "role"]
+      where: { id: { [Op.in]: trainerIds } },
+      attributes: ["id", "name", "role"]
     });
 
-    const candMap = new Map(candidates.map((c: any) => [c.mongo_id, c.toJSON()]));
-    const trainerMap = new Map(trainers.map((t: any) => [t.mongo_id, t.toJSON()]));
+    const candMap = new Map(candidates.map((c: any) => [c.id, c.toJSON()]));
+    const trainerMap = new Map(trainers.map((t: any) => [t.id, t.toJSON()]));
 
     const hydratedTrainings = trainings.map((t: any) => {
       const plain = t.toJSON();
@@ -92,7 +92,7 @@ export async function POST(req: Request) {
     let training = await Training.findOne({ where: { candidate: candidateId } });
     if (!training) {
       training = await Training.create({
-        mongo_id: Date.now().toString(),
+        id: Date.now().toString(),
         candidate: candidateId,
         trainer: (session.user as any).id,
         status: status || "Orientation",
@@ -140,11 +140,11 @@ export async function POST(req: Request) {
 
     // Auto-update candidate status based on final decision
     if (status === "Activation") {
-      await Candidate.update({ status: "Selected" }, { where: { mongo_id: candidateId } });
+      await Candidate.update({ status: "Selected" }, { where: { id: candidateId } });
     } else if (recommendation === "Reject") {
-      await Candidate.update({ status: "Rejected" }, { where: { mongo_id: candidateId } });
+      await Candidate.update({ status: "Rejected" }, { where: { id: candidateId } });
     } else if (recommendation === "Hold") {
-      await Candidate.update({ status: "Hold" }, { where: { mongo_id: candidateId } });
+      await Candidate.update({ status: "Hold" }, { where: { id: candidateId } });
     }
 
     if (status === "Activation") {
@@ -158,7 +158,7 @@ export async function POST(req: Request) {
         let companyId = jobDoc?.company;
         if (!companyId) {
           const defaultCompany = await Company.findOne();
-          companyId = defaultCompany?.mongo_id;
+          companyId = defaultCompany?.id;
         }
 
         // Generate a clean default password based on candidate's name (e.g. neeraj123)
@@ -170,7 +170,7 @@ export async function POST(req: Request) {
         let userDoc = await User.findOne({ where: { email: candDoc.email } });
         if (!userDoc) {
           userDoc = await User.create({
-            mongo_id: Date.now().toString(),
+            id: Date.now().toString(),
             name: candDoc.name,
             email: candDoc.email,
             password: hashedPassword,
@@ -201,7 +201,7 @@ export async function POST(req: Request) {
         }
 
         // 2. Ensure EmployeeProfile exists
-        let profileDoc = await EmployeeProfile.findOne({ where: { user: userDoc.mongo_id } });
+        let profileDoc = await EmployeeProfile.findOne({ where: { user: userDoc.id } });
         if (!profileDoc) {
           const getCompanyPrefix = (name: string) => {
             const clean = name.replace(/[^a-zA-Z]/g, "").toUpperCase();
@@ -232,8 +232,8 @@ export async function POST(req: Request) {
           const nextId = `${prefix}-${String(maxNum + 1).padStart(3, "0")}`;
 
           profileDoc = await EmployeeProfile.create({
-            mongo_id: Date.now().toString(),
-            user: userDoc.mongo_id,
+            id: Date.now().toString(),
+            user: userDoc.id,
             employeeId: nextId,
             designation: jobDoc?.title || "Associate",
             department: jobDoc?.department || null,
@@ -245,14 +245,14 @@ export async function POST(req: Request) {
         }
 
         // 3. Ensure Probation track exists
-        let probationDoc = await Probation.findOne({ where: { employee: userDoc.mongo_id } });
+        let probationDoc = await Probation.findOne({ where: { employee: userDoc.id } });
         if (!probationDoc) {
           const startDate = new Date();
           const endDate = new Date();
           endDate.setMonth(endDate.getMonth() + 6); // 6 months probation
           probationDoc = await Probation.create({
-            mongo_id: Date.now().toString(),
-            employee: userDoc.mongo_id,
+            id: Date.now().toString(),
+            employee: userDoc.id,
             startDate,
             endDate,
             status: "active",
@@ -271,7 +271,7 @@ export async function POST(req: Request) {
       userId: (session.user as any).id,
       action: "UPDATE_TRAINING_LOG",
       entity: "Training",
-      entityId: training.mongo_id,
+      entityId: training.id,
       details: `Updated training record for candidate: ${candidate?.name || "Unknown"}. Status: ${training.status}.`,
     });
 
