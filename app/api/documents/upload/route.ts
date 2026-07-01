@@ -14,7 +14,7 @@ export async function POST(request: Request) {
     }
 
     const fileName = file.name.toLowerCase();
-    
+
     // Generate a unique file name to avoid collisions
     const ext = fileName.includes(".") ? fileName.slice(fileName.lastIndexOf(".")) : "";
     const baseName = fileName.includes(".") ? fileName.slice(0, fileName.lastIndexOf(".")) : fileName;
@@ -34,25 +34,16 @@ export async function POST(request: Request) {
           password: process.env.FTP_PASSWORD,
           secure: process.env.FTP_SECURE === "true" // set to true if Milesweb requires FTPS
         });
-        
+
         const stream = Readable.from(buffer);
         const ftpDir = process.env.FTP_DIR !== undefined ? process.env.FTP_DIR : "/public_html/hrms";
         const ftpPath = ftpDir ? (ftpDir.endsWith("/") ? `${ftpDir}${uniqueFileName}` : `${ftpDir}/${uniqueFileName}`) : uniqueFileName;
-        
-        try {
-          await client.uploadFrom(stream, ftpPath);
-        } catch (uploadError: any) {
-          // Fallback to FTP root if folder doesn't exist
-          if (ftpDir && ftpDir !== "/" && (uploadError.message.includes("553") || uploadError.message.includes("directory") || uploadError.message.includes("No such file"))) {
-            console.warn(`FTP upload to ${ftpDir} failed, attempting fallback to root '/'`, uploadError.message);
-            const fallbackStream = Readable.from(buffer);
-            await client.uploadFrom(fallbackStream, uniqueFileName);
-          } else {
-            throw uploadError;
-          }
-        }
+
+        await client.ensureDir(ftpDir);
+        // Switch back to root before using full path or just use the filename since we are in the dir
+        await client.uploadFrom(stream, uniqueFileName);
         client.close();
-        
+
         const urlPrefix = process.env.UPLOAD_URL_PREFIX || "https://ruhannetwork.com/hrms";
         const basePrefix = urlPrefix.endsWith("/") ? urlPrefix : `${urlPrefix}/`;
         const fileUrl = `${basePrefix}${uniqueFileName}`;
