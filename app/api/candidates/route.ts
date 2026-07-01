@@ -156,9 +156,50 @@ export async function GET(req: Request) {
     }
 
     await sequelize.authenticate();
-    const candidates = await Candidate.findAll({ where: { status: { [Op.ne]: "inactive" } } });
+    const url = new URL(req.url);
+    const pageStr = url.searchParams.get("page");
+    const limitStr = url.searchParams.get("limit");
+    const search = url.searchParams.get("search");
 
-    return NextResponse.json({ success: true, data: candidates });
+    const page = pageStr ? parseInt(pageStr, 10) : 1;
+    const limit = limitStr ? parseInt(limitStr, 10) : 50;
+    const offset = (page - 1) * limit;
+
+    const whereClause: any = { status: { [Op.ne]: "inactive" } };
+
+    if (search) {
+      whereClause[Op.or] = [
+        { name: { [Op.like]: `%${search}%` } },
+        { email: { [Op.like]: `%${search}%` } },
+        { mobile: { [Op.like]: `%${search}%` } }
+      ];
+    }
+
+    const isPaginated = !!pageStr || !!limitStr;
+
+    const fetchOptions: any = {
+      where: whereClause,
+      order: [['createdAt', 'DESC']]
+    };
+
+    if (isPaginated) {
+      fetchOptions.limit = limit;
+      fetchOptions.offset = offset;
+    }
+
+    const { count, rows: candidates } = await Candidate.findAndCountAll(fetchOptions);
+
+    const responsePayload: any = { success: true, data: candidates };
+    if (isPaginated) {
+      responsePayload.pagination = {
+        total: count,
+        page,
+        limit,
+        totalPages: Math.ceil(count / limit)
+      };
+    }
+
+    return NextResponse.json(responsePayload);
   } catch (error: any) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }

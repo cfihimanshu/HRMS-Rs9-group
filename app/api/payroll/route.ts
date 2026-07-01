@@ -21,22 +21,24 @@ export async function GET(req: Request) {
 
     const payslips = await Payroll.findAll({ 
       where: filter,
-      order: [['year', 'DESC'], ['month', 'DESC']]
+      order: [['year', 'DESC'], ['month', 'DESC']],
+      raw: true
     });
 
     const userIds = payslips.map(p => (p as any).employee).filter(Boolean);
     const users = await User.findAll({
       where: { id: userIds },
-      attributes: ['id', 'name', 'email']
+      attributes: ['id', 'name', 'email'],
+      raw: true
     });
 
     const userMap = users.reduce((acc: any, u: any) => {
-      acc[u.id] = u.toJSON();
+      acc[u.id] = u;
       return acc;
     }, {});
 
-    const data = payslips.map(p => {
-      const pJson = p.toJSON() as any;
+    const data = payslips.map((p: any) => {
+      const pJson = { ...p };
       pJson.employee = userMap[pJson.employee] || null;
       return pJson;
     });

@@ -19,16 +19,36 @@ export async function GET(req: Request) {
     const url = new URL(req.url);
     const category = url.searchParams.get("category");
     
+    const pageStr = url.searchParams.get("page");
+    const limitStr = url.searchParams.get("limit");
+    const search = url.searchParams.get("search");
+    
+    const page = pageStr ? parseInt(pageStr, 10) : 1;
+    const limit = limitStr ? parseInt(limitStr, 10) : 50;
+    const offset = (page - 1) * limit;
+
     const query: any = { status: "active" };
     if (category) {
       query.category = category;
     }
+    if (search) {
+      query.title = { [Op.like]: `%${search}%` };
+    }
 
-    const jobs = await Job.findAll({ 
+    const isPaginated = !!pageStr || !!limitStr;
+
+    const fetchOptions: any = {
       where: query,
       order: [['createdAt', 'DESC']],
       raw: true
-    });
+    };
+
+    if (isPaginated) {
+      fetchOptions.limit = limit;
+      fetchOptions.offset = offset;
+    }
+
+    const { count, rows: jobs } = await Job.findAndCountAll(fetchOptions);
 
     const companyIds = [...new Set(jobs.map((j: any) => j.company).filter(Boolean))];
     const deptIds = [...new Set(jobs.map((j: any) => j.department).filter(Boolean))];
@@ -51,7 +71,17 @@ export async function GET(req: Request) {
       department: deptsMap[job.department] || { name: job.department }
     }));
 
-    return NextResponse.json({ success: true, data });
+    const responsePayload: any = { success: true, data };
+    if (isPaginated) {
+      responsePayload.pagination = {
+        total: count,
+        page,
+        limit,
+        totalPages: Math.ceil(count / limit)
+      };
+    }
+
+    return NextResponse.json(responsePayload);
   } catch (error: any) {
     return NextResponse.json(
       { success: false, error: error.message || "Failed to fetch jobs" },

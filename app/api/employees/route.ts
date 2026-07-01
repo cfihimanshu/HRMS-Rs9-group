@@ -22,25 +22,25 @@ export async function GET(req: Request) {
     }
 
     // Fetch employees
-    const employees = await User.findAll({ where: {} });
+    const employees = await User.findAll({ where: {}, raw: true });
       
     // Fetch profiles to merge data
-    const profiles = await EmployeeProfile.findAll({ where: {} });
-    const departments = await Department.findAll({ where: {} });
-    const allCompanies = await Company.findAll({ where: {} });
+    const profiles = await EmployeeProfile.findAll({ where: {}, raw: true });
+    const departments = await Department.findAll({ where: {}, raw: true });
+    const allCompanies = await Company.findAll({ where: {}, raw: true });
     
     const deptMap = departments.reduce((acc: any, dept: any) => {
-      acc[dept.id] = dept.toJSON();
+      acc[dept.id] = dept;
       return acc;
     }, {});
 
     const compMap = allCompanies.reduce((acc: any, comp: any) => {
-      acc[comp.id] = comp.toJSON();
+      acc[comp.id] = comp;
       return acc;
     }, {});
 
     const profilesWithDept = profiles.map(p => {
-      const pJson = p.toJSON() as any;
+      const pJson = { ...p } as any;
       if (pJson.department) {
         pJson.department = deptMap[pJson.department] || null;
       }
@@ -49,10 +49,13 @@ export async function GET(req: Request) {
 
     // Merge the data
     const mergedData = employees.map(emp => {
-      const empJson = emp.toJSON() as any;
+      const empJson = { ...emp } as any;
       const profile = profilesWithDept.find((p: any) => p.user?.toString() === empJson.id?.toString());
       
       // Populate companies
+      if (typeof empJson.companies === 'string') {
+        try { empJson.companies = JSON.parse(empJson.companies); } catch (e) {}
+      }
       if (empJson.companies && Array.isArray(empJson.companies)) {
         empJson.companies = empJson.companies.map((compId: string) => compMap[compId] || { id: compId, name: "Unknown Company", code: "N/A" });
       }

@@ -32,15 +32,18 @@ export async function GET(req: Request) {
 
     const requests = await AssetRequest.findAll({
       where: whereClause,
-      order: [["createdAt", "DESC"]]
+      order: [["createdAt", "DESC"]],
+      raw: true
     });
 
     // Resolve employee details to attach to requests
     const users = await User.findAll({
-      attributes: ["id", "name", "email"]
+      attributes: ["id", "name", "email"],
+      raw: true
     });
     const profiles = await EmployeeProfile.findAll({
-      attributes: ["user", "department"]
+      attributes: ["user", "department"],
+      raw: true
     });
 
     const userMap = users.reduce((acc: any, u: any) => {
@@ -54,7 +57,7 @@ export async function GET(req: Request) {
     }, {});
 
     const enrichedRequests = requests.map((r: any) => {
-      const rJson = r.toJSON();
+      const rJson = { ...r };
       const emp = userMap[rJson.employee_id] || { name: "Unknown", email: "" };
       return {
         ...rJson,
@@ -115,7 +118,8 @@ export async function POST(req: Request) {
         const admins = await User.findAll({
           where: {
             role: ["Owner", "Director", "HR Head", "HR Executive", "Department Manager"]
-          }
+          },
+          raw: true
         });
 
         // Filter admins who belong to the same company, plus Owners who see everything
