@@ -353,36 +353,47 @@ export function DailyCommitments({
     setLocationStatus("Uploading verification capture...");
 
     const location = { latitude: 28.6139, longitude: 77.2090, timestamp: new Date() };
-    let selfieUrl = "https://res.cloudinary.com/demo/image/upload/v1312461204/sample.jpg";
+    let selfieUrl = "";
 
     try {
-      if (videoRef.current && canvasRef.current && videoRef.current.videoWidth > 0) {
-        const context = canvasRef.current.getContext("2d");
-        if (context) {
-          canvasRef.current.width = videoRef.current.videoWidth;
-          canvasRef.current.height = videoRef.current.videoHeight;
-          context.drawImage(videoRef.current, 0, 0, canvasRef.current.width, canvasRef.current.height);
-
-          const blob = await new Promise<Blob | null>((resolve) => {
-            canvasRef.current!.toBlob(resolve, "image/jpeg", 0.9);
-          });
-
-          if (blob) {
-            const formData = new FormData();
-            formData.append("file", blob, "sod-selfie.jpg");
-            const uploadRes = await fetch("/api/documents/upload", {
-              method: "POST",
-              body: formData,
-            });
-            const uploadData = await uploadRes.json();
-            if (uploadData.success) {
-              selfieUrl = uploadData.url;
-            }
-          }
-        }
+      if (!videoRef.current || !canvasRef.current || videoRef.current.videoWidth === 0) {
+        throw new Error("Camera stream is not active or ready.");
       }
-    } catch (camErr) {
-      console.warn("Camera photo capture failed, using fallback selfie", camErr);
+
+      const context = canvasRef.current.getContext("2d");
+      if (!context) {
+        throw new Error("Failed to initialize canvas context.");
+      }
+
+      canvasRef.current.width = videoRef.current.videoWidth;
+      canvasRef.current.height = videoRef.current.videoHeight;
+      context.drawImage(videoRef.current, 0, 0, canvasRef.current.width, canvasRef.current.height);
+
+      const blob = await new Promise<Blob | null>((resolve) => {
+        canvasRef.current!.toBlob(resolve, "image/jpeg", 0.9);
+      });
+
+      if (!blob) {
+        throw new Error("Failed to generate image blob from camera.");
+      }
+
+      const formData = new FormData();
+      formData.append("file", blob, "sod-selfie.jpg");
+      const uploadRes = await fetch("/api/documents/upload", {
+        method: "POST",
+        body: formData,
+      });
+      const uploadData = await uploadRes.json();
+      if (!uploadData.success) {
+        throw new Error(uploadData.error || "Upload failed");
+      }
+      selfieUrl = uploadData.url;
+    } catch (camErr: any) {
+      console.error(camErr);
+      alert("Verification Capture Failed: " + camErr.message);
+      setSubmittingSOD(false);
+      setShowCamera(false);
+      return;
     }
 
     setLocationStatus("Syncing with RS9 ERP System...");
@@ -440,36 +451,47 @@ export function DailyCommitments({
     }
 
     setEodLocationStatus("Uploading verification capture...");
-    let selfieUrl = "https://res.cloudinary.com/demo/image/upload/v1312461204/sample.jpg";
+    let selfieUrl = "";
 
     try {
-      if (eodVideoRef.current && eodCanvasRef.current && eodVideoRef.current.videoWidth > 0) {
-        const context = eodCanvasRef.current.getContext("2d");
-        if (context) {
-          eodCanvasRef.current.width = eodVideoRef.current.videoWidth;
-          eodCanvasRef.current.height = eodVideoRef.current.videoHeight;
-          context.drawImage(eodVideoRef.current, 0, 0, eodCanvasRef.current.width, eodCanvasRef.current.height);
-
-          const blob = await new Promise<Blob | null>((resolve) => {
-            eodCanvasRef.current!.toBlob(resolve, "image/jpeg", 0.9);
-          });
-
-          if (blob) {
-            const formData = new FormData();
-            formData.append("file", blob, "eod-selfie.jpg");
-            const uploadRes = await fetch("/api/documents/upload", {
-              method: "POST",
-              body: formData,
-            });
-            const uploadData = await uploadRes.json();
-            if (uploadData.success) {
-              selfieUrl = uploadData.url;
-            }
-          }
-        }
+      if (!eodVideoRef.current || !eodCanvasRef.current || eodVideoRef.current.videoWidth === 0) {
+        throw new Error("Camera stream is not active or ready.");
       }
-    } catch (camErr) {
-      console.warn("Camera photo capture failed, using fallback selfie", camErr);
+
+      const context = eodCanvasRef.current.getContext("2d");
+      if (!context) {
+        throw new Error("Failed to initialize canvas context.");
+      }
+
+      eodCanvasRef.current.width = eodVideoRef.current.videoWidth;
+      eodCanvasRef.current.height = eodVideoRef.current.videoHeight;
+      context.drawImage(eodVideoRef.current, 0, 0, eodCanvasRef.current.width, eodCanvasRef.current.height);
+
+      const blob = await new Promise<Blob | null>((resolve) => {
+        eodCanvasRef.current!.toBlob(resolve, "image/jpeg", 0.9);
+      });
+
+      if (!blob) {
+        throw new Error("Failed to generate image blob from camera.");
+      }
+
+      const formData = new FormData();
+      formData.append("file", blob, "eod-selfie.jpg");
+      const uploadRes = await fetch("/api/documents/upload", {
+        method: "POST",
+        body: formData,
+      });
+      const uploadData = await uploadRes.json();
+      if (!uploadData.success) {
+        throw new Error(uploadData.error || "Upload failed");
+      }
+      selfieUrl = uploadData.url;
+    } catch (camErr: any) {
+      console.error(camErr);
+      alert("Verification Capture Failed: " + camErr.message);
+      setSubmittingEOD(false);
+      setShowEodCamera(false);
+      return;
     }
 
     setEodLocationStatus("Syncing with RS9 ERP System...");
