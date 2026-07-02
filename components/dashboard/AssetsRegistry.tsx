@@ -4,6 +4,48 @@ import ReactDOM from "react-dom";
 import { Search, Edit3, Check, X, RefreshCw, Cpu, Smartphone, Mail, MessageCircle, Building2, Layers, Trash2, AlertTriangle, UserX } from "lucide-react";
 import { cn } from "@/lib/utils";
 
+const defaultDepartments = [
+  "Management",
+  "Human Resources (HR)",
+  "Information Technology (IT)",
+  "Sales",
+  "Marketing",
+  "Accounts",
+  "Administration (Admin)",
+  "Operations",
+  "Customer Support",
+  "Legal",
+  "Data Entry",
+  "Business Analyst"
+];
+
+const matchDepartmentNames = (name1: string, name2: string): boolean => {
+  if (!name1 || !name2) return false;
+  const n1 = name1.toLowerCase().trim();
+  const n2 = name2.toLowerCase().trim();
+  if (n1 === n2) return true;
+  
+  // Custom normalization rules
+  const getTokens = (s: string) => {
+    let cleaned = s.replace(/[^a-z0-9]/g, " ")
+                   .replace(/\band\b/g, "")
+                   .replace(/\btech\b/g, "")
+                   .replace(/\bsupport\b/g, "")
+                   .replace(/\bfinance\b/g, "");
+    return cleaned.split(/\s+/).filter(Boolean);
+  };
+  
+  const tokens1 = getTokens(n1);
+  const tokens2 = getTokens(n2);
+  
+  if (n1 === "hr" && n2.includes("human resources")) return true;
+  if (n2 === "hr" && n1.includes("human resources")) return true;
+  if (n1 === "it" && n2.includes("information technology")) return true;
+  if (n2 === "it" && n1.includes("information technology")) return true;
+  
+  return tokens1.some(t1 => tokens2.includes(t1));
+};
+
 interface AssetsRegistryProps {
   userRole?: string;
   triggerToast: (msg: string) => void;
@@ -13,7 +55,8 @@ interface AssetsRegistryProps {
 export default function AssetsRegistry({ userRole, triggerToast, sessionUser }: AssetsRegistryProps) {
   const [employees, setEmployees] = useState<any[]>([]);
   const [companies, setCompanies] = useState<any[]>([]);
-  const [departments, setDepartments] = useState<any[]>([]);
+  const [departmentsDb, setDepartmentsDb] = useState<any[]>([]);
+  const [dbRoles, setDbRoles] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   
@@ -38,6 +81,88 @@ export default function AssetsRegistry({ userRole, triggerToast, sessionUser }: 
   const [deleteConfirm, setDeleteConfirm] = useState<{ show: boolean; type: "single" | "bulk"; empId?: string; empName?: string }>({ show: false, type: "single" });
   const [deleting, setDeleting] = useState(false);
 
+  // Assign Asset Modal states
+  const [showAssignModal, setShowAssignModal] = useState(false);
+  const [assignForm, setAssignForm] = useState({
+    date: new Date().toISOString().split('T')[0],
+    companyId: "",
+    assignedToId: "",
+    assignedBy: "",
+    assetType: "Laptop",
+    assetValue: "",
+    simWithMobile: false,
+    allocatedGmail: "",
+    allocatedWhatsapp: ""
+  });
+
+  // Sync assignedBy with sessionUser name when sessionUser loads
+  useEffect(() => {
+    if (sessionUser?.name) {
+      setAssignForm(prev => ({ ...prev, assignedBy: sessionUser.name }));
+    }
+  }, [sessionUser]);
+
+  const handleAssignSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!assignForm.assignedToId) {
+      triggerToast("Please select an employee to assign the asset to.");
+      return;
+    }
+    
+    try {
+      setUpdating(true);
+      
+      const payload: any = {
+        employeeId: assignForm.assignedToId,
+        allocatedGmail: assignForm.allocatedGmail,
+        allocatedWhatsapp: assignForm.allocatedWhatsapp,
+      };
+
+      const formattedDetails = `${assignForm.assetValue}${assignForm.assetType === "Mobile Phone" && assignForm.simWithMobile ? " (SIM card included)" : ""} (Assigned: ${assignForm.date} | By: ${assignForm.assignedBy})`;
+
+      if (assignForm.assetType === "SIM Card") {
+        payload.allocatedSim = formattedDetails;
+      } else {
+        payload.allocatedAsset = `${assignForm.assetType}: ${formattedDetails}`;
+        if (assignForm.assetType === "Mobile Phone" && assignForm.simWithMobile) {
+          payload.allocatedSim = `Assigned with Mobile Phone (Assigned: ${assignForm.date} | By: ${assignForm.assignedBy})`;
+        }
+      }
+
+      const res = await fetch("/api/employees", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+
+      const result = await res.json();
+      if (result.success) {
+        triggerToast(`Asset assigned successfully to ${employees.find(emp => emp.employeeProfile?.employeeId === assignForm.assignedToId)?.name || "employee"}`);
+        setShowAssignModal(false);
+        // Refresh local data state
+        setEmployees(prev => prev.map(emp => {
+          if (emp.employeeProfile?.employeeId === assignForm.assignedToId) {
+            return {
+              ...emp,
+              employeeProfile: {
+                ...emp.employeeProfile,
+                ...payload
+              }
+            };
+          }
+          return emp;
+        }));
+      } else {
+        triggerToast(result.error || "Failed to assign asset");
+      }
+    } catch (error) {
+      console.error(error);
+      triggerToast("Error assigning asset");
+    } finally {
+      setUpdating(false);
+    }
+  };
+
   useEffect(() => {
     fetchData();
   }, []);
@@ -58,9 +183,14 @@ export default function AssetsRegistry({ userRole, triggerToast, sessionUser }: 
       const compRes = await fetch("/api/companies");
       const compData = await compRes.json();
 
+      // Fetch roles
+      const roleRes = await fetch("/api/roles");
+      const roleData = await roleRes.json();
+
       if (empRes.ok) setEmployees(empData.data || []);
-      if (deptRes.ok) setDepartments(deptData.data || []);
+      if (deptRes.ok) setDepartmentsDb(deptData.data || []);
       if (compRes.ok) setCompanies(compData.data || []);
+      if (roleRes.ok) setDbRoles(roleData.data || []);
     } catch (error) {
       console.error("Error fetching assets data:", error);
       triggerToast("Failed to load assets registry data");
@@ -224,6 +354,48 @@ export default function AssetsRegistry({ userRole, triggerToast, sessionUser }: 
     });
   }, []);
 
+  // Dynamically filter and deduplicate departments according to selected company using dbRoles
+  const visibleDepartments = React.useMemo(() => {
+    // Filter roles based on selected company
+    const filteredRoles = dbRoles.filter((r: any) => {
+      if (selectedCompany === "all") return true;
+      let comps = r.companies;
+      if (typeof comps === 'string') {
+        try { comps = JSON.parse(comps); } catch (e) { comps = []; }
+      }
+      if (!Array.isArray(comps)) comps = [];
+      
+      return comps.length === 0 || comps.some((id: any) => String(id) === String(selectedCompany));
+    });
+
+    const deptNames = dbRoles.length > 0
+      ? Array.from(new Set(filteredRoles.map((r: any) => r.department).filter(Boolean))).sort()
+      : defaultDepartments;
+
+    if (selectedCompany === "all") {
+      const seenNames = new Set<string>();
+      return deptNames.map(name => ({
+        id: name,
+        name: name
+      })).filter((dept) => {
+        const nameLower = dept.name.toLowerCase().trim();
+        if (seenNames.has(nameLower)) return false;
+        seenNames.add(nameLower);
+        return true;
+      });
+    }
+
+    return deptNames.map(name => ({
+      id: name,
+      name: name
+    }));
+  }, [dbRoles, selectedCompany]);
+
+  // Reset department filter when company filter changes
+  useEffect(() => {
+    setSelectedDept("all");
+  }, [selectedCompany]);
+
   // Filter logic
   const filteredEmployees = employees.filter((emp) => {
     const profile = emp.employeeProfile;
@@ -241,14 +413,35 @@ export default function AssetsRegistry({ userRole, triggerToast, sessionUser }: 
     // 2. Company Filter
     let matchesCompany = true;
     if (selectedCompany !== "all") {
-      matchesCompany = emp.companies?.some((c: any) => c.id === selectedCompany);
+      let compList: any[] = [];
+      if (Array.isArray(emp.companies)) {
+        compList = emp.companies;
+      } else if (typeof emp.companies === "string") {
+        try {
+          const parsed = JSON.parse(emp.companies);
+          compList = Array.isArray(parsed) ? parsed : [parsed];
+        } catch (e) {
+          compList = [emp.companies];
+        }
+      } else if (emp.companies) {
+        compList = [emp.companies];
+      }
+      
+      matchesCompany = compList.some((c: any) => {
+        if (!c) return false;
+        const cId = typeof c === "object" ? c.id : c;
+        return String(cId) === String(selectedCompany);
+      });
     }
 
     // 3. Department Filter
     let matchesDept = true;
     if (selectedDept !== "all") {
-      const deptId = typeof profile?.department === "object" ? profile.department?.id : profile?.department;
-      matchesDept = deptId === selectedDept;
+      const currentDeptName = typeof profile?.department === "object"
+        ? profile.department?.name
+        : departmentsDb.find(d => d.id === profile?.department)?.name;
+
+      matchesDept = matchDepartmentNames(currentDeptName, selectedDept);
     }
 
     return matchesSearch && matchesCompany && matchesDept;
@@ -299,6 +492,25 @@ export default function AssetsRegistry({ userRole, triggerToast, sessionUser }: 
           >
             <RefreshCw className={cn("w-3.5 h-3.5", loading && "animate-spin")} /> Refresh
           </button>
+          <button 
+            onClick={() => {
+              setShowAssignModal(true);
+              setAssignForm({
+                date: new Date().toISOString().split('T')[0],
+                companyId: selectedCompany !== "all" ? selectedCompany : (companies[0]?.id || ""),
+                assignedToId: "",
+                assignedBy: sessionUser?.name || "Owner",
+                assetType: "Laptop",
+                assetValue: "",
+                simWithMobile: false,
+                allocatedGmail: "",
+                allocatedWhatsapp: ""
+              });
+            }}
+            className="px-3 py-1.5 bg-[#C9A84C] hover:bg-[#B5963D] text-white rounded-lg text-[10px] font-semibold tracking-wider uppercase transition-all flex items-center gap-1.5 shadow-sm font-sans"
+          >
+            <Cpu className="w-3.5 h-3.5" /> Assign Asset
+          </button>
         </div>
       </div>
 
@@ -345,7 +557,7 @@ export default function AssetsRegistry({ userRole, triggerToast, sessionUser }: 
             className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
           >
             <option value="all">All Departments</option>
-            {departments.map((dept) => (
+            {visibleDepartments.map((dept) => (
               <option key={dept.id} value={dept.id}>
                 {dept.name}
               </option>
@@ -595,6 +807,194 @@ export default function AssetsRegistry({ userRole, triggerToast, sessionUser }: 
                 {deleting ? "Clearing..." : "Yes, Clear All"}
               </button>
             </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* Assign Asset Modal — Portal */}
+      {showAssignModal && typeof document !== "undefined" && ReactDOM.createPortal(
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center" style={{ backgroundColor: "rgba(0,0,0,0.4)" }} onClick={() => setShowAssignModal(false)}>
+          <div
+            className="bg-white rounded-2xl shadow-2xl p-6 w-[450px] max-w-[95vw] border border-[#E8E4DF]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex justify-between items-center border-b border-[#E8E4DF] pb-3 mb-4">
+              <h3 className="text-lg font-serif font-light text-[#1C1C1A]" style={{ fontFamily: "'Playfair Display', serif" }}>
+                Assign New Asset
+              </h3>
+              <button onClick={() => setShowAssignModal(false)} className="text-[#9C9890] hover:text-[#1C1C1A] transition-colors">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleAssignSubmit} className="space-y-4 text-left">
+              {/* Date field */}
+              <div>
+                <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Allocation Date *</label>
+                <input
+                  type="date"
+                  required
+                  value={assignForm.date}
+                  onChange={(e) => setAssignForm(prev => ({ ...prev, date: e.target.value }))}
+                  className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all"
+                />
+              </div>
+
+              {/* Company field */}
+              <div>
+                <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Company *</label>
+                <select
+                  required
+                  value={assignForm.companyId}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setAssignForm(prev => ({ ...prev, companyId: val, assignedToId: "" }));
+                  }}
+                  className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                >
+                  <option value="">-- Select Company --</option>
+                  {companies.map(comp => (
+                    <option key={comp.id} value={comp.id}>{comp.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Assigned To field */}
+              <div>
+                <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Assigned To (Employee) *</label>
+                <select
+                  required
+                  value={assignForm.assignedToId}
+                  disabled={!assignForm.companyId}
+                  onChange={(e) => {
+                    const empId = e.target.value;
+                    const matchedEmp = employees.find(emp => emp.employeeProfile?.employeeId === empId);
+                    setAssignForm(prev => ({
+                      ...prev,
+                      assignedToId: empId,
+                      allocatedGmail: matchedEmp?.employeeProfile?.allocatedGmail || "",
+                      allocatedWhatsapp: matchedEmp?.employeeProfile?.allocatedWhatsapp || ""
+                    }));
+                  }}
+                  className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold disabled:opacity-50"
+                >
+                  <option value="">-- Select Employee --</option>
+                  {employees.filter(emp => {
+                    let comps: any[] = [];
+                    if (Array.isArray(emp.companies)) comps = emp.companies;
+                    else if (typeof emp.companies === "string") {
+                      try { comps = JSON.parse(emp.companies); } catch(e) {}
+                    }
+                    if (!Array.isArray(comps)) comps = [];
+                    return comps.some((c: any) => String(c.id || c) === String(assignForm.companyId));
+                  }).map(emp => (
+                    <option key={emp.employeeProfile?.employeeId} value={emp.employeeProfile?.employeeId}>
+                      {emp.name} ({emp.employeeProfile?.employeeId || "No ID"})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Gmail & WhatsApp fields */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Gmail (Corporate)</label>
+                  <input
+                    type="text"
+                    value={assignForm.allocatedGmail}
+                    onChange={(e) => setAssignForm(prev => ({ ...prev, allocatedGmail: e.target.value }))}
+                    placeholder="e.g. name@company.com"
+                    className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">WhatsApp (Official)</label>
+                  <input
+                    type="text"
+                    value={assignForm.allocatedWhatsapp}
+                    onChange={(e) => setAssignForm(prev => ({ ...prev, allocatedWhatsapp: e.target.value }))}
+                    placeholder="e.g. +91 9999999999"
+                    className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all"
+                  />
+                </div>
+              </div>
+
+              {/* Assigned By field */}
+              <div>
+                <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Assigned By *</label>
+                <input
+                  type="text"
+                  required
+                  value={assignForm.assignedBy}
+                  onChange={(e) => setAssignForm(prev => ({ ...prev, assignedBy: e.target.value }))}
+                  className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all"
+                />
+              </div>
+
+              {/* Asset Type field */}
+              <div>
+                <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Asset Type *</label>
+                <select
+                  required
+                  value={assignForm.assetType}
+                  onChange={(e) => setAssignForm(prev => ({ ...prev, assetType: e.target.value }))}
+                  className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                >
+                  <option value="Laptop">Laptop</option>
+                  <option value="Mobile Phone">Mobile Phone</option>
+                  <option value="SIM Card">SIM Card</option>
+                  <option value="Headset / Accessories">Headset / Accessories</option>
+                  <option value="ID Card / Lanyard">ID Card / Lanyard</option>
+                  <option value="Office Chair / Table">Office Chair / Table</option>
+                  <option value="Other Accessories">Other Accessories</option>
+                </select>
+                {assignForm.assetType === "Mobile Phone" && (
+                  <div className="flex items-center gap-2 mt-2 bg-[#FCFBF9] border border-[#E8E4DF] p-2 rounded-lg">
+                    <input
+                      type="checkbox"
+                      id="simWithMobile"
+                      checked={assignForm.simWithMobile}
+                      onChange={(e) => setAssignForm(prev => ({ ...prev, simWithMobile: e.target.checked }))}
+                      className="w-3.5 h-3.5 accent-[#C9A84C] rounded cursor-pointer"
+                    />
+                    <label htmlFor="simWithMobile" className="text-[10px] text-[#5D5B57] font-semibold cursor-pointer select-none">
+                      Is SIM card included with mobile phone?
+                    </label>
+                  </div>
+                )}
+              </div>
+
+              {/* Asset Value field */}
+              <div>
+                <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Asset Detail / Value *</label>
+                <input
+                  type="text"
+                  required
+                  placeholder={assignForm.assetType === "SIM Card" ? "e.g. +91 9876543210" : "e.g. Serial: C02X12345, Macbook Pro"}
+                  value={assignForm.assetValue}
+                  onChange={(e) => setAssignForm(prev => ({ ...prev, assetValue: e.target.value }))}
+                  className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all"
+                />
+              </div>
+
+              <div className="flex gap-3 pt-3 border-t border-[#E8E4DF] mt-6">
+                <button
+                  type="button"
+                  onClick={() => setShowAssignModal(false)}
+                  className="flex-1 px-4 py-2 rounded-lg border border-[#E8E4DF] text-xs font-semibold uppercase tracking-wider text-[#5D5B57] hover:bg-[#F5F0EA] transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={updating}
+                  className="flex-1 px-4 py-2 rounded-lg bg-[#C9A84C] text-white text-xs font-semibold uppercase tracking-wider hover:bg-[#B5963D] disabled:opacity-50 transition-colors shadow-sm"
+                >
+                  {updating ? "Saving..." : "Assign"}
+                </button>
+              </div>
+            </form>
           </div>
         </div>,
         document.body

@@ -129,11 +129,30 @@ export const authOptions: NextAuthOptions = {
           console.error("Error fetching employee profile:", err);
         }
 
+        const SYSTEM_ROLES = [
+          "Owner",
+          "Director",
+          "HR Head",
+          "HR Executive",
+          "Department Manager",
+          "Employee",
+          "Accounts",
+          "Trainer",
+          "IT Admin",
+          "DSM",
+          "RIBP / Risk Officer",
+          "Business Associate",
+          "Vendor",
+          "Franchisee",
+          "Territory Partner"
+        ];
+        const systemRole = SYSTEM_ROLES.find(r => r.toLowerCase() === user.role?.toLowerCase()) || "Employee";
+
         return {
           id: user.id?.toString() || user.id.toString(),
           name: user.name,
           email: user.email,
-          role: user.role,
+          role: systemRole,
           department: departmentName,
           designation: designation,
           employeeId: employeeId,

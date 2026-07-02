@@ -28,7 +28,7 @@ AuditLog.init(
       allowNull: true,
     },
     details: {
-      type: DataTypes.STRING,
+      type: DataTypes.TEXT,
       allowNull: true,
     },
     ipAddress: {

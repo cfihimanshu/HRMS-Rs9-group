@@ -30,7 +30,8 @@ export function AssetRequestLogs({ sessionUser, triggerToast }: AssetRequestProp
   const [remarksMap, setRemarksMap] = useState<Record<string, string>>({});
 
   const userRole = sessionUser?.role || "Employee";
-  const isManager = ["Owner", "Director", "HR Head", "HR Executive"].includes(userRole);
+  const isManager = ["Owner", "Director", "HR Head", "HR Executive", "Department Manager"].includes(userRole);
+  const isOwnerOrHR = ["Owner", "Director", "HR Head", "HR Executive"].includes(userRole);
 
   useEffect(() => {
     setIsDark(document.documentElement.classList.contains("dark"));
@@ -132,13 +133,17 @@ export function AssetRequestLogs({ sessionUser, triggerToast }: AssetRequestProp
       (r.asset_type || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
       (r.reason || "").toLowerCase().includes(searchTerm.toLowerCase());
     
-    const matchesStatus = statusFilter === "" || r.status === statusFilter;
+    const matchesStatus = statusFilter === "" || 
+      r.status === statusFilter || 
+      (statusFilter === "Pending" && (r.status === "Pending Manager Approval" || r.status === "Pending Owner Approval" || r.status === "Pending"));
     return matchesSearch && matchesStatus;
   });
 
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "Pending":
+      case "Pending Manager Approval":
+      case "Pending Owner Approval":
         return "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-900/30";
       case "Approved":
         return "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-400 dark:border-emerald-900/30";
@@ -252,7 +257,7 @@ export function AssetRequestLogs({ sessionUser, triggerToast }: AssetRequestProp
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="w-full bg-indigo-650 hover:bg-indigo-700 text-white py-2.5 rounded-xl font-black text-xs transition-all flex items-center justify-center gap-2"
+                  className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-2.5 rounded-xl font-black text-xs transition-all flex items-center justify-center gap-2"
                 >
                   <Send className="w-3.5 h-3.5" /> {submitting ? "Submitting..." : "Submit Requisition"}
                 </button>
@@ -349,7 +354,9 @@ export function AssetRequestLogs({ sessionUser, triggerToast }: AssetRequestProp
                     )}
 
                     {/* Admin Actions Panel */}
-                    {isManager && req.status === "Pending" && (
+                    {((userRole === "Department Manager" && req.status === "Pending Manager Approval") || 
+                      (isOwnerOrHR && 
+                       (req.status === "Pending Manager Approval" || req.status === "Pending Owner Approval"))) && (
                       <div className="mt-4 pt-3 border-t border-dashed border-slate-200 dark:border-gray-700 flex flex-col md:flex-row items-center gap-3">
                         <input
                           type="text"
@@ -377,7 +384,7 @@ export function AssetRequestLogs({ sessionUser, triggerToast }: AssetRequestProp
                       </div>
                     )}
 
-                    {isManager && req.status === "Approved" && (
+                    {isOwnerOrHR && req.status === "Approved" && (
                       <div className="mt-4 pt-3 border-t border-dashed border-slate-200 dark:border-gray-700 flex flex-col md:flex-row items-center gap-3">
                         <input
                           type="text"

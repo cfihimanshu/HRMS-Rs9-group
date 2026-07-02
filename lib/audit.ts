@@ -20,6 +20,7 @@ export async function logAudit({
 }: AuditParams) {
   try {
     await sequelize.authenticate();
+    await AuditLog.sync({ alter: true });
     const audit = new AuditLog({
       id: Date.now().toString() + Math.random().toString(36).substring(2, 7),
       user: userId || null,

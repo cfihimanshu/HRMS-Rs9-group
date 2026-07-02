@@ -392,18 +392,28 @@ export default function UnifiedEnterpriseDashboard() {
 
   const loadAllData = async () => {
     setLoading(true);
-    await Promise.all([
+    const role = (session?.user as any)?.role;
+    const isManagerial = ["Owner", "Director", "HR Head", "HR Executive", "Department Manager"].includes(role);
+
+    const promises: Promise<any>[] = [
       loadCompanies(),
-      loadStats(selectedCompanyId),
-      loadCandidates(),
-      loadInterviews(),
-      loadPostedJobs(),
-      loadProbation(),
-      loadGrievances(),
-      loadRiskAlerts(),
-      loadExits(),
-      loadRequisitions()
-    ]);
+      loadStats(selectedCompanyId)
+    ];
+
+    if (isManagerial) {
+      promises.push(
+        loadCandidates(),
+        loadInterviews(),
+        loadPostedJobs(),
+        loadProbation(),
+        loadGrievances(),
+        loadRiskAlerts(),
+        loadExits(),
+        loadRequisitions()
+      );
+    }
+
+    await Promise.all(promises);
     setLoading(false);
   };
 
@@ -1168,6 +1178,7 @@ export default function UnifiedEnterpriseDashboard() {
 
           {activeTab === "exit" && (
             <ExitSeparation
+              sessionUser={session?.user}
               triggerToast={triggerToast}
             />
           )}
