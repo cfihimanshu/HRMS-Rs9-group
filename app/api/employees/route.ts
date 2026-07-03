@@ -491,8 +491,8 @@ export async function PUT(req: Request) {
     if (designation !== undefined) profile.designation = designation;
     if (baseSalary !== undefined) profile.baseSalary = baseSalary;
     if (department !== undefined) profile.department = department;
-    if (dateOfJoining !== undefined) profile.dateOfJoining = dateOfJoining;
-    if (dateOfBirth !== undefined) profile.dateOfBirth = dateOfBirth;
+    if (dateOfJoining !== undefined) profile.dateOfJoining = dateOfJoining === "" ? null : dateOfJoining;
+    if (dateOfBirth !== undefined) profile.dateOfBirth = dateOfBirth === "" ? null : dateOfBirth;
     if (gender !== undefined) profile.gender = gender;
     if (bloodGroup !== undefined) profile.bloodGroup = bloodGroup;
     if (panNumber !== undefined) profile.panNumber = panNumber;

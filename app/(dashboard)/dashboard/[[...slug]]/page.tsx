@@ -57,6 +57,28 @@ export default function UnifiedEnterpriseDashboard() {
   const { data: session, status } = useSession();
   const router = useRouter();
 
+  const rawRole = (session?.user as any)?.role || "Employee";
+  const SYSTEM_ROLES = [
+    "Owner",
+    "Director",
+    "HR Head",
+    "HR Executive",
+    "Department Manager",
+    "Employee",
+    "Accounts",
+    "Trainer",
+    "IT Admin",
+    "DSM",
+    "RIBP / Risk Officer",
+    "Business Associate",
+    "Vendor",
+    "Franchisee",
+    "Territory Partner"
+  ];
+  const userRole = SYSTEM_ROLES.map(r => r.toLowerCase()).includes(rawRole.toLowerCase())
+    ? SYSTEM_ROLES.find(r => r.toLowerCase() === rawRole.toLowerCase()) || "Employee"
+    : "Employee";
+
   // Active navigation tab matching hr.html panel toggles
   const [activeTab, setActiveTab] = useState<string>("dashboard");
   const [mobileMenuOpen, setMobileMenuOpen] = useState<boolean>(false);
@@ -392,7 +414,7 @@ export default function UnifiedEnterpriseDashboard() {
 
   const loadAllData = async () => {
     setLoading(true);
-    const role = (session?.user as any)?.role;
+    const role = userRole;
     const isManagerial = ["Owner", "Director", "HR Head", "HR Executive", "Department Manager"].includes(role);
 
     const promises: Promise<any>[] = [
@@ -428,7 +450,7 @@ export default function UnifiedEnterpriseDashboard() {
       if (typeof window !== "undefined") {
         const urlParams = new URLSearchParams(window.location.search);
         const tab = urlParams.get("tab");
-        const role = (session?.user as any)?.role;
+        const role = userRole;
 
         if (tab && tab !== activeTab) {
            setActiveTab(tab);
@@ -457,7 +479,7 @@ export default function UnifiedEnterpriseDashboard() {
 
   // Auto popup SOD on load if missing
   useEffect(() => {
-    if (stats?.currentUserCompliance && (session?.user as any)?.role === "Employee") {
+    if (stats?.currentUserCompliance && userRole === "Employee") {
        if (!stats.currentUserCompliance.hasSod && !modals.sodModal && activeTab !== "attendance") {
            toggleModal("sodModal", true);
        }
@@ -933,7 +955,7 @@ export default function UnifiedEnterpriseDashboard() {
         activeTab={activeTab}
         setActiveTab={setActiveTab}
         stats={stats}
-        user={session?.user}
+        user={{ ...session?.user, role: userRole }}
         triggerToast={triggerToast}
         toggleModal={toggleModal}
         mobileMenuOpen={mobileMenuOpen}
@@ -1017,7 +1039,7 @@ export default function UnifiedEnterpriseDashboard() {
               onApproveRequisition={handleApproveRequisition}
               toggleModal={toggleModal}
               triggerToast={triggerToast}
-              userRole={(session?.user as any)?.role || ""}
+              userRole={userRole}
             />
           )}
 
@@ -1040,7 +1062,7 @@ export default function UnifiedEnterpriseDashboard() {
 
           {activeTab === "employees" && (
             <EmployeeDirectory
-              userRole={(session?.user as any)?.role || "Employee"}
+              userRole={userRole}
               triggerToast={triggerToast}
               sessionUser={session?.user}
             />
@@ -1048,7 +1070,7 @@ export default function UnifiedEnterpriseDashboard() {
 
           {activeTab === "bda-directory" && (
             <BDADirectory
-              userRole={(session?.user as any)?.role || "Employee"}
+              userRole={userRole}
               triggerToast={triggerToast}
               sessionUser={session?.user}
             />
@@ -1056,7 +1078,7 @@ export default function UnifiedEnterpriseDashboard() {
 
           {activeTab === "assets-registry" && (
             <AssetsRegistry
-              userRole={(session?.user as any)?.role || "Employee"}
+              userRole={userRole}
               triggerToast={triggerToast}
               sessionUser={session?.user}
             />

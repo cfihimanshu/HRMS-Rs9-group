@@ -112,18 +112,42 @@ export async function GET(req: Request) {
     today.setUTCHours(0, 0, 0, 0);
     const endOfToday = new Date();
     endOfToday.setUTCHours(23, 59, 59, 999);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
     
-    const sodReportsToday = await SodReport.findAll({ where: { date: today } });
+    const sodReportsToday = await SodReport.findAll({
+      where: {
+        date: {
+          [Op.gte]: today,
+          [Op.lt]: tomorrow
+        }
+      }
+    });
     const sodEmployeeIds = sodReportsToday.map((r: any) => r.employee?.toString()).filter(Boolean);
     const uniqueSodEmployees = sodEmployeeIds.filter((v: any, i: number, a: any[]) => a.indexOf(v) === i);
 
-    const eodReportsToday = await EodReport.findAll({ where: { date: today } });
+    const eodReportsToday = await EodReport.findAll({
+      where: {
+        date: {
+          [Op.gte]: today,
+          [Op.lt]: tomorrow
+        }
+      }
+    });
     const eodEmployeeIds = eodReportsToday.map((r: any) => r.employee?.toString()).filter(Boolean);
     const uniqueEodEmployees = eodEmployeeIds.filter((v: any, i: number, a: any[]) => a.indexOf(v) === i);
 
     const totalEmployeesCount = await User.count({ where: userRoleFilter });
 
-    const attendanceRecords = await Attendance.findAll({ where: { date: today, status: "Present" } });
+    const attendanceRecords = await Attendance.findAll({
+      where: {
+        date: {
+          [Op.gte]: today,
+          [Op.lt]: tomorrow
+        },
+        status: "Present"
+      }
+    });
     const attendanceEmployeeIds = attendanceRecords.map((r: any) => r.employee?.toString()).filter(Boolean);
     const combinedIds = [...uniqueSodEmployees, ...uniqueEodEmployees, ...attendanceEmployeeIds];
     const finalPresentIds = combinedIds.filter((v: any, i: number, a: any[]) => a.indexOf(v) === i);
