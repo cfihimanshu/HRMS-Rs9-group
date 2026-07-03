@@ -454,6 +454,24 @@ export async function PUT(req: Request) {
       allocatedWhatsapp,
       designation,
       baseSalary,
+      name,
+      email,
+      mobile,
+      role,
+      status,
+      department,
+      dateOfJoining,
+      dateOfBirth,
+      gender,
+      bloodGroup,
+      panNumber,
+      aadhaarNumber,
+      bankName,
+      accountNumber,
+      ifscCode,
+      pfNumber,
+      uanNumber,
+      esiNumber
     } = body;
 
     if (!employeeId) {
@@ -465,15 +483,41 @@ export async function PUT(req: Request) {
       return NextResponse.json({ success: false, error: "Employee profile not found" }, { status: 404 });
     }
 
-    // Update fields if provided
+    // Update profile fields if provided
     if (allocatedAsset !== undefined) profile.allocatedAsset = allocatedAsset;
     if (allocatedSim !== undefined) profile.allocatedSim = allocatedSim;
     if (allocatedGmail !== undefined) profile.allocatedGmail = allocatedGmail;
     if (allocatedWhatsapp !== undefined) profile.allocatedWhatsapp = allocatedWhatsapp;
     if (designation !== undefined) profile.designation = designation;
     if (baseSalary !== undefined) profile.baseSalary = baseSalary;
+    if (department !== undefined) profile.department = department;
+    if (dateOfJoining !== undefined) profile.dateOfJoining = dateOfJoining;
+    if (dateOfBirth !== undefined) profile.dateOfBirth = dateOfBirth;
+    if (gender !== undefined) profile.gender = gender;
+    if (bloodGroup !== undefined) profile.bloodGroup = bloodGroup;
+    if (panNumber !== undefined) profile.panNumber = panNumber;
+    if (aadhaarNumber !== undefined) profile.aadhaarNumber = aadhaarNumber;
+    if (bankName !== undefined) profile.bankName = bankName;
+    if (accountNumber !== undefined) profile.accountNumber = accountNumber;
+    if (ifscCode !== undefined) profile.ifscCode = ifscCode;
+    if (pfNumber !== undefined) profile.pfNumber = pfNumber;
+    if (uanNumber !== undefined) profile.uanNumber = uanNumber;
+    if (esiNumber !== undefined) profile.esiNumber = esiNumber;
 
     await profile.save();
+
+    // Update user record if linked
+    if (profile.user) {
+      const userRec = await User.findOne({ where: { id: profile.user } });
+      if (userRec) {
+        if (name !== undefined) userRec.name = name;
+        if (email !== undefined) userRec.email = email;
+        if (mobile !== undefined) userRec.mobile = mobile;
+        if (role !== undefined) userRec.role = role;
+        if (status !== undefined) userRec.status = status;
+        await userRec.save();
+      }
+    }
 
     // Log Audit Entry
     await logAudit({
@@ -481,7 +525,7 @@ export async function PUT(req: Request) {
       action: "UPDATE_EMPLOYEE_ASSETS",
       entity: "EmployeeProfile",
       entityId: profile.id,
-      details: `Updated assets/profile for employee ID ${employeeId}. Asset: ${allocatedAsset}, SIM: ${allocatedSim}, Gmail: ${allocatedGmail}, WhatsApp: ${allocatedWhatsapp}`
+      details: `Updated assets/profile for employee ID ${employeeId}.`
     });
 
     return NextResponse.json({ success: true, data: profile, message: "Employee profile updated successfully" });

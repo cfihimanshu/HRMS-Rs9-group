@@ -628,7 +628,8 @@ export function SystemRiskAlerts({ toggleModal, triggerToast, riskAlertList, onR
   );
 }
 
-export function ExitSeparation({ triggerToast }: { triggerToast: (msg: string) => void; }) {
+export function ExitSeparation({ sessionUser, triggerToast }: { sessionUser?: any; triggerToast: (msg: string) => void; }) {
+  const isEmployee = sessionUser?.role === "Employee";
   const [employees, setEmployees] = useState<any[]>([]);
   const [exits, setExits] = useState<any[]>([]);
   const [selectedEmployee, setSelectedEmployee] = useState<any>(null);
@@ -652,7 +653,7 @@ export function ExitSeparation({ triggerToast }: { triggerToast: (msg: string) =
   // FORM-13 State
   const [showForm13, setShowForm13] = useState(false);
   const [form13, setForm13] = useState({
-    name: "",
+    name: sessionUser?.name || "",
     category: "Employee" as "Employee" | "Associate" | "Vendor",
     exitReason: "",
     assetReturn: false,
@@ -662,6 +663,12 @@ export function ExitSeparation({ triggerToast }: { triggerToast: (msg: string) =
     exitFeedback: "",
     postExitRisk: "Low"
   });
+
+  useEffect(() => {
+    if (sessionUser?.name) {
+      setForm13(prev => ({ ...prev, name: sessionUser.name }));
+    }
+  }, [sessionUser]);
 
   const handleForm13Submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -690,18 +697,45 @@ export function ExitSeparation({ triggerToast }: { triggerToast: (msg: string) =
   const loadData = async () => {
     try {
       setLoading(true);
-      const [empRes, exitRes] = await Promise.all([
-        fetch("/api/employees"),
-        fetch("/api/exits")
-      ]);
-      const empData = await empRes.json();
-      const exitData = await exitRes.json();
       
-      if (empData.success) setEmployees(empData.data);
-      if (exitData.success) setExits(exitData.data);
+      if (isEmployee && sessionUser) {
+        // If employee, only load their own exit record
+        const exitRes = await fetch("/api/exits");
+        const exitData = await exitRes.json();
+        
+        const empData = {
+          success: true,
+          data: [
+            {
+              id: sessionUser.id,
+              name: sessionUser.name,
+              email: sessionUser.email,
+              role: sessionUser.role,
+              companyName: sessionUser.company || ""
+            }
+          ]
+        };
+        
+        setEmployees(empData.data);
+        if (exitData.success) {
+          setExits(exitData.data);
+          handleSelectEmployee(empData.data[0], exitData.data);
+        }
+      } else {
+        // Management loads all employees and all exit records
+        const [empRes, exitRes] = await Promise.all([
+          fetch("/api/employees"),
+          fetch("/api/exits")
+        ]);
+        const empData = await empRes.json();
+        const exitData = await exitRes.json();
+        
+        if (empData.success) setEmployees(empData.data);
+        if (exitData.success) setExits(exitData.data);
 
-      if (!selectedEmployee && empData.data?.length > 0) {
-        handleSelectEmployee(empData.data[0], exitData.data);
+        if (!selectedEmployee && empData.data?.length > 0) {
+          handleSelectEmployee(empData.data[0], exitData.data);
+        }
       }
     } catch (err) {
       triggerToast("Failed to load exit separation data");
@@ -805,64 +839,64 @@ export function ExitSeparation({ triggerToast }: { triggerToast: (msg: string) =
             <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
           </button>
         </div>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+      </div>      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         
         {/* Left Side: Employee List */}
-        <div className="lg:col-span-4 bg-white border border-slate-200 rounded-xl p-4 flex flex-col h-[750px] shadow-sm">
-          <h3 className="text-xs font-black tracking-widest text-[#714B67] uppercase font-mono mb-3">Personnel Directory</h3>
-          
-          <div className="relative mb-3">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
-            <input 
-              type="text" 
-              placeholder="Search employee..." 
-              value={searchQuery}
-              onChange={e => setSearchQuery(e.target.value)}
-              className="w-full bg-slate-50 border border-slate-200 rounded-lg pl-9 pr-4 py-2 text-xs font-semibold focus:outline-none focus:border-[#714B67] text-slate-800"
-            />
-          </div>
+        {!isEmployee && (
+          <div className="lg:col-span-4 bg-white border border-slate-200 rounded-xl p-4 flex flex-col h-[750px] shadow-sm">
+            <h3 className="text-xs font-black tracking-widest text-[#714B67] uppercase font-mono mb-3">Personnel Directory</h3>
+            
+            <div className="relative mb-3">
+              <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+              <input 
+                type="text" 
+                placeholder="Search employee..." 
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                className="w-full bg-slate-50 border border-slate-200 rounded-lg pl-9 pr-4 py-2 text-xs font-semibold focus:outline-none focus:border-[#714B67] text-slate-800"
+              />
+            </div>
 
-          <div className="flex-1 overflow-y-auto space-y-2 pr-1 scrollbar-thin">
-            {loading ? (
-              <div className="text-center py-10 font-bold text-slate-400 text-[10px] animate-pulse">Loading personnel...</div>
-            ) : filteredEmployees.length === 0 ? (
-              <div className="text-center py-10 text-slate-400 font-bold text-[10px]">No employees found</div>
-            ) : (
-              filteredEmployees.map((emp, i) => {
-                const isSelected = selectedEmployee && selectedEmployee.id === emp.id;
-                const hasExitRecord = exits.some(ex => ex.employee?.id === emp.id || ex.employee === emp.id);
-                
-                return (
-                  <button
-                    key={i}
-                    onClick={() => handleSelectEmployee(emp)}
-                    className={`w-full text-left p-3 rounded-lg border transition-all flex flex-col gap-2 ${
-                      isSelected 
-                        ? "bg-[#714B67]/5 border-[#714B67] shadow-sm" 
-                        : "bg-white border-slate-100 hover:border-slate-350 hover:bg-slate-50/50"
-                    }`}
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="font-bold text-slate-800 text-xs truncate flex items-center gap-2">
-                        {emp.name}
+            <div className="flex-1 overflow-y-auto space-y-2 pr-1 scrollbar-thin">
+              {loading ? (
+                <div className="text-center py-10 font-bold text-slate-400 text-[10px] animate-pulse">Loading personnel...</div>
+              ) : filteredEmployees.length === 0 ? (
+                <div className="text-center py-10 text-slate-400 font-bold text-[10px]">No employees found</div>
+              ) : (
+                filteredEmployees.map((emp, i) => {
+                  const isSelected = selectedEmployee && selectedEmployee.id === emp.id;
+                  const hasExitRecord = exits.some(ex => ex.employee?.id === emp.id || ex.employee === emp.id);
+                  
+                  return (
+                    <button
+                      key={i}
+                      onClick={() => handleSelectEmployee(emp)}
+                      className={`w-full text-left p-3 rounded-lg border transition-all flex flex-col gap-2 ${
+                        isSelected 
+                          ? "bg-[#714B67]/5 border-[#714B67] shadow-sm" 
+                          : "bg-white border-slate-100 hover:border-slate-350 hover:bg-slate-50/50"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="font-bold text-slate-800 text-xs truncate flex items-center gap-2">
+                          {emp.name}
+                        </div>
+                        {hasExitRecord && <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse"></span>}
                       </div>
-                      {hasExitRecord && <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse"></span>}
-                    </div>
-                    <div className="flex items-center justify-between mt-1 text-[10px] text-slate-500 font-mono">
-                      <span className="truncate">{emp.role}</span>
-                      {hasExitRecord && <span className="font-bold text-rose-600 bg-rose-50 px-1 rounded">Exit Initiated</span>}
-                    </div>
-                  </button>
-                );
-              })
-            )}
+                      <div className="flex items-center justify-between mt-1 text-[10px] text-slate-500 font-mono">
+                        <span className="truncate">{emp.role}</span>
+                        {hasExitRecord && <span className="font-bold text-rose-600 bg-rose-50 px-1 rounded">Exit Initiated</span>}
+                      </div>
+                    </button>
+                  );
+                })
+              )}
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Right Side: Exit Workspace */}
-        <div className="lg:col-span-8">
+        <div className={isEmployee ? "lg:col-span-12" : "lg:col-span-8"}>
           {selectedEmployee ? (
             <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm flex flex-col h-[750px]">
               
@@ -887,6 +921,13 @@ export function ExitSeparation({ triggerToast }: { triggerToast: (msg: string) =
                 </div>
               </div>
 
+              {isEmployee && (
+                <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 mt-4 text-xs font-semibold text-slate-600 flex items-center gap-2.5">
+                  <AlertCircle className="w-4 h-4 text-[#714B67]" />
+                  <span>Your offboarding checklist is managed by the HR/Management department. You can log FORM-13 (Exit Request) using the button at the top right.</span>
+                </div>
+              )}
+
               {/* Scrollable Form Content */}
               <div className="flex-1 overflow-y-auto py-5 pr-2 scrollbar-thin">
                 <form onSubmit={handleSaveExit} className="space-y-8">
@@ -896,9 +937,9 @@ export function ExitSeparation({ triggerToast }: { triggerToast: (msg: string) =
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div className="md:col-span-2">
                         <label className="text-[10px] uppercase font-black text-slate-500 font-mono tracking-wider">Resignation / Exit Reason</label>
-                        <input className="w-full bg-slate-50 border border-slate-200 rounded p-2.5 text-xs font-bold text-slate-900 mt-1.5 focus:outline-none focus:border-[#714B67]" 
-                          placeholder="e.g. Voluntary Resignation, Career Switch..." 
-                          value={formState.exitReason} onChange={e => setFormState({...formState, exitReason: e.target.value})} required />
+                        <input className="w-full bg-slate-50 border border-slate-200 rounded p-2.5 text-xs font-bold text-slate-900 mt-1.5 focus:outline-none focus:border-[#714B67] disabled:opacity-75" 
+                          placeholder={isEmployee ? "Exit record not yet initiated by HR/Manager" : "e.g. Voluntary Resignation, Career Switch..."}
+                          value={formState.exitReason} onChange={e => setFormState({...formState, exitReason: e.target.value})} required disabled={isEmployee} />
                       </div>
                     </div>
                   </div>
@@ -908,41 +949,42 @@ export function ExitSeparation({ triggerToast }: { triggerToast: (msg: string) =
                     <h4 className="text-[10px] font-black tracking-widest text-[#714B67] uppercase font-mono mb-4 border-b border-slate-200 pb-2">IT & Compliance Clearance Checklist</h4>
                     
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <label className="flex items-center gap-3 p-3 bg-white border border-slate-200 rounded cursor-pointer hover:border-[#714B67] transition-all">
-                        <input type="checkbox" className="w-4 h-4 accent-[#714B67]" checked={formState.accessRevoked} onChange={e => setFormState({...formState, accessRevoked: e.target.checked})} />
+                      <label className="flex items-center gap-3 p-3 bg-white border border-slate-200 rounded cursor-pointer hover:border-[#714B67] transition-all disabled:opacity-75">
+                        <input type="checkbox" className="w-4 h-4 accent-[#714B67]" checked={formState.accessRevoked} onChange={e => setFormState({...formState, accessRevoked: e.target.checked})} disabled={isEmployee} />
                         <span className="text-xs font-bold text-slate-700">1. System & CRM Access Revoked</span>
                       </label>
-                      <label className="flex items-center gap-3 p-3 bg-white border border-slate-200 rounded cursor-pointer hover:border-[#714B67] transition-all">
-                        <input type="checkbox" className="w-4 h-4 accent-[#714B67]" checked={formState.assetsReturned} onChange={e => setFormState({...formState, assetsReturned: e.target.checked})} />
+                      <label className="flex items-center gap-3 p-3 bg-white border border-slate-200 rounded cursor-pointer hover:border-[#714B67] transition-all disabled:opacity-75">
+                        <input type="checkbox" className="w-4 h-4 accent-[#714B67]" checked={formState.assetsReturned} onChange={e => setFormState({...formState, assetsReturned: e.target.checked})} disabled={isEmployee} />
                         <span className="text-xs font-bold text-slate-700">2. Company Assets Returned</span>
                       </label>
-                      <label className="flex items-center gap-3 p-3 bg-white border border-slate-200 rounded cursor-pointer hover:border-[#714B67] transition-all">
-                        <input type="checkbox" className="w-4 h-4 accent-[#714B67]" checked={formState.dataAudit} onChange={e => setFormState({...formState, dataAudit: e.target.checked})} />
+                      <label className="flex items-center gap-3 p-3 bg-white border border-slate-200 rounded cursor-pointer hover:border-[#714B67] transition-all disabled:opacity-75">
+                        <input type="checkbox" className="w-4 h-4 accent-[#714B67]" checked={formState.dataAudit} onChange={e => setFormState({...formState, dataAudit: e.target.checked})} disabled={isEmployee} />
                         <span className="text-xs font-bold text-slate-700">3. Final Data Security Audit Passed</span>
                       </label>
-                      <label className="flex items-center gap-3 p-3 bg-white border border-slate-200 rounded cursor-pointer hover:border-[#714B67] transition-all">
-                        <input type="checkbox" className="w-4 h-4 accent-[#714B67]" checked={formState.clientTransfer} onChange={e => setFormState({...formState, clientTransfer: e.target.checked})} />
+                      <label className="flex items-center gap-3 p-3 bg-white border border-slate-200 rounded cursor-pointer hover:border-[#714B67] transition-all disabled:opacity-75">
+                        <input type="checkbox" className="w-4 h-4 accent-[#714B67]" checked={formState.clientTransfer} onChange={e => setFormState({...formState, clientTransfer: e.target.checked})} disabled={isEmployee} />
                         <span className="text-xs font-bold text-slate-700">4. Client Handovers / Transfer Complete</span>
                       </label>
-                      <label className="flex items-center gap-3 p-3 bg-white border border-slate-200 rounded cursor-pointer hover:border-[#714B67] transition-all">
-                        <input type="checkbox" className="w-4 h-4 accent-[#714B67]" checked={formState.ndaReminder} onChange={e => setFormState({...formState, ndaReminder: e.target.checked})} />
+                      <label className="flex items-center gap-3 p-3 bg-white border border-slate-200 rounded cursor-pointer hover:border-[#714B67] transition-all disabled:opacity-75">
+                        <input type="checkbox" className="w-4 h-4 accent-[#714B67]" checked={formState.ndaReminder} onChange={e => setFormState({...formState, ndaReminder: e.target.checked})} disabled={isEmployee} />
                         <span className="text-xs font-bold text-slate-700">5. Signed NDA & Non-Compete Reminder Sent</span>
                       </label>
-                      <label className="flex items-center gap-3 p-3 bg-white border border-slate-200 rounded cursor-pointer hover:border-[#714B67] transition-all">
-                        <input type="checkbox" className="w-4 h-4 accent-[#714B67]" checked={formState.postExitWatch} onChange={e => setFormState({...formState, postExitWatch: e.target.checked})} />
+                      <label className="flex items-center gap-3 p-3 bg-white border border-slate-200 rounded cursor-pointer hover:border-[#714B67] transition-all disabled:opacity-75">
+                        <input type="checkbox" className="w-4 h-4 accent-[#714B67]" checked={formState.postExitWatch} onChange={e => setFormState({...formState, postExitWatch: e.target.checked})} disabled={isEmployee} />
                         <span className="text-xs font-bold text-slate-700">6. Active Post-Exit Tracking / Watchlist</span>
                       </label>
                     </div>
                   </div>
 
+                  {/* Exit Interview & Settlement */}
                   <div>
                     <h4 className="text-[10px] font-black tracking-widest text-[#714B67] uppercase font-mono mb-4 border-b border-slate-100 pb-2">Exit Interview & Settlement</h4>
                     
                     <div className="grid grid-cols-1 gap-6">
                       <div>
                         <label className="text-[10px] uppercase font-black text-slate-500 font-mono tracking-wider">Final Settlement Status (F&F)</label>
-                        <select className="w-full bg-slate-50 border border-slate-200 rounded p-2.5 text-xs font-bold text-slate-900 mt-1.5 focus:outline-none focus:border-[#714B67]" 
-                          value={formState.finalSettlementStatus} onChange={e => setFormState({...formState, finalSettlementStatus: e.target.value})}>
+                        <select className="w-full bg-slate-50 border border-slate-200 rounded p-2.5 text-xs font-bold text-slate-900 mt-1.5 focus:outline-none focus:border-[#714B67] disabled:opacity-75" 
+                          value={formState.finalSettlementStatus} onChange={e => setFormState({...formState, finalSettlementStatus: e.target.value})} disabled={isEmployee}>
                           <option value="Pending">Pending Audit</option>
                           <option value="Hold">On Hold (Issues Found)</option>
                           <option value="Completed">Completed & Paid</option>
@@ -951,20 +993,22 @@ export function ExitSeparation({ triggerToast }: { triggerToast: (msg: string) =
 
                       <div>
                         <label className="text-[10px] uppercase font-black text-slate-500 font-mono tracking-wider">Exit Interview Notes / Feedback</label>
-                        <textarea className="w-full bg-slate-50 border border-slate-200 rounded p-3 text-xs font-medium text-slate-800 mt-1.5 h-24 focus:outline-none focus:border-[#714B67] leading-relaxed" 
-                          placeholder="Document feedback from the exit interview..." 
-                          value={formState.exitInterviewNotes} onChange={e => setFormState({...formState, exitInterviewNotes: e.target.value})} />
+                        <textarea className="w-full bg-slate-50 border border-slate-200 rounded p-3 text-xs font-medium text-slate-800 mt-1.5 h-24 focus:outline-none focus:border-[#714B67] leading-relaxed disabled:opacity-75" 
+                          placeholder={isEmployee ? "Clearance review feedback will appear here once processed by HR." : "Document feedback from the exit interview..."}
+                          value={formState.exitInterviewNotes} onChange={e => setFormState({...formState, exitInterviewNotes: e.target.value})} disabled={isEmployee} />
                       </div>
                     </div>
                   </div>
 
-                  <button 
-                    type="submit"
-                    disabled={submitting}
-                    className="w-full bg-[#714B67] hover:bg-[#5F3F56] text-white py-3.5 rounded-xl text-xs font-black tracking-widest uppercase transition-all shadow-md flex items-center justify-center gap-2 mt-4"
-                  >
-                    <CheckCircle className="w-4 h-4" /> Save Exit Checklist
-                  </button>
+                  {!isEmployee && (
+                    <button 
+                      type="submit"
+                      disabled={submitting}
+                      className="w-full bg-[#714B67] hover:bg-[#5F3F56] text-white py-3.5 rounded-xl text-xs font-black tracking-widest uppercase transition-all shadow-md flex items-center justify-center gap-2 mt-4"
+                    >
+                      <CheckCircle className="w-4 h-4" /> Save Exit Checklist
+                    </button>
+                  )}
 
                 </form>
               </div>
@@ -1001,11 +1045,11 @@ export function ExitSeparation({ triggerToast }: { triggerToast: (msg: string) =
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                   <div>
                     <label className="text-[10px] uppercase font-black text-slate-500 tracking-widest">1. Name *</label>
-                    <input required className="w-full bg-white border border-slate-300 focus:border-rose-500 rounded-lg p-2.5 text-xs font-bold text-slate-800 mt-1.5 focus:outline-none" value={form13.name} onChange={e => setForm13({...form13, name: e.target.value})} placeholder="Full Name" />
+                    <input required className="w-full bg-white border border-slate-300 focus:border-rose-500 rounded-lg p-2.5 text-xs font-bold text-slate-800 mt-1.5 focus:outline-none disabled:opacity-75" value={form13.name} onChange={e => setForm13({...form13, name: e.target.value})} placeholder="Full Name" readOnly={isEmployee} disabled={isEmployee} />
                   </div>
                   <div>
                     <label className="text-[10px] uppercase font-black text-slate-500 tracking-widest">2. Category *</label>
-                    <select required className="w-full bg-white border border-slate-300 focus:border-rose-500 rounded-lg p-2.5 text-xs font-bold text-slate-800 mt-1.5 focus:outline-none" value={form13.category} onChange={e => setForm13({...form13, category: e.target.value as any})}>
+                    <select required className="w-full bg-white border border-slate-300 focus:border-rose-500 rounded-lg p-2.5 text-xs font-bold text-slate-800 mt-1.5 focus:outline-none disabled:opacity-75" value={form13.category} onChange={e => setForm13({...form13, category: e.target.value as any})} disabled={isEmployee}>
                       <option value="Employee">Employee</option>
                       <option value="Associate">Business Associate</option>
                       <option value="Vendor">Vendor</option>
@@ -1027,7 +1071,7 @@ export function ExitSeparation({ triggerToast }: { triggerToast: (msg: string) =
                       { key: "handover", label: "6. Work Handover Done" },
                       { key: "finalSettlement", label: "7. Final Settlement Cleared" },
                     ].map(({ key, label }) => (
-                      <label key={key} className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all ${
+                      <label key={key} className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all disabled:opacity-75 ${
                         (form13 as any)[key] ? "bg-emerald-50 border-emerald-300 text-emerald-800" : "bg-white border-rose-100 text-slate-600 hover:bg-rose-50"
                       }`}>
                         <input
@@ -1035,6 +1079,7 @@ export function ExitSeparation({ triggerToast }: { triggerToast: (msg: string) =
                           className="accent-emerald-600 w-4 h-4"
                           checked={(form13 as any)[key]}
                           onChange={e => setForm13({...form13, [key]: e.target.checked})}
+                          disabled={isEmployee}
                         />
                         <span className="text-[10px] font-black uppercase tracking-wider">{label}</span>
                       </label>
@@ -1049,7 +1094,7 @@ export function ExitSeparation({ triggerToast }: { triggerToast: (msg: string) =
                   </div>
                   <div>
                     <label className="text-[10px] uppercase font-black text-slate-500 tracking-widest">9. Post-Exit Risk *</label>
-                    <select className="w-full bg-white border border-slate-300 focus:border-rose-500 rounded-lg p-2.5 text-xs font-bold text-slate-800 mt-1.5 focus:outline-none" value={form13.postExitRisk} onChange={e => setForm13({...form13, postExitRisk: e.target.value})}>
+                    <select className="w-full bg-white border border-slate-300 focus:border-rose-500 rounded-lg p-2.5 text-xs font-bold text-slate-800 mt-1.5 focus:outline-none disabled:opacity-75" value={form13.postExitRisk} onChange={e => setForm13({...form13, postExitRisk: e.target.value})} disabled={isEmployee}>
                       <option value="Low">Low — No concern</option>
                       <option value="Medium">Medium — Watch for 30 days</option>
                       <option value="High">High — Immediate escalation required</option>

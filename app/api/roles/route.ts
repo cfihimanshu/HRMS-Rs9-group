@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import sequelize from "@/lib/sequelize";
 import Role from "@/models/sequelize/Role";
 import Company from "@/models/sequelize/Company";
+import Department from "@/models/sequelize/Department";
 import { Op } from "sequelize";
 
 const defaultRoles = [
@@ -244,6 +245,25 @@ export async function POST(req: Request) {
       });
       if (matchedComp) {
         targetCompanyId = matchedComp.id || (matchedComp as any).id;
+      }
+    }
+
+    // Ensure department exists in Department table
+    if (department) {
+      const deptName = department.trim();
+      const existingDept = await Department.findOne({
+        where: {
+          name: deptName,
+          company: targetCompanyId || null
+        }
+      });
+      if (!existingDept) {
+        await Department.create({
+          id: Date.now().toString() + "DEPT",
+          name: deptName,
+          company: targetCompanyId || null,
+          status: "active"
+        });
       }
     }
 

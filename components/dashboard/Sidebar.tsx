@@ -241,7 +241,7 @@ export default function DashboardSidebar({
           <div className="min-w-0 flex-1 text-left">
             <div className="text-xs font-semibold truncate text-[#1C1C1A]">{user?.name || "System User"}</div>
             <div className="text-[10px] text-[#9C9890] truncate font-medium uppercase tracking-wide">
-              {userRole}
+              {user?.designation || userRole}
             </div>
           </div>
           <button

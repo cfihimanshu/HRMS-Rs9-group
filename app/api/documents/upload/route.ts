@@ -44,7 +44,15 @@ export async function POST(request: Request) {
 
         const urlPrefix = process.env.UPLOAD_URL_PREFIX || "https://ruhannetwork.com/hrms";
         const basePrefix = urlPrefix.endsWith("/") ? urlPrefix : `${urlPrefix}/`;
-        const fileUrl = `${basePrefix}${uniqueFileName}`;
+        
+        // Include the FTP directory path in the public URL if it is not already included in the prefix
+        const cleanFtpDir = ftpDir.replace(/^\/+|\/+$/g, "");
+        let fileUrl = "";
+        if (cleanFtpDir && !basePrefix.includes(cleanFtpDir)) {
+          fileUrl = `${basePrefix}${cleanFtpDir}/${uniqueFileName}`;
+        } else {
+          fileUrl = `${basePrefix}${uniqueFileName}`;
+        }
 
         return NextResponse.json({
           success: true,
@@ -86,7 +94,21 @@ export async function POST(request: Request) {
       fileUrl = `/hrms/${uniqueFileName}`;
     } else {
       const basePrefix = urlPrefix.endsWith("/") ? urlPrefix : `${urlPrefix}/`;
-      fileUrl = `${basePrefix}${uniqueFileName}`;
+      
+      // Extract relative path from uploadDir if it contains public_html or public
+      let relativePath = "";
+      if (uploadDir.includes("public_html")) {
+        relativePath = uploadDir.slice(uploadDir.indexOf("public_html"));
+      } else if (uploadDir.includes("public")) {
+        relativePath = uploadDir.slice(uploadDir.indexOf("public"));
+      }
+      
+      const cleanRelativePath = relativePath.replace(/^\/+|\/+$/g, "");
+      if (cleanRelativePath && !basePrefix.includes(cleanRelativePath)) {
+        fileUrl = `${basePrefix}${cleanRelativePath}/${uniqueFileName}`;
+      } else {
+        fileUrl = `${basePrefix}${uniqueFileName}`;
+      }
     }
 
     return NextResponse.json({

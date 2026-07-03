@@ -18,13 +18,20 @@ export async function GET(req: Request) {
 
     const role = (session.user as any).role;
     const permitted = ["Owner", "Director", "IT Admin", "HR Head", "HR Executive"];
+    
+    let whereClause: any = { status: "active" };
     if (!permitted.includes(role)) {
-      return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 });
+      if (role === "Employee") {
+        const userId = (session.user as any).id;
+        whereClause = { employee: userId, status: "active" };
+      } else {
+        return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 });
+      }
     }
 
     await sequelize.authenticate();
     const records = await ExitRecord.findAll({ 
-      where: { status: "active" },
+      where: whereClause,
       order: [['createdAt', 'DESC']],
       raw: true
     });

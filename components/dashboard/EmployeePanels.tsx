@@ -1,6 +1,6 @@
 "use client";
 import React, { useState, useEffect } from "react";
-import { Users, Plus, Building2, Mail, Phone, ShieldCheck, FileText, Trash2, Search, ShieldAlert, UserCheck, UserPlus } from "lucide-react";
+import { Users, Plus, Building2, Mail, Phone, ShieldCheck, FileText, Trash2, Search, ShieldAlert, UserCheck, UserPlus, Edit3, X } from "lucide-react";
 
 interface EmployeeDirectoryProps {
   userRole: string;
@@ -366,6 +366,100 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
       triggerToast("Failed to delete user record");
     } finally {
       setDeleteTarget(null);
+    }
+  };
+
+  // Edit Employee Modal states
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [updating, setUpdating] = useState(false);
+  const [editForm, setEditForm] = useState({
+    employeeId: "",
+    name: "",
+    email: "",
+    mobile: "",
+    role: "Employee",
+    status: "active",
+    designation: "",
+    department: "",
+    dateOfJoining: "",
+    baseSalary: "",
+    gender: "",
+    bloodGroup: "",
+    dateOfBirth: "",
+    panNumber: "",
+    aadhaarNumber: "",
+    bankName: "",
+    accountNumber: "",
+    ifscCode: "",
+    pfNumber: "",
+    uanNumber: "",
+    esiNumber: ""
+  });
+
+  const handleStartEditEmployee = (emp: any) => {
+    const profile = emp.employeeProfile || {};
+    
+    const formatDate = (dateStr: any) => {
+      if (!dateStr) return "";
+      try {
+        return new Date(dateStr).toISOString().split('T')[0];
+      } catch (e) {
+        return "";
+      }
+    };
+
+    setEditForm({
+      employeeId: profile.employeeId || "",
+      name: emp.name || "",
+      email: emp.email || "",
+      mobile: emp.mobile || "",
+      role: emp.role || "Employee",
+      status: emp.status || "active",
+      designation: profile.designation || "",
+      department: typeof profile.department === "object" ? (profile.department?.id || "") : (profile.department || ""),
+      dateOfJoining: formatDate(profile.dateOfJoining),
+      baseSalary: profile.baseSalary !== undefined ? String(profile.baseSalary) : "",
+      gender: profile.gender || "",
+      bloodGroup: profile.bloodGroup || "",
+      dateOfBirth: formatDate(profile.dateOfBirth),
+      panNumber: profile.panNumber || "",
+      aadhaarNumber: profile.aadhaarNumber || "",
+      bankName: profile.bankName || "",
+      accountNumber: profile.accountNumber || "",
+      ifscCode: profile.ifscCode || "",
+      pfNumber: profile.pfNumber || "",
+      uanNumber: profile.uanNumber || "",
+      esiNumber: profile.esiNumber || ""
+    });
+    
+    setShowEditModal(true);
+  };
+
+  const handleEditEmployeeSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    triggerToast("Saving employee details...");
+    try {
+      setUpdating(true);
+      const res = await fetch("/api/employees", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...editForm,
+          baseSalary: editForm.baseSalary ? Number(editForm.baseSalary) : undefined
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        triggerToast("Employee details updated successfully!");
+        setShowEditModal(false);
+        fetchData();
+      } else {
+        triggerToast("Failed to update employee: " + data.error);
+      }
+    } catch (err) {
+      triggerToast("Error updating employee");
+    } finally {
+      setUpdating(false);
     }
   };
 
@@ -862,9 +956,16 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
                             )}
                           </td>
                           {isManagement && (
-                            <td className="px-6 py-4 text-right">
+                            <td className="px-6 py-4 text-right flex justify-end gap-2">
                               <button
-                                className="text-rose-500 hover:text-white hover:bg-rose-600 p-1.5 rounded transition-all ml-auto block"
+                                className="text-indigo-500 hover:text-white hover:bg-indigo-600 p-1.5 rounded transition-all"
+                                onClick={(e) => { e.stopPropagation(); handleStartEditEmployee(emp); }}
+                                title="Edit Staff Member"
+                              >
+                                <Edit3 className="w-4 h-4" />
+                              </button>
+                              <button
+                                className="text-rose-500 hover:text-white hover:bg-rose-600 p-1.5 rounded transition-all"
                                 onClick={(e) => { e.stopPropagation(); handleDelete(emp.id, emp.name); }}
                                 title="Terminate Staff Member"
                               >
@@ -965,6 +1066,291 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
                 Confirm Termination
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* EDIT EMPLOYEE MODAL */}
+      {showEditModal && (
+        <div className="fixed inset-0 bg-[#070810]/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm overflow-y-auto">
+          <div className={`border w-full max-w-2xl rounded-2xl p-6 relative shadow-2xl animate-fade-in ${isDark ? "bg-gray-900 border-gray-800 text-white" : "bg-white border-slate-200 text-slate-800"}`}>
+            <button 
+              onClick={() => setShowEditModal(false)} 
+              className={`absolute top-4 right-4 p-1.5 rounded-lg border transition-all ${isDark ? "bg-gray-800 border-gray-700 text-gray-400 hover:text-white" : "bg-slate-50 border-slate-200 text-slate-500 hover:text-slate-700"}`}
+            >
+              <X className="w-4 h-4" />
+            </button>
+
+            <div className="flex items-center gap-3 mb-6 border-b pb-3 border-slate-200 dark:border-gray-800">
+              <Edit3 className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+              <h3 className="text-base font-bold uppercase tracking-wider font-mono">Edit Employee Details</h3>
+            </div>
+
+            <form onSubmit={handleEditEmployeeSubmit} className="space-y-6 max-h-[70vh] overflow-y-auto pr-2 text-left">
+              {/* 1. Core Profile Details */}
+              <div className="space-y-4">
+                <h4 className="text-xs font-bold uppercase tracking-widest text-indigo-600 dark:text-indigo-400">1. Core Profile Details</h4>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold mb-1.5 text-slate-700 dark:text-gray-300">Full Name *</label>
+                    <input
+                      type="text"
+                      required
+                      value={editForm.name}
+                      onChange={(e) => setEditForm(prev => ({ ...prev, name: e.target.value }))}
+                      className={`w-full p-2.5 rounded-lg border text-sm focus:border-indigo-500 focus:outline-none ${isDark ? "bg-gray-800 border-gray-700 text-white" : "bg-slate-50 border-slate-200"}`}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold mb-1.5 text-slate-700 dark:text-gray-300">Email Address *</label>
+                    <input
+                      type="email"
+                      required
+                      value={editForm.email}
+                      onChange={(e) => setEditForm(prev => ({ ...prev, email: e.target.value }))}
+                      className={`w-full p-2.5 rounded-lg border text-sm focus:border-indigo-500 focus:outline-none ${isDark ? "bg-gray-800 border-gray-700 text-white" : "bg-slate-50 border-slate-200"}`}
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold mb-1.5 text-slate-700 dark:text-gray-300">Mobile Number *</label>
+                    <input
+                      type="text"
+                      required
+                      value={editForm.mobile}
+                      onChange={(e) => setEditForm(prev => ({ ...prev, mobile: e.target.value }))}
+                      className={`w-full p-2.5 rounded-lg border text-sm focus:border-indigo-500 focus:outline-none ${isDark ? "bg-gray-800 border-gray-700 text-white" : "bg-slate-50 border-slate-200"}`}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold mb-1.5 text-slate-700 dark:text-gray-300">Designation *</label>
+                    <input
+                      type="text"
+                      required
+                      value={editForm.designation}
+                      onChange={(e) => setEditForm(prev => ({ ...prev, designation: e.target.value }))}
+                      className={`w-full p-2.5 rounded-lg border text-sm focus:border-indigo-500 focus:outline-none ${isDark ? "bg-gray-800 border-gray-700 text-white" : "bg-slate-50 border-slate-200"}`}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold mb-1.5 text-slate-700 dark:text-gray-300">Department</label>
+                    <select
+                      value={editForm.department}
+                      onChange={(e) => setEditForm(prev => ({ ...prev, department: e.target.value }))}
+                      className={`w-full p-2.5 rounded-lg border text-sm focus:border-indigo-500 focus:outline-none ${isDark ? "bg-gray-800 border-gray-700 text-white" : "bg-slate-50 border-slate-200 font-semibold"}`}
+                    >
+                      <option value="">-- Choose Department --</option>
+                      {availableDepartments.map(dept => (
+                        <option key={dept} value={dept}>{dept}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold mb-1.5 text-slate-700 dark:text-gray-300">System Role *</label>
+                    <select
+                      value={editForm.role}
+                      onChange={(e) => setEditForm(prev => ({ ...prev, role: e.target.value }))}
+                      className={`w-full p-2.5 rounded-lg border text-sm focus:border-indigo-500 focus:outline-none ${isDark ? "bg-gray-800 border-gray-700 text-white" : "bg-slate-50 border-slate-200 font-semibold"}`}
+                    >
+                      <option value="Owner">Owner</option>
+                      <option value="Director">Director</option>
+                      <option value="HR Head">HR Head</option>
+                      <option value="HR Executive">HR Executive</option>
+                      <option value="Department Manager">Department Manager</option>
+                      <option value="Employee">Employee</option>
+                      <option value="Accounts">Accounts</option>
+                      <option value="Trainer">Trainer</option>
+                      <option value="IT Admin">IT Admin</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold mb-1.5 text-slate-700 dark:text-gray-300">Status *</label>
+                    <select
+                      value={editForm.status}
+                      onChange={(e) => setEditForm(prev => ({ ...prev, status: e.target.value }))}
+                      className={`w-full p-2.5 rounded-lg border text-sm focus:border-indigo-500 focus:outline-none ${isDark ? "bg-gray-800 border-gray-700 text-white" : "bg-slate-50 border-slate-200 font-semibold"}`}
+                    >
+                      <option value="active">Active</option>
+                      <option value="inactive">Inactive</option>
+                      <option value="on notice">On Notice</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold mb-1.5 text-slate-700 dark:text-gray-300">Date of Joining</label>
+                    <input
+                      type="date"
+                      value={editForm.dateOfJoining}
+                      onChange={(e) => setEditForm(prev => ({ ...prev, dateOfJoining: e.target.value }))}
+                      className={`w-full p-2.5 rounded-lg border text-sm focus:border-indigo-500 focus:outline-none ${isDark ? "bg-gray-800 border-gray-700 text-white" : "bg-slate-50 border-slate-200"}`}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* 2. Financial Info */}
+              <div className="space-y-4 pt-4 border-t border-slate-100 dark:border-gray-800">
+                <h4 className="text-xs font-bold uppercase tracking-widest text-indigo-600 dark:text-indigo-400">2. Financial Info</h4>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold mb-1.5 text-slate-700 dark:text-gray-300">Base Salary (Monthly)</label>
+                    <input
+                      type="number"
+                      value={editForm.baseSalary}
+                      onChange={(e) => setEditForm(prev => ({ ...prev, baseSalary: e.target.value }))}
+                      className={`w-full p-2.5 rounded-lg border text-sm focus:border-indigo-500 focus:outline-none ${isDark ? "bg-gray-800 border-gray-700 text-white" : "bg-slate-50 border-slate-200"}`}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold mb-1.5 text-slate-700 dark:text-gray-300">PAN Number</label>
+                    <input
+                      type="text"
+                      value={editForm.panNumber}
+                      onChange={(e) => setEditForm(prev => ({ ...prev, panNumber: e.target.value }))}
+                      className={`w-full p-2.5 rounded-lg border text-sm focus:border-indigo-500 focus:outline-none ${isDark ? "bg-gray-800 border-gray-700 text-white" : "bg-slate-50 border-slate-200"}`}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* 3. Personal & Identity Details */}
+              <div className="space-y-4 pt-4 border-t border-slate-100 dark:border-gray-800">
+                <h4 className="text-xs font-bold uppercase tracking-widest text-indigo-600 dark:text-indigo-400">3. Personal & Identity Details</h4>
+                
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                  <div className="md:col-span-2">
+                    <label className="block text-xs font-bold mb-1.5 text-slate-700 dark:text-gray-300">Aadhaar Number</label>
+                    <input
+                      type="text"
+                      value={editForm.aadhaarNumber}
+                      onChange={(e) => setEditForm(prev => ({ ...prev, aadhaarNumber: e.target.value }))}
+                      className={`w-full p-2.5 rounded-lg border text-sm focus:border-indigo-500 focus:outline-none ${isDark ? "bg-gray-800 border-gray-700 text-white" : "bg-slate-50 border-slate-200"}`}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold mb-1.5 text-slate-700 dark:text-gray-300">Gender</label>
+                    <select
+                      value={editForm.gender}
+                      onChange={(e) => setEditForm(prev => ({ ...prev, gender: e.target.value }))}
+                      className={`w-full p-2.5 rounded-lg border text-sm focus:border-indigo-500 focus:outline-none ${isDark ? "bg-gray-800 border-gray-700 text-white" : "bg-slate-50 border-slate-200 font-semibold"}`}
+                    >
+                      <option value="">Select</option>
+                      <option value="Male">Male</option>
+                      <option value="Female">Female</option>
+                      <option value="Other">Other</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold mb-1.5 text-slate-700 dark:text-gray-300">Blood Group</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. O+"
+                      value={editForm.bloodGroup}
+                      onChange={(e) => setEditForm(prev => ({ ...prev, bloodGroup: e.target.value }))}
+                      className={`w-full p-2.5 rounded-lg border text-sm focus:border-indigo-500 focus:outline-none ${isDark ? "bg-gray-800 border-gray-700 text-white" : "bg-slate-50 border-slate-200"}`}
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold mb-1.5 text-slate-700 dark:text-gray-300">Date of Birth</label>
+                    <input
+                      type="date"
+                      value={editForm.dateOfBirth}
+                      onChange={(e) => setEditForm(prev => ({ ...prev, dateOfBirth: e.target.value }))}
+                      className={`w-full p-2.5 rounded-lg border text-sm focus:border-indigo-500 focus:outline-none ${isDark ? "bg-gray-800 border-gray-700 text-white" : "bg-slate-50 border-slate-200"}`}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold mb-1.5 text-slate-700 dark:text-gray-300">PF Number</label>
+                    <input
+                      type="text"
+                      value={editForm.pfNumber}
+                      onChange={(e) => setEditForm(prev => ({ ...prev, pfNumber: e.target.value }))}
+                      className={`w-full p-2.5 rounded-lg border text-sm focus:border-indigo-500 focus:outline-none ${isDark ? "bg-gray-800 border-gray-700 text-white" : "bg-slate-50 border-slate-200"}`}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold mb-1.5 text-slate-700 dark:text-gray-300">UAN Number</label>
+                    <input
+                      type="text"
+                      value={editForm.uanNumber}
+                      onChange={(e) => setEditForm(prev => ({ ...prev, uanNumber: e.target.value }))}
+                      className={`w-full p-2.5 rounded-lg border text-sm focus:border-indigo-500 focus:outline-none ${isDark ? "bg-gray-800 border-gray-700 text-white" : "bg-slate-50 border-slate-200"}`}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold mb-1.5 text-slate-700 dark:text-gray-300">ESI Number</label>
+                    <input
+                      type="text"
+                      value={editForm.esiNumber}
+                      onChange={(e) => setEditForm(prev => ({ ...prev, esiNumber: e.target.value }))}
+                      className={`w-full p-2.5 rounded-lg border text-sm focus:border-indigo-500 focus:outline-none ${isDark ? "bg-gray-800 border-gray-700 text-white" : "bg-slate-50 border-slate-200"}`}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* 4. Bank Information */}
+              <div className="space-y-4 pt-4 border-t border-slate-100 dark:border-gray-800 pb-4">
+                <h4 className="text-xs font-bold uppercase tracking-widest text-indigo-600 dark:text-indigo-400">4. Bank Information</h4>
+                
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold mb-1.5 text-slate-700 dark:text-gray-300">Bank Name</label>
+                    <input
+                      type="text"
+                      value={editForm.bankName}
+                      onChange={(e) => setEditForm(prev => ({ ...prev, bankName: e.target.value }))}
+                      className={`w-full p-2.5 rounded-lg border text-sm focus:border-indigo-500 focus:outline-none ${isDark ? "bg-gray-800 border-gray-700 text-white" : "bg-slate-50 border-slate-200"}`}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold mb-1.5 text-slate-700 dark:text-gray-300">Account Number</label>
+                    <input
+                      type="text"
+                      value={editForm.accountNumber}
+                      onChange={(e) => setEditForm(prev => ({ ...prev, accountNumber: e.target.value }))}
+                      className={`w-full p-2.5 rounded-lg border text-sm focus:border-indigo-500 focus:outline-none ${isDark ? "bg-gray-800 border-gray-700 text-white" : "bg-slate-50 border-slate-200"}`}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold mb-1.5 text-slate-700 dark:text-gray-300">IFSC Code</label>
+                    <input
+                      type="text"
+                      value={editForm.ifscCode}
+                      onChange={(e) => setEditForm(prev => ({ ...prev, ifscCode: e.target.value }))}
+                      className={`w-full p-2.5 rounded-lg border text-sm focus:border-indigo-500 focus:outline-none ${isDark ? "bg-gray-800 border-gray-700 text-white" : "bg-slate-50 border-slate-200"}`}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Submit Buttons */}
+              <div className="flex gap-4 pt-4 border-t border-slate-200 dark:border-gray-800">
+                <button
+                  type="button"
+                  onClick={() => setShowEditModal(false)}
+                  className={`flex-1 py-3 rounded-xl text-xs font-bold transition-all border ${isDark ? "bg-gray-800 border-gray-700 text-white hover:bg-gray-700" : "bg-slate-100 border-slate-200 text-slate-700 hover:bg-slate-250"}`}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={updating}
+                  className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white py-3 rounded-xl text-xs font-bold transition-all shadow-md disabled:opacity-50"
+                >
+                  {updating ? "Saving Changes..." : "Save Modifications"}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

@@ -22,10 +22,54 @@ export async function GET(req: Request) {
     const userId = (session.user as any).id;
 
     // Check if user has HR Admin/Owner role
-    const isManager = ["Owner", "Director", "HR Head", "HR Executive"].includes(userRole);
+    const isOwnerOrHR = ["Owner", "Director", "HR Head", "HR Executive"].includes(userRole);
+    const isDeptManager = userRole === "Department Manager";
 
     let whereClause: any = {};
-    if (!isManager) {
+    if (isOwnerOrHR) {
+      whereClause = {};
+    } else if (isDeptManager) {
+      // Find manager's company and department
+      const loggedInUser = await User.findByPk(userId, { raw: true });
+      let managerCompanies: string[] = [];
+      if (loggedInUser && loggedInUser.companies) {
+        if (Array.isArray(loggedInUser.companies)) {
+          managerCompanies = loggedInUser.companies;
+        } else if (typeof loggedInUser.companies === 'string') {
+          try { managerCompanies = JSON.parse(loggedInUser.companies); } catch(e) {}
+        }
+      }
+
+      const managerProfile = await EmployeeProfile.findOne({ where: { user: userId }, raw: true });
+      const managerDept = managerProfile?.department || null;
+
+      // Fetch all users who belong to the same companies as the manager
+      const sameCompanyUsers = await User.findAll({
+        attributes: ["id", "companies"],
+        raw: true
+      });
+
+      const sameCompUserIds = sameCompanyUsers.filter((u: any) => {
+        let uComps: string[] = [];
+        if (Array.isArray(u.companies)) uComps = u.companies;
+        else if (typeof u.companies === 'string') {
+          try { uComps = JSON.parse(u.companies); } catch(e) {}
+        }
+        return uComps.some(c => managerCompanies.includes(c));
+      }).map((u: any) => u.id);
+
+      if (managerDept) {
+        const sameDeptProfiles = await EmployeeProfile.findAll({
+          where: { department: managerDept },
+          attributes: ["user"],
+          raw: true
+        });
+        const sameDeptUserIds = sameDeptProfiles.map(p => p.user);
+        whereClause.employee_id = sameCompUserIds.filter(id => sameDeptUserIds.includes(id));
+      } else {
+        whereClause.employee_id = sameCompUserIds;
+      }
+    } else {
       // Employees can only see their own requests
       whereClause.employee_id = userId;
     }
@@ -105,7 +149,7 @@ export async function POST(req: Request) {
         asset_type,
         reason,
         priority: priority || "Medium",
-        status: "Pending"
+        status: "Pending Manager Approval"
       });
 
       // --- Send Notification to Admins ---
@@ -171,9 +215,8 @@ export async function POST(req: Request) {
       });
 
     } else if (action === "update-status") {
-      // Only HR / Owners can update the status
-      const isManager = ["Owner", "Director", "HR Head", "HR Executive"].includes(userRole);
-      if (!isManager) {
+      const isManagerOrOwner = ["Owner", "Director", "HR Head", "HR Executive", "Department Manager"].includes(userRole);
+      if (!isManagerOrOwner) {
         return NextResponse.json({ success: false, error: "Forbidden. Managers only." }, { status: 403 });
       }
 
@@ -188,14 +231,23 @@ export async function POST(req: Request) {
         return NextResponse.json({ success: false, error: "Asset request not found." }, { status: 404 });
       }
 
+      let nextStatus = status;
+      if (status === "Approved") {
+        if (userRole === "Department Manager") {
+          nextStatus = "Pending Owner Approval";
+        } else {
+          nextStatus = "Approved";
+        }
+      }
+
       await request.update({
-        status,
+        status: nextStatus,
         admin_remarks: admin_remarks || request.admin_remarks
       });
 
       return NextResponse.json({
         success: true,
-        message: `Asset request status updated to ${status}.`,
+        message: `Asset request status updated to ${nextStatus}.`,
         data: request
       });
     }
