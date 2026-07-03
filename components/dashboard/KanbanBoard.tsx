@@ -18,6 +18,13 @@ import {
   AlertCircle,
   Trash2,
   Edit2,
+  CalendarClock,
+  Send,
+  Users,
+  Play,
+  Pause,
+  Square,
+  Timer,
 } from "lucide-react";
 
 interface Task {
@@ -29,7 +36,13 @@ interface Task {
   status: "Pending" | "In Progress" | "Completed";
   createdAt: string;
   date: string;
+  scheduledAt?: string | null;
+  forwardedTo?: string | null;
+  forwardedUser?: { id: string; name: string; role: string } | null;
   employee?: { id: string; name: string; role: string } | null;
+  timerStart?: string | null;
+  timerState?: "Running" | "Paused" | "Stopped" | string;
+  elapsedSeconds?: number;
 }
 
 const TYPE_COLORS: Record<string, string> = {
@@ -60,6 +73,16 @@ export default function KanbanBoard() {
   const [editNotes, setEditNotes] = useState("");
   const [savingNotes, setSavingNotes] = useState(false);
 
+  // Call Follow-up date/time in popup
+  const [editScheduleDate, setEditScheduleDate] = useState("");
+  const [editScheduleTime, setEditScheduleTime] = useState("");
+  const [savingSchedule, setSavingSchedule] = useState(false);
+
+  // Forward To
+  const [companyUsers, setCompanyUsers] = useState<{ id: string; name: string; role: string }[]>([]);
+  const [selectedForwardTo, setSelectedForwardTo] = useState("");
+  const [savingForward, setSavingForward] = useState(false);
+
   // Task Editing & Deletion
   const [isEditingTask, setIsEditingTask] = useState(false);
   const [editTitle, setEditTitle] = useState("");
@@ -67,12 +90,22 @@ export default function KanbanBoard() {
   const [editDesc, setEditDesc] = useState("");
   const [savingEdit, setSavingEdit] = useState(false);
 
+  // Timer
+  const [savingTimer, setSavingTimer] = useState(false);
+  const [, setTick] = useState(0); // force re-render every second for live clock
+
   // Drag state
   const dragIdRef = useRef<string | null>(null);
   const [dragOverCol, setDragOverCol] = useState<string | null>(null);
 
   useEffect(() => {
     fetchTasks();
+  }, []);
+
+  // Live tick every second to update running timer display
+  useEffect(() => {
+    const interval = setInterval(() => setTick(t => t + 1), 1000);
+    return () => clearInterval(interval);
   }, []);
 
   const fetchTasks = async () => {
@@ -112,24 +145,95 @@ export default function KanbanBoard() {
   };
 
   const updateStatus = async (taskId: string, newStatus: string) => {
+    // Guard: cannot complete without progressNotes
+    if (newStatus === "Completed") {
+      const task = tasks.find(t => t.id === taskId);
+      if (!task?.progressNotes?.trim()) {
+        alert("Please write Progress Notes before marking this task as Completed.");
+        return;
+      }
+    }
     setUpdatingId(taskId);
     // Optimistic UI
     setTasks(prev => prev.map(t => t.id === taskId ? { ...t, status: newStatus as Task["status"] } : t));
-    // Also update selectedTask if open
     if (selectedTask?.id === taskId) {
       setSelectedTask(prev => prev ? { ...prev, status: newStatus as Task["status"] } : null);
     }
     try {
-      await fetch("/api/tasks", {
+      const res = await fetch("/api/tasks", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ taskId, status: newStatus }),
       });
+      const data = await res.json();
+      if (!data.success) {
+        alert(data.error || "Update failed.");
+        fetchTasks();
+      }
     } catch (err) {
       console.error(err);
       fetchTasks();
     } finally {
       setUpdatingId(null);
+    }
+  };
+
+  // ── Timer helpers ──────────────────────────────────────────────────────────
+  const formatTimer = (totalSeconds: number) => {
+    const h = Math.floor(totalSeconds / 3600);
+    const m = Math.floor((totalSeconds % 3600) / 60);
+    const s = totalSeconds % 60;
+    return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+  };
+
+  const getLiveElapsed = (task: Task): number => {
+    if (task.status === "Completed") {
+      return task.elapsedSeconds || 0;
+    }
+    const start = task.timerStart || task.createdAt || task.date;
+    if (!start) return 0;
+    const startTime = new Date(start).getTime();
+    const elapsed = Math.floor((Date.now() - startTime) / 1000);
+    return Math.max(0, elapsed);
+  };
+
+  const timerAction = async (task: Task, action: "start" | "pause" | "stop") => {
+    if (savingTimer) return;
+    setSavingTimer(true);
+    const nowISO = new Date().toISOString();
+    let newState: string;
+    let newElapsed = getLiveElapsed(task);
+    let newTimerStart: string | null = task.timerStart || null;
+
+    if (action === "start") {
+      newState = "Running";
+      newTimerStart = nowISO;
+    } else if (action === "pause") {
+      newState = "Paused";
+      newTimerStart = null;
+    } else {
+      // stop
+      newState = "Stopped";
+      newElapsed = 0;
+      newTimerStart = null;
+    }
+
+    // Optimistic update
+    setTasks(prev => prev.map(t => t.id === task.id ? { ...t, timerState: newState, timerStart: newTimerStart, elapsedSeconds: newElapsed } : t));
+    if (selectedTask?.id === task.id) {
+      setSelectedTask(prev => prev ? { ...prev, timerState: newState, timerStart: newTimerStart, elapsedSeconds: newElapsed } : null);
+    }
+
+    try {
+      await fetch("/api/tasks", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ taskId: task.id, timerState: newState, timerStart: newTimerStart, elapsedSeconds: newElapsed }),
+      });
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setSavingTimer(false);
     }
   };
 
@@ -207,10 +311,74 @@ export default function KanbanBoard() {
     }
   };
 
-  const openTask = (task: Task) => {
+  const openTask = async (task: Task) => {
     setSelectedTask(task);
     setEditNotes(task.progressNotes || "");
     setIsEditingTask(false);
+    setSelectedForwardTo(task.forwardedTo || "");
+    // Pre-populate follow-up fields
+    if (task.scheduledAt) {
+      const d = new Date(task.scheduledAt);
+      setEditScheduleDate(d.toISOString().slice(0, 10));
+      setEditScheduleTime(d.toTimeString().slice(0, 5));
+    } else {
+      setEditScheduleDate("");
+      setEditScheduleTime("");
+    }
+    // Fetch company users for Forward To dropdown
+    try {
+      const res = await fetch("/api/tasks/company-users");
+      const data = await res.json();
+      if (data.success) setCompanyUsers(data.data);
+    } catch (e) { console.error(e); }
+  };
+
+  const saveSchedule = async () => {
+    if (!selectedTask) return;
+    setSavingSchedule(true);
+    let scheduledAt: string | null = null;
+    if (editScheduleDate && editScheduleTime) {
+      scheduledAt = new Date(`${editScheduleDate}T${editScheduleTime}`).toISOString();
+    } else if (editScheduleDate) {
+      scheduledAt = new Date(`${editScheduleDate}T00:00:00`).toISOString();
+    }
+    try {
+      const res = await fetch("/api/tasks", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ taskId: selectedTask.id, scheduledAt }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setTasks(prev => prev.map(t => t.id === selectedTask.id ? { ...t, scheduledAt } : t));
+        setSelectedTask(prev => prev ? { ...prev, scheduledAt } : null);
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setSavingSchedule(false);
+    }
+  };
+
+  const saveForward = async () => {
+    if (!selectedTask) return;
+    setSavingForward(true);
+    try {
+      const res = await fetch("/api/tasks", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ taskId: selectedTask.id, forwardedTo: selectedForwardTo || null }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setTasks(prev => prev.map(t => t.id === selectedTask.id ? { ...t, forwardedTo: selectedForwardTo || null } : t));
+        setSelectedTask(prev => prev ? { ...prev, forwardedTo: selectedForwardTo || null } : null);
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setSavingForward(false);
+    }
   };
 
   // --- Drag & Drop ---
@@ -343,11 +511,49 @@ export default function KanbanBoard() {
           </div>
         )}
 
+        {/* Scheduled / Follow-up badge */}
+        {task.scheduledAt && (
+          <div className="mt-2 flex items-center gap-1 text-[9px] text-violet-600 font-bold bg-violet-50 rounded-lg px-2 py-1 border border-violet-200">
+            <CalendarClock className="w-3 h-3" />
+            <span>Follow-up: {new Date(task.scheduledAt).toLocaleDateString("en-IN", { day: "2-digit", month: "short" })} {new Date(task.scheduledAt).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}</span>
+          </div>
+        )}
+
+        {/* Forwarded badge */}
+        {task.forwardedTo && (
+          <div className="mt-1.5 flex items-center gap-1 text-[9px] text-teal-600 font-bold bg-teal-50 rounded-lg px-2 py-1 border border-teal-200">
+            <Send className="w-3 h-3" />
+            <span>Forwarded to: {task.forwardedUser?.name || "Team Member"}</span>
+          </div>
+        )}
+
         {/* Footer */}
         <div className="flex items-center justify-between mt-3 pt-2.5 border-t border-slate-100">
-          <div className="flex items-center gap-1 text-[9px] font-bold text-slate-400 font-mono">
-            <Clock className="w-3 h-3" />
-            {new Date(task.createdAt || task.date).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}
+          <div className="flex items-center gap-4">
+            <div className="flex flex-col gap-0.5">
+              <div className="flex items-center gap-1 text-[9px] font-bold text-slate-400 font-mono">
+                <Calendar className="w-3 h-3" />
+                {new Date(task.createdAt || task.date).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "2-digit" })}
+              </div>
+              <div className="flex items-center gap-1 text-[9px] font-bold text-slate-300 font-mono">
+                <Clock className="w-3 h-3" />
+                {new Date(task.createdAt || task.date).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}
+              </div>
+            </div>
+            
+            {/* Timer Next to Date/Time */}
+            {task.status !== "Completed" && (
+              <span className="flex items-center gap-1 text-[10px] font-mono font-black px-2 py-1 rounded-lg border bg-green-50 text-green-700 border-green-200">
+                <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse inline-block" />
+                {formatTimer(getLiveElapsed(task))}
+              </span>
+            )}
+            {task.status === "Completed" && getLiveElapsed(task) > 0 && (
+              <span className="flex items-center gap-1 text-[10px] font-mono font-black px-2 py-1 rounded-lg border bg-slate-50 text-slate-400 border-slate-200">
+                <Timer className="w-3 h-3 text-slate-400" />
+                {formatTimer(getLiveElapsed(task))}
+              </span>
+            )}
           </div>
 
           {/* Mobile move buttons */}
@@ -422,7 +628,7 @@ export default function KanbanBoard() {
             </select>
           )}
           <div className="bg-slate-100 rounded-lg px-3 py-1.5 text-[10px] font-black text-slate-600 font-mono shadow-sm">
-            {filteredTasks.length} tasks today
+            {filteredTasks.length} tasks total
           </div>
         </div>
       </div>
@@ -696,7 +902,136 @@ export default function KanbanBoard() {
                   </div>
                 </div>
 
+                {/* Call Follow-up Date & Time Section */}
+                <div className="px-6 py-4 border-b border-slate-100 bg-violet-50/30">
+                  <div className="flex items-center gap-2 mb-3">
+                    <CalendarClock className="w-4 h-4 text-violet-500" />
+                    <p className="text-[10px] uppercase font-black text-violet-700 tracking-wider">Call Follow-up Date &amp; Time</p>
+                    {selectedTask.scheduledAt && (
+                      <span className="ml-auto text-[9px] font-bold text-violet-500 bg-violet-100 px-2 py-0.5 rounded-full border border-violet-200">
+                        {new Date(selectedTask.scheduledAt).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}
+                        {" "}
+                        {new Date(selectedTask.scheduledAt).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}
+                      </span>
+                    )}
+                  </div>
+                  <div className="grid grid-cols-2 gap-3 mb-3">
+                    <div>
+                      <label className="text-[8px] uppercase font-black text-slate-500 tracking-wider block mb-1">Date</label>
+                      <input
+                        type="date"
+                        className="w-full border border-slate-200 rounded-lg px-3 py-2 text-xs font-medium focus:outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-100 text-slate-700 bg-white"
+                        value={editScheduleDate}
+                        onChange={e => setEditScheduleDate(e.target.value)}
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[8px] uppercase font-black text-slate-500 tracking-wider block mb-1">Time</label>
+                      <input
+                        type="time"
+                        className="w-full border border-slate-200 rounded-lg px-3 py-2 text-xs font-medium focus:outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-100 text-slate-700 bg-white"
+                        value={editScheduleTime}
+                        onChange={e => setEditScheduleTime(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={saveSchedule}
+                      disabled={savingSchedule || (!editScheduleDate)}
+                      className="flex items-center gap-1.5 bg-violet-600 hover:bg-violet-700 disabled:opacity-40 disabled:cursor-not-allowed text-white px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all"
+                    >
+                      {savingSchedule ? <Loader2 className="w-3 h-3 animate-spin" /> : <CalendarClock className="w-3 h-3" />}
+                      {savingSchedule ? "Saving..." : "Save Follow-up"}
+                    </button>
+                    {selectedTask.scheduledAt && (
+                      <button
+                        onClick={async () => {
+                          setEditScheduleDate("");
+                          setEditScheduleTime("");
+                          setSavingSchedule(true);
+                          try {
+                            const res = await fetch("/api/tasks", {
+                              method: "PUT",
+                              headers: { "Content-Type": "application/json" },
+                              body: JSON.stringify({ taskId: selectedTask.id, scheduledAt: null }),
+                            });
+                            const data = await res.json();
+                            if (data.success) {
+                              setTasks(prev => prev.map(t => t.id === selectedTask.id ? { ...t, scheduledAt: null } : t));
+                              setSelectedTask(prev => prev ? { ...prev, scheduledAt: null } : null);
+                            }
+                          } catch (err) { console.error(err); }
+                          finally { setSavingSchedule(false); }
+                        }}
+                        className="text-[10px] font-black text-rose-500 hover:text-rose-700 uppercase tracking-wider transition-colors"
+                      >
+                        Clear
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {/* Forward To Section */}
+                <div className="px-6 py-4 border-b border-slate-100 bg-teal-50/20">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Users className="w-4 h-4 text-teal-600" />
+                    <p className="text-[10px] uppercase font-black text-teal-700 tracking-wider">Forward To</p>
+                    {selectedTask.forwardedTo && (() => {
+                      const fwd = companyUsers.find(u => u.id === selectedTask.forwardedTo);
+                      return fwd ? (
+                        <span className="ml-auto text-[9px] font-bold text-teal-600 bg-teal-100 px-2 py-0.5 rounded-full border border-teal-200 flex items-center gap-1">
+                          <Send className="w-2.5 h-2.5" />
+                          {fwd.name}
+                        </span>
+                      ) : null;
+                    })()}
+                  </div>
+                  <div className="flex gap-2">
+                    <select
+                      className="flex-1 border border-slate-200 rounded-lg px-3 py-2 text-xs font-medium focus:outline-none focus:border-teal-400 focus:ring-2 focus:ring-teal-100 text-slate-700 bg-white"
+                      value={selectedForwardTo}
+                      onChange={e => setSelectedForwardTo(e.target.value)}
+                    >
+                      <option value="">— Select a user —</option>
+                      {companyUsers.map(u => (
+                        <option key={u.id} value={u.id}>
+                          {u.name} ({u.role})
+                        </option>
+                      ))}
+                    </select>
+                    <button
+                      onClick={saveForward}
+                      disabled={savingForward || selectedForwardTo === (selectedTask.forwardedTo || "")}
+                      className="flex items-center gap-1.5 bg-teal-600 hover:bg-teal-700 disabled:opacity-40 disabled:cursor-not-allowed text-white px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all"
+                    >
+                      {savingForward ? <Loader2 className="w-3 h-3 animate-spin" /> : <Send className="w-3 h-3" />}
+                      {savingForward ? "Saving..." : "Forward"}
+                    </button>
+                  </div>
+                  {companyUsers.length === 0 && (
+                    <p className="text-[9px] text-slate-400 mt-2 font-medium">No other users in your company found.</p>
+                  )}
+                </div>
+
+                {/* Timer Display (read-only — auto-starts on create, stops on complete) */}
+                <div className="px-6 py-3 border-b border-slate-100 bg-slate-50/50">
+                  <div className="flex items-center gap-2">
+                    <Timer className="w-3.5 h-3.5 text-slate-400" />
+                    <span className="text-[9px] uppercase font-black text-slate-400 tracking-wider">Time Elapsed</span>
+                    <span className={`ml-auto text-[11px] font-black px-3 py-1 rounded-full border font-mono ${
+                      selectedTask.timerState === "Running"
+                        ? "bg-green-100 text-green-700 border-green-200"
+                        : "bg-slate-100 text-slate-500 border-slate-200"
+                    }`}>
+                      {selectedTask.timerState === "Running" && <span className="inline-block w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse mr-1.5" />}
+                      {formatTimer(getLiveElapsed(selectedTask))}
+                    </span>
+                  </div>
+                </div>
+
                 {/* Progress Notes */}
+
                 <div className="px-6 py-4">
                   <div className="flex items-center gap-2 mb-3">
                     <StickyNote className="w-4 h-4 text-indigo-500" />

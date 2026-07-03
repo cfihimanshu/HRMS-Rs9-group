@@ -46,31 +46,65 @@ export async function POST(req: Request) {
     // Determine initial approval status based on roles and reporting structure
     let initialStatus = "Pending Manager Approval";
 
-    if (["Owner", "Director", "HR Head", "HR Executive", "Department Manager"].includes(applicantRole)) {
+    if (["Owner", "Director", "HR Head", "HR Executive"].includes(applicantRole)) {
       // Management/HR leaves bypass Manager approval and go directly to Pending HR Approval
       initialStatus = "Pending HR Approval";
     } else if (profile && profile.department) {
-      // Find if there is any active "Department Manager" in the applicant's department
+      // 1. Find if there is any active "Department Manager" in the applicant's department
       const departmentManagers = await User.findAll({
-        where: { role: "Department Manager" },
+        where: { role: "Department Manager", status: "active" },
         attributes: ["id"]
       });
       const managerUserIds = departmentManagers.map((m: any) => m.id);
 
+      let activeDeptManagerProfile = null;
       if (managerUserIds.length > 0) {
-        const activeDeptManagerProfile = await EmployeeProfile.findOne({
+        activeDeptManagerProfile = await EmployeeProfile.findOne({
           where: {
             department: profile.department,
             user: { [Op.in]: managerUserIds }
           }
         });
+      }
 
-        // If no Department Manager exists for this department, route directly to HR
-        if (!activeDeptManagerProfile) {
+      if (activeDeptManagerProfile) {
+        initialStatus = "Pending Manager Approval";
+      } else {
+        // 2. Department Manager does not exist. Check if any Company Manager/Owner/Director exists for this company
+        const applicantUser = await User.findByPk(applicantId);
+        let companyId = null;
+        if (applicantUser && applicantUser.companies) {
+          try {
+            const parsed = typeof applicantUser.companies === 'string' ? JSON.parse(applicantUser.companies) : applicantUser.companies;
+            if (Array.isArray(parsed) && parsed.length > 0) {
+              companyId = parsed[0];
+            }
+          } catch (e) {}
+        }
+
+        if (companyId) {
+          // Find any active user in same company with Owner/Director or role containing Manager
+          const allUsers = await User.findAll({ where: { status: "active" }, raw: true });
+          const companyManagers = allUsers.filter((u: any) => {
+            let comps = [];
+            try {
+              comps = typeof u.companies === 'string' ? JSON.parse(u.companies) : u.companies;
+            } catch (e) {}
+            if (!Array.isArray(comps)) comps = [];
+
+            const hasCompany = comps.some((cid: any) => cid.toString() === companyId.toString());
+            const isManager = ["Owner", "Director", "Department Manager"].includes(u.role) || (u.role || "").toLowerCase().includes("manager");
+            return hasCompany && isManager && u.id !== applicantId;
+          });
+
+          if (companyManagers.length > 0) {
+            initialStatus = "Pending Manager Approval";
+          } else {
+            initialStatus = "Pending HR Approval";
+          }
+        } else {
           initialStatus = "Pending HR Approval";
         }
-      } else {
-        initialStatus = "Pending HR Approval";
       }
     } else {
       initialStatus = "Pending HR Approval";
@@ -106,6 +140,29 @@ export async function GET(req: Request) {
 
     const userRole = (session.user as any).role;
     const userId = (session.user as any).id;
+
+    // Get mapped company IDs of the logged-in user
+    const loggedInUser = await User.findByPk(userId);
+    let loggedInUserCompanies: any[] = [];
+    if (loggedInUser && loggedInUser.companies) {
+      try {
+        loggedInUserCompanies = typeof loggedInUser.companies === 'string' ? JSON.parse(loggedInUser.companies) : loggedInUser.companies;
+      } catch (e) {}
+    }
+    if (!Array.isArray(loggedInUserCompanies)) loggedInUserCompanies = [];
+
+    // Find other users belonging to the same companies
+    const companyUsers = await User.findAll({
+      attributes: ["id", "companies"],
+      raw: true
+    });
+    const sameCompanyUserIds = companyUsers.filter((u: any) => {
+      let comps = [];
+      try { comps = typeof u.companies === 'string' ? JSON.parse(u.companies) : u.companies; } catch(e) {}
+      if (!Array.isArray(comps)) comps = [];
+      return comps.some((id: any) => loggedInUserCompanies.some((cid: any) => cid.toString() === id.toString()));
+    }).map((u: any) => u.id);
+
     let filter: any = {};
 
     if (userRole === "Employee") {
@@ -132,8 +189,14 @@ export async function GET(req: Request) {
         filter = { employee: userId };
       }
     } else {
-      // Owner, Director, HR roles see everything
-      filter = {};
+      // HR/Owner/Director sees leaves from the same company
+      if (loggedInUserCompanies.length > 0) {
+        filter = {
+          employee: { [Op.in]: sameCompanyUserIds }
+        };
+      } else {
+        filter = {}; // Global admin sees everything
+      }
     }
 
     const leaves = await Leave.findAll({ 
@@ -206,24 +269,72 @@ export async function PUT(req: Request) {
 
     let finalStatus = currentStatus;
 
-    if (loggedInUserRole === "Department Manager") {
-      if (currentStatus !== "Pending Manager Approval" && currentStatus !== "Pending") {
-        return NextResponse.json({ success: false, error: "This leave is not in manager review state." }, { status: 400 });
+    const applicantId = (leave as any).employee;
+    const applicantProfile = await EmployeeProfile.findOne({ where: { user: applicantId } });
+    const applicantUser = await User.findByPk(applicantId);
+
+    // Get applicant company ID
+    let applicantCompanyId = null;
+    if (applicantUser && applicantUser.companies) {
+      try {
+        const parsed = typeof applicantUser.companies === 'string' ? JSON.parse(applicantUser.companies) : applicantUser.companies;
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          applicantCompanyId = parsed[0];
+        }
+      } catch (e) {}
+    }
+
+    // Get logged-in user company IDs
+    const loggedInUser = await User.findByPk(loggedInUserId);
+    let loggedInUserCompanies: any[] = [];
+    if (loggedInUser && loggedInUser.companies) {
+      try {
+        loggedInUserCompanies = typeof loggedInUser.companies === 'string' ? JSON.parse(loggedInUser.companies) : loggedInUser.companies;
+      } catch (e) {}
+    }
+    if (!Array.isArray(loggedInUserCompanies)) loggedInUserCompanies = [];
+
+    // Verify same company alignment
+    const isSameCompany = applicantCompanyId && loggedInUserCompanies.some((cid: any) => cid.toString() === applicantCompanyId.toString());
+
+    if (currentStatus === "Pending Manager Approval" || currentStatus === "Pending") {
+      // Who can approve Manager stage?
+      // 1. Department Manager (same department, same company)
+      // 2. Company Manager (Owner, Director, or role containing "manager", same company)
+      const isDeptManager = loggedInUserRole === "Department Manager";
+      const isCompanyManager = ["Owner", "Director"].includes(loggedInUserRole) || (loggedInUserRole || "").toLowerCase().includes("manager");
+
+      if (loggedInUserCompanies.length > 0 && !isSameCompany) {
+        return NextResponse.json({ success: false, error: "Access Denied: Applicant belongs to a different company." }, { status: 403 });
       }
 
-      // Verify that manager and applicant belong to the same department
-      const applicantProfile = await EmployeeProfile.findOne({ where: { user: (leave as any).employee } });
-      const managerProfile = await EmployeeProfile.findOne({ where: { user: loggedInUserId } });
-
-      if (!applicantProfile || !managerProfile || applicantProfile.department !== managerProfile.department) {
-        return NextResponse.json({ success: false, error: "You can only approve leaves for your own department." }, { status: 403 });
+      if (isDeptManager) {
+        const managerProfile = await EmployeeProfile.findOne({ where: { user: loggedInUserId } });
+        if (!applicantProfile || !managerProfile || applicantProfile.department !== managerProfile.department) {
+          return NextResponse.json({ success: false, error: "Access Denied: You are not the manager of this department." }, { status: 403 });
+        }
+      } else if (!isCompanyManager) {
+        return NextResponse.json({ success: false, error: "Access Denied: Only managers can approve at this stage." }, { status: 403 });
       }
 
-      // If manager approves, set to Pending HR Approval. If rejects, set to Rejected.
+      // If approved, proceed to Pending HR Approval. If rejected, set to Rejected.
       finalStatus = status === "Approved" ? "Pending HR Approval" : "Rejected";
-    } else {
-      // HR/Owner/Director final approval
+    } else if (currentStatus === "Pending HR Approval") {
+      // Who can approve HR stage?
+      // HR Head, HR Executive, or Owner/Director of same company
+      const isHR = ["HR Head", "HR Executive", "Owner", "Director"].includes(loggedInUserRole);
+
+      if (loggedInUserCompanies.length > 0 && !isSameCompany) {
+        return NextResponse.json({ success: false, error: "Access Denied: Applicant belongs to a different company." }, { status: 403 });
+      }
+
+      if (!isHR) {
+        return NextResponse.json({ success: false, error: "Access Denied: Only HR or Admin can approve at this stage." }, { status: 403 });
+      }
+
       finalStatus = status === "Approved" ? "Approved" : "Rejected";
+    } else {
+      return NextResponse.json({ success: false, error: "This leave request cannot be processed in its current state." }, { status: 400 });
     }
 
     (leave as any).status = finalStatus;

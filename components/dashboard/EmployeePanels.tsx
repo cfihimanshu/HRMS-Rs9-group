@@ -42,10 +42,13 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
   const [topCompany, setTopCompany] = useState("");
   const [topRole, setTopRole] = useState("Employee");
   const [dbRoles, setDbRoles] = useState<any[]>([]);
+  const [dbDesignations, setDbDesignations] = useState<any[]>([]);
   const [customDeptName, setCustomDeptName] = useState("");
   const [customRoleName, setCustomRoleName] = useState("");
+  const [customDesignationName, setCustomDesignationName] = useState("");
   const [showCustomDeptInput, setShowCustomDeptInput] = useState(false);
   const [showCustomRoleInput, setShowCustomRoleInput] = useState(false);
+  const [showCustomDesignationInput, setShowCustomDesignationInput] = useState(false);
 
   const handleTopCompanyChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const val = e.target.value;
@@ -87,7 +90,7 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
       return;
     }
     setTopRole(val);
-    setFormData(prev => ({ ...prev, role: val, designation: val }));
+    setFormData(prev => ({ ...prev, role: val }));
   };
 
   const [formData, setFormData] = useState({
@@ -98,7 +101,7 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
     mobile: "",
     companyId: "",
     employeeId: "",
-    designation: "",
+    designation: "Employee",
     dateOfJoining: "",
     baseSalary: "",
     department: "Human Resources (HR)"
@@ -107,18 +110,23 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
   const fetchData = async () => {
     try {
       setLoading(true);
-      const [empRes, compRes, roleRes] = await Promise.all([
+      const [empRes, compRes, roleRes, desigRes] = await Promise.all([
         fetch("/api/employees"),
         fetch("/api/companies"),
-        fetch("/api/roles")
+        fetch("/api/roles"),
+        fetch("/api/designations")
       ]);
       const empData = await empRes.json();
       const compData = await compRes.json();
       const roleData = await roleRes.json();
+      const desigData = await desigRes.json();
       if (empData.success) setEmployees(empData.data);
       if (compData.success) setCompanies(compData.data);
       if (roleData.success && roleData.data) {
         setDbRoles(roleData.data);
+      }
+      if (desigData.success && desigData.data) {
+        setDbDesignations(desigData.data);
       }
     } catch (error) {
       console.error("Error fetching data:", error);
@@ -194,13 +202,38 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
     if (!finalRoles.includes(formData.role)) {
       const defaultRole = finalRoles[0];
       setTopRole(defaultRole);
+      // Only update role, NOT designation (designation is independent)
       setFormData(prev => ({
         ...prev,
-        role: defaultRole,
-        designation: defaultRole
+        role: defaultRole
       }));
     }
   }, [formData.department, dbRoles]);
+
+  // Synchronize designation when department changes
+  useEffect(() => {
+    const currentList = dbDesignations.filter(
+      (d: any) => (d.department_id || "").toLowerCase() === (formData.department || "Human Resources (HR)").toLowerCase()
+    );
+    const validNames = currentList.map((d: any) => d.name);
+    if (validNames.length > 0) {
+      if (!validNames.includes(formData.designation)) {
+        setFormData(prev => ({
+          ...prev,
+          designation: validNames[0]
+        }));
+      }
+    } else {
+      const globalList = dbDesignations.filter((d: any) => d.department_id === "global").map((d: any) => d.name);
+      const fallbackList = globalList.length > 0 ? globalList : ["Intern", "Employee", "Department Head", "Manager"];
+      if (!fallbackList.includes(formData.designation)) {
+        setFormData(prev => ({
+          ...prev,
+          designation: fallbackList[0]
+        }));
+      }
+    }
+  }, [formData.department, dbDesignations]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -222,7 +255,7 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
         setTopRole("Employee");
         setFormData({
           name: "", email: "", password: "", role: "HR Executive", mobile: "",
-          companyId: "", employeeId: "", designation: "", dateOfJoining: "", baseSalary: "",
+          companyId: "", employeeId: "", designation: "Employee", dateOfJoining: "", baseSalary: "",
           department: "Human Resources (HR)"
         });
         fetchData(); // Refresh list
@@ -236,7 +269,7 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
-    
+
     if (name === "department") {
       const newDept = value;
       if (newDept === "add_custom_department") {
@@ -249,13 +282,13 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
 
       const finalRoles = currentList.length > 0 ? currentList : ["Employee"];
       const defaultRole = finalRoles[0];
-      
+
       setTopRole(defaultRole);
+      // Only update role, NOT designation (designation is independent)
       setFormData(prev => ({
         ...prev,
         department: newDept,
-        role: defaultRole,
-        designation: defaultRole
+        role: defaultRole
       }));
     } else {
       setFormData(prev => ({ ...prev, [name]: value }));
@@ -282,18 +315,17 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
         triggerToast(`Department "${customDeptName.trim()}" created successfully!`);
         setShowCustomDeptInput(false);
         setCustomDeptName("");
-        
+
         if (formData.companyId) {
           await fetchCompanyRoles(formData.companyId);
         } else {
           await fetchGlobalRoles();
         }
-        
+
         setFormData(prev => ({
           ...prev,
           department: customDeptName.trim(),
-          role: "Employee",
-          designation: "Employee"
+          role: "Employee"
         }));
         setTopRole("Employee");
       } else {
@@ -324,17 +356,16 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
         triggerToast(`Role "${customRoleName.trim()}" created under "${formData.department}" successfully!`);
         setShowCustomRoleInput(false);
         setCustomRoleName("");
-        
+
         if (formData.companyId) {
           await fetchCompanyRoles(formData.companyId);
         } else {
           await fetchGlobalRoles();
         }
-        
+
         setFormData(prev => ({
           ...prev,
-          role: customRoleName.trim(),
-          designation: customRoleName.trim()
+          role: customRoleName.trim()
         }));
         setTopRole(customRoleName.trim());
       } else {
@@ -342,6 +373,40 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
       }
     } catch (err) {
       triggerToast("Error creating custom role");
+    }
+  };
+
+  const handleAddCustomDesignation = async () => {
+    if (!customDesignationName.trim()) {
+      triggerToast("Designation name cannot be empty");
+      return;
+    }
+    try {
+      const res = await fetch("/api/designations", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: customDesignationName.trim(),
+          departmentId: formData.department
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        triggerToast(`Designation "${customDesignationName.trim()}" created successfully!`);
+        setShowCustomDesignationInput(false);
+        // Refresh designations list
+        const desigRes = await fetch("/api/designations");
+        const desigData = await desigRes.json();
+        if (desigData.success && desigData.data) {
+          setDbDesignations(desigData.data);
+        }
+        setFormData(prev => ({ ...prev, designation: customDesignationName.trim() }));
+        setCustomDesignationName("");
+      } else {
+        triggerToast("Failed to create designation: " + data.error);
+      }
+    } catch (err) {
+      triggerToast("Error creating custom designation");
     }
   };
 
@@ -374,6 +439,7 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
   const [updating, setUpdating] = useState(false);
   const [editForm, setEditForm] = useState({
     employeeId: "",
+    companyId: "",
     name: "",
     email: "",
     mobile: "",
@@ -398,7 +464,7 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
 
   const handleStartEditEmployee = (emp: any) => {
     const profile = emp.employeeProfile || {};
-    
+
     const formatDate = (dateStr: any) => {
       if (!dateStr) return "";
       try {
@@ -410,6 +476,7 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
 
     setEditForm({
       employeeId: profile.employeeId || "",
+      companyId: profile.companyId || "",
       name: emp.name || "",
       email: emp.email || "",
       mobile: emp.mobile || "",
@@ -431,7 +498,7 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
       uanNumber: profile.uanNumber || "",
       esiNumber: profile.esiNumber || ""
     });
-    
+
     setShowEditModal(true);
   };
 
@@ -445,7 +512,9 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...editForm,
-          baseSalary: editForm.baseSalary ? Number(editForm.baseSalary) : undefined
+          baseSalary: editForm.baseSalary ? Number(editForm.baseSalary) : null,
+          dateOfBirth: editForm.dateOfBirth === "" ? null : editForm.dateOfBirth,
+          dateOfJoining: editForm.dateOfJoining === "" ? null : editForm.dateOfJoining,
         })
       });
       const data = await res.json();
@@ -487,7 +556,7 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
 
   // Find current user profile
   const currentUser = employees.find(emp => emp.id === sessionUser?.id);
-  
+
   let currentUserComps: any[] = [];
   if (currentUser) {
     if (Array.isArray(currentUser.companies)) {
@@ -603,7 +672,7 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
         setFormData(prev => ({ ...prev, companyId: matched.id }));
       }
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showAddForm, visibleCompanyOptions.join(','), companies, userRole]);
 
   // Filter roles based on selected department for display
@@ -611,10 +680,42 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
     ? Array.from(new Set(dbRoles.filter((r: any) => (r.department || "").toLowerCase() === (formData.department || "Human Resources (HR)").toLowerCase()).map((r: any) => r.name)))
     : (departmentRoles[formData.department || "Human Resources (HR)"] || ["Employee"]);
 
-  // Get all unique roles from dbRoles for filtering
-  const uniqueRoleNames = dbRoles.length > 0
-    ? Array.from(new Set(dbRoles.map((r: any) => r.name).filter(Boolean)))
-    : Array.from(new Set(Object.values(departmentRoles).flat()));
+  // Get all unique roles of actually created users/employees across all companies
+  const uniqueRoleNames = Array.from(new Set(employees.map((emp: any) => emp.role).filter(Boolean))).sort();
+
+  // Filter designations based on selected department
+  const filteredDesignations = dbDesignations.filter(
+    (d: any) => (d.department_id || "").toLowerCase() === (formData.department || "Human Resources (HR)").toLowerCase()
+  );
+  const displayDesignations = filteredDesignations.length > 0
+    ? filteredDesignations
+    : dbDesignations.filter((d: any) => d.department_id === "global").length > 0
+      ? dbDesignations.filter((d: any) => d.department_id === "global")
+      : [
+          { id: "desig_intern", name: "Intern" },
+          { id: "desig_employee", name: "Employee" },
+          { id: "desig_dept_head", name: "Department Head" },
+          { id: "desig_manager", name: "Manager" }
+        ];
+
+  // Helper definitions for editing employee designations and roles dynamically based on department selection
+  const editFilteredDesignations = dbDesignations.filter(
+    (d: any) => (d.department_id || "").toLowerCase() === (editForm.department || "Human Resources (HR)").toLowerCase()
+  );
+  const editDisplayDesignations = editFilteredDesignations.length > 0
+    ? editFilteredDesignations
+    : dbDesignations.filter((d: any) => d.department_id === "global").length > 0
+      ? dbDesignations.filter((d: any) => d.department_id === "global")
+      : [
+          { id: "desig_intern", name: "Intern" },
+          { id: "desig_employee", name: "Employee" },
+          { id: "desig_dept_head", name: "Department Head" },
+          { id: "desig_manager", name: "Manager" }
+        ];
+
+  const editRolesList = dbRoles.length > 0
+    ? Array.from(new Set(dbRoles.filter((r: any) => (r.department || "").toLowerCase() === (editForm.department || "Human Resources (HR)").toLowerCase()).map((r: any) => r.name)))
+    : (departmentRoles[editForm.department || "Human Resources (HR)"] || ["Employee"]);
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -642,8 +743,8 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
           <h2 className={`text-lg font-bold mb-6 ${isDark ? "text-white" : "text-slate-800"}`}>Onboard New Employee</h2>
 
           <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Top Selection for Company, Department, and Role */}
-            <div className={`p-4 rounded-xl border mb-6 grid grid-cols-1 md:grid-cols-3 gap-6 ${isDark ? "bg-gray-800/40 border-gray-700" : "bg-slate-50 border-slate-200"}`}>
+            {/* Top Selection for Company, Department, Role, and Designation */}
+            <div className={`p-4 rounded-xl border mb-6 grid grid-cols-1 md:grid-cols-4 gap-6 ${isDark ? "bg-gray-800/40 border-gray-700" : "bg-slate-50 border-slate-200"}`}>
               <div>
                 <label className={`block text-xs font-bold mb-1.5 ${isDark ? "text-indigo-400" : "text-indigo-600"}`}>Company *</label>
                 <select
@@ -737,6 +838,52 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
                   </div>
                 )}
               </div>
+              <div>
+                <label className={`block text-xs font-bold mb-1.5 ${isDark ? "text-indigo-400" : "text-indigo-600"}`}>Designation *</label>
+                <select
+                  value={formData.designation}
+                  onChange={(e) => {
+                    if (e.target.value === "add_custom_designation") {
+                      setShowCustomDesignationInput(true);
+                    } else {
+                      setShowCustomDesignationInput(false);
+                      setFormData(prev => ({ ...prev, designation: e.target.value }));
+                    }
+                  }}
+                  required
+                  className={`w-full p-2.5 rounded-lg border text-sm font-bold focus:border-indigo-500 focus:outline-none ${isDark ? "bg-gray-800 border-gray-700 text-white" : "bg-white border-slate-200"}`}
+                >
+                  {displayDesignations.map((d: any) => (
+                    <option key={d.id} value={d.name}>{d.name}</option>
+                  ))}
+                  <option value="add_custom_designation">+ Add New Designation...</option>
+                </select>
+                {showCustomDesignationInput && (
+                  <div className="mt-2 flex gap-2">
+                    <input
+                      type="text"
+                      value={customDesignationName}
+                      onChange={e => setCustomDesignationName(e.target.value)}
+                      placeholder="New Designation"
+                      className={`flex-1 p-2 rounded border text-xs focus:outline-none focus:border-indigo-500 ${isDark ? "bg-gray-800 border-gray-700 text-white" : "bg-slate-50 border-slate-200 text-slate-700"}`}
+                    />
+                    <button
+                      type="button"
+                      onClick={handleAddCustomDesignation}
+                      className="bg-indigo-600 hover:bg-indigo-700 text-white text-xs px-3 py-1.5 rounded font-bold transition-all"
+                    >
+                      Add
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { setShowCustomDesignationInput(false); setCustomDesignationName(""); }}
+                      className={`text-xs px-3 py-1.5 rounded font-bold border transition-all ${isDark ? "bg-gray-800 border-gray-700 text-gray-300 hover:bg-gray-700" : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"}`}
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -804,9 +951,52 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
                   </div>
                   <div>
                     <label className={`block text-xs font-bold mb-1.5 ${isDark ? "text-gray-300" : "text-slate-700"}`}>Designation *</label>
-                    <input type="text" name="designation" value={formData.designation} onChange={handleChange} required
-                      className={`w-full p-2.5 rounded-lg border text-sm focus:border-indigo-500 focus:outline-none ${isDark ? "bg-gray-800 border-gray-700 text-white" : "bg-slate-50 border-slate-200"}`} />
+                    <select
+                      name="designation"
+                      value={formData.designation}
+                      onChange={(e) => {
+                        if (e.target.value === "add_custom_designation") {
+                          setShowCustomDesignationInput(true);
+                        } else {
+                          setShowCustomDesignationInput(false);
+                          setFormData(prev => ({ ...prev, designation: e.target.value }));
+                        }
+                      }}
+                      required
+                      className={`w-full p-2.5 rounded-lg border text-sm font-bold focus:border-indigo-500 focus:outline-none ${isDark ? "bg-gray-800 border-gray-700 text-white" : "bg-white border-slate-200"}`}
+                    >
+                      {displayDesignations.map((d: any) => (
+                        <option key={d.id} value={d.name}>{d.name}</option>
+                      ))}
+                      <option value="add_custom_designation">+ Add New Designation...</option>
+                    </select>
+                    {showCustomDesignationInput && (
+                      <div className="mt-2 flex gap-2">
+                        <input
+                          type="text"
+                          value={customDesignationName}
+                          onChange={e => setCustomDesignationName(e.target.value)}
+                          placeholder="New Designation Name"
+                          className={`flex-1 p-2 rounded border text-xs focus:outline-none focus:border-indigo-500 ${isDark ? "bg-gray-800 border-gray-700 text-white" : "bg-slate-50 border-slate-200 text-slate-700"}`}
+                        />
+                        <button
+                          type="button"
+                          onClick={handleAddCustomDesignation}
+                          className="bg-indigo-600 hover:bg-indigo-700 text-white text-xs px-3 py-1.5 rounded font-bold transition-all"
+                        >
+                          Add
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => { setShowCustomDesignationInput(false); setCustomDesignationName(""); }}
+                          className={`text-xs px-3 py-1.5 rounded font-bold border transition-all ${isDark ? "bg-gray-800 border-gray-700 text-gray-300 hover:bg-gray-700" : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"}`}
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    )}
                   </div>
+
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
@@ -905,74 +1095,74 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
                     ) : (
                       filteredEmployees.map(emp => (
                         <React.Fragment key={emp.id}>
-                          <tr 
+                          <tr
                             className={`cursor-pointer transition-colors ${isDark ? "hover:bg-gray-800/50" : "hover:bg-slate-50"} ${expandedRow === emp.id ? (isDark ? "bg-gray-800/30" : "bg-indigo-50/30") : ""}`}
                             onClick={() => toggleRow(emp.id)}
                           >
-                          <td className="px-6 py-4">
-                            <div className="font-bold">{emp.name}</div>
-                            <div className={`text-xs mt-0.5 flex items-center gap-1 ${isDark ? "text-gray-500" : "text-slate-500"}`}>
-                              <Mail className="w-3 h-3" /> {emp.email}
-                            </div>
-                          </td>
-                          <td className="px-6 py-4">
-                            {emp.companies && emp.companies.length > 0 ? (
-                              <div className="flex flex-col">
-                                <span className="font-bold text-indigo-600 dark:text-indigo-400">{emp.companies[0].name}</span>
-                                <span className={`text-[10px] font-mono mt-0.5 ${isDark ? "text-gray-500" : "text-slate-400"}`}>CODE: {emp.companies[0].code}</span>
+                            <td className="px-6 py-4">
+                              <div className="font-bold">{emp.name}</div>
+                              <div className={`text-xs mt-0.5 flex items-center gap-1 ${isDark ? "text-gray-500" : "text-slate-500"}`}>
+                                <Mail className="w-3 h-3" /> {emp.email}
                               </div>
-                            ) : (
-                              <span className="text-slate-400 italic text-xs">Unassigned</span>
-                            )}
-                          </td>
-                          <td className="px-6 py-4">
-                            <span className={`px-2 py-0.5 text-[10px] font-bold rounded ${isDark ? "bg-indigo-900/50 text-indigo-300" : "bg-indigo-50 text-indigo-700"}`}>{emp.role}</span>
-                            {emp.employeeProfile?.employeeId && (
-                              <div className={`text-xs font-mono mt-1 flex flex-col gap-0.5 ${isDark ? "text-emerald-400" : "text-emerald-600"}`}>
-                                <div className="flex items-center gap-1">
-                                  <UserCheck className="w-3 h-3" /> {emp.employeeProfile.employeeId} - {emp.employeeProfile.designation}
-                                </div>
-                                {emp.employeeProfile.department && (
-                                  <div className="text-[10px] text-slate-450 dark:text-gray-400 italic">
-                                    Dept: {typeof emp.employeeProfile.department === "object" ? emp.employeeProfile.department.name : emp.employeeProfile.department}
-                                  </div>
-                                )}
-                              </div>
-                            )}
-                          </td>
-                          <td className="px-6 py-4">
-                            {emp.isOnProbation ? (
-                              <span className="px-2.5 py-1 text-[10px] font-black tracking-wider uppercase font-mono rounded bg-amber-100 text-amber-800 dark:bg-amber-950/50 dark:text-amber-300">
-                                Probation
-                              </span>
-                            ) : emp.status === "on notice" ? (
-                              <span className="px-2.5 py-1 text-[10px] font-black tracking-wider uppercase font-mono rounded bg-orange-100 text-orange-800 dark:bg-orange-950/50 dark:text-orange-300">
-                                On Notice
-                              </span>
-                            ) : (
-                              <span className={`px-2.5 py-1 text-[10px] font-black tracking-wider uppercase font-mono rounded ${emp.status === "active" ? "badge-active" : "badge-inactive"}`}>
-                                {emp.status}
-                              </span>
-                            )}
-                          </td>
-                          {isManagement && (
-                            <td className="px-6 py-4 text-right flex justify-end gap-2">
-                              <button
-                                className="text-indigo-500 hover:text-white hover:bg-indigo-600 p-1.5 rounded transition-all"
-                                onClick={(e) => { e.stopPropagation(); handleStartEditEmployee(emp); }}
-                                title="Edit Staff Member"
-                              >
-                                <Edit3 className="w-4 h-4" />
-                              </button>
-                              <button
-                                className="text-rose-500 hover:text-white hover:bg-rose-600 p-1.5 rounded transition-all"
-                                onClick={(e) => { e.stopPropagation(); handleDelete(emp.id, emp.name); }}
-                                title="Terminate Staff Member"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </button>
                             </td>
-                          )}
+                            <td className="px-6 py-4">
+                              {emp.companies && emp.companies.length > 0 ? (
+                                <div className="flex flex-col">
+                                  <span className="font-bold text-indigo-600 dark:text-indigo-400">{emp.companies[0].name}</span>
+                                  <span className={`text-[10px] font-mono mt-0.5 ${isDark ? "text-gray-500" : "text-slate-400"}`}>CODE: {emp.companies[0].code}</span>
+                                </div>
+                              ) : (
+                                <span className="text-slate-400 italic text-xs">Unassigned</span>
+                              )}
+                            </td>
+                            <td className="px-6 py-4">
+                              <span className={`px-2 py-0.5 text-[10px] font-bold rounded ${isDark ? "bg-indigo-900/50 text-indigo-300" : "bg-indigo-50 text-indigo-700"}`}>{emp.role}</span>
+                              {emp.employeeProfile?.employeeId && (
+                                <div className={`text-xs font-mono mt-1 flex flex-col gap-0.5 ${isDark ? "text-emerald-400" : "text-emerald-600"}`}>
+                                  <div className="flex items-center gap-1">
+                                    <UserCheck className="w-3 h-3" /> {emp.employeeProfile.employeeId} - {emp.employeeProfile.designation}
+                                  </div>
+                                  {emp.employeeProfile.department && (
+                                    <div className="text-[10px] text-slate-450 dark:text-gray-400 italic">
+                                      Dept: {typeof emp.employeeProfile.department === "object" ? emp.employeeProfile.department.name : emp.employeeProfile.department}
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+                            </td>
+                            <td className="px-6 py-4">
+                              {emp.isOnProbation ? (
+                                <span className="px-2.5 py-1 text-[10px] font-black tracking-wider uppercase font-mono rounded bg-amber-100 text-amber-800 dark:bg-amber-950/50 dark:text-amber-300">
+                                  Probation
+                                </span>
+                              ) : emp.status === "on notice" ? (
+                                <span className="px-2.5 py-1 text-[10px] font-black tracking-wider uppercase font-mono rounded bg-orange-100 text-orange-800 dark:bg-orange-950/50 dark:text-orange-300">
+                                  On Notice
+                                </span>
+                              ) : (
+                                <span className={`px-2.5 py-1 text-[10px] font-black tracking-wider uppercase font-mono rounded ${emp.status === "active" ? "badge-active" : "badge-inactive"}`}>
+                                  {emp.status}
+                                </span>
+                              )}
+                            </td>
+                            {isManagement && (
+                              <td className="px-6 py-4 text-right flex justify-end gap-2">
+                                <button
+                                  className="text-indigo-500 hover:text-white hover:bg-indigo-600 p-1.5 rounded transition-all"
+                                  onClick={(e) => { e.stopPropagation(); handleStartEditEmployee(emp); }}
+                                  title="Edit Staff Member"
+                                >
+                                  <Edit3 className="w-4 h-4" />
+                                </button>
+                                <button
+                                  className="text-rose-500 hover:text-white hover:bg-rose-600 p-1.5 rounded transition-all"
+                                  onClick={(e) => { e.stopPropagation(); handleDelete(emp.id, emp.name); }}
+                                  title="Terminate Staff Member"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              </td>
+                            )}
                           </tr>
                           {expandedRow === emp.id && (
                             <tr className={`border-b ${isDark ? "border-gray-800" : "border-slate-100"}`}>
@@ -982,7 +1172,7 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
                                     <ShieldCheck className="w-4 h-4 text-emerald-500" />
                                     <h4 className="font-bold text-xs uppercase tracking-wider">Complete Employee Profile</h4>
                                   </div>
-                                  
+
                                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                                     <div className="space-y-3">
                                       <div>
@@ -996,7 +1186,7 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
                                         </div>
                                       </div>
                                     </div>
-                                    
+
                                     <div className="space-y-3">
                                       <div>
                                         <div className="text-[10px] font-bold uppercase text-slate-400 dark:text-gray-500 mb-0.5">Date of Joining</div>
@@ -1007,7 +1197,7 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
                                         <div className="text-xs font-mono">{emp.role} Access Level</div>
                                       </div>
                                     </div>
-                                    
+
                                     <div className="space-y-3">
                                       <div>
                                         <div className="text-[10px] font-bold uppercase text-slate-400 dark:text-gray-500 mb-0.5">Leave Balances</div>
@@ -1074,8 +1264,8 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
       {showEditModal && (
         <div className="fixed inset-0 bg-[#070810]/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm overflow-y-auto">
           <div className={`border w-full max-w-2xl rounded-2xl p-6 relative shadow-2xl animate-fade-in ${isDark ? "bg-gray-900 border-gray-800 text-white" : "bg-white border-slate-200 text-slate-800"}`}>
-            <button 
-              onClick={() => setShowEditModal(false)} 
+            <button
+              onClick={() => setShowEditModal(false)}
               className={`absolute top-4 right-4 p-1.5 rounded-lg border transition-all ${isDark ? "bg-gray-800 border-gray-700 text-gray-400 hover:text-white" : "bg-slate-50 border-slate-200 text-slate-500 hover:text-slate-700"}`}
             >
               <X className="w-4 h-4" />
@@ -1086,12 +1276,39 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
               <h3 className="text-base font-bold uppercase tracking-wider font-mono">Edit Employee Details</h3>
             </div>
 
-            <form onSubmit={handleEditEmployeeSubmit} className="space-y-6 max-h-[70vh] overflow-y-auto pr-2 text-left">
-              {/* 1. Core Profile Details */}
-              <div className="space-y-4">
-                <h4 className="text-xs font-bold uppercase tracking-widest text-indigo-600 dark:text-indigo-400">1. Core Profile Details</h4>
-                
+            <form onSubmit={handleEditEmployeeSubmit} className="flex flex-col h-full max-h-[85vh] text-left">
+              {/* Scrollable inputs */}
+              <div className="flex-1 overflow-y-auto pr-2 space-y-6 max-h-[55vh]">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Company (disabled) */}
+                  <div>
+                    <label className="block text-xs font-bold mb-1.5 text-slate-700 dark:text-gray-300">Company</label>
+                    <select
+                      disabled
+                      value={editForm.companyId || (employees.find(emp => emp.id === editForm.employeeId)?.employeeProfile?.companyId || "")}
+                      className="w-full p-2.5 rounded-lg border text-sm focus:outline-none opacity-60 cursor-not-allowed bg-slate-200 border-slate-200 text-slate-655 dark:bg-gray-850 dark:border-gray-700 dark:text-gray-400 font-semibold"
+                    >
+                      <option value="">-- Assigned Company --</option>
+                      {companies.map(c => (
+                        <option key={c.id} value={c.id}>{c.name} ({c.code})</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Employee ID (read-only) */}
+                  <div>
+                    <label className="block text-xs font-bold mb-1.5 text-slate-700 dark:text-gray-300">Employee ID</label>
+                    <input
+                      type="text"
+                      readOnly
+                      value={editForm.employeeId}
+                      className="w-full p-2.5 rounded-lg border text-sm focus:outline-none opacity-80 cursor-not-allowed bg-slate-100 border-slate-200 text-slate-500 dark:bg-gray-800/80 dark:border-gray-700 dark:text-gray-400"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Full Name */}
                   <div>
                     <label className="block text-xs font-bold mb-1.5 text-slate-700 dark:text-gray-300">Full Name *</label>
                     <input
@@ -1102,6 +1319,8 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
                       className={`w-full p-2.5 rounded-lg border text-sm focus:border-indigo-500 focus:outline-none ${isDark ? "bg-gray-800 border-gray-700 text-white" : "bg-slate-50 border-slate-200"}`}
                     />
                   </div>
+
+                  {/* Email */}
                   <div>
                     <label className="block text-xs font-bold mb-1.5 text-slate-700 dark:text-gray-300">Email Address *</label>
                     <input
@@ -1114,7 +1333,8 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Mobile */}
                   <div>
                     <label className="block text-xs font-bold mb-1.5 text-slate-700 dark:text-gray-300">Mobile Number *</label>
                     <input
@@ -1125,21 +1345,39 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
                       className={`w-full p-2.5 rounded-lg border text-sm focus:border-indigo-500 focus:outline-none ${isDark ? "bg-gray-800 border-gray-700 text-white" : "bg-slate-50 border-slate-200"}`}
                     />
                   </div>
+
+                  {/* Base Salary */}
                   <div>
-                    <label className="block text-xs font-bold mb-1.5 text-slate-700 dark:text-gray-300">Designation *</label>
+                    <label className="block text-xs font-bold mb-1.5 text-slate-700 dark:text-gray-300">Base Salary (Monthly) *</label>
                     <input
-                      type="text"
+                      type="number"
                       required
-                      value={editForm.designation}
-                      onChange={(e) => setEditForm(prev => ({ ...prev, designation: e.target.value }))}
+                      value={editForm.baseSalary}
+                      onChange={(e) => setEditForm(prev => ({ ...prev, baseSalary: e.target.value }))}
                       className={`w-full p-2.5 rounded-lg border text-sm focus:border-indigo-500 focus:outline-none ${isDark ? "bg-gray-800 border-gray-700 text-white" : "bg-slate-50 border-slate-200"}`}
                     />
                   </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {/* Department */}
                   <div>
-                    <label className="block text-xs font-bold mb-1.5 text-slate-700 dark:text-gray-300">Department</label>
+                    <label className="block text-xs font-bold mb-1.5 text-slate-700 dark:text-gray-300">Department *</label>
                     <select
                       value={editForm.department}
-                      onChange={(e) => setEditForm(prev => ({ ...prev, department: e.target.value }))}
+                      onChange={(e) => {
+                        const newDept = e.target.value;
+                        const currentList = dbRoles.length > 0
+                          ? Array.from(new Set(dbRoles.filter((r: any) => (r.department || "").toLowerCase() === newDept.toLowerCase()).map((r: any) => r.name)))
+                          : (departmentRoles[newDept] || ["Employee"]);
+                        const defaultRole = currentList[0] || "Employee";
+                        setEditForm(prev => ({
+                          ...prev,
+                          department: newDept,
+                          role: defaultRole
+                        }));
+                      }}
+                      required
                       className={`w-full p-2.5 rounded-lg border text-sm focus:border-indigo-500 focus:outline-none ${isDark ? "bg-gray-800 border-gray-700 text-white" : "bg-slate-50 border-slate-200 font-semibold"}`}
                     >
                       <option value="">-- Choose Department --</option>
@@ -1148,27 +1386,40 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
                       ))}
                     </select>
                   </div>
-                </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {/* Designation */}
+                  <div>
+                    <label className="block text-xs font-bold mb-1.5 text-slate-700 dark:text-gray-300">Designation *</label>
+                    <select
+                      value={editForm.designation}
+                      onChange={(e) => setEditForm(prev => ({ ...prev, designation: e.target.value }))}
+                      required
+                      className={`w-full p-2.5 rounded-lg border text-sm focus:border-indigo-500 focus:outline-none ${isDark ? "bg-gray-800 border-gray-700 text-white" : "bg-slate-50 border-slate-200 font-semibold"}`}
+                    >
+                      {editDisplayDesignations.map((d: any) => (
+                        <option key={d.id} value={d.name}>{d.name}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* System Role */}
                   <div>
                     <label className="block text-xs font-bold mb-1.5 text-slate-700 dark:text-gray-300">System Role *</label>
                     <select
                       value={editForm.role}
                       onChange={(e) => setEditForm(prev => ({ ...prev, role: e.target.value }))}
+                      required
                       className={`w-full p-2.5 rounded-lg border text-sm focus:border-indigo-500 focus:outline-none ${isDark ? "bg-gray-800 border-gray-700 text-white" : "bg-slate-50 border-slate-200 font-semibold"}`}
                     >
-                      <option value="Owner">Owner</option>
-                      <option value="Director">Director</option>
-                      <option value="HR Head">HR Head</option>
-                      <option value="HR Executive">HR Executive</option>
-                      <option value="Department Manager">Department Manager</option>
-                      <option value="Employee">Employee</option>
-                      <option value="Accounts">Accounts</option>
-                      <option value="Trainer">Trainer</option>
-                      <option value="IT Admin">IT Admin</option>
+                      {editRolesList.map((r: any, idx: number) => (
+                        <option key={idx} value={r}>{r}</option>
+                      ))}
                     </select>
                   </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Status */}
                   <div>
                     <label className="block text-xs font-bold mb-1.5 text-slate-700 dark:text-gray-300">Status *</label>
                     <select
@@ -1181,10 +1432,13 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
                       <option value="on notice">On Notice</option>
                     </select>
                   </div>
+
+                  {/* Date of Joining */}
                   <div>
-                    <label className="block text-xs font-bold mb-1.5 text-slate-700 dark:text-gray-300">Date of Joining</label>
+                    <label className="block text-xs font-bold mb-1.5 text-slate-700 dark:text-gray-300">Date of Joining *</label>
                     <input
                       type="date"
+                      required
                       value={editForm.dateOfJoining}
                       onChange={(e) => setEditForm(prev => ({ ...prev, dateOfJoining: e.target.value }))}
                       className={`w-full p-2.5 rounded-lg border text-sm focus:border-indigo-500 focus:outline-none ${isDark ? "bg-gray-800 border-gray-700 text-white" : "bg-slate-50 border-slate-200"}`}
@@ -1193,148 +1447,8 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
                 </div>
               </div>
 
-              {/* 2. Financial Info */}
-              <div className="space-y-4 pt-4 border-t border-slate-100 dark:border-gray-800">
-                <h4 className="text-xs font-bold uppercase tracking-widest text-indigo-600 dark:text-indigo-400">2. Financial Info</h4>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs font-bold mb-1.5 text-slate-700 dark:text-gray-300">Base Salary (Monthly)</label>
-                    <input
-                      type="number"
-                      value={editForm.baseSalary}
-                      onChange={(e) => setEditForm(prev => ({ ...prev, baseSalary: e.target.value }))}
-                      className={`w-full p-2.5 rounded-lg border text-sm focus:border-indigo-500 focus:outline-none ${isDark ? "bg-gray-800 border-gray-700 text-white" : "bg-slate-50 border-slate-200"}`}
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold mb-1.5 text-slate-700 dark:text-gray-300">PAN Number</label>
-                    <input
-                      type="text"
-                      value={editForm.panNumber}
-                      onChange={(e) => setEditForm(prev => ({ ...prev, panNumber: e.target.value }))}
-                      className={`w-full p-2.5 rounded-lg border text-sm focus:border-indigo-500 focus:outline-none ${isDark ? "bg-gray-800 border-gray-700 text-white" : "bg-slate-50 border-slate-200"}`}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* 3. Personal & Identity Details */}
-              <div className="space-y-4 pt-4 border-t border-slate-100 dark:border-gray-800">
-                <h4 className="text-xs font-bold uppercase tracking-widest text-indigo-600 dark:text-indigo-400">3. Personal & Identity Details</h4>
-                
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                  <div className="md:col-span-2">
-                    <label className="block text-xs font-bold mb-1.5 text-slate-700 dark:text-gray-300">Aadhaar Number</label>
-                    <input
-                      type="text"
-                      value={editForm.aadhaarNumber}
-                      onChange={(e) => setEditForm(prev => ({ ...prev, aadhaarNumber: e.target.value }))}
-                      className={`w-full p-2.5 rounded-lg border text-sm focus:border-indigo-500 focus:outline-none ${isDark ? "bg-gray-800 border-gray-700 text-white" : "bg-slate-50 border-slate-200"}`}
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold mb-1.5 text-slate-700 dark:text-gray-300">Gender</label>
-                    <select
-                      value={editForm.gender}
-                      onChange={(e) => setEditForm(prev => ({ ...prev, gender: e.target.value }))}
-                      className={`w-full p-2.5 rounded-lg border text-sm focus:border-indigo-500 focus:outline-none ${isDark ? "bg-gray-800 border-gray-700 text-white" : "bg-slate-50 border-slate-200 font-semibold"}`}
-                    >
-                      <option value="">Select</option>
-                      <option value="Male">Male</option>
-                      <option value="Female">Female</option>
-                      <option value="Other">Other</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold mb-1.5 text-slate-700 dark:text-gray-300">Blood Group</label>
-                    <input
-                      type="text"
-                      placeholder="e.g. O+"
-                      value={editForm.bloodGroup}
-                      onChange={(e) => setEditForm(prev => ({ ...prev, bloodGroup: e.target.value }))}
-                      className={`w-full p-2.5 rounded-lg border text-sm focus:border-indigo-500 focus:outline-none ${isDark ? "bg-gray-800 border-gray-700 text-white" : "bg-slate-50 border-slate-200"}`}
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                  <div>
-                    <label className="block text-xs font-bold mb-1.5 text-slate-700 dark:text-gray-300">Date of Birth</label>
-                    <input
-                      type="date"
-                      value={editForm.dateOfBirth}
-                      onChange={(e) => setEditForm(prev => ({ ...prev, dateOfBirth: e.target.value }))}
-                      className={`w-full p-2.5 rounded-lg border text-sm focus:border-indigo-500 focus:outline-none ${isDark ? "bg-gray-800 border-gray-700 text-white" : "bg-slate-50 border-slate-200"}`}
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold mb-1.5 text-slate-700 dark:text-gray-300">PF Number</label>
-                    <input
-                      type="text"
-                      value={editForm.pfNumber}
-                      onChange={(e) => setEditForm(prev => ({ ...prev, pfNumber: e.target.value }))}
-                      className={`w-full p-2.5 rounded-lg border text-sm focus:border-indigo-500 focus:outline-none ${isDark ? "bg-gray-800 border-gray-700 text-white" : "bg-slate-50 border-slate-200"}`}
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold mb-1.5 text-slate-700 dark:text-gray-300">UAN Number</label>
-                    <input
-                      type="text"
-                      value={editForm.uanNumber}
-                      onChange={(e) => setEditForm(prev => ({ ...prev, uanNumber: e.target.value }))}
-                      className={`w-full p-2.5 rounded-lg border text-sm focus:border-indigo-500 focus:outline-none ${isDark ? "bg-gray-800 border-gray-700 text-white" : "bg-slate-50 border-slate-200"}`}
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold mb-1.5 text-slate-700 dark:text-gray-300">ESI Number</label>
-                    <input
-                      type="text"
-                      value={editForm.esiNumber}
-                      onChange={(e) => setEditForm(prev => ({ ...prev, esiNumber: e.target.value }))}
-                      className={`w-full p-2.5 rounded-lg border text-sm focus:border-indigo-500 focus:outline-none ${isDark ? "bg-gray-800 border-gray-700 text-white" : "bg-slate-50 border-slate-200"}`}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* 4. Bank Information */}
-              <div className="space-y-4 pt-4 border-t border-slate-100 dark:border-gray-800 pb-4">
-                <h4 className="text-xs font-bold uppercase tracking-widest text-indigo-600 dark:text-indigo-400">4. Bank Information</h4>
-                
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div>
-                    <label className="block text-xs font-bold mb-1.5 text-slate-700 dark:text-gray-300">Bank Name</label>
-                    <input
-                      type="text"
-                      value={editForm.bankName}
-                      onChange={(e) => setEditForm(prev => ({ ...prev, bankName: e.target.value }))}
-                      className={`w-full p-2.5 rounded-lg border text-sm focus:border-indigo-500 focus:outline-none ${isDark ? "bg-gray-800 border-gray-700 text-white" : "bg-slate-50 border-slate-200"}`}
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold mb-1.5 text-slate-700 dark:text-gray-300">Account Number</label>
-                    <input
-                      type="text"
-                      value={editForm.accountNumber}
-                      onChange={(e) => setEditForm(prev => ({ ...prev, accountNumber: e.target.value }))}
-                      className={`w-full p-2.5 rounded-lg border text-sm focus:border-indigo-500 focus:outline-none ${isDark ? "bg-gray-800 border-gray-700 text-white" : "bg-slate-50 border-slate-200"}`}
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold mb-1.5 text-slate-700 dark:text-gray-300">IFSC Code</label>
-                    <input
-                      type="text"
-                      value={editForm.ifscCode}
-                      onChange={(e) => setEditForm(prev => ({ ...prev, ifscCode: e.target.value }))}
-                      className={`w-full p-2.5 rounded-lg border text-sm focus:border-indigo-500 focus:outline-none ${isDark ? "bg-gray-800 border-gray-700 text-white" : "bg-slate-50 border-slate-200"}`}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Submit Buttons */}
-              <div className="flex gap-4 pt-4 border-t border-slate-200 dark:border-gray-800">
+              {/* Action Buttons Footer */}
+              <div className="flex gap-4 pt-4 mt-6 border-t border-slate-200 dark:border-gray-800">
                 <button
                   type="button"
                   onClick={() => setShowEditModal(false)}
@@ -1347,7 +1461,7 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
                   disabled={updating}
                   className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white py-3 rounded-xl text-xs font-bold transition-all shadow-md disabled:opacity-50"
                 >
-                  {updating ? "Saving Changes..." : "Save Modifications"}
+                  {updating ? "Updating..." : "Update Details"}
                 </button>
               </div>
             </form>

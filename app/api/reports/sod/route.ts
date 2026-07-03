@@ -7,6 +7,7 @@ import SodReport from "@/models/sequelize/SodReport";
 import Attendance from "@/models/sequelize/Attendance";
 import TaskLog from "@/models/sequelize/TaskLog";
 import { logAudit } from "@/lib/audit";
+import { Op } from "sequelize";
 
 // GET: Fetch today's SOD for the logged-in user
 export async function GET(req: Request) {
@@ -22,8 +23,18 @@ export async function GET(req: Request) {
 
     const today = new Date();
     today.setUTCHours(0, 0, 0, 0);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
 
-    const record = await SodReport.findOne({ where: { employee: userId, date: today } });
+    const record = await SodReport.findOne({
+      where: {
+        employee: userId,
+        date: {
+          [Op.gte]: today,
+          [Op.lt]: tomorrow
+        }
+      }
+    });
     return NextResponse.json({ success: true, data: record });
   } catch (error: any) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
@@ -56,9 +67,19 @@ export async function POST(req: Request) {
 
     const today = new Date();
     today.setUTCHours(0, 0, 0, 0);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
 
     // Prevent duplicates
-    const exists = await SodReport.findOne({ where: { employee: userId, date: today } });
+    const exists = await SodReport.findOne({
+      where: {
+        employee: userId,
+        date: {
+          [Op.gte]: today,
+          [Op.lt]: tomorrow
+        }
+      }
+    });
     if (exists) {
       return NextResponse.json({ success: false, error: "SOD already declared for today" }, { status: 400 });
     }
@@ -76,7 +97,15 @@ export async function POST(req: Request) {
     });
 
     // Auto-punch attendance check-in (Present) if not already punched today
-    const attendanceExists = await Attendance.findOne({ where: { employee: userId, date: today } });
+    const attendanceExists = await Attendance.findOne({
+      where: {
+        employee: userId,
+        date: {
+          [Op.gte]: today,
+          [Op.lt]: tomorrow
+        }
+      }
+    });
     if (!attendanceExists) {
       await Attendance.create({
         id: Date.now().toString(),

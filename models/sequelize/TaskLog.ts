@@ -36,6 +36,33 @@ TaskLog.init(
       type: DataTypes.STRING,
       allowNull: true,
     },
+    scheduledAt: {
+      type: DataTypes.DATE,
+      allowNull: true,
+    },
+    forwardedTo: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    reminderSent: {
+      type: DataTypes.BOOLEAN,
+      allowNull: true,
+      defaultValue: false,
+    },
+    timerStart: {
+      type: DataTypes.DATE,
+      allowNull: true,
+    },
+    timerState: {
+      type: DataTypes.STRING,
+      allowNull: true,
+      defaultValue: "Stopped",
+    },
+    elapsedSeconds: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+      defaultValue: 0,
+    },
     status: {
       type: DataTypes.STRING,
       allowNull: true,
