@@ -238,7 +238,7 @@ export default function KanbanBoard() {
   };
 
   const saveProgressNotes = async () => {
-    if (!selectedTask) return;
+    if (!selectedTask) return false;
     setSavingNotes(true);
     try {
       const res = await fetch("/api/tasks", {
@@ -250,9 +250,12 @@ export default function KanbanBoard() {
       if (data.success) {
         setTasks(prev => prev.map(t => t.id === selectedTask.id ? { ...t, progressNotes: editNotes } : t));
         setSelectedTask(prev => prev ? { ...prev, progressNotes: editNotes } : null);
+        return true;
       }
+      return false;
     } catch (err) {
       console.error(err);
+      return false;
     } finally {
       setSavingNotes(false);
     }
@@ -1048,14 +1051,30 @@ export default function KanbanBoard() {
                     <p className="text-[9px] text-slate-400 font-medium">
                       Created: {new Date(selectedTask.createdAt || selectedTask.date).toLocaleString("en-IN", { hour: "2-digit", minute: "2-digit", day: "2-digit", month: "short" })}
                     </p>
-                    <button
-                      onClick={saveProgressNotes}
-                      disabled={savingNotes || editNotes === selectedTask.progressNotes}
-                      className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 disabled:cursor-not-allowed text-white px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all"
-                    >
-                      {savingNotes ? <Loader2 className="w-3 h-3 animate-spin" /> : <Save className="w-3 h-3" />}
-                      {savingNotes ? "Saving..." : "Save Notes"}
-                    </button>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={saveProgressNotes}
+                        disabled={savingNotes || editNotes === selectedTask.progressNotes}
+                        className="flex items-center gap-2 bg-indigo-50 border border-indigo-200 hover:bg-indigo-100 disabled:opacity-40 disabled:cursor-not-allowed text-indigo-700 px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all"
+                      >
+                        {savingNotes ? <Loader2 className="w-3 h-3 animate-spin" /> : <Save className="w-3 h-3" />}
+                        {savingNotes ? "Saving..." : "Save Notes"}
+                      </button>
+                      <button
+                        onClick={async () => {
+                          if (editNotes !== selectedTask.progressNotes) {
+                            const success = await saveProgressNotes();
+                            if (!success) return;
+                          }
+                          setSelectedTask(null);
+                          setIsEditingTask(false);
+                        }}
+                        disabled={savingNotes}
+                        className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all"
+                      >
+                        <CheckCircle2 className="w-3 h-3" /> Save & Close
+                      </button>
+                    </div>
                   </div>
                 </div>
               </>

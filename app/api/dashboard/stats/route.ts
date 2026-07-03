@@ -312,9 +312,105 @@ export async function GET(req: Request) {
         };
       });
 
+    // --- Current User Dynamic Stats (ESS) ---
+    const userId = (session.user as any).id;
+    const userProfile = await EmployeeProfile.findOne({ where: { user: userId } });
+    let casualLeave = 12;
+    let sickLeave = 12;
+    let earnedLeave = 0;
+
+    if (userProfile) {
+      casualLeave = (userProfile.get("leaveBalances.casualLeave") as number) ?? 12;
+      sickLeave = (userProfile.get("leaveBalances.sickLeave") as number) ?? 12;
+      earnedLeave = (userProfile.get("leaveBalances.earnedLeave") as number) ?? 0;
+    }
+
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = now.getMonth();
+    const startOfMonth = new Date(Date.UTC(year, month, 1, 0, 0, 0, 0));
+    const endOfMonth = new Date(Date.UTC(year, month + 1, 0, 23, 59, 59, 999));
+
+    const presentDaysCount = await Attendance.count({
+      where: {
+        employee: userId,
+        status: "Present",
+        date: {
+          [Op.gte]: startOfMonth,
+          [Op.lte]: endOfMonth
+        }
+      }
+    });
+
+    let workingDaysInMonth = 0;
+    const endLimit = new Date();
+    const limitDate = endLimit > endOfMonth ? endOfMonth.getDate() : endLimit.getDate();
+    for (let d = 1; d <= limitDate; d++) {
+      const checkDate = new Date(year, month, d);
+      if (checkDate.getDay() !== 0) { // Exclude Sundays
+        workingDaysInMonth++;
+      }
+    }
+    if (workingDaysInMonth === 0) workingDaysInMonth = 22;
+
+    const holidaysList = [
+      { name: "New Year's Day", date: new Date(year, 0, 1) },
+      { name: "Republic Day", date: new Date(year, 0, 26) },
+      { name: "Holi", date: new Date(year, 2, 3) },
+      { name: "Good Friday", date: new Date(year, 3, 3) },
+      { name: "Eid al-Fitr", date: new Date(year, 2, 20) },
+      { name: "Independence Day", date: new Date(year, 7, 15) },
+      { name: "Gandhi Jayanti", date: new Date(year, 9, 2) },
+      { name: "Dussehra", date: new Date(year, 9, 19) },
+      { name: "Diwali", date: new Date(year, 10, 8) },
+      { name: "Christmas", date: new Date(year, 11, 25) }
+    ];
+
+    const todayDate = new Date();
+    todayDate.setHours(0,0,0,0);
+    const upcomingHoliday = holidaysList.find(h => h.date >= todayDate) || holidaysList[holidaysList.length - 1];
+    const holidayDateStr = upcomingHoliday.date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+
+    // Fetch all approved leaves for this employee in the current month to calculate Casual and Sick Leave taken
+    const userLeavesThisMonth = await Leave.findAll({
+      where: {
+        employee: userId,
+        status: "Approved",
+        startDate: {
+          [Op.gte]: startOfMonth,
+          [Op.lte]: endOfMonth
+        }
+      }
+    });
+
+    let casualLeaveTaken = 0;
+    let sickLeaveTaken = 0;
+
+    userLeavesThisMonth.forEach((l: any) => {
+      const lType = l.type || "Casual Leave";
+      const lDays = l.days || 0;
+      if (lType === "Casual Leave") {
+        casualLeaveTaken += lDays;
+      } else if (lType === "Sick Leave") {
+        sickLeaveTaken += lDays;
+      }
+    });
+
     return NextResponse.json({
       success: true,
       stats: {
+        currentUserStats: {
+          presentDays: presentDaysCount,
+          totalWorkingDays: workingDaysInMonth,
+          attendancePercent: workingDaysInMonth > 0 ? Math.round((presentDaysCount / workingDaysInMonth) * 100) : 100,
+          casualLeave,
+          sickLeave,
+          earnedLeave,
+          casualLeaveTaken,
+          sickLeaveTaken,
+          holidayName: upcomingHoliday.name,
+          holidayDate: holidayDateStr
+        },
         hrActivities,
         candidates: {
           total: totalCandidates,

@@ -357,9 +357,26 @@ export function DailyCommitments({
     }
 
     setSubmittingSOD(true);
-    setLocationStatus("Uploading verification capture...");
+    setLocationStatus("Fetching GPS coordinates...");
 
-    const location = { latitude: 28.6139, longitude: 77.2090, timestamp: new Date() };
+    let location = { latitude: 28.6139, longitude: 77.2090, timestamp: new Date() };
+    try {
+      const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(resolve, reject, {
+          enableHighAccuracy: true,
+          timeout: 4000,
+        });
+      });
+      location = {
+        latitude: position.coords.latitude,
+        longitude: position.coords.longitude,
+        timestamp: new Date(position.timestamp)
+      };
+    } catch (geoErr) {
+      console.warn("GPS access blocked or unavailable for SOD, using fallback location", geoErr);
+    }
+
+    setLocationStatus("Uploading verification capture...");
     let selfieUrl = "";
 
     try {
@@ -581,256 +598,256 @@ export function DailyCommitments({
 
         {/* SOD Planner with Strict Verification */}
         {(formMode === "both" || formMode === "sod") && (
-        <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm flex flex-col">
-          <h3 className="text-xs font-black tracking-widest text-[#714B67] uppercase font-mono pb-2 border-b border-slate-100 mb-4 flex items-center justify-between">
-            <span>📋 SOD</span>
-            {sodAlreadySubmitted && (
-              <span className="bg-emerald-50 text-emerald-700 border border-emerald-200 text-[9px] font-mono font-bold px-2 py-0.5 rounded-full">
-                ALREADY FILED
-              </span>
-            )}
-          </h3>
+          <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm flex flex-col">
+            <h3 className="text-xs font-black tracking-widest text-[#714B67] uppercase font-mono pb-2 border-b border-slate-100 mb-4 flex items-center justify-between">
+              <span>📋 SOD</span>
+              {sodAlreadySubmitted && (
+                <span className="bg-emerald-50 text-emerald-700 border border-emerald-200 text-[9px] font-mono font-bold px-2 py-0.5 rounded-full">
+                  ALREADY FILED
+                </span>
+              )}
+            </h3>
 
-          {sodAlreadySubmitted ? (
-            <div className="flex-1 flex flex-col items-center justify-center p-8 text-center space-y-3 bg-emerald-50/20 border border-dashed border-emerald-200 rounded-xl min-h-[300px]">
-              <div className="bg-emerald-100 p-3 rounded-full text-emerald-600">
-                <CalendarCheck className="w-8 h-8" />
-              </div>
-              <h4 className="text-xs font-black text-slate-800 uppercase tracking-wide">SOD Declared Successfully</h4>
-              <p className="text-[10px] text-slate-500 font-medium max-w-xs leading-relaxed">
-                Your Start of Day planner for today has been logged. You are set to go! Check your entries in the Work Report.
-              </p>
-            </div>
-          ) : !showCamera ? (
-            <div className="space-y-4 font-semibold text-slate-650 flex-1">
-              {/* Profile Bar */}
-              <div className="bg-slate-50 border border-slate-100 rounded-lg p-3 flex justify-between items-center">
-                <div className="flex items-center gap-2">
-                  <User className="w-4 h-4 text-indigo-500" />
-                  <span className="text-xs font-black text-slate-800 uppercase tracking-wide">{sessionUser?.name || "Employee"}</span>
+            {sodAlreadySubmitted ? (
+              <div className="flex-1 flex flex-col items-center justify-center p-8 text-center space-y-3 bg-emerald-50/20 border border-dashed border-emerald-200 rounded-xl min-h-[300px]">
+                <div className="bg-emerald-100 p-3 rounded-full text-emerald-600">
+                  <CalendarCheck className="w-8 h-8" />
                 </div>
-                <div className="flex items-center gap-1 bg-white border border-slate-200 px-2 py-1 rounded">
-                  <Hash className="w-3 h-3 text-slate-400" />
-                  <span className="text-[10px] font-mono text-slate-500 font-bold">{sessionUser?.id ? sessionUser.id.substring(0, 8).toUpperCase() : "USR-101"}</span>
-                </div>
+                <h4 className="text-xs font-black text-slate-800 uppercase tracking-wide">SOD Declared Successfully</h4>
+                <p className="text-[10px] text-slate-500 font-medium max-w-xs leading-relaxed">
+                  Your Start of Day planner for today has been logged. You are set to go! Check your entries in the Work Report.
+                </p>
               </div>
+            ) : !showCamera ? (
+              <div className="space-y-4 font-semibold text-slate-650 flex-1">
+                {/* Profile Bar */}
+                <div className="bg-slate-50 border border-slate-100 rounded-lg p-3 flex justify-between items-center">
+                  <div className="flex items-center gap-2">
+                    <User className="w-4 h-4 text-indigo-500" />
+                    <span className="text-xs font-black text-slate-800 uppercase tracking-wide">{sessionUser?.name || "Employee"}</span>
+                  </div>
+                  <div className="flex items-center gap-1 bg-white border border-slate-200 px-2 py-1 rounded">
+                    <Hash className="w-3 h-3 text-slate-400" />
+                    <span className="text-[10px] font-mono text-slate-500 font-bold">{sessionUser?.id ? sessionUser.id.substring(0, 8).toUpperCase() : "USR-101"}</span>
+                  </div>
+                </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
-                <div className="md:col-span-2">
-                  <label className="text-[10px] uppercase font-black text-slate-500 font-mono tracking-wider">Task Summary *</label>
-                  <input className="w-full bg-white border border-slate-300 rounded p-2 text-xs font-bold text-slate-900 mt-1.5 focus:outline-none focus:border-[#714B67]" placeholder="Briefly describe today's main agenda..." value={taskSummary} onChange={e => setTaskSummary(e.target.value)} required />
-                </div>
-                <div className="md:col-span-2">
-                  <label className="text-[10px] uppercase font-black text-slate-500 font-mono tracking-wider">Task Type *</label>
-                  <select className="w-full bg-white border border-slate-300 rounded p-2 text-xs font-bold text-slate-900 mt-1.5 focus:outline-none focus:border-[#714B67]" value={taskType} onChange={e => setTaskType(e.target.value)}>
-                    <option>Call</option>
-                    <option>Meeting</option>
-                    <option>Development</option>
-                    <option>Marketing</option>
-                    <option>Field Visit</option>
-                    <option>Operations</option>
-                    <option>Support</option>
-                    <option>Other</option>
-                  </select>
-                </div>
-                {taskType === "Other" && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
                   <div className="md:col-span-2">
-                    <label className="text-[10px] uppercase font-black text-slate-500 font-mono tracking-wider">Specify Task Type *</label>
-                    <input className="w-full bg-white border border-slate-300 rounded p-2 text-xs font-bold text-slate-900 mt-1.5 focus:outline-none focus:border-[#714B67]" placeholder="Please specify task type..." value={customTaskType} onChange={e => setCustomTaskType(e.target.value)} required />
+                    <label className="text-[10px] uppercase font-black text-slate-500 font-mono tracking-wider">Task Summary *</label>
+                    <input className="w-full bg-white border border-slate-300 rounded p-2 text-xs font-bold text-slate-900 mt-1.5 focus:outline-none focus:border-[#714B67]" placeholder="Briefly describe today's main agenda..." value={taskSummary} onChange={e => setTaskSummary(e.target.value)} required />
                   </div>
-                )}
-                {taskType === "Development" && (
                   <div className="md:col-span-2">
-                    <label className="text-[10px] uppercase font-black text-slate-500 font-mono tracking-wider">Project Name *</label>
-                    <input className="w-full bg-white border border-slate-300 rounded p-2 text-xs font-bold text-slate-900 mt-1.5 focus:outline-none focus:border-[#714B67]" placeholder="Please enter project name..." value={projectName} onChange={e => setProjectName(e.target.value)} required />
+                    <label className="text-[10px] uppercase font-black text-slate-500 font-mono tracking-wider">Task Type *</label>
+                    <select className="w-full bg-white border border-slate-300 rounded p-2 text-xs font-bold text-slate-900 mt-1.5 focus:outline-none focus:border-[#714B67]" value={taskType} onChange={e => setTaskType(e.target.value)}>
+                      <option>Call</option>
+                      <option>Meeting</option>
+                      <option>Development</option>
+                      <option>Marketing</option>
+                      <option>Field Visit</option>
+                      <option>Operations</option>
+                      <option>Support</option>
+                      <option>Other</option>
+                    </select>
                   </div>
-                )}
-                <div className="md:col-span-2">
-                  <label className="text-[10px] uppercase font-black text-slate-500 font-mono tracking-wider">Remarks (Optional)</label>
-                  <textarea className="w-full bg-white border border-slate-300 rounded p-2 text-xs font-bold text-slate-900 mt-1.5 focus:outline-none focus:border-[#714B67]" rows={2} value={remarks} onChange={e => setRemarks(e.target.value)} placeholder="Any special notes..." />
-                </div>
-              </div>
-
-              <div className="bg-rose-50 border border-rose-200 rounded-lg p-3 text-[10px] font-bold text-rose-700 flex items-start gap-2 mt-4">
-                <MapPin className="w-4 h-4 shrink-0 mt-0.5 text-rose-600" />
-                <span><strong>Verification Required:</strong> You will need to take a live selfie to submit your SOD.</span>
-              </div>
-
-              <div className="mt-4 pt-4 border-t border-slate-100 flex justify-end">
-                <button type="button" onClick={() => setShowCamera(true)} className="bg-indigo-600 hover:bg-indigo-700 w-full px-4 py-3 rounded-lg text-xs font-black text-white transition-all flex items-center justify-center gap-2 shadow-lg shadow-indigo-600/20">
-                  <Camera className="w-4 h-4" /> Start Verification & Submit
-                </button>
-              </div>
-            </div>
-          ) : (
-            <div className="flex-1 flex flex-col items-center justify-center space-y-4">
-              <h4 className="text-xs font-black text-slate-700">Live Selfie Verification</h4>
-              {cameraError ? (
-                <div className="bg-rose-50 p-4 rounded-lg text-rose-600 text-xs font-bold text-center border border-rose-200">
-                  ⚠️ {cameraError} <br /><br />
-                  <div className="text-left space-y-2 mb-4 font-normal text-slate-600">
-                    <p><strong>How to allow camera access:</strong></p>
-                    <ol className="list-decimal pl-4 space-y-1 text-[11px]">
-                      <li>Click the <strong>camera / settings icon</strong> in the browser's address bar.</li>
-                      <li>Set camera access to <strong>"Allow"</strong> and reload the page.</li>
-                    </ol>
-                    <p className="text-[10px] text-rose-500 mt-2 font-semibold">
-                      Note: Local IP addresses (e.g. <code>http://192.168.1.46:3000</code>) are blocked by browser security guidelines (Insecure Origin). To test, please use <code>http://localhost:3000</code> or run a secure HTTPS tunnel (e.g., using Ngrok).
-                    </p>
-                  </div>
-                  <div className="flex gap-2 justify-center">
-                    <button onClick={() => setShowCamera(false)} className="bg-white px-4 py-2 rounded border border-rose-200 text-slate-700 font-bold">Go Back</button>
-                  </div>
-                </div>
-              ) : (
-                <>
-                  <div className="relative rounded-2xl overflow-hidden border-4 border-[#714B67] shadow-xl w-64 h-64 bg-slate-900">
-                    <video ref={videoRef} autoPlay playsInline muted className="object-cover w-full h-full" />
-                    <canvas ref={canvasRef} className="hidden" />
-                    {submittingSOD && (
-                      <div className="absolute inset-0 bg-slate-900/80 backdrop-blur-sm flex flex-col items-center justify-center p-4 text-center">
-                        <Loader2 className="w-8 h-8 text-white animate-spin mb-3" />
-                        <span className="text-white text-[10px] font-black font-mono tracking-widest uppercase">{locationStatus}</span>
-                      </div>
-                    )}
-                  </div>
-
-                  {!submittingSOD && (
-                    <div className="flex gap-3 w-full max-w-[16rem]">
-                      <button onClick={() => setShowCamera(false)} className="flex-1 bg-slate-200 hover:bg-slate-300 text-slate-700 py-3 rounded-xl text-xs font-bold transition-all">Cancel</button>
-                      <button onClick={captureSodPhotoAndSubmit} className="flex-1 bg-[#714B67] hover:bg-[#5F3F56] text-white py-3 rounded-xl text-xs font-black shadow-lg shadow-[#714B67]/20 flex items-center justify-center gap-2">
-                        <Camera className="w-4 h-4" /> Click & Submit
-                      </button>
+                  {taskType === "Other" && (
+                    <div className="md:col-span-2">
+                      <label className="text-[10px] uppercase font-black text-slate-500 font-mono tracking-wider">Specify Task Type *</label>
+                      <input className="w-full bg-white border border-slate-300 rounded p-2 text-xs font-bold text-slate-900 mt-1.5 focus:outline-none focus:border-[#714B67]" placeholder="Please specify task type..." value={customTaskType} onChange={e => setCustomTaskType(e.target.value)} required />
                     </div>
                   )}
-                </>
-              )}
-            </div>
-          )}
-        </div>
+                  {taskType === "Development" && (
+                    <div className="md:col-span-2">
+                      <label className="text-[10px] uppercase font-black text-slate-500 font-mono tracking-wider">Project Name *</label>
+                      <input className="w-full bg-white border border-slate-300 rounded p-2 text-xs font-bold text-slate-900 mt-1.5 focus:outline-none focus:border-[#714B67]" placeholder="Please enter project name..." value={projectName} onChange={e => setProjectName(e.target.value)} required />
+                    </div>
+                  )}
+                  <div className="md:col-span-2">
+                    <label className="text-[10px] uppercase font-black text-slate-500 font-mono tracking-wider">Remarks (Optional)</label>
+                    <textarea className="w-full bg-white border border-slate-300 rounded p-2 text-xs font-bold text-slate-900 mt-1.5 focus:outline-none focus:border-[#714B67]" rows={2} value={remarks} onChange={e => setRemarks(e.target.value)} placeholder="Any special notes..." />
+                  </div>
+                </div>
+
+                <div className="bg-rose-50 border border-rose-200 rounded-lg p-3 text-[10px] font-bold text-rose-700 flex items-start gap-2 mt-4">
+                  <MapPin className="w-4 h-4 shrink-0 mt-0.5 text-rose-600" />
+                  <span><strong>Verification Required:</strong> You will need to take a live selfie to submit your SOD.</span>
+                </div>
+
+                <div className="mt-4 pt-4 border-t border-slate-100 flex justify-end">
+                  <button type="button" onClick={() => setShowCamera(true)} className="bg-indigo-600 hover:bg-indigo-700 w-full px-4 py-3 rounded-lg text-xs font-black text-white transition-all flex items-center justify-center gap-2 shadow-lg shadow-indigo-600/20">
+                    <Camera className="w-4 h-4" /> Start Verification & Submit
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="flex-1 flex flex-col items-center justify-center space-y-4">
+                <h4 className="text-xs font-black text-slate-700">Live Selfie Verification</h4>
+                {cameraError ? (
+                  <div className="bg-rose-50 p-4 rounded-lg text-rose-600 text-xs font-bold text-center border border-rose-200">
+                    ⚠️ {cameraError} <br /><br />
+                    <div className="text-left space-y-2 mb-4 font-normal text-slate-600">
+                      <p><strong>How to allow camera access:</strong></p>
+                      <ol className="list-decimal pl-4 space-y-1 text-[11px]">
+                        <li>Click the <strong>camera / settings icon</strong> in the browser's address bar.</li>
+                        <li>Set camera access to <strong>"Allow"</strong> and reload the page.</li>
+                      </ol>
+                      <p className="text-[10px] text-rose-500 mt-2 font-semibold">
+                        Note: Local IP addresses (e.g. <code>http://192.168.1.46:3000</code>) are blocked by browser security guidelines (Insecure Origin). To test, please use <code>http://localhost:3000</code> or run a secure HTTPS tunnel (e.g., using Ngrok).
+                      </p>
+                    </div>
+                    <div className="flex gap-2 justify-center">
+                      <button onClick={() => setShowCamera(false)} className="bg-white px-4 py-2 rounded border border-rose-200 text-slate-700 font-bold">Go Back</button>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    <div className="relative rounded-2xl overflow-hidden border-4 border-[#714B67] shadow-xl w-64 h-64 bg-slate-900">
+                      <video ref={videoRef} autoPlay playsInline muted className="object-cover w-full h-full" />
+                      <canvas ref={canvasRef} className="hidden" />
+                      {submittingSOD && (
+                        <div className="absolute inset-0 bg-slate-900/80 backdrop-blur-sm flex flex-col items-center justify-center p-4 text-center">
+                          <Loader2 className="w-8 h-8 text-white animate-spin mb-3" />
+                          <span className="text-white text-[10px] font-black font-mono tracking-widest uppercase">{locationStatus}</span>
+                        </div>
+                      )}
+                    </div>
+
+                    {!submittingSOD && (
+                      <div className="flex gap-3 w-full max-w-[16rem]">
+                        <button onClick={() => setShowCamera(false)} className="flex-1 bg-slate-200 hover:bg-slate-300 text-slate-700 py-3 rounded-xl text-xs font-bold transition-all">Cancel</button>
+                        <button onClick={captureSodPhotoAndSubmit} className="flex-1 bg-[#714B67] hover:bg-[#5F3F56] text-white py-3 rounded-xl text-xs font-black shadow-lg shadow-[#714B67]/20 flex items-center justify-center gap-2">
+                          <Camera className="w-4 h-4" /> Click & Submit
+                        </button>
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+            )}
+          </div>
         )}
 
         {/* EOD Form with Strict Verification */}
         {(formMode === "both" || formMode === "eod") && (
-        <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm flex flex-col">
-          <h3 className="text-xs font-black tracking-widest text-[#714B67] uppercase font-mono pb-2 border-b border-slate-100 mb-4 flex items-center justify-between">
-            <span>📝 EOD</span>
-            {eodAlreadySubmitted && (
-              <span className="bg-emerald-50 text-emerald-700 border border-emerald-200 text-[9px] font-mono font-bold px-2 py-0.5 rounded-full">
-                ALREADY FILED
-              </span>
-            )}
-          </h3>
+          <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm flex flex-col">
+            <h3 className="text-xs font-black tracking-widest text-[#714B67] uppercase font-mono pb-2 border-b border-slate-100 mb-4 flex items-center justify-between">
+              <span>📝 EOD</span>
+              {eodAlreadySubmitted && (
+                <span className="bg-emerald-50 text-emerald-700 border border-emerald-200 text-[9px] font-mono font-bold px-2 py-0.5 rounded-full">
+                  ALREADY FILED
+                </span>
+              )}
+            </h3>
 
-          {eodAlreadySubmitted ? (
-            <div className="flex-1 flex flex-col items-center justify-center p-8 text-center space-y-3 bg-emerald-50/20 border border-dashed border-emerald-200 rounded-xl min-h-[300px]">
-              <div className="bg-emerald-100 p-3 rounded-full text-emerald-600">
-                <CalendarCheck className="w-8 h-8" />
-              </div>
-              <h4 className="text-xs font-black text-slate-800 uppercase tracking-wide">EOD Log Submitted</h4>
-              <p className="text-[10px] text-slate-500 font-medium max-w-xs leading-relaxed">
-                Your End of Day outcomes and pending targets have been registered. Good job finishing up today's work!
-              </p>
-            </div>
-          ) : !showEodCamera ? (
-            <div className="space-y-4 font-semibold text-slate-650 flex-1">
-
-              {/* Profile Bar */}
-              <div className="bg-slate-50 border border-slate-100 rounded-lg p-3 flex justify-between items-center mb-2">
-                <div className="flex items-center gap-2">
-                  <User className="w-4 h-4 text-emerald-500" />
-                  <span className="text-xs font-black text-slate-800 uppercase tracking-wide">{sessionUser?.name || "Employee"}</span>
+            {eodAlreadySubmitted ? (
+              <div className="flex-1 flex flex-col items-center justify-center p-8 text-center space-y-3 bg-emerald-50/20 border border-dashed border-emerald-200 rounded-xl min-h-[300px]">
+                <div className="bg-emerald-100 p-3 rounded-full text-emerald-600">
+                  <CalendarCheck className="w-8 h-8" />
                 </div>
-                <div className="flex items-center gap-1 bg-white border border-slate-200 px-2 py-1 rounded">
-                  <Hash className="w-3 h-3 text-slate-400" />
-                  <span className="text-[10px] font-mono text-slate-500 font-bold">{sessionUser?.id ? sessionUser.id.substring(0, 8).toUpperCase() : "USR-101"}</span>
-                </div>
+                <h4 className="text-xs font-black text-slate-800 uppercase tracking-wide">EOD Log Submitted</h4>
+                <p className="text-[10px] text-slate-500 font-medium max-w-xs leading-relaxed">
+                  Your End of Day outcomes and pending targets have been registered. Good job finishing up today's work!
+                </p>
               </div>
+            ) : !showEodCamera ? (
+              <div className="space-y-4 font-semibold text-slate-650 flex-1">
 
-              <div>
-                <label className="text-[10px] uppercase font-black text-slate-500 font-mono tracking-wider">1. Completed Work *</label>
-                <input className="w-full bg-white border border-slate-300 rounded p-2 text-xs font-bold text-slate-900 mt-1.5 focus:outline-none focus:border-[#714B67]" value={eodCompleted} onChange={e => setEodCompleted(e.target.value)} placeholder="What was fully finished..." required />
-              </div>
-              <div>
-                <label className="text-[10px] uppercase font-black text-slate-500 font-mono tracking-wider">2. Pending Work *</label>
-                <input className="w-full bg-white border border-slate-300 rounded p-2 text-xs font-bold text-slate-900 mt-1.5 focus:outline-none focus:border-[#714B67]" value={eodPending} onChange={e => setEodPending(e.target.value)} placeholder="Incomplete targets..." required />
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="text-[10px] uppercase font-black text-slate-500 font-mono tracking-wider">3. Issues Faced</label>
-                  <input className="w-full bg-white border border-slate-300 rounded p-2 text-xs font-bold text-slate-900 mt-1.5 focus:outline-none focus:border-[#714B67]" value={eodIssues} onChange={e => setEodIssues(e.target.value)} placeholder="Any blocker issues..." />
-                </div>
-                <div>
-                  <label className="text-[10px] uppercase font-black text-slate-500 font-mono tracking-wider">4. Escalation Required?</label>
-                  <select className="w-full bg-white border border-slate-300 rounded p-2.5 text-xs font-bold text-slate-700 mt-1.5 focus:outline-none focus:border-[#714B67]" value={eodEscalation} onChange={e => setEodEscalation(e.target.value)}>
-                    <option>No</option>
-                    <option>Yes - Urgent</option>
-                    <option>Yes - Normal</option>
-                  </select>
-                </div>
-              </div>
-              <div>
-                <label className="text-[10px] uppercase font-black text-slate-500 font-mono tracking-wider">5. Tomorrow Plan *</label>
-                <input className="w-full bg-white border border-slate-300 rounded p-2 text-xs font-bold text-slate-900 mt-1.5 focus:outline-none focus:border-[#714B67]" value={eodTomorrowPlan} onChange={e => setEodTomorrowPlan(e.target.value)} placeholder="Work plan for tomorrow..." required />
-              </div>
-
-              <div className="bg-rose-50 border border-rose-200 rounded-lg p-3 text-[10px] font-bold text-rose-700 flex items-start gap-2 mt-4">
-                <MapPin className="w-4 h-4 shrink-0 mt-0.5 text-rose-600" />
-                <span><strong>Verification Required:</strong> You will need to take a live selfie and allow GPS tracking to submit your EOD.</span>
-              </div>
-
-              <div className="mt-4 pt-4 border-t border-slate-100 flex justify-end">
-                <button type="button" onClick={() => setShowEodCamera(true)} className="bg-emerald-600 hover:bg-emerald-700 w-full px-4 py-3 rounded-lg text-xs font-black text-white transition-all flex items-center justify-center gap-2 shadow-lg shadow-emerald-600/20">
-                  <Camera className="w-4 h-4" /> Start EOD Verification
-                </button>
-              </div>
-            </div>
-          ) : (
-            <div className="flex-1 flex flex-col items-center justify-center space-y-4">
-              <h4 className="text-xs font-black text-slate-700">Live Selfie & GPS Tracking (EOD)</h4>
-              {eodCameraError ? (
-                <div className="bg-rose-50 p-4 rounded-lg text-rose-600 text-xs font-bold text-center border border-rose-200">
-                  ⚠️ {eodCameraError} <br /><br />
-                  <div className="text-left space-y-2 mb-4 font-normal text-slate-660">
-                    <p><strong>How to allow camera access:</strong></p>
-                    <ol className="list-decimal pl-4 space-y-1 text-[11px]">
-                      <li>Click the <strong>camera / settings icon</strong> in the browser's address bar.</li>
-                      <li>Set camera access to <strong>"Allow"</strong> and reload the page.</li>
-                    </ol>
-                    <p className="text-[10px] text-rose-500 mt-2 font-semibold">
-                      Note: Local IP addresses (e.g. <code>http://192.168.1.46:3000</code>) are blocked by browser security guidelines (Insecure Origin). To test, please use <code>http://localhost:3000</code> or run a secure HTTPS tunnel (e.g., using Ngrok).
-                    </p>
+                {/* Profile Bar */}
+                <div className="bg-slate-50 border border-slate-100 rounded-lg p-3 flex justify-between items-center mb-2">
+                  <div className="flex items-center gap-2">
+                    <User className="w-4 h-4 text-emerald-500" />
+                    <span className="text-xs font-black text-slate-800 uppercase tracking-wide">{sessionUser?.name || "Employee"}</span>
                   </div>
-                  <div className="flex gap-2 justify-center">
-                    <button onClick={() => setShowEodCamera(false)} className="bg-white px-4 py-2 rounded border border-rose-200 text-slate-700 font-bold">Go Back</button>
+                  <div className="flex items-center gap-1 bg-white border border-slate-200 px-2 py-1 rounded">
+                    <Hash className="w-3 h-3 text-slate-400" />
+                    <span className="text-[10px] font-mono text-slate-500 font-bold">{sessionUser?.id ? sessionUser.id.substring(0, 8).toUpperCase() : "USR-101"}</span>
                   </div>
                 </div>
-              ) : (
-                <>
-                  <div className="relative rounded-2xl overflow-hidden border-4 border-emerald-600 shadow-xl w-64 h-64 bg-slate-900">
-                    <video ref={eodVideoRef} autoPlay playsInline muted className="object-cover w-full h-full" />
-                    <canvas ref={eodCanvasRef} className="hidden" />
-                    {submittingEOD && (
-                      <div className="absolute inset-0 bg-slate-900/80 backdrop-blur-sm flex flex-col items-center justify-center p-4 text-center">
-                        <Loader2 className="w-8 h-8 text-white animate-spin mb-3" />
-                        <span className="text-white text-[10px] font-black font-mono tracking-widest uppercase">{eodLocationStatus}</span>
+
+                <div>
+                  <label className="text-[10px] uppercase font-black text-slate-500 font-mono tracking-wider">1. Completed Work *</label>
+                  <input className="w-full bg-white border border-slate-300 rounded p-2 text-xs font-bold text-slate-900 mt-1.5 focus:outline-none focus:border-[#714B67]" value={eodCompleted} onChange={e => setEodCompleted(e.target.value)} placeholder="What was fully finished..." required />
+                </div>
+                <div>
+                  <label className="text-[10px] uppercase font-black text-slate-500 font-mono tracking-wider">2. Pending Work *</label>
+                  <input className="w-full bg-white border border-slate-300 rounded p-2 text-xs font-bold text-slate-900 mt-1.5 focus:outline-none focus:border-[#714B67]" value={eodPending} onChange={e => setEodPending(e.target.value)} placeholder="Incomplete targets..." required />
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-[10px] uppercase font-black text-slate-500 font-mono tracking-wider">3. Issues Faced</label>
+                    <input className="w-full bg-white border border-slate-300 rounded p-2 text-xs font-bold text-slate-900 mt-1.5 focus:outline-none focus:border-[#714B67]" value={eodIssues} onChange={e => setEodIssues(e.target.value)} placeholder="Any blocker issues..." />
+                  </div>
+                  <div>
+                    <label className="text-[10px] uppercase font-black text-slate-500 font-mono tracking-wider">4. Escalation Required?</label>
+                    <select className="w-full bg-white border border-slate-300 rounded p-2.5 text-xs font-bold text-slate-700 mt-1.5 focus:outline-none focus:border-[#714B67]" value={eodEscalation} onChange={e => setEodEscalation(e.target.value)}>
+                      <option>No</option>
+                      <option>Yes - Urgent</option>
+                      <option>Yes - Normal</option>
+                    </select>
+                  </div>
+                </div>
+                <div>
+                  <label className="text-[10px] uppercase font-black text-slate-500 font-mono tracking-wider">5. Tomorrow Plan *</label>
+                  <input className="w-full bg-white border border-slate-300 rounded p-2 text-xs font-bold text-slate-900 mt-1.5 focus:outline-none focus:border-[#714B67]" value={eodTomorrowPlan} onChange={e => setEodTomorrowPlan(e.target.value)} placeholder="Work plan for tomorrow..." required />
+                </div>
+
+                <div className="bg-rose-50 border border-rose-200 rounded-lg p-3 text-[10px] font-bold text-rose-700 flex items-start gap-2 mt-4">
+                  <MapPin className="w-4 h-4 shrink-0 mt-0.5 text-rose-600" />
+                  <span><strong>Verification Required:</strong> You will need to take a live selfie and allow GPS tracking to submit your EOD.</span>
+                </div>
+
+                <div className="mt-4 pt-4 border-t border-slate-100 flex justify-end">
+                  <button type="button" onClick={() => setShowEodCamera(true)} className="bg-emerald-600 hover:bg-emerald-700 w-full px-4 py-3 rounded-lg text-xs font-black text-white transition-all flex items-center justify-center gap-2 shadow-lg shadow-emerald-600/20">
+                    <Camera className="w-4 h-4" /> Start EOD Verification
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="flex-1 flex flex-col items-center justify-center space-y-4">
+                <h4 className="text-xs font-black text-slate-700">Live Selfie & GPS Tracking (EOD)</h4>
+                {eodCameraError ? (
+                  <div className="bg-rose-50 p-4 rounded-lg text-rose-600 text-xs font-bold text-center border border-rose-200">
+                    ⚠️ {eodCameraError} <br /><br />
+                    <div className="text-left space-y-2 mb-4 font-normal text-slate-660">
+                      <p><strong>How to allow camera access:</strong></p>
+                      <ol className="list-decimal pl-4 space-y-1 text-[11px]">
+                        <li>Click the <strong>camera / settings icon</strong> in the browser's address bar.</li>
+                        <li>Set camera access to <strong>"Allow"</strong> and reload the page.</li>
+                      </ol>
+                      <p className="text-[10px] text-rose-500 mt-2 font-semibold">
+                        Note: Local IP addresses (e.g. <code>http://192.168.1.46:3000</code>) are blocked by browser security guidelines (Insecure Origin). To test, please use <code>http://localhost:3000</code> or run a secure HTTPS tunnel (e.g., using Ngrok).
+                      </p>
+                    </div>
+                    <div className="flex gap-2 justify-center">
+                      <button onClick={() => setShowEodCamera(false)} className="bg-white px-4 py-2 rounded border border-rose-200 text-slate-700 font-bold">Go Back</button>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    <div className="relative rounded-2xl overflow-hidden border-4 border-emerald-600 shadow-xl w-64 h-64 bg-slate-900">
+                      <video ref={eodVideoRef} autoPlay playsInline muted className="object-cover w-full h-full" />
+                      <canvas ref={eodCanvasRef} className="hidden" />
+                      {submittingEOD && (
+                        <div className="absolute inset-0 bg-slate-900/80 backdrop-blur-sm flex flex-col items-center justify-center p-4 text-center">
+                          <Loader2 className="w-8 h-8 text-white animate-spin mb-3" />
+                          <span className="text-white text-[10px] font-black font-mono tracking-widest uppercase">{eodLocationStatus}</span>
+                        </div>
+                      )}
+                    </div>
+
+                    {!submittingEOD && (
+                      <div className="flex gap-3 w-full max-w-[16rem]">
+                        <button onClick={() => setShowEodCamera(false)} className="flex-1 bg-slate-200 hover:bg-slate-300 text-slate-700 py-3 rounded-xl text-xs font-bold transition-all">Cancel</button>
+                        <button onClick={captureEodPhotoAndSubmit} className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white py-3 rounded-xl text-xs font-black shadow-lg shadow-emerald-600/20 flex items-center justify-center gap-2">
+                          <Camera className="w-4 h-4" /> Click & Submit EOD
+                        </button>
                       </div>
                     )}
-                  </div>
-
-                  {!submittingEOD && (
-                    <div className="flex gap-3 w-full max-w-[16rem]">
-                      <button onClick={() => setShowEodCamera(false)} className="flex-1 bg-slate-200 hover:bg-slate-300 text-slate-700 py-3 rounded-xl text-xs font-bold transition-all">Cancel</button>
-                      <button onClick={captureEodPhotoAndSubmit} className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white py-3 rounded-xl text-xs font-black shadow-lg shadow-emerald-600/20 flex items-center justify-center gap-2">
-                        <Camera className="w-4 h-4" /> Click & Submit EOD
-                      </button>
-                    </div>
-                  )}
-                </>
-              )}
-            </div>
-          )}
-        </div>
+                  </>
+                )}
+              </div>
+            )}
+          </div>
         )}
       </div>
 
@@ -999,7 +1016,9 @@ export function PerformanceCompliance({
   const [reports, setReports] = useState<{ sod: any[]; eod: any[]; tasks?: any[]; fieldVisits?: any[] }>({ sod: [], eod: [], tasks: [], fieldVisits: [] });
   const [activeSubTab, setActiveSubTab] = useState<"sod" | "eod" | "attendance-calendar">("sod");
   const [searchTerm, setSearchTerm] = useState("");
-  const [dateFilter, setDateFilter] = useState("");
+  const [dateFilterType, setDateFilterType] = useState<"overall" | "current-month" | "custom">("overall");
+  const [startDateFilter, setStartDateFilter] = useState("");
+  const [endDateFilter, setEndDateFilter] = useState("");
   const [selectedSelfie, setSelectedSelfie] = useState<string | null>(null);
 
   // Filters state for Owner
@@ -1215,9 +1234,30 @@ export function PerformanceCompliance({
     }
   };
 
+  const isUserInCompany = (user: any, companyId: string): boolean => {
+    if (!user || !user.companies || !companyId) return false;
+    let comps: any[] = [];
+    if (Array.isArray(user.companies)) {
+      comps = user.companies;
+    } else if (typeof user.companies === "string") {
+      try {
+        const parsed = JSON.parse(user.companies);
+        comps = Array.isArray(parsed) ? parsed : [parsed];
+      } catch (e) {
+        comps = [user.companies];
+      }
+    } else {
+      comps = [user.companies];
+    }
+    return comps.some((c: any) => {
+      const cid = (c.id || c.id || c || "").toString().trim();
+      return cid === companyId.toString().trim();
+    });
+  };
+
   const filteredUsers = users.filter((u: any) => {
     if (!selectedCompany) return true;
-    return u.companies && u.companies.some((c: any) => (c.id || c.id || c).toString().trim() === selectedCompany.toString().trim());
+    return isUserInCompany(u, selectedCompany);
   });
 
   // Merge SOD, EOD, Tasks, and Field Visits
@@ -1289,13 +1329,14 @@ export function PerformanceCompliance({
     return Array.from(map.values()).sort((a, b) => b.date.getTime() - a.date.getTime());
   }, [reports]);
 
-  const exportConsolidatedCSV = () => {
+  const exportConsolidatedExcel = () => {
     try {
       const headers = [
         "Date",
         "Employee Name",
         "Employee Email",
         "Department",
+        "Attendance Status",
         "SOD Submitted At",
         "SOD Planned Task Type",
         "SOD Planned Summary",
@@ -1311,37 +1352,17 @@ export function PerformanceCompliance({
         "Field Visits Details"
       ];
 
-      const exportList = mergedList.filter((item: any) => {
-        const empName = item.employee?.name || "";
-        const empEmail = item.employee?.email || "";
-        const matchSearch = empName.toLowerCase().includes(searchTerm.toLowerCase()) || empEmail.toLowerCase().includes(searchTerm.toLowerCase());
+      const exportList = filteredList;
 
-        let matchDate = true;
-        if (dateFilter) {
-          const reportDate = item.date.toDateString();
-          const filterDate = new Date(dateFilter).toDateString();
-          matchDate = reportDate === filterDate;
-        }
+      const getAttendanceStatus = (item: any) => {
+        if (item.sod) return "Present";
+        if (item.eod) return "Present (EOD Only)";
+        const isSunday = item.date.getDay() === 0;
+        if (isSunday) return "Weekly Off";
+        return "Absent";
+      };
 
-        let matchCompany = true;
-        if (isOwner && selectedCompany) {
-          matchCompany = item.employee?.companies && item.employee.companies.includes(selectedCompany);
-        }
-
-        let matchUser = true;
-        if (isOwner && selectedUser) {
-          matchUser = (item.employee?.id || item.employee?.id) === selectedUser;
-        }
-
-        let matchDept = true;
-        if (isOwner && selectedDept) {
-          matchDept = item.employee?.department === selectedDept;
-        }
-
-        return matchSearch && matchDate && matchCompany && matchUser && matchDept;
-      });
-
-      const csvRows = exportList.map((item: any) => {
+      const rows = exportList.map((item: any) => {
         const sodTime = item.sod ? new Date(item.sod.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "-";
         const sodTaskType = item.sod?.taskType || "-";
         const sodSummary = item.sod?.taskSummary || "-";
@@ -1361,7 +1382,7 @@ export function PerformanceCompliance({
         const fieldVisitKm = item.fieldVisits && item.fieldVisits.length > 0
           ? item.fieldVisits.reduce((sum: number, v: any) => sum + (v.distance_travelled || 0), 0)
           : 0;
-        
+
         const fieldVisitDetails = item.fieldVisits && item.fieldVisits.length > 0
           ? item.fieldVisits.map((v: any) => `Client: ${v.client_name || "N/A"}, Purpose: ${v.purpose || "N/A"}, Dist: ${v.distance_travelled || 0} KM, Notes: ${v.visit_notes || "N/A"}`).join(" | ")
           : "-";
@@ -1371,6 +1392,7 @@ export function PerformanceCompliance({
           item.employee?.name || "Unknown",
           item.employee?.email || "N/A",
           item.employee?.department || "General",
+          getAttendanceStatus(item),
           sodTime,
           sodTaskType,
           sodSummary,
@@ -1387,29 +1409,39 @@ export function PerformanceCompliance({
         ];
       });
 
-      const escapeCSV = (val: any) => {
-        if (val === null || val === undefined) return '""';
-        let str = String(val);
-        str = str.replace(/"/g, '""');
-        return `"${str}"`;
-      };
+      // Construct native Excel representation
+      let excelTemplate = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">`;
+      excelTemplate += `<head><meta charset="utf-8"><!--[if gte mso 9]><xml><x:ExcelWorkbook><x:ExcelWorksheets><x:ExcelWorksheet><x:Name>Consolidated Work Report</x:Name><x:WorksheetOptions><x:DisplayGridlines/></x:WorksheetOptions></x:ExcelWorksheet></x:ExcelWorksheets></x:ExcelWorkbook></xml><![endif]--></head><body>`;
+      excelTemplate += `<table border="1" style="border-collapse:collapse; font-family: 'Segoe UI', Arial, sans-serif; font-size: 11px;">`;
 
-      const csvContent = [
-        headers.map(escapeCSV).join(","),
-        ...csvRows.map((row: any[]) => row.map(escapeCSV).join(","))
-      ].join("\n");
+      // Header row
+      excelTemplate += `<tr style="height: 30px;">`;
+      headers.forEach(h => {
+        excelTemplate += `<th style="background-color: #0f766e; color: #ffffff; font-weight: bold; border: 1px solid #cbd5e1; padding: 6px; text-align: left; vertical-align: middle;">${h}</th>`;
+      });
+      excelTemplate += `</tr>`;
 
-      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+      // Data rows
+      rows.forEach(row => {
+        excelTemplate += `<tr>`;
+        row.forEach(cell => {
+          excelTemplate += `<td style="border: 1px solid #cbd5e1; padding: 6px; text-align: left; vertical-align: middle; white-space: nowrap;">${cell}</td>`;
+        });
+        excelTemplate += `</tr>`;
+      });
+      excelTemplate += `</table></body></html>`;
+
+      const blob = new Blob([excelTemplate], { type: "application/vnd.ms-excel;charset=utf-8;" });
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.setAttribute("href", url);
-      link.setAttribute("download", `Consolidated_Work_Report_${new Date().toISOString().split('T')[0]}.csv`);
+      link.setAttribute("download", `Consolidated_Work_Report_${new Date().toISOString().split('T')[0]}.xls`);
       link.style.visibility = 'hidden';
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
     } catch (error) {
-      console.error("Failed to export consolidated CSV:", error);
+      console.error("Failed to export consolidated Excel:", error);
     }
   };
 
@@ -1420,15 +1452,26 @@ export function PerformanceCompliance({
     const matchSearch = empName.toLowerCase().includes(searchTerm.toLowerCase()) || empEmail.toLowerCase().includes(searchTerm.toLowerCase());
 
     let matchDate = true;
-    if (dateFilter) {
-      const reportDate = item.date.toDateString();
-      const filterDate = new Date(dateFilter).toDateString();
-      matchDate = reportDate === filterDate;
+    if (dateFilterType === "current-month") {
+      const now = new Date();
+      matchDate = item.date.getFullYear() === now.getFullYear() && item.date.getMonth() === now.getMonth();
+    } else if (dateFilterType === "custom") {
+      const itemTime = item.date.getTime();
+      if (startDateFilter) {
+        const start = new Date(startDateFilter);
+        start.setHours(0, 0, 0, 0);
+        if (itemTime < start.getTime()) matchDate = false;
+      }
+      if (endDateFilter) {
+        const end = new Date(endDateFilter);
+        end.setHours(23, 59, 59, 999);
+        if (itemTime > end.getTime()) matchDate = false;
+      }
     }
 
     let matchCompany = true;
     if (isOwner && selectedCompany) {
-      matchCompany = item.employee?.companies && item.employee.companies.some((c: any) => (c.id || c.id || c).toString().trim() === selectedCompany.toString().trim());
+      matchCompany = isUserInCompany(item.employee, selectedCompany);
     }
 
     let matchUser = true;
@@ -1466,10 +1509,10 @@ export function PerformanceCompliance({
 
         <div className="flex flex-wrap gap-2 items-center self-start md:self-auto">
           <button
-            onClick={exportConsolidatedCSV}
+            onClick={exportConsolidatedExcel}
             className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-black shadow-md shadow-emerald-600/10 flex items-center gap-1.5 transition-all"
           >
-            <Download className="w-4 h-4" /> Export Consolidated Report (CSV)
+            <Download className="w-4 h-4" /> Export
           </button>
 
           {/* Sub-Tabs */}
@@ -1681,26 +1724,56 @@ export function PerformanceCompliance({
                 </div>
               </>
             )}
-            <div className="relative w-full md:w-64">
-              <Calendar className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
-              <input
-                type="date"
-                className="w-full bg-slate-50 border border-slate-200 rounded-lg pl-9 pr-4 py-2.5 text-xs font-bold focus:outline-none focus:border-[#714B67] text-slate-800"
-                value={dateFilter}
-                onChange={(e) => setDateFilter(e.target.value)}
-              />
+            {/* Date Filter Dropdown */}
+            <div className="w-full md:w-48">
+              <select
+                className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2.5 text-xs font-bold focus:outline-none focus:border-[#714B67] text-slate-800"
+                value={dateFilterType}
+                onChange={(e) => {
+                  setDateFilterType(e.target.value as any);
+                  if (e.target.value !== "custom") {
+                    setStartDateFilter("");
+                    setEndDateFilter("");
+                  }
+                }}
+              >
+                <option value="overall">Overall Date Filter</option>
+                <option value="current-month">Current Month</option>
+                <option value="custom">Custom Range</option>
+              </select>
             </div>
-            {(dateFilter || selectedCompany || selectedUser || selectedDept) && (
+
+            {/* Custom Range Inputs */}
+            {dateFilterType === "custom" && (
+              <div className="flex items-center gap-2 w-full md:w-auto">
+                <input
+                  type="date"
+                  placeholder="Start Date"
+                  className="bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs font-bold focus:outline-none focus:border-[#714B67] text-slate-800"
+                  value={startDateFilter}
+                  onChange={(e) => setStartDateFilter(e.target.value)}
+                />
+                <span className="text-xs text-slate-450 font-bold">to</span>
+                <input
+                  type="date"
+                  placeholder="End Date"
+                  className="bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs font-bold focus:outline-none focus:border-[#714B67] text-slate-800"
+                  value={endDateFilter}
+                  onChange={(e) => setEndDateFilter(e.target.value)}
+                />
+              </div>
+            )}
+
+            {dateFilterType !== "overall" && (
               <button
                 onClick={() => {
-                  setDateFilter("");
-                  setSelectedCompany("");
-                  setSelectedUser("");
-                  setSelectedDept("");
+                  setDateFilterType("overall");
+                  setStartDateFilter("");
+                  setEndDateFilter("");
                 }}
                 className="text-xs text-rose-600 hover:underline font-bold whitespace-nowrap"
               >
-                Clear Filters
+                Clear Date Filter
               </button>
             )}
           </div>
@@ -1858,8 +1931,8 @@ export function PerformanceCompliance({
                                             <div className="flex items-center justify-between">
                                               <span className="font-bold text-slate-800 text-xs">{task.taskTitle}</span>
                                               <span className={`px-2 py-0.5 text-[9px] font-black tracking-wider uppercase font-mono rounded ${task.status === "Completed" ? "bg-emerald-50 text-emerald-700 border border-emerald-100" :
-                                                  task.status === "In Progress" ? "bg-amber-50 text-amber-700 border border-amber-100" :
-                                                    "bg-slate-105 text-slate-600 border border-slate-200"
+                                                task.status === "In Progress" ? "bg-amber-50 text-amber-700 border border-amber-100" :
+                                                  "bg-slate-105 text-slate-600 border border-slate-200"
                                                 }`}>
                                                 {task.status}
                                               </span>
@@ -2259,7 +2332,7 @@ export function LeaveRequestTab({ sessionUser }: { sessionUser?: any }) {
                     const end = new Date(leave.endDate);
 
                     // Show actions if the current user is authorized to approve this specific status level
-                    const showActions = 
+                    const showActions =
                       (isManager && (leave.status === "Pending Manager Approval" || leave.status === "Pending")) ||
                       ((isHR || isOwnerOrDirector) && (leave.status === "Pending HR Approval" || leave.status === "Pending Manager Approval" || leave.status === "Pending"));
 
@@ -2326,7 +2399,7 @@ export function LeaveRequestTab({ sessionUser }: { sessionUser?: any }) {
                               </div>
                             ) : (
                               <span className="text-slate-450 text-[11px] italic">
-                                {leave.status === "Pending HR Approval" 
+                                {leave.status === "Pending HR Approval"
                                   ? "Forwarded to HR - Awaiting HR Review"
                                   : leave.remarks ? `Remarks: ${leave.remarks}` : "Awaiting Manager Review"}
                               </span>

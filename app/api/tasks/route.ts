@@ -263,8 +263,8 @@ export async function GET(req: Request) {
       query.date = { [Op.gte]: targetDate, [Op.lt]: nextDay };
     }
     
-    // If regular employee, see own tasks OR tasks forwarded to them. Otherwise see all.
-    if (userRole === "Employee") {
+    // Only the "Owner" role sees all tasks. Everyone else (Employee, Department Manager, HR, Director, etc.) sees only their own tasks.
+    if (userRole !== "Owner") {
       query[Op.or] = [
         { employee: userId },
         { forwardedTo: userId }
@@ -390,9 +390,8 @@ export async function PUT(req: Request) {
     await TaskLog.sync({ alter: true });
 
     let query: any = { id: taskId };
-    // If not a privileged user (Manager, Owner, HR Head, Director, etc.), enforce ownership or assignee access
-    const hasFullAccess = ["Owner", "Director", "HR Head", "Department Manager"].includes(userRole);
-    if (!hasFullAccess) {
+    // Only the "Owner" role has full access to edit any task. Other roles can only edit tasks they own or tasks forwarded to them.
+    if (userRole !== "Owner") {
       query[Op.or] = [
         { employee: userId },
         { forwardedTo: userId }
@@ -512,8 +511,8 @@ export async function DELETE(req: Request) {
     await sequelize.authenticate();
 
     let query: any = { id: taskId };
-    const hasFullAccess = ["Owner", "Director", "HR Head", "Department Manager"].includes(userRole);
-    if (!hasFullAccess) {
+    // Only the "Owner" role can delete any task. Other roles can only delete tasks they created.
+    if (userRole !== "Owner") {
       query.employee = userId;
     }
 
