@@ -8,6 +8,175 @@ import { logAudit } from "@/lib/audit";
 import { logHRActivity } from "@/lib/hrAudit";
 import User from "@/models/sequelize/User";
 import { Op } from "sequelize";
+import { sendEmail } from "@/lib/email";
+
+// ─── Leave Approval Notification Helpers ─────────────────────────────────────
+
+function getUserCompanies(user: any): string[] {
+  if (!user || !user.companies) return [];
+  try {
+    const parsed = typeof user.companies === "string" ? JSON.parse(user.companies) : user.companies;
+    return Array.isArray(parsed) ? parsed.map(String) : [];
+  } catch {
+    return [];
+  }
+}
+
+async function findDepartmentManagers(applicantId: string, department: string) {
+  const applicantUser = await User.findByPk(applicantId);
+  if (!applicantUser) return [];
+  const applicantCompanies = getUserCompanies(applicantUser);
+
+  const managers = await User.findAll({
+    where: { role: "Department Manager", status: "active" }
+  });
+
+  const matched: any[] = [];
+  for (const m of managers) {
+    const mComps = getUserCompanies(m);
+    const sharesCompany = mComps.some(c => applicantCompanies.includes(c));
+    if (!sharesCompany) continue;
+
+    const mProfile = await EmployeeProfile.findOne({ where: { user: m.id } });
+    if (mProfile && mProfile.department === department) {
+      matched.push(m);
+    }
+  }
+  return matched;
+}
+
+async function findHRUsers(applicantId: string) {
+  const applicantUser = await User.findByPk(applicantId);
+  if (!applicantUser) return [];
+  const applicantCompanies = getUserCompanies(applicantUser);
+
+  const hrUsers = await User.findAll({
+    where: {
+      role: { [Op.in]: ["HR Head", "HR Executive", "Owner", "Director"] },
+      status: "active"
+    }
+  });
+
+  const matched: any[] = [];
+  for (const hr of hrUsers) {
+    if (hr.id === applicantId) continue;
+    const hrComps = getUserCompanies(hr);
+    const sharesCompany = hrComps.some(c => applicantCompanies.includes(c));
+    if (sharesCompany) {
+      matched.push(hr);
+    }
+  }
+  return matched;
+}
+
+function getLeaveAppliedEmailHtml(params: {
+  applicantName: string;
+  applicantRole: string;
+  leaveType: string;
+  startDate: string;
+  endDate: string;
+  days: number;
+  reason: string;
+  pendingStatus: string;
+}) {
+  return `<!DOCTYPE html>
+<html><head><meta charset="utf-8">
+<style>
+  body{font-family:'Segoe UI',system-ui,sans-serif;background:#f1f5f9;margin:0;padding:0;color:#1e293b}
+  .wrap{max-width:580px;margin:32px auto;background:#fff;border-radius:16px;overflow:hidden;border:1px solid #e2e8f0;box-shadow:0 4px 20px rgba(0,0,0,.06)}
+  .header{background:linear-gradient(135deg,#7c3aed 0%,#4f46e5 100%);padding:28px 24px;color:#fff;text-align:center}
+  .header h1{margin:0;font-size:20px;font-weight:700}
+  .header p{margin:6px 0 0;font-size:13px;opacity:.9}
+  .body{padding:28px 24px}
+  .field-table{width:100%;border-collapse:collapse;margin:16px 0}
+  .field-table td{padding:10px 12px;border-bottom:1px solid #f1f5f9;font-size:13px}
+  .field-table td.label{font-weight:700;color:#64748b;width:130px}
+  .reason-box{background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:16px;margin:16px 0;font-size:13px;color:#475569;line-height:1.6}
+  .footer{background:#f8fafc;padding:16px 24px;text-align:center;font-size:11px;color:#94a3b8;border-top:1px solid #e2e8f0}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="header">
+    <h1>🌴 New Leave Application</h1>
+    <p>Approval is required for this request</p>
+  </div>
+  <div class="body">
+    <p>Hello,</p>
+    <p>A new leave application has been submitted and is pending your review:</p>
+    <table class="field-table">
+      <tr><td class="label">Applicant</td><td><strong>${params.applicantName}</strong> (${params.applicantRole})</td></tr>
+      <tr><td class="label">Leave Type</td><td><span style="background:#e0e7ff;color:#4338ca;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:700">${params.leaveType}</span></td></tr>
+      <tr><td class="label">Duration</td><td>${params.startDate} to ${params.endDate} (${params.days} days)</td></tr>
+      <tr><td class="label">Status</td><td><span style="background:#fef3c7;color:#d97706;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:700">${params.pendingStatus}</span></td></tr>
+    </table>
+    <div style="font-size:12px;font-weight:700;color:#64748b;margin-top:16px">Reason for Leave:</div>
+    <div class="reason-box">"${params.reason}"</div>
+    <p style="text-align:center;margin-top:24px">
+      <a href="https://hrms.cfi247.com/" style="background:#4f46e5;color:#fff;padding:12px 28px;border-radius:8px;text-decoration:none;font-weight:700;font-size:13px;display:inline-block">Review Application →</a>
+    </p>
+  </div>
+  <div class="footer">RS9 Group HRMS • This is an automated notification</div>
+</div>
+</body></html>`;
+}
+
+function getLeaveStatusEmailHtml(params: {
+  applicantName: string;
+  leaveType: string;
+  startDate: string;
+  endDate: string;
+  days: number;
+  status: string;
+  isApproved: boolean;
+  processedByName: string;
+  remarks?: string;
+}) {
+  return `<!DOCTYPE html>
+<html><head><meta charset="utf-8">
+<style>
+  body{font-family:'Segoe UI',system-ui,sans-serif;background:#f1f5f9;margin:0;padding:0;color:#1e293b}
+  .wrap{max-width:580px;margin:32px auto;background:#fff;border-radius:16px;overflow:hidden;border:1px solid #e2e8f0;box-shadow:0 4px 20px rgba(0,0,0,.06)}
+  .header-approved{background:linear-gradient(135deg,#10b981 0%,#059669 100%);padding:28px 24px;color:#fff;text-align:center}
+  .header-rejected{background:linear-gradient(135deg,#ef4444 0%,#dc2626 100%);padding:28px 24px;color:#fff;text-align:center}
+  .header h1{margin:0;font-size:20px;font-weight:700}
+  .body{padding:28px 24px}
+  .field-table{width:100%;border-collapse:collapse;margin:16px 0}
+  .field-table td{padding:10px 12px;border-bottom:1px solid #f1f5f9;font-size:13px}
+  .field-table td.label{font-weight:700;color:#64748b;width:130px}
+  .remarks-box{background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:16px;margin:16px 0;font-size:13px;color:#475569;line-height:1.6}
+  .footer{background:#f8fafc;padding:16px 24px;text-align:center;font-size:11px;color:#94a3b8;border-top:1px solid #e2e8f0}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="header ${params.isApproved ? 'header-approved' : 'header-rejected'}">
+    <h1>${params.isApproved ? '🎉 Leave Approved' : '❌ Leave Rejected'}</h1>
+  </div>
+  <div class="body">
+    <p>Hello <strong>${params.applicantName}</strong>,</p>
+    <p>Your leave request has been processed:</p>
+    <table class="field-table">
+      <tr><td class="label">Leave Type</td><td><span style="background:#e0e7ff;color:#4338ca;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:700">${params.leaveType}</span></td></tr>
+      <tr><td class="label">Duration</td><td>${params.startDate} to ${params.endDate} (${params.days} days)</td></tr>
+      <tr><td class="label">Status</td><td>
+        <span style="background:${params.isApproved ? '#d1fae5;color:#065f46' : '#fee2e2;color:#991b1b'};padding:2px 8px;border-radius:999px;font-size:11px;font-weight:700">${params.status}</span>
+      </td></tr>
+      <tr><td class="label">Processed By</td><td>${params.processedByName}</td></tr>
+    </table>
+    ${params.remarks ? `
+      <div style="font-size:12px;font-weight:700;color:#64748b;margin-top:16px">Remarks / Comments:</div>
+      <div class="remarks-box">"${params.remarks}"</div>
+    ` : ''}
+    <p style="text-align:center;margin-top:24px">
+      <a href="https://hrms.cfi247.com/" style="background:${params.isApproved ? '#059669' : '#dc2626'};color:#fff;padding:12px 28px;border-radius:8px;text-decoration:none;font-weight:700;font-size:13px;display:inline-block">Open Portal →</a>
+    </p>
+  </div>
+  <div class="footer">RS9 Group HRMS • This is an automated notification</div>
+</div>
+</body></html>`;
+}
+
 
 // POST: Apply for a new leave
 export async function POST(req: Request) {
@@ -118,8 +287,54 @@ export async function POST(req: Request) {
       endDate,
       days,
       reason,
-      status: initialStatus
+      status: initialStatus,
+      managerStatus: initialStatus === "Pending Manager Approval" ? "Pending" : "Approved",
+      hrStatus: "Pending",
     });
+
+    // ── Email Notification dispatch for new leave application
+    try {
+      const applicantUser = await User.findByPk(applicantId);
+      if (applicantUser) {
+        const formattedStart = new Date(startDate).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
+        const formattedEnd = new Date(endDate).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
+
+        const emailHtml = getLeaveAppliedEmailHtml({
+          applicantName: applicantUser.name || "Employee",
+          applicantRole: applicantRole || "Employee",
+          leaveType: type,
+          startDate: formattedStart,
+          endDate: formattedEnd,
+          days,
+          reason,
+          pendingStatus: initialStatus,
+        });
+
+        if (initialStatus === "Pending Manager Approval" && profile?.department) {
+          const deptManagers = await findDepartmentManagers(applicantId, profile.department);
+          const emails = deptManagers.map((m: any) => m.email).filter(Boolean);
+          if (emails.length > 0) {
+            await sendEmail({
+              to: emails,
+              subject: `🌴 Leave Approval Required: ${applicantUser.name} – ${type}`,
+              html: emailHtml,
+            });
+          }
+        } else if (initialStatus === "Pending HR Approval") {
+          const hrUsers = await findHRUsers(applicantId);
+          const emails = hrUsers.map((h: any) => h.email).filter(Boolean);
+          if (emails.length > 0) {
+            await sendEmail({
+              to: emails,
+              subject: `🌴 Leave Approval Required (HR): ${applicantUser.name} – ${type}`,
+              html: emailHtml,
+            });
+          }
+        }
+      }
+    } catch (emailErr) {
+      console.error("Leave apply email dispatch error:", emailErr);
+    }
 
     return NextResponse.json({ success: true, data: leave });
   } catch (error: any) {
@@ -319,6 +534,10 @@ export async function PUT(req: Request) {
 
       // If approved, proceed to Pending HR Approval. If rejected, set to Rejected.
       finalStatus = status === "Approved" ? "Pending HR Approval" : "Rejected";
+      
+      // Update Manager fields
+      (leave as any).managerStatus = status; // Approved / Rejected
+      if (remarks) (leave as any).managerRemarks = remarks;
     } else if (currentStatus === "Pending HR Approval") {
       // Who can approve HR stage?
       // HR Head, HR Executive, or Owner/Director of same company
@@ -333,6 +552,10 @@ export async function PUT(req: Request) {
       }
 
       finalStatus = status === "Approved" ? "Approved" : "Rejected";
+      
+      // Update HR fields
+      (leave as any).hrStatus = status; // Approved / Rejected
+      if (remarks) (leave as any).hrRemarks = remarks;
     } else {
       return NextResponse.json({ success: false, error: "This leave request cannot be processed in its current state." }, { status: 400 });
     }
@@ -342,6 +565,63 @@ export async function PUT(req: Request) {
     if (remarks) (leave as any).remarks = remarks;
 
     await leave.save();
+
+    // ── Email notification dispatch for Leave approval updates
+    try {
+      const formattedStart = new Date((leave as any).startDate).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
+      const formattedEnd = new Date((leave as any).endDate).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
+
+      if (currentStatus === "Pending Manager Approval" && finalStatus === "Pending HR Approval") {
+        // 1. Manager Approved: Email HR for next approval stage
+        const hrUsers = await findHRUsers(applicantId);
+        const emails = hrUsers.map((h: any) => h.email).filter(Boolean);
+        if (emails.length > 0) {
+          const emailHtml = getLeaveAppliedEmailHtml({
+            applicantName: applicantUser?.name || "Employee",
+            applicantRole: applicantUser?.role || "Employee",
+            leaveType: (leave as any).type,
+            startDate: formattedStart,
+            endDate: formattedEnd,
+            days: (leave as any).days,
+            reason: (leave as any).reason || "",
+            pendingStatus: finalStatus,
+          });
+
+          await sendEmail({
+            to: emails,
+            subject: `🌴 Leave Approval Required (HR): ${applicantUser?.name} – ${(leave as any).type}`,
+            html: emailHtml,
+          });
+        }
+      } else if (
+        (currentStatus === "Pending Manager Approval" && finalStatus === "Rejected") ||
+        (currentStatus === "Pending HR Approval" && (finalStatus === "Approved" || finalStatus === "Rejected"))
+      ) {
+        // 2. Request finalized: Email applicant
+        if (applicantUser && applicantUser.email) {
+          const processedUser = await User.findByPk(loggedInUserId);
+          const emailHtml = getLeaveStatusEmailHtml({
+            applicantName: applicantUser.name || "Employee",
+            leaveType: (leave as any).type,
+            startDate: formattedStart,
+            endDate: formattedEnd,
+            days: (leave as any).days,
+            status: finalStatus,
+            isApproved: finalStatus === "Approved",
+            processedByName: processedUser?.name || "HR/Manager",
+            remarks: remarks || undefined,
+          });
+
+          await sendEmail({
+            to: applicantUser.email,
+            subject: `🌴 Leave Request ${finalStatus === "Approved" ? "Approved" : "Rejected"} – ${(leave as any).type}`,
+            html: emailHtml,
+          });
+        }
+      }
+    } catch (emailErr) {
+      console.error("Leave update email dispatch error:", emailErr);
+    }
 
     // Log Audit Entry
     await logAudit({

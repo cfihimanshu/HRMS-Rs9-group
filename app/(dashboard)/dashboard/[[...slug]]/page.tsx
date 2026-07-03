@@ -1013,7 +1013,7 @@ export default function UnifiedEnterpriseDashboard() {
             <ESSDashboard user={session?.user} triggerToast={triggerToast} setActiveTab={setActiveTab} toggleModal={toggleModal} stats={stats} />
           )}
           {activeTab === "ess-leaves" && (
-            <ESSLeaves user={session?.user} triggerToast={triggerToast} />
+            <ESSLeaves user={session?.user} triggerToast={triggerToast} stats={stats} />
           )}
           {activeTab === "ess-payroll" && (
             <ESSPayroll user={session?.user} triggerToast={triggerToast} />

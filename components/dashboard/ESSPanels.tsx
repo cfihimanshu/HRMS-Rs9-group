@@ -31,6 +31,17 @@ export function ESSDashboard({ user, triggerToast, setActiveTab, toggleModal, st
     return () => observer.disconnect();
   }, []);
 
+  const dynamicStats = stats?.currentUserStats || {
+    presentDays: 0,
+    totalWorkingDays: 22,
+    attendancePercent: 100,
+    casualLeave: 12,
+    sickLeave: 12,
+    earnedLeave: 0,
+    holidayName: "Diwali",
+    holidayDate: "Nov 12, 2026"
+  };
+
   return (
     <div className="space-y-6 animate-fade-in">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -70,32 +81,32 @@ export function ESSDashboard({ user, triggerToast, setActiveTab, toggleModal, st
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatCard 
           title="Present Days (This Month)" 
-          value="21 / 22" 
-          trend="95% Attendance" 
-          trendUp={true} 
+          value={`${dynamicStats.presentDays} / ${dynamicStats.totalWorkingDays}`} 
+          trend={`${dynamicStats.attendancePercent}% Attendance`} 
+          trendUp={dynamicStats.attendancePercent >= 90} 
           icon={<CalendarCheck className="w-5 h-5 text-indigo-500" />} 
           dark={isDark}
         />
         <StatCard 
-          title="Leave Balance (CL)" 
-          value="4.5" 
-          trend="Remaining for the year" 
+          title="Casual Leave (This Month)" 
+          value={String(dynamicStats.casualLeaveTaken ?? 0)} 
+          trend="Taken in current month" 
           trendUp={true} 
           icon={<FileText className="w-5 h-5 text-rose-500" />} 
           dark={isDark}
         />
         <StatCard 
-          title="Leave Balance (SL)" 
-          value="7" 
-          trend="Remaining for the year" 
+          title="Sick Leave (This Month)" 
+          value={String(dynamicStats.sickLeaveTaken ?? 0)} 
+          trend="Taken in current month" 
           trendUp={true} 
           icon={<FileText className="w-5 h-5 text-emerald-500" />} 
           dark={isDark}
         />
         <StatCard 
           title="Upcoming Holiday" 
-          value="Diwali" 
-          trend="Nov 12, 2026" 
+          value={dynamicStats.holidayName} 
+          trend={dynamicStats.holidayDate} 
           trendUp={true} 
           icon={<AlertCircle className="w-5 h-5 text-amber-500" />} 
           dark={isDark}
@@ -127,10 +138,16 @@ export function ESSDashboard({ user, triggerToast, setActiveTab, toggleModal, st
   );
 }
 
-export function ESSLeaves({ user, triggerToast }: ESSProps) {
+export function ESSLeaves({ user, triggerToast, stats }: ESSProps) {
   const [showApply, setShowApply] = useState(false);
   const [leaves, setLeaves] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+
+  const dynamicStats = stats?.currentUserStats || {
+    casualLeave: 12,
+    sickLeave: 12,
+    earnedLeave: 0
+  };
 
   const fetchLeaves = async () => {
     setLoading(true);
@@ -199,9 +216,9 @@ export function ESSLeaves({ user, triggerToast }: ESSProps) {
               <div>
                 <label className="text-[10px] uppercase font-black text-slate-400 font-mono">Leave Type</label>
                 <select name="type" className="w-full bg-slate-50 border border-slate-200 p-2.5 rounded text-xs mt-1" required>
-                  <option value="Casual Leave">Casual Leave (Balance: 4.5)</option>
-                  <option value="Sick Leave">Sick Leave (Balance: 7)</option>
-                  <option value="Earned Leave">Earned Leave (Balance: 0)</option>
+                  <option value="Casual Leave">Casual Leave (Balance: {dynamicStats.casualLeave})</option>
+                  <option value="Sick Leave">Sick Leave (Balance: {dynamicStats.sickLeave})</option>
+                  <option value="Earned Leave">Earned Leave (Balance: {dynamicStats.earnedLeave})</option>
                   <option value="Unpaid Leave">Loss of Pay / Unpaid Leave</option>
                 </select>
               </div>
