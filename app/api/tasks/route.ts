@@ -1,4 +1,5 @@
 // Removed @ts-nocheck
+export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
@@ -380,7 +381,7 @@ export async function PUT(req: Request) {
     const userRole = (session.user as any).role || "Employee";
     const userName = session.user.name || "Employee";
     const body = await req.json();
-    const { taskId, status, progressNotes, taskTitle, taskType, description, scheduledAt, forwardedTo, timerStart, timerState, elapsedSeconds } = body;
+    const { taskId, status, progressNotes, taskTitle, taskType, description, scheduledAt, forwardedTo, timerStart, timerState, elapsedSeconds, followUpHistory } = body;
 
     if (!taskId) {
       return NextResponse.json({ success: false, error: "Missing required field: taskId" }, { status: 400 });
@@ -425,6 +426,7 @@ export async function PUT(req: Request) {
       if (scheduledAt !== prevScheduledAt) task.reminderSent = false;
     }
     if (forwardedTo !== undefined) task.forwardedTo = forwardedTo || null;
+    if (followUpHistory !== undefined) task.followUpHistory = followUpHistory;
     
     // Manual timer updates if sent from client
     if (timerStart !== undefined) task.timerStart = timerStart ? new Date(timerStart) : null;

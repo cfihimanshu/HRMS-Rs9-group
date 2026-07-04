@@ -33,11 +33,15 @@ TaskLog.init(
       allowNull: true,
     },
     progressNotes: {
-      type: DataTypes.STRING,
+      type: DataTypes.TEXT,
       allowNull: true,
     },
     scheduledAt: {
       type: DataTypes.DATE,
+      allowNull: true,
+    },
+    followUpHistory: {
+      type: DataTypes.TEXT,
       allowNull: true,
     },
     forwardedTo: {

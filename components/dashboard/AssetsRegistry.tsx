@@ -91,6 +91,7 @@ export default function AssetsRegistry({ userRole, triggerToast, sessionUser }: 
     assetType: "Laptop",
     assetValue: "",
     simWithMobile: false,
+    simPhoneNumber: "",
     allocatedGmail: "",
     allocatedWhatsapp: ""
   });
@@ -125,7 +126,8 @@ export default function AssetsRegistry({ userRole, triggerToast, sessionUser }: 
       } else {
         payload.allocatedAsset = `${assignForm.assetType}: ${formattedDetails}`;
         if (assignForm.assetType === "Mobile Phone" && assignForm.simWithMobile) {
-          payload.allocatedSim = `Assigned with Mobile Phone (Assigned: ${assignForm.date} | By: ${assignForm.assignedBy})`;
+          const simDetails = assignForm.simPhoneNumber ? assignForm.simPhoneNumber : "Yes";
+          payload.allocatedSim = `${simDetails} (Assigned with Mobile Phone | Assigned: ${assignForm.date} | By: ${assignForm.assignedBy})`;
         }
       }
 
@@ -503,6 +505,7 @@ export default function AssetsRegistry({ userRole, triggerToast, sessionUser }: 
                 assetType: "Laptop",
                 assetValue: "",
                 simWithMobile: false,
+                simPhoneNumber: "",
                 allocatedGmail: "",
                 allocatedWhatsapp: ""
               });
@@ -950,17 +953,36 @@ export default function AssetsRegistry({ userRole, triggerToast, sessionUser }: 
                   <option value="Other Accessories">Other Accessories</option>
                 </select>
                 {assignForm.assetType === "Mobile Phone" && (
-                  <div className="flex items-center gap-2 mt-2 bg-[#FCFBF9] border border-[#E8E4DF] p-2 rounded-lg">
-                    <input
-                      type="checkbox"
-                      id="simWithMobile"
-                      checked={assignForm.simWithMobile}
-                      onChange={(e) => setAssignForm(prev => ({ ...prev, simWithMobile: e.target.checked }))}
-                      className="w-3.5 h-3.5 accent-[#C9A84C] rounded cursor-pointer"
-                    />
-                    <label htmlFor="simWithMobile" className="text-[10px] text-[#5D5B57] font-semibold cursor-pointer select-none">
-                      Is SIM card included with mobile phone?
-                    </label>
+                  <div className="space-y-2 mt-2 bg-[#FCFBF9] border border-[#E8E4DF] p-2 rounded-lg">
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        id="simWithMobile"
+                        checked={assignForm.simWithMobile}
+                        onChange={(e) => setAssignForm(prev => ({ 
+                          ...prev, 
+                          simWithMobile: e.target.checked,
+                          simPhoneNumber: e.target.checked ? prev.simPhoneNumber : "" 
+                        }))}
+                        className="w-3.5 h-3.5 accent-[#C9A84C] rounded cursor-pointer"
+                      />
+                      <label htmlFor="simWithMobile" className="text-[10px] text-[#5D5B57] font-semibold cursor-pointer select-none">
+                        Is SIM card included with mobile phone?
+                      </label>
+                    </div>
+                    {assignForm.simWithMobile && (
+                      <div className="mt-2 animate-fade-in">
+                        <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">SIM Phone Number *</label>
+                        <input
+                          type="text"
+                          required
+                          placeholder="e.g. +91 9876543210"
+                          value={assignForm.simPhoneNumber}
+                          onChange={(e) => setAssignForm(prev => ({ ...prev, simPhoneNumber: e.target.value }))}
+                          className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                        />
+                      </div>
+                    )}
                   </div>
                 )}
               </div>

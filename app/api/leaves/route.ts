@@ -207,9 +207,12 @@ export async function POST(req: Request) {
         type === "Sick Leave" ? sickVal :
           type === "Earned Leave" ? earnedVal : 999;
 
+      // Allow all leaves without balance check
+      /*
       if (type !== "Unpaid Leave" && balance < days) {
         return NextResponse.json({ success: false, error: `Insufficient ${type} balance. (Available: ${balance})` }, { status: 400 });
       }
+      */
     }
 
     // Determine initial approval status based on roles and reporting structure
