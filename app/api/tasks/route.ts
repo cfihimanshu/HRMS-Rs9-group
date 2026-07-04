@@ -309,7 +309,8 @@ export async function GET(req: Request) {
 
     return NextResponse.json({ success: true, data: hydratedRecords });
   } catch (error: any) {
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    console.error("[/api/tasks GET] Error:", error?.message, error?.stack);
+    return NextResponse.json({ success: false, error: error.message, detail: error?.original?.message || error?.stack?.split('\n')[0] || "" }, { status: 500 });
   }
 }
 
@@ -333,7 +334,7 @@ export async function POST(req: Request) {
     }
 
     await sequelize.authenticate();
-    await TaskLog.sync({ alter: true });
+    try { await TaskLog.sync({ alter: true }); } catch (_) {}
 
     const { scheduledAt } = body;
 
@@ -388,7 +389,7 @@ export async function PUT(req: Request) {
     }
 
     await sequelize.authenticate();
-    await TaskLog.sync({ alter: true });
+    try { await TaskLog.sync({ alter: true }); } catch (_) {}
 
     let query: any = { id: taskId };
     // Only the "Owner" role has full access to edit any task. Other roles can only edit tasks they own or tasks forwarded to them.
