@@ -13,7 +13,8 @@ import {
   Eye,
   FileText,
   X,
-  Download
+  Download,
+  Info
 } from "lucide-react";
 
 interface OpsProps {
@@ -1272,7 +1273,7 @@ export function PerformanceCompliance({
 
     // Process SODs
     (reports.sod || []).forEach((sod: any) => {
-      const empId = sod.employee?.id || sod.employee?.id || sod.employee?.id || "unknown";
+      const empId = getEmpIdStr(sod.employee);
       if (!sod.date) return;
       const dObj = new Date(sod.date);
       const dateStr = dObj.toDateString();
@@ -1282,7 +1283,7 @@ export function PerformanceCompliance({
 
     // Process EODs
     (reports.eod || []).forEach((eod: any) => {
-      const empId = eod.employee?.id || eod.employee?.id || eod.employee?.id || "unknown";
+      const empId = getEmpIdStr(eod.employee);
       if (!eod.date) return;
       const dObj = new Date(eod.date);
       const dateStr = dObj.toDateString();
@@ -1297,22 +1298,43 @@ export function PerformanceCompliance({
 
     // Process Tasks
     (reports.tasks || []).forEach((task: any) => {
-      const empId = task.employee?.id || task.employee?.id || task.employee?.id || "unknown";
+      const empId = getEmpIdStr(task.employee);
       if (!task.date) return;
-      const dObj = new Date(task.date);
-      const dateStr = dObj.toDateString();
-      const key = `${empId}_${dateStr}`;
-      const existing = map.get(key);
-      if (existing) {
-        existing.tasks.push(task);
+
+      // 1. Group under the original creation date
+      const dObjCreate = new Date(task.date);
+      const dateStrCreate = dObjCreate.toDateString();
+      const keyCreate = `${empId}_${dateStrCreate}`;
+      const existingCreate = map.get(keyCreate);
+      if (existingCreate) {
+        if (!existingCreate.tasks.some((t: any) => t.id === task.id)) {
+          existingCreate.tasks.push(task);
+        }
       } else {
-        map.set(key, { sod: null, eod: null, tasks: [task], fieldVisits: [], date: dObj, dateStr, employee: task.employee });
+        map.set(keyCreate, { sod: null, eod: null, tasks: [task], fieldVisits: [], date: dObjCreate, dateStr: dateStrCreate, employee: task.employee });
+      }
+
+      // 2. Group under the last update date (updatedAt) if it falls on a different day
+      if (task.updatedAt) {
+        const dObjUpdate = new Date(task.updatedAt);
+        const dateStrUpdate = dObjUpdate.toDateString();
+        if (dateStrUpdate !== dateStrCreate) {
+          const keyUpdate = `${empId}_${dateStrUpdate}`;
+          const existingUpdate = map.get(keyUpdate);
+          if (existingUpdate) {
+            if (!existingUpdate.tasks.some((t: any) => t.id === task.id)) {
+              existingUpdate.tasks.push(task);
+            }
+          } else {
+            map.set(keyUpdate, { sod: null, eod: null, tasks: [task], fieldVisits: [], date: dObjUpdate, dateStr: dateStrUpdate, employee: task.employee });
+          }
+        }
       }
     });
 
     // Process Field Visits
     (reports.fieldVisits || []).forEach((visit: any) => {
-      const empId = visit.employee_id || (visit.employee?.id || visit.employee?.id || visit.employee?.id || "unknown");
+      const empId = visit.employee_id || getEmpIdStr(visit.employee);
       if (!visit.date) return;
       const dObj = new Date(visit.date);
       const dateStr = dObj.toDateString();
@@ -1326,7 +1348,14 @@ export function PerformanceCompliance({
     });
 
     // Sort by date (descending)
-    return Array.from(map.values()).sort((a, b) => b.date.getTime() - a.date.getTime());
+    const result = Array.from(map.values()).sort((a, b) => b.date.getTime() - a.date.getTime());
+    if (typeof window !== "undefined") {
+      (window as any).mergedListDebug = result;
+      (window as any).reportsDebug = reports;
+      console.log("DEBUG MERGED LIST:", result);
+      console.log("DEBUG REPORTS:", reports);
+    }
+    return result;
   }, [reports]);
 
   const exportConsolidatedExcel = () => {
@@ -1357,6 +1386,7 @@ export function PerformanceCompliance({
       const getAttendanceStatus = (item: any) => {
         if (item.sod) return "Present";
         if (item.eod) return "Present (EOD Only)";
+        if (item.tasks && item.tasks.length > 0) return "Tasks Only";
         const isSunday = item.date.getDay() === 0;
         if (isSunday) return "Weekly Off";
         return "Absent";
@@ -1376,8 +1406,15 @@ export function PerformanceCompliance({
 
         const tasksCount = item.tasks ? item.tasks.length : 0;
         const tasksDetails = item.tasks && item.tasks.length > 0
-          ? item.tasks.map((t: any) => `[${t.status}] ${t.taskTitle} (${t.taskType})`).join(" | ")
-          : "-";
+           ? item.tasks.map((t: any) => {
+               let suffix = "";
+               if (t.updatedAt && new Date(t.updatedAt).toDateString() !== item.date.toDateString() && item.date.toDateString() === new Date(t.date).toDateString()) {
+                 const dateStr = new Date(t.updatedAt).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
+                 suffix = ` (This task is shifted for working on ${dateStr})`;
+               }
+               return `[${t.status}] ${t.taskTitle} (${t.taskType})${suffix}`;
+             }).join(" | ")
+           : "-";
 
         const fieldVisitKm = item.fieldVisits && item.fieldVisits.length > 0
           ? item.fieldVisits.reduce((sum: number, v: any) => sum + (v.distance_travelled || 0), 0)
@@ -1488,10 +1525,12 @@ export function PerformanceCompliance({
     }
 
     let matchSubTab = true;
+    const hasTasks = item.tasks && item.tasks.length > 0;
+    const hasFieldVisits = item.fieldVisits && item.fieldVisits.length > 0;
     if (activeSubTab === "sod") {
-      matchSubTab = !!item.sod;
+      matchSubTab = !!item.sod || hasTasks || hasFieldVisits;
     } else {
-      matchSubTab = !!item.eod;
+      matchSubTab = !!item.eod || hasTasks || hasFieldVisits;
     }
 
     return matchSearch && matchDate && matchCompany && matchUser && matchSubTab && matchDept;
@@ -1879,8 +1918,10 @@ export function PerformanceCompliance({
                                 <span className="bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-bold px-2 py-0.5 rounded-full">Completed</span>
                               ) : item.sod ? (
                                 <span className="bg-amber-50 text-amber-700 border border-amber-200 text-[10px] font-bold px-2 py-0.5 rounded-full">SOD Active</span>
-                              ) : (
+                              ) : item.eod ? (
                                 <span className="bg-rose-50 text-rose-700 border border-rose-200 text-[10px] font-bold px-2 py-0.5 rounded-full">Only EOD</span>
+                              ) : (
+                                <span className="bg-indigo-50 text-indigo-700 border border-indigo-200 text-[10px] font-bold px-2 py-0.5 rounded-full">Tasks Only</span>
                               )}
                             </td>
                             <td className="py-3.5 px-4 whitespace-nowrap text-center">
@@ -1940,7 +1981,11 @@ export function PerformanceCompliance({
                                             <div className="flex items-center justify-between text-[10px] text-slate-400">
                                               <span>Type: <strong className="text-slate-505">{task.taskType}</strong></span>
                                               {task.createdAt && (
-                                                <span>Logged: {new Date(task.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                                                <span>
+                                                  Logged: {new Date(task.createdAt).toLocaleDateString() !== item.date.toLocaleDateString()
+                                                    ? new Date(task.createdAt).toLocaleString([], { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })
+                                                    : new Date(task.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                                                </span>
                                               )}
                                             </div>
                                             {task.description && (
@@ -1948,6 +1993,14 @@ export function PerformanceCompliance({
                                                 {task.description}
                                               </p>
                                             )}
+                                            {task.updatedAt && 
+                                             new Date(task.updatedAt).toDateString() !== item.date.toDateString() && 
+                                             item.date.toDateString() === new Date(task.date).toDateString() && (
+                                               <div className="mt-1 bg-indigo-50 border border-indigo-100 text-[10px] font-semibold text-indigo-650 px-2 py-1.5 rounded-lg flex items-center gap-1.5">
+                                                 <Info className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
+                                                 <span>This task is shifted for working on {new Date(task.updatedAt).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}</span>
+                                               </div>
+                                             )}
                                           </div>
                                         ))}
                                       </div>

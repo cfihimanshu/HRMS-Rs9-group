@@ -1,4 +1,5 @@
 // Removed @ts-nocheck
+export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
@@ -308,7 +309,8 @@ export async function GET(req: Request) {
 
     return NextResponse.json({ success: true, data: hydratedRecords });
   } catch (error: any) {
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    console.error("[/api/tasks GET] Error:", error?.message, error?.stack);
+    return NextResponse.json({ success: false, error: error.message, detail: error?.original?.message || error?.stack?.split('\n')[0] || "" }, { status: 500 });
   }
 }
 
@@ -332,7 +334,7 @@ export async function POST(req: Request) {
     }
 
     await sequelize.authenticate();
-    await TaskLog.sync({ alter: true });
+    try { await TaskLog.sync({ alter: true }); } catch (_) {}
 
     const { scheduledAt } = body;
 
@@ -380,14 +382,14 @@ export async function PUT(req: Request) {
     const userRole = (session.user as any).role || "Employee";
     const userName = session.user.name || "Employee";
     const body = await req.json();
-    const { taskId, status, progressNotes, taskTitle, taskType, description, scheduledAt, forwardedTo, timerStart, timerState, elapsedSeconds } = body;
+    const { taskId, status, progressNotes, taskTitle, taskType, description, scheduledAt, forwardedTo, timerStart, timerState, elapsedSeconds, followUpHistory } = body;
 
     if (!taskId) {
       return NextResponse.json({ success: false, error: "Missing required field: taskId" }, { status: 400 });
     }
 
     await sequelize.authenticate();
-    await TaskLog.sync({ alter: true });
+    try { await TaskLog.sync({ alter: true }); } catch (_) {}
 
     let query: any = { id: taskId };
     // Only the "Owner" role has full access to edit any task. Other roles can only edit tasks they own or tasks forwarded to them.
@@ -425,6 +427,7 @@ export async function PUT(req: Request) {
       if (scheduledAt !== prevScheduledAt) task.reminderSent = false;
     }
     if (forwardedTo !== undefined) task.forwardedTo = forwardedTo || null;
+    if (followUpHistory !== undefined) task.followUpHistory = followUpHistory;
     
     // Manual timer updates if sent from client
     if (timerStart !== undefined) task.timerStart = timerStart ? new Date(timerStart) : null;

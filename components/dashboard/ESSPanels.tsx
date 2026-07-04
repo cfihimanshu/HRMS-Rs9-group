@@ -215,10 +215,10 @@ export function ESSLeaves({ user, triggerToast, stats }: ESSProps) {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="text-[10px] uppercase font-black text-slate-400 font-mono">Leave Type</label>
-                <select name="type" className="w-full bg-slate-50 border border-slate-200 p-2.5 rounded text-xs mt-1" required>
-                  <option value="Casual Leave">Casual Leave (Balance: {dynamicStats.casualLeave})</option>
-                  <option value="Sick Leave">Sick Leave (Balance: {dynamicStats.sickLeave})</option>
-                  <option value="Earned Leave">Earned Leave (Balance: {dynamicStats.earnedLeave})</option>
+                 <select name="type" className="w-full bg-slate-50 border border-slate-200 p-2.5 rounded text-xs mt-1" required>
+                  <option value="Casual Leave">Casual Leave</option>
+                  <option value="Sick Leave">Sick Leave</option>
+                  <option value="Earned Leave">Earned Leave</option>
                   <option value="Unpaid Leave">Loss of Pay / Unpaid Leave</option>
                 </select>
               </div>

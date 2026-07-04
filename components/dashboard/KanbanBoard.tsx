@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
+import { useSession } from "next-auth/react";
 import {
   Plus,
   GripVertical,
@@ -14,6 +15,8 @@ import {
   StickyNote,
   Save,
   ChevronRight,
+  ChevronUp,
+  ChevronDown,
   LayoutGrid,
   AlertCircle,
   Trash2,
@@ -37,6 +40,7 @@ interface Task {
   createdAt: string;
   date: string;
   scheduledAt?: string | null;
+  followUpHistory?: string | null;
   forwardedTo?: string | null;
   forwardedUser?: { id: string; name: string; role: string } | null;
   employee?: { id: string; name: string; role: string } | null;
@@ -57,6 +61,9 @@ const TYPE_COLORS: Record<string, string> = {
 };
 
 export default function KanbanBoard() {
+  const { data: session, status } = useSession();
+  const sessionUser = session?.user;
+
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
@@ -72,6 +79,11 @@ export default function KanbanBoard() {
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [editNotes, setEditNotes] = useState("");
   const [savingNotes, setSavingNotes] = useState(false);
+  const [expandNotesHistory, setExpandNotesHistory] = useState(false);
+  const [expandFollowUpHistory, setExpandFollowUpHistory] = useState(false);
+  const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
+  const [editingNoteText, setEditingNoteText] = useState("");
+  const [savingEditNote, setSavingEditNote] = useState(false);
 
   // Call Follow-up date/time in popup
   const [editScheduleDate, setEditScheduleDate] = useState("");
@@ -99,8 +111,10 @@ export default function KanbanBoard() {
   const [dragOverCol, setDragOverCol] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchTasks();
-  }, []);
+    if (status !== "loading") {
+      fetchTasks();
+    }
+  }, [session, status]);
 
   // Live tick every second to update running timer display
   useEffect(() => {
@@ -238,18 +252,39 @@ export default function KanbanBoard() {
   };
 
   const saveProgressNotes = async () => {
-    if (!selectedTask) return false;
+    if (!selectedTask || !editNotes.trim()) return false;
     setSavingNotes(true);
     try {
+      let currentNotesList: any[] = [];
+      if (selectedTask.progressNotes) {
+        try {
+          const parsed = JSON.parse(selectedTask.progressNotes);
+          currentNotesList = Array.isArray(parsed) ? parsed : [{ id: 'legacy', note: selectedTask.progressNotes, createdAt: selectedTask.createdAt || new Date(), userName: "System" }];
+        } catch (e) {
+          currentNotesList = [{ id: 'legacy', note: selectedTask.progressNotes, createdAt: selectedTask.createdAt || new Date(), userName: "System" }];
+        }
+      }
+
+      const newNoteObj = {
+        id: Date.now().toString(),
+        note: editNotes.trim(),
+        createdAt: new Date().toISOString(),
+        userName: sessionUser?.name || "System"
+      };
+
+      const updatedNotesList = [...currentNotesList, newNoteObj];
+      const serializedNotes = JSON.stringify(updatedNotesList);
+
       const res = await fetch("/api/tasks", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ taskId: selectedTask.id, progressNotes: editNotes }),
+        body: JSON.stringify({ taskId: selectedTask.id, progressNotes: serializedNotes }),
       });
       const data = await res.json();
       if (data.success) {
-        setTasks(prev => prev.map(t => t.id === selectedTask.id ? { ...t, progressNotes: editNotes } : t));
-        setSelectedTask(prev => prev ? { ...prev, progressNotes: editNotes } : null);
+        setTasks(prev => prev.map(t => t.id === selectedTask.id ? { ...t, progressNotes: serializedNotes } : t));
+        setSelectedTask(prev => prev ? { ...prev, progressNotes: serializedNotes } : null);
+        setEditNotes("");
         return true;
       }
       return false;
@@ -258,6 +293,48 @@ export default function KanbanBoard() {
       return false;
     } finally {
       setSavingNotes(false);
+    }
+  };
+
+  const handleSaveEditNote = async (noteId: string) => {
+    if (!selectedTask || !editingNoteText.trim()) return;
+    setSavingEditNote(true);
+    try {
+      let currentNotesList: any[] = [];
+      if (selectedTask.progressNotes) {
+        try {
+          const parsed = JSON.parse(selectedTask.progressNotes);
+          currentNotesList = Array.isArray(parsed) ? parsed : [{ id: 'legacy', note: selectedTask.progressNotes, createdAt: selectedTask.createdAt || new Date(), userName: "System" }];
+        } catch (e) {
+          currentNotesList = [{ id: 'legacy', note: selectedTask.progressNotes, createdAt: selectedTask.createdAt || new Date(), userName: "System" }];
+        }
+      }
+
+      const updatedNotesList = currentNotesList.map(n => {
+        if (n.id === noteId || (noteId === 'legacy' && n.id === 'legacy')) {
+          return { ...n, note: editingNoteText.trim(), updatedAt: new Date().toISOString() };
+        }
+        return n;
+      });
+
+      const serializedNotes = JSON.stringify(updatedNotesList);
+
+      const res = await fetch("/api/tasks", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ taskId: selectedTask.id, progressNotes: serializedNotes }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setTasks(prev => prev.map(t => t.id === selectedTask.id ? { ...t, progressNotes: serializedNotes } : t));
+        setSelectedTask(prev => prev ? { ...prev, progressNotes: serializedNotes } : null);
+        setEditingNoteId(null);
+        setEditingNoteText("");
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setSavingEditNote(false);
     }
   };
 
@@ -316,7 +393,9 @@ export default function KanbanBoard() {
 
   const openTask = async (task: Task) => {
     setSelectedTask(task);
-    setEditNotes(task.progressNotes || "");
+    setEditNotes("");
+    setExpandNotesHistory(false);
+    setExpandFollowUpHistory(false);
     setIsEditingTask(false);
     setSelectedForwardTo(task.forwardedTo || "");
     // Pre-populate follow-up fields
@@ -337,7 +416,7 @@ export default function KanbanBoard() {
   };
 
   const saveSchedule = async () => {
-    if (!selectedTask) return;
+    if (!selectedTask || !editScheduleDate) return;
     setSavingSchedule(true);
     let scheduledAt: string | null = null;
     if (editScheduleDate && editScheduleTime) {
@@ -345,16 +424,42 @@ export default function KanbanBoard() {
     } else if (editScheduleDate) {
       scheduledAt = new Date(`${editScheduleDate}T00:00:00`).toISOString();
     }
+    if (!scheduledAt) {
+      setSavingSchedule(false);
+      return;
+    }
     try {
+      let currentHistoryList: any[] = [];
+      if (selectedTask.followUpHistory) {
+        try {
+          const parsed = JSON.parse(selectedTask.followUpHistory);
+          currentHistoryList = Array.isArray(parsed) ? parsed : [];
+        } catch (e) {
+          currentHistoryList = [];
+        }
+      }
+
+      const newHistoryObj = {
+        id: Date.now().toString(),
+        scheduledAt,
+        createdAt: new Date().toISOString(),
+        userName: sessionUser?.name || "System"
+      };
+
+      const updatedHistoryList = [...currentHistoryList, newHistoryObj];
+      const serializedHistory = JSON.stringify(updatedHistoryList);
+
       const res = await fetch("/api/tasks", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ taskId: selectedTask.id, scheduledAt }),
+        body: JSON.stringify({ taskId: selectedTask.id, scheduledAt, followUpHistory: serializedHistory }),
       });
       const data = await res.json();
       if (data.success) {
-        setTasks(prev => prev.map(t => t.id === selectedTask.id ? { ...t, scheduledAt } : t));
-        setSelectedTask(prev => prev ? { ...prev, scheduledAt } : null);
+        setTasks(prev => prev.map(t => t.id === selectedTask.id ? { ...t, scheduledAt, followUpHistory: serializedHistory } : t));
+        setSelectedTask(prev => prev ? { ...prev, scheduledAt, followUpHistory: serializedHistory } : null);
+        setEditScheduleDate("");
+        setEditScheduleTime("");
       }
     } catch (err) {
       console.error(err);
@@ -907,72 +1012,113 @@ export default function KanbanBoard() {
 
                 {/* Call Follow-up Date & Time Section */}
                 <div className="px-6 py-4 border-b border-slate-100 bg-violet-50/30">
-                  <div className="flex items-center gap-2 mb-3">
+                  <div 
+                    className="flex items-center gap-2 mb-3 cursor-pointer select-none"
+                    onClick={() => setExpandFollowUpHistory(!expandFollowUpHistory)}
+                  >
                     <CalendarClock className="w-4 h-4 text-violet-500" />
                     <p className="text-[10px] uppercase font-black text-violet-700 tracking-wider">Call Follow-up Date &amp; Time</p>
+                    {expandFollowUpHistory ? <ChevronUp className="w-3.5 h-3.5 text-violet-500" /> : <ChevronDown className="w-3.5 h-3.5 text-violet-500" />}
                     {selectedTask.scheduledAt && (
                       <span className="ml-auto text-[9px] font-bold text-violet-500 bg-violet-100 px-2 py-0.5 rounded-full border border-violet-200">
-                        {new Date(selectedTask.scheduledAt).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}
+                        Latest: {new Date(selectedTask.scheduledAt).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}
                         {" "}
                         {new Date(selectedTask.scheduledAt).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}
                       </span>
                     )}
                   </div>
-                  <div className="grid grid-cols-2 gap-3 mb-3">
-                    <div>
-                      <label className="text-[8px] uppercase font-black text-slate-500 tracking-wider block mb-1">Date</label>
-                      <input
-                        type="date"
-                        className="w-full border border-slate-200 rounded-lg px-3 py-2 text-xs font-medium focus:outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-100 text-slate-700 bg-white"
-                        value={editScheduleDate}
-                        onChange={e => setEditScheduleDate(e.target.value)}
-                      />
-                    </div>
-                    <div>
-                      <label className="text-[8px] uppercase font-black text-slate-500 tracking-wider block mb-1">Time</label>
-                      <input
-                        type="time"
-                        className="w-full border border-slate-200 rounded-lg px-3 py-2 text-xs font-medium focus:outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-100 text-slate-700 bg-white"
-                        value={editScheduleTime}
-                        onChange={e => setEditScheduleTime(e.target.value)}
-                      />
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={saveSchedule}
-                      disabled={savingSchedule || (!editScheduleDate)}
-                      className="flex items-center gap-1.5 bg-violet-600 hover:bg-violet-700 disabled:opacity-40 disabled:cursor-not-allowed text-white px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all"
-                    >
-                      {savingSchedule ? <Loader2 className="w-3 h-3 animate-spin" /> : <CalendarClock className="w-3 h-3" />}
-                      {savingSchedule ? "Saving..." : "Save Follow-up"}
-                    </button>
-                    {selectedTask.scheduledAt && (
-                      <button
-                        onClick={async () => {
-                          setEditScheduleDate("");
-                          setEditScheduleTime("");
-                          setSavingSchedule(true);
+                  
+                  {expandFollowUpHistory && (
+                    <div className="space-y-3 animate-fadeIn">
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="text-[8px] uppercase font-black text-slate-500 tracking-wider block mb-1">Date</label>
+                          <input
+                            type="date"
+                            className="w-full border border-slate-200 rounded-lg px-3 py-2 text-xs font-medium focus:outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-100 text-slate-700 bg-white"
+                            value={editScheduleDate}
+                            onChange={e => setEditScheduleDate(e.target.value)}
+                          />
+                        </div>
+                        <div>
+                          <label className="text-[8px] uppercase font-black text-slate-500 tracking-wider block mb-1">Time</label>
+                          <input
+                            type="time"
+                            className="w-full border border-slate-200 rounded-lg px-3 py-2 text-xs font-medium focus:outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-100 text-slate-700 bg-white"
+                            value={editScheduleTime}
+                            onChange={e => setEditScheduleTime(e.target.value)}
+                          />
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={saveSchedule}
+                          disabled={savingSchedule || (!editScheduleDate)}
+                          className="flex items-center gap-1.5 bg-violet-600 hover:bg-violet-700 disabled:opacity-40 disabled:cursor-not-allowed text-white px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all"
+                        >
+                          {savingSchedule ? <Loader2 className="w-3 h-3 animate-spin" /> : <CalendarClock className="w-3 h-3" />}
+                          {savingSchedule ? "Saving..." : "Add Follow-up"}
+                        </button>
+                        {selectedTask.scheduledAt && (
+                          <button
+                            onClick={async () => {
+                              setEditScheduleDate("");
+                              setEditScheduleTime("");
+                              setSavingSchedule(true);
+                              try {
+                                const res = await fetch("/api/tasks", {
+                                  method: "PUT",
+                                  headers: { "Content-Type": "application/json" },
+                                  body: JSON.stringify({ taskId: selectedTask.id, scheduledAt: null }),
+                                });
+                                const data = await res.json();
+                                if (data.success) {
+                                  setTasks(prev => prev.map(t => t.id === selectedTask.id ? { ...t, scheduledAt: null } : t));
+                                  setSelectedTask(prev => prev ? { ...prev, scheduledAt: null } : null);
+                                }
+                              } catch (err) { console.error(err); }
+                              finally { setSavingSchedule(false); }
+                            }}
+                            className="text-[10px] font-black text-rose-500 hover:text-rose-700 uppercase tracking-wider transition-colors"
+                          >
+                            Clear Latest
+                          </button>
+                        )}
+                      </div>
+
+                      {/* Previous Schedules List */}
+                      {(() => {
+                        let historyList: any[] = [];
+                        if (selectedTask.followUpHistory) {
                           try {
-                            const res = await fetch("/api/tasks", {
-                              method: "PUT",
-                              headers: { "Content-Type": "application/json" },
-                              body: JSON.stringify({ taskId: selectedTask.id, scheduledAt: null }),
-                            });
-                            const data = await res.json();
-                            if (data.success) {
-                              setTasks(prev => prev.map(t => t.id === selectedTask.id ? { ...t, scheduledAt: null } : t));
-                              setSelectedTask(prev => prev ? { ...prev, scheduledAt: null } : null);
-                            }
-                          } catch (err) { console.error(err); }
-                          finally { setSavingSchedule(false); }
-                        }}
-                        className="text-[10px] font-black text-rose-500 hover:text-rose-700 uppercase tracking-wider transition-colors"
-                      >
-                        Clear
-                      </button>
-                    )}
-                  </div>
+                            const parsed = JSON.parse(selectedTask.followUpHistory);
+                            historyList = Array.isArray(parsed) ? parsed : [];
+                          } catch (e) {
+                            historyList = [];
+                          }
+                        }
+
+                        return historyList.length > 0 && (
+                          <div className="mt-3 space-y-2 border-t border-slate-100 pt-3 max-h-40 overflow-y-auto pr-1">
+                            <p className="text-[8px] uppercase font-black text-slate-400 tracking-wider">Scheduled History</p>
+                            {historyList.map((h, idx) => (
+                              <div key={h.id || idx} className="p-2 rounded-lg border border-slate-100 bg-slate-50/40 flex items-center justify-between text-xs font-semibold text-slate-700">
+                                <span className="flex items-center gap-1.5">
+                                  <CalendarClock className="w-3.5 h-3.5 text-violet-400" />
+                                  {new Date(h.scheduledAt).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}
+                                  {" "}
+                                  {new Date(h.scheduledAt).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}
+                                </span>
+                                <span className="text-[8px] text-slate-400 font-bold uppercase">
+                                  By {h.userName || "System"}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        );
+                      })()}
+                    </div>
+                  )}
                 </div>
 
                 {/* Forward To Section */}
@@ -1034,35 +1180,128 @@ export default function KanbanBoard() {
                 </div>
 
                 {/* Progress Notes */}
-
                 <div className="px-6 py-4">
-                  <div className="flex items-center gap-2 mb-3">
+                  <div 
+                    className="flex items-center gap-2 mb-3 cursor-pointer select-none"
+                    onClick={() => setExpandNotesHistory(!expandNotesHistory)}
+                  >
                     <StickyNote className="w-4 h-4 text-indigo-500" />
-                    <p className="text-[10px] uppercase font-black text-slate-700 tracking-wider">Progress Notes</p>
+                    <p className="text-[10px] uppercase font-black text-slate-700 tracking-wider">Progress Notes History</p>
+                    {expandNotesHistory ? <ChevronUp className="w-3.5 h-3.5 text-indigo-500" /> : <ChevronDown className="w-3.5 h-3.5 text-indigo-500" />}
                   </div>
+
+                  {/* Previous Notes List */}
+                  {expandNotesHistory && (() => {
+                    let notesList: any[] = [];
+                    if (selectedTask.progressNotes) {
+                      try {
+                        const parsed = JSON.parse(selectedTask.progressNotes);
+                        notesList = Array.isArray(parsed) ? parsed : [{ id: 'legacy', note: selectedTask.progressNotes, createdAt: selectedTask.createdAt || new Date(), userName: "System" }];
+                      } catch (e) {
+                        notesList = [{ id: 'legacy', note: selectedTask.progressNotes, createdAt: selectedTask.createdAt || new Date(), userName: "System" }];
+                      }
+                    }
+
+                    return notesList.length > 0 && (
+                      <div className="mb-4 space-y-2.5 max-h-48 overflow-y-auto pr-1 animate-fadeIn">
+                        {notesList.map((n, idx) => {
+                          const noteId = n.id || idx.toString();
+                          const isEditingThisNote = editingNoteId === noteId;
+                          const canEdit = (sessionUser as any)?.role === "Owner" || (n.userName && sessionUser?.name && n.userName.trim() === sessionUser.name.trim());
+
+                          return (
+                            <div key={noteId} className="p-2.5 rounded-xl border border-slate-100 bg-slate-50/60 text-left">
+                              <div className="flex items-center justify-between gap-2 mb-1">
+                                <div className="flex items-center gap-1.5">
+                                  <span className="text-[9px] font-black uppercase text-indigo-650 tracking-wider">
+                                    {n.userName || "System"}
+                                  </span>
+                                  {n.updatedAt && (
+                                    <span className="text-[7px] font-bold text-slate-400 bg-slate-100 px-1 rounded uppercase tracking-wider">Edited</span>
+                                  )}
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <span className="text-[9px] text-slate-450 font-medium">
+                                    {new Date(n.createdAt).toLocaleString("en-IN", { hour: "2-digit", minute: "2-digit", day: "2-digit", month: "short" })}
+                                  </span>
+                                  {canEdit && !isEditingThisNote && (
+                                    <button
+                                      onClick={() => {
+                                        setEditingNoteId(noteId);
+                                        setEditingNoteText(n.note);
+                                      }}
+                                      className="text-slate-455 hover:text-indigo-600 transition-colors p-0.5"
+                                      title="Edit Note"
+                                    >
+                                      <Edit2 className="w-3 h-3" />
+                                    </button>
+                                  )}
+                                </div>
+                              </div>
+                              {isEditingThisNote ? (
+                                <div className="mt-1 space-y-1.5">
+                                  <textarea
+                                    className="w-full border border-indigo-200 rounded-lg p-2 text-xs font-semibold focus:outline-none focus:border-indigo-400 focus:ring-1 focus:ring-indigo-100 text-slate-700 bg-white"
+                                    rows={2}
+                                    value={editingNoteText}
+                                    onChange={e => setEditingNoteText(e.target.value)}
+                                  />
+                                  <div className="flex justify-end gap-1.5">
+                                    <button
+                                      onClick={() => {
+                                        setEditingNoteId(null);
+                                        setEditingNoteText("");
+                                      }}
+                                      disabled={savingEditNote}
+                                      className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-655 rounded text-[9px] font-black uppercase transition-all"
+                                    >
+                                      Cancel
+                                    </button>
+                                    <button
+                                      onClick={() => handleSaveEditNote(noteId)}
+                                      disabled={savingEditNote || !editingNoteText.trim() || editingNoteText.trim() === n.note.trim()}
+                                      className="px-2.5 py-1 bg-indigo-650 hover:bg-indigo-700 disabled:opacity-50 text-white rounded text-[9px] font-black uppercase flex items-center gap-1 transition-all"
+                                    >
+                                      {savingEditNote ? <Loader2 className="w-2.5 h-2.5 animate-spin" /> : <Save className="w-2.5 h-2.5" />}
+                                      Save
+                                    </button>
+                                  </div>
+                                </div>
+                              ) : (
+                                <p className="text-[11px] text-slate-700 leading-relaxed font-semibold break-words whitespace-pre-wrap">
+                                  {n.note}
+                                </p>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    );
+                  })()}
+
                   <textarea
                     className="w-full border border-slate-200 rounded-xl px-4 py-3 text-xs font-medium text-slate-800 focus:outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 resize-none placeholder-slate-400 leading-relaxed"
-                    rows={5}
-                    placeholder="Write your progress notes, blockers, or updates here..."
+                    rows={3}
+                    placeholder="Add a new progress note, blocker, or update here..."
                     value={editNotes}
                     onChange={e => setEditNotes(e.target.value)}
                   />
                   <div className="flex items-center justify-between mt-3">
-                    <p className="text-[9px] text-slate-400 font-medium">
+                    <p className="text-[9px] text-slate-450 font-medium">
                       Created: {new Date(selectedTask.createdAt || selectedTask.date).toLocaleString("en-IN", { hour: "2-digit", minute: "2-digit", day: "2-digit", month: "short" })}
                     </p>
                     <div className="flex gap-2">
                       <button
                         onClick={saveProgressNotes}
-                        disabled={savingNotes || editNotes === selectedTask.progressNotes}
+                        disabled={savingNotes || !editNotes.trim()}
                         className="flex items-center gap-2 bg-indigo-50 border border-indigo-200 hover:bg-indigo-100 disabled:opacity-40 disabled:cursor-not-allowed text-indigo-700 px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all"
                       >
                         {savingNotes ? <Loader2 className="w-3 h-3 animate-spin" /> : <Save className="w-3 h-3" />}
-                        {savingNotes ? "Saving..." : "Save Notes"}
+                        {savingNotes ? "Saving..." : "Add Note"}
                       </button>
                       <button
                         onClick={async () => {
-                          if (editNotes !== selectedTask.progressNotes) {
+                          if (editNotes.trim()) {
                             const success = await saveProgressNotes();
                             if (!success) return;
                           }
@@ -1072,7 +1311,7 @@ export default function KanbanBoard() {
                         disabled={savingNotes}
                         className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all"
                       >
-                        <CheckCircle2 className="w-3 h-3" /> Save & Close
+                        <CheckCircle2 className="w-3 h-3" /> Close Task View
                       </button>
                     </div>
                   </div>

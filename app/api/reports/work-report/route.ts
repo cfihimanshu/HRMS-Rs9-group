@@ -122,29 +122,33 @@ export async function GET(req: Request) {
 
     const mappedSods = sods.map(s => {
       const json = s.toJSON() as any;
-      json.id = json.id ? json.id.toString() : (json.id ? json.id.toString() : "");
-      json.employee = employeeMap[json.employee] || null;
+      json.id = json.id ? json.id.toString() : "";
+      const empObj = employeeMap[json.employee];
+      json.employee = empObj ? { ...empObj, id: empObj.id } : { id: json.employee, name: "Unknown", role: "Employee" };
       return json;
     });
 
     const mappedEods = eods.map(e => {
       const json = e.toJSON() as any;
-      json.id = json.id ? json.id.toString() : (json.id ? json.id.toString() : "");
-      json.employee = employeeMap[json.employee] || null;
+      json.id = json.id ? json.id.toString() : "";
+      const empObj = employeeMap[json.employee];
+      json.employee = empObj ? { ...empObj, id: empObj.id } : { id: json.employee, name: "Unknown", role: "Employee" };
       return json;
     });
 
     const mappedTasks = tasks.map(t => {
       const json = t.toJSON() as any;
-      json.id = json.id ? json.id.toString() : (json.id ? json.id.toString() : "");
-      json.employee = employeeMap[json.employee] || null;
+      json.id = json.id ? json.id.toString() : "";
+      const empObj = employeeMap[json.employee];
+      json.employee = empObj ? { ...empObj, id: empObj.id } : { id: json.employee, name: "Unknown", role: "Employee" };
       return json;
     });
 
     const mappedFieldVisits = fieldVisits.map(v => {
       const json = v.toJSON() as any;
-      json.id = json.id ? json.id.toString() : (json.id ? json.id.toString() : "");
-      json.employee = employeeMap[json.employee_id] || null;
+      json.id = json.id ? json.id.toString() : "";
+      const empObj = employeeMap[json.employee_id];
+      json.employee = empObj ? { ...empObj, id: empObj.id } : { id: json.employee_id, name: "Unknown", role: "Employee" };
       return json;
     });
 
