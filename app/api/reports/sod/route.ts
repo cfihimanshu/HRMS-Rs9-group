@@ -117,7 +117,9 @@ export async function POST(req: Request) {
     }
 
     // Auto-create task in Kanban from SOD declaration
+    const sodTaskId = await TaskLog.generateNextTaskId(userId);
     await TaskLog.create({
+      id: sodTaskId,
       employee: userId,
       date: new Date(), // exact current timestamp
       taskTitle: taskSummary,

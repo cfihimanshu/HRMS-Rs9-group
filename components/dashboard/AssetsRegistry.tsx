@@ -57,6 +57,7 @@ export default function AssetsRegistry({ userRole, triggerToast, sessionUser }: 
   const [companies, setCompanies] = useState<any[]>([]);
   const [departmentsDb, setDepartmentsDb] = useState<any[]>([]);
   const [dbRoles, setDbRoles] = useState<any[]>([]);
+  const [inventoryTypes, setInventoryTypes] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   
@@ -102,6 +103,46 @@ export default function AssetsRegistry({ userRole, triggerToast, sessionUser }: 
       setAssignForm(prev => ({ ...prev, assignedBy: sessionUser.name }));
     }
   }, [sessionUser]);
+
+  // Handle redirection from Grant Asset Request
+  useEffect(() => {
+    if (employees.length === 0) return;
+    const shouldOpen = localStorage.getItem("open_assign_asset_form");
+    if (shouldOpen === "true") {
+      const userId = localStorage.getItem("assign_asset_user_id");
+      const assetType = localStorage.getItem("assign_asset_type") || "Laptop";
+      const assetVal = localStorage.getItem("assign_asset_value") || "";
+
+      // Find the matched employee to auto-select company & corporate employeeId
+      const matchedEmp = employees.find(emp => String(emp.id) === String(userId));
+      if (matchedEmp) {
+        // Find their company
+        let comps: any[] = [];
+        if (Array.isArray(matchedEmp.companies)) comps = matchedEmp.companies;
+        else if (typeof matchedEmp.companies === "string") {
+          try { comps = JSON.parse(matchedEmp.companies); } catch(e) {}
+        }
+        const companyId = comps[0]?.id || comps[0] || "";
+
+        setAssignForm(prev => ({
+          ...prev,
+          companyId: String(companyId),
+          assignedToId: matchedEmp.employeeProfile?.employeeId || "",
+          assetType: assetType,
+          assetValue: assetVal,
+          allocatedGmail: matchedEmp.employeeProfile?.allocatedGmail || "",
+          allocatedWhatsapp: matchedEmp.employeeProfile?.allocatedWhatsapp || ""
+        }));
+        setShowAssignModal(true);
+      }
+
+      // Cleanup
+      localStorage.removeItem("open_assign_asset_form");
+      localStorage.removeItem("assign_asset_user_id");
+      localStorage.removeItem("assign_asset_type");
+      localStorage.removeItem("assign_asset_value");
+    }
+  }, [employees]);
 
   const handleAssignSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -193,6 +234,30 @@ export default function AssetsRegistry({ userRole, triggerToast, sessionUser }: 
       if (deptRes.ok) setDepartmentsDb(deptData.data || []);
       if (compRes.ok) setCompanies(compData.data || []);
       if (roleRes.ok) setDbRoles(roleData.data || []);
+
+      // Fetch inventory assets to extract dynamic types
+      try {
+        const invRes = await fetch("/api/assets/inventory");
+        const invData = await invRes.json();
+        if (invRes.ok && invData.success) {
+          const defaultTypes = [
+            "Laptop",
+            "Mobile Phone",
+            "SIM Card",
+            "Headset / Accessories",
+            "ID Card / Lanyard",
+            "Office Chair / Table",
+            "Router / Networking",
+            "Printer / Scanner",
+            "Other Accessories"
+          ];
+          const existingTypes = (invData.data || []).map((item: any) => item.assetType).filter(Boolean);
+          const combined = Array.from(new Set([...defaultTypes, ...existingTypes]));
+          setInventoryTypes(combined.sort() as string[]);
+        }
+      } catch (err) {
+        console.error("Error fetching inventory for types:", err);
+      }
     } catch (error) {
       console.error("Error fetching assets data:", error);
       triggerToast("Failed to load assets registry data");
@@ -944,13 +1009,17 @@ export default function AssetsRegistry({ userRole, triggerToast, sessionUser }: 
                   onChange={(e) => setAssignForm(prev => ({ ...prev, assetType: e.target.value }))}
                   className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
                 >
-                  <option value="Laptop">Laptop</option>
-                  <option value="Mobile Phone">Mobile Phone</option>
-                  <option value="SIM Card">SIM Card</option>
-                  <option value="Headset / Accessories">Headset / Accessories</option>
-                  <option value="ID Card / Lanyard">ID Card / Lanyard</option>
-                  <option value="Office Chair / Table">Office Chair / Table</option>
-                  <option value="Other Accessories">Other Accessories</option>
+                  {(inventoryTypes.length > 0 ? inventoryTypes : [
+                    "Laptop",
+                    "Mobile Phone",
+                    "SIM Card",
+                    "Headset / Accessories",
+                    "ID Card / Lanyard",
+                    "Office Chair / Table",
+                    "Other Accessories"
+                  ]).map(type => (
+                    <option key={type} value={type}>{type}</option>
+                  ))}
                 </select>
                 {assignForm.assetType === "Mobile Phone" && (
                   <div className="space-y-2 mt-2 bg-[#FCFBF9] border border-[#E8E4DF] p-2 rounded-lg">

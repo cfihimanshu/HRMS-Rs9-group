@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { useSession } from "next-auth/react";
+import * as XLSX from "xlsx";
 import {
   Plus,
   GripVertical,
@@ -28,6 +29,7 @@ import {
   Pause,
   Square,
   Timer,
+  Download,
 } from "lucide-react";
 
 interface Task {
@@ -150,9 +152,12 @@ export default function KanbanBoard() {
         setDesc("");
         setShowAdd(false);
         fetchTasks();
+      } else {
+        alert(data.error || "Failed to add task.");
       }
     } catch (err) {
       console.error(err);
+      alert("An unexpected error occurred.");
     } finally {
       setSubmitting(false);
     }
@@ -527,6 +532,58 @@ export default function KanbanBoard() {
     return (t.employee as any)?.name === filterUser;
   });
 
+  const handleExportTasks = () => {
+    const headers = ["Task ID", "Title", "Type", "Description", "Status", "Assigned User", "Created At", "Progress Notes"];
+    const rows = filteredTasks.map(t => {
+      let notesText = "";
+      if (t.progressNotes) {
+        try {
+          const parsed = JSON.parse(t.progressNotes);
+          if (Array.isArray(parsed)) {
+            notesText = parsed.map(n => `[${n.userName || "System"} at ${new Date(n.createdAt).toLocaleDateString("en-IN")}]: ${n.note}`).join("\n");
+          } else {
+            notesText = t.progressNotes;
+          }
+        } catch (e) {
+          notesText = t.progressNotes;
+        }
+      }
+      const assignedUser = (t.employee as any)?.name || "Unassigned";
+      return {
+        "Task ID": t.id,
+        "Title": t.taskTitle,
+        "Type": t.taskType,
+        "Description": t.description || "",
+        "Status": t.status,
+        "Assigned User": assignedUser,
+        "Created At": t.createdAt ? new Date(t.createdAt).toLocaleDateString("en-IN") : t.date || "",
+        "Progress Notes": notesText
+      };
+    });
+
+    const worksheet = XLSX.utils.json_to_sheet(rows, { header: headers });
+    
+    // Set auto widths based on content
+    const max_widths = headers.map(h => {
+      let max_len = h.length;
+      rows.forEach(r => {
+        const val = String((r as any)[h] || "");
+        const lines = val.split("\n");
+        lines.forEach(l => {
+          if (l.length > max_len) max_len = l.length;
+        });
+      });
+      return { wch: Math.min(Math.max(max_len + 2, 10), 60) };
+    });
+    worksheet["!cols"] = max_widths;
+
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Tasks");
+
+    const fileName = `Tasks_Export_${filterUser === "All" ? "All_Users" : filterUser.replace(/\s+/g, "_")}_${new Date().toISOString().slice(0, 10)}.xlsx`;
+    XLSX.writeFile(workbook, fileName);
+  };
+
   const pending = filteredTasks.filter(t => t.status === "Pending");
   const inProgress = filteredTasks.filter(t => t.status === "In Progress");
   const completed = filteredTasks.filter(t => t.status === "Completed");
@@ -735,6 +792,13 @@ export default function KanbanBoard() {
               ))}
             </select>
           )}
+          <button
+            onClick={handleExportTasks}
+            className="flex items-center gap-1.5 bg-[#714B67] hover:bg-[#5b3c53] text-white text-[10px] font-black uppercase tracking-wider rounded-lg px-3 py-2 transition-all shadow-sm font-sans"
+          >
+            <Download className="w-3.5 h-3.5" />
+            Export Excel
+          </button>
           <div className="bg-slate-100 rounded-lg px-3 py-1.5 text-[10px] font-black text-slate-600 font-mono shadow-sm">
             {filteredTasks.length} tasks total
           </div>
