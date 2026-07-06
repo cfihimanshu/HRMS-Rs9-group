@@ -28,6 +28,7 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
   const [companies, setCompanies] = useState<any[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [showAddForm, setShowAddForm] = useState(false);
+  const [isOnboardingOwner, setIsOnboardingOwner] = useState(false);
   const [isDark, setIsDark] = useState(false);
   const [search, setSearch] = useState<string>("");
   const [filterRole, setFilterRole] = useState<string>("All");
@@ -239,18 +240,28 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
     e.preventDefault();
     triggerToast("Submitting employee data...");
     try {
+      const payload = isOnboardingOwner ? {
+        ...formData,
+        role: "Owner",
+        department: "Management",
+        designation: "Owner",
+        employeeId: "OWNER-" + Date.now(), // Generate a unique OWNER-timestamp value behind the scenes
+        baseSalary: 0
+      } : {
+        ...formData,
+        baseSalary: Number(formData.baseSalary)
+      };
+
       const res = await fetch("/api/employees", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ...formData,
-          baseSalary: Number(formData.baseSalary)
-        })
+        body: JSON.stringify(payload)
       });
       const data = await res.json();
       if (data.success) {
-        triggerToast("Employee onboarded successfully!");
+        triggerToast(isOnboardingOwner ? "Owner registered successfully!" : "Employee onboarded successfully!");
         setShowAddForm(false);
+        setIsOnboardingOwner(false);
         setTopCompany("");
         setTopRole("Employee");
         setFormData({
@@ -573,6 +584,11 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
     }
   }
 
+  const defaultCompanyRef = currentUserComps[0];
+  const defaultCompanyId = defaultCompanyRef 
+    ? (typeof defaultCompanyRef === 'string' ? defaultCompanyRef : defaultCompanyRef.id?.toString())
+    : "";
+
   let hrCompany: any = null;
   if (currentUserComps.length > 0) {
     const compRef = currentUserComps[0];
@@ -728,163 +744,212 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
             Onboard and manage employees across multiple organizations.
           </p>
         </div>
-        {(userRole === "Owner" || userRole === "HR Head" || userRole === "HR Executive") && (
-          <button
-            onClick={() => setShowAddForm(!showAddForm)}
-            className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2.5 rounded-lg text-sm font-bold shadow-md transition-all flex items-center gap-2"
-          >
-            {showAddForm ? "Cancel Registration" : <><UserPlus className="w-4 h-4" /> Add Employee</>}
-          </button>
-        )}
+        <div className="flex items-center gap-2">
+          {(userRole === "Owner" || userRole === "HR Head" || userRole === "HR Executive") && (
+            <button
+              onClick={() => {
+                if (showAddForm && !isOnboardingOwner) {
+                  setShowAddForm(false);
+                } else {
+                  setShowAddForm(true);
+                  setIsOnboardingOwner(false);
+                  setFormData({
+                    name: "", email: "", password: "", role: "HR Executive", mobile: "",
+                    companyId: "", employeeId: "", designation: "Employee", dateOfJoining: "", baseSalary: "",
+                    department: "Human Resources (HR)"
+                  });
+                }
+              }}
+              className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2.5 rounded-lg text-sm font-bold shadow-md transition-all flex items-center gap-2"
+            >
+              {(showAddForm && !isOnboardingOwner) ? "Cancel Registration" : <><UserPlus className="w-4 h-4" /> Add Employee</>}
+            </button>
+          )}
+          {userRole === "Owner" && (
+            <button
+              onClick={() => {
+                if (showAddForm && isOnboardingOwner) {
+                  setShowAddForm(false);
+                  setIsOnboardingOwner(false);
+                  setFormData({
+                    name: "", email: "", password: "", role: "HR Executive", mobile: "",
+                    companyId: "", employeeId: "", designation: "Employee", dateOfJoining: "", baseSalary: "",
+                    department: "Human Resources (HR)"
+                  });
+                } else {
+                  setShowAddForm(true);
+                  setIsOnboardingOwner(true);
+                  setFormData(prev => ({
+                    ...prev,
+                    companyId: defaultCompanyId,
+                    role: "Owner",
+                    department: "Management",
+                    designation: "Owner"
+                  }));
+                }
+              }}
+              className="bg-slate-700 hover:bg-slate-800 text-white px-4 py-2.5 rounded-lg text-sm font-bold shadow-md transition-all flex items-center gap-2"
+            >
+              {(showAddForm && isOnboardingOwner) ? "Cancel Registration" : <><UserPlus className="w-4 h-4 text-indigo-400" /> Add Owner</>}
+            </button>
+          )}
+        </div>
       </div>
 
       {showAddForm && (userRole === "Owner" || userRole === "HR Head" || userRole === "HR Executive") ? (
         <div className={`p-6 rounded-xl border shadow-sm ${isDark ? "bg-gray-900 border-gray-800" : "bg-white border-slate-200"}`}>
-          <h2 className={`text-lg font-bold mb-6 ${isDark ? "text-white" : "text-slate-800"}`}>Onboard New Employee</h2>
+          <h2 className={`text-lg font-bold mb-6 ${isDark ? "text-white" : "text-slate-800"}`}>
+            {isOnboardingOwner ? "Owner Onboarding" : "Onboard New Employee"}
+          </h2>
 
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Top Selection for Company, Department, Role, and Designation */}
-            <div className={`p-4 rounded-xl border mb-6 grid grid-cols-1 md:grid-cols-4 gap-6 ${isDark ? "bg-gray-800/40 border-gray-700" : "bg-slate-50 border-slate-200"}`}>
-              <div>
-                <label className={`block text-xs font-bold mb-1.5 ${isDark ? "text-indigo-400" : "text-indigo-600"}`}>Company *</label>
-                <select
-                  value={topCompany}
-                  onChange={handleTopCompanyChange}
-                  required
-                  className={`w-full p-2.5 rounded-lg border text-sm font-bold focus:border-indigo-500 focus:outline-none ${isDark ? "bg-gray-800 border-gray-700 text-white" : "bg-white border-slate-350"}`}
-                >
-                  {visibleCompanyOptions.length > 1 && <option value="">-- Choose Company --</option>}
-                  {visibleCompanyOptions.map(opt => (
-                    <option key={opt} value={opt}>{opt}</option>
-                  ))}
-                </select>
+            {!isOnboardingOwner && (
+              <div className={`p-4 rounded-xl border mb-6 grid grid-cols-1 md:grid-cols-4 gap-6 ${isDark ? "bg-gray-800/40 border-gray-700" : "bg-slate-50 border-slate-200"}`}>
+                <div>
+                  <label className={`block text-xs font-bold mb-1.5 ${isDark ? "text-indigo-400" : "text-indigo-600"}`}>Company *</label>
+                  <select
+                    value={topCompany}
+                    onChange={handleTopCompanyChange}
+                    required
+                    className={`w-full p-2.5 rounded-lg border text-sm font-bold focus:border-indigo-500 focus:outline-none ${isDark ? "bg-gray-800 border-gray-700 text-white" : "bg-white border-slate-350"}`}
+                  >
+                    {visibleCompanyOptions.length > 1 && <option value="">-- Choose Company --</option>}
+                    {visibleCompanyOptions.map(opt => (
+                      <option key={opt} value={opt}>{opt}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className={`block text-xs font-bold mb-1.5 ${isDark ? "text-indigo-400" : "text-indigo-600"}`}>Department *</label>
+                  <select
+                    name="department"
+                    value={formData.department}
+                    onChange={handleChange}
+                    required
+                    className={`w-full p-2.5 rounded-lg border text-sm font-bold focus:border-indigo-500 focus:outline-none ${isDark ? "bg-gray-800 border-gray-700 text-white" : "bg-white border-slate-355"}`}
+                  >
+                    {availableDepartments.map(dept => (
+                      <option key={dept} value={dept}>{dept}</option>
+                    ))}
+                    <option value="add_custom_department">+ Add Custom Department...</option>
+                  </select>
+                  {showCustomDeptInput && (
+                    <div className="mt-2 flex gap-2">
+                      <input
+                        type="text"
+                        value={customDeptName}
+                        onChange={e => setCustomDeptName(e.target.value)}
+                        placeholder="New Dept Name"
+                        className={`flex-1 p-2 rounded border text-xs focus:outline-none focus:border-indigo-500 ${isDark ? "bg-gray-800 border-gray-700 text-white" : "bg-slate-50 border-slate-200 text-slate-700"}`}
+                      />
+                      <button
+                        type="button"
+                        onClick={handleAddCustomDept}
+                        className="bg-indigo-600 hover:bg-indigo-700 text-white text-xs px-3 py-1.5 rounded font-bold transition-all"
+                      >
+                        Add
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => { setShowCustomDeptInput(false); setCustomDeptName(""); }}
+                        className={`text-xs px-3 py-1.5 rounded font-bold border transition-all ${isDark ? "bg-gray-800 border-gray-700 text-gray-300 hover:bg-gray-700" : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"}`}
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                <div>
+                  <label className={`block text-xs font-bold mb-1.5 ${isDark ? "text-indigo-400" : "text-indigo-600"}`}>System Role *</label>
+                  <select
+                    value={topRole}
+                    onChange={handleTopRoleChange}
+                    required
+                    className={`w-full p-2.5 rounded-lg border text-sm font-bold focus:border-indigo-500 focus:outline-none ${isDark ? "bg-gray-800 border-gray-700 text-white" : "bg-white border-slate-355"}`}
+                  >
+                    {finalRolesList.map((r, i) => (
+                      <option key={i} value={r}>{r}</option>
+                    ))}
+                    <option value="add_custom_role">+ Add Custom Role...</option>
+                  </select>
+                  {showCustomRoleInput && (
+                    <div className="mt-2 flex gap-2">
+                      <input
+                        type="text"
+                        value={customRoleName}
+                        onChange={e => setCustomRoleName(e.target.value)}
+                        placeholder="New Role Name"
+                        className={`flex-1 p-2 rounded border text-xs focus:outline-none focus:border-indigo-500 ${isDark ? "bg-gray-800 border-gray-700 text-white" : "bg-slate-50 border-slate-200 text-slate-700"}`}
+                      />
+                      <button
+                        type="button"
+                        onClick={handleAddCustomRole}
+                        className="bg-indigo-600 hover:bg-indigo-700 text-white text-xs px-3 py-1.5 rounded font-bold transition-all"
+                      >
+                        Add
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => { setShowCustomRoleInput(false); setCustomRoleName(""); }}
+                        className={`text-xs px-3 py-1.5 rounded font-bold border transition-all ${isDark ? "bg-gray-800 border-gray-700 text-gray-300 hover:bg-gray-700" : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"}`}
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                <div>
+                  <label className={`block text-xs font-bold mb-1.5 ${isDark ? "text-indigo-400" : "text-indigo-600"}`}>Designation *</label>
+                  <select
+                    value={formData.designation}
+                    onChange={(e) => {
+                      if (e.target.value === "add_custom_designation") {
+                        setShowCustomDesignationInput(true);
+                      } else {
+                        setShowCustomDesignationInput(false);
+                        setFormData(prev => ({ ...prev, designation: e.target.value }));
+                      }
+                    }}
+                    required
+                    className={`w-full p-2.5 rounded-lg border text-sm font-bold focus:border-indigo-500 focus:outline-none ${isDark ? "bg-gray-800 border-gray-750 text-white" : "bg-white border-slate-200"}`}
+                  >
+                    {displayDesignations.map((d: any) => (
+                      <option key={d.id} value={d.name}>{d.name}</option>
+                    ))}
+                    <option value="add_custom_designation">+ Add New Designation...</option>
+                  </select>
+                  {showCustomDesignationInput && (
+                    <div className="mt-2 flex gap-2">
+                      <input
+                        type="text"
+                        value={customDesignationName}
+                        onChange={e => setCustomDesignationName(e.target.value)}
+                        placeholder="New Designation"
+                        className={`flex-1 p-2 rounded border text-xs focus:outline-none focus:border-indigo-500 ${isDark ? "bg-gray-800 border-gray-700 text-white" : "bg-slate-50 border-slate-200 text-slate-700"}`}
+                      />
+                      <button
+                        type="button"
+                        onClick={handleAddCustomDesignation}
+                        className="bg-indigo-600 hover:bg-indigo-700 text-white text-xs px-3 py-1.5 rounded font-bold transition-all"
+                      >
+                        Add
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => { setShowCustomDesignationInput(false); setCustomDesignationName(""); }}
+                        className={`text-xs px-3 py-1.5 rounded font-bold border transition-all ${isDark ? "bg-gray-800 border-gray-700 text-gray-300 hover:bg-gray-700" : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"}`}
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  )}
+                </div>
               </div>
-              <div>
-                <label className={`block text-xs font-bold mb-1.5 ${isDark ? "text-indigo-400" : "text-indigo-600"}`}>Department *</label>
-                <select
-                  name="department"
-                  value={formData.department}
-                  onChange={handleChange}
-                  required
-                  className={`w-full p-2.5 rounded-lg border text-sm font-bold focus:border-indigo-500 focus:outline-none ${isDark ? "bg-gray-800 border-gray-700 text-white" : "bg-white border-slate-350"}`}
-                >
-                  {availableDepartments.map(dept => (
-                    <option key={dept} value={dept}>{dept}</option>
-                  ))}
-                  <option value="add_custom_department">+ Add Custom Department...</option>
-                </select>
-                {showCustomDeptInput && (
-                  <div className="mt-2 flex gap-2">
-                    <input
-                      type="text"
-                      value={customDeptName}
-                      onChange={e => setCustomDeptName(e.target.value)}
-                      placeholder="New Dept Name"
-                      className={`flex-1 p-2 rounded border text-xs focus:outline-none focus:border-indigo-500 ${isDark ? "bg-gray-800 border-gray-700 text-white" : "bg-slate-50 border-slate-200 text-slate-700"}`}
-                    />
-                    <button
-                      type="button"
-                      onClick={handleAddCustomDept}
-                      className="bg-indigo-600 hover:bg-indigo-700 text-white text-xs px-3 py-1.5 rounded font-bold transition-all"
-                    >
-                      Add
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => { setShowCustomDeptInput(false); setCustomDeptName(""); }}
-                      className={`text-xs px-3 py-1.5 rounded font-bold border transition-all ${isDark ? "bg-gray-800 border-gray-700 text-gray-300 hover:bg-gray-700" : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"}`}
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                )}
-              </div>
-              <div>
-                <label className={`block text-xs font-bold mb-1.5 ${isDark ? "text-indigo-400" : "text-indigo-600"}`}>System Role *</label>
-                <select
-                  value={topRole}
-                  onChange={handleTopRoleChange}
-                  required
-                  className={`w-full p-2.5 rounded-lg border text-sm font-bold focus:border-indigo-500 focus:outline-none ${isDark ? "bg-gray-800 border-gray-700 text-white" : "bg-white border-slate-355"}`}
-                >
-                  {finalRolesList.map((r, i) => (
-                    <option key={i} value={r}>{r}</option>
-                  ))}
-                  <option value="add_custom_role">+ Add Custom Role...</option>
-                </select>
-                {showCustomRoleInput && (
-                  <div className="mt-2 flex gap-2">
-                    <input
-                      type="text"
-                      value={customRoleName}
-                      onChange={e => setCustomRoleName(e.target.value)}
-                      placeholder="New Role Name"
-                      className={`flex-1 p-2 rounded border text-xs focus:outline-none focus:border-indigo-500 ${isDark ? "bg-gray-800 border-gray-700 text-white" : "bg-slate-50 border-slate-200 text-slate-700"}`}
-                    />
-                    <button
-                      type="button"
-                      onClick={handleAddCustomRole}
-                      className="bg-indigo-600 hover:bg-indigo-700 text-white text-xs px-3 py-1.5 rounded font-bold transition-all"
-                    >
-                      Add
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => { setShowCustomRoleInput(false); setCustomRoleName(""); }}
-                      className={`text-xs px-3 py-1.5 rounded font-bold border transition-all ${isDark ? "bg-gray-800 border-gray-700 text-gray-300 hover:bg-gray-700" : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"}`}
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                )}
-              </div>
-              <div>
-                <label className={`block text-xs font-bold mb-1.5 ${isDark ? "text-indigo-400" : "text-indigo-600"}`}>Designation *</label>
-                <select
-                  value={formData.designation}
-                  onChange={(e) => {
-                    if (e.target.value === "add_custom_designation") {
-                      setShowCustomDesignationInput(true);
-                    } else {
-                      setShowCustomDesignationInput(false);
-                      setFormData(prev => ({ ...prev, designation: e.target.value }));
-                    }
-                  }}
-                  required
-                  className={`w-full p-2.5 rounded-lg border text-sm font-bold focus:border-indigo-500 focus:outline-none ${isDark ? "bg-gray-800 border-gray-700 text-white" : "bg-white border-slate-200"}`}
-                >
-                  {displayDesignations.map((d: any) => (
-                    <option key={d.id} value={d.name}>{d.name}</option>
-                  ))}
-                  <option value="add_custom_designation">+ Add New Designation...</option>
-                </select>
-                {showCustomDesignationInput && (
-                  <div className="mt-2 flex gap-2">
-                    <input
-                      type="text"
-                      value={customDesignationName}
-                      onChange={e => setCustomDesignationName(e.target.value)}
-                      placeholder="New Designation"
-                      className={`flex-1 p-2 rounded border text-xs focus:outline-none focus:border-indigo-500 ${isDark ? "bg-gray-800 border-gray-700 text-white" : "bg-slate-50 border-slate-200 text-slate-700"}`}
-                    />
-                    <button
-                      type="button"
-                      onClick={handleAddCustomDesignation}
-                      className="bg-indigo-600 hover:bg-indigo-700 text-white text-xs px-3 py-1.5 rounded font-bold transition-all"
-                    >
-                      Add
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => { setShowCustomDesignationInput(false); setCustomDesignationName(""); }}
-                      className={`text-xs px-3 py-1.5 rounded font-bold border transition-all ${isDark ? "bg-gray-800 border-gray-700 text-gray-300 hover:bg-gray-700" : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"}`}
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                )}
-              </div>
-            </div>
+            )}
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Account Details */}
@@ -916,100 +981,109 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
                     <input type="text" name="mobile" value={formData.mobile} onChange={handleChange}
                       className={`w-full p-2.5 rounded-lg border text-sm focus:border-indigo-500 focus:outline-none ${isDark ? "bg-gray-800 border-gray-700 text-white" : "bg-slate-50 border-slate-200"}`} />
                   </div>
-                  <div>
-                    <label className={`block text-xs font-bold mb-1.5 ${isDark ? "text-gray-300" : "text-slate-700"}`}>System Role *</label>
-                    <select name="role" value={formData.role} onChange={handleChange} required disabled
-                      className={`w-full p-2.5 rounded-lg border text-sm focus:border-indigo-500 focus:outline-none opacity-60 cursor-not-allowed ${isDark ? "bg-gray-800 border-gray-700 text-white" : "bg-slate-200 border-slate-200"}`}>
-                      {finalRolesList.map((r, i) => (
-                        <option key={i} value={r}>{r}</option>
-                      ))}
-                    </select>
-                  </div>
+                  {!isOnboardingOwner && (
+                    <div>
+                      <label className={`block text-xs font-bold mb-1.5 ${isDark ? "text-gray-300" : "text-slate-700"}`}>System Role *</label>
+                      <select name="role" value={formData.role} onChange={handleChange} required disabled
+                        className={`w-full p-2.5 rounded-lg border text-sm focus:border-indigo-500 focus:outline-none opacity-60 cursor-not-allowed ${isDark ? "bg-gray-800 border-gray-700 text-white" : "bg-slate-200 border-slate-200"}`}>
+                        {finalRolesList.map((r, i) => (
+                          <option key={i} value={r}>{r}</option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
                 </div>
               </div>
 
               {/* Employment Details */}
               <div className="space-y-4">
-                <h3 className={`text-xs font-bold uppercase tracking-wider font-mono ${isDark ? "text-emerald-400" : "text-emerald-600"}`}>2. Company & Employment Profile</h3>
+                <h3 className={`text-xs font-bold uppercase tracking-wider font-mono ${isDark ? "text-emerald-400" : "text-emerald-600"}`}>
+                  {isOnboardingOwner ? "Owner Profile" : "2. Company & Employment Profile"}
+                </h3>
 
-                <div>
-                  <label className={`block text-xs font-bold mb-1.5 ${isDark ? "text-gray-300" : "text-slate-700"}`}>Assign to Company *</label>
-                  <select name="companyId" value={formData.companyId} onChange={handleChange} required disabled
-                    className={`w-full p-2.5 rounded-lg border text-sm focus:border-indigo-500 focus:outline-none opacity-60 cursor-not-allowed ${isDark ? "bg-gray-800 border-gray-700 text-white" : "bg-slate-200 border-slate-200"}`}>
-                    <option value="">-- Select Company --</option>
-                    {companies.map(c => (
-                      <option key={c.id} value={c.id}>{c.name} ({c.code})</option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
+                {!isOnboardingOwner && (
                   <div>
-                    <label className={`block text-xs font-bold mb-1.5 ${isDark ? "text-gray-300" : "text-slate-700"}`}>Employee ID *</label>
-                    <input type="text" name="employeeId" value={formData.employeeId} readOnly required placeholder="Select company to auto-generate"
-                      className={`w-full p-2.5 rounded-lg border text-sm focus:outline-none opacity-80 cursor-not-allowed ${isDark ? "bg-gray-800/80 border-gray-700 text-gray-400" : "bg-slate-100 border-slate-200 text-slate-500"}`} />
-                  </div>
-                  <div>
-                    <label className={`block text-xs font-bold mb-1.5 ${isDark ? "text-gray-300" : "text-slate-700"}`}>Designation *</label>
-                    <select
-                      name="designation"
-                      value={formData.designation}
-                      onChange={(e) => {
-                        if (e.target.value === "add_custom_designation") {
-                          setShowCustomDesignationInput(true);
-                        } else {
-                          setShowCustomDesignationInput(false);
-                          setFormData(prev => ({ ...prev, designation: e.target.value }));
-                        }
-                      }}
-                      required
-                      className={`w-full p-2.5 rounded-lg border text-sm font-bold focus:border-indigo-500 focus:outline-none ${isDark ? "bg-gray-800 border-gray-700 text-white" : "bg-white border-slate-200"}`}
-                    >
-                      {displayDesignations.map((d: any) => (
-                        <option key={d.id} value={d.name}>{d.name}</option>
+                    <label className={`block text-xs font-bold mb-1.5 ${isDark ? "text-gray-300" : "text-slate-700"}`}>Assign to Company *</label>
+                    <select name="companyId" value={formData.companyId} onChange={handleChange} required disabled
+                      className={`w-full p-2.5 rounded-lg border text-sm focus:border-indigo-500 focus:outline-none opacity-60 cursor-not-allowed ${isDark ? "bg-gray-800 border-gray-700 text-white" : "bg-slate-200 border-slate-200"}`}>
+                      <option value="">-- Select Company --</option>
+                      {companies.map(c => (
+                        <option key={c.id} value={c.id}>{c.name} ({c.code})</option>
                       ))}
-                      <option value="add_custom_designation">+ Add New Designation...</option>
                     </select>
-                    {showCustomDesignationInput && (
-                      <div className="mt-2 flex gap-2">
-                        <input
-                          type="text"
-                          value={customDesignationName}
-                          onChange={e => setCustomDesignationName(e.target.value)}
-                          placeholder="New Designation Name"
-                          className={`flex-1 p-2 rounded border text-xs focus:outline-none focus:border-indigo-500 ${isDark ? "bg-gray-800 border-gray-700 text-white" : "bg-slate-50 border-slate-200 text-slate-700"}`}
-                        />
-                        <button
-                          type="button"
-                          onClick={handleAddCustomDesignation}
-                          className="bg-indigo-600 hover:bg-indigo-700 text-white text-xs px-3 py-1.5 rounded font-bold transition-all"
-                        >
-                          Add
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => { setShowCustomDesignationInput(false); setCustomDesignationName(""); }}
-                          className={`text-xs px-3 py-1.5 rounded font-bold border transition-all ${isDark ? "bg-gray-800 border-gray-700 text-gray-300 hover:bg-gray-700" : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"}`}
-                        >
-                          Cancel
-                        </button>
-                      </div>
-                    )}
                   </div>
+                )}
 
-                </div>
+                {!isOnboardingOwner && (
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className={`block text-xs font-bold mb-1.5 ${isDark ? "text-gray-300" : "text-slate-700"}`}>Employee ID *</label>
+                      <input type="text" name="employeeId" value={formData.employeeId} readOnly required placeholder="Select company to auto-generate"
+                        className={`w-full p-2.5 rounded-lg border text-sm focus:outline-none opacity-80 cursor-not-allowed ${isDark ? "bg-gray-800/80 border-gray-700 text-gray-400" : "bg-slate-100 border-slate-200 text-slate-500"}`} />
+                    </div>
+                    <div>
+                      <label className={`block text-xs font-bold mb-1.5 ${isDark ? "text-gray-300" : "text-slate-700"}`}>Designation *</label>
+                      <select
+                        name="designation"
+                        value={formData.designation}
+                        onChange={(e) => {
+                          if (e.target.value === "add_custom_designation") {
+                            setShowCustomDesignationInput(true);
+                          } else {
+                            setShowCustomDesignationInput(false);
+                            setFormData(prev => ({ ...prev, designation: e.target.value }));
+                          }
+                        }}
+                        required
+                        className={`w-full p-2.5 rounded-lg border text-sm font-bold focus:border-indigo-500 focus:outline-none ${isDark ? "bg-gray-800 border-gray-700 text-white" : "bg-white border-slate-200"}`}
+                      >
+                        {displayDesignations.map((d: any) => (
+                          <option key={d.id} value={d.name}>{d.name}</option>
+                        ))}
+                        <option value="add_custom_designation">+ Add New Designation...</option>
+                      </select>
+                      {showCustomDesignationInput && (
+                        <div className="mt-2 flex gap-2">
+                          <input
+                            type="text"
+                            value={customDesignationName}
+                            onChange={e => setCustomDesignationName(e.target.value)}
+                            placeholder="New Designation Name"
+                            className={`flex-1 p-2 rounded border text-xs focus:outline-none focus:border-indigo-500 ${isDark ? "bg-gray-800 border-gray-700 text-white" : "bg-slate-50 border-slate-200 text-slate-700"}`}
+                          />
+                          <button
+                            type="button"
+                            onClick={handleAddCustomDesignation}
+                            className="bg-indigo-600 hover:bg-indigo-700 text-white text-xs px-3 py-1.5 rounded font-bold transition-all"
+                          >
+                            Add
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => { setShowCustomDesignationInput(false); setCustomDesignationName(""); }}
+                            className={`text-xs px-3 py-1.5 rounded font-bold border transition-all ${isDark ? "bg-gray-800 border-gray-700 text-gray-300 hover:bg-gray-700" : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"}`}
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className={isOnboardingOwner ? "grid grid-cols-1" : "grid grid-cols-2 gap-4"}>
                   <div>
                     <label className={`block text-xs font-bold mb-1.5 ${isDark ? "text-gray-300" : "text-slate-700"}`}>Date of Joining *</label>
                     <input type="date" name="dateOfJoining" value={formData.dateOfJoining} onChange={handleChange} required
                       className={`w-full p-2.5 rounded-lg border text-sm focus:border-indigo-500 focus:outline-none ${isDark ? "bg-gray-800 border-gray-700 text-white" : "bg-slate-50 border-slate-200"}`} />
                   </div>
-                  <div>
-                    <label className={`block text-xs font-bold mb-1.5 ${isDark ? "text-gray-300" : "text-slate-700"}`}>Base Salary (Monthly) *</label>
-                    <input type="number" name="baseSalary" value={formData.baseSalary} onChange={handleChange} required
-                      className={`w-full p-2.5 rounded-lg border text-sm focus:border-indigo-500 focus:outline-none ${isDark ? "bg-gray-800 border-gray-700 text-white" : "bg-slate-50 border-slate-200"}`} />
-                  </div>
+                  {!isOnboardingOwner && (
+                    <div>
+                      <label className={`block text-xs font-bold mb-1.5 ${isDark ? "text-gray-300" : "text-slate-700"}`}>Base Salary (Monthly) *</label>
+                      <input type="number" name="baseSalary" value={formData.baseSalary} onChange={handleChange} required
+                        className={`w-full p-2.5 rounded-lg border text-sm focus:border-indigo-500 focus:outline-none ${isDark ? "bg-gray-800 border-gray-700 text-white" : "bg-slate-50 border-slate-200"}`} />
+                    </div>
+                  )}
                 </div>
               </div>
             </div>

@@ -8,6 +8,8 @@ import AssetRequest from "@/models/sequelize/AssetRequest";
 import Notification from "@/models/sequelize/Notification";
 import { sendEmail } from "@/lib/email";
 import { Op } from "sequelize";
+import Department from "@/models/sequelize/Department";
+import AssetPurchaseRequest from "@/models/sequelize/AssetPurchaseRequest";
 
 // ─── Asset Request Approval Helper Functions ───────────────────────────────
 
@@ -29,7 +31,10 @@ async function findDepartmentManagers(applicantId: string, department: string) {
   const applicantCompanies = getUserCompanies(applicantUser);
 
   const managers = await User.findAll({
-    where: { role: "Department Manager", status: "active" }
+    where: {
+      role: { [Op.in]: ["Department Manager", "department manager", "department-manager"] },
+      status: "active"
+    }
   });
 
   const matched: any[] = [];
@@ -105,16 +110,38 @@ export async function GET(req: Request) {
     await sequelize.authenticate();
     await AssetRequest.sync({ alter: true });
 
-    const userRole = (session.user as any).role;
     const userId = (session.user as any).id;
 
-    // Check if user has HR Admin/Owner role
-    const isOwnerOrHR = ["Owner", "Director", "HR Head", "HR Executive"].includes(userRole);
-    const isDeptManager = userRole === "Department Manager";
+    // Fetch live user role to avoid session caching issues
+    const dbUser = await User.findByPk(userId, { raw: true });
+    const rawRole = dbUser?.role || "Employee";
+    const userRole = rawRole.toLowerCase();
+
+    const isOwnerOrDirector = ["owner", "director"].includes(userRole);
+    const isHR = ["hr head", "hr-head", "hr executive", "hr-executive"].includes(userRole);
+    const isDeptManager = userRole === "department manager" || userRole === "department-manager";
+
+    // Fetch live department name to see if user is in Administration department
+    let isAdministration = false;
+    const userProfile = await EmployeeProfile.findOne({ where: { user: userId }, raw: true });
+    if (userProfile && userProfile.department) {
+      const dept = await Department.findByPk(userProfile.department, { raw: true });
+      if (dept && dept.name) {
+        isAdministration = dept.name.toLowerCase().includes("administration");
+      }
+    }
 
     let whereClause: any = {};
-    if (isOwnerOrHR) {
+    if (isOwnerOrDirector || isHR) {
       whereClause = {};
+    } else if (isAdministration) {
+      // Administration can see approved/dispatched requests + their own requests
+      whereClause = {
+        [Op.or]: [
+          { status: { [Op.in]: ["Approved", "Dispatched", "Dispatched (Inventory)", "Dispatched (New Purchase)"] } },
+          { employee_id: userId }
+        ]
+      };
     } else if (isDeptManager) {
       // Find manager's company and department
       const loggedInUser = await User.findByPk(userId, { raw: true });
@@ -195,9 +222,47 @@ export async function GET(req: Request) {
       };
     });
 
+    let allRequests = [...enrichedRequests];
+
+    // Fetch and merge purchase requests if the logged-in user is Owner/Director
+    if (isOwnerOrDirector) {
+      try {
+        await AssetPurchaseRequest.sync({ alter: true });
+        const purchaseReqs = await AssetPurchaseRequest.findAll({
+          order: [["createdAt", "DESC"]]
+        });
+        
+        for (const pr of purchaseReqs) {
+          const plain = pr.get({ plain: true });
+          const reqUser = await User.findByPk(plain.requested_by, { attributes: ["name"], raw: true });
+          allRequests.push({
+            id: `purchase-${plain.id}`,
+            employee_id: plain.requested_by,
+            asset_type: `New Purchase: ${plain.asset_type}`,
+            reason: `Specifications: ${plain.asset_detail}\nEstimated Cost: ₹${plain.estimated_cost}\nVendor: ${plain.vendor_details}\nJustification: ${plain.justification || 'None'}`,
+            priority: "High",
+            status: plain.status === "Pending Owner Approval" ? "Pending" : plain.status, // Map to Pending so Approve/Reject panel shows up!
+            admin_remarks: plain.owner_remarks,
+            createdAt: plain.createdAt,
+            isPurchaseRequest: true,
+            originalPurchaseId: plain.id,
+            employee: {
+              name: reqUser ? reqUser.name : "Admin Department",
+              department: "Administration"
+            }
+          });
+        }
+      } catch (err) {
+        console.error("Error fetching purchase requests inside request GET:", err);
+      }
+    }
+
+    // Sort combined list by date
+    allRequests.sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
     return NextResponse.json({
       success: true,
-      data: enrichedRequests
+      data: allRequests
     });
   } catch (error: any) {
     console.error("Error in GET /api/assets/request:", error);
@@ -212,8 +277,26 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
     }
 
-    const userRole = (session.user as any).role;
     const userId = (session.user as any).id;
+
+    // Fetch live user role to avoid session caching issues
+    const dbUser = await User.findByPk(userId, { raw: true });
+    const rawRole = dbUser?.role || "Employee";
+    const userRole = rawRole.toLowerCase();
+
+    const isOwnerOrDirector = ["owner", "director"].includes(userRole);
+    const isDeptManager = userRole === "department manager" || userRole === "department-manager";
+
+    // Fetch live department name to see if user is in Administration department
+    let isAdministration = false;
+    const userProfile = await EmployeeProfile.findOne({ where: { user: userId }, raw: true });
+    if (userProfile && userProfile.department) {
+      const dept = await Department.findByPk(userProfile.department, { raw: true });
+      if (dept && dept.name) {
+        isAdministration = dept.name.toLowerCase().includes("administration");
+      }
+    }
+
     const body = await req.json();
     const { action } = body;
 
@@ -306,15 +389,40 @@ export async function POST(req: Request) {
       });
 
     } else if (action === "update-status") {
-      const isManagerOrOwner = ["Owner", "Director", "HR Head", "HR Executive", "Department Manager"].includes(userRole);
-      if (!isManagerOrOwner) {
-        return NextResponse.json({ success: false, error: "Forbidden. Managers only." }, { status: 403 });
-      }
-
       const { requestId, status, admin_remarks } = body;
 
       if (!requestId || !status) {
         return NextResponse.json({ success: false, error: "Request ID and status are required." }, { status: 400 });
+      }
+
+      // Check if this is a purchase request
+      if (String(requestId).startsWith("purchase-")) {
+        if (!isOwnerOrDirector) {
+          return NextResponse.json({ success: false, error: "Forbidden. Only Owners can approve/reject purchase requests." }, { status: 403 });
+        }
+        const purchaseId = parseInt(String(requestId).replace("purchase-", ""), 10);
+        const purchaseRequest = await AssetPurchaseRequest.findByPk(purchaseId);
+        if (!purchaseRequest) {
+          return NextResponse.json({ success: false, error: "Purchase request not found." }, { status: 404 });
+        }
+        
+        let targetStatus = status;
+        if (status === "Approved") {
+          targetStatus = "Approved";
+        } else if (status === "Rejected") {
+          targetStatus = "Rejected";
+        }
+
+        await purchaseRequest.update({
+          status: targetStatus,
+          owner_remarks: admin_remarks || purchaseRequest.owner_remarks
+        });
+
+        return NextResponse.json({
+          success: true,
+          message: `Purchase request status updated to ${targetStatus}.`,
+          data: purchaseRequest
+        });
       }
 
       const request = await AssetRequest.findByPk(requestId);
@@ -322,9 +430,22 @@ export async function POST(req: Request) {
         return NextResponse.json({ success: false, error: "Asset request not found." }, { status: 404 });
       }
 
+      // Enforce approval/dispatch workflows
+      if (status === "Approved" || status === "Rejected") {
+        if (!isOwnerOrDirector && !isDeptManager) {
+          return NextResponse.json({ success: false, error: "Forbidden. Only Department Managers or Owners can Approve/Reject requests." }, { status: 403 });
+        }
+      } else if (status === "Dispatched" || status === "Dispatched (Inventory)" || status === "Dispatched (New Purchase)") {
+        if (!isOwnerOrDirector && !isAdministration) {
+          return NextResponse.json({ success: false, error: "Forbidden. Only Administration department users or Owners can dispatch assets." }, { status: 403 });
+        }
+      } else {
+        return NextResponse.json({ success: false, error: "Invalid status update." }, { status: 400 });
+      }
+
       let nextStatus = status;
       if (status === "Approved") {
-        if (userRole === "Department Manager") {
+        if (isDeptManager && !isOwnerOrDirector) {
           nextStatus = "Pending Owner Approval";
         } else {
           nextStatus = "Approved";

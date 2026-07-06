@@ -18,9 +18,39 @@ export async function GET(req: Request) {
     await sequelize.authenticate();
     await EmployeeProfile.sync({ alter: true });
     const session = await getServerSession(authOptions);
-    if (!session || !session.user || !["Owner", "Director", "HR Head", "HR Executive"].includes((session.user as any).role)) {
+    if (!session || !session.user) {
       return NextResponse.json({ success: false, error: "Unauthorized access" }, { status: 401 });
     }
+
+    // Fetch live user role and department to check if user is in Administration department
+    const userId = (session.user as any).id;
+    const dbUser = await User.findByPk(userId, { raw: true });
+    const userRole = (dbUser?.role || "Employee").toLowerCase();
+    
+    const isOwnerOrDirector = ["owner", "director"].includes(userRole);
+    const isHR = ["hr head", "hr-head", "hr executive", "hr-executive"].includes(userRole);
+
+    let isAdministration = false;
+    const userProfile = await EmployeeProfile.findOne({ where: { user: userId }, raw: true });
+    if (userProfile && userProfile.department) {
+      const dept = await Department.findByPk(userProfile.department, { raw: true });
+      if (dept && dept.name) {
+        isAdministration = dept.name.toLowerCase().includes("administration");
+      }
+    }
+
+    if (!isOwnerOrDirector && !isHR && !isAdministration) {
+      return NextResponse.json({ success: false, error: "Unauthorized access" }, { status: 401 });
+    }
+
+    let adminCompanies: string[] = [];
+    if (dbUser && dbUser.companies) {
+      if (Array.isArray(dbUser.companies)) adminCompanies = dbUser.companies;
+      else if (typeof dbUser.companies === 'string') {
+        try { adminCompanies = JSON.parse(dbUser.companies); } catch(e) {}
+      }
+    }
+    const adminCompaniesNormalized = adminCompanies.map(String);
 
     // Fetch employees
     const employees = await User.findAll({ where: {}, raw: true });
@@ -67,7 +97,24 @@ export async function GET(req: Request) {
       };
     });
 
-    return NextResponse.json({ success: true, data: mergedData });
+    let filteredMergedData = mergedData;
+    if (isAdministration && !isOwnerOrDirector && !isHR) {
+      filteredMergedData = mergedData.filter((emp: any) => {
+        let empComps: any[] = [];
+        if (Array.isArray(emp.companies)) {
+          empComps = emp.companies;
+        } else if (typeof emp.companies === "string") {
+          try { empComps = JSON.parse(emp.companies); } catch(e) {}
+        }
+        if (!Array.isArray(empComps)) return false;
+        return empComps.some((c: any) => {
+          const cId = typeof c === "object" ? String(c.id) : String(c);
+          return adminCompaniesNormalized.includes(cId);
+        });
+      });
+    }
+
+    return NextResponse.json({ success: true, data: filteredMergedData });
   } catch (err: any) {
     return NextResponse.json({ success: false, error: err.message }, { status: 500 });
   }
@@ -89,6 +136,11 @@ export async function POST(req: Request) {
       employeeId, designation, dateOfJoining, baseSalary,
       department
     } = body;
+
+    // Security check: Only an Owner can onboard another Owner
+    if (role === "Owner" && (session.user as any).role !== "Owner") {
+      return NextResponse.json({ success: false, error: "Only an Owner user is authorized to onboard another Owner" }, { status: 403 });
+    }
 
     if (!name || !email || !password || !role || !companyId || !employeeId) {
       return NextResponse.json({ success: false, error: "Missing required fields: name, email, password, role, companyId, employeeId" }, { status: 400 });
@@ -441,7 +493,28 @@ export async function PUT(req: Request) {
     await sequelize.authenticate();
     await EmployeeProfile.sync({ alter: true });
     const session = await getServerSession(authOptions);
-    if (!session || !session.user || !["Owner", "Director", "HR Head", "HR Executive"].includes((session.user as any).role)) {
+    if (!session || !session.user) {
+      return NextResponse.json({ success: false, error: "Unauthorized access" }, { status: 401 });
+    }
+
+    // Fetch live user role and department to check if user is in Administration department
+    const userId = (session.user as any).id;
+    const dbUser = await User.findByPk(userId, { raw: true });
+    const userRole = (dbUser?.role || "Employee").toLowerCase();
+    
+    const isOwnerOrDirector = ["owner", "director"].includes(userRole);
+    const isHR = ["hr head", "hr-head", "hr executive", "hr-executive"].includes(userRole);
+
+    let isAdministration = false;
+    const userProfile = await EmployeeProfile.findOne({ where: { user: userId }, raw: true });
+    if (userProfile && userProfile.department) {
+      const dept = await Department.findByPk(userProfile.department, { raw: true });
+      if (dept && dept.name) {
+        isAdministration = dept.name.toLowerCase().includes("administration");
+      }
+    }
+
+    if (!isOwnerOrDirector && !isHR && !isAdministration) {
       return NextResponse.json({ success: false, error: "Unauthorized access" }, { status: 401 });
     }
 
@@ -481,6 +554,50 @@ export async function PUT(req: Request) {
     const profile = await EmployeeProfile.findOne({ where: { employeeId } });
     if (!profile) {
       return NextResponse.json({ success: false, error: "Employee profile not found" }, { status: 404 });
+    }
+
+    if (isAdministration && !isOwnerOrDirector && !isHR) {
+      const targetUser = await User.findByPk(profile.user, { raw: true });
+      if (!targetUser) {
+        return NextResponse.json({ success: false, error: "Target employee not found." }, { status: 404 });
+      }
+
+      let adminCompanies: string[] = [];
+      if (dbUser && dbUser.companies) {
+        if (Array.isArray(dbUser.companies)) adminCompanies = dbUser.companies;
+        else if (typeof dbUser.companies === 'string') {
+          try { adminCompanies = JSON.parse(dbUser.companies); } catch(e) {}
+        }
+      }
+      const adminCompaniesNormalized = adminCompanies.map(String);
+
+      let targetComps: any[] = [];
+      if (Array.isArray(targetUser.companies)) targetComps = targetUser.companies;
+      else if (typeof targetUser.companies === "string") {
+        try { targetComps = JSON.parse(targetUser.companies); } catch(e) {}
+      }
+      if (!Array.isArray(targetComps)) targetComps = [];
+      const hasSharedCompany = targetComps.some((c: any) => {
+        const cId = typeof c === "object" ? String(c.id) : String(c);
+        return adminCompaniesNormalized.includes(cId);
+      });
+
+      if (!hasSharedCompany) {
+        return NextResponse.json({ success: false, error: "Unauthorized. Target employee does not belong to your company." }, { status: 403 });
+      }
+
+      // Enforce field check: Admin users can only modify asset fields
+      if (
+        designation !== undefined || baseSalary !== undefined || department !== undefined ||
+        dateOfJoining !== undefined || dateOfBirth !== undefined || gender !== undefined ||
+        bloodGroup !== undefined || panNumber !== undefined || aadhaarNumber !== undefined ||
+        bankName !== undefined || accountNumber !== undefined || ifscCode !== undefined ||
+        pfNumber !== undefined || uanNumber !== undefined || esiNumber !== undefined ||
+        role !== undefined || status !== undefined || name !== undefined || email !== undefined ||
+        mobile !== undefined
+      ) {
+        return NextResponse.json({ success: false, error: "Forbidden. Administration users can only update asset allocation fields." }, { status: 403 });
+      }
     }
 
     // Update profile fields if provided

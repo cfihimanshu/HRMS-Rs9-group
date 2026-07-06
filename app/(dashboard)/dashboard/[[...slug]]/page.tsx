@@ -50,6 +50,7 @@ import {
 import EmployeeDirectory from "@/components/dashboard/EmployeePanels";
 import BDADirectory from "@/components/dashboard/BDAPanels";
 import AssetsRegistry from "@/components/dashboard/AssetsRegistry";
+import InventoryManagement from "@/components/dashboard/InventoryManagement";
 import KanbanBoard from "@/components/dashboard/KanbanBoard";
 import { AssetRequestLogs } from "@/components/dashboard/AssetRequestPanels";
 
@@ -1022,7 +1023,7 @@ export default function UnifiedEnterpriseDashboard() {
             <ESSExpenses user={session?.user} triggerToast={triggerToast} />
           )}
           {activeTab === "asset-request" && (
-            <AssetRequestLogs sessionUser={session?.user} triggerToast={triggerToast} />
+            <AssetRequestLogs sessionUser={{ ...session?.user, role: userRole }} triggerToast={triggerToast} setActiveTab={setActiveTab} />
           )}
 
           {activeTab === "dept-dash" && (
@@ -1078,6 +1079,14 @@ export default function UnifiedEnterpriseDashboard() {
 
           {activeTab === "assets-registry" && (
             <AssetsRegistry
+              userRole={userRole}
+              triggerToast={triggerToast}
+              sessionUser={session?.user}
+            />
+          )}
+
+          {activeTab === "inventory-management" && (
+            <InventoryManagement
               userRole={userRole}
               triggerToast={triggerToast}
               sessionUser={session?.user}

@@ -339,7 +339,10 @@ export async function POST(req: Request) {
     const { scheduledAt } = body;
 
     const now = new Date();
+    const nextId = await TaskLog.generateNextTaskId(userId);
+
     const record = await TaskLog.create({
+      id: nextId,
       employee: userId,
       date: now,
       taskTitle,
@@ -364,7 +367,8 @@ export async function POST(req: Request) {
     return NextResponse.json({ success: true, data: record });
   } catch (error: any) {
     console.error("Failed to add task:", error);
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    const msg = error.errors ? error.errors.map((e: any) => e.message).join(", ") : error.message;
+    return NextResponse.json({ success: false, error: msg }, { status: 500 });
   }
 }
 
@@ -488,7 +492,8 @@ export async function PUT(req: Request) {
     return NextResponse.json({ success: true, data: task });
   } catch (error: any) {
     console.error("Failed to update task:", error);
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    const msg = error.errors ? error.errors.map((e: any) => e.message).join(", ") : error.message;
+    return NextResponse.json({ success: false, error: msg }, { status: 500 });
   }
 }
 
@@ -529,6 +534,7 @@ export async function DELETE(req: Request) {
     return NextResponse.json({ success: true, message: "Task deleted successfully" });
   } catch (error: any) {
     console.error("Failed to delete task:", error);
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    const msg = error.errors ? error.errors.map((e: any) => e.message).join(", ") : error.message;
+    return NextResponse.json({ success: false, error: msg }, { status: 500 });
   }
 }

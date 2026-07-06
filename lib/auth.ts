@@ -170,6 +170,33 @@ export const authOptions: NextAuthOptions = {
         token.designation = (user as any).designation;
         token.employeeId = (user as any).employeeId;
         token.company = (user as any).company;
+      } else if (token.id) {
+        try {
+          const dbUser = await User.findByPk(token.id as string, { raw: true });
+          if (dbUser) {
+            const SYSTEM_ROLES = [
+              "Owner",
+              "Director",
+              "HR Head",
+              "HR Executive",
+              "Department Manager",
+              "Employee",
+              "Accounts",
+              "Trainer",
+              "IT Admin",
+              "DSM",
+              "RIBP / Risk Officer",
+              "Business Associate",
+              "Vendor",
+              "Franchisee",
+              "Territory Partner"
+            ];
+            const systemRole = SYSTEM_ROLES.find(r => r.toLowerCase() === dbUser.role?.toLowerCase()) || "Employee";
+            token.role = systemRole;
+          }
+        } catch (err) {
+          console.error("Error fetching live user role in jwt callback:", err);
+        }
       }
       return token;
     },

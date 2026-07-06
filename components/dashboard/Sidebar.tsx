@@ -5,7 +5,7 @@ import {
   LayoutDashboard, UserSquare2, FileEdit, Briefcase, Users2, ScanLine,
   Video, ShieldCheck, FileText, GraduationCap, Clock, CalendarCheck,
   TrendingUp, BriefcaseIcon, Building2, Coins, HelpCircle, AlertTriangle,
-  LogOut, ChevronDown, ChevronRight, MapPin, Cpu
+  LogOut, ChevronDown, ChevronRight, MapPin, Cpu, Package
 } from "lucide-react";
 import { signOut } from "next-auth/react";
 
@@ -80,6 +80,7 @@ export default function DashboardSidebar({
     { id: "employees", label: "Employees Directory", icon: Users2, category: "Core Workspace", roles: ["Owner", "Director", "HR Head", "HR Executive"] },
     { id: "bda-directory", label: "BDA Network (Sales)", icon: Users2, category: "Core Workspace", roles: ["Owner", "Director", "HR Head", "HR Executive", "Department Manager"] },
     { id: "assets-registry", label: "Assets Registry", icon: Cpu, category: "Core Workspace", roles: ["Owner", "Director", "HR Head", "HR Executive"] },
+    { id: "inventory-management", label: "Inventory Management", icon: Package, category: "Core Workspace", roles: ["Owner"] },
 
     { id: "screening", label: "AI Screening Module", icon: ScanLine, category: "AI & Vetting Hub", roles: ["Owner", "Director", "HR Head", "HR Executive"] },
     { id: "interviews", label: "Interviews Queue", icon: Video, category: "AI & Vetting Hub", badge: stats?.interviews?.pending, roles: ["Owner", "Director", "HR Head", "HR Executive", "Trainer"] },
@@ -104,7 +105,24 @@ export default function DashboardSidebar({
     { id: "exit", label: "Exit Separation Clearance", icon: LogOut, category: "Compliance & Exit", roles: ["Owner", "Director", "HR Head", "Employee"] }
   ];
 
-  const menuItems = allMenuItems.filter(item => item.roles.includes(userRole));
+  const userDept = user?.department || "";
+  const isAdministration = userDept.toLowerCase().includes("administration");
+
+  const menuItems = allMenuItems.filter(item => {
+    if (item.id === "inventory-management") {
+      return item.roles.includes(userRole) || isAdministration;
+    }
+    if (item.id === "assets-registry") {
+      return item.roles.includes(userRole) || isAdministration;
+    }
+    if (item.id === "bda-directory") {
+      const isITManager = (userRole === "Department Manager" && 
+        ((user?.department || "").toLowerCase().includes("information technology") || 
+         (user?.department || "").toLowerCase().includes("it")));
+      if (isITManager) return false;
+    }
+    return item.roles.includes(userRole);
+  });
 
   const groupedMenu = menuItems.reduce((acc, item) => {
     if (!acc[item.category]) acc[item.category] = [];
