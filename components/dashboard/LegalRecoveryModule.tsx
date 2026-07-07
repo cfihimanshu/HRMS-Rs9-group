@@ -858,7 +858,7 @@ export default function LegalRecoveryModule({ userRole, triggerToast, sessionUse
           <BranchMasterView branchesList={branchesList} banksList={banksList} loading={loading} setShowMarketingForm={setShowMarketingForm} />
         )}
 
-        {activeSubModule !== "banks" && activeSubModule !== "branches" && activeSubModule !== "history" && activeSubModule !== "launcher" && activeSubModule !== "collections" && (
+        {activeSubModule !== "banks" && activeSubModule !== "branches" && activeSubModule !== "history" && activeSubModule !== "collections" && (
           <CasesMasterView cases={cases} loading={loading} setShowFollowUpForm={setShowFollowUpForm} setShowPaymentForm={setShowPaymentForm} openHistory={openHistory} userRole={userRole} onEditCase={handleEditCase} onDeleteCase={handleDeleteCase} />
         )}
 

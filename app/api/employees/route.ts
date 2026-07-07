@@ -119,6 +119,7 @@ export async function GET(req: Request) {
 
     return NextResponse.json({ success: true, data: filteredMergedData });
   } catch (err: any) {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     require('fs').writeFileSync('/tmp/hrms_employee_api_error.log', err.stack || err.message);
     return NextResponse.json({ success: false, error: err.message }, { status: 500 });
   }
