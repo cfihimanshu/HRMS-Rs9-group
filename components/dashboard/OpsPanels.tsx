@@ -361,12 +361,13 @@ export function DailyCommitments({
     setSubmittingSOD(true);
     setLocationStatus("Fetching GPS coordinates...");
 
-    let location = { latitude: 28.6139, longitude: 77.2090, timestamp: new Date() };
+    let location: any = null;
     try {
       const position = await new Promise<GeolocationPosition>((resolve, reject) => {
         navigator.geolocation.getCurrentPosition(resolve, reject, {
           enableHighAccuracy: true,
-          timeout: 4000,
+          timeout: 10000,
+          maximumAge: 0
         });
       });
       location = {
@@ -375,7 +376,11 @@ export function DailyCommitments({
         timestamp: new Date(position.timestamp)
       };
     } catch (geoErr) {
-      console.warn("GPS access blocked or unavailable for SOD, using fallback location", geoErr);
+      console.warn("GPS access blocked or unavailable for SOD", geoErr);
+      alert("Error: GPS Location access is required to submit SOD. Please enable location services and try again.");
+      setSubmittingSOD(false);
+      setShowCamera(false);
+      return;
     }
 
     setLocationStatus("Uploading verification capture...");
@@ -461,12 +466,13 @@ export function DailyCommitments({
     setSubmittingEOD(true);
     setEodLocationStatus("Fetching GPS coordinates...");
 
-    let location = { latitude: 28.6139, longitude: 77.2090, timestamp: new Date() };
+    let location: any = null;
     try {
       const position = await new Promise<GeolocationPosition>((resolve, reject) => {
         navigator.geolocation.getCurrentPosition(resolve, reject, {
           enableHighAccuracy: true,
-          timeout: 4000,
+          timeout: 10000,
+          maximumAge: 0
         });
       });
       location = {
@@ -475,7 +481,11 @@ export function DailyCommitments({
         timestamp: new Date(position.timestamp)
       };
     } catch (geoErr) {
-      console.warn("GPS access blocked or unavailable, using fallback location", geoErr);
+      console.warn("GPS access blocked or unavailable for EOD", geoErr);
+      alert("Error: GPS Location access is required to submit EOD. Please enable location services and try again.");
+      setSubmittingEOD(false);
+      setShowEodCamera(false);
+      return;
     }
 
     setEodLocationStatus("Uploading verification capture...");

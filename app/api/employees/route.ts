@@ -41,7 +41,7 @@ export async function GET(req: Request) {
     const userId = (session.user as any).id;
     const dbUser = await User.findByPk(userId, { raw: true });
     const userRole = (dbUser?.role || "Employee").toLowerCase();
-    
+
     const isOwnerOrDirector = ["owner", "director"].includes(userRole);
     const isHR = ["hr head", "hr-head", "hr executive", "hr-executive"].includes(userRole);
 
@@ -58,16 +58,23 @@ export async function GET(req: Request) {
       return NextResponse.json({ success: false, error: "Unauthorized access" }, { status: 401 });
     }
 
-    const adminCompaniesNormalized = getUserCompanies(dbUser);
+    let adminCompanies: string[] = [];
+    if (dbUser && dbUser.companies) {
+      if (Array.isArray(dbUser.companies)) adminCompanies = dbUser.companies;
+      else if (typeof dbUser.companies === 'string') {
+        try { adminCompanies = JSON.parse(dbUser.companies); } catch (e) { }
+      }
+    }
+    const adminCompaniesNormalized = adminCompanies.map(String);
 
     // Fetch employees
     const employees = await User.findAll({ where: {}, raw: true });
-      
+
     // Fetch profiles to merge data
     const profiles = await EmployeeProfile.findAll({ where: {}, raw: true });
     const departments = await Department.findAll({ where: {}, raw: true });
     const allCompanies = await Company.findAll({ where: {}, raw: true });
-    
+
     const deptMap = departments.reduce((acc: any, dept: any) => {
       acc[dept.id] = dept;
       return acc;
@@ -90,10 +97,10 @@ export async function GET(req: Request) {
     const mergedData = employees.map(emp => {
       const empJson = { ...emp } as any;
       const profile = profilesWithDept.find((p: any) => p.user?.toString() === empJson.id?.toString());
-      
+
       // Populate companies
       if (typeof empJson.companies === 'string') {
-        try { empJson.companies = JSON.parse(empJson.companies); } catch (e) {}
+        try { empJson.companies = JSON.parse(empJson.companies); } catch (e) { }
       }
       if (empJson.companies && Array.isArray(empJson.companies)) {
         empJson.companies = empJson.companies.map((compId: string) => compMap[compId] || { id: compId, name: "Unknown Company", code: "N/A" });
@@ -112,7 +119,7 @@ export async function GET(req: Request) {
         if (Array.isArray(emp.companies)) {
           empComps = emp.companies;
         } else if (typeof emp.companies === "string") {
-          try { empComps = JSON.parse(emp.companies); } catch(e) {}
+          try { empComps = JSON.parse(emp.companies); } catch (e) { }
         }
         if (!Array.isArray(empComps)) return false;
         return empComps.some((c: any) => {
@@ -124,6 +131,8 @@ export async function GET(req: Request) {
 
     return NextResponse.json({ success: true, data: filteredMergedData });
   } catch (err: any) {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    require('fs').writeFileSync('/tmp/hrms_employee_api_error.log', err.stack || err.message);
     return NextResponse.json({ success: false, error: err.message }, { status: 500 });
   }
 }
@@ -139,8 +148,8 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json();
-    const { 
-      name, email, password, role, mobile, companyId, 
+    const {
+      name, email, password, role, mobile, companyId,
       employeeId, designation, dateOfJoining, baseSalary,
       department
     } = body;
@@ -159,7 +168,7 @@ export async function POST(req: Request) {
     if (existingUser) {
       return NextResponse.json({ success: false, error: "A user with this email already exists" }, { status: 400 });
     }
-    
+
     // Check if Employee ID already exists
     const existingProfile = await EmployeeProfile.findOne({ where: { employeeId } });
     if (existingProfile) {
@@ -175,10 +184,10 @@ export async function POST(req: Request) {
     // Resolve or create department for this company
     let resolvedDepartmentId = null;
     if (department) {
-      let deptDoc = await Department.findOne({ 
+      let deptDoc = await Department.findOne({
         where: {
-          name: department, 
-          company: company.id 
+          name: department,
+          company: company.id
         }
       });
       if (!deptDoc) {
@@ -509,7 +518,7 @@ export async function PUT(req: Request) {
     const userId = (session.user as any).id;
     const dbUser = await User.findByPk(userId, { raw: true });
     const userRole = (dbUser?.role || "Employee").toLowerCase();
-    
+
     const isOwnerOrDirector = ["owner", "director"].includes(userRole);
     const isHR = ["hr head", "hr-head", "hr executive", "hr-executive"].includes(userRole);
 
@@ -527,11 +536,11 @@ export async function PUT(req: Request) {
     }
 
     const body = await req.json();
-    const { 
-      employeeId, 
-      allocatedAsset, 
-      allocatedSim, 
-      allocatedGmail, 
+    const {
+      employeeId,
+      allocatedAsset,
+      allocatedSim,
+      allocatedGmail,
       allocatedWhatsapp,
       designation,
       baseSalary,
@@ -572,12 +581,19 @@ export async function PUT(req: Request) {
         return NextResponse.json({ success: false, error: "Target employee not found." }, { status: 404 });
       }
 
-      const adminCompaniesNormalized = getUserCompanies(dbUser);
+      let adminCompanies: string[] = [];
+      if (dbUser && dbUser.companies) {
+        if (Array.isArray(dbUser.companies)) adminCompanies = dbUser.companies;
+        else if (typeof dbUser.companies === 'string') {
+          try { adminCompanies = JSON.parse(dbUser.companies); } catch (e) { }
+        }
+      }
+      const adminCompaniesNormalized = adminCompanies.map(String);
 
       let targetComps: any[] = [];
       if (Array.isArray(targetUser.companies)) targetComps = targetUser.companies;
       else if (typeof targetUser.companies === "string") {
-        try { targetComps = JSON.parse(targetUser.companies); } catch(e) {}
+        try { targetComps = JSON.parse(targetUser.companies); } catch (e) { }
       }
       if (!Array.isArray(targetComps)) targetComps = [];
       const hasSharedCompany = targetComps.some((c: any) => {

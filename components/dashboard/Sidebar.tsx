@@ -81,8 +81,6 @@ export default function DashboardSidebar({
     { id: "bda-directory", label: "BDA Network (Sales)", icon: Users2, category: "Core Workspace", roles: ["Owner", "Director", "HR Head", "HR Executive", "Department Manager"] },
     { id: "assets-registry", label: "Assets Registry", icon: Cpu, category: "Core Workspace", roles: ["Owner", "Director", "HR Head", "HR Executive"] },
     { id: "inventory-management", label: "Inventory Management", icon: Package, category: "Core Workspace", roles: ["Owner"] },
-    { id: "admin-access", label: "Administrator Access", icon: Key, category: "Core Workspace", roles: ["Owner"] },
-    { id: "legal-recovery", label: "Legal Recovery", icon: Scale, category: "Core Workspace", roles: ["Owner"] },
 
     { id: "screening", label: "AI Screening Module", icon: ScanLine, category: "AI & Vetting Hub", roles: ["Owner", "Director", "HR Head", "HR Executive"] },
     { id: "interviews", label: "Interviews Queue", icon: Video, category: "AI & Vetting Hub", badge: stats?.interviews?.pending, roles: ["Owner", "Director", "HR Head", "HR Executive", "Trainer"] },
@@ -118,24 +116,10 @@ export default function DashboardSidebar({
     try {
       const parsed = JSON.parse(user.menuAccess);
       if (Array.isArray(parsed)) allowedPageIds = parsed;
-    } catch {}
+    } catch { }
   }
 
   const menuItems = allMenuItems.filter(item => {
-    if (!isOwnerOrDirector && allowedPageIds) {
-      const hasPageLevelPermissions = allowedPageIds.some(p => 
-        !["Core Workspace", "Employee Self Service", "AI & Vetting Hub", "Training & Probation", "Daily Operations", "Network Partners", "Compliance & Exit"].includes(p)
-      );
-      if (hasPageLevelPermissions) {
-        // Page-level override: if the page ID is checkmarked, show it!
-        return allowedPageIds.includes(item.id);
-      } else {
-        // Fallback to old category-level permissions
-        if (!allowedPageIds.includes(item.category)) {
-          return false;
-        }
-      }
-    }
     if (item.id === "inventory-management") {
       return item.roles.includes(userRole) || isAdministration;
     }
@@ -143,9 +127,9 @@ export default function DashboardSidebar({
       return item.roles.includes(userRole) || isAdministration;
     }
     if (item.id === "bda-directory") {
-      const isITManager = (userRole === "Department Manager" && 
-        ((user?.department || "").toLowerCase().includes("information technology") || 
-         (user?.department || "").toLowerCase().includes("it")));
+      const isITManager = (userRole === "Department Manager" &&
+        ((user?.department || "").toLowerCase().includes("information technology") ||
+          (user?.department || "").toLowerCase().includes("it")));
       if (isITManager) return false;
     }
     return item.roles.includes(userRole);
@@ -177,9 +161,8 @@ export default function DashboardSidebar({
 
   return (
     <aside
-      className={`fixed lg:static top-0 bottom-0 left-0 z-40 w-64 flex-shrink-0 flex flex-col h-screen overflow-y-auto border-r transition-all duration-300 transform ${
-        mobileMenuOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
-      } bg-[#FAFAF7] border-[#E8E4DF]`}
+      className={`fixed lg:static top-0 bottom-0 left-0 z-40 w-64 flex-shrink-0 flex flex-col h-screen overflow-y-auto border-r transition-all duration-300 transform ${mobileMenuOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
+        } bg-[#FAFAF7] border-[#E8E4DF]`}
     >
       <div className="flex items-center gap-3 px-6 py-5 border-b border-[#E8E4DF]">
         <div className="text-xl font-light tracking-widest text-[#1C1C1A] font-serif" style={{ fontFamily: "'Playfair Display', serif" }}>
@@ -209,8 +192,8 @@ export default function DashboardSidebar({
               <button
                 onClick={() => toggle(cat)}
                 className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-[10px] font-bold tracking-wider transition-all uppercase ${anyActive
-                    ? "bg-[#F0EAE4] text-[#1C1C1A]"
-                    : "text-[#5D5B57] hover:bg-[#F0EAE4]/50 hover:text-[#1C1C1A]"
+                  ? "bg-[#F0EAE4] text-[#1C1C1A]"
+                  : "text-[#5D5B57] hover:bg-[#F0EAE4]/50 hover:text-[#1C1C1A]"
                   }`}
               >
                 <div className="flex items-center gap-2.5 min-w-0">
@@ -251,8 +234,8 @@ export default function DashboardSidebar({
                           }
                         }}
                         className={`w-full flex items-center justify-between text-[11px] py-2 px-2.5 rounded-lg font-medium transition-all ${isActive
-                            ? "bg-[#F0EAE4] text-[#1C1C1A] font-semibold border-l-2 border-[#C9A84C]"
-                            : "text-[#5D5B57] hover:bg-[#F5F0EA] hover:text-[#1C1C1A]"
+                          ? "bg-[#F0EAE4] text-[#1C1C1A] font-semibold border-l-2 border-[#C9A84C]"
+                          : "text-[#5D5B57] hover:bg-[#F5F0EA] hover:text-[#1C1C1A]"
                           }`}
                       >
                         <div className="flex items-center gap-2">
@@ -262,8 +245,8 @@ export default function DashboardSidebar({
 
                         {item.badge !== undefined && item.badge > 0 && (
                           <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${item.urgent
-                              ? "bg-rose-500 text-white animate-pulse"
-                              : "bg-[#C9A84C] text-white"
+                            ? "bg-rose-500 text-white animate-pulse"
+                            : "bg-[#C9A84C] text-white"
                             }`}>
                             {item.badge}
                           </span>
