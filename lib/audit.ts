@@ -29,6 +29,7 @@ export async function logAudit({
       entityId,
       details,
       ipAddress,
+      timestamp: new Date(),
     });
     await audit.save();
     console.log(`[AUDIT LOG] ${action} on ${entity} (${entityId || "N/A"})`);

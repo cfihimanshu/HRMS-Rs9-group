@@ -1,8 +1,9 @@
 "use client";
 import React, { useEffect, useState, useCallback } from "react";
 import ReactDOM from "react-dom";
-import { Bell, Menu, LogOut, Sun, Moon } from "lucide-react";
+import { Bell, Menu, LogOut, Sun, Moon, BellOff } from "lucide-react";
 import { signOut } from "next-auth/react";
+import { cn } from "@/lib/utils";
 
 interface TopbarProps {
   activeTabLabel: string;
@@ -20,6 +21,10 @@ export default function Topbar({
 }: TopbarProps) {
   const [isDark, setIsDark] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  
+  // In-app Notifications State
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const [showNotifications, setShowNotifications] = useState(false);
 
   useEffect(() => {
     setIsDark(document.documentElement.classList.contains("dark"));
@@ -44,14 +49,68 @@ export default function Topbar({
     signOut({ callbackUrl: `${window.location.origin}/login` });
   }, []);
 
-  // Close modal on Escape key
+  // Fetch Notifications
+  const fetchNotifications = async () => {
+    try {
+      const res = await fetch("/api/notifications");
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setNotifications(data.data || []);
+      }
+    } catch (e) {
+      console.error("Error fetching notifications:", e);
+    }
+  };
+
+  useEffect(() => {
+    fetchNotifications();
+    const interval = setInterval(fetchNotifications, 20000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Close modals/dropdowns on Escape key
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setShowLogoutConfirm(false);
+      if (e.key === "Escape") {
+        setShowLogoutConfirm(false);
+        setShowNotifications(false);
+      }
     };
-    if (showLogoutConfirm) window.addEventListener("keydown", onKey);
+    window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [showLogoutConfirm]);
+  }, []);
+
+  const unreadCount = notifications.filter(n => !n.read).length;
+
+  const handleMarkAllRead = async () => {
+    try {
+      const res = await fetch("/api/notifications", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ markAllAsRead: true })
+      });
+      if (res.ok) {
+        setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const handleMarkSingleRead = async (id: string) => {
+    try {
+      const res = await fetch("/api/notifications", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id })
+      });
+      if (res.ok) {
+        setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
 
   return (
     <>
@@ -73,15 +132,85 @@ export default function Topbar({
       </div>
 
       {/* Right side actions */}
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 relative">
         {/* Notifications */}
-        <button 
-          className="p-2 rounded-full text-[#9C9890] hover:text-[#1C1C1A] hover:bg-[#F0EAE4]/60 transition-all relative focus:outline-none"
-          title="Notifications"
-        >
-          <Bell className="w-4 h-4" />
-          <span className="absolute top-2 right-2 w-1.5 h-1.5 rounded-full bg-[#C9A84C]" />
-        </button>
+        <div className="relative">
+          <button 
+            onClick={() => setShowNotifications(!showNotifications)}
+            className={cn(
+              "p-2 rounded-full text-[#9C9890] hover:text-[#1C1C1A] hover:bg-[#F0EAE4]/60 transition-all relative focus:outline-none",
+              showNotifications && "text-[#1C1C1A] bg-[#F0EAE4]/60"
+            )}
+            title="Notifications"
+          >
+            <Bell className="w-4 h-4" />
+            {unreadCount > 0 && (
+              <span className="absolute top-2 right-2 w-1.5 h-1.5 rounded-full bg-[#C9A84C] animate-pulse" />
+            )}
+          </button>
+
+          {/* Notifications Dropdown Popover */}
+          {showNotifications && (
+            <div className="absolute right-0 mt-2 z-50 bg-white border border-[#E8E4DF] shadow-2xl rounded-2xl p-4 w-[320px] space-y-3 text-left">
+              <div className="flex justify-between items-center border-b border-[#E8E4DF] pb-2 mb-1.5">
+                <h4 className="text-xs font-serif font-bold text-[#1C1C1A]" style={{ fontFamily: "'Playfair Display', serif" }}>
+                  Notifications ({unreadCount})
+                </h4>
+                {unreadCount > 0 && (
+                  <button
+                    onClick={handleMarkAllRead}
+                    className="text-[9px] text-[#C9A84C] hover:text-[#B5963D] font-bold uppercase tracking-wider transition-colors"
+                  >
+                    Mark all read
+                  </button>
+                )}
+              </div>
+
+              {notifications.length === 0 ? (
+                <div className="text-center py-8 text-[#9C9890] text-xs flex flex-col items-center justify-center gap-2">
+                  <BellOff className="w-6 h-6 text-slate-300" />
+                  <span>No notifications yet</span>
+                </div>
+              ) : (
+                <div className="divide-y divide-slate-100 max-h-[260px] overflow-y-auto space-y-2 pr-1">
+                  {notifications.map(n => {
+                    const dateStr = n.createdAt 
+                      ? new Date(n.createdAt).toLocaleDateString("en-IN", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" }) 
+                      : "";
+                    
+                    return (
+                      <div
+                        key={n.id}
+                        onClick={() => handleMarkSingleRead(n.id)}
+                        className={cn(
+                          "py-2 px-1.5 hover:bg-[#F5F0EA]/30 transition-colors cursor-pointer rounded-lg flex gap-2 items-start",
+                          !n.read && "bg-amber-50/20 border-l-2 border-[#C9A84C]"
+                        )}
+                      >
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between gap-1">
+                            <span className={cn("text-[11px] font-semibold truncate text-slate-800", !n.read && "font-bold text-[#1C1C1A]")}>
+                              {n.title}
+                            </span>
+                            {!n.read && (
+                              <span className="w-1.5 h-1.5 rounded-full bg-[#C9A84C] shrink-0" />
+                            )}
+                          </div>
+                          <p className="text-[10px] text-slate-500 leading-relaxed mt-0.5 break-words font-medium">
+                            {n.message}
+                          </p>
+                          <span className="text-[8px] text-[#9C9890] font-mono block mt-1">
+                            {dateStr}
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
 
         {/* Theme Toggle */}
         <button 
@@ -138,4 +267,3 @@ export default function Topbar({
     </>
   );
 }
-

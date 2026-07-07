@@ -12,6 +12,21 @@ import { logAudit } from "@/lib/audit";
 import { logHRActivity } from "@/lib/hrAudit";
 import { sendEmail } from "@/lib/email";
 
+function getUserCompanies(user: any): string[] {
+  if (!user || !user.companies) return [];
+  try {
+    const parsed = typeof user.companies === "string" ? JSON.parse(user.companies) : user.companies;
+    if (Array.isArray(parsed)) return parsed.map(String);
+    if (parsed) return [String(parsed)];
+    return [];
+  } catch {
+    if (typeof user.companies === "string") {
+      return user.companies.split(",").map((s: string) => s.trim()).filter(Boolean);
+    }
+    return [String(user.companies)];
+  }
+}
+
 // GET /api/employees - Get list of all staff members
 export async function GET(req: Request) {
   try {
@@ -43,14 +58,7 @@ export async function GET(req: Request) {
       return NextResponse.json({ success: false, error: "Unauthorized access" }, { status: 401 });
     }
 
-    let adminCompanies: string[] = [];
-    if (dbUser && dbUser.companies) {
-      if (Array.isArray(dbUser.companies)) adminCompanies = dbUser.companies;
-      else if (typeof dbUser.companies === 'string') {
-        try { adminCompanies = JSON.parse(dbUser.companies); } catch(e) {}
-      }
-    }
-    const adminCompaniesNormalized = adminCompanies.map(String);
+    const adminCompaniesNormalized = getUserCompanies(dbUser);
 
     // Fetch employees
     const employees = await User.findAll({ where: {}, raw: true });
@@ -544,7 +552,9 @@ export async function PUT(req: Request) {
       ifscCode,
       pfNumber,
       uanNumber,
-      esiNumber
+      esiNumber,
+      companies,
+      menuAccess
     } = body;
 
     if (!employeeId) {
@@ -562,14 +572,7 @@ export async function PUT(req: Request) {
         return NextResponse.json({ success: false, error: "Target employee not found." }, { status: 404 });
       }
 
-      let adminCompanies: string[] = [];
-      if (dbUser && dbUser.companies) {
-        if (Array.isArray(dbUser.companies)) adminCompanies = dbUser.companies;
-        else if (typeof dbUser.companies === 'string') {
-          try { adminCompanies = JSON.parse(dbUser.companies); } catch(e) {}
-        }
-      }
-      const adminCompaniesNormalized = adminCompanies.map(String);
+      const adminCompaniesNormalized = getUserCompanies(dbUser);
 
       let targetComps: any[] = [];
       if (Array.isArray(targetUser.companies)) targetComps = targetUser.companies;
@@ -632,6 +635,13 @@ export async function PUT(req: Request) {
         if (mobile !== undefined) userRec.mobile = mobile;
         if (role !== undefined) userRec.role = role;
         if (status !== undefined) userRec.status = status;
+        if (companies !== undefined) {
+          // If companies is passed as a string or array, save it
+          userRec.companies = Array.isArray(companies) ? companies : JSON.parse(companies);
+        }
+        if (menuAccess !== undefined) {
+          userRec.menuAccess = Array.isArray(menuAccess) ? menuAccess : JSON.parse(menuAccess);
+        }
         await userRec.save();
       }
     }

@@ -8,6 +8,7 @@ import TaskLog from "@/models/sequelize/TaskLog";
 import User from "@/models/sequelize/User";
 import { logAudit } from "@/lib/audit";
 import { sendEmail } from "@/lib/email";
+import Notification from "@/models/sequelize/Notification";
 import { Op } from "sequelize";
 
 // ─── Background Reminder Daemon ──────────────────────────────────────────────
@@ -486,6 +487,43 @@ export async function PUT(req: Request) {
       } catch (emailErr) {
         console.error("Forward email error:", emailErr);
         // Don't fail the whole request for email errors
+      }
+    }
+
+    // In-app notifications
+    if (isNewForward) {
+      try {
+        await Notification.sync({ alter: true });
+        await Notification.create({
+          id: Date.now().toString() + Math.random().toString(36).substring(2, 8),
+          recipient: forwardedTo,
+          title: "Task Forwarded to You",
+          message: `${userName} forwarded a task to you: ${task.taskTitle}`,
+          read: false
+        });
+      } catch (notifErr) {
+        console.error("Task forwarding notification error:", notifErr);
+      }
+    }
+
+    if (status === "Completed" && prevStatus !== "Completed" && task.employee !== userId) {
+      try {
+        const creator = await User.findByPk(task.employee);
+        const creatorRole = creator?.role || "";
+        const isManager = ["Department Manager", "department manager", "department-manager"].includes(creatorRole) || creatorRole.toLowerCase().includes("manager");
+
+        if (!isManager) {
+          await Notification.sync({ alter: true });
+          await Notification.create({
+            id: Date.now().toString() + Math.random().toString(36).substring(2, 8),
+            recipient: task.employee,
+            title: "Task Completed",
+            message: `${userName} completed the task: ${task.taskTitle}`,
+            read: false
+          });
+        }
+      } catch (notifErr) {
+        console.error("Task completion notification error:", notifErr);
       }
     }
 

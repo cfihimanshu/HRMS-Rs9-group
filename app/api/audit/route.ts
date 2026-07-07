@@ -61,6 +61,7 @@ export async function GET(req: Request) {
 
     const data = logs.map(log => ({
       ...log,
+      timestamp: log.timestamp || log.createdAt,
       user: userMap[log.user as string] || { name: 'Unknown', role: 'Unknown' }
     }));
 

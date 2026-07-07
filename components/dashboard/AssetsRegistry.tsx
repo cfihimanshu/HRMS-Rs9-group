@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import ReactDOM from "react-dom";
 import { Search, Edit3, Check, X, RefreshCw, Cpu, Smartphone, Mail, MessageCircle, Building2, Layers, Trash2, AlertTriangle, UserX } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -58,6 +58,7 @@ export default function AssetsRegistry({ userRole, triggerToast, sessionUser }: 
   const [departmentsDb, setDepartmentsDb] = useState<any[]>([]);
   const [dbRoles, setDbRoles] = useState<any[]>([]);
   const [inventoryTypes, setInventoryTypes] = useState<string[]>([]);
+  const [inventoryItems, setInventoryItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   
@@ -94,7 +95,8 @@ export default function AssetsRegistry({ userRole, triggerToast, sessionUser }: 
     simWithMobile: false,
     simPhoneNumber: "",
     allocatedGmail: "",
-    allocatedWhatsapp: ""
+    allocatedWhatsapp: "",
+    selectedInventoryId: ""
   });
 
   // Sync assignedBy with sessionUser name when sessionUser loads
@@ -112,6 +114,7 @@ export default function AssetsRegistry({ userRole, triggerToast, sessionUser }: 
       const userId = localStorage.getItem("assign_asset_user_id");
       const assetType = localStorage.getItem("assign_asset_type") || "Laptop";
       const assetVal = localStorage.getItem("assign_asset_value") || "";
+      const inventoryId = localStorage.getItem("assign_asset_inventory_id") || "";
 
       // Find the matched employee to auto-select company & corporate employeeId
       const matchedEmp = employees.find(emp => String(emp.id) === String(userId));
@@ -130,6 +133,7 @@ export default function AssetsRegistry({ userRole, triggerToast, sessionUser }: 
           assignedToId: matchedEmp.employeeProfile?.employeeId || "",
           assetType: assetType,
           assetValue: assetVal,
+          selectedInventoryId: inventoryId,
           allocatedGmail: matchedEmp.employeeProfile?.allocatedGmail || "",
           allocatedWhatsapp: matchedEmp.employeeProfile?.allocatedWhatsapp || ""
         }));
@@ -141,6 +145,7 @@ export default function AssetsRegistry({ userRole, triggerToast, sessionUser }: 
       localStorage.removeItem("assign_asset_user_id");
       localStorage.removeItem("assign_asset_type");
       localStorage.removeItem("assign_asset_value");
+      localStorage.removeItem("assign_asset_inventory_id");
     }
   }, [employees]);
 
@@ -180,6 +185,21 @@ export default function AssetsRegistry({ userRole, triggerToast, sessionUser }: 
 
       const result = await res.json();
       if (result.success) {
+        // If an inventory item was selected from stock, mark it as "In Use"
+        if (assignForm.selectedInventoryId) {
+          try {
+            await fetch("/api/assets/inventory", {
+              method: "PUT",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                id: Number(assignForm.selectedInventoryId),
+                status: "In Use"
+              })
+            });
+          } catch (invErr) {
+            console.error("Failed to update inventory status:", invErr);
+          }
+        }
         triggerToast(`Asset assigned successfully to ${employees.find(emp => emp.employeeProfile?.employeeId === assignForm.assignedToId)?.name || "employee"}`);
         setShowAssignModal(false);
         // Refresh local data state
@@ -240,6 +260,7 @@ export default function AssetsRegistry({ userRole, triggerToast, sessionUser }: 
         const invRes = await fetch("/api/assets/inventory");
         const invData = await invRes.json();
         if (invRes.ok && invData.success) {
+          setInventoryItems(invData.data || []);
           const defaultTypes = [
             "Laptop",
             "Mobile Phone",
@@ -265,6 +286,24 @@ export default function AssetsRegistry({ userRole, triggerToast, sessionUser }: 
       setLoading(false);
     }
   };
+
+  const allowedCompanies = useMemo(() => {
+    const isOwnerOrHR = ["owner", "director", "hr head", "hr-head", "hr executive", "hr-executive"].includes((userRole || "").toLowerCase());
+    if (isOwnerOrHR) return companies;
+    
+    // Find logged in user object
+    const loggedInUserObj = employees.find(emp => String(emp.id) === String(sessionUser?.id));
+    if (!loggedInUserObj) return [];
+    
+    let comps: any[] = [];
+    if (Array.isArray(loggedInUserObj.companies)) {
+      comps = loggedInUserObj.companies;
+    } else if (typeof loggedInUserObj.companies === "string") {
+      try { comps = JSON.parse(loggedInUserObj.companies); } catch(e) {}
+    }
+    const allowedIds = comps.map((c: any) => String(c.id || c));
+    return companies.filter(comp => allowedIds.includes(String(comp.id)));
+  }, [companies, employees, sessionUser, userRole]);
 
   const handleStartEdit = (emp: any) => {
     setEditingEmployeeId(emp.employeeProfile?.employeeId || null);
@@ -564,7 +603,7 @@ export default function AssetsRegistry({ userRole, triggerToast, sessionUser }: 
               setShowAssignModal(true);
               setAssignForm({
                 date: new Date().toISOString().split('T')[0],
-                companyId: selectedCompany !== "all" ? selectedCompany : (companies[0]?.id || ""),
+                companyId: selectedCompany !== "all" ? selectedCompany : (allowedCompanies[0]?.id || ""),
                 assignedToId: "",
                 assignedBy: sessionUser?.name || "Owner",
                 assetType: "Laptop",
@@ -572,7 +611,8 @@ export default function AssetsRegistry({ userRole, triggerToast, sessionUser }: 
                 simWithMobile: false,
                 simPhoneNumber: "",
                 allocatedGmail: "",
-                allocatedWhatsapp: ""
+                allocatedWhatsapp: "",
+                selectedInventoryId: ""
               });
             }}
             className="px-3 py-1.5 bg-[#C9A84C] hover:bg-[#B5963D] text-white rounded-lg text-[10px] font-semibold tracking-wider uppercase transition-all flex items-center gap-1.5 shadow-sm font-sans"
@@ -608,7 +648,7 @@ export default function AssetsRegistry({ userRole, triggerToast, sessionUser }: 
             className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
           >
             <option value="all">All Companies</option>
-            {companies.map((comp) => (
+            {allowedCompanies.map((comp: any) => (
               <option key={comp.id} value={comp.id}>
                 {comp.name}
               </option>
@@ -887,7 +927,7 @@ export default function AssetsRegistry({ userRole, triggerToast, sessionUser }: 
             className="bg-white rounded-2xl shadow-2xl p-6 w-[450px] max-w-[95vw] border border-[#E8E4DF]"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex justify-between items-center border-b border-[#E8E4DF] pb-3 mb-4">
+             <div className="flex justify-between items-center border-b border-[#E8E4DF] pb-3 mb-4">
               <h3 className="text-lg font-serif font-light text-[#1C1C1A]" style={{ fontFamily: "'Playfair Display', serif" }}>
                 Assign New Asset
               </h3>
@@ -917,12 +957,12 @@ export default function AssetsRegistry({ userRole, triggerToast, sessionUser }: 
                   value={assignForm.companyId}
                   onChange={(e) => {
                     const val = e.target.value;
-                    setAssignForm(prev => ({ ...prev, companyId: val, assignedToId: "" }));
+                    setAssignForm(prev => ({ ...prev, companyId: val, assignedToId: "", selectedInventoryId: "", assetValue: "" }));
                   }}
                   className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
                 >
                   <option value="">-- Select Company --</option>
-                  {companies.map(comp => (
+                  {allowedCompanies.map((comp: any) => (
                     <option key={comp.id} value={comp.id}>{comp.name}</option>
                   ))}
                 </select>
@@ -1006,7 +1046,10 @@ export default function AssetsRegistry({ userRole, triggerToast, sessionUser }: 
                 <select
                   required
                   value={assignForm.assetType}
-                  onChange={(e) => setAssignForm(prev => ({ ...prev, assetType: e.target.value }))}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setAssignForm(prev => ({ ...prev, assetType: val, selectedInventoryId: "", assetValue: "" }));
+                  }}
                   className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
                 >
                   {(inventoryTypes.length > 0 ? inventoryTypes : [
@@ -1055,6 +1098,62 @@ export default function AssetsRegistry({ userRole, triggerToast, sessionUser }: 
                   </div>
                 )}
               </div>
+
+              {/* Available Stock Selector */}
+              {assignForm.companyId && (
+                <div className="bg-[#FCFBF9] border border-[#E8E4DF] p-3 rounded-lg space-y-2">
+                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold">
+                    Available Stock (Select to Auto-Fill details)
+                  </label>
+                  {(() => {
+                    const available = inventoryItems.filter(item => 
+                      item.assetType === assignForm.assetType &&
+                      item.status === "Available"
+                    ).sort((a, b) => {
+                      const aMatches = String(a.companyId || "") === String(assignForm.companyId || "");
+                      const bMatches = String(b.companyId || "") === String(assignForm.companyId || "");
+                      if (aMatches && !bMatches) return -1;
+                      if (!aMatches && bMatches) return 1;
+                      return 0;
+                    });
+
+                    if (available.length === 0) {
+                      return (
+                        <p className="text-[10px] text-[#A67C1E] italic bg-[#FFFBF0] border border-[#FFEAB5] p-2 rounded">
+                          No available items in stock for this asset type across all companies. You can still type details manually below.
+                        </p>
+                      );
+                    }
+
+                    return (
+                      <select
+                        value={assignForm.selectedInventoryId}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          const selectedInv = available.find(i => String(i.id) === String(val));
+                          setAssignForm(prev => ({
+                            ...prev,
+                            selectedInventoryId: val,
+                            assetValue: selectedInv ? `[S/N: ${selectedInv.serialNumber || 'N/A'}] ${selectedInv.assetDetail || ''}` : prev.assetValue
+                          }));
+                        }}
+                        className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                      >
+                        <option value="">-- Select from Available Stock --</option>
+                        {available.map(item => {
+                          const compName = companies.find(c => String(c.id) === String(item.companyId))?.name || "General Stock";
+                          const isMatch = String(item.companyId || "") === String(assignForm.companyId || "");
+                          return (
+                            <option key={item.id} value={item.id}>
+                              {isMatch ? "★ " : ""}[S/N: {item.serialNumber || 'N/A'}] {item.assetDetail} ({compName} | {item.condition})
+                            </option>
+                          );
+                        })}
+                      </select>
+                    );
+                  })()}
+                </div>
+              )}
 
               {/* Asset Value field */}
               <div>

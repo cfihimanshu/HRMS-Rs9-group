@@ -5,7 +5,7 @@ import {
   LayoutDashboard, UserSquare2, FileEdit, Briefcase, Users2, ScanLine,
   Video, ShieldCheck, FileText, GraduationCap, Clock, CalendarCheck,
   TrendingUp, BriefcaseIcon, Building2, Coins, HelpCircle, AlertTriangle,
-  LogOut, ChevronDown, ChevronRight, MapPin, Cpu, Package
+  LogOut, ChevronDown, ChevronRight, MapPin, Cpu, Package, Key, Scale
 } from "lucide-react";
 import { signOut } from "next-auth/react";
 
@@ -81,6 +81,8 @@ export default function DashboardSidebar({
     { id: "bda-directory", label: "BDA Network (Sales)", icon: Users2, category: "Core Workspace", roles: ["Owner", "Director", "HR Head", "HR Executive", "Department Manager"] },
     { id: "assets-registry", label: "Assets Registry", icon: Cpu, category: "Core Workspace", roles: ["Owner", "Director", "HR Head", "HR Executive"] },
     { id: "inventory-management", label: "Inventory Management", icon: Package, category: "Core Workspace", roles: ["Owner"] },
+    { id: "admin-access", label: "Administrator Access", icon: Key, category: "Core Workspace", roles: ["Owner"] },
+    { id: "legal-recovery", label: "Legal Recovery", icon: Scale, category: "Core Workspace", roles: ["Owner"] },
 
     { id: "screening", label: "AI Screening Module", icon: ScanLine, category: "AI & Vetting Hub", roles: ["Owner", "Director", "HR Head", "HR Executive"] },
     { id: "interviews", label: "Interviews Queue", icon: Video, category: "AI & Vetting Hub", badge: stats?.interviews?.pending, roles: ["Owner", "Director", "HR Head", "HR Executive", "Trainer"] },
@@ -108,7 +110,32 @@ export default function DashboardSidebar({
   const userDept = user?.department || "";
   const isAdministration = userDept.toLowerCase().includes("administration");
 
+  const isOwnerOrDirector = ["Owner", "Director"].includes(userRole);
+  let allowedPageIds: string[] | null = null;
+  if (Array.isArray(user?.menuAccess)) {
+    allowedPageIds = user.menuAccess;
+  } else if (typeof user?.menuAccess === "string" && user.menuAccess) {
+    try {
+      const parsed = JSON.parse(user.menuAccess);
+      if (Array.isArray(parsed)) allowedPageIds = parsed;
+    } catch {}
+  }
+
   const menuItems = allMenuItems.filter(item => {
+    if (!isOwnerOrDirector && allowedPageIds) {
+      const hasPageLevelPermissions = allowedPageIds.some(p => 
+        !["Core Workspace", "Employee Self Service", "AI & Vetting Hub", "Training & Probation", "Daily Operations", "Network Partners", "Compliance & Exit"].includes(p)
+      );
+      if (hasPageLevelPermissions) {
+        // Page-level override: if the page ID is checkmarked, show it!
+        return allowedPageIds.includes(item.id);
+      } else {
+        // Fallback to old category-level permissions
+        if (!allowedPageIds.includes(item.category)) {
+          return false;
+        }
+      }
+    }
     if (item.id === "inventory-management") {
       return item.roles.includes(userRole) || isAdministration;
     }

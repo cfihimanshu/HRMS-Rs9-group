@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useSession } from "next-auth/react";
 import * as XLSX from "xlsx";
+import { cn } from "@/lib/utils";
 import {
   Plus,
   GripVertical,
@@ -30,6 +31,8 @@ import {
   Square,
   Timer,
   Download,
+  List,
+  SlidersHorizontal,
 } from "lucide-react";
 
 interface Task {
@@ -107,6 +110,12 @@ export default function KanbanBoard() {
   // Timer
   const [savingTimer, setSavingTimer] = useState(false);
   const [, setTick] = useState(0); // force re-render every second for live clock
+  
+  // Views & Date Filters
+  const [viewMode, setViewMode] = useState<"kanban" | "list">("kanban");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+  const [showFiltersDropdown, setShowFiltersDropdown] = useState(false);
 
   // Drag state
   const dragIdRef = useRef<string | null>(null);
@@ -528,8 +537,30 @@ export default function KanbanBoard() {
   const uniqueUsers = Array.from(new Set(tasks.map(t => (t.employee as any)?.name).filter(Boolean)));
 
   const filteredTasks = tasks.filter(t => {
-    if (filterUser === "All") return true;
-    return (t.employee as any)?.name === filterUser;
+    // User filter
+    if (filterUser !== "All" && (t.employee as any)?.name !== filterUser) {
+      return false;
+    }
+    
+    // Date filter
+    const taskDateStr = t.createdAt || t.date;
+    if (taskDateStr) {
+      const taskDate = new Date(taskDateStr);
+      taskDate.setHours(0, 0, 0, 0);
+      
+      if (startDate) {
+        const start = new Date(startDate);
+        start.setHours(0, 0, 0, 0);
+        if (taskDate < start) return false;
+      }
+      if (endDate) {
+        const end = new Date(endDate);
+        end.setHours(0, 0, 0, 0);
+        if (taskDate > end) return false;
+      }
+    }
+    
+    return true;
   });
 
   const handleExportTasks = () => {
@@ -771,27 +802,119 @@ export default function KanbanBoard() {
   return (
     <div className="space-y-6 animate-fadeIn h-full flex flex-col">
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4">
         <div>
           <h1 className="text-xl font-black text-slate-800 flex items-center gap-2">
             <LayoutGrid className="w-5 h-5 text-[#714B67]" />
-            My Tasks Kanban
+            My Tasks
           </h1>
-          <p className="text-xs text-slate-500 mt-1">Manage your daily workload — drag cards across columns or click to open.</p>
+          <p className="text-xs text-slate-500 mt-1">Manage your daily workload — view as Kanban or list, filter by dates.</p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
-          {uniqueUsers.length > 1 && (
-            <select
-              className="bg-white border border-slate-200 text-slate-700 text-[10px] font-black uppercase tracking-wider rounded-lg px-3 py-2 focus:outline-none focus:border-[#714B67] shadow-sm cursor-pointer"
-              value={filterUser}
-              onChange={e => setFilterUser(e.target.value)}
+          {/* Unified Filters Dropdown */}
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setShowFiltersDropdown(!showFiltersDropdown)}
+              className={cn(
+                "flex items-center gap-1.5 px-3 py-2 border rounded-lg text-[10px] font-black uppercase tracking-wider transition-all shadow-sm bg-white text-slate-700 hover:bg-[#F5F0EA] border-slate-200",
+                showFiltersDropdown && "border-[#C9A84C] text-[#C9A84C]"
+              )}
             >
-              <option value="All">All Users</option>
-              {uniqueUsers.map((u: any) => (
-                <option key={u} value={u}>{u}</option>
-              ))}
-            </select>
-          )}
+              <SlidersHorizontal className="w-3.5 h-3.5" /> Filters
+              {(filterUser !== "All" || startDate || endDate || viewMode !== "kanban") && (
+                <span className="w-1.5 h-1.5 rounded-full bg-[#C9A84C] animate-pulse inline-block ml-1" />
+              )}
+            </button>
+
+            {showFiltersDropdown && (
+              <div className="absolute right-0 mt-2 z-50 bg-white border border-[#E8E4DF] shadow-xl rounded-2xl p-4 w-[280px] space-y-4 text-left">
+                {/* View Mode Section */}
+                <div>
+                  <label className="block text-[8px] uppercase tracking-wider text-slate-400 font-bold mb-1">View Mode</label>
+                  <div className="flex bg-[#F5F0EA] p-0.5 rounded-lg border border-[#E8E4DF]">
+                    <button
+                      type="button"
+                      onClick={() => setViewMode("kanban")}
+                      className={cn(
+                        "flex-1 flex items-center justify-center gap-1 py-1 rounded-md text-[9px] font-black uppercase tracking-wider transition-all",
+                        viewMode === "kanban" 
+                          ? "bg-[#C9A84C] text-white shadow-sm" 
+                          : "text-slate-500 hover:text-slate-800"
+                      )}
+                    >
+                      <LayoutGrid className="w-3 h-3" /> Kanban
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setViewMode("list")}
+                      className={cn(
+                        "flex-1 flex items-center justify-center gap-1 py-1 rounded-md text-[9px] font-black uppercase tracking-wider transition-all",
+                        viewMode === "list" 
+                          ? "bg-[#C9A84C] text-white shadow-sm" 
+                          : "text-slate-500 hover:text-slate-800"
+                      )}
+                    >
+                      <List className="w-3 h-3" /> List
+                    </button>
+                  </div>
+                </div>
+
+                {/* User Filter Section */}
+                {uniqueUsers.length > 1 && (
+                  <div>
+                    <label className="block text-[8px] uppercase tracking-wider text-slate-400 font-bold mb-1">Filter by User</label>
+                    <select
+                      className="w-full bg-white border border-slate-200 text-slate-700 text-[10px] font-bold rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-[#C9A84C] cursor-pointer"
+                      value={filterUser}
+                      onChange={e => setFilterUser(e.target.value)}
+                    >
+                      <option value="All">All Users</option>
+                      {uniqueUsers.map((u: any) => (
+                        <option key={u} value={u}>{u}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
+                {/* Date Range Section */}
+                <div>
+                  <label className="block text-[8px] uppercase tracking-wider text-slate-400 font-bold mb-1">Date Range</label>
+                  <div className="space-y-1.5">
+                    <input
+                      type="date"
+                      value={startDate}
+                      onChange={e => setStartDate(e.target.value)}
+                      className="w-full bg-white border border-slate-200 text-[10px] font-bold text-slate-700 px-2 py-1 focus:outline-none focus:border-[#C9A84C] rounded-lg"
+                      placeholder="Start Date"
+                    />
+                    <input
+                      type="date"
+                      value={endDate}
+                      onChange={e => setEndDate(e.target.value)}
+                      className="w-full bg-white border border-slate-200 text-[10px] font-bold text-slate-700 px-2 py-1 focus:outline-none focus:border-[#C9A84C] rounded-lg"
+                      placeholder="End Date"
+                    />
+                  </div>
+                </div>
+
+                {/* Reset Filters Button */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setFilterUser("All");
+                    setStartDate("");
+                    setEndDate("");
+                    setViewMode("kanban");
+                  }}
+                  className="w-full text-center text-[10px] text-red-500 hover:text-red-600 font-bold uppercase tracking-wider font-sans py-2 border-t border-slate-100 mt-3 block bg-red-50/50 hover:bg-red-50 rounded-lg transition-colors"
+                >
+                  Reset Filters
+                </button>
+              </div>
+            )}
+          </div>
+
           <button
             onClick={handleExportTasks}
             className="flex items-center gap-1.5 bg-[#714B67] hover:bg-[#5b3c53] text-white text-[10px] font-black uppercase tracking-wider rounded-lg px-3 py-2 transition-all shadow-sm font-sans"
@@ -805,116 +928,210 @@ export default function KanbanBoard() {
         </div>
       </div>
 
-      {/* Kanban Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 flex-1 items-start">
-        {cols.map(col => {
-          const isOver = dragOverCol === col.id;
-          return (
-            <div
-              key={col.id}
-              className={`rounded-2xl border flex flex-col min-h-[520px] transition-all duration-200 ${isOver ? col.dropHighlight : `${col.dropBg} ${col.dropBorder}`}`}
-              onDragOver={e => handleDragOver(e, col.id)}
-              onDragLeave={() => setDragOverCol(null)}
-              onDrop={e => handleDrop(e, col.id)}
-            >
-              {/* Column header */}
-              <div className={`p-4 border-b ${col.dropBorder} flex items-center justify-between ${col.headerBg} rounded-t-2xl`}>
-                <h3 className={`text-[11px] uppercase font-black tracking-wider font-mono flex items-center gap-2 ${col.headerText}`}>
-                  {col.icon}
-                  {col.label} ({col.count})
-                </h3>
-                {isOver && (
-                  <span className="text-[9px] font-black text-indigo-500 uppercase tracking-wider animate-pulse">Drop here</span>
-                )}
-              </div>
+      {viewMode === "kanban" ? (
+        /* Kanban Grid */
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 flex-1 items-start">
+          {cols.map(col => {
+            const isOver = dragOverCol === col.id;
+            return (
+              <div
+                key={col.id}
+                className={`rounded-2xl border flex flex-col min-h-[520px] transition-all duration-200 ${isOver ? col.dropHighlight : `${col.dropBg} ${col.dropBorder}`}`}
+                onDragOver={e => handleDragOver(e, col.id)}
+                onDragLeave={() => setDragOverCol(null)}
+                onDrop={e => handleDrop(e, col.id)}
+              >
+                {/* Column header */}
+                <div className={`p-4 border-b ${col.dropBorder} flex items-center justify-between ${col.headerBg} rounded-t-2xl`}>
+                  <h3 className={`text-[11px] uppercase font-black tracking-wider font-mono flex items-center gap-2 ${col.headerText}`}>
+                    {col.icon}
+                    {col.label} ({col.count})
+                  </h3>
+                  {isOver && (
+                    <span className="text-[9px] font-black text-indigo-500 uppercase tracking-wider animate-pulse">Drop here</span>
+                  )}
+                </div>
 
-              {/* Cards area */}
-              <div className="p-4 space-y-3 flex-1 overflow-y-auto">
-                {/* Add task button — only in Pending */}
-                {col.id === "Pending" && (
-                  !showAdd ? (
-                    <button
-                      onClick={() => setShowAdd(true)}
-                      className="w-full border-2 border-dashed border-slate-300 hover:border-[#714B67] bg-white hover:bg-[#714B67]/5 rounded-xl p-3 flex items-center justify-center gap-2 text-xs font-black text-slate-400 hover:text-[#714B67] transition-all"
-                    >
-                      <Plus className="w-4 h-4" /> Add Task
-                    </button>
-                  ) : (
-                    <form
-                      onSubmit={handleAddTask}
-                      className="bg-white border border-[#714B67]/30 shadow-lg rounded-xl p-4 space-y-3"
-                    >
-                      <div className="flex items-center justify-between mb-1">
-                        <h4 className="text-[10px] uppercase font-black text-[#714B67] tracking-wider">New Task</h4>
-                        <button type="button" onClick={() => setShowAdd(false)} className="text-slate-400 hover:text-slate-600">
-                          <X className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
-                      <input
-                        className="w-full border border-slate-200 rounded-lg px-3 py-2 text-xs font-bold focus:outline-none focus:border-[#714B67] placeholder-slate-400 text-slate-800"
-                        placeholder="Task Title *"
-                        value={title}
-                        onChange={e => setTitle(e.target.value)}
-                        required
-                        autoFocus
-                      />
-                      <select
-                        className="w-full border border-slate-200 rounded-lg px-3 py-2 text-xs font-bold focus:outline-none focus:border-[#714B67] text-slate-700"
-                        value={type}
-                        onChange={e => setType(e.target.value)}
+                {/* Cards area */}
+                <div className="p-4 space-y-3 flex-1 overflow-y-auto">
+                  {/* Add task button — only in Pending */}
+                  {col.id === "Pending" && (
+                    !showAdd ? (
+                      <button
+                        onClick={() => setShowAdd(true)}
+                        className="w-full border-2 border-dashed border-slate-300 hover:border-[#714B67] bg-white hover:bg-[#714B67]/5 rounded-xl p-3 flex items-center justify-center gap-2 text-xs font-black text-slate-400 hover:text-[#714B67] transition-all"
                       >
-                        <option>Call</option>
-                        <option>Meeting</option>
-                        <option>Development</option>
-                        <option>Field Visit</option>
-                        <option>Operations</option>
-                        <option>Support</option>
-                        <option>Other</option>
-                      </select>
-                      <textarea
-                        className="w-full border border-slate-200 rounded-lg px-3 py-2 text-xs font-medium focus:outline-none focus:border-[#714B67] placeholder-slate-400 resize-none text-slate-800"
-                        rows={2}
-                        placeholder="Description (optional)..."
-                        value={desc}
-                        onChange={e => setDesc(e.target.value)}
-                      />
-                      <div className="flex gap-2 pt-1">
-                        <button
-                          type="button"
-                          onClick={() => setShowAdd(false)}
-                          className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-600 py-2 rounded-lg text-[10px] font-black uppercase transition-all"
+                        <Plus className="w-4 h-4" /> Add Task
+                      </button>
+                    ) : (
+                      <form
+                        onSubmit={handleAddTask}
+                        className="bg-white border border-[#714B67]/30 shadow-lg rounded-xl p-4 space-y-3"
+                      >
+                        <div className="flex items-center justify-between mb-1">
+                          <h4 className="text-[10px] uppercase font-black text-[#714B67] tracking-wider">New Task</h4>
+                          <button type="button" onClick={() => setShowAdd(false)} className="text-slate-400 hover:text-slate-600">
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                        <input
+                          className="w-full border border-slate-200 rounded-lg px-3 py-2 text-xs font-bold focus:outline-none focus:border-[#714B67] placeholder-slate-400 text-slate-800"
+                          placeholder="Task Title *"
+                          value={title}
+                          onChange={e => setTitle(e.target.value)}
+                          required
+                          autoFocus
+                        />
+                        <select
+                          className="w-full border border-slate-200 rounded-lg px-3 py-2 text-xs font-bold focus:outline-none focus:border-[#714B67] text-slate-700 bg-white"
+                          value={type}
+                          onChange={e => setType(e.target.value)}
                         >
-                          Cancel
-                        </button>
-                        <button
-                          type="submit"
-                          disabled={submitting}
-                          className="flex-1 bg-[#714B67] hover:bg-[#5F3F56] disabled:opacity-50 text-white py-2 rounded-lg text-[10px] font-black uppercase flex items-center justify-center gap-1 transition-all"
-                        >
-                          {submitting ? <Loader2 className="w-3 h-3 animate-spin" /> : <><Plus className="w-3 h-3" /> Save</>}
-                        </button>
+                          <option value="Meeting">Meeting</option>
+                          <option value="Call">Call</option>
+                          <option value="Development">Development</option>
+                          <option value="Marketing">Marketing</option>
+                          <option value="Field Visit">Field Visit</option>
+                          <option value="Operations">Operations</option>
+                          <option value="Support">Support</option>
+                          <option value="Other">Other</option>
+                        </select>
+                        <textarea
+                          className="w-full border border-slate-200 rounded-lg px-3 py-2 text-xs font-bold focus:outline-none focus:border-[#714B67] placeholder-slate-400 text-slate-800"
+                          placeholder="Task Description"
+                          rows={3}
+                          value={desc}
+                          onChange={e => setDesc(e.target.value)}
+                        />
+                        <div className="flex gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setShowAdd(false)}
+                            className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-600 py-2 rounded-lg text-[10px] font-black uppercase transition-all"
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            type="submit"
+                            disabled={submitting}
+                            className="flex-1 bg-[#714B67] hover:bg-[#5F3F56] disabled:opacity-50 text-white py-2 rounded-lg text-[10px] font-black uppercase flex items-center justify-center gap-1 transition-all"
+                          >
+                            {submitting ? <Loader2 className="w-3 h-3 animate-spin" /> : <><Plus className="w-3 h-3" /> Save</>}
+                          </button>
+                        </div>
+                      </form>
+                    )
+                  )}
+
+                  {/* Task cards */}
+                  {col.tasks.map(renderCard)}
+
+                  {/* Empty state */}
+                  {col.tasks.length === 0 && (
+                    <div className={`flex flex-col items-center justify-center pt-16 text-[10px] font-black uppercase tracking-wider ${col.emptyText}`}>
+                      <div className="w-10 h-10 rounded-full border-2 border-dashed border-current flex items-center justify-center mb-3 opacity-50">
+                        {col.icon}
                       </div>
-                    </form>
-                  )
-                )}
-
-                {/* Task cards */}
-                {col.tasks.map(renderCard)}
-
-                {/* Empty state */}
-                {col.tasks.length === 0 && (
-                  <div className={`flex flex-col items-center justify-center pt-16 text-[10px] font-black uppercase tracking-wider ${col.emptyText}`}>
-                    <div className="w-10 h-10 rounded-full border-2 border-dashed border-current flex items-center justify-center mb-3 opacity-50">
-                      {col.icon}
+                      Drop tasks here
                     </div>
-                    Drop tasks here
-                  </div>
-                )}
+                  )}
+                </div>
               </div>
-            </div>
-          );
-        })}
-      </div>
+            );
+          })}
+        </div>
+      ) : (
+        /* List View */
+        <div className="bg-white border border-slate-200 rounded-2xl shadow-sm">
+          <div className="overflow-x-auto">
+            <table className="w-full border-collapse text-left font-sans">
+              <thead>
+                <tr className="border-b border-slate-200 bg-slate-50 text-[10px] uppercase font-black tracking-wider text-slate-500">
+                  <th className="py-4 px-6 w-24">Status</th>
+                  <th className="py-4 px-6">Task details</th>
+                  <th className="py-4 px-6 w-28">Type</th>
+                  <th className="py-4 px-6 w-44">Date & Time</th>
+                  <th className="py-4 px-6 w-32">Timer</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 text-xs font-semibold text-slate-700">
+                {filteredTasks.map(task => {
+                  const typeColor = TYPE_COLORS[task.taskType] || TYPE_COLORS.Other;
+                  const creatorName = (task.employee as any)?.name || "Unknown User";
+                  
+                  let statusColor = "";
+                  if (task.status === "Pending") statusColor = "bg-slate-100 text-slate-700 border-slate-200";
+                  else if (task.status === "In Progress") statusColor = "bg-amber-100 text-amber-700 border-amber-200";
+                  else if (task.status === "Completed") statusColor = "bg-emerald-100 text-emerald-700 border-emerald-200";
+
+                  return (
+                    <tr
+                      key={task.id}
+                      className="hover:bg-slate-50/50 transition-colors cursor-pointer"
+                      onClick={() => openTask(task)}
+                    >
+                      {/* Status */}
+                      <td className="py-4 px-6">
+                        <span className={cn("inline-block text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full border", statusColor)}>
+                          {task.status}
+                        </span>
+                      </td>
+                      
+                      {/* Title & Description */}
+                      <td className="py-4 px-6">
+                        <div>
+                          <div className="font-bold text-slate-800 text-sm hover:text-[#714B67] transition-colors">{task.taskTitle}</div>
+                          {task.description && (
+                            <div className="text-[10px] text-slate-500 font-medium mt-1 line-clamp-1">{task.description}</div>
+                          )}
+                          <div className="text-[9px] font-bold text-slate-400 mt-1 uppercase tracking-wide">
+                            Created by: <span className="text-slate-600">{creatorName}</span>
+                          </div>
+                        </div>
+                      </td>
+                      
+                      {/* Type */}
+                      <td className="py-4 px-6">
+                        <span className={cn("inline-block text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full border", typeColor)}>
+                          {task.taskType}
+                        </span>
+                      </td>
+                      
+                      {/* Date & Time */}
+                      <td className="py-4 px-6 text-[#9C9890]">
+                        <div className="flex flex-col">
+                          <span className="font-mono text-slate-600">
+                            {new Date(task.createdAt || task.date).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}
+                          </span>
+                          <span className="text-[10px] font-mono mt-0.5">
+                            {new Date(task.createdAt || task.date).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}
+                          </span>
+                        </div>
+                      </td>
+                      
+                      {/* Timer */}
+                      <td className="py-4 px-6" onClick={e => e.stopPropagation()}>
+                        {task.status !== "Completed" && (
+                          <span className="inline-flex items-center gap-1 text-[10px] font-mono font-black px-2 py-1 rounded-lg border bg-green-50 text-green-700 border-green-200">
+                            <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse inline-block" />
+                            {formatTimer(getLiveElapsed(task))}
+                          </span>
+                        )}
+                        {task.status === "Completed" && getLiveElapsed(task) > 0 && (
+                          <span className="inline-flex items-center gap-1 text-[10px] font-mono font-black px-2 py-1 rounded-lg border bg-slate-50 text-slate-400 border-slate-200">
+                            <Timer className="w-3 h-3 text-slate-400" />
+                            {formatTimer(getLiveElapsed(task))}
+                          </span>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
 
       {/* ===================== TASK DETAIL MODAL ===================== */}
       {selectedTask && (

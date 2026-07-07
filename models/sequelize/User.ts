@@ -11,6 +11,7 @@ class User extends Model {
   public status!: string;
   public companies!: any;
   public loginHistory!: any;
+  public menuAccess!: any;
 }
 
 User.init(
@@ -49,6 +50,10 @@ User.init(
       allowNull: true,
     },
     loginHistory: {
+      type: DataTypes.JSON,
+      allowNull: true,
+    },
+    menuAccess: {
       type: DataTypes.JSON,
       allowNull: true,
     },

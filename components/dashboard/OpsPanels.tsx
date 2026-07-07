@@ -14,7 +14,8 @@ import {
   FileText,
   X,
   Download,
-  Info
+  Info,
+  Filter
 } from "lucide-react";
 
 interface OpsProps {
@@ -1029,6 +1030,50 @@ export function PerformanceCompliance({
   const [selectedUser, setSelectedUser] = useState("");
   const [selectedDept, setSelectedDept] = useState("");
   const [expandedRows, setExpandedRows] = useState<Record<string, boolean>>({});
+  const [showFilters, setShowFilters] = useState(false);
+
+  const loggedInDbUser = React.useMemo(() => {
+    if (!sessionUser?.id || users.length === 0) return null;
+    return users.find((u: any) => u.id?.toString() === sessionUser.id?.toString());
+  }, [users, sessionUser]);
+
+  const userCompanyIds = React.useMemo(() => {
+    const dbUser = loggedInDbUser;
+    const compsSource = dbUser?.companies || sessionUser?.companies;
+    if (!compsSource) return [];
+    try {
+      const parsed = typeof compsSource === "string" 
+        ? JSON.parse(compsSource) 
+        : compsSource;
+      if (Array.isArray(parsed)) return parsed.map(String);
+      return [String(parsed)];
+    } catch {
+      if (typeof compsSource === "string") {
+        return compsSource.split(",").map((s: string) => s.trim()).filter(Boolean);
+      }
+      return [String(compsSource)];
+    }
+  }, [loggedInDbUser, sessionUser]);
+
+  const visibleCompanies = React.useMemo(() => {
+    if (sessionUser?.role === "Owner") {
+      return companies;
+    }
+    return companies.filter((c: any) => {
+      const cid = (c.id || "").toString();
+      return userCompanyIds.includes(cid);
+    });
+  }, [companies, sessionUser, userCompanyIds]);
+
+  // Set default company for non-owners
+  useEffect(() => {
+    if (sessionUser?.role !== "Owner" && visibleCompanies.length > 0) {
+      const isValid = visibleCompanies.some((c: any) => c.id?.toString() === selectedCompany);
+      if (!isValid) {
+        setSelectedCompany(visibleCompanies[0].id.toString());
+      }
+    }
+  }, [visibleCompanies, sessionUser, selectedCompany]);
 
   // Calendar states
   const [calendarAttendance, setCalendarAttendance] = useState<any[]>([]);
@@ -1358,6 +1403,73 @@ export function PerformanceCompliance({
     return result;
   }, [reports]);
 
+  const uniqueUsersFromReports = React.useMemo(() => {
+    const role = sessionUser?.role || "Employee";
+    const userId = (sessionUser?.id || "").toString();
+
+    const userMap = new Map<string, { id: string; name: string; email: string; role: string }>();
+
+    let addSelf = true;
+    if (selectedCompany) {
+      if (!isUserInCompany(sessionUser, selectedCompany)) {
+        addSelf = false;
+      }
+    }
+
+    if (addSelf && sessionUser && sessionUser.id) {
+      userMap.set(userId, {
+        id: userId,
+        name: `${sessionUser.name || "Self"} (Self)`,
+        email: sessionUser.email || "",
+        role: sessionUser.role || "Employee"
+      });
+    }
+
+    // Add employees from mergedList
+    mergedList.forEach((item: any) => {
+      if (item.employee && item.employee.id) {
+        const empId = item.employee.id.toString();
+        const empRole = item.employee.role || "Employee";
+
+        // 1. If not Manager/Owner, they only see themselves
+        if (!["Owner", "Director", "HR Head", "HR Executive", "Department Manager"].includes(role)) {
+          if (empId !== userId) return;
+        }
+
+        // 2. Filter by selectedCompany
+        if (selectedCompany) {
+          if (!isUserInCompany(item.employee, selectedCompany)) return;
+        }
+
+        // 3. Filter by selectedDept
+        if (selectedDept) {
+          if (item.employee.department !== selectedDept) return;
+        }
+
+        if (!userMap.has(empId)) {
+          userMap.set(empId, {
+            id: empId,
+            name: item.employee.name,
+            email: item.employee.email || "",
+            role: empRole
+          });
+        }
+      }
+    });
+
+    return Array.from(userMap.values());
+  }, [mergedList, sessionUser, selectedCompany, selectedDept]);
+
+  // Synchronize selection
+  useEffect(() => {
+    if (selectedUser) {
+      const userExists = uniqueUsersFromReports.some((u) => u.id === selectedUser);
+      if (!userExists) {
+        setSelectedUser("");
+      }
+    }
+  }, [selectedCompany, selectedDept, uniqueUsersFromReports, selectedUser]);
+
   const exportConsolidatedExcel = () => {
     try {
       const headers = [
@@ -1606,8 +1718,10 @@ export function PerformanceCompliance({
                     setSelectedUser("");
                   }}
                 >
-                  <option value="">Select Company</option>
-                  {companies.map((c: any) => (
+                  {sessionUser?.role === "Owner" && (
+                    <option value="">Select Company</option>
+                  )}
+                  {visibleCompanies.map((c: any) => (
                     <option key={c.id || c.id} value={c.id || c.id}>{c.name}</option>
                   ))}
                 </select>
@@ -1702,119 +1816,175 @@ export function PerformanceCompliance({
         </div>
       ) : (
         <>
-          {/* Filters */}
-          <div className="flex flex-col md:flex-row gap-4 items-center bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
-            {isOwner && (
-              <>
-                <div className="relative flex-1 w-full">
-                  <Search className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
-                  <input
-                    type="text"
-                    placeholder="Search by Employee Name or Email..."
-                    className="w-full bg-slate-50 border border-slate-200 rounded-lg pl-9 pr-4 py-2.5 text-xs font-bold focus:outline-none focus:border-[#714B67] text-slate-800"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                  />
-                </div>
+          {/* Filters Bar */}
+          <div className="flex justify-between items-center bg-white border border-[#E8E4DF] rounded-xl p-4 shadow-sm mb-6">
+            <span style={{ fontFamily: "'Playfair Display', serif" }} className="font-serif text-sm font-bold lowercase first-letter:uppercase text-[#1C1C1A]">
+              📋 {activeSubTab === "sod" ? "Start of day (SOD) registry" : "End of day (EOD) registry"}
+            </span>
 
-                {/* Filter by Company */}
-                <div className="w-full md:w-48">
-                  <select
-                    className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2.5 text-xs font-bold focus:outline-none focus:border-[#714B67] text-slate-800"
-                    value={selectedCompany}
-                    onChange={(e) => {
-                      setSelectedCompany(e.target.value);
-                      setSelectedUser("");
-                    }}
-                  >
-                    <option value="">All Companies</option>
-                    {companies.map((c: any) => (
-                      <option key={c.id || c.id} value={c.id || c.id}>{c.name}</option>
-                    ))}
-                  </select>
-                </div>
-
-                {/* Filter by Department */}
-                <div className="w-full md:w-48">
-                  <select
-                    className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2.5 text-xs font-bold focus:outline-none focus:border-[#714B67] text-slate-800"
-                    value={selectedDept}
-                    onChange={(e) => setSelectedDept(e.target.value)}
-                  >
-                    <option value="">All Departments</option>
-                    {departmentsList.map((dept) => (
-                      <option key={dept} value={dept}>{dept}</option>
-                    ))}
-                  </select>
-                </div>
-
-                {/* Filter by Employee */}
-                <div className="w-full md:w-48">
-                  <select
-                    className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2.5 text-xs font-bold focus:outline-none focus:border-[#714B67] text-slate-800"
-                    value={selectedUser}
-                    onChange={(e) => setSelectedUser(e.target.value)}
-                  >
-                    <option value="">All Employees</option>
-                    {filteredUsers.map((u: any) => (
-                      <option key={u.id || u.id} value={u.id || u.id}>{u.name} ({u.role})</option>
-                    ))}
-                  </select>
-                </div>
-              </>
-            )}
-            {/* Date Filter Dropdown */}
-            <div className="w-full md:w-48">
-              <select
-                className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2.5 text-xs font-bold focus:outline-none focus:border-[#714B67] text-slate-800"
-                value={dateFilterType}
-                onChange={(e) => {
-                  setDateFilterType(e.target.value as any);
-                  if (e.target.value !== "custom") {
-                    setStartDateFilter("");
-                    setEndDateFilter("");
-                  }
-                }}
-              >
-                <option value="overall">Overall Date Filter</option>
-                <option value="current-month">Current Month</option>
-                <option value="custom">Custom Range</option>
-              </select>
-            </div>
-
-            {/* Custom Range Inputs */}
-            {dateFilterType === "custom" && (
-              <div className="flex items-center gap-2 w-full md:w-auto">
-                <input
-                  type="date"
-                  placeholder="Start Date"
-                  className="bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs font-bold focus:outline-none focus:border-[#714B67] text-slate-800"
-                  value={startDateFilter}
-                  onChange={(e) => setStartDateFilter(e.target.value)}
-                />
-                <span className="text-xs text-slate-450 font-bold">to</span>
-                <input
-                  type="date"
-                  placeholder="End Date"
-                  className="bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs font-bold focus:outline-none focus:border-[#714B67] text-slate-800"
-                  value={endDateFilter}
-                  onChange={(e) => setEndDateFilter(e.target.value)}
-                />
-              </div>
-            )}
-
-            {dateFilterType !== "overall" && (
+            <div className="relative">
               <button
-                onClick={() => {
-                  setDateFilterType("overall");
-                  setStartDateFilter("");
-                  setEndDateFilter("");
-                }}
-                className="text-xs text-rose-600 hover:underline font-bold whitespace-nowrap"
+                type="button"
+                onClick={() => setShowFilters(!showFilters)}
+                className={`flex items-center gap-2 border px-4 py-2 text-xs font-bold transition-all rounded-xl shadow-sm focus:outline-none ${
+                  showFilters
+                    ? "bg-[#C9A84C] border-[#C9A84C] text-[#FCFBF9]"
+                    : "bg-[#FCFBF9] hover:bg-[#F5F2EC] border-[#E8E4DF] text-[#1C1C1A]"
+                }`}
               >
-                Clear Date Filter
+                <Filter className="w-3.5 h-3.5" />
+                <span>Filter Reports</span>
+                {(searchTerm || selectedCompany || selectedDept || selectedUser || dateFilterType !== "overall") && (
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#C9A84C] animate-pulse" />
+                )}
               </button>
-            )}
+
+              {/* Floating Filter Popover */}
+              {showFilters && (
+                <div className="absolute right-0 mt-3 z-50 bg-[#FCFBF9] border border-[#E8E4DF] shadow-[0_25px_60px_-15px_rgba(0,0,0,0.15)] rounded-2xl p-5 w-[320px] space-y-4 text-left normal-case font-sans">
+                  <div className="flex justify-between items-center border-b border-[#E8E4DF] pb-2">
+                    <span className="text-xs font-bold text-[#1C1C1A] tracking-wider uppercase font-mono">Filter Reports</span>
+                    <button
+                      type="button"
+                      onClick={() => setShowFilters(false)}
+                      className="text-[#9C9890] hover:text-[#1C1C1A] transition-colors"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+
+                  <div className="space-y-4 text-xs">
+                    {/* Company Dropdown (Owner/Director/HR only) */}
+                    {isOwner && (
+                      <div>
+                        <label className="text-[9px] uppercase font-bold text-[#9C9890] font-mono tracking-widest block mb-1">Company</label>
+                        <select
+                          className="w-full bg-white border border-[#E8E4DF] rounded-xl p-2.5 text-xs font-bold text-[#1C1C1A] focus:outline-none focus:border-[#C9A84C] focus:ring-1 focus:ring-[#C9A84C]"
+                          value={selectedCompany}
+                          onChange={(e) => {
+                            setSelectedCompany(e.target.value);
+                            setSelectedUser("");
+                          }}
+                        >
+                          {sessionUser?.role === "Owner" && (
+                            <option value="">All Companies</option>
+                          )}
+                          {visibleCompanies.map((c: any) => (
+                            <option key={c.id} value={c.id}>{c.name}</option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
+
+                    {/* Department Dropdown (Owner/Director/HR only) */}
+                    {isOwner && (
+                      <div>
+                        <label className="text-[9px] uppercase font-bold text-[#9C9890] font-mono tracking-widest block mb-1">Department</label>
+                        <select
+                          className="w-full bg-white border border-[#E8E4DF] rounded-xl p-2.5 text-xs font-bold text-[#1C1C1A] focus:outline-none focus:border-[#C9A84C] focus:ring-1 focus:ring-[#C9A84C]"
+                          value={selectedDept}
+                          onChange={(e) => setSelectedDept(e.target.value)}
+                        >
+                          <option value="">All Departments</option>
+                          {departmentsList.map((dept) => (
+                            <option key={dept} value={dept}>{dept}</option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
+
+                    {/* Employee Dropdown (Visible to everyone) */}
+                    <div>
+                      <label className="text-[9px] uppercase font-bold text-[#9C9890] font-mono tracking-widest block mb-1">Select Employee</label>
+                      <select
+                        className="w-full bg-white border border-[#E8E4DF] rounded-xl p-2.5 text-xs font-bold text-[#1C1C1A] focus:outline-none focus:border-[#C9A84C] focus:ring-1 focus:ring-[#C9A84C]"
+                        value={selectedUser}
+                        onChange={(e) => setSelectedUser(e.target.value)}
+                      >
+                        {["Owner", "Director", "HR Head", "HR Executive", "Department Manager"].includes(sessionUser?.role) && (
+                          <option value="">All Employees</option>
+                        )}
+                        {uniqueUsersFromReports.map((u) => (
+                          <option key={u.id} value={u.id}>
+                            {u.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* Date Filter Type */}
+                    <div>
+                      <label className="text-[9px] uppercase font-bold text-[#9C9890] font-mono tracking-widest block mb-1">Date Filter</label>
+                      <select
+                        className="w-full bg-white border border-[#E8E4DF] rounded-xl p-2.5 text-xs font-bold text-[#1C1C1A] focus:outline-none focus:border-[#C9A84C] focus:ring-1 focus:ring-[#C9A84C]"
+                        value={dateFilterType}
+                        onChange={(e) => {
+                          setDateFilterType(e.target.value as any);
+                          if (e.target.value !== "custom") {
+                            setStartDateFilter("");
+                            setEndDateFilter("");
+                          }
+                        }}
+                      >
+                        <option value="overall">Overall Date Filter</option>
+                        <option value="current-month">Current Month</option>
+                        <option value="custom">Custom Range</option>
+                      </select>
+                    </div>
+
+                    {/* Custom Range Inputs */}
+                    {dateFilterType === "custom" && (
+                      <div className="space-y-2">
+                        <div>
+                          <label className="text-[8px] uppercase font-bold text-[#9C9890] font-mono tracking-widest block mb-1">Start Date</label>
+                          <input
+                            type="date"
+                            className="w-full bg-white border border-[#E8E4DF] rounded-xl p-2 text-xs font-bold text-[#1C1C1A] focus:outline-none focus:border-[#C9A84C] focus:ring-1 focus:ring-[#C9A84C]"
+                            value={startDateFilter}
+                            onChange={(e) => setStartDateFilter(e.target.value)}
+                          />
+                        </div>
+                        <div>
+                          <label className="text-[8px] uppercase font-bold text-[#9C9890] font-mono tracking-widest block mb-1">End Date</label>
+                          <input
+                            type="date"
+                            className="w-full bg-white border border-[#E8E4DF] rounded-xl p-2 text-xs font-bold text-[#1C1C1A] focus:outline-none focus:border-[#C9A84C] focus:ring-1 focus:ring-[#C9A84C]"
+                            value={endDateFilter}
+                            onChange={(e) => setEndDateFilter(e.target.value)}
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="pt-2 flex gap-3">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSearchTerm("");
+                        setSelectedCompany("");
+                        setSelectedDept("");
+                        setSelectedUser("");
+                        setDateFilterType("overall");
+                        setStartDateFilter("");
+                        setEndDateFilter("");
+                        setShowFilters(false);
+                      }}
+                      className="flex-1 bg-[#FCFBF9] hover:bg-[#F5F2EC] text-[#6B665E] py-2.5 rounded-xl text-[10px] font-bold transition-all border border-[#E8E4DF]"
+                    >
+                      Clear All
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setShowFilters(false)}
+                      className="flex-1 bg-[#C9A84C] hover:bg-[#B5963D] text-[#FCFBF9] py-2.5 rounded-xl text-[10px] font-bold transition-all shadow-md"
+                    >
+                      Apply Filters
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Data Table / List */}
@@ -2158,6 +2328,12 @@ export function LeaveRequestTab({ sessionUser }: { sessionUser?: any }) {
   const [leavesList, setLeavesList] = useState<any[]>([]);
   const [loadingList, setLoadingList] = useState(true);
 
+  // Filter states
+  const [filterUser, setFilterUser] = useState("");
+  const [filterDate, setFilterDate] = useState("");
+  const [filterStatus, setFilterStatus] = useState("All");
+  const [showFilters, setShowFilters] = useState(false);
+
   // Action state
   const [actionRemarks, setActionRemarks] = useState<{ [key: string]: string }>({});
 
@@ -2179,6 +2355,88 @@ export function LeaveRequestTab({ sessionUser }: { sessionUser?: any }) {
   useEffect(() => {
     fetchLeaves();
   }, []);
+
+  const uniqueUsers = React.useMemo(() => {
+    const role = sessionUser?.role || "Employee";
+    const userId = (sessionUser?.id || "").toString();
+
+    const userMap = new Map<string, { id: string; name: string; email: string }>();
+    if (sessionUser && sessionUser.id) {
+      userMap.set(userId, {
+        id: userId,
+        name: `${sessionUser.name || "Self"} (Self)`,
+        email: sessionUser.email || ""
+      });
+    }
+
+    leavesList.forEach((leave) => {
+      if (leave.employee && leave.employee.id) {
+        const empId = leave.employee.id.toString();
+
+        // 1. If not Manager/Owner, they only see themselves
+        if (!["Owner", "Director", "HR Head", "HR Executive", "Department Manager"].includes(role)) {
+          if (empId !== userId) return;
+        }
+
+        if (!userMap.has(empId)) {
+          userMap.set(empId, {
+            id: empId,
+            name: leave.employee.name,
+            email: leave.employee.email || ""
+          });
+        }
+      }
+    });
+
+    return Array.from(userMap.values());
+  }, [leavesList, sessionUser]);
+
+  // Synchronize selection
+  useEffect(() => {
+    if (filterUser) {
+      const userExists = uniqueUsers.some((u) => u.id === filterUser);
+      if (!userExists) {
+        setFilterUser("");
+      }
+    }
+  }, [uniqueUsers, filterUser]);
+
+  const filteredLeaves = leavesList.filter((leave: any) => {
+    // 1. User Filter (by ID)
+    if (filterUser !== "") {
+      if (!leave.employee || leave.employee.id !== filterUser) {
+        return false;
+      }
+    }
+
+    // 2. Date Filter (checks if target date overlaps with leave duration)
+    if (filterDate !== "") {
+      const targetDate = new Date(filterDate);
+      targetDate.setHours(0, 0, 0, 0);
+      const leaveStart = new Date(leave.startDate);
+      leaveStart.setHours(0, 0, 0, 0);
+      const leaveEnd = new Date(leave.endDate);
+      leaveEnd.setHours(0, 0, 0, 0);
+      if (targetDate < leaveStart || targetDate > leaveEnd) {
+        return false;
+      }
+    }
+
+    // 3. Status Filter
+    if (filterStatus !== "All") {
+      if (filterStatus === "Pending") {
+        if (!["Pending", "Pending Manager Approval", "Pending HR Approval"].includes(leave.status)) {
+          return false;
+        }
+      } else {
+        if (leave.status !== filterStatus) {
+          return false;
+        }
+      }
+    }
+
+    return true;
+  });
 
   const handleApplyLeave = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -2349,9 +2607,108 @@ export function LeaveRequestTab({ sessionUser }: { sessionUser?: any }) {
         )}
 
         {/* List of Leave Requests */}
-        <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
-          <h3 className="text-xs font-black tracking-widest text-[#714B67] uppercase font-mono pb-2 border-b border-slate-100 mb-4 flex items-center justify-between">
-            <span>📋 {canApprove ? "Leave Requests Registry" : "Your Leave Request History"}</span>
+        <div className="bg-white border border-[#E8E4DF] rounded-xl p-6 shadow-sm">
+          <h3 className="text-xs font-black tracking-widest text-[#1C1C1A] uppercase font-mono pb-2 border-b border-[#E8E4DF] mb-4 flex items-center justify-between relative">
+            <span style={{ fontFamily: "'Playfair Display', serif" }} className="font-serif text-sm font-bold lowercase first-letter:uppercase text-[#1C1C1A]">
+              📋 {canApprove ? "Leave requests registry" : "Your leave request history"}
+            </span>
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setShowFilters(!showFilters)}
+                className={`flex items-center gap-2 border px-4 py-2 text-xs font-bold transition-all rounded-xl shadow-sm focus:outline-none ${
+                  showFilters
+                    ? "bg-[#C9A84C] border-[#C9A84C] text-[#FCFBF9]"
+                    : "bg-[#FCFBF9] hover:bg-[#F5F2EC] border-[#E8E4DF] text-[#1C1C1A]"
+                }`}
+              >
+                <Filter className="w-3.5 h-3.5" />
+                <span>Filter Leaves</span>
+                {(filterUser || filterDate || filterStatus !== "All") && (
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#C9A84C] animate-pulse" />
+                )}
+              </button>
+
+              {/* Floating Filter Popover */}
+              {showFilters && (
+                <div className="absolute right-0 mt-3 z-50 bg-[#FCFBF9] border border-[#E8E4DF] shadow-[0_25px_60px_-15px_rgba(0,0,0,0.15)] rounded-2xl p-5 w-[300px] space-y-4 text-left normal-case font-sans">
+                  <div className="flex justify-between items-center border-b border-[#E8E4DF] pb-2">
+                    <span className="text-xs font-bold text-[#1C1C1A] tracking-wider uppercase font-mono">Filter Registry</span>
+                    <button
+                      type="button"
+                      onClick={() => setShowFilters(false)}
+                      className="text-[#9C9890] hover:text-[#1C1C1A] transition-colors"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+
+                  <div className="space-y-4 text-xs">
+                    <div>
+                      <label className="text-[9px] uppercase font-bold text-[#9C9890] font-mono tracking-widest block mb-1">Select Employee</label>
+                      <select
+                        className="w-full bg-white border border-[#E8E4DF] rounded-xl p-2.5 text-xs font-bold text-[#1C1C1A] focus:outline-none focus:border-[#C9A84C] focus:ring-1 focus:ring-[#C9A84C]"
+                        value={filterUser}
+                        onChange={(e) => setFilterUser(e.target.value)}
+                      >
+                        <option value="">All Employees</option>
+                        {uniqueUsers.map((u) => (
+                          <option key={u.id} value={u.id}>
+                            {u.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="text-[9px] uppercase font-bold text-[#9C9890] font-mono tracking-widest block mb-1">Filter by Date</label>
+                      <input
+                        type="date"
+                        className="w-full bg-white border border-[#E8E4DF] rounded-xl p-2.5 text-xs font-bold text-[#1C1C1A] focus:outline-none focus:border-[#C9A84C] focus:ring-1 focus:ring-[#C9A84C]"
+                        value={filterDate}
+                        onChange={(e) => setFilterDate(e.target.value)}
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-[9px] uppercase font-bold text-[#9C9890] font-mono tracking-widest block mb-1">Status</label>
+                      <select
+                        className="w-full bg-white border border-[#E8E4DF] rounded-xl p-2.5 text-xs font-bold text-[#1C1C1A] focus:outline-none focus:border-[#C9A84C] focus:ring-1 focus:ring-[#C9A84C]"
+                        value={filterStatus}
+                        onChange={(e) => setFilterStatus(e.target.value)}
+                      >
+                        <option value="All">All Statuses</option>
+                        <option value="Pending">Pending</option>
+                        <option value="Approved">Approved</option>
+                        <option value="Rejected">Rejected</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="pt-2 flex gap-3">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setFilterUser("");
+                        setFilterDate("");
+                        setFilterStatus("All");
+                        setShowFilters(false);
+                      }}
+                      className="flex-1 bg-[#FCFBF9] hover:bg-[#F5F2EC] text-[#6B665E] py-2.5 rounded-xl text-[10px] font-bold transition-all border border-[#E8E4DF]"
+                    >
+                      Clear All
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setShowFilters(false)}
+                      className="flex-1 bg-[#C9A84C] hover:bg-[#B5963D] text-[#FCFBF9] py-2.5 rounded-xl text-[10px] font-bold transition-all shadow-md"
+                    >
+                      Apply Filters
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
           </h3>
 
           {loadingList ? (
@@ -2359,28 +2716,31 @@ export function LeaveRequestTab({ sessionUser }: { sessionUser?: any }) {
               <Loader2 className="w-8 h-8 text-[#714B67] animate-spin mb-2" />
               <span className="text-xs font-semibold text-slate-500">Loading leave requests...</span>
             </div>
-          ) : leavesList.length === 0 ? (
-            <div className="h-48 flex flex-col items-center justify-center text-slate-400">
-              <Calendar className="w-8 h-8 mb-2" />
-              <span className="text-xs font-semibold">No leave requests found.</span>
-            </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs border-collapse">
-                <thead>
-                  <tr className="border-b border-slate-200 bg-slate-50 text-slate-450 font-black uppercase font-mono tracking-wider">
-                    {canApprove && <th className="py-3.5 px-4 text-left">Employee</th>}
-                    <th className="py-3.5 px-4 text-left">Type</th>
-                    <th className="py-3.5 px-4 text-left">Duration</th>
-                    <th className="py-3.5 px-4 text-center">Days</th>
-                    <th className="py-3.5 px-4 text-left">Reason</th>
-                    <th className="py-3.5 px-4 text-center">Status</th>
-                    {canApprove && <th className="py-3.5 px-4 text-left">Remarks & Actions</th>}
-                    {!canApprove && <th className="py-3.5 px-4 text-left">Processed By & Remarks</th>}
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 font-semibold text-slate-650">
-                  {leavesList.map((leave: any) => {
+            <>
+
+              {filteredLeaves.length === 0 ? (
+                <div className="h-48 flex flex-col items-center justify-center text-slate-400">
+                  <Calendar className="w-8 h-8 mb-2" />
+                  <span className="text-xs font-semibold">No matching leave requests found.</span>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs border-collapse">
+                    <thead>
+                      <tr className="border-b border-slate-200 bg-slate-50 text-slate-450 font-black uppercase font-mono tracking-wider">
+                        {canApprove && <th className="py-3.5 px-4 text-left">Employee</th>}
+                        <th className="py-3.5 px-4 text-left">Type</th>
+                        <th className="py-3.5 px-4 text-left">Duration</th>
+                        <th className="py-3.5 px-4 text-center">Days</th>
+                        <th className="py-3.5 px-4 text-left">Reason</th>
+                        <th className="py-3.5 px-4 text-center">Status</th>
+                        {canApprove && <th className="py-3.5 px-4 text-left">Remarks & Actions</th>}
+                        {!canApprove && <th className="py-3.5 px-4 text-left">Processed By & Remarks</th>}
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 font-semibold text-slate-650">
+                      {filteredLeaves.map((leave: any) => {
                     const start = new Date(leave.startDate);
                     const end = new Date(leave.endDate);
 
@@ -2482,7 +2842,9 @@ export function LeaveRequestTab({ sessionUser }: { sessionUser?: any }) {
               </table>
             </div>
           )}
-        </div>
+        </>
+      )}
+    </div>
 
       </div>
     </div>

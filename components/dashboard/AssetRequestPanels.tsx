@@ -214,7 +214,8 @@ export function AssetRequestLogs({ sessionUser, triggerToast, setActiveTab }: As
         localStorage.setItem("open_assign_asset_form", "true");
         localStorage.setItem("assign_asset_user_id", String(req.employee_id));
         localStorage.setItem("assign_asset_type", selectedAsset.assetType || "Laptop");
-        localStorage.setItem("assign_asset_value", `Serial: ${selectedAsset.serialNumber || 'N/A'}, Detail: ${selectedAsset.assetDetail || 'N/A'}`);
+        localStorage.setItem("assign_asset_value", `[S/N: ${selectedAsset.serialNumber || 'N/A'}] ${selectedAsset.assetDetail || 'N/A'}`);
+        localStorage.setItem("assign_asset_inventory_id", String(selectedAsset.id));
 
         triggerToast("Asset granted successfully! Redirecting to Assign Asset...");
         setShowInventoryModal(false);

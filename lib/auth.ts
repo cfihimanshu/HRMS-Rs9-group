@@ -7,6 +7,9 @@ import Department from "@/models/sequelize/Department";
 import Company from "@/models/sequelize/Company";
 import bcrypt from "bcryptjs";
 import { logAudit } from "./audit";
+import TaskLog from "@/models/sequelize/TaskLog";
+import Notification from "@/models/sequelize/Notification";
+import { Op } from "sequelize";
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -88,6 +91,40 @@ export const authOptions: NextAuthOptions = {
           details: `User logged in successfully via ${loginType === "otp" ? "OTP" : "Password"}.`,
           ipAddress: (req.headers as any)?.["x-forwarded-for"] || "127.0.0.1",
         });
+
+        // Clear previous Pending Tasks notifications and add a fresh one with current count
+        try {
+          const userIdStr = user.id?.toString() || user.id.toString();
+          await Notification.sync({ alter: true });
+          await Notification.destroy({
+            where: {
+              recipient: userIdStr,
+              title: "Pending Tasks"
+            }
+          });
+
+          const pendingTasksCount = await TaskLog.count({
+            where: {
+              [Op.or]: [
+                { employee: userIdStr },
+                { forwardedTo: userIdStr }
+              ],
+              status: {
+                [Op.ne]: "Completed"
+              }
+            }
+          });
+
+          await Notification.create({
+            id: Date.now().toString() + Math.random().toString(36).substring(2, 8),
+            recipient: userIdStr,
+            title: "Pending Tasks",
+            message: `Welcome back! You have ${pendingTasksCount} pending task(s) to address.`,
+            read: false
+          });
+        } catch (err) {
+          console.error("Error creating login task notification:", err);
+        }
 
         // Fetch department and company
         let departmentName = "General";

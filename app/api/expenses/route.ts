@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth";
 import sequelize from "@/lib/sequelize";
 import User from "@/models/sequelize/User";
 import Expense from "@/models/sequelize/Expense";
+import { sendRequestNotification } from "@/lib/notificationHelper";
 
 // GET: Fetch Expenses
 export async function GET(req: Request) {
@@ -75,6 +76,19 @@ export async function POST(req: Request) {
       receiptUrl,
       status: "Pending"
     });
+
+    const applicantId = (session.user as any).id;
+    try {
+      const applicantName = session.user.name || "An employee";
+      await sendRequestNotification({
+        applicantId,
+        requestType: "Expense Claim",
+        action: "created",
+        details: `${applicantName} has submitted a new expense claim of ₹${amount} for ${category}.`
+      });
+    } catch (notifErr) {
+      console.error("Error creating expense notification:", notifErr);
+    }
 
     return NextResponse.json({ success: true, data: expense });
   } catch (error: any) {

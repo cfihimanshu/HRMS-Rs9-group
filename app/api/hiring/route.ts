@@ -7,6 +7,8 @@ import HiringRequisition from "@/models/sequelize/HiringRequisition";
 import Job from "@/models/sequelize/Job";
 import Company from "@/models/sequelize/Company";
 import Department from "@/models/sequelize/Department";
+import User from "@/models/sequelize/User";
+import { sendRequestNotification } from "@/lib/notificationHelper";
 
 // GET: List all requisitions
 export async function GET() {
@@ -81,6 +83,19 @@ export async function POST(req: Request) {
       status: "Pending HR Sourcing Review",   // Step 1 → goes to HR Sourcing first
       createdBy: creatorName,
     });
+
+    const applicantId = (session?.user as any)?.id || "";
+    try {
+      await sendRequestNotification({
+        applicantId,
+        requestType: "Hiring Requisition",
+        action: "created",
+        details: `${creatorName} has created a new hiring requisition for ${qty} x ${role} in ${department} department (Status: Pending HR Sourcing Review).`,
+        fallbackDepartment: department,
+      });
+    } catch (notifErr) {
+      console.error("Error creating hiring notification:", notifErr);
+    }
 
     return NextResponse.json({ success: true, data: requisition });
   } catch (error: any) {
@@ -212,6 +227,43 @@ export async function PUT(req: Request) {
     }
 
     await requisition.save();
+
+    // Trigger notification
+    try {
+      let applicantId = "";
+      if (requisition.createdBy) {
+        const creatorUser = await User.findOne({ where: { name: requisition.createdBy } });
+        if (creatorUser) {
+          applicantId = creatorUser.id;
+        }
+      }
+
+      let actionVal: "approved" | "rejected" | "dispatched" | "hold" | "sourcing_reviewed" | "accounts_reviewed" = "approved";
+      if (status === "Pending Accounts Review") {
+        actionVal = "sourcing_reviewed";
+      } else if (status === "Pending Owner Approval") {
+        actionVal = "accounts_reviewed";
+      } else if (status === "Approved — Pending HR Post") {
+        actionVal = "approved";
+      } else if (status === "Job Posted") {
+        actionVal = "dispatched";
+      } else if (status === "Rejected") {
+        actionVal = "rejected";
+      } else if (status === "Hold") {
+        actionVal = "hold";
+      }
+
+      await sendRequestNotification({
+        applicantId,
+        requestType: "Hiring Requisition",
+        action: actionVal,
+        details: `Hiring requisition for ${requisition.role} status is now: ${requisition.status}. Remarks: ${remarks || "None"}.`,
+        fallbackDepartment: requisition.department,
+      });
+    } catch (notifErr) {
+      console.error("Error creating hiring status update notification:", notifErr);
+    }
+
     return NextResponse.json({ success: true, data: requisition });
   } catch (error: any) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });

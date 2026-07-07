@@ -51,6 +51,8 @@ import EmployeeDirectory from "@/components/dashboard/EmployeePanels";
 import BDADirectory from "@/components/dashboard/BDAPanels";
 import AssetsRegistry from "@/components/dashboard/AssetsRegistry";
 import InventoryManagement from "@/components/dashboard/InventoryManagement";
+import AdministratorAccess from "@/components/dashboard/AdministratorAccess";
+import LegalRecovery from "@/components/dashboard/LegalRecovery";
 import KanbanBoard from "@/components/dashboard/KanbanBoard";
 import { AssetRequestLogs } from "@/components/dashboard/AssetRequestPanels";
 
@@ -116,6 +118,7 @@ export default function UnifiedEnterpriseDashboard() {
   const [exitRecordList, setExitRecordList] = useState<any[]>([]);
   const [requisitions, setRequisitions] = useState<any[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
+  const [liveMenuAccess, setLiveMenuAccess] = useState<any>(null);
 
   // Selected Candidate for detailed view
   const [selectedCandidate, setSelectedCandidate] = useState<any>(null);
@@ -319,10 +322,17 @@ export default function UnifiedEnterpriseDashboard() {
 
   const loadStats = async (companyId?: string) => {
     try {
-      const url = companyId ? `/api/dashboard/stats?companyId=${companyId}` : "/api/dashboard/stats";
-      const res = await fetch(url);
+      const url = companyId 
+        ? `/api/dashboard/stats?companyId=${companyId}&_=${Date.now()}` 
+        : `/api/dashboard/stats?_=${Date.now()}`;
+      const res = await fetch(url, { cache: "no-store" });
       const data = await res.json();
-      if (data.success) setStats(data.stats);
+      if (data.success) {
+        setStats(data.stats);
+        if (data.userMenuAccess !== undefined) {
+          setLiveMenuAccess(data.userMenuAccess);
+        }
+      }
     } catch (err) {
       console.error("Failed to load statistics", err);
     }
@@ -956,7 +966,7 @@ export default function UnifiedEnterpriseDashboard() {
         activeTab={activeTab}
         setActiveTab={setActiveTab}
         stats={stats}
-        user={{ ...session?.user, role: userRole }}
+        user={{ ...session?.user, role: userRole, menuAccess: liveMenuAccess }}
         triggerToast={triggerToast}
         toggleModal={toggleModal}
         mobileMenuOpen={mobileMenuOpen}
@@ -1087,6 +1097,22 @@ export default function UnifiedEnterpriseDashboard() {
 
           {activeTab === "inventory-management" && (
             <InventoryManagement
+              userRole={userRole}
+              triggerToast={triggerToast}
+              sessionUser={session?.user}
+            />
+          )}
+
+          {activeTab === "admin-access" && (
+            <AdministratorAccess
+              userRole={userRole}
+              triggerToast={triggerToast}
+              sessionUser={session?.user}
+            />
+          )}
+
+          {activeTab === "legal-recovery" && (
+            <LegalRecovery
               userRole={userRole}
               triggerToast={triggerToast}
               sessionUser={session?.user}

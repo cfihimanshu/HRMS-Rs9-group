@@ -7,8 +7,12 @@ import {
 } from "lucide-react";
 
 // Helper for "time ago"
-function timeAgo(dateString: string) {
+function timeAgo(dateString: string | Date) {
+  if (!dateString) return "just now";
   const date = new Date(dateString);
+  if (isNaN(date.getTime()) || date.getFullYear() <= 1970) {
+    return "just now";
+  }
   const now = new Date();
   const seconds = Math.floor((now.getTime() - date.getTime()) / 1000);
   
