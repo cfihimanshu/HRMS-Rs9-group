@@ -51,6 +51,7 @@ import EmployeeDirectory from "@/components/dashboard/EmployeePanels";
 import BDADirectory from "@/components/dashboard/BDAPanels";
 import AssetsRegistry from "@/components/dashboard/AssetsRegistry";
 import InventoryManagement from "@/components/dashboard/InventoryManagement";
+import LegalRecoveryModule from "@/components/dashboard/LegalRecoveryModule";
 import KanbanBoard from "@/components/dashboard/KanbanBoard";
 import { AssetRequestLogs } from "@/components/dashboard/AssetRequestPanels";
 
@@ -1087,6 +1088,14 @@ export default function UnifiedEnterpriseDashboard() {
 
           {activeTab === "inventory-management" && (
             <InventoryManagement
+              userRole={userRole}
+              triggerToast={triggerToast}
+              sessionUser={session?.user}
+            />
+          )}
+
+          {activeTab === "legal-recovery" && (
+            <LegalRecoveryModule
               userRole={userRole}
               triggerToast={triggerToast}
               sessionUser={session?.user}

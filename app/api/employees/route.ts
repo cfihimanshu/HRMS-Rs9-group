@@ -45,12 +45,15 @@ export async function GET(req: Request) {
 
     let adminCompanies: string[] = [];
     if (dbUser && dbUser.companies) {
-      if (Array.isArray(dbUser.companies)) adminCompanies = dbUser.companies;
-      else if (typeof dbUser.companies === 'string') {
-        try { adminCompanies = JSON.parse(dbUser.companies); } catch(e) {}
+      let parsed = dbUser.companies;
+      if (typeof parsed === 'string') {
+        try { parsed = JSON.parse(parsed); } catch(e) {}
+      }
+      if (Array.isArray(parsed)) {
+        adminCompanies = parsed;
       }
     }
-    const adminCompaniesNormalized = adminCompanies.map(String);
+    const adminCompaniesNormalized = Array.isArray(adminCompanies) ? adminCompanies.map(String) : [];
 
     // Fetch employees
     const employees = await User.findAll({ where: {}, raw: true });
@@ -116,6 +119,7 @@ export async function GET(req: Request) {
 
     return NextResponse.json({ success: true, data: filteredMergedData });
   } catch (err: any) {
+    require('fs').writeFileSync('/tmp/hrms_employee_api_error.log', err.stack || err.message);
     return NextResponse.json({ success: false, error: err.message }, { status: 500 });
   }
 }
@@ -564,12 +568,15 @@ export async function PUT(req: Request) {
 
       let adminCompanies: string[] = [];
       if (dbUser && dbUser.companies) {
-        if (Array.isArray(dbUser.companies)) adminCompanies = dbUser.companies;
-        else if (typeof dbUser.companies === 'string') {
-          try { adminCompanies = JSON.parse(dbUser.companies); } catch(e) {}
+        let parsed = dbUser.companies;
+        if (typeof parsed === 'string') {
+          try { parsed = JSON.parse(parsed); } catch(e) {}
+        }
+        if (Array.isArray(parsed)) {
+          adminCompanies = parsed;
         }
       }
-      const adminCompaniesNormalized = adminCompanies.map(String);
+      const adminCompaniesNormalized = Array.isArray(adminCompanies) ? adminCompanies.map(String) : [];
 
       let targetComps: any[] = [];
       if (Array.isArray(targetUser.companies)) targetComps = targetUser.companies;

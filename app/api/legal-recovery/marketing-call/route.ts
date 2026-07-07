@@ -1,0 +1,49 @@
+import { NextResponse } from "next/server";
+import LegalMarketingCall from "@/models/sequelize/LegalMarketingCall";
+import sequelize from "@/lib/sequelize";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+
+export async function GET(request: Request) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const branchCode = searchParams.get("branchCode");
+    
+    await sequelize.authenticate();
+    await LegalMarketingCall.sync({ alter: true });
+
+    let whereClause = {};
+    if (branchCode) {
+      whereClause = { branchCode };
+    }
+
+    const logs = await LegalMarketingCall.findAll({
+      where: whereClause,
+      order: [["createdAt", "DESC"]],
+    });
+    
+    return NextResponse.json({ success: true, data: logs });
+  } catch (error: any) {
+    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+  }
+}
+
+export async function POST(request: Request) {
+  try {
+    const data = await request.json();
+    await sequelize.authenticate();
+    await LegalMarketingCall.sync({ alter: true });
+    
+    const session = await getServerSession(authOptions);
+    if (session?.user) {
+      data.callerId = (session.user as any).id;
+      data.callerName = (session.user as any).name;
+    }
+    
+    const newCall = await LegalMarketingCall.create(data);
+    return NextResponse.json({ success: true, data: newCall });
+  } catch (error: any) {
+    console.error("Marketing Call POST Error:", error);
+    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+  }
+}

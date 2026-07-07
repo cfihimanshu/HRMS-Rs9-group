@@ -81,6 +81,7 @@ export default function DashboardSidebar({
     { id: "bda-directory", label: "BDA Network (Sales)", icon: Users2, category: "Core Workspace", roles: ["Owner", "Director", "HR Head", "HR Executive", "Department Manager"] },
     { id: "assets-registry", label: "Assets Registry", icon: Cpu, category: "Core Workspace", roles: ["Owner", "Director", "HR Head", "HR Executive"] },
     { id: "inventory-management", label: "Inventory Management", icon: Package, category: "Core Workspace", roles: ["Owner"] },
+    { id: "legal-recovery", label: "Legal Recovery", icon: Building2, category: "Core Workspace", roles: ["Owner", "Director", "Department Manager", "HR Head", "HR Executive"] },
 
     { id: "screening", label: "AI Screening Module", icon: ScanLine, category: "AI & Vetting Hub", roles: ["Owner", "Director", "HR Head", "HR Executive"] },
     { id: "interviews", label: "Interviews Queue", icon: Video, category: "AI & Vetting Hub", badge: stats?.interviews?.pending, roles: ["Owner", "Director", "HR Head", "HR Executive", "Trainer"] },
@@ -109,6 +110,9 @@ export default function DashboardSidebar({
   const isAdministration = userDept.toLowerCase().includes("administration");
 
   const menuItems = allMenuItems.filter(item => {
+    if (item.id === "legal-recovery") {
+      return true; // Visible to everyone for now
+    }
     if (item.id === "inventory-management") {
       return item.roles.includes(userRole) || isAdministration;
     }
