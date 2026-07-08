@@ -25,7 +25,8 @@ import {
   PlusCircle,
   ArrowUpRight,
   ArrowDownRight,
-  Plus
+  Plus,
+  Download
 } from "lucide-react";
 import StatCard from "./StatCard";
 import AttendanceChart from "./AttendanceChart";
@@ -34,6 +35,7 @@ import ActivityFeed from "./ActivityFeed";
 import HiringRequisitionModal from "./HiringRequisitionModal";
 
 interface OverviewProps {
+  sessionUser?: any;
   stats: any;
   riskAlertList: any[];
   onResolveAlert: (id: string) => void;
@@ -45,6 +47,7 @@ interface OverviewProps {
 }
 
 export function OwnerDashboard({ 
+  sessionUser,
   stats, 
   riskAlertList, 
   onResolveAlert, 
@@ -54,6 +57,55 @@ export function OwnerDashboard({
   selectedCompanyId,
   onCompanyChange
 }: OverviewProps) {
+  const firstName = sessionUser?.name ? sessionUser.name.split(' ')[0] : 'Admin';
+  const [showStaffModal, setShowStaffModal] = React.useState(false);
+  const [staffModalFilter, setStaffModalFilter] = React.useState<"all"|"present"|"absent">("all");
+  const exportAttendanceReport = () => {
+    if (!stats?.staffList) return;
+    
+    const headers = ["Employee Name", "Email", "Role", "Department", "Company", "Status", "Attendance Today"];
+    
+    const rows = stats.staffList.map((staff: any) => [
+      staff.name || "Unknown",
+      staff.email || "N/A",
+      staff.role || "N/A",
+      staff.department || "N/A",
+      staff.companies || "N/A",
+      staff.status || "N/A",
+      staff.isPresent ? "Present" : "Absent"
+    ]);
+
+    let excelTemplate = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">`;
+    excelTemplate += `<head><meta charset="utf-8"><!--[if gte mso 9]><xml><x:ExcelWorkbook><x:ExcelWorksheets><x:ExcelWorksheet><x:Name>Attendance Report</x:Name><x:WorksheetOptions><x:DisplayGridlines/></x:WorksheetOptions></x:ExcelWorksheet></x:ExcelWorksheets></x:ExcelWorkbook></xml><![endif]--></head><body>`;
+    excelTemplate += `<table border="1" style="border-collapse:collapse; font-family: 'Segoe UI', Arial, sans-serif; font-size: 11px;">`;
+
+    excelTemplate += `<tr style="height: 30px;">`;
+    headers.forEach(h => {
+      excelTemplate += `<th style="background-color: #C9A84C; color: #ffffff; font-weight: bold; border: 1px solid #cbd5e1; padding: 6px; text-align: left; vertical-align: middle;">${h}</th>`;
+    });
+    excelTemplate += `</tr>`;
+
+    rows.forEach((row: any[]) => {
+      excelTemplate += `<tr>`;
+      row.forEach((cell: any) => {
+        excelTemplate += `<td style="border: 1px solid #cbd5e1; padding: 6px; text-align: left; vertical-align: middle; white-space: nowrap;">${cell}</td>`;
+      });
+      excelTemplate += `</tr>`;
+    });
+    excelTemplate += `</table></body></html>`;
+
+    const blob = new Blob([excelTemplate], { type: "application/vnd.ms-excel" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `Attendance_Report_${new Date().toISOString().split("T")[0]}.xls`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    triggerToast?.("Attendance report exported successfully");
+  };
+
   return (
     <div className="space-y-8 animate-fade-in text-[#1C1C1A]">
       
@@ -79,10 +131,10 @@ export function OwnerDashboard({
             </select>
           )}
           <button 
-            className="px-4 py-2 border border-[#E8E4DF] rounded-lg text-xs font-semibold tracking-wider uppercase bg-[#FCFBF9] hover:bg-[#F5F0EA] text-[#5D5B57] transition-all"
-            onClick={() => triggerToast("Exporting comprehensive report...")}
+            className="px-4 py-2 border border-[#E8E4DF] rounded-lg text-xs font-semibold tracking-wider uppercase bg-[#FCFBF9] hover:bg-[#F5F0EA] text-[#5D5B57] transition-all flex items-center gap-2"
+            onClick={exportAttendanceReport}
           >
-            Export
+            <Download className="w-3.5 h-3.5" /> Export
           </button>
           <button 
             className="px-4 py-2 bg-[#C9A84C] hover:bg-[#B3923E] text-white rounded-lg text-xs font-semibold tracking-wider uppercase transition-all shadow-[0_2px_15px_rgba(201,168,76,0.15)] flex items-center gap-2"
@@ -94,8 +146,7 @@ export function OwnerDashboard({
       </div>
 
       {/* Hero Greeting Card */}
-      <div className="bg-[#FCFBF9] border border-[#E8E4DF] rounded-xl p-8 shadow-[0_2px_20px_rgba(0,0,0,0.04)] relative overflow-hidden">
-        {/* Subtle decorative background graphic */}
+      <div className="bg-[#FCFBF9] border border-[#E8E4DF] rounded-xl p-8 shadow-[0_2px_20px_rgba(0,0,0,0.04)] relative overflow-hidden flex flex-col md:flex-row md:items-center justify-between gap-8">
         <div className="absolute right-0 bottom-0 pointer-events-none opacity-[0.03] text-[#1C1C1A]">
           <svg className="w-64 h-64" viewBox="0 0 100 100" fill="none" stroke="currentColor" strokeWidth="0.5">
             <circle cx="90" cy="90" r="80" />
@@ -104,76 +155,122 @@ export function OwnerDashboard({
           </svg>
         </div>
 
-        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
-          <div>
-            <h1 className="text-3xl font-light tracking-wide text-[#1C1C1A] font-serif" style={{ fontFamily: "'Playfair Display', serif" }}>
-              Good morning, Himanshu.
-            </h1>
-            <div className="h-0.5 w-16 bg-[#C9A84C] mt-2.5" />
-            <p className="text-[9px] text-[#9C9890] uppercase tracking-widest mt-3.5 font-bold">
-              {new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
-            </p>
-          </div>
+        <div className="relative z-10 w-full md:w-1/3">
+          <h1 className="text-3xl font-light tracking-wide text-[#1C1C1A] font-serif" style={{ fontFamily: "'Playfair Display', serif" }}>
+            Good morning, {firstName}.
+          </h1>
+          <div className="h-0.5 w-16 bg-[#C9A84C] mt-2.5" />
+          <p className="text-[9px] text-[#9C9890] uppercase tracking-widest mt-3.5 font-bold">
+            {new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+          </p>
+        </div>
 
-          {/* 3 KPI Tiles inline */}
-          <div className="grid grid-cols-3 gap-6 md:gap-12 divide-x divide-[#E8E4DF] md:mr-4">
-            <div className="pl-4 first:pl-0">
-              <div className="text-2xl font-light text-[#1C1C1A] font-serif" style={{ fontFamily: "'Playfair Display', serif" }}>
-                {stats?.roles?.employees || 0}
-              </div>
-              <div className="text-[9px] uppercase tracking-wider text-[#9C9890] mt-1 font-semibold">Total Staff</div>
+        <div className="relative z-10 w-full md:w-2/3 grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-8 divide-x divide-[#E8E4DF]">
+          <div className="pl-4 md:pl-6 first:pl-0 cursor-pointer hover:bg-slate-50 transition-colors p-2 rounded-lg -ml-2" onClick={() => { setStaffModalFilter("all"); setShowStaffModal(true); }}>
+            <div className="text-2xl font-light text-[#1C1C1A] font-serif" style={{ fontFamily: "'Playfair Display', serif" }}>
+              {stats?.roles?.employees || 0}
             </div>
-            <div className="pl-6">
-              <div className="text-2xl font-light text-[#6B8F71] font-serif" style={{ fontFamily: "'Playfair Display', serif" }}>
-                {stats?.roles?.employees ? Math.max(0, stats.roles.employees - 3) : 0}
-              </div>
-              <div className="text-[9px] uppercase tracking-wider text-[#9C9890] mt-1 font-semibold">Present Today</div>
+            <div className="text-[9px] uppercase tracking-wider text-[#9C9890] mt-1 font-semibold flex items-center gap-1 hover:text-[#C9A84C]">
+              <Users className="w-3 h-3" /> Total Staff <ArrowUpRight className="w-3 h-3" />
             </div>
-            <div className="pl-6">
-              <div className="text-2xl font-light text-[#C9A84C] font-serif" style={{ fontFamily: "'Playfair Display', serif" }}>
-                {stats?.interviews?.pending || 0}
-              </div>
-              <div className="text-[9px] uppercase tracking-wider text-[#9C9890] mt-1 font-semibold">Pending Leaves</div>
+          </div>
+          <div className="pl-4 md:pl-6 cursor-pointer hover:bg-slate-50 transition-colors p-2 rounded-lg" onClick={() => { setStaffModalFilter("present"); setShowStaffModal(true); }}>
+            <div className="text-2xl font-light text-[#6B8F71] font-serif" style={{ fontFamily: "'Playfair Display', serif" }}>
+              {stats?.todayCompliance?.attendance || 0}
+            </div>
+            <div className="text-[9px] uppercase tracking-wider text-[#9C9890] mt-1 font-semibold flex items-center gap-1 hover:text-[#C9A84C]">
+              <UserCheck className="w-3 h-3" /> Present Today <ArrowUpRight className="w-3 h-3" />
+            </div>
+          </div>
+          <div className="pl-4 md:pl-6 cursor-pointer hover:bg-slate-50 transition-colors p-2 rounded-lg" onClick={() => { setStaffModalFilter("absent"); setShowStaffModal(true); }}>
+            <div className="text-2xl font-light text-rose-500 font-serif" style={{ fontFamily: "'Playfair Display', serif" }}>
+              {stats?.todayCompliance?.absent || 0}
+            </div>
+            <div className="text-[9px] uppercase tracking-wider text-[#9C9890] mt-1 font-semibold flex items-center gap-1 hover:text-[#C9A84C]">
+              <UserMinus className="w-3 h-3" /> Absent Today <ArrowUpRight className="w-3 h-3" />
+            </div>
+          </div>
+          <div className="pl-4 md:pl-6">
+            <div className="text-2xl font-light text-[#C9A84C] font-serif" style={{ fontFamily: "'Playfair Display', serif" }}>
+              {stats?.todayCompliance?.leaves || 0}
+            </div>
+            <div className="text-[9px] uppercase tracking-wider text-[#9C9890] mt-1 font-semibold flex items-center gap-1">
+              <AlertTriangle className="w-3 h-3" /> On Leave
             </div>
           </div>
         </div>
       </div>
 
-      {/* Main Grid: 2 columns */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      {/* Main Grid: Simplified & Minimal */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         
-        {/* Left Column: Attendance & Performance (span 2) */}
-        <div className="lg:col-span-2 space-y-8">
-          {/* Attendance Overview Card */}
+        {/* Left Column: Operations Overview */}
+        <div className="space-y-8">
           <div className="bg-[#FCFBF9] border border-[#E8E4DF] rounded-xl p-6 shadow-[0_2px_20px_rgba(0,0,0,0.04)]">
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-sm font-medium tracking-wider text-[#1C1C1A] uppercase">Attendance Overview</h2>
-              <select className="text-[10px] uppercase tracking-wider font-semibold border border-[#E8E4DF] bg-[#FCFBF9] rounded px-2.5 py-1 text-[#5D5B57] focus:outline-none focus:border-[#C9A84C]">
-                <option>This Week</option>
-                <option>Last Week</option>
-                <option>This Month</option>
-              </select>
+              <h2 className="text-sm font-medium tracking-wider text-[#1C1C1A] uppercase">Today's Operations</h2>
             </div>
-            <AttendanceChart dark={false} />
+            
+            <div className="space-y-6">
+              <div>
+                <div className="flex justify-between text-[11px] uppercase tracking-widest font-bold mb-2">
+                  <span className="text-[#5D5B57]">SOD Declared</span>
+                  <span className="text-[#1C1C1A]">{stats?.todayCompliance?.sod || 0} / {stats?.roles?.employees || 0}</span>
+                </div>
+                <div className="w-full bg-[#E8E4DF] rounded-full h-1.5 overflow-hidden">
+                  <div className="bg-[#6B8F71] h-1.5 rounded-full" style={{ width: `${stats?.roles?.employees ? Math.min(100, Math.round(((stats.todayCompliance?.sod || 0) / stats.roles.employees) * 100)) : 0}%` }}></div>
+                </div>
+              </div>
+
+              <div>
+                <div className="flex justify-between text-[11px] uppercase tracking-widest font-bold mb-2">
+                  <span className="text-[#5D5B57]">EOD Logs Submitted</span>
+                  <span className="text-[#1C1C1A]">{stats?.todayCompliance?.eod || 0} / {stats?.roles?.employees || 0}</span>
+                </div>
+                <div className="w-full bg-[#E8E4DF] rounded-full h-1.5 overflow-hidden">
+                  <div className="bg-[#C9A84C] h-1.5 rounded-full" style={{ width: `${stats?.roles?.employees ? Math.min(100, Math.round(((stats.todayCompliance?.eod || 0) / stats.roles.employees) * 100)) : 0}%` }}></div>
+                </div>
+              </div>
+
+              <div>
+                <div className="flex justify-between text-[11px] uppercase tracking-widest font-bold mb-2">
+                  <span className="text-[#5D5B57]">Late Check-ins</span>
+                  <span className="text-rose-500">{stats?.todayCompliance?.lateCheckins || 0}</span>
+                </div>
+              </div>
+            </div>
           </div>
 
-          {/* Performance Trend Card */}
           <div className="bg-[#FCFBF9] border border-[#E8E4DF] rounded-xl p-6 shadow-[0_2px_20px_rgba(0,0,0,0.04)]">
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-sm font-medium tracking-wider text-[#1C1C1A] uppercase">Performance Trends</h2>
-              <select className="text-[10px] uppercase tracking-wider font-semibold border border-[#E8E4DF] bg-[#FCFBF9] rounded px-2.5 py-1 text-[#5D5B57] focus:outline-none focus:border-[#C9A84C]">
-                <option>2026</option>
-                <option>2025</option>
-              </select>
+              <h2 className="text-sm font-medium tracking-wider text-[#1C1C1A] uppercase">HR & Hiring Pipeline</h2>
+              <button onClick={() => onNavigateTab("hr-leads")} className="text-[9px] uppercase tracking-wider font-bold text-[#C9A84C] hover:text-[#B3923E]">Manage</button>
             </div>
-            <PerformanceChart dark={false} />
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div className="p-4 border border-[#E8E4DF] rounded-lg bg-white">
+                <div className="text-xl font-light text-[#1C1C1A]">{stats?.hrStats?.newCandidates || 0}</div>
+                <div className="text-[9px] uppercase tracking-wider text-[#9C9890] mt-1 font-bold">New Leads</div>
+              </div>
+              <div className="p-4 border border-[#E8E4DF] rounded-lg bg-white">
+                <div className="text-xl font-light text-[#C9A84C]">{stats?.hrStats?.interviewsToday || 0}</div>
+                <div className="text-[9px] uppercase tracking-wider text-[#9C9890] mt-1 font-bold">Interviews Today</div>
+              </div>
+              <div className="p-4 border border-[#E8E4DF] rounded-lg bg-white">
+                <div className="text-xl font-light text-rose-500">{stats?.hrStats?.verificationPending || 0}</div>
+                <div className="text-[9px] uppercase tracking-wider text-[#9C9890] mt-1 font-bold">Pending Verification</div>
+              </div>
+              <div className="p-4 border border-[#E8E4DF] rounded-lg bg-white">
+                <div className="text-xl font-light text-[#6B8F71]">{stats?.hrStats?.hrLeadsCount || 0}</div>
+                <div className="text-[9px] uppercase tracking-wider text-[#9C9890] mt-1 font-bold">Selected Candidates</div>
+              </div>
+            </div>
           </div>
         </div>
 
         {/* Right Column: Quick Actions & Activity Feed */}
         <div className="space-y-8">
           
-          {/* Quick Actions Panel */}
           <div className="bg-[#FCFBF9] border border-[#E8E4DF] rounded-xl p-6 shadow-[0_2px_20px_rgba(0,0,0,0.04)]">
             <h2 className="text-sm font-medium tracking-wider text-[#1C1C1A] uppercase mb-4">Quick Actions</h2>
             <div className="grid grid-cols-2 gap-3">
@@ -185,10 +282,10 @@ export function OwnerDashboard({
                 { name: "Appraisal Logs", tab: "performance" },
                 { name: "Risk Assessment", tab: "risks" },
                 { name: "Verify Registry", tab: "verification" },
-                { name: "Export Analytics", tab: "dashboard" }
+                { name: "Work Report", tab: "performance" } // changed tab to performance for Work Report
               ].map((action, i) => {
                 const handleClick = () => {
-                  if (action.tab === "dashboard" || action.tab === "employees" || action.tab === "ess-leaves" || action.tab === "ess-payroll" || action.tab === "jobs" || action.tab === "performance" || action.tab === "risks" || action.tab === "verification") {
+                  if (["employees", "ess-leaves", "ess-payroll", "jobs", "performance", "risks", "verification"].includes(action.tab)) {
                     onNavigateTab(action.tab);
                   } else {
                     triggerToast?.(`Executing: ${action.name}`);
@@ -208,7 +305,6 @@ export function OwnerDashboard({
             </div>
           </div>
 
-          {/* Recent Activity Audit Feed */}
           <div className="bg-[#FCFBF9] border border-[#E8E4DF] rounded-xl p-6 shadow-[0_2px_20px_rgba(0,0,0,0.04)]">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-sm font-medium tracking-wider text-[#1C1C1A] uppercase">Recent Activity</h2>
@@ -225,6 +321,87 @@ export function OwnerDashboard({
         </div>
 
       </div>
+
+      {showStaffModal && (
+        <div className="fixed inset-0 bg-black/60 z-50 flex justify-center items-center backdrop-blur-sm p-4 sm:p-6" onClick={() => setShowStaffModal(false)}>
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[85vh] flex flex-col overflow-hidden animate-slideUp" onClick={e => e.stopPropagation()}>
+            <div className="flex justify-between items-center p-6 border-b border-gray-100 bg-[#FCFBF9]">
+              <h2 className="text-xl font-serif text-[#1C1C1A]">
+                Team Roster {staffModalFilter === "present" ? "(Present)" : staffModalFilter === "absent" ? "(Absent)" : ""}
+              </h2>
+              <button onClick={() => setShowStaffModal(false)} className="text-gray-400 hover:text-gray-800 transition-colors">
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
+            </div>
+            
+            <div className="flex-1 overflow-auto p-0">
+              <table className="w-full text-left border-collapse">
+                <thead className="bg-[#FCFBF9] sticky top-0 z-10 shadow-sm">
+                  <tr>
+                    <th className="px-6 py-4 text-[10px] uppercase tracking-widest text-[#9C9890] font-bold border-b border-[#E8E4DF]">Employee</th>
+                    <th className="px-6 py-4 text-[10px] uppercase tracking-widest text-[#9C9890] font-bold border-b border-[#E8E4DF]">Role / Dept</th>
+                    <th className="px-6 py-4 text-[10px] uppercase tracking-widest text-[#9C9890] font-bold border-b border-[#E8E4DF]">Company</th>
+                    <th className="px-6 py-4 text-[10px] uppercase tracking-widest text-[#9C9890] font-bold border-b border-[#E8E4DF]">Status</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[#E8E4DF]">
+                  {stats?.staffList?.length > 0 ? stats.staffList
+                    .filter((staff: any) => {
+                      if (staffModalFilter === "present") return staff.isPresent;
+                      if (staffModalFilter === "absent") return !staff.isPresent;
+                      return true;
+                    })
+                    .map((staff: any) => (
+                    <tr key={staff.id} className="hover:bg-slate-50 transition-colors">
+                      <td className="px-6 py-4">
+                        <div className="font-semibold text-slate-800">{staff.name}</div>
+                        <div className="text-[10px] text-slate-500 mt-0.5">{staff.email}</div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="text-sm text-slate-800">{staff.role}</div>
+                        <div className="text-[10px] text-[#C9A84C] font-semibold mt-0.5 tracking-wider uppercase">{staff.department}</div>
+                      </td>
+                      <td className="px-6 py-4 text-sm text-slate-600 font-medium">
+                        {staff.companies}
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-widest ${
+                          staff.status === 'active' || staff.status === 'Active' 
+                            ? 'bg-emerald-100 text-emerald-700' 
+                            : 'bg-rose-100 text-rose-700'
+                        }`}>
+                          {staff.status}
+                        </span>
+                        {staffModalFilter !== "all" && (
+                          <div className={`text-[9px] mt-1 font-bold uppercase ${staff.isPresent ? 'text-[#6B8F71]' : 'text-rose-500'}`}>
+                            {staff.isPresent ? "Present Today" : "Absent Today"}
+                          </div>
+                        )}
+                      </td>
+                    </tr>
+                  )) : (
+                    <tr>
+                      <td colSpan={4} className="px-6 py-12 text-center text-slate-500 font-medium">
+                        No staff data available.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+            
+            <div className="p-4 border-t border-[#E8E4DF] bg-[#FCFBF9] text-right">
+              <button 
+                onClick={() => setShowStaffModal(false)}
+                className="px-6 py-2 bg-slate-800 text-white rounded-lg text-xs font-semibold tracking-wider uppercase hover:bg-slate-900 transition-colors"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }

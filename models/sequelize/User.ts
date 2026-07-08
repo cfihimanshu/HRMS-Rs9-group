@@ -57,6 +57,11 @@ User.init(
     sequelize,
     tableName: "users",
     timestamps: true,
+    indexes: [
+      { fields: ["role"] },
+      { fields: ["status"] },
+      { fields: ["email"] }
+    ]
   }
 );
 

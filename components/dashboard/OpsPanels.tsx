@@ -1538,9 +1538,9 @@ export function PerformanceCompliance({
     const hasTasks = item.tasks && item.tasks.length > 0;
     const hasFieldVisits = item.fieldVisits && item.fieldVisits.length > 0;
     if (activeSubTab === "sod") {
-      matchSubTab = !!item.sod || hasTasks || hasFieldVisits;
-    } else {
-      matchSubTab = !!item.eod || hasTasks || hasFieldVisits;
+      matchSubTab = !!item.sod;
+    } else if (activeSubTab === "eod") {
+      matchSubTab = !!item.eod;
     }
 
     return matchSearch && matchDate && matchCompany && matchUser && matchSubTab && matchDept;

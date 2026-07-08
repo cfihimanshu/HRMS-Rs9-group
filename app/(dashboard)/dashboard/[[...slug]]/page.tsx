@@ -323,7 +323,15 @@ export default function UnifiedEnterpriseDashboard() {
       const url = companyId ? `/api/dashboard/stats?companyId=${companyId}` : "/api/dashboard/stats";
       const res = await fetch(url);
       const data = await res.json();
-      if (data.success) setStats(data.stats);
+      if (data.success) {
+        setStats(data.stats);
+        
+        if (userRole === "Employee" && data.stats?.currentUserCompliance && !data.stats.currentUserCompliance.hasSod) {
+          setActiveTab("attendance");
+          toggleModal("sodModal", true);
+          triggerToast("⚠️ Please submit your Start of Day (SOD) declaration first.");
+        }
+      }
     } catch (err) {
       console.error("Failed to load statistics", err);
     }
@@ -990,6 +998,7 @@ export default function UnifiedEnterpriseDashboard() {
 
           {activeTab === "dashboard" && (
             <OwnerDashboard 
+              sessionUser={session?.user}
               stats={stats} 
               riskAlertList={riskAlertList} 
               onResolveAlert={handleAlertResolve} 
