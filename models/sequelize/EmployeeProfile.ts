@@ -154,6 +154,11 @@ EmployeeProfile.init(
     sequelize,
     tableName: "employeeprofiles",
     timestamps: true,
+    indexes: [
+      { fields: ["user"] },
+      { fields: ["department"] },
+      { fields: ["designation"] }
+    ]
   }
 );
 

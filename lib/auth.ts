@@ -92,7 +92,7 @@ export const authOptions: NextAuthOptions = {
         // Fetch department and company
         let departmentName = "General";
         let designation = user.role;
-        let employeeId = "EMP-UNKNOWN";
+        let employeeId = user.id?.toString() || user.id.toString();
         let companyName = "Company";
         try {
           const profile = await EmployeeProfile.findOne({ where: { user: user.id || user.id.toString() } });

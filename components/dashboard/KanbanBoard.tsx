@@ -112,6 +112,12 @@ export default function KanbanBoard() {
   const dragIdRef = useRef<string | null>(null);
   const [dragOverCol, setDragOverCol] = useState<string | null>(null);
 
+  // Pagination state
+  const [pagePending, setPagePending] = useState(1);
+  const [pageInProgress, setPageInProgress] = useState(1);
+  const [pageCompleted, setPageCompleted] = useState(1);
+  const ITEMS_PER_PAGE = 5;
+
   useEffect(() => {
     if (status !== "loading") {
       fetchTasks();
@@ -588,12 +594,19 @@ export default function KanbanBoard() {
   const inProgress = filteredTasks.filter(t => t.status === "In Progress");
   const completed = filteredTasks.filter(t => t.status === "Completed");
 
+  const paginatedPending = pending.slice((pagePending - 1) * ITEMS_PER_PAGE, pagePending * ITEMS_PER_PAGE);
+  const paginatedInProgress = inProgress.slice((pageInProgress - 1) * ITEMS_PER_PAGE, pageInProgress * ITEMS_PER_PAGE);
+  const paginatedCompleted = completed.slice((pageCompleted - 1) * ITEMS_PER_PAGE, pageCompleted * ITEMS_PER_PAGE);
+
   const cols = [
     {
       id: "Pending",
       label: "Pending",
       count: pending.length,
-      tasks: pending,
+      tasks: paginatedPending,
+      page: pagePending,
+      setPage: setPagePending,
+      totalPages: Math.ceil(pending.length / ITEMS_PER_PAGE),
       icon: <Calendar className="w-4 h-4 text-slate-400" />,
       accent: "border-slate-200",
       headerBg: "bg-white",
@@ -607,7 +620,10 @@ export default function KanbanBoard() {
       id: "In Progress",
       label: "In Progress",
       count: inProgress.length,
-      tasks: inProgress,
+      tasks: paginatedInProgress,
+      page: pageInProgress,
+      setPage: setPageInProgress,
+      totalPages: Math.ceil(inProgress.length / ITEMS_PER_PAGE),
       icon: <Activity className="w-4 h-4 text-amber-500" />,
       accent: "border-amber-200",
       headerBg: "bg-amber-50",
@@ -621,7 +637,10 @@ export default function KanbanBoard() {
       id: "Completed",
       label: "Completed",
       count: completed.length,
-      tasks: completed,
+      tasks: paginatedCompleted,
+      page: pageCompleted,
+      setPage: setPageCompleted,
+      totalPages: Math.ceil(completed.length / ITEMS_PER_PAGE),
       icon: <CheckCircle2 className="w-4 h-4 text-emerald-500" />,
       accent: "border-emerald-200",
       headerBg: "bg-emerald-50",
@@ -908,6 +927,29 @@ export default function KanbanBoard() {
                       {col.icon}
                     </div>
                     Drop tasks here
+                  </div>
+                )}
+
+                {/* Pagination Controls */}
+                {col.totalPages > 1 && (
+                  <div className="flex items-center justify-between pt-4 mt-2 border-t border-slate-200/60 pb-2">
+                    <button
+                      onClick={() => col.setPage((p: number) => Math.max(1, p - 1))}
+                      disabled={col.page === 1}
+                      className="px-2 py-1 bg-white border border-slate-200 rounded text-[10px] font-bold text-slate-500 disabled:opacity-40 hover:bg-slate-50 transition-colors"
+                    >
+                      Prev
+                    </button>
+                    <span className="text-[10px] font-black tracking-widest text-slate-400">
+                      {col.page} / {col.totalPages}
+                    </span>
+                    <button
+                      onClick={() => col.setPage((p: number) => Math.min(col.totalPages, p + 1))}
+                      disabled={col.page === col.totalPages}
+                      className="px-2 py-1 bg-white border border-slate-200 rounded text-[10px] font-bold text-slate-500 disabled:opacity-40 hover:bg-slate-50 transition-colors"
+                    >
+                      Next
+                    </button>
                   </div>
                 )}
               </div>

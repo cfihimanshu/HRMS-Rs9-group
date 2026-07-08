@@ -37,10 +37,11 @@ export async function GET(req: Request) {
     await sequelize.authenticate();
 
     // Filters based on selected company
-    let userFilter: any = { role: { [Op.in]: ["Employee", "Trainer"] } };
+    let userFilter: any = {};
     let candidateFilter: any = {};
     let interviewFilter: any = {};
     let generalUserFilter: any = {}; // for Probation, Grievance, Attendance, Exits, etc.
+    let profileFilter: any = {};
     let generalCandidateFilter: any = {}; // for Training, Verification, etc.
 
     let attendanceFilter: any = {};
@@ -49,31 +50,66 @@ export async function GET(req: Request) {
     let exitFilter: any = {};
     let reportFilter: any = {};
 
+    const sessionUser = session.user as any;
+    const isGlobalViewer = ["Owner", "Director", "HR Head"].includes(sessionUser.role);
+
     if (companyId) {
       userFilter.companies = { [Op.like]: `%${companyId}%` };
+      const usersInCompany = await User.findAll({ where: { companies: { [Op.like]: `%${companyId}%` } }, attributes: ['id'] });
+      const userIds = usersInCompany.map((u: any) => u.id);
+      generalUserFilter.employee = { [Op.in]: userIds };
+      profileFilter.user = { [Op.in]: userIds };
+      attendanceFilter = { employee: { [Op.in]: userIds } };
+      grievanceFilter = { raisedBy: { [Op.in]: userIds } };
+      alertFilter = { triggeredBy: { [Op.in]: userIds } };
+      exitFilter = { employee: { [Op.in]: userIds } };
+      reportFilter = { employee: { [Op.in]: userIds } };
       
       const jobs = await Job.findAll({ where: { company: companyId }, attributes: ['id'] });
       const jobIds = jobs.map((j: any) => j.id);
-      
       candidateFilter.job = { [Op.in]: jobIds };
 
       const cands = await Candidate.findAll({ where: { job: { [Op.in]: jobIds } }, attributes: ['id'] });
       const candIds = cands.map((c: any) => c.id);
-      
       interviewFilter.candidate = { [Op.in]: candIds };
       generalCandidateFilter.candidate = { [Op.in]: candIds };
-      
-      const usersInCompany = await User.findAll({ where: { companies: { [Op.like]: `%${companyId}%` } }, attributes: ['id'] });
-      const userIds = usersInCompany.map((u: any) => u.id);
-      
-      generalUserFilter.employee = { [Op.in]: userIds }; // Probation uses 'employee'
-      
-      // Need a flexible filter for other models (Attendance uses user, Grievance uses raisedBy, etc)
-      attendanceFilter = { user: { [Op.in]: userIds } };
-      grievanceFilter = { raisedBy: { [Op.in]: userIds } };
-      alertFilter = { user: { [Op.in]: userIds } };
-      exitFilter = { employee: { [Op.in]: userIds } };
-      reportFilter = { user: { [Op.in]: userIds } };
+    }
+
+    // Dynamic Department Filtering
+    if (!isGlobalViewer) {
+      const profile = await EmployeeProfile.findOne({ where: { user: sessionUser.id } });
+      let deptUserIds = [sessionUser.id];
+      if (profile && profile.department) {
+        const deptProfiles = await EmployeeProfile.findAll({ where: { department: profile.department }, attributes: ['user'] });
+        deptUserIds = deptProfiles.map((p: any) => p.user);
+        
+        // Add job filter by department
+        const jobs = await Job.findAll({ where: { department: profile.department }, attributes: ['id'] });
+        const jobIds = jobs.map((j: any) => j.id);
+        
+        if (candidateFilter.job) {
+          candidateFilter.job[Op.in] = jobIds.filter((id: string) => candidateFilter.job[Op.in].includes(id));
+        } else {
+          candidateFilter.job = { [Op.in]: jobIds };
+        }
+      }
+
+      const applyUserFilter = (filterObj: any, field: string) => {
+        if (filterObj[field]) {
+          filterObj[field][Op.in] = deptUserIds.filter((id: string) => filterObj[field][Op.in].includes(id));
+        } else {
+          filterObj[field] = { [Op.in]: deptUserIds };
+        }
+      };
+
+      applyUserFilter(userFilter, 'id');
+      applyUserFilter(generalUserFilter, 'employee');
+      applyUserFilter(profileFilter, 'user');
+      applyUserFilter(attendanceFilter, 'employee');
+      applyUserFilter(grievanceFilter, 'raisedBy');
+      applyUserFilter(alertFilter, 'triggeredBy');
+      applyUserFilter(exitFilter, 'employee');
+      applyUserFilter(reportFilter, 'employee');
     }
 
     // 1. Candidate Stats
@@ -86,12 +122,9 @@ export async function GET(req: Request) {
     const pendingInterviews = await Interview.count({ where: { ...interviewFilter, status: "Pending" } });
 
     // 3. User Master Roles count
-    // Using User to accurately reflect all staff accounts configured in the system.
-    let userRoleFilter: any = {};
-    if (companyId) {
-      userRoleFilter.companies = { [Op.like]: `%${companyId}%` };
-    }
-    const totalEmployees = await User.count({ where: userRoleFilter });
+    const totalEmployees = await User.count({ where: userFilter });
+    const maleEmployees = await EmployeeProfile.count({ where: { ...profileFilter, gender: "Male" } });
+    const femaleEmployees = await EmployeeProfile.count({ where: { ...profileFilter, gender: "Female" } });
     
     // Assuming Associates, Vendors, Franchises are not strictly bound to this company filter in the same way, or maybe we leave them unfiltered for now as they might have a different logic.
     const totalAssociates = await Associate.count({ where: { status: "active" } });
@@ -117,6 +150,7 @@ export async function GET(req: Request) {
     
     const sodReportsToday = await SodReport.findAll({
       where: {
+        ...reportFilter,
         date: {
           [Op.gte]: today,
           [Op.lt]: tomorrow
@@ -128,6 +162,7 @@ export async function GET(req: Request) {
 
     const eodReportsToday = await EodReport.findAll({
       where: {
+        ...reportFilter,
         date: {
           [Op.gte]: today,
           [Op.lt]: tomorrow
@@ -137,10 +172,12 @@ export async function GET(req: Request) {
     const eodEmployeeIds = eodReportsToday.map((r: any) => r.employee?.toString()).filter(Boolean);
     const uniqueEodEmployees = eodEmployeeIds.filter((v: any, i: number, a: any[]) => a.indexOf(v) === i);
 
-    const totalEmployeesCount = await User.count({ where: userRoleFilter });
+    // Ensure we use the proper dynamic user filter (dept or company)
+    const totalEmployeesCount = await User.count({ where: userFilter });
 
     const attendanceRecords = await Attendance.findAll({
       where: {
+        ...attendanceFilter,
         date: {
           [Op.gte]: today,
           [Op.lt]: tomorrow
@@ -153,13 +190,15 @@ export async function GET(req: Request) {
     const finalPresentIds = combinedIds.filter((v: any, i: number, a: any[]) => a.indexOf(v) === i);
     
     const presentCount = finalPresentIds.length;
-    const absentCount = Math.max(0, totalEmployeesCount - uniqueSodEmployees.length);
 
     const leavesCount = await Leave.count({ where: {
+      ...generalUserFilter,
       status: "Approved",
       startDate: { [Op.lte]: endOfToday },
       endDate: { [Op.gte]: today }
     } });
+
+    const absentCount = Math.max(0, totalEmployeesCount - finalPresentIds.length - leavesCount);
 
     let lateCount = 0;
     for (const sod of sodReportsToday) {
@@ -396,9 +435,37 @@ export async function GET(req: Request) {
       }
     });
 
+    // Fetch staff list for dashboard viewing (filtered by userFilter)
+    const staffUsers = await User.findAll({ where: userFilter, attributes: ['id', 'name', 'email', 'role', 'status', 'companies'] });
+    const staffProfileIds = staffUsers.map((u: any) => u.id);
+    let staffProfiles: any[] = [];
+    if (staffProfileIds.length > 0) {
+      staffProfiles = await EmployeeProfile.findAll({ where: { user: { [Op.in]: staffProfileIds } } });
+    }
+    const staffProfilesMap: Record<string, any> = {};
+    staffProfiles.forEach((p: any) => {
+      staffProfilesMap[p.user] = {
+        department: p.department || 'N/A',
+        designation: p.designation || 'N/A'
+      };
+    });
+
+    const staffList = staffUsers.map((u: any) => ({
+      id: u.id,
+      name: u.name || 'Unnamed',
+      email: u.email || '',
+      role: u.role || 'Employee',
+      status: u.status || 'active',
+      companies: Array.isArray(u.companies) ? u.companies.join(', ') : (u.companies || 'N/A'),
+      department: staffProfilesMap[u.id]?.department || 'N/A',
+      designation: staffProfilesMap[u.id]?.designation || 'N/A',
+      isPresent: finalPresentIds.includes(u.id.toString())
+    }));
+
     return NextResponse.json({
       success: true,
       stats: {
+        staffList,
         currentUserStats: {
           presentDays: presentDaysCount,
           totalWorkingDays: workingDaysInMonth,
@@ -468,6 +535,9 @@ export async function GET(req: Request) {
       },
     });
   } catch (error: any) {
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    console.error("Dashboard stats error:", error);
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    require('fs').appendFileSync('stats-error.log', new Date().toISOString() + ': ' + (error.stack || error) + '\n');
+    return NextResponse.json({ success: false, error: "Failed to load dashboard statistics" }, { status: 500 });
   }
 }
