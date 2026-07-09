@@ -570,30 +570,52 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
 
   let currentUserComps: any[] = [];
   if (currentUser) {
-    if (Array.isArray(currentUser.companies)) {
-      currentUserComps = currentUser.companies;
-    } else if (typeof currentUser.companies === 'string') {
+    let comps = currentUser.companies;
+    while (typeof comps === "string") {
       try {
-        const parsed = JSON.parse(currentUser.companies);
-        currentUserComps = Array.isArray(parsed) ? parsed : (parsed ? [parsed] : []);
+        const parsed = JSON.parse(comps);
+        if (parsed === comps) {
+          comps = [parsed];
+          break;
+        }
+        comps = parsed;
       } catch (e) {
-        currentUserComps = [];
+        if (comps.startsWith("[") && comps.endsWith("]")) {
+          comps = [comps];
+        } else {
+          comps = comps.split(",").map((s: string) => s.trim()).filter(Boolean);
+        }
+        break;
       }
-    } else if (currentUser.companies) {
-      currentUserComps = [currentUser.companies];
+    }
+    if (Array.isArray(comps)) {
+      currentUserComps = comps.map(c => typeof c === "string" ? c.replace(/[\[\]"'\\]/g, "").trim() : c);
+    } else if (comps) {
+      currentUserComps = [typeof comps === "string" ? comps.replace(/[\[\]"'\\]/g, "").trim() : comps];
     }
   }
 
   const defaultCompanyRef = currentUserComps[0];
-  const defaultCompanyId = defaultCompanyRef 
-    ? (typeof defaultCompanyRef === 'string' ? defaultCompanyRef : defaultCompanyRef.id?.toString())
-    : "";
+  let defaultCompanyId = "";
+  if (defaultCompanyRef) {
+    const refId = typeof defaultCompanyRef === 'string' ? defaultCompanyRef : defaultCompanyRef.id?.toString();
+    const exists = companies.some((c: any) => c.id?.toString() === refId);
+    if (exists) {
+      defaultCompanyId = refId;
+    }
+  }
+  if (!defaultCompanyId && companies.length > 0) {
+    defaultCompanyId = companies[0].id?.toString() || "";
+  }
 
   let hrCompany: any = null;
   if (currentUserComps.length > 0) {
     const compRef = currentUserComps[0];
     const compId = typeof compRef === 'string' ? compRef : compRef?.id?.toString();
     hrCompany = companies.find((c: any) => c.id?.toString() === compId) || (typeof compRef === 'object' ? compRef : null);
+  }
+  if (!hrCompany && companies.length > 0) {
+    hrCompany = companies[0];
   }
 
   const filteredEmployees = employees.filter(emp => {

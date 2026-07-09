@@ -3,7 +3,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import ReactDOM from "react-dom";
 import {
   LayoutDashboard, UserSquare2, FileEdit, Briefcase, Users2, ScanLine,
-  Video, ShieldCheck, FileText, GraduationCap, Clock, CalendarCheck,
+  Video, ShieldCheck, FileText, FileSpreadsheet, GraduationCap, Clock, CalendarCheck,
   TrendingUp, BriefcaseIcon, Building2, Coins, HelpCircle, AlertTriangle,
   LogOut, ChevronDown, ChevronRight, MapPin, Cpu, Package, Key, Scale
 } from "lucide-react";
@@ -77,6 +77,7 @@ export default function DashboardSidebar({
     { id: "hiring", label: "Hiring Approvals", icon: FileEdit, category: "Core Workspace", roles: ["Owner", "Director", "HR Head", "HR Executive", "Department Manager", "Accounts"] },
     { id: "jobs", label: "Vacancy Postings", icon: Briefcase, category: "Core Workspace", roles: ["Owner", "Director", "HR Head", "HR Executive"] },
     { id: "hr-leads", label: "HR Leads", icon: FileText, category: "Core Workspace", roles: ["Owner", "Director", "HR Head", "HR Executive"] },
+    { id: "business-leads", label: "Business Leads", icon: FileSpreadsheet, category: "Core Workspace", roles: ["Owner", "Director", "HR Head", "HR Executive"] },
     { id: "employees", label: "Employees Directory", icon: Users2, category: "Core Workspace", roles: ["Owner", "Director", "HR Head", "HR Executive"] },
     { id: "bda-directory", label: "BDA Network (Sales)", icon: Users2, category: "Core Workspace", roles: ["Owner", "Director", "HR Head", "HR Executive", "Department Manager"] },
     { id: "assets-registry", label: "Assets Registry", icon: Cpu, category: "Core Workspace", roles: ["Owner", "Director", "HR Head", "HR Executive"] },

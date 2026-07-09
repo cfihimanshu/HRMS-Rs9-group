@@ -14,17 +14,27 @@ import { sendEmail } from "@/lib/email";
 
 function getUserCompanies(user: any): string[] {
   if (!user || !user.companies) return [];
-  try {
-    const parsed = typeof user.companies === "string" ? JSON.parse(user.companies) : user.companies;
-    if (Array.isArray(parsed)) return parsed.map(String);
-    if (parsed) return [String(parsed)];
-    return [];
-  } catch {
-    if (typeof user.companies === "string") {
-      return user.companies.split(",").map((s: string) => s.trim()).filter(Boolean);
+  let comps = user.companies;
+  while (typeof comps === "string") {
+    try {
+      const parsed = JSON.parse(comps);
+      if (parsed === comps) {
+        comps = [parsed];
+        break;
+      }
+      comps = parsed;
+    } catch {
+      if (comps.startsWith("[") && comps.endsWith("]")) {
+        comps = [comps];
+      } else {
+        return comps.split(",").map((s: string) => s.trim()).filter(Boolean);
+      }
+      break;
     }
-    return [String(user.companies)];
   }
+  if (Array.isArray(comps)) return comps.map(String);
+  if (comps) return [String(comps)];
+  return [];
 }
 
 // GET /api/employees - Get list of all staff members
@@ -58,14 +68,7 @@ export async function GET(req: Request) {
       return NextResponse.json({ success: false, error: "Unauthorized access" }, { status: 401 });
     }
 
-    let adminCompanies: string[] = [];
-    if (dbUser && dbUser.companies) {
-      if (Array.isArray(dbUser.companies)) adminCompanies = dbUser.companies;
-      else if (typeof dbUser.companies === 'string') {
-        try { adminCompanies = JSON.parse(dbUser.companies); } catch (e) { }
-      }
-    }
-    const adminCompaniesNormalized = adminCompanies.map(String);
+    const adminCompaniesNormalized = getUserCompanies(dbUser);
 
     // Fetch employees
     const employees = await User.findAll({ where: {}, raw: true });
@@ -203,6 +206,12 @@ export async function POST(req: Request) {
 
     const userStatus = role === "Employee" ? "probation" : "active";
 
+    let userCompanies = [company.id];
+    if (role === "Owner") {
+      const companiesList = await Company.findAll({ raw: true });
+      userCompanies = companiesList.map(c => c.id);
+    }
+
     // Create User with company linked
     const newUser = await User.create({
       id: Date.now().toString(),
@@ -212,7 +221,7 @@ export async function POST(req: Request) {
       role,
       mobile: mobile || null,
       status: "active",
-      companies: [company.id],
+      companies: userCompanies,
       loginHistory: [],
     });
 
@@ -581,14 +590,7 @@ export async function PUT(req: Request) {
         return NextResponse.json({ success: false, error: "Target employee not found." }, { status: 404 });
       }
 
-      let adminCompanies: string[] = [];
-      if (dbUser && dbUser.companies) {
-        if (Array.isArray(dbUser.companies)) adminCompanies = dbUser.companies;
-        else if (typeof dbUser.companies === 'string') {
-          try { adminCompanies = JSON.parse(dbUser.companies); } catch (e) { }
-        }
-      }
-      const adminCompaniesNormalized = adminCompanies.map(String);
+      const adminCompaniesNormalized = getUserCompanies(dbUser);
 
       let targetComps: any[] = [];
       if (Array.isArray(targetUser.companies)) targetComps = targetUser.companies;

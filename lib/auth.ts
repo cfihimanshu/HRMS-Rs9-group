@@ -148,8 +148,22 @@ export const authOptions: NextAuthOptions = {
           // or we can just fetch the first company if it's an array.
           // Since we might not have a direct relation here, let's parse companies.
           let userCompanies = user.companies;
-          if (typeof userCompanies === "string") {
-            try { userCompanies = JSON.parse(userCompanies); } catch(e) {}
+          while (typeof userCompanies === "string") {
+            try {
+              const parsed = JSON.parse(userCompanies);
+              if (parsed === userCompanies) {
+                userCompanies = [parsed];
+                break;
+              }
+              userCompanies = parsed;
+            } catch (e) {
+              if (userCompanies.startsWith("[") && userCompanies.endsWith("]")) {
+                userCompanies = [userCompanies];
+              } else {
+                userCompanies = userCompanies.split(",").map((s: string) => s.trim()).filter(Boolean);
+              }
+              break;
+            }
           }
           if (Array.isArray(userCompanies) && userCompanies.length > 0) {
              // For simplicity, we just take the first one or assume it's the company string

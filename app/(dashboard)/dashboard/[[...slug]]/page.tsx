@@ -52,9 +52,10 @@ import BDADirectory from "@/components/dashboard/BDAPanels";
 import AssetsRegistry from "@/components/dashboard/AssetsRegistry";
 import InventoryManagement from "@/components/dashboard/InventoryManagement";
 import AdministratorAccess from "@/components/dashboard/AdministratorAccess";
-import LegalRecovery from "@/components/dashboard/LegalRecovery";
+import LegalRecovery from "@/components/dashboard/LegalRecoveryModule";
 import KanbanBoard from "@/components/dashboard/KanbanBoard";
 import { AssetRequestLogs } from "@/components/dashboard/AssetRequestPanels";
+import BusinessLeads from "@/components/dashboard/BusinessLeads";
 
 export default function UnifiedEnterpriseDashboard() {
   const { data: session, status } = useSession();
@@ -1068,6 +1069,12 @@ export default function UnifiedEnterpriseDashboard() {
               jobs={jobs}
               triggerToast={triggerToast}
               toggleModal={toggleModal}
+            />
+          )}
+
+          {activeTab === "business-leads" && (
+            <BusinessLeads
+              triggerToast={triggerToast}
             />
           )}
 

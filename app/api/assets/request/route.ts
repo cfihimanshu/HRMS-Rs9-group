@@ -16,14 +16,27 @@ import { sendRequestNotification } from "@/lib/notificationHelper";
 
 function getUserCompanies(user: any): string[] {
   if (!user || !user.companies) return [];
-  try {
-    const parsed = typeof user.companies === "string" ? JSON.parse(user.companies) : user.companies;
-    if (Array.isArray(parsed)) return parsed.map(String);
-    if (parsed) return [String(parsed)];
-    return [];
-  } catch {
-    return [String(user.companies)];
+  let comps = user.companies;
+  while (typeof comps === "string") {
+    try {
+      const parsed = JSON.parse(comps);
+      if (parsed === comps) {
+        comps = [parsed];
+        break;
+      }
+      comps = parsed;
+    } catch {
+      if (comps.startsWith("[") && comps.endsWith("]")) {
+        comps = [comps];
+      } else {
+        return comps.split(",").map((s: string) => s.trim()).filter(Boolean);
+      }
+      break;
+    }
   }
+  if (Array.isArray(comps)) return comps.map(String);
+  if (comps) return [String(comps)];
+  return [];
 }
 
 async function findDepartmentManagers(applicantId: string, department: string) {
