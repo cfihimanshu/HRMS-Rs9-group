@@ -51,6 +51,10 @@ Attendance.init(
     sequelize,
     tableName: "attendances",
     timestamps: true,
+    indexes: [
+      { fields: ["employee"] },
+      { fields: ["date"] }
+    ]
   }
 );
 

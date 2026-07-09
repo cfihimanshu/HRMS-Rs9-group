@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
+import { Eye, EyeOff } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface LoginFormProps extends React.ComponentProps<"div"> {
@@ -19,6 +20,7 @@ export function LoginForm({
   const [password, setPassword] = useState("");
   const [emailFocused, setEmailFocused] = useState(false);
   const [passwordFocused, setPasswordFocused] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -52,7 +54,7 @@ export function LoginForm({
     <div className={cn("w-full max-w-4xl mx-auto overflow-hidden bg-[#FCFBF9] border border-[#E8E4DF] shadow-[0_2px_20px_rgba(0,0,0,0.06)] rounded-xl grid md:grid-cols-2 min-h-[550px]", className)} {...props}>
       
       {/* Left Panel - Editorial Branding */}
-      <div className="bg-[#FAFAF7] p-12 flex flex-col justify-between border-r border-[#E8E4DF] relative overflow-hidden">
+      <div className="hidden md:flex bg-[#FAFAF7] p-12 flex-col justify-between border-r border-[#E8E4DF] relative overflow-hidden">
         {/* Subtle geometric background graphic */}
         <div className="absolute inset-0 pointer-events-none opacity-[0.03] flex items-center justify-center">
           <svg className="w-[150%] h-[150%] text-[#1C1C1A]" viewBox="0 0 100 100" fill="none" stroke="currentColor" strokeWidth="0.5">
@@ -141,14 +143,14 @@ export function LoginForm({
           <div className="relative">
             <input
               id="password"
-              type="password"
+              type={showPassword ? "text" : "password"}
               required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               onFocus={() => setPasswordFocused(true)}
               onBlur={() => setPasswordFocused(false)}
               disabled={loading}
-              className="peer w-full bg-[#FCFBF9] border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 pt-6 pb-2 text-sm text-[#1C1C1A] transition-all duration-200 focus:outline-none"
+              className="peer w-full bg-[#FCFBF9] border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 pt-6 pb-2 pr-10 text-sm text-[#1C1C1A] transition-all duration-200 focus:outline-none"
             />
             <label
               htmlFor="password"
@@ -161,12 +163,23 @@ export function LoginForm({
             >
               Password
             </label>
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-[#9C9890] hover:text-[#C9A84C] transition-colors focus:outline-none"
+            >
+              {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+            </button>
           </div>
 
           <div className="flex items-center justify-end">
             <a
               href="#"
-              className="text-[9px] uppercase tracking-widest text-[#9C9890] hover:text-[#C9A84C] transition-colors font-medium"
+              onClick={(e) => {
+                e.preventDefault();
+                alert("Please contact your IT Administrator (HR) to reset your password.");
+              }}
+              className="text-[10px] uppercase tracking-widest text-[#9C9890] hover:text-[#C9A84C] transition-colors font-bold"
             >
               Forgot password?
             </a>

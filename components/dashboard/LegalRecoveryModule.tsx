@@ -3,7 +3,7 @@ import React, { useState, useEffect } from "react";
 import {
   Search, PlusCircle, PhoneCall, RefreshCw, X, Building, Banknote,
   FileAudio, History, Calendar, CheckCircle, ArrowLeft, LayoutGrid, FileText,
-  Landmark, Network, Filter
+  Landmark, Network, Filter, Briefcase
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import BankMasterView from "./legal-recovery/BankMasterView";
@@ -11,6 +11,7 @@ import BranchMasterView from "./legal-recovery/BranchMasterView";
 import CasesMasterView from "./legal-recovery/CasesMasterView";
 import DailyCallReportsView from "./legal-recovery/DailyCallReportsView";
 import PaymentCollectionsView from "./legal-recovery/PaymentCollectionsView";
+import LegalWorkLogsView from "./legal-recovery/LegalWorkLogsView";
 
 interface LegalRecoveryModuleProps {
   userRole?: string;
@@ -18,8 +19,47 @@ interface LegalRecoveryModuleProps {
   sessionUser?: any;
 }
 
+const WORK_CATEGORIES: Record<string, string[]> = {
+  "ADVOCATE NOTICE": [
+    "TAKE NOTICE ASSIGNMENT", "COLLECT NOTICE DATA", "PREPARE NOTICE LIST",
+    "GENERATE NOTICE VIA SOFTWARE/MAIL MERGE", "DISPATCH NOTICES", "PREPARE BILL (BILL BANWANA)", "REQUEST PAYMENT"
+  ],
+  "RECOVERY SUIT / PSA APPLICATION": [
+    "PREPARE RECOVERY SUIT / PSA APPLICATION", "COLLECT DOCUMENTS FROM BRANCH",
+    "PREPARE CASE FILE", "SUBMIT TO ADVOCATE", "PREPARE BILL (BILL BANWANA)", "REQUEST PAYMENT"
+  ],
+  "RACO RODA": [
+    "SCAN RODA FILE", "PREPARE RODA SET", "PREPARE RODA FILE",
+    "SUBMIT RODA FILE TO SDM OFFICE", "PREPARE BILL (BILL BANWANA)", "REQUEST PAYMENT", "ISSUE SUMMONS"
+  ],
+  "SARFEASI NOTICE": [
+    "COLLECT SARFAESI NOTICE DATA", "DRAFT SARFAESI NOTICE",
+    "DISPATCH NOTICE", "OBTAIN POST OFFICE TRACKING", "PREPARE BILL (BILL BANWANA)", "REQUEST PAYMENT"
+  ],
+  "SY. POSSESSION": [
+    "SOE TYPING & PRINTING", "TAKE SYMBOLIC POSSESSION", "DISPATCH POSSESSION NOTICE",
+    "PUBLISH IN NEWSPAPER", "PREPARE BILL (BILL BANWANA)", "REQUEST PAYMENT"
+  ],
+  "DM ORDER": [
+    "DM APPLICATION TYPING & PRINTING", "PREPARE DM APPLICATION",
+    "SUBMIT APPLICATION IN DM COURT", "OBTAIN DM ORDER", "PREPARE BILL (BILL BANWANA)", "REQUEST PAYMENT"
+  ],
+  "SP ORDER": [
+    "SP APPLICATION TYPING & PRINTING", "SUBMIT SP APPLICATION", "OBTAIN ASSESSMENT REPORT FROM POLICE STATION",
+    "OBTAIN ORDER FOR DD", "SUBMIT DD WITH SP OFFICE LETTER",
+    "OBTAIN ORDER FOR POSSESSION", "ARRANGE POLICE ASSISTANCE", "PREPARE BILL (BILL BANWANA)", "REQUEST PAYMENT"
+  ],
+  "PY. POSSESSION": [
+    "SOE TYPING & PRINTING", "TAKE PHYSICAL POSSESSION", "DISPATCH POSSESSION NOTICE",
+    "PUBLISH IN NEWSPAPER", "PREPARE BILL (BILL BANWANA)", "REQUEST PAYMENT"
+  ],
+  "SEIZER": [
+    "COLLECT NOTICE DATA", "PREPARE NOTICE", "DISPATCH NOTICE", "TRACK POSTAL DELIVERY", "PREPARE BILL (BILL BANWANA)", "REQUEST PAYMENT"
+  ]
+};
+
 export default function LegalRecoveryModule({ userRole, triggerToast, sessionUser }: LegalRecoveryModuleProps) {
-  const [activeSubModule, setActiveSubModule] = useState<"launcher" | "follow-up" | "masters" | "history" | "banks" | "branches" | "collections">("launcher");
+  const [activeSubModule, setActiveSubModule] = useState<"launcher" | "follow-up" | "masters" | "history" | "banks" | "branches" | "collections" | "work-logs">("launcher");
 
   const [cases, setCases] = useState<any[]>([]);
   const [banksList, setBanksList] = useState<any[]>([]);
@@ -31,11 +71,15 @@ export default function LegalRecoveryModule({ userRole, triggerToast, sessionUse
   const [showAddBankForm, setShowAddBankForm] = useState(false);
   const [showAddBranchForm, setShowAddBranchForm] = useState(false);
   const [showFollowUpForm, setShowFollowUpForm] = useState<{ show: boolean, master: any | null }>({ show: false, master: null });
+  const [showWorkLogForm, setShowWorkLogForm] = useState<{ show: boolean, master: any | null }>({ show: false, master: null });
   const [showMarketingForm, setShowMarketingForm] = useState<{ show: boolean, branch: any | null }>({ show: false, branch: null });
   const [showHistoryModal, setShowHistoryModal] = useState<{ show: boolean, masterId: number | null }>({ show: false, masterId: null });
   const [historyData, setHistoryData] = useState<any[]>([]);
+  const [workLogHistoryData, setWorkLogHistoryData] = useState<any[]>([]);
   const [globalHistory, setGlobalHistory] = useState<any[]>([]);
   const [loadingGlobalHistory, setLoadingGlobalHistory] = useState(false);
+  const [globalWorkLogs, setGlobalWorkLogs] = useState<any[]>([]);
+  const [loadingGlobalWorkLogs, setLoadingGlobalWorkLogs] = useState(false);
   const [payments, setPayments] = useState<any[]>([]);
   const [loadingPayments, setLoadingPayments] = useState(false);
   const [showPaymentForm, setShowPaymentForm] = useState<{ show: boolean, master: any | null }>({ show: false, master: null });
@@ -45,6 +89,7 @@ export default function LegalRecoveryModule({ userRole, triggerToast, sessionUse
   const [submittingBank, setSubmittingBank] = useState(false);
   const [submittingBranch, setSubmittingBranch] = useState(false);
   const [submittingFollowUp, setSubmittingFollowUp] = useState(false);
+  const [submittingWorkLog, setSubmittingWorkLog] = useState(false);
   const [submittingMarketing, setSubmittingMarketing] = useState(false);
   const [submittingPayment, setSubmittingPayment] = useState(false);
   const [loadingHistory, setLoadingHistory] = useState(false);
@@ -61,6 +106,9 @@ export default function LegalRecoveryModule({ userRole, triggerToast, sessionUse
 
   const [followUpForm, setFollowUpForm] = useState({
     callStatus: "Connected", conversationDetails: "", nextFollowUpDate: "", callDate: new Date().toISOString().split('T')[0]
+  });
+  const [workLogForm, setWorkLogForm] = useState({
+    category: "ADVOCATE NOTICE", subCategory: "NOTICE KA KAM LENA", remarks: "", workDate: new Date().toISOString().split('T')[0]
   });
   const [marketingForm, setMarketingForm] = useState({
     callType: "Marketing", callStatus: "Connected", conversationDetails: "", nextFollowUpDate: "", callDate: new Date().toISOString().split('T')[0]
@@ -118,7 +166,7 @@ export default function LegalRecoveryModule({ userRole, triggerToast, sessionUse
   }, []);
 
   useEffect(() => {
-    if (activeSubModule !== "launcher" && activeSubModule !== "banks" && activeSubModule !== "branches" && activeSubModule !== "collections") {
+    if (activeSubModule !== "launcher" && activeSubModule !== "banks" && activeSubModule !== "branches" && activeSubModule !== "collections" && activeSubModule !== "work-logs") {
       fetchCases();
     }
     if (activeSubModule === "history") {
@@ -126,6 +174,10 @@ export default function LegalRecoveryModule({ userRole, triggerToast, sessionUse
     }
     if (activeSubModule === "collections") {
       fetchPayments();
+    }
+    if (activeSubModule === "work-logs") {
+      fetchGlobalWorkLogs();
+      fetchCases();
     }
   }, [activeSubModule]);
 
@@ -141,6 +193,21 @@ export default function LegalRecoveryModule({ userRole, triggerToast, sessionUse
       console.error("Error fetching global history:", error);
     } finally {
       setLoadingGlobalHistory(false);
+    }
+  };
+
+  const fetchGlobalWorkLogs = async () => {
+    try {
+      setLoadingGlobalWorkLogs(true);
+      const res = await fetch("/api/legal-recovery/work-log");
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setGlobalWorkLogs(data.data || []);
+      }
+    } catch (error) {
+      console.error("Error fetching global work logs:", error);
+    } finally {
+      setLoadingGlobalWorkLogs(false);
     }
   };
 
@@ -394,6 +461,37 @@ export default function LegalRecoveryModule({ userRole, triggerToast, sessionUse
     }
   };
 
+  const handleWorkLogSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!showWorkLogForm.master) return;
+    setSubmittingWorkLog(true);
+
+    try {
+      const res = await fetch("/api/legal-recovery/work-log", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...workLogForm,
+          masterId: showWorkLogForm.master.id,
+        })
+      });
+
+      const result = await res.json();
+      if (result.success) {
+        triggerToast("Work Logged Successfully!");
+        setShowWorkLogForm({ show: false, master: null });
+        setWorkLogForm({ category: "ADVOCATE NOTICE", subCategory: "NOTICE KA KAM LENA", remarks: "", workDate: new Date().toISOString().split('T')[0] });
+      } else {
+        triggerToast(result.error || "Failed to log work");
+      }
+    } catch (error) {
+      console.error(error);
+      triggerToast("Error saving work log");
+    } finally {
+      setSubmittingWorkLog(false);
+    }
+  };
+
   const handlePaymentSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!showPaymentForm.master) return;
@@ -456,11 +554,19 @@ export default function LegalRecoveryModule({ userRole, triggerToast, sessionUse
     setShowHistoryModal({ show: true, masterId });
     setLoadingHistory(true);
     setHistoryData([]);
+    setWorkLogHistoryData([]);
     try {
-      const res = await fetch(`/api/legal-recovery/followup?masterId=${masterId}`);
-      const result = await res.json();
-      if (result.success) {
-        setHistoryData(result.data);
+      const [resFollowup, resWorkLogs] = await Promise.all([
+        fetch(`/api/legal-recovery/followup?masterId=${masterId}`),
+        fetch(`/api/legal-recovery/work-log?masterId=${masterId}`)
+      ]);
+      const resultFollowup = await resFollowup.json();
+      const resultWorkLogs = await resWorkLogs.json();
+      if (resultFollowup.success) {
+        setHistoryData(resultFollowup.data);
+      }
+      if (resultWorkLogs.success) {
+        setWorkLogHistoryData(resultWorkLogs.data);
       }
     } catch (error) {
       console.error(error);
@@ -544,8 +650,21 @@ export default function LegalRecoveryModule({ userRole, triggerToast, sessionUse
             <div className="w-16 h-16 bg-gradient-to-br from-emerald-50 to-emerald-100 text-emerald-600 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform shadow-sm">
               <Banknote size={28} strokeWidth={2} />
             </div>
+            {/* <span className="font-bold text-sm text-slate-800">Collections</span> */}
             <span className="font-bold text-sm text-slate-800">Collections</span>
             <span className="text-[10px] text-slate-500 mt-1 uppercase tracking-wider font-semibold">Payments Received</span>
+          </button>
+
+          {/* Module 7: Legal Work Logs */}
+          <button
+            onClick={() => setActiveSubModule("work-logs")}
+            className="group flex flex-col items-center justify-center p-6 bg-white border border-[#E8E4DF] rounded-2xl hover:shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:border-blue-200 transition-all duration-300"
+          >
+            <div className="w-16 h-16 bg-gradient-to-br from-blue-50 to-blue-100 text-blue-600 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform shadow-sm">
+              <Briefcase size={28} strokeWidth={2} />
+            </div>
+            <span className="font-bold text-sm text-slate-800">Legal Work</span>
+            <span className="text-[10px] text-slate-500 mt-1 uppercase tracking-wider font-semibold">Work Log History</span>
           </button>
 
         </div>
@@ -858,7 +977,7 @@ export default function LegalRecoveryModule({ userRole, triggerToast, sessionUse
           <BranchMasterView branchesList={branchesList} banksList={banksList} loading={loading} setShowMarketingForm={setShowMarketingForm} />
         )}
 
-        {activeSubModule !== "banks" && activeSubModule !== "branches" && activeSubModule !== "history" && activeSubModule !== "collections" && (
+        {activeSubModule !== "banks" && activeSubModule !== "branches" && activeSubModule !== "history" && activeSubModule !== "collections" && activeSubModule !== "work-logs" && (
           <CasesMasterView cases={cases} loading={loading} setShowFollowUpForm={setShowFollowUpForm} setShowPaymentForm={setShowPaymentForm} openHistory={openHistory} userRole={userRole} onEditCase={handleEditCase} onDeleteCase={handleDeleteCase} />
         )}
 
@@ -868,6 +987,10 @@ export default function LegalRecoveryModule({ userRole, triggerToast, sessionUse
 
         {activeSubModule === "collections" && (
           <PaymentCollectionsView payments={payments} cases={cases} loadingPayments={loadingPayments} />
+        )}
+
+        {activeSubModule === "work-logs" && (
+          <LegalWorkLogsView workLogs={globalWorkLogs} cases={cases} loading={loadingGlobalWorkLogs} onRefresh={fetchGlobalWorkLogs} />
         )}
       </div>
 
@@ -979,6 +1102,113 @@ export default function LegalRecoveryModule({ userRole, triggerToast, sessionUse
                   </button>
                 </div>
               </form>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Work Log Form Modal */}
+      {showWorkLogForm.show && (
+        <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in">
+          <div className="bg-[#FCFBF9] rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden animate-slide-up">
+            <div className="px-6 py-4 border-b border-[#E8E4DF] flex justify-between items-center bg-white">
+              <h2 className="text-sm font-black text-[#1C1C1A] uppercase tracking-wider flex items-center gap-2">
+                <Briefcase className="w-5 h-5 text-[#C9A84C]" /> Log Legal Work
+              </h2>
+              <button onClick={() => setShowWorkLogForm({ show: false, master: null })} className="text-slate-400 hover:text-rose-600 transition-colors">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="overflow-y-auto flex-1">
+              <div className="p-4 bg-amber-50/50 border-b border-[#E8E4DF] text-xs">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <div className="text-slate-500 font-bold mb-1">Bank Name</div>
+                    <div className="font-semibold text-slate-800">{showWorkLogForm.master?.bankName || 'N/A'}</div>
+                  </div>
+                  <div>
+                    <div className="text-slate-500 font-bold mb-1">Branch</div>
+                    <div className="font-semibold text-slate-800">{showWorkLogForm.master?.branchName || 'N/A'}</div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-6">
+                <form onSubmit={handleWorkLogSubmit} className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="col-span-2">
+                      <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Work Date *</label>
+                      <input
+                        type="date"
+                        required
+                        value={workLogForm.workDate}
+                        onChange={e => setWorkLogForm({ ...workLogForm, workDate: e.target.value })}
+                        className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs focus:outline-none font-semibold text-slate-700"
+                      />
+                    </div>
+                    <div className="col-span-2">
+                      <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Work Category *</label>
+                      <select
+                        value={workLogForm.category}
+                        onChange={e => {
+                          const cat = e.target.value;
+                          setWorkLogForm({
+                            ...workLogForm,
+                            category: cat,
+                            subCategory: WORK_CATEGORIES[cat][0]
+                          });
+                        }}
+                        className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs focus:outline-none"
+                      >
+                        {Object.keys(WORK_CATEGORIES).map(cat => (
+                          <option key={cat} value={cat}>{cat}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="col-span-2">
+                      <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Work Step / Action *</label>
+                      <select
+                        value={workLogForm.subCategory}
+                        onChange={e => setWorkLogForm({ ...workLogForm, subCategory: e.target.value })}
+                        className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs focus:outline-none"
+                      >
+                        {WORK_CATEGORIES[workLogForm.category]?.map(sub => (
+                          <option key={sub} value={sub}>{sub}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Remarks / Details</label>
+                    <textarea
+                      rows={3}
+                      value={workLogForm.remarks}
+                      onChange={e => setWorkLogForm({ ...workLogForm, remarks: e.target.value })}
+                      className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs focus:outline-none resize-none"
+                      placeholder="Any specific details regarding this work step..."
+                    ></textarea>
+                  </div>
+
+                  <div className="flex justify-end gap-3 pt-4 border-t border-[#E8E4DF]">
+                    <button
+                      type="button"
+                      onClick={() => setShowWorkLogForm({ show: false, master: null })}
+                      className="px-4 py-2 bg-white border border-[#E8E4DF] text-slate-600 rounded-lg text-xs font-bold hover:bg-slate-50 transition-colors"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={submittingWorkLog}
+                      className="px-4 py-2 bg-[#1C1C1A] text-white rounded-lg text-xs font-bold uppercase tracking-wider hover:bg-[#323230] disabled:opacity-50 transition-colors flex items-center gap-2"
+                    >
+                      {submittingWorkLog ? "Saving..." : "Save Work Log"} <CheckCircle className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </form>
+              </div>
             </div>
           </div>
         </div>
@@ -1112,46 +1342,82 @@ export default function LegalRecoveryModule({ userRole, triggerToast, sessionUse
                 <X className="w-5 h-5" />
               </button>
             </div>
-            <div className="p-4 overflow-y-auto bg-slate-50 flex-1">
+            <div className="p-4 overflow-y-auto bg-slate-50 flex-1 space-y-8">
               {loadingHistory ? (
                 <div className="text-center py-8 text-slate-500 text-xs">Loading history...</div>
-              ) : historyData.length === 0 ? (
-                <div className="text-center py-8 text-slate-500 text-xs">No follow ups recorded yet.</div>
               ) : (
-                <div className="space-y-4">
-                  {historyData.map(log => (
-                    <div key={log.id} className="bg-white p-4 rounded-lg border border-slate-200 shadow-sm relative">
-                      <div className="absolute top-4 right-4 text-[10px] font-bold text-slate-400 bg-slate-100 px-2 py-1 rounded">
-                        {log.callDate ? new Date(log.callDate).toLocaleDateString() : new Date(log.createdAt).toLocaleDateString()}
-                      </div>
-                      <div className="flex items-center gap-2 mb-2">
-                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${log.callStatus === 'Connected' ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}`}>
-                          {log.callStatus}
-                        </span>
-                        <span className="text-xs font-semibold text-slate-700">Called by: {log.callerName || 'Unknown'}</span>
-                      </div>
-                      <p className="text-xs text-slate-600 mt-2 whitespace-pre-wrap">{log.conversationDetails}</p>
+                <>
+                  {/* Follow Up Calls Section */}
+                  <div>
+                    <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider mb-3 border-b border-slate-200 pb-2 flex items-center gap-2">
+                      <PhoneCall className="w-3.5 h-3.5 text-indigo-500" /> Follow Up Calls
+                    </h4>
+                    {historyData.length === 0 ? (
+                      <div className="text-center py-4 text-slate-400 text-[10px] font-semibold bg-white rounded-lg border border-slate-200 border-dashed">No follow ups recorded.</div>
+                    ) : (
+                      <div className="space-y-3">
+                        {historyData.map(log => (
+                          <div key={log.id} className="bg-white p-4 rounded-lg border border-slate-200 shadow-sm relative">
+                            <div className="absolute top-4 right-4 text-[10px] font-bold text-slate-400 bg-slate-100 px-2 py-1 rounded">
+                              {log.callDate ? new Date(log.callDate).toLocaleDateString() : new Date(log.createdAt).toLocaleDateString()}
+                            </div>
+                            <div className="flex items-center gap-2 mb-2">
+                              <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${log.callStatus === 'Connected' ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}`}>
+                                {log.callStatus}
+                              </span>
+                              <span className="text-xs font-semibold text-slate-700">Called by: {log.callerName || 'Unknown'}</span>
+                            </div>
+                            <p className="text-xs text-slate-600 mt-2 whitespace-pre-wrap">{log.conversationDetails}</p>
 
-                      <div className="mt-3 flex items-center gap-4 border-t border-slate-100 pt-3">
-                        {log.callRecordingUrl && (
-                          <a href={log.callRecordingUrl} target="_blank" rel="noreferrer" className="text-[10px] flex items-center gap-1 font-bold text-indigo-600 hover:text-indigo-800 bg-indigo-50 px-2 py-1 rounded">
-                            <FileAudio className="w-3 h-3" /> View Attachment
-                          </a>
-                        )}
-                        {log.nextFollowUpDate && (
-                          <span className="text-[10px] flex items-center gap-1 text-amber-600 font-bold bg-amber-50 px-2 py-1 rounded">
-                            <Calendar className="w-3 h-3" /> Next Call: {new Date(log.nextFollowUpDate).toLocaleDateString()}
-                          </span>
-                        )}
-                        {log.taskId && (
-                          <span className="text-[10px] flex items-center gap-1 text-sky-600 font-bold bg-sky-50 px-2 py-1 rounded ml-auto">
-                            <CheckCircle className="w-3 h-3" /> Task ID #{log.taskId}
-                          </span>
-                        )}
+                            <div className="mt-3 flex items-center gap-4 border-t border-slate-100 pt-3">
+                              {log.callRecordingUrl && (
+                                <a href={log.callRecordingUrl} target="_blank" rel="noreferrer" className="text-[10px] flex items-center gap-1 font-bold text-indigo-600 hover:text-indigo-800 bg-indigo-50 px-2 py-1 rounded">
+                                  <FileAudio className="w-3 h-3" /> View Attachment
+                                </a>
+                              )}
+                              {log.nextFollowUpDate && (
+                                <span className="text-[10px] flex items-center gap-1 text-amber-600 font-bold bg-amber-50 px-2 py-1 rounded">
+                                  <Calendar className="w-3 h-3" /> Next Call: {new Date(log.nextFollowUpDate).toLocaleDateString()}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        ))}
                       </div>
-                    </div>
-                  ))}
-                </div>
+                    )}
+                  </div>
+
+                  {/* Work Logs Section */}
+                  <div>
+                    <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider mb-3 border-b border-slate-200 pb-2 flex items-center gap-2">
+                      <Briefcase className="w-3.5 h-3.5 text-blue-500" /> Work Logs
+                    </h4>
+                    {workLogHistoryData.length === 0 ? (
+                      <div className="text-center py-4 text-slate-400 text-[10px] font-semibold bg-white rounded-lg border border-slate-200 border-dashed">No work logged yet.</div>
+                    ) : (
+                      <div className="space-y-3">
+                        {workLogHistoryData.map(log => (
+                          <div key={log.id} className="bg-white p-4 rounded-lg border border-slate-200 shadow-sm relative border-l-4 border-l-blue-400">
+                            <div className="absolute top-4 right-4 text-[10px] font-bold text-slate-400 bg-slate-100 px-2 py-1 rounded">
+                              {log.workDate ? new Date(log.workDate).toLocaleDateString() : new Date(log.createdAt).toLocaleDateString()}
+                            </div>
+                            <div className="mb-2">
+                              <span className="px-2 py-0.5 bg-blue-50 text-blue-700 rounded text-[10px] font-black uppercase tracking-wider border border-blue-100">
+                                {log.category}
+                              </span>
+                            </div>
+                            <div className="text-xs font-bold text-slate-800 mb-1">{log.subCategory}</div>
+                            {log.remarks && <p className="text-xs text-slate-600 mt-1 whitespace-pre-wrap">{log.remarks}</p>}
+
+                            <div className="mt-3 flex items-center gap-4 border-t border-slate-100 pt-3">
+                              <span className="text-[10px] font-bold text-slate-500">Logged by: <span className="text-slate-700">{log.employeeName || 'Unknown'}</span></span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </>
               )}
             </div>
           </div>

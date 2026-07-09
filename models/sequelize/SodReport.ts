@@ -89,6 +89,10 @@ SodReport.init(
     sequelize,
     tableName: "sodreports",
     timestamps: true,
+    indexes: [
+      { fields: ["employee"] },
+      { fields: ["date"] }
+    ]
   }
 );
 

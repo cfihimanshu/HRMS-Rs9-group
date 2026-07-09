@@ -387,7 +387,7 @@ export async function PUT(req: Request) {
     const userRole = (session.user as any).role || "Employee";
     const userName = session.user.name || "Employee";
     const body = await req.json();
-    const { taskId, status, progressNotes, taskTitle, taskType, description, scheduledAt, forwardedTo, timerStart, timerState, elapsedSeconds, followUpHistory } = body;
+    const { taskId, status, progressNotes, taskTitle, taskType, description, scheduledAt, forwardedTo, timerStart, timerState, elapsedSeconds, followUpHistory, proofAttachment } = body;
 
     if (!taskId) {
       return NextResponse.json({ success: false, error: "Missing required field: taskId" }, { status: 400 });
@@ -410,11 +410,17 @@ export async function PUT(req: Request) {
       return NextResponse.json({ success: false, error: "Task not found" }, { status: 404 });
     }
 
-    // Validation: To complete a task, progressNotes must be filled
+    // Validation: To complete a task, progressNotes and proofAttachment must be filled
     if (status === "Completed") {
       const notesToCheck = progressNotes !== undefined ? progressNotes : task.progressNotes;
       if (!notesToCheck || !notesToCheck.trim()) {
         return NextResponse.json({ success: false, error: "Please write Progress Notes before marking this task as Completed." }, { status: 400 });
+      }
+
+      // Enforce Proof of Work
+      const proofToCheck = proofAttachment !== undefined ? proofAttachment : task.proofAttachment;
+      if (!proofToCheck || !proofToCheck.trim()) {
+        return NextResponse.json({ success: false, error: "Upload Proof of Work (Screenshot/Photo) is mandatory to mark this task as Completed." }, { status: 400 });
       }
     }
 
@@ -427,6 +433,7 @@ export async function PUT(req: Request) {
     if (taskTitle !== undefined) task.taskTitle = taskTitle;
     if (taskType !== undefined) task.taskType = taskType;
     if (description !== undefined) task.description = description;
+    if (proofAttachment !== undefined) task.proofAttachment = proofAttachment;
     if (scheduledAt !== undefined) {
       task.scheduledAt = scheduledAt ? new Date(scheduledAt) : null;
       if (scheduledAt !== prevScheduledAt) task.reminderSent = false;

@@ -23,6 +23,8 @@ const sequelize = new Sequelize(
 export async function connectSequelize() {
   try {
     await sequelize.authenticate();
+    // Import associations after connection to setup relationships safely
+    await import("../models/sequelize/associations");
     console.log("Connected to MySQL database via Sequelize successfully!");
   } catch (error) {
     console.error("Unable to connect to the MySQL database:", error);

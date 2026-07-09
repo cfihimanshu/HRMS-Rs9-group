@@ -283,7 +283,6 @@ export function FieldVisitLogs({ sessionUser, triggerToast }: FieldVisitLogsProp
           action: "start",
           opening_km: openingKm,
           opening_coordinates: coords,
-          opening_location: coords ? "GPS Tracked" : "Manual",
           vehicle_number: vehicleNumber || "Self Owned",
           fuel_status: "N/A",
           photo_url: startPhotoUrl
@@ -339,7 +338,6 @@ export function FieldVisitLogs({ sessionUser, triggerToast }: FieldVisitLogsProp
           action: "close",
           closing_km: closingKm,
           closing_coordinates: coords,
-          closing_location: coords ? "GPS Tracked" : "Manual",
           client_name: clientName,
           purpose: purpose,
           visit_notes: visitNotes,

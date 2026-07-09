@@ -1,8 +1,11 @@
 import { LoginForm } from "@/components/login-form";
+import { LoginSplash } from "@/components/login-splash";
 
 export default function LoginPage() {
   return (
     <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#FAF9F6] p-6 font-sans md:p-10 text-slate-800">
+      <LoginSplash />
+      {/* eslint-disable-next-line @next/next/no-page-custom-font */}
       <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300&display=swap" rel="stylesheet" />
       
       {/* Elegant luxury watermarks in the background */}

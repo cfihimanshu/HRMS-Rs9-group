@@ -4,7 +4,9 @@ import { authOptions } from "@/lib/auth";
 import sequelize from "@/lib/sequelize";
 import Notification from "@/models/sequelize/Notification";
 
-// GET /api/notifications - Get all notifications for the logged in user
+export const dynamic = "force-dynamic";
+
+// GET /api/notifications - Get notifications for the logged in user
 export async function GET(req: Request) {
   try {
     const session = await getServerSession(authOptions);
@@ -13,24 +15,27 @@ export async function GET(req: Request) {
     }
 
     const userId = (session.user as any).id;
-
     await sequelize.authenticate();
     await Notification.sync({ alter: true });
 
-    const records = await Notification.findAll({
+    const notifications = await Notification.findAll({
       where: { recipient: userId },
       order: [["createdAt", "DESC"]],
-      limit: 50,
+      limit: 50
     });
 
-    return NextResponse.json({ success: true, data: records });
+    const unreadCount = await Notification.count({
+      where: { recipient: userId, read: false }
+    });
+
+    return NextResponse.json({ success: true, data: notifications, unreadCount });
   } catch (error: any) {
-    console.error("[/api/notifications GET] Error:", error.message);
+    console.error("Notifications fetch error:", error);
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
 }
 
-// PUT /api/notifications - Mark notifications as read
+// PUT /api/notifications - Mark notifications as read (single or all)
 export async function PUT(req: Request) {
   try {
     const session = await getServerSession(authOptions);
@@ -43,6 +48,7 @@ export async function PUT(req: Request) {
     const { id, markAllAsRead } = body;
 
     await sequelize.authenticate();
+    await Notification.sync({ alter: true });
 
     if (markAllAsRead) {
       await Notification.update(
@@ -69,7 +75,7 @@ export async function PUT(req: Request) {
 
     return NextResponse.json({ success: true, message: "Notification marked as read" });
   } catch (error: any) {
-    console.error("[/api/notifications PUT] Error:", error.message);
+    console.error("Notifications update error:", error);
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
 }

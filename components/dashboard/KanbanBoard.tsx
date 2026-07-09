@@ -32,7 +32,8 @@ import {
   Timer,
   Download,
   List,
-  SlidersHorizontal,
+  Paperclip,
+  Image as ImageIcon
 } from "lucide-react";
 
 interface Task {
@@ -52,6 +53,7 @@ interface Task {
   timerStart?: string | null;
   timerState?: "Running" | "Paused" | "Stopped" | string;
   elapsedSeconds?: number;
+  proofAttachment?: string | null;
 }
 
 const TYPE_COLORS: Record<string, string> = {
@@ -110,7 +112,7 @@ export default function KanbanBoard() {
   // Timer
   const [savingTimer, setSavingTimer] = useState(false);
   const [, setTick] = useState(0); // force re-render every second for live clock
-  
+
   // Views & Date Filters
   const [viewMode, setViewMode] = useState<"kanban" | "list">("kanban");
   const [startDate, setStartDate] = useState("");
@@ -120,6 +122,14 @@ export default function KanbanBoard() {
   // Drag state
   const dragIdRef = useRef<string | null>(null);
   const [dragOverCol, setDragOverCol] = useState<string | null>(null);
+
+  const [uploadingProof, setUploadingProof] = useState(false);
+
+  // Pagination state
+  const [pagePending, setPagePending] = useState(1);
+  const [pageInProgress, setPageInProgress] = useState(1);
+  const [pageCompleted, setPageCompleted] = useState(1);
+  const ITEMS_PER_PAGE = 5;
 
   useEffect(() => {
     if (status !== "loading") {
@@ -173,11 +183,14 @@ export default function KanbanBoard() {
   };
 
   const updateStatus = async (taskId: string, newStatus: string) => {
-    // Guard: cannot complete without progressNotes
+    // Guard: cannot complete without progressNotes and proofAttachment
     if (newStatus === "Completed") {
       const task = tasks.find(t => t.id === taskId);
-      if (!task?.progressNotes?.trim()) {
-        alert("Please write Progress Notes before marking this task as Completed.");
+      if (!task?.progressNotes?.trim() || !task?.proofAttachment?.trim()) {
+        alert("To complete this task, you must provide Progress Notes AND upload Proof of Work (Screenshot/Photo). Please open the task to do this.");
+        if (task) {
+          openTask(task);
+        }
         return;
       }
     }
@@ -308,6 +321,38 @@ export default function KanbanBoard() {
     } finally {
       setSavingNotes(false);
     }
+  };
+
+  const handleUploadProof = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!selectedTask || !e.target.files?.[0]) return;
+    const file = e.target.files[0];
+
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = async () => {
+      const base64String = reader.result as string;
+      setUploadingProof(true);
+      try {
+        const res = await fetch("/api/tasks", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ taskId: selectedTask.id, proofAttachment: base64String }),
+        });
+        const data = await res.json();
+        if (data.success) {
+          setTasks(prev => prev.map(t => t.id === selectedTask.id ? { ...t, proofAttachment: base64String } : t));
+          setSelectedTask(prev => prev ? { ...prev, proofAttachment: base64String } : null);
+          alert("Proof uploaded successfully!");
+        } else {
+          alert(data.error || "Failed to upload proof.");
+        }
+      } catch (err) {
+        console.error(err);
+        alert("Failed to upload proof.");
+      } finally {
+        setUploadingProof(false);
+      }
+    };
   };
 
   const handleSaveEditNote = async (noteId: string) => {
@@ -533,34 +578,28 @@ export default function KanbanBoard() {
   };
 
   const [filterUser, setFilterUser] = useState("All");
+  const [filterDate, setFilterDate] = useState("");
+  const [viewMode, setViewMode] = useState<"kanban" | "list">("kanban");
 
   const uniqueUsers = Array.from(new Set(tasks.map(t => (t.employee as any)?.name).filter(Boolean)));
 
   const filteredTasks = tasks.filter(t => {
-    // User filter
-    if (filterUser !== "All" && (t.employee as any)?.name !== filterUser) {
-      return false;
-    }
-    
-    // Date filter
-    const taskDateStr = t.createdAt || t.date;
-    if (taskDateStr) {
-      const taskDate = new Date(taskDateStr);
-      taskDate.setHours(0, 0, 0, 0);
-      
-      if (startDate) {
-        const start = new Date(startDate);
-        start.setHours(0, 0, 0, 0);
-        if (taskDate < start) return false;
-      }
-      if (endDate) {
-        const end = new Date(endDate);
-        end.setHours(0, 0, 0, 0);
-        if (taskDate > end) return false;
+    let matchUser = filterUser === "All" || (t.employee as any)?.name === filterUser;
+
+    let matchDate = true;
+    if (filterDate) {
+      const taskDate = t.date ? new Date(t.date) : (t.createdAt ? new Date(t.createdAt) : null);
+      if (taskDate) {
+        // adjust to local date string matching yyyy-mm-dd
+        const offset = taskDate.getTimezoneOffset() * 60000;
+        const localDate = new Date(taskDate.getTime() - offset).toISOString().split("T")[0];
+        if (localDate !== filterDate) matchDate = false;
+      } else {
+        matchDate = false;
       }
     }
-    
-    return true;
+
+    return matchUser && matchDate;
   });
 
   const handleExportTasks = () => {
@@ -593,7 +632,7 @@ export default function KanbanBoard() {
     });
 
     const worksheet = XLSX.utils.json_to_sheet(rows, { header: headers });
-    
+
     // Set auto widths based on content
     const max_widths = headers.map(h => {
       let max_len = h.length;
@@ -619,12 +658,19 @@ export default function KanbanBoard() {
   const inProgress = filteredTasks.filter(t => t.status === "In Progress");
   const completed = filteredTasks.filter(t => t.status === "Completed");
 
+  const paginatedPending = pending.slice((pagePending - 1) * ITEMS_PER_PAGE, pagePending * ITEMS_PER_PAGE);
+  const paginatedInProgress = inProgress.slice((pageInProgress - 1) * ITEMS_PER_PAGE, pageInProgress * ITEMS_PER_PAGE);
+  const paginatedCompleted = completed.slice((pageCompleted - 1) * ITEMS_PER_PAGE, pageCompleted * ITEMS_PER_PAGE);
+
   const cols = [
     {
       id: "Pending",
       label: "Pending",
       count: pending.length,
-      tasks: pending,
+      tasks: paginatedPending,
+      page: pagePending,
+      setPage: setPagePending,
+      totalPages: Math.ceil(pending.length / ITEMS_PER_PAGE),
       icon: <Calendar className="w-4 h-4 text-slate-400" />,
       accent: "border-slate-200",
       headerBg: "bg-white",
@@ -638,7 +684,10 @@ export default function KanbanBoard() {
       id: "In Progress",
       label: "In Progress",
       count: inProgress.length,
-      tasks: inProgress,
+      tasks: paginatedInProgress,
+      page: pageInProgress,
+      setPage: setPageInProgress,
+      totalPages: Math.ceil(inProgress.length / ITEMS_PER_PAGE),
       icon: <Activity className="w-4 h-4 text-amber-500" />,
       accent: "border-amber-200",
       headerBg: "bg-amber-50",
@@ -652,7 +701,10 @@ export default function KanbanBoard() {
       id: "Completed",
       label: "Completed",
       count: completed.length,
-      tasks: completed,
+      tasks: paginatedCompleted,
+      page: pageCompleted,
+      setPage: setPageCompleted,
+      totalPages: Math.ceil(completed.length / ITEMS_PER_PAGE),
       icon: <CheckCircle2 className="w-4 h-4 text-emerald-500" />,
       accent: "border-emerald-200",
       headerBg: "bg-emerald-50",
@@ -736,7 +788,7 @@ export default function KanbanBoard() {
                 {new Date(task.createdAt || task.date).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}
               </div>
             </div>
-            
+
             {/* Timer Next to Date/Time */}
             {task.status !== "Completed" && (
               <span className="flex items-center gap-1 text-[10px] font-mono font-black px-2 py-1 rounded-lg border bg-green-50 text-green-700 border-green-200">
@@ -811,110 +863,49 @@ export default function KanbanBoard() {
           <p className="text-xs text-slate-500 mt-1">Manage your daily workload — view as Kanban or list, filter by dates.</p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
-          {/* Unified Filters Dropdown */}
-          <div className="relative">
-            <button
-              type="button"
-              onClick={() => setShowFiltersDropdown(!showFiltersDropdown)}
-              className={cn(
-                "flex items-center gap-1.5 px-3 py-2 border rounded-lg text-[10px] font-black uppercase tracking-wider transition-all shadow-sm bg-white text-slate-700 hover:bg-[#F5F0EA] border-slate-200",
-                showFiltersDropdown && "border-[#C9A84C] text-[#C9A84C]"
-              )}
+          {uniqueUsers.length > 1 && (
+            <select
+              className="bg-white border border-slate-200 text-slate-700 text-[10px] font-black uppercase tracking-wider rounded-lg px-3 py-2 focus:outline-none focus:border-[#714B67] shadow-sm cursor-pointer"
+              value={filterUser}
+              onChange={e => setFilterUser(e.target.value)}
             >
-              <SlidersHorizontal className="w-3.5 h-3.5" /> Filters
-              {(filterUser !== "All" || startDate || endDate || viewMode !== "kanban") && (
-                <span className="w-1.5 h-1.5 rounded-full bg-[#C9A84C] animate-pulse inline-block ml-1" />
-              )}
+              <option value="All">All Users</option>
+              {uniqueUsers.map((u: any) => (
+                <option key={u} value={u}>{u}</option>
+              ))}
+            </select>
+          )}
+          <input
+            type="date"
+            className="bg-white border border-slate-200 text-slate-700 text-[10px] font-black uppercase tracking-wider rounded-lg px-3 py-2 focus:outline-none focus:border-[#714B67] shadow-sm cursor-pointer"
+            value={filterDate}
+            onChange={e => setFilterDate(e.target.value)}
+            title="Filter by Date"
+          />
+          {filterDate && (
+            <button
+              onClick={() => setFilterDate("")}
+              className="text-[10px] text-slate-400 hover:text-slate-600 font-bold uppercase tracking-wider -ml-1"
+            >
+              Clear
             </button>
-
-            {showFiltersDropdown && (
-              <div className="absolute right-0 mt-2 z-50 bg-white border border-[#E8E4DF] shadow-xl rounded-2xl p-4 w-[280px] space-y-4 text-left">
-                {/* View Mode Section */}
-                <div>
-                  <label className="block text-[8px] uppercase tracking-wider text-slate-400 font-bold mb-1">View Mode</label>
-                  <div className="flex bg-[#F5F0EA] p-0.5 rounded-lg border border-[#E8E4DF]">
-                    <button
-                      type="button"
-                      onClick={() => setViewMode("kanban")}
-                      className={cn(
-                        "flex-1 flex items-center justify-center gap-1 py-1 rounded-md text-[9px] font-black uppercase tracking-wider transition-all",
-                        viewMode === "kanban" 
-                          ? "bg-[#C9A84C] text-white shadow-sm" 
-                          : "text-slate-500 hover:text-slate-800"
-                      )}
-                    >
-                      <LayoutGrid className="w-3 h-3" /> Kanban
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setViewMode("list")}
-                      className={cn(
-                        "flex-1 flex items-center justify-center gap-1 py-1 rounded-md text-[9px] font-black uppercase tracking-wider transition-all",
-                        viewMode === "list" 
-                          ? "bg-[#C9A84C] text-white shadow-sm" 
-                          : "text-slate-500 hover:text-slate-800"
-                      )}
-                    >
-                      <List className="w-3 h-3" /> List
-                    </button>
-                  </div>
-                </div>
-
-                {/* User Filter Section */}
-                {uniqueUsers.length > 1 && (
-                  <div>
-                    <label className="block text-[8px] uppercase tracking-wider text-slate-400 font-bold mb-1">Filter by User</label>
-                    <select
-                      className="w-full bg-white border border-slate-200 text-slate-700 text-[10px] font-bold rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-[#C9A84C] cursor-pointer"
-                      value={filterUser}
-                      onChange={e => setFilterUser(e.target.value)}
-                    >
-                      <option value="All">All Users</option>
-                      {uniqueUsers.map((u: any) => (
-                        <option key={u} value={u}>{u}</option>
-                      ))}
-                    </select>
-                  </div>
-                )}
-
-                {/* Date Range Section */}
-                <div>
-                  <label className="block text-[8px] uppercase tracking-wider text-slate-400 font-bold mb-1">Date Range</label>
-                  <div className="space-y-1.5">
-                    <input
-                      type="date"
-                      value={startDate}
-                      onChange={e => setStartDate(e.target.value)}
-                      className="w-full bg-white border border-slate-200 text-[10px] font-bold text-slate-700 px-2 py-1 focus:outline-none focus:border-[#C9A84C] rounded-lg"
-                      placeholder="Start Date"
-                    />
-                    <input
-                      type="date"
-                      value={endDate}
-                      onChange={e => setEndDate(e.target.value)}
-                      className="w-full bg-white border border-slate-200 text-[10px] font-bold text-slate-700 px-2 py-1 focus:outline-none focus:border-[#C9A84C] rounded-lg"
-                      placeholder="End Date"
-                    />
-                  </div>
-                </div>
-
-                {/* Reset Filters Button */}
-                <button
-                  type="button"
-                  onClick={() => {
-                    setFilterUser("All");
-                    setStartDate("");
-                    setEndDate("");
-                    setViewMode("kanban");
-                  }}
-                  className="w-full text-center text-[10px] text-red-500 hover:text-red-600 font-bold uppercase tracking-wider font-sans py-2 border-t border-slate-100 mt-3 block bg-red-50/50 hover:bg-red-50 rounded-lg transition-colors"
-                >
-                  Reset Filters
-                </button>
-              </div>
-            )}
+          )}
+          <div className="flex bg-slate-100 rounded-lg p-1 shadow-sm border border-slate-200">
+            <button
+              onClick={() => setViewMode("kanban")}
+              className={`px-3 py-1.5 rounded-md text-[10px] font-black uppercase tracking-wider flex items-center gap-1.5 transition-all ${viewMode === "kanban" ? "bg-white text-slate-800 shadow" : "text-slate-500 hover:text-slate-700"}`}
+            >
+              <LayoutGrid className="w-3.5 h-3.5" />
+              Kanban
+            </button>
+            <button
+              onClick={() => setViewMode("list")}
+              className={`px-3 py-1.5 rounded-md text-[10px] font-black uppercase tracking-wider flex items-center gap-1.5 transition-all ${viewMode === "list" ? "bg-white text-slate-800 shadow" : "text-slate-500 hover:text-slate-700"}`}
+            >
+              <List className="w-3.5 h-3.5" />
+              List
+            </button>
           </div>
-
           <button
             onClick={handleExportTasks}
             className="flex items-center gap-1.5 bg-[#714B67] hover:bg-[#5b3c53] text-white text-[10px] font-black uppercase tracking-wider rounded-lg px-3 py-2 transition-all shadow-sm font-sans"
@@ -929,8 +920,8 @@ export default function KanbanBoard() {
       </div>
 
       {viewMode === "kanban" ? (
-        /* Kanban Grid */
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 flex-1 items-start">
+          {/* Kanban Grid */}
           {cols.map(col => {
             const isOver = dragOverCol === col.id;
             return (
@@ -1035,101 +1026,100 @@ export default function KanbanBoard() {
                       Drop tasks here
                     </div>
                   )}
+
+                  {/* Pagination Controls */}
+                  {col.totalPages > 1 && (
+                    <div className="flex items-center justify-between pt-4 mt-2 border-t border-slate-200/60 pb-2">
+                      <button
+                        onClick={() => col.setPage((p: number) => Math.max(1, p - 1))}
+                        disabled={col.page === 1}
+                        className="px-2 py-1 bg-white border border-slate-200 rounded text-[10px] font-bold text-slate-500 disabled:opacity-40 hover:bg-slate-50 transition-colors"
+                      >
+                        Prev
+                      </button>
+                      <span className="text-[10px] font-black tracking-widest text-slate-400">
+                        {col.page} / {col.totalPages}
+                      </span>
+                      <button
+                        onClick={() => col.setPage((p: number) => Math.min(col.totalPages, p + 1))}
+                        disabled={col.page === col.totalPages}
+                        className="px-2 py-1 bg-white border border-slate-200 rounded text-[10px] font-bold text-slate-500 disabled:opacity-40 hover:bg-slate-50 transition-colors"
+                      >
+                        Next
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
             );
           })}
         </div>
       ) : (
-        /* List View */
-        <div className="bg-white border border-slate-200 rounded-2xl shadow-sm">
-          <div className="overflow-x-auto">
-            <table className="w-full border-collapse text-left font-sans">
-              <thead>
-                <tr className="border-b border-slate-200 bg-slate-50 text-[10px] uppercase font-black tracking-wider text-slate-500">
-                  <th className="py-4 px-6 w-24">Status</th>
-                  <th className="py-4 px-6">Task details</th>
-                  <th className="py-4 px-6 w-28">Type</th>
-                  <th className="py-4 px-6 w-44">Date & Time</th>
-                  <th className="py-4 px-6 w-32">Timer</th>
+        <div className="flex-1 bg-white border border-slate-200 rounded-2xl overflow-auto shadow-sm">
+          <table className="w-full text-left border-collapse min-w-[1000px]">
+            <thead className="bg-slate-50 sticky top-0 z-10">
+              <tr>
+                <th className="p-4 text-[10px] font-black uppercase tracking-widest text-slate-500 border-b border-slate-200">Task Title & Info</th>
+                <th className="p-4 text-[10px] font-black uppercase tracking-widest text-slate-500 border-b border-slate-200">Assigned To</th>
+                <th className="p-4 text-[10px] font-black uppercase tracking-widest text-slate-500 border-b border-slate-200">Status</th>
+                <th className="p-4 text-[10px] font-black uppercase tracking-widest text-slate-500 border-b border-slate-200">Date Logged</th>
+                <th className="p-4 text-[10px] font-black uppercase tracking-widest text-slate-500 border-b border-slate-200">Progress Notes</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {filteredTasks.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="p-8 text-center text-slate-400 text-xs font-bold">No tasks found.</td>
                 </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 text-xs font-semibold text-slate-700">
-                {filteredTasks.map(task => {
-                  const typeColor = TYPE_COLORS[task.taskType] || TYPE_COLORS.Other;
-                  const creatorName = (task.employee as any)?.name || "Unknown User";
-                  
-                  let statusColor = "";
-                  if (task.status === "Pending") statusColor = "bg-slate-100 text-slate-700 border-slate-200";
-                  else if (task.status === "In Progress") statusColor = "bg-amber-100 text-amber-700 border-amber-200";
-                  else if (task.status === "Completed") statusColor = "bg-emerald-100 text-emerald-700 border-emerald-200";
+              ) : (
+                filteredTasks.map(t => {
+                  let parsedNotes: any[] = [];
+                  if (t.progressNotes) {
+                    try {
+                      parsedNotes = JSON.parse(t.progressNotes);
+                    } catch (e) { }
+                  }
 
                   return (
-                    <tr
-                      key={task.id}
-                      className="hover:bg-slate-50/50 transition-colors cursor-pointer"
-                      onClick={() => openTask(task)}
-                    >
-                      {/* Status */}
-                      <td className="py-4 px-6">
-                        <span className={cn("inline-block text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full border", statusColor)}>
-                          {task.status}
+                    <tr key={t.id} className="hover:bg-slate-50/50 transition-colors">
+                      <td className="p-4 align-top">
+                        <div className="font-bold text-slate-800 text-sm mb-1">{t.taskTitle}</div>
+                        <div className="text-[10px] font-black uppercase tracking-wider text-[#714B67] bg-[#714B67]/10 inline-block px-2 py-0.5 rounded-md mb-2">{t.taskType}</div>
+                        <p className="text-xs text-slate-600 line-clamp-2">{t.description}</p>
+                      </td>
+                      <td className="p-4 align-top text-xs font-bold text-slate-700">
+                        {(t.employee as any)?.name || "Unknown"}
+                      </td>
+                      <td className="p-4 align-top">
+                        <span className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider
+                          ${t.status === "Pending" ? "bg-amber-100 text-amber-700" : t.status === "In Progress" ? "bg-blue-100 text-blue-700" : "bg-emerald-100 text-emerald-700"}
+                        `}>
+                          {t.status}
                         </span>
                       </td>
-                      
-                      {/* Title & Description */}
-                      <td className="py-4 px-6">
-                        <div>
-                          <div className="font-bold text-slate-800 text-sm hover:text-[#714B67] transition-colors">{task.taskTitle}</div>
-                          {task.description && (
-                            <div className="text-[10px] text-slate-500 font-medium mt-1 line-clamp-1">{task.description}</div>
-                          )}
-                          <div className="text-[9px] font-bold text-slate-400 mt-1 uppercase tracking-wide">
-                            Created by: <span className="text-slate-600">{creatorName}</span>
+                      <td className="p-4 align-top text-xs text-slate-600 font-mono">
+                        {t.date ? new Date(t.date).toLocaleDateString() : t.createdAt ? new Date(t.createdAt).toLocaleDateString() : "-"}
+                      </td>
+                      <td className="p-4 align-top">
+                        {parsedNotes.length > 0 ? (
+                          <div className="space-y-3 max-h-[120px] overflow-y-auto pr-2 custom-scrollbar">
+                            {parsedNotes.map((note: any, i: number) => (
+                              <div key={i} className="text-xs bg-slate-50 p-2 rounded border border-slate-100">
+                                <div className="font-bold text-slate-700 text-[10px] uppercase mb-1">{note.userName || "User"} &bull; {new Date(note.createdAt).toLocaleString()}</div>
+                                <div className="text-slate-600">{note.note}</div>
+                              </div>
+                            ))}
                           </div>
-                        </div>
-                      </td>
-                      
-                      {/* Type */}
-                      <td className="py-4 px-6">
-                        <span className={cn("inline-block text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full border", typeColor)}>
-                          {task.taskType}
-                        </span>
-                      </td>
-                      
-                      {/* Date & Time */}
-                      <td className="py-4 px-6 text-[#9C9890]">
-                        <div className="flex flex-col">
-                          <span className="font-mono text-slate-600">
-                            {new Date(task.createdAt || task.date).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}
-                          </span>
-                          <span className="text-[10px] font-mono mt-0.5">
-                            {new Date(task.createdAt || task.date).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}
-                          </span>
-                        </div>
-                      </td>
-                      
-                      {/* Timer */}
-                      <td className="py-4 px-6" onClick={e => e.stopPropagation()}>
-                        {task.status !== "Completed" && (
-                          <span className="inline-flex items-center gap-1 text-[10px] font-mono font-black px-2 py-1 rounded-lg border bg-green-50 text-green-700 border-green-200">
-                            <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse inline-block" />
-                            {formatTimer(getLiveElapsed(task))}
-                          </span>
-                        )}
-                        {task.status === "Completed" && getLiveElapsed(task) > 0 && (
-                          <span className="inline-flex items-center gap-1 text-[10px] font-mono font-black px-2 py-1 rounded-lg border bg-slate-50 text-slate-400 border-slate-200">
-                            <Timer className="w-3 h-3 text-slate-400" />
-                            {formatTimer(getLiveElapsed(task))}
-                          </span>
+                        ) : (
+                          <span className="text-xs text-slate-400 italic">No notes</span>
                         )}
                       </td>
                     </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+                  )
+                })
+              )}
+            </tbody>
+          </table>
         </div>
       )}
 
@@ -1293,7 +1283,7 @@ export default function KanbanBoard() {
 
                 {/* Call Follow-up Date & Time Section */}
                 <div className="px-6 py-4 border-b border-slate-100 bg-violet-50/30">
-                  <div 
+                  <div
                     className="flex items-center gap-2 mb-3 cursor-pointer select-none"
                     onClick={() => setExpandFollowUpHistory(!expandFollowUpHistory)}
                   >
@@ -1308,7 +1298,7 @@ export default function KanbanBoard() {
                       </span>
                     )}
                   </div>
-                  
+
                   {expandFollowUpHistory && (
                     <div className="space-y-3 animate-fadeIn">
                       <div className="grid grid-cols-2 gap-3">
@@ -1449,151 +1439,198 @@ export default function KanbanBoard() {
                   <div className="flex items-center gap-2">
                     <Timer className="w-3.5 h-3.5 text-slate-400" />
                     <span className="text-[9px] uppercase font-black text-slate-400 tracking-wider">Time Elapsed</span>
-                    <span className={`ml-auto text-[11px] font-black px-3 py-1 rounded-full border font-mono ${
-                      selectedTask.timerState === "Running"
+                    <span className={`ml-auto text-[11px] font-black px-3 py-1 rounded-full border font-mono ${selectedTask.timerState === "Running"
                         ? "bg-green-100 text-green-700 border-green-200"
                         : "bg-slate-100 text-slate-500 border-slate-200"
-                    }`}>
+                      }`}>
                       {selectedTask.timerState === "Running" && <span className="inline-block w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse mr-1.5" />}
                       {formatTimer(getLiveElapsed(selectedTask))}
                     </span>
                   </div>
                 </div>
 
-                {/* Progress Notes */}
-                <div className="px-6 py-4">
-                  <div 
-                    className="flex items-center gap-2 mb-3 cursor-pointer select-none"
-                    onClick={() => setExpandNotesHistory(!expandNotesHistory)}
-                  >
-                    <StickyNote className="w-4 h-4 text-indigo-500" />
-                    <p className="text-[10px] uppercase font-black text-slate-700 tracking-wider">Progress Notes History</p>
-                    {expandNotesHistory ? <ChevronUp className="w-3.5 h-3.5 text-indigo-500" /> : <ChevronDown className="w-3.5 h-3.5 text-indigo-500" />}
+                {/* Proof of Work & Progress Notes */}
+                <div className="px-6 py-4 space-y-5">
+                  {/* Proof of Work Section */}
+                  <div className="border border-slate-200 rounded-xl p-4 bg-slate-50/50">
+                    <div className="flex items-center gap-2 mb-3">
+                      <ImageIcon className="w-4 h-4 text-emerald-500" />
+                      <p className="text-[10px] uppercase font-black text-slate-700 tracking-wider">Proof of Work (Mandatory for Completion)</p>
+                    </div>
+                    {selectedTask.proofAttachment ? (
+                      <div className="space-y-2">
+                        {(() => {
+                          const url = selectedTask.proofAttachment.toLowerCase();
+                          if (url.includes('application/pdf')) {
+                            return <div className="p-3 bg-white rounded border border-slate-200 text-xs font-bold text-slate-700 flex items-center gap-2"><Paperclip className="w-4 h-4" /> PDF Document Uploaded</div>;
+                          }
+                          if (url.includes('audio/')) {
+                            return <audio controls className="w-full h-10"><source src={selectedTask.proofAttachment} /></audio>;
+                          }
+                          return (
+                            <img
+                              src={selectedTask.proofAttachment}
+                              alt="Proof"
+                              className="max-h-48 rounded-lg border border-slate-200 object-contain shadow-sm bg-slate-100"
+                            />
+                          );
+                        })()}
+                        <p className="text-[9px] font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded inline-block">Proof uploaded</p>
+                      </div>
+                    ) : (
+                      <div className="flex flex-col gap-2">
+                        <label className="flex items-center justify-center w-full h-24 border-2 border-dashed border-slate-300 rounded-lg cursor-pointer hover:bg-slate-50 transition-colors">
+                          <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                            {uploadingProof ? (
+                              <Loader2 className="w-6 h-6 text-slate-400 animate-spin mb-2" />
+                            ) : (
+                              <Paperclip className="w-6 h-6 text-slate-400 mb-2" />
+                            )}
+                            <p className="mb-2 text-[10px] uppercase font-bold text-slate-500 tracking-wider">
+                              {uploadingProof ? "Uploading..." : "Click to upload Proof"}
+                            </p>
+                          </div>
+                          <input type="file" className="hidden" accept="image/*,.pdf,audio/*" onChange={handleUploadProof} disabled={uploadingProof} />
+                        </label>
+                      </div>
+                    )}
                   </div>
 
-                  {/* Previous Notes List */}
-                  {expandNotesHistory && (() => {
-                    let notesList: any[] = [];
-                    if (selectedTask.progressNotes) {
-                      try {
-                        const parsed = JSON.parse(selectedTask.progressNotes);
-                        notesList = Array.isArray(parsed) ? parsed : [{ id: 'legacy', note: selectedTask.progressNotes, createdAt: selectedTask.createdAt || new Date(), userName: "System" }];
-                      } catch (e) {
-                        notesList = [{ id: 'legacy', note: selectedTask.progressNotes, createdAt: selectedTask.createdAt || new Date(), userName: "System" }];
+                  {/* Progress Notes */}
+                  <div>
+                    <div
+                      className="flex items-center gap-2 mb-3 cursor-pointer select-none"
+                      onClick={() => setExpandNotesHistory(!expandNotesHistory)}
+                    >
+                      <StickyNote className="w-4 h-4 text-indigo-500" />
+                      <p className="text-[10px] uppercase font-black text-slate-700 tracking-wider">Progress Notes History</p>
+                      {expandNotesHistory ? <ChevronUp className="w-3.5 h-3.5 text-indigo-500" /> : <ChevronDown className="w-3.5 h-3.5 text-indigo-500" />}
+                    </div>
+
+                    {/* Previous Notes List */}
+                    {expandNotesHistory && (() => {
+                      let notesList: any[] = [];
+                      if (selectedTask.progressNotes) {
+                        try {
+                          const parsed = JSON.parse(selectedTask.progressNotes);
+                          notesList = Array.isArray(parsed) ? parsed : [{ id: 'legacy', note: selectedTask.progressNotes, createdAt: selectedTask.createdAt || new Date(), userName: "System" }];
+                        } catch (e) {
+                          notesList = [{ id: 'legacy', note: selectedTask.progressNotes, createdAt: selectedTask.createdAt || new Date(), userName: "System" }];
+                        }
                       }
-                    }
 
-                    return notesList.length > 0 && (
-                      <div className="mb-4 space-y-2.5 max-h-48 overflow-y-auto pr-1 animate-fadeIn">
-                        {notesList.map((n, idx) => {
-                          const noteId = n.id || idx.toString();
-                          const isEditingThisNote = editingNoteId === noteId;
-                          const canEdit = (sessionUser as any)?.role === "Owner" || (n.userName && sessionUser?.name && n.userName.trim() === sessionUser.name.trim());
+                      return notesList.length > 0 && (
+                        <div className="mb-4 space-y-2.5 max-h-48 overflow-y-auto pr-1 animate-fadeIn">
+                          {notesList.map((n, idx) => {
+                            const noteId = n.id || idx.toString();
+                            const isEditingThisNote = editingNoteId === noteId;
+                            const canEdit = (sessionUser as any)?.role === "Owner" || (n.userName && sessionUser?.name && n.userName.trim() === sessionUser.name.trim());
 
-                          return (
-                            <div key={noteId} className="p-2.5 rounded-xl border border-slate-100 bg-slate-50/60 text-left">
-                              <div className="flex items-center justify-between gap-2 mb-1">
-                                <div className="flex items-center gap-1.5">
-                                  <span className="text-[9px] font-black uppercase text-indigo-650 tracking-wider">
-                                    {n.userName || "System"}
-                                  </span>
-                                  {n.updatedAt && (
-                                    <span className="text-[7px] font-bold text-slate-400 bg-slate-100 px-1 rounded uppercase tracking-wider">Edited</span>
-                                  )}
-                                </div>
-                                <div className="flex items-center gap-2">
-                                  <span className="text-[9px] text-slate-450 font-medium">
-                                    {new Date(n.createdAt).toLocaleString("en-IN", { hour: "2-digit", minute: "2-digit", day: "2-digit", month: "short" })}
-                                  </span>
-                                  {canEdit && !isEditingThisNote && (
-                                    <button
-                                      onClick={() => {
-                                        setEditingNoteId(noteId);
-                                        setEditingNoteText(n.note);
-                                      }}
-                                      className="text-slate-455 hover:text-indigo-600 transition-colors p-0.5"
-                                      title="Edit Note"
-                                    >
-                                      <Edit2 className="w-3 h-3" />
-                                    </button>
-                                  )}
-                                </div>
-                              </div>
-                              {isEditingThisNote ? (
-                                <div className="mt-1 space-y-1.5">
-                                  <textarea
-                                    className="w-full border border-indigo-200 rounded-lg p-2 text-xs font-semibold focus:outline-none focus:border-indigo-400 focus:ring-1 focus:ring-indigo-100 text-slate-700 bg-white"
-                                    rows={2}
-                                    value={editingNoteText}
-                                    onChange={e => setEditingNoteText(e.target.value)}
-                                  />
-                                  <div className="flex justify-end gap-1.5">
-                                    <button
-                                      onClick={() => {
-                                        setEditingNoteId(null);
-                                        setEditingNoteText("");
-                                      }}
-                                      disabled={savingEditNote}
-                                      className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-655 rounded text-[9px] font-black uppercase transition-all"
-                                    >
-                                      Cancel
-                                    </button>
-                                    <button
-                                      onClick={() => handleSaveEditNote(noteId)}
-                                      disabled={savingEditNote || !editingNoteText.trim() || editingNoteText.trim() === n.note.trim()}
-                                      className="px-2.5 py-1 bg-indigo-650 hover:bg-indigo-700 disabled:opacity-50 text-white rounded text-[9px] font-black uppercase flex items-center gap-1 transition-all"
-                                    >
-                                      {savingEditNote ? <Loader2 className="w-2.5 h-2.5 animate-spin" /> : <Save className="w-2.5 h-2.5" />}
-                                      Save
-                                    </button>
+                            return (
+                              <div key={noteId} className="p-2.5 rounded-xl border border-slate-100 bg-slate-50/60 text-left">
+                                <div className="flex items-center justify-between gap-2 mb-1">
+                                  <div className="flex items-center gap-1.5">
+                                    <span className="text-[9px] font-black uppercase text-indigo-650 tracking-wider">
+                                      {n.userName || "System"}
+                                    </span>
+                                    {n.updatedAt && (
+                                      <span className="text-[7px] font-bold text-slate-400 bg-slate-100 px-1 rounded uppercase tracking-wider">Edited</span>
+                                    )}
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-[9px] text-slate-450 font-medium">
+                                      {new Date(n.createdAt).toLocaleString("en-IN", { hour: "2-digit", minute: "2-digit", day: "2-digit", month: "short" })}
+                                    </span>
+                                    {canEdit && !isEditingThisNote && (
+                                      <button
+                                        onClick={() => {
+                                          setEditingNoteId(noteId);
+                                          setEditingNoteText(n.note);
+                                        }}
+                                        className="text-slate-455 hover:text-indigo-600 transition-colors p-0.5"
+                                        title="Edit Note"
+                                      >
+                                        <Edit2 className="w-3 h-3" />
+                                      </button>
+                                    )}
                                   </div>
                                 </div>
-                              ) : (
-                                <p className="text-[11px] text-slate-700 leading-relaxed font-semibold break-words whitespace-pre-wrap">
-                                  {n.note}
-                                </p>
-                              )}
-                            </div>
-                          );
-                        })}
-                      </div>
-                    );
-                  })()}
+                                {isEditingThisNote ? (
+                                  <div className="mt-1 space-y-1.5">
+                                    <textarea
+                                      className="w-full border border-indigo-200 rounded-lg p-2 text-xs font-semibold focus:outline-none focus:border-indigo-400 focus:ring-1 focus:ring-indigo-100 text-slate-700 bg-white"
+                                      rows={2}
+                                      value={editingNoteText}
+                                      onChange={e => setEditingNoteText(e.target.value)}
+                                    />
+                                    <div className="flex justify-end gap-1.5">
+                                      <button
+                                        onClick={() => {
+                                          setEditingNoteId(null);
+                                          setEditingNoteText("");
+                                        }}
+                                        disabled={savingEditNote}
+                                        className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-655 rounded text-[9px] font-black uppercase transition-all"
+                                      >
+                                        Cancel
+                                      </button>
+                                      <button
+                                        onClick={() => handleSaveEditNote(noteId)}
+                                        disabled={savingEditNote || !editingNoteText.trim() || editingNoteText.trim() === n.note.trim()}
+                                        className="px-2.5 py-1 bg-indigo-650 hover:bg-indigo-700 disabled:opacity-50 text-white rounded text-[9px] font-black uppercase flex items-center gap-1 transition-all"
+                                      >
+                                        {savingEditNote ? <Loader2 className="w-2.5 h-2.5 animate-spin" /> : <Save className="w-2.5 h-2.5" />}
+                                        Save
+                                      </button>
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <p className="text-[11px] text-slate-700 leading-relaxed font-semibold break-words whitespace-pre-wrap">
+                                    {n.note}
+                                  </p>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      );
+                    })()}
 
-                  <textarea
-                    className="w-full border border-slate-200 rounded-xl px-4 py-3 text-xs font-medium text-slate-800 focus:outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 resize-none placeholder-slate-400 leading-relaxed"
-                    rows={3}
-                    placeholder="Add a new progress note, blocker, or update here..."
-                    value={editNotes}
-                    onChange={e => setEditNotes(e.target.value)}
-                  />
-                  <div className="flex items-center justify-between mt-3">
-                    <p className="text-[9px] text-slate-450 font-medium">
-                      Created: {new Date(selectedTask.createdAt || selectedTask.date).toLocaleString("en-IN", { hour: "2-digit", minute: "2-digit", day: "2-digit", month: "short" })}
-                    </p>
-                    <div className="flex gap-2">
-                      <button
-                        onClick={saveProgressNotes}
-                        disabled={savingNotes || !editNotes.trim()}
-                        className="flex items-center gap-2 bg-indigo-50 border border-indigo-200 hover:bg-indigo-100 disabled:opacity-40 disabled:cursor-not-allowed text-indigo-700 px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all"
-                      >
-                        {savingNotes ? <Loader2 className="w-3 h-3 animate-spin" /> : <Save className="w-3 h-3" />}
-                        {savingNotes ? "Saving..." : "Add Note"}
-                      </button>
-                      <button
-                        onClick={async () => {
-                          if (editNotes.trim()) {
-                            const success = await saveProgressNotes();
-                            if (!success) return;
-                          }
-                          setSelectedTask(null);
-                          setIsEditingTask(false);
-                        }}
-                        disabled={savingNotes}
-                        className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all"
-                      >
-                        <CheckCircle2 className="w-3 h-3" /> Close Task View
-                      </button>
+                    <textarea
+                      className="w-full border border-slate-200 rounded-xl px-4 py-3 text-xs font-medium text-slate-800 focus:outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 resize-none placeholder-slate-400 leading-relaxed"
+                      rows={3}
+                      placeholder="Add a new progress note, blocker, or update here..."
+                      value={editNotes}
+                      onChange={e => setEditNotes(e.target.value)}
+                    />
+                    <div className="flex items-center justify-between mt-3">
+                      <p className="text-[9px] text-slate-450 font-medium">
+                        Created: {new Date(selectedTask.createdAt || selectedTask.date).toLocaleString("en-IN", { hour: "2-digit", minute: "2-digit", day: "2-digit", month: "short" })}
+                      </p>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={saveProgressNotes}
+                          disabled={savingNotes || !editNotes.trim()}
+                          className="flex items-center gap-2 bg-indigo-50 border border-indigo-200 hover:bg-indigo-100 disabled:opacity-40 disabled:cursor-not-allowed text-indigo-700 px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all"
+                        >
+                          {savingNotes ? <Loader2 className="w-3 h-3 animate-spin" /> : <Save className="w-3 h-3" />}
+                          {savingNotes ? "Saving..." : "Add Note"}
+                        </button>
+                        <button
+                          onClick={async () => {
+                            if (editNotes.trim()) {
+                              const success = await saveProgressNotes();
+                              if (!success) return;
+                            }
+                            setSelectedTask(null);
+                            setIsEditingTask(false);
+                          }}
+                          disabled={savingNotes}
+                          className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all"
+                        >
+                          <CheckCircle2 className="w-3 h-3" /> Close Task View
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>

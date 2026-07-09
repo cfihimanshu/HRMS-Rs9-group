@@ -31,17 +31,17 @@ export async function GET(req: Request) {
         raw: true
       });
       const targetUserIds = usersOfCompany.map((u: any) => u.id);
-      
+
       auditLogFilter.user = {
         [Op.in]: targetUserIds
       };
     }
 
-    // Fetch last 15 audit logs
+    // Fetch last 100 audit logs
     const logs: any[] = await AuditLog.findAll({
       where: auditLogFilter,
-      order: [['timestamp', 'DESC']],
-      limit: 15,
+      order: [['createdAt', 'DESC']],
+      limit: 100,
       raw: true
     });
 
@@ -61,7 +61,6 @@ export async function GET(req: Request) {
 
     const data = logs.map(log => ({
       ...log,
-      timestamp: log.timestamp || log.createdAt,
       user: userMap[log.user as string] || { name: 'Unknown', role: 'Unknown' }
     }));
 
