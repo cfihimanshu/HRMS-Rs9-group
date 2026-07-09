@@ -54,6 +54,7 @@ import InventoryManagement from "@/components/dashboard/InventoryManagement";
 import LegalRecoveryModule from "@/components/dashboard/LegalRecoveryModule";
 import KanbanBoard from "@/components/dashboard/KanbanBoard";
 import { AssetRequestLogs } from "@/components/dashboard/AssetRequestPanels";
+import LiveTrackingMap from "@/components/dashboard/LiveTrackingMap";
 
 export default function UnifiedEnterpriseDashboard() {
   const { data: session, status } = useSession();
@@ -288,7 +289,7 @@ export default function UnifiedEnterpriseDashboard() {
       const role = u.role ? u.role.replace(/\\s+/g, '-') : "Role";
       const empId = u.employeeId || u.id || "EMP";
       const expectedPath = `/dashboard/${encodeURIComponent(comp)}/${encodeURIComponent(dept)}/${encodeURIComponent(role)}/${encodeURIComponent(empId)}`;
-      
+
       if (window.location.pathname !== expectedPath && window.location.pathname.startsWith('/dashboard')) {
         window.history.replaceState(null, '', expectedPath + window.location.search);
       }
@@ -325,7 +326,7 @@ export default function UnifiedEnterpriseDashboard() {
       const data = await res.json();
       if (data.success) {
         setStats(data.stats);
-        
+
         if (userRole === "Employee" && data.stats?.currentUserCompliance && !data.stats.currentUserCompliance.hasSod) {
           setActiveTab("attendance");
           toggleModal("sodModal", true);
@@ -463,7 +464,7 @@ export default function UnifiedEnterpriseDashboard() {
         const role = userRole;
 
         if (tab && tab !== activeTab) {
-           setActiveTab(tab);
+          setActiveTab(tab);
         } else if (role === "Owner" || role === "Director") {
           setActiveTab("dashboard");
         } else if (role === "HR Head" || role === "HR Executive") {
@@ -490,9 +491,9 @@ export default function UnifiedEnterpriseDashboard() {
   // Auto popup SOD on load if missing
   useEffect(() => {
     if (stats?.currentUserCompliance && userRole === "Employee") {
-       if (!stats.currentUserCompliance.hasSod && !modals.sodModal && activeTab !== "attendance") {
-           toggleModal("sodModal", true);
-       }
+      if (!stats.currentUserCompliance.hasSod && !modals.sodModal && activeTab !== "attendance") {
+        toggleModal("sodModal", true);
+      }
     }
   }, [stats]);
 
@@ -584,22 +585,22 @@ export default function UnifiedEnterpriseDashboard() {
       });
       const data = await res.json();
       if (data.success) {
-         triggerToast("Hiring requisition registered at Stage 1 (Dept Head Desk)!");
-         setHiringForm({
-           companyName: "Acolyte Group of Companies",
-           department: "Sales",
-           role: "",
-           category: "Staff",
-           location: "",
-           qty: 1,
-           jd: "",
-           kra: "",
-           kpi: "",
-           qualification: "",
-           salaryBudget: "",
-           riskLevel: "Low",
-           expectedOutput: "",
-         });
+        triggerToast("Hiring requisition registered at Stage 1 (Dept Head Desk)!");
+        setHiringForm({
+          companyName: "Acolyte Group of Companies",
+          department: "Sales",
+          role: "",
+          category: "Staff",
+          location: "",
+          qty: 1,
+          jd: "",
+          kra: "",
+          kpi: "",
+          qualification: "",
+          salaryBudget: "",
+          riskLevel: "Low",
+          expectedOutput: "",
+        });
         toggleModal("hiring", false);
         await loadRequisitions();
         await loadStats();
@@ -658,7 +659,7 @@ export default function UnifiedEnterpriseDashboard() {
 
   const handleJobTitleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newVal = e.target.value;
-    
+
     if (!newVal) {
       setJobForm({
         title: "",
@@ -681,7 +682,7 @@ export default function UnifiedEnterpriseDashboard() {
     const matchedReq = requisitions.find(
       r => r.status === "Approved — Pending HR Post" && r.role.trim().toLowerCase() === newVal.trim().toLowerCase()
     );
-    
+
     if (matchedReq) {
       const expMin = matchedReq.experience?.min || 0;
       const expMax = matchedReq.experience?.max || 0;
@@ -855,7 +856,7 @@ export default function UnifiedEnterpriseDashboard() {
     try {
       const isOnline = interviewForm.mode === "Video Call";
       const link = isOnline ? `https://meet.acolyte.in/r${interviewForm.round}-${interviewForm.candidateId.slice(-6)}` : "In-Office (Offline)";
-      
+
       const res = await fetch("/api/interviews", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -950,9 +951,31 @@ export default function UnifiedEnterpriseDashboard() {
 
   if (status === "loading" || loading) {
     return (
-      <div className="min-h-screen bg-[#F4F5F7] flex flex-col justify-center items-center gap-4 select-none">
-        <Loader2 className="w-10 h-10 text-[#714B67] animate-spin" />
-        <span className="text-[10px] font-black tracking-widest text-slate-400 uppercase font-mono">Loading...</span>
+      <div className="min-h-screen bg-[#FCFBF9] flex flex-col justify-center items-center select-none overflow-hidden relative">
+        {/* eslint-disable-next-line @next/next/no-page-custom-font */}
+        <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400&display=swap" rel="stylesheet" />
+
+        {/* Decorative Background */}
+        <div className="absolute inset-0 pointer-events-none opacity-[0.03] flex items-center justify-center">
+          <svg className="w-[150%] h-[150%] text-[#1C1C1A] animate-[spin_60s_linear_infinite]" viewBox="0 0 100 100" fill="none" stroke="currentColor" strokeWidth="0.5">
+            <circle cx="50" cy="50" r="45" />
+            <circle cx="50" cy="50" r="35" />
+            <circle cx="50" cy="50" r="25" />
+            <path d="M0,50 L100,50" />
+            <path d="M50,0 L50,100" />
+          </svg>
+        </div>
+
+        <div className="relative z-10 flex flex-col items-center">
+          <div className="relative w-24 h-24 flex items-center justify-center mb-6">
+            <div className="absolute inset-0 rounded-full border-[1px] border-[#E8E4DF] border-t-[#C9A84C] animate-[spin_1.5s_linear_infinite]"></div>
+            <div className="absolute inset-2 rounded-full border-[1px] border-[#E8E4DF] border-b-[#C9A84C] animate-[spin_2s_linear_infinite_reverse]"></div>
+            <div className="text-3xl font-light tracking-widest text-[#1C1C1A] font-serif" style={{ fontFamily: "'Cormorant Garamond', serif" }}>
+              RS9
+            </div>
+          </div>
+          <span className="text-[10px] font-bold tracking-[0.25em] text-[#C9A84C] uppercase animate-pulse">Group</span>
+        </div>
       </div>
     );
   }
@@ -997,13 +1020,13 @@ export default function UnifiedEnterpriseDashboard() {
         <div className="flex-1 overflow-y-auto px-4 py-4 md:px-8 md:py-8 custom-scrollbar">
 
           {activeTab === "dashboard" && (
-            <OwnerDashboard 
+            <OwnerDashboard
               sessionUser={session?.user}
-              stats={stats} 
-              riskAlertList={riskAlertList} 
-              onResolveAlert={handleAlertResolve} 
-              onNavigateTab={setActiveTab} 
-              triggerToast={triggerToast} 
+              stats={stats}
+              riskAlertList={riskAlertList}
+              onResolveAlert={handleAlertResolve}
+              onNavigateTab={setActiveTab}
+              triggerToast={triggerToast}
               companies={allCompanies}
               selectedCompanyId={selectedCompanyId}
               onCompanyChange={setSelectedCompanyId}
@@ -1178,6 +1201,10 @@ export default function UnifiedEnterpriseDashboard() {
               preselectedUserId={preselectedWorkReportUserId}
               clearPreselectedUserId={() => setPreselectedWorkReportUserId("")}
             />
+          )}
+
+          {activeTab === "live-tracking" && (
+            <LiveTrackingMap />
           )}
 
           {activeTab === "field-visit" && (
@@ -1700,44 +1727,44 @@ export default function UnifiedEnterpriseDashboard() {
       {/* MODAL 10: SOD MODAL */}
       {modals.sodModal && (
         <div className="fixed inset-0 bg-[#070810]/40 z-[90] flex items-center justify-center p-4 backdrop-blur-sm animate-fadeIn">
-           <div className="bg-[#F4F5F7] w-full max-w-3xl max-h-[90vh] overflow-y-auto custom-scrollbar rounded-2xl shadow-2xl relative border border-slate-200">
-              <button className="absolute top-6 right-6 text-slate-500 hover:text-slate-800 bg-white hover:bg-slate-100 rounded-full p-1.5 border shadow-sm z-10 transition-all" onClick={() => toggleModal("sodModal", false)}><X className="w-5 h-5" /></button>
-              <div className="p-8">
-                 <DailyCommitments 
-                    sessionUser={session?.user} 
-                    stats={stats} 
-                    handleAttendancePunch={handleAttendancePunch}
-                    formMode="sod"
-                    handleSodSubmit={async (payload) => {
-                      const success = await handleSodSubmit(payload);
-                      if (success) toggleModal("sodModal", false);
-                    }}
-                    handleEodSubmit={handleEodSubmit}
-                 />
-              </div>
-           </div>
+          <div className="bg-[#F4F5F7] w-full max-w-3xl max-h-[90vh] overflow-y-auto custom-scrollbar rounded-2xl shadow-2xl relative border border-slate-200">
+            <button className="absolute top-6 right-6 text-slate-500 hover:text-slate-800 bg-white hover:bg-slate-100 rounded-full p-1.5 border shadow-sm z-10 transition-all" onClick={() => toggleModal("sodModal", false)}><X className="w-5 h-5" /></button>
+            <div className="p-8">
+              <DailyCommitments
+                sessionUser={session?.user}
+                stats={stats}
+                handleAttendancePunch={handleAttendancePunch}
+                formMode="sod"
+                handleSodSubmit={async (payload) => {
+                  const success = await handleSodSubmit(payload);
+                  if (success) toggleModal("sodModal", false);
+                }}
+                handleEodSubmit={handleEodSubmit}
+              />
+            </div>
+          </div>
         </div>
       )}
 
       {/* MODAL 11: EOD MODAL */}
       {modals.eodModal && (
         <div className="fixed inset-0 bg-[#070810]/40 z-[90] flex items-center justify-center p-4 backdrop-blur-sm animate-fadeIn">
-           <div className="bg-[#F4F5F7] w-full max-w-3xl max-h-[90vh] overflow-y-auto custom-scrollbar rounded-2xl shadow-2xl relative border border-slate-200">
-              <button className="absolute top-6 right-6 text-slate-500 hover:text-slate-800 bg-white hover:bg-slate-100 rounded-full p-1.5 border shadow-sm z-10 transition-all" onClick={() => toggleModal("eodModal", false)}><X className="w-5 h-5" /></button>
-              <div className="p-8">
-                 <DailyCommitments 
-                    sessionUser={session?.user} 
-                    stats={stats} 
-                    handleAttendancePunch={handleAttendancePunch}
-                    formMode="eod"
-                    handleSodSubmit={handleSodSubmit}
-                    handleEodSubmit={async (payload) => {
-                      const success = await handleEodSubmit(payload);
-                      if (success) toggleModal("eodModal", false);
-                    }}
-                 />
-              </div>
-           </div>
+          <div className="bg-[#F4F5F7] w-full max-w-3xl max-h-[90vh] overflow-y-auto custom-scrollbar rounded-2xl shadow-2xl relative border border-slate-200">
+            <button className="absolute top-6 right-6 text-slate-500 hover:text-slate-800 bg-white hover:bg-slate-100 rounded-full p-1.5 border shadow-sm z-10 transition-all" onClick={() => toggleModal("eodModal", false)}><X className="w-5 h-5" /></button>
+            <div className="p-8">
+              <DailyCommitments
+                sessionUser={session?.user}
+                stats={stats}
+                handleAttendancePunch={handleAttendancePunch}
+                formMode="eod"
+                handleSodSubmit={handleSodSubmit}
+                handleEodSubmit={async (payload) => {
+                  const success = await handleEodSubmit(payload);
+                  if (success) toggleModal("eodModal", false);
+                }}
+              />
+            </div>
+          </div>
         </div>
       )}
 

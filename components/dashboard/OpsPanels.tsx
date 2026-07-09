@@ -2003,6 +2003,19 @@ export function PerformanceCompliance({
                                                 {task.description}
                                               </p>
                                             )}
+                                            {task.proofAttachment && (
+                                              <button
+                                                onClick={(e) => {
+                                                  e.stopPropagation();
+                                                  setSelectedSelfie(task.proofAttachment);
+                                                }}
+                                                className="mt-1 w-fit bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 text-[9px] font-black uppercase px-2 py-1.5 rounded-lg flex items-center gap-1.5 transition-colors"
+                                                title="View Task Proof"
+                                              >
+                                                <Eye className="w-3 h-3" />
+                                                View Proof
+                                              </button>
+                                            )}
                                             {task.updatedAt && 
                                              new Date(task.updatedAt).toDateString() !== item.date.toDateString() && 
                                              item.date.toDateString() === new Date(task.date).toDateString() && (
@@ -2121,25 +2134,69 @@ export function PerformanceCompliance({
         </>
       )}
 
-      {/* Selfie Lightbox Modal */}
+      {/* File/Selfie Viewer Modal */}
       {selectedSelfie && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl overflow-hidden shadow-2xl max-w-sm w-full border border-slate-200 relative animate-scaleIn animate-duration-200">
-            <button
-              onClick={() => setSelectedSelfie(null)}
-              className="absolute top-3 right-3 p-1.5 rounded-full bg-slate-900/60 hover:bg-slate-900 text-white transition-all z-10"
-            >
-              <X className="w-4 h-4" />
-            </button>
-            <div className="aspect-square bg-slate-950 flex items-center justify-center">
-              <img
-                src={selectedSelfie}
-                alt="Verification Selfie"
-                className="w-full h-full object-cover"
-              />
+        <div className="fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl overflow-hidden shadow-2xl max-w-4xl w-full border border-slate-200 relative animate-scaleIn animate-duration-200 flex flex-col max-h-[90vh]">
+            <div className="p-4 border-b border-slate-200 flex items-center justify-between bg-slate-50">
+              <h4 className="text-sm font-black text-[#714B67] uppercase font-mono tracking-wider">Document / Proof Viewer</h4>
+              <button
+                onClick={() => setSelectedSelfie(null)}
+                className="p-1.5 rounded-full bg-slate-200 hover:bg-slate-300 text-slate-700 transition-all"
+              >
+                <X className="w-5 h-5" />
+              </button>
             </div>
-            <div className="p-4 text-center">
-              <h4 className="text-xs font-black text-[#714B67] uppercase font-mono tracking-wider">Facial Verification Capture</h4>
+            
+            <div className="flex-1 bg-slate-900 flex items-center justify-center p-4 min-h-[50vh] overflow-hidden">
+              {(() => {
+                const url = selectedSelfie.toLowerCase();
+                const isPdf = url.includes('application/pdf') || url.endsWith('.pdf');
+                const isAudio = url.includes('audio/') || url.match(/\.(mp3|wav|m4a|ogg)$/i);
+                const isVideo = url.includes('video/') || url.match(/\.(mp4|webm|mov)$/i);
+
+                if (isPdf) {
+                  return (
+                    <iframe 
+                      src={selectedSelfie} 
+                      className="w-full h-[70vh] rounded bg-white" 
+                      title="PDF Document"
+                    />
+                  );
+                }
+                
+                if (isAudio) {
+                  return (
+                    <div className="bg-slate-800 p-8 rounded-xl flex flex-col items-center justify-center w-full max-w-md">
+                      <div className="w-16 h-16 bg-slate-700 rounded-full flex items-center justify-center mb-6 shadow-inner">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-slate-300"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path><path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path></svg>
+                      </div>
+                      <audio controls className="w-full" autoPlay>
+                        <source src={selectedSelfie} />
+                        Your browser does not support the audio element.
+                      </audio>
+                    </div>
+                  );
+                }
+
+                if (isVideo) {
+                  return (
+                    <video controls className="max-w-full max-h-[70vh] rounded" autoPlay>
+                      <source src={selectedSelfie} />
+                      Your browser does not support the video tag.
+                    </video>
+                  );
+                }
+
+                // Default to Image
+                return (
+                  <img
+                    src={selectedSelfie}
+                    alt="Document/Selfie"
+                    className="max-w-full max-h-[75vh] object-contain rounded"
+                  />
+                );
+              })()}
             </div>
           </div>
         </div>

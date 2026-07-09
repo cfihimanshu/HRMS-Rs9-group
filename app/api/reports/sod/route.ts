@@ -62,6 +62,10 @@ export async function POST(req: Request) {
        return NextResponse.json({ success: false, error: "Project name is required for Development task type" }, { status: 400 });
     }
 
+    if (!location || !location.latitude || !location.longitude) {
+       return NextResponse.json({ success: false, error: "Strict Rule: Device's live GPS location is mandatory to declare SOD. Fake or static locations are not allowed." }, { status: 400 });
+    }
+
     await sequelize.authenticate();
     await SodReport.sync({ alter: true });
 
