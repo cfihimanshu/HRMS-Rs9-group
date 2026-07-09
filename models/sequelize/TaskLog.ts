@@ -140,6 +140,10 @@ TaskLog.init(
       type: DataTypes.STRING,
       allowNull: true,
     },
+    proofAttachment: {
+      type: DataTypes.TEXT("long"), // Store base64 image or file URL
+      allowNull: true,
+    },
     createdAt: {
       type: DataTypes.DATE,
       allowNull: true,

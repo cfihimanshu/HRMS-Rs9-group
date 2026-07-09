@@ -41,8 +41,12 @@ export async function POST(req: Request) {
     const body = await req.json();
     const { completedWork, pendingWork, issues, escalationNeeded, tomorrowPlan, selfieUrl, location } = body;
 
-    if (!completedWork || !pendingWork || !tomorrowPlan || !selfieUrl || !location) {
-      return NextResponse.json({ success: false, error: "Missing strict required fields (Completed Tasks, Tomorrow Plan, Selfie, or GPS)" }, { status: 400 });
+    if (!completedWork || !pendingWork || !tomorrowPlan || !selfieUrl) {
+      return NextResponse.json({ success: false, error: "Missing strict required fields (Completed Tasks, Tomorrow Plan, or Selfie)" }, { status: 400 });
+    }
+
+    if (!location || !location.latitude || !location.longitude) {
+       return NextResponse.json({ success: false, error: "Strict Rule: Device's live GPS location is mandatory to declare EOD. Fake or static locations are not allowed." }, { status: 400 });
     }
 
     await sequelize.authenticate();

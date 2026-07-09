@@ -5,6 +5,7 @@ import sequelize from "@/lib/sequelize";
 import User from "@/models/sequelize/User";
 import EmployeeProfile from "@/models/sequelize/EmployeeProfile";
 import FieldVisit from "@/models/sequelize/FieldVisit";
+import { logAudit } from "@/lib/audit";
 import { Op } from "sequelize";
 
 export async function GET(req: Request) {
@@ -108,6 +109,10 @@ export async function POST(req: Request) {
         return NextResponse.json({ success: false, error: "Opening KM reading is required." }, { status: 400 });
       }
 
+      if (!opening_coordinates) {
+        return NextResponse.json({ success: false, error: "Strict Rule: Device's live GPS location is mandatory to start a field visit." }, { status: 400 });
+      }
+
       // Check if there is already an active visit
       const activeVisit = await FieldVisit.findOne({
         where: { employee_id: userId, status: "Open" }
@@ -131,6 +136,14 @@ export async function POST(req: Request) {
         status: "Open"
       });
 
+      await logAudit({
+        userId,
+        action: "FIELD_VISIT_STARTED",
+        entity: "FieldVisit",
+        entityId: newVisit.id.toString(),
+        details: `Employee started a field visit. Vehicle: ${vehicle_number || "Self"}, Start KM: ${opening_km}.`,
+      });
+
       return NextResponse.json({
         success: true,
         message: "Field visit started successfully.",
@@ -142,6 +155,10 @@ export async function POST(req: Request) {
 
       if (closing_km === undefined || closing_km === null) {
         return NextResponse.json({ success: false, error: "Closing KM reading is required." }, { status: 400 });
+      }
+
+      if (!closing_coordinates) {
+        return NextResponse.json({ success: false, error: "Strict Rule: Device's live GPS location is mandatory to close a field visit." }, { status: 400 });
       }
 
       // Find active open visit
@@ -190,6 +207,14 @@ export async function POST(req: Request) {
         expenses_json: expenses ? expenses : null,
         photos_json: currentPhotos,
         status: "Closed"
+      });
+
+      await logAudit({
+        userId,
+        action: "FIELD_VISIT_CLOSED",
+        entity: "FieldVisit",
+        entityId: activeVisit.id.toString(),
+        details: `Employee closed field visit at client: ${client_name || "N/A"}. Total Distance: ${distance} km. Purpose: ${purpose || "Field Visit"}.`,
       });
 
       return NextResponse.json({
