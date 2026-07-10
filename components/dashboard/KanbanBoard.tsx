@@ -71,6 +71,19 @@ export default function KanbanBoard() {
   const { data: session, status } = useSession();
   const sessionUser = session?.user;
 
+  const cleanDescription = (desc: string): string => {
+    if (!desc) return "";
+    return desc
+      .split("\n")
+      .filter(
+        (line) =>
+          !line.toLowerCase().includes("screenshot proof link:") &&
+          !line.toLowerCase().includes("call recording link:")
+      )
+      .join("\n")
+      .trim();
+  };
+
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
@@ -579,7 +592,6 @@ export default function KanbanBoard() {
 
   const [filterUser, setFilterUser] = useState("All");
   const [filterDate, setFilterDate] = useState("");
-  const [viewMode, setViewMode] = useState<"kanban" | "list">("kanban");
 
   const uniqueUsers = Array.from(new Set(tasks.map(t => (t.employee as any)?.name).filter(Boolean)));
 
@@ -747,8 +759,8 @@ export default function KanbanBoard() {
         </span>
 
         {/* Description */}
-        {task.description && (
-          <p className="text-[10px] text-slate-500 mt-2 font-medium line-clamp-2 leading-relaxed">{task.description}</p>
+        {task.description && cleanDescription(task.description) && (
+          <p className="text-[10px] text-slate-500 mt-2 font-medium line-clamp-2 leading-relaxed whitespace-pre-line">{cleanDescription(task.description)}</p>
         )}
 
         {/* Progress notes indicator */}
@@ -1085,7 +1097,7 @@ export default function KanbanBoard() {
                       <td className="p-4 align-top">
                         <div className="font-bold text-slate-800 text-sm mb-1">{t.taskTitle}</div>
                         <div className="text-[10px] font-black uppercase tracking-wider text-[#714B67] bg-[#714B67]/10 inline-block px-2 py-0.5 rounded-md mb-2">{t.taskType}</div>
-                        <p className="text-xs text-slate-600 line-clamp-2">{t.description}</p>
+                        <p className="text-xs text-slate-650 line-clamp-2 whitespace-pre-line">{cleanDescription(t.description)}</p>
                       </td>
                       <td className="p-4 align-top text-xs font-bold text-slate-700">
                         {(t.employee as any)?.name || "Unknown"}
@@ -1216,8 +1228,8 @@ export default function KanbanBoard() {
                       {selectedTask.taskType}
                     </span>
                     <h2 className="text-base font-black text-slate-800 leading-tight">{selectedTask.taskTitle}</h2>
-                    {selectedTask.description && (
-                      <p className="text-xs text-slate-500 mt-1 font-medium">{selectedTask.description}</p>
+                    {selectedTask.description && cleanDescription(selectedTask.description) && (
+                      <p className="text-xs text-slate-500 mt-1 font-medium whitespace-pre-line">{cleanDescription(selectedTask.description)}</p>
                     )}
                   </div>
 
@@ -1227,7 +1239,7 @@ export default function KanbanBoard() {
                       onClick={() => {
                         setEditTitle(selectedTask.taskTitle);
                         setEditType(selectedTask.taskType);
-                        setEditDesc(selectedTask.description || "");
+                        setEditDesc(cleanDescription(selectedTask.description || ""));
                         setIsEditingTask(true);
                       }}
                       className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center transition-all"

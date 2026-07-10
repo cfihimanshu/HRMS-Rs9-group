@@ -22,9 +22,6 @@ export default function Topbar({
   const [isDark, setIsDark] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
-  // In-app Notifications State
-  const [notifications, setNotifications] = useState<any[]>([]);
-  const [showNotifications, setShowNotifications] = useState(false);
 
   useEffect(() => {
     setIsDark(document.documentElement.classList.contains("dark"));
@@ -49,24 +46,6 @@ export default function Topbar({
     signOut({ callbackUrl: `${window.location.origin}/login` });
   }, []);
 
-  // Fetch Notifications
-  const fetchNotifications = async () => {
-    try {
-      const res = await fetch("/api/notifications");
-      const data = await res.json();
-      if (res.ok && data.success) {
-        setNotifications(data.data || []);
-      }
-    } catch (e) {
-      console.error("Error fetching notifications:", e);
-    }
-  };
-
-  useEffect(() => {
-    fetchNotifications();
-    const interval = setInterval(fetchNotifications, 20000);
-    return () => clearInterval(interval);
-  }, []);
 
   // Close modals/dropdowns on Escape key
   useEffect(() => {

@@ -16,9 +16,9 @@ export async function GET() {
     await LeadPlatform.sync({ alter: true });
 
     const defaults = [
-      { id: "indeed", name: "Indeed", prefix: "IND", tableName: "leads_indeed" },
-      { id: "workindia", name: "WorkIndia", prefix: "WIN", tableName: "leads_workindia" },
-      { id: "linkedin", name: "LinkedIn", prefix: "LNK", tableName: "leads_linkedin" }
+      { id: "indeed-391", name: "Indeed", prefix: "IND", tableName: "leads_indeed" },
+      { id: "workindia-284", name: "WorkIndia", prefix: "WIN", tableName: "leads_workindia" },
+      { id: "linkedin-581", name: "LinkedIn", prefix: "LNK", tableName: "leads_linkedin" }
     ];
 
     for (const d of defaults) {
@@ -68,7 +68,7 @@ export async function POST(req: Request) {
 
     const cleanedName = name.trim();
     const cleanedPrefix = prefix.trim().toUpperCase();
-    const id = cleanedName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+    const id = cleanedName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "") + "-" + Math.floor(100 + Math.random() * 900);
     const tableName = `leads_${id.replace(/-/g, "_")}`;
 
     await sequelize.authenticate();

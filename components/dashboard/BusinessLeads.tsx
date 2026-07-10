@@ -18,7 +18,11 @@ import {
   Mail,
   Phone,
   FileText,
-  User
+  User,
+  Image as ImageIcon,
+  Play,
+  CalendarRange as CalendarClock,
+  History
 } from "lucide-react";
 import * as XLSX from "xlsx";
 
@@ -41,11 +45,21 @@ export default function BusinessLeads({
   const [columns, setColumns] = useState<string[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [searchTerm, setSearchTerm] = useState<string>("");
+  const [stats, setStats] = useState<any>({
+    totalLeads: 0,
+    leadsCalled: 0,
+    connected: 0,
+    notConnected: 0,
+    interviewScheduled: 0,
+    selected: 0,
+    rejected: 0,
+    systemJobLink: 0
+  });
 
   // Modal/Wizard States
   const [isImportModalOpen, setIsImportModalOpen] = useState<boolean>(false);
   const [importStep, setImportStep] = useState<number>(1); // 1: Select Platform, 2: Upload File, 3: Preview/Confirm
-  
+
   // New Platform Form
   const [isCreatingPlatform, setIsCreatingPlatform] = useState<boolean>(false);
   const [newPlatformName, setNewPlatformName] = useState<string>("");
@@ -58,6 +72,294 @@ export default function BusinessLeads({
   const [fileName, setFileName] = useState<string>("");
   const [uploading, setUploading] = useState<boolean>(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Leads Department & Role States
+  const [departments, setDepartments] = useState<any[]>([]);
+  const [roles, setRoles] = useState<any[]>([]);
+  const [selectedDepartmentId, setSelectedDepartmentId] = useState<string>("");
+  const [selectedRoleId, setSelectedRoleId] = useState<string>("");
+  const [isCreatingDept, setIsCreatingDept] = useState<boolean>(false);
+  const [isCreatingRole, setIsCreatingRole] = useState<boolean>(false);
+  const [expandedLeadId, setExpandedLeadId] = useState<string | null>(null);
+  const [newDeptName, setNewDeptName] = useState<string>("");
+  const [newRoleName, setNewRoleName] = useState<string>("");
+  const [savingDept, setSavingDept] = useState<boolean>(false);
+  const [savingRole, setSavingRole] = useState<boolean>(false);
+
+  // Call Status hooks & helpers
+  const [leadStatuses, setLeadStatuses] = useState<any[]>([]);
+  const [isCreatingStatus, setIsCreatingStatus] = useState<boolean>(false);
+  const [newStatusName, setNewStatusName] = useState<string>("");
+  const [savingStatus, setSavingStatus] = useState<boolean>(false);
+  const selectedDeptObj = departments.find((d) => String(d.id) === String(selectedDepartmentId));
+  const selectedDeptName = selectedDeptObj ? selectedDeptObj.name : "";
+  const filteredRoles = roles.filter((r) => r.department === selectedDeptName);
+
+  // Fetch departments and roles when modal opens
+  useEffect(() => {
+    if (isImportModalOpen) {
+      fetchDepartments();
+      fetchRoles();
+      setSelectedDepartmentId("");
+      setSelectedRoleId("");
+      setIsCreatingDept(false);
+      setIsCreatingRole(false);
+      setNewDeptName("");
+      setNewRoleName("");
+    }
+  }, [isImportModalOpen]);
+
+  const fetchDepartments = async () => {
+    try {
+      const res = await fetch("/api/business-leads/departments");
+      const data = await res.json();
+      if (data.success) {
+        setDepartments(data.data);
+      }
+    } catch (err) {
+      console.error("Failed to load departments", err);
+    }
+  };
+
+  const fetchRoles = async () => {
+    try {
+      const res = await fetch("/api/business-leads/roles");
+      const data = await res.json();
+      if (data.success) {
+        setRoles(data.data || []);
+      }
+    } catch (err) {
+      console.error("Failed to load roles", err);
+    }
+  };
+
+  const handleCreateDepartment = async () => {
+    if (!newDeptName.trim()) return;
+    setSavingDept(true);
+    try {
+      const res = await fetch("/api/business-leads/departments", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: newDeptName })
+      });
+      const data = await res.json();
+      if (data.success) {
+        triggerToast("🎉 Department created successfully!");
+        await fetchDepartments();
+        setSelectedDepartmentId(String(data.data.id));
+        setIsCreatingDept(false);
+        setNewDeptName("");
+      } else {
+        triggerToast(data.error || "Failed to create department");
+      }
+    } catch (err) {
+      triggerToast("Error creating department");
+    } finally {
+      setSavingDept(false);
+    }
+  };
+
+  const handleCreateRole = async () => {
+    if (!newRoleName.trim() || !selectedDeptName) return;
+    setSavingRole(true);
+    try {
+      const res = await fetch("/api/business-leads/roles", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: newRoleName, department: selectedDeptName })
+      });
+      const data = await res.json();
+      if (data.success) {
+        triggerToast("🎉 Role created successfully!");
+        await fetchRoles();
+        setSelectedRoleId(String(data.data.id));
+        setIsCreatingRole(false);
+        setNewRoleName("");
+      } else {
+        triggerToast(data.error || "Failed to create role");
+      }
+    } catch (err) {
+      triggerToast("Error creating role");
+    } finally {
+      setSavingRole(false);
+    }
+  };
+
+  const fetchStatuses = async () => {
+    try {
+      const res = await fetch("/api/business-leads/statuses");
+      const data = await res.json();
+      if (data.success) {
+        setLeadStatuses(data.data || []);
+      }
+    } catch (err) {
+      console.error("Failed to load lead statuses", err);
+    }
+  };
+
+  const handleCreateStatus = async () => {
+    if (!newStatusName.trim()) return;
+    setSavingStatus(true);
+    try {
+      const res = await fetch("/api/business-leads/statuses", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: newStatusName })
+      });
+      const data = await res.json();
+      if (data.success) {
+        triggerToast("🎉 Status created successfully!");
+        await fetchStatuses();
+        setEditStatus(data.data.name);
+        setIsCreatingStatus(false);
+        setNewStatusName("");
+      } else {
+        triggerToast(data.error || "Failed to create status");
+      }
+    } catch (err) {
+      triggerToast("Error creating status");
+    } finally {
+      setSavingStatus(false);
+    }
+  };
+
+  // Lead Call Edit States
+  const [selectedLeadForEdit, setSelectedLeadForEdit] = useState<any | null>(null);
+  const [editStatus, setEditStatus] = useState<string>("No Answer");
+  const [editCallRemarks, setEditCallRemarks] = useState<string>("");
+  const [editFollowupDate, setEditFollowupDate] = useState<string>("");
+  const [editFollowupTime, setEditFollowupTime] = useState<string>("");
+  const [savingEdit, setSavingEdit] = useState<boolean>(false);
+
+  // File Upload states
+  const [screenshotUrl, setScreenshotUrl] = useState<string>("");
+  const [recordingUrl, setRecordingUrl] = useState<string>("");
+  const [uploadingFile, setUploadingFile] = useState<boolean>(false);
+
+  // Scheduled Interview states
+  const [schedRound, setSchedRound] = useState<string>("1");
+  const [schedDate, setSchedDate] = useState<string>("");
+  const [schedTime, setSchedTime] = useState<string>("");
+  const [schedMode, setSchedMode] = useState<"online" | "offline">("online");
+  const [schedVideoLink, setSchedVideoLink] = useState<string>("");
+
+  // Auto suggest video link
+  useEffect(() => {
+    if (selectedLeadForEdit) {
+      setSchedVideoLink(`https://meet.acolyte.in/round${schedRound}-${selectedLeadForEdit.id.slice(-6)}`);
+    }
+  }, [selectedLeadForEdit, schedRound]);
+
+  const handleOpenLeadEdit = (lead: any) => {
+    setSelectedLeadForEdit(lead);
+    setEditStatus(lead.status === "New" ? "No Answer" : (lead.status || "No Answer"));
+    setEditCallRemarks("");
+    setScreenshotUrl("");
+    setRecordingUrl("");
+
+    // Reset interview values to defaults
+    setSchedRound("1");
+    setSchedDate("");
+    setSchedTime("");
+    setSchedMode("online");
+    setSchedVideoLink("");
+    setEditFollowupDate("");
+    setEditFollowupTime("");
+  };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, type: "screenshot" | "recording") => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadingFile(true);
+    const formData = new FormData();
+    formData.append("file", file);
+
+    try {
+      const res = await fetch("/api/documents/upload", {
+        method: "POST",
+        body: formData
+      });
+      const data = await res.json();
+      if (data.success) {
+        if (type === "screenshot") {
+          setScreenshotUrl(data.url);
+          triggerToast("📸 Screenshot uploaded successfully!");
+        } else {
+          setRecordingUrl(data.url);
+          triggerToast("🎙️ Recording uploaded successfully!");
+        }
+      } else {
+        triggerToast(data.error || "Failed to upload file.");
+      }
+    } catch (err) {
+      triggerToast("Error uploading file.");
+    } finally {
+      setUploadingFile(false);
+    }
+  };
+
+  const clearEditForm = () => {
+    setEditStatus("No Answer");
+    setEditCallRemarks("");
+    setEditFollowupDate("");
+    setEditFollowupTime("");
+    setScreenshotUrl("");
+    setRecordingUrl("");
+    setSchedRound("1");
+    setSchedDate("");
+    setSchedTime("");
+    setSchedMode("online");
+    setSchedVideoLink("");
+  };
+
+  const handleSaveLeadEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedLeadForEdit || !activePlatformId) return;
+    setSavingEdit(true);
+
+    const updateFields: any = {
+      status: editStatus,
+      call_remarks: editCallRemarks,
+      followup_date: ["No Answer", "Busy"].includes(editStatus) ? (editFollowupDate || null) : null,
+      followup_time: ["No Answer", "Busy"].includes(editStatus) ? (editFollowupTime || null) : null,
+      screenshot_url: ["No Answer", "Busy"].includes(editStatus) ? (screenshotUrl || null) : null,
+      recording_url: ["Connected", "Not Interested"].includes(editStatus) ? (recordingUrl || null) : null
+    };
+
+    if (editStatus === "Interview Scheduled") {
+      updateFields.interview_round = schedRound;
+      updateFields.interview_date = schedDate || null;
+      updateFields.interview_time = schedTime || null;
+      updateFields.interview_mode = schedMode;
+      updateFields.interview_video_link = schedMode === "offline" ? "" : schedVideoLink;
+    }
+
+    try {
+      const res = await fetch("/api/business-leads", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          platformId: activePlatformId,
+          leadId: selectedLeadForEdit.id,
+          fields: updateFields
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        triggerToast("Lead details updated successfully.");
+        setSelectedLeadForEdit(null);
+        clearEditForm();
+        await loadLeads(activePlatformId);
+      } else {
+        triggerToast(data.error || "Failed to update lead.");
+      }
+    } catch (err) {
+      triggerToast("Error updating lead details.");
+    } finally {
+      setSavingEdit(false);
+    }
+  };
 
   // Fetch platforms on load
   const loadPlatforms = async () => {
@@ -85,6 +387,20 @@ export default function BusinessLeads({
       if (data.success) {
         setLeads(data.data.leads || []);
         setColumns(data.data.columns || []);
+        if (data.data.stats) {
+          setStats(data.data.stats);
+        } else {
+          setStats({
+            totalLeads: data.data.leads?.length || 0,
+            leadsCalled: 0,
+            connected: 0,
+            notConnected: 0,
+            interviewScheduled: 0,
+            selected: 0,
+            rejected: 0,
+            systemJobLink: 0
+          });
+        }
       } else {
         triggerToast(data.error || "Failed to load leads.");
       }
@@ -97,11 +413,13 @@ export default function BusinessLeads({
 
   useEffect(() => {
     loadPlatforms();
+    fetchStatuses();
   }, []);
 
   useEffect(() => {
     if (activePlatformId) {
       loadLeads(activePlatformId);
+      setExpandedLeadId(null);
     }
   }, [activePlatformId]);
 
@@ -156,12 +474,15 @@ export default function BusinessLeads({
         body: JSON.stringify({
           platformId: selectedPlatformId,
           leads: parsedLeads,
-          headers: parsedHeaders
+          headers: parsedHeaders,
+          departmentId: selectedDepartmentId || null,
+          roleId: selectedRoleId || null
         })
       });
       const data = await res.json();
       if (data.success) {
-        triggerToast(`Successfully imported ${data.count} leads.`);
+        const skippedMsg = data.skippedCount > 0 ? ` Skipped ${data.skippedCount} duplicate leads.` : "";
+        triggerToast(`Successfully imported ${data.count} leads.${skippedMsg}`);
         setIsImportModalOpen(false);
         setImportStep(1);
         setParsedLeads([]);
@@ -232,13 +553,22 @@ export default function BusinessLeads({
   const filteredLeads = leads.filter((lead) => {
     if (!searchTerm) return true;
     const term = searchTerm.toLowerCase();
-    return Object.values(lead).some((val) => 
+    return Object.values(lead).some((val) =>
       String(val).toLowerCase().includes(term)
     );
   });
 
   // Filter out columns that are completely empty across all records (except ID, status, and dates)
+  // Also filter out call logging and interview schedule columns from the main table grid
   const visibleColumns = columns.filter((col) => {
+    const cleaned = col.toLowerCase().replace(/[^a-z0-9]/g, "");
+    const excludedKeywords = [
+      "callremarks", "remarks", "screenshoturl", "recordingurl", 
+      "interviewround", "interviewdate", "interviewtime", "interviewmode", 
+      "interviewvideolink", "followupdate", "callhistory"
+    ];
+    if (excludedKeywords.includes(cleaned)) return false;
+
     if (["id", "status", "createdAt", "updatedAt"].includes(col)) return true;
     return leads.some((lead) => lead[col] !== null && lead[col] !== undefined && String(lead[col]).trim() !== "");
   });
@@ -259,7 +589,7 @@ export default function BusinessLeads({
 
   return (
     <div className="space-y-6 animate-fadeIn text-slate-800 dark:text-gray-100 select-none">
-      
+
       {/* Header and Import button */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
@@ -279,7 +609,7 @@ export default function BusinessLeads({
             <Download className="w-3.5 h-3.5" />
             Template
           </button>
-          
+
           <button
             onClick={() => {
               setIsImportModalOpen(true);
@@ -342,20 +672,90 @@ export default function BusinessLeads({
         </div>
       </div>
 
+      {/* Dynamic HR Calling & System Job Link Stats */}
+      <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
+        {/* Called by HR */}
+        <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-gray-900/60 p-4 rounded-xl shadow-sm flex items-center gap-3.5 hover:shadow transition-shadow">
+          <div className="w-9 h-9 rounded-lg bg-indigo-500/10 flex items-center justify-center text-indigo-600">
+            <Phone className="w-4 h-4" />
+          </div>
+          <div>
+            <p className="text-[10px] uppercase font-black tracking-wider text-slate-400">Called by HR</p>
+            <p className="text-lg font-black text-slate-800 dark:text-gray-150">{stats.leadsCalled}</p>
+          </div>
+        </div>
+
+        {/* Connected */}
+        <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-gray-900/60 p-4 rounded-xl shadow-sm flex items-center gap-3.5 hover:shadow transition-shadow">
+          <div className="w-9 h-9 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-600">
+            <CheckCircle2 className="w-4 h-4" />
+          </div>
+          <div>
+            <p className="text-[10px] uppercase font-black tracking-wider text-slate-400">Connected</p>
+            <p className="text-lg font-black text-slate-800 dark:text-gray-150">{stats.connected}</p>
+          </div>
+        </div>
+
+        {/* Not Connected */}
+        <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-gray-900/60 p-4 rounded-xl shadow-sm flex items-center gap-3.5 hover:shadow transition-shadow">
+          <div className="w-9 h-9 rounded-lg bg-rose-500/10 flex items-center justify-center text-rose-600">
+            <AlertCircle className="w-4 h-4" />
+          </div>
+          <div>
+            <p className="text-[10px] uppercase font-black tracking-wider text-slate-400">Not Connected</p>
+            <p className="text-lg font-black text-slate-800 dark:text-gray-150">{stats.notConnected}</p>
+          </div>
+        </div>
+
+        {/* Interview Scheduled */}
+        <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-gray-900/60 p-4 rounded-xl shadow-sm flex items-center gap-3.5 hover:shadow transition-shadow">
+          <div className="w-9 h-9 rounded-lg bg-cyan-500/10 flex items-center justify-center text-cyan-600">
+            <CalendarClock className="w-4 h-4" />
+          </div>
+          <div>
+            <p className="text-[10px] uppercase font-black tracking-wider text-slate-400">Scheduled</p>
+            <p className="text-lg font-black text-slate-800 dark:text-gray-150">{stats.interviewScheduled}</p>
+          </div>
+        </div>
+
+        {/* Select & Reject */}
+        <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-gray-900/60 p-4 rounded-xl shadow-sm flex items-center gap-3.5 hover:shadow transition-shadow">
+          <div className="w-9 h-9 rounded-lg bg-amber-500/10 flex items-center justify-center text-amber-600">
+            <User className="w-4 h-4" />
+          </div>
+          <div>
+            <p className="text-[10px] uppercase font-black tracking-wider text-slate-400">Selected/Rejected</p>
+            <p className="text-xs font-bold text-slate-800 dark:text-gray-150 mt-0.5">
+              🟢 <span className="font-extrabold">{stats.selected}</span> &nbsp;&nbsp; 🔴 <span className="font-extrabold">{stats.rejected}</span>
+            </p>
+          </div>
+        </div>
+
+        {/* Added from System Job Link */}
+        <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-gray-900/60 p-4 rounded-xl shadow-sm flex items-center gap-3.5 hover:shadow transition-shadow">
+          <div className="w-9 h-9 rounded-lg bg-purple-500/10 flex items-center justify-center text-purple-600">
+            <Plus className="w-4 h-4" />
+          </div>
+          <div>
+            <p className="text-[10px] uppercase font-black tracking-wider text-slate-400">System Link Added</p>
+            <p className="text-lg font-black text-slate-800 dark:text-gray-150">{stats.systemJobLink}</p>
+          </div>
+        </div>
+      </div>
+
       {/* Main Tabs and Actions toolbar */}
       <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-gray-900/60 rounded-2xl shadow-sm overflow-hidden">
-        
+
         {/* Platform Tabs */}
         <div className="flex border-b border-slate-100 dark:border-gray-800/80 overflow-x-auto bg-slate-50/50 dark:bg-slate-950/20">
           {platforms.map((plat) => (
             <button
               key={plat.id}
               onClick={() => setActivePlatformId(plat.id)}
-              className={`px-5 py-3 text-xs font-bold whitespace-nowrap transition-all border-b-2 ${
-                activePlatformId === plat.id
+              className={`px-5 py-3 text-xs font-bold whitespace-nowrap transition-all border-b-2 ${activePlatformId === plat.id
                   ? "border-[#714B67] text-[#714B67] bg-white dark:bg-slate-900"
                   : "border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-gray-300"
-              }`}
+                }`}
             >
               {plat.name} ({plat.prefix})
             </button>
@@ -397,8 +797,8 @@ export default function BusinessLeads({
               <thead>
                 <tr className="bg-slate-50 dark:bg-slate-950 text-slate-450 border-b border-slate-100 dark:border-gray-850">
                   {visibleColumns.map((col) => (
-                    <th 
-                      key={col} 
+                    <th
+                      key={col}
                       className="px-4 py-3 text-[10px] font-bold uppercase tracking-wider sticky top-0 bg-slate-50 dark:bg-slate-950 z-10 border-b border-slate-200 dark:border-gray-800 shadow-sm"
                     >
                       {formatHeader(col)}
@@ -408,23 +808,202 @@ export default function BusinessLeads({
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-gray-850">
                 {filteredLeads.map((lead) => (
-                  <tr
-                    key={lead.id}
-                    className="hover:bg-slate-50/50 dark:hover:bg-slate-950/10 text-slate-600 dark:text-gray-300 transition-colors"
-                  >
-                    {visibleColumns.map((col) => (
-                      <td key={col} className="px-4 py-3 text-xs truncate max-w-[200px]">
-                        {col === "createdAt" || col === "updatedAt"
+                  <React.Fragment key={lead.id}>
+                    <tr
+                      onClick={() => setExpandedLeadId(expandedLeadId === lead.id ? null : lead.id)}
+                      className={`hover:bg-slate-50/50 dark:hover:bg-slate-950/10 text-slate-600 dark:text-gray-300 transition-colors cursor-pointer select-none ${expandedLeadId === lead.id ? "bg-slate-50/30 dark:bg-slate-950/5" : ""}`}
+                    >
+                      {visibleColumns.map((col) => {
+                        const isNameCol = ["name", "full_name", "fullname", "candidate_name", "lead_name"].includes(col);
+                        const displayVal = col === "createdAt" || col === "updatedAt"
                           ? new Date(lead[col]).toLocaleDateString("en-IN", {
-                              day: "2-digit",
-                              month: "short",
-                              year: "numeric"
-                            })
-                          : lead[col] || <span className="text-slate-300 dark:text-gray-700">-</span>
-                        }
-                      </td>
-                    ))}
-                  </tr>
+                            day: "2-digit",
+                            month: "short",
+                            year: "numeric"
+                          })
+                          : (lead[col] || "");
+
+                        return (
+                          <td key={col} className="px-4 py-3 text-xs truncate max-w-[200px]">
+                            {isNameCol ? (
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleOpenLeadEdit(lead);
+                                }}
+                                className="font-extrabold text-[#714B67] hover:underline text-left"
+                              >
+                                {displayVal || "Unknown Candidate"}
+                              </button>
+                            ) : (
+                              displayVal || <span className="text-slate-300 dark:text-gray-700">-</span>
+                            )}
+                          </td>
+                        );
+                      })}
+                    </tr>
+                    {expandedLeadId === lead.id && (
+                      <tr className="bg-slate-50/20 dark:bg-slate-955/5">
+                        <td colSpan={visibleColumns.length} className="px-8 py-5">
+                          <div className="border border-slate-150/60 dark:border-gray-800 rounded-xl bg-white dark:bg-slate-900/60 p-5 shadow-inner">
+                            <div className="flex items-center gap-2 mb-4 border-b border-slate-100 dark:border-gray-800 pb-2">
+                              <History className="w-4 h-4 text-[#714B67]" />
+                              <h4 className="text-xs font-extrabold text-slate-800 dark:text-gray-150 uppercase tracking-widest font-mono">Call logs history timeline</h4>
+                            </div>
+
+                            {(() => {
+                              let historyList: any[] = [];
+                              if (lead.call_history) {
+                                try {
+                                  const parsed = JSON.parse(lead.call_history);
+                                  if (Array.isArray(parsed)) {
+                                    historyList = parsed;
+                                  }
+                                } catch (e) {
+                                  console.error("Error parsing history:", e);
+                                }
+                              }
+
+                              if (historyList.length === 0) {
+                                // Synthesize fallback entry if they have existing call metadata logged on the lead row
+                                const remarksText = lead.call_remarks || lead.remarks;
+                                const hasCurrentCallInfo = remarksText || (lead.status && lead.status !== "New");
+                                if (hasCurrentCallInfo) {
+                                  historyList.push({
+                                    id: "fallback",
+                                    status: lead.status || "No Answer",
+                                    call_remarks: remarksText || "No remarks logged.",
+                                    followup_date: lead.followup_date || null,
+                                    interview_round: lead.interview_round || null,
+                                    interview_date: lead.interview_date || null,
+                                    interview_time: lead.interview_time || null,
+                                    interview_mode: lead.interview_mode || null,
+                                    interview_video_link: lead.interview_video_link || null,
+                                    screenshot_url: lead.screenshot_url || null,
+                                    recording_url: lead.recording_url || null,
+                                    updatedAt: lead.updatedAt || lead.createdAt || new Date().toISOString(),
+                                    updatedBy: "HR System"
+                                  });
+                                }
+                              }
+
+                              if (historyList.length === 0) {
+                                return (
+                                  <p className="text-xs text-slate-400 font-semibold italic text-center py-2">
+                                    No calls logged for this candidate yet.
+                                  </p>
+                                );
+                              }
+
+                              const sortedHistory = [...historyList].reverse();
+
+                              return (
+                                <div className="max-h-[300px] overflow-y-auto pr-3 custom-scrollbar">
+                                  <div className="relative flex flex-col gap-5 pl-5 border-l border-slate-200 dark:border-gray-800 ml-2 py-1">
+                                    {sortedHistory.map((item, index) => {
+                                      let colorClass = "bg-slate-400";
+                                      if (item.status === "Interview Scheduled") colorClass = "bg-emerald-500";
+                                      else if (item.status === "Connected") colorClass = "bg-blue-500";
+                                      else if (["Busy", "No Answer"].includes(item.status)) colorClass = "bg-amber-500";
+                                      else if (item.status === "Not Interested") colorClass = "bg-rose-500";
+
+                                      return (
+                                        <div key={item.id || index} className="relative flex flex-col gap-1.5 pb-2 last:pb-0 group">
+                                          <div className={`absolute -left-[26px] top-1 w-3 h-3 rounded-full border-2 border-white dark:border-slate-900 ${colorClass} shadow-sm transition-transform group-hover:scale-110`} />
+
+                                          <div className="flex items-center justify-between text-xs">
+                                            <div className="flex items-center gap-2">
+                                              <span className="font-extrabold text-slate-800 dark:text-gray-150 uppercase tracking-widest text-[11px]">
+                                                {item.status || "Unknown Status"}
+                                              </span>
+                                              <span className="text-[10px] text-slate-400 dark:text-gray-500 font-bold uppercase tracking-wider">
+                                                by {item.updatedBy || "System"}
+                                              </span>
+                                            </div>
+                                            <span className="text-[10px] text-slate-400 dark:text-gray-500 font-bold font-mono">
+                                              {new Date(item.updatedAt).toLocaleString("en-IN", {
+                                                day: "2-digit",
+                                                month: "short",
+                                                year: "numeric",
+                                                hour: "2-digit",
+                                                minute: "2-digit"
+                                              })}
+                                            </span>
+                                          </div>
+
+                                          {item.call_remarks && (
+                                            <p className="text-xs text-slate-650 dark:text-gray-300 font-medium leading-relaxed bg-slate-50 dark:bg-slate-950/40 p-3 rounded-lg border border-slate-100 dark:border-gray-850 whitespace-pre-wrap">
+                                              {item.call_remarks}
+                                            </p>
+                                          )}
+
+                                          {(item.screenshot_url || item.recording_url) && (
+                                            <div className="flex items-center gap-2 flex-wrap pt-0.5">
+                                              {item.screenshot_url && (
+                                                <a
+                                                  href={item.screenshot_url}
+                                                  target="_blank"
+                                                  rel="noopener noreferrer"
+                                                  onClick={(e) => e.stopPropagation()}
+                                                  className="flex items-center gap-1.5 text-[9px] font-black uppercase tracking-wider text-indigo-600 hover:text-indigo-855 bg-indigo-50 hover:bg-indigo-100/80 px-2.5 py-1 rounded-md border border-indigo-150 transition-colors"
+                                                >
+                                                  <ImageIcon className="w-3.5 h-3.5" /> View Screenshot
+                                                </a>
+                                              )}
+                                              {item.recording_url && (
+                                                <a
+                                                  href={item.recording_url}
+                                                  target="_blank"
+                                                  rel="noopener noreferrer"
+                                                  onClick={(e) => e.stopPropagation()}
+                                                  className="flex items-center gap-1.5 text-[9px] font-black uppercase tracking-wider text-teal-600 hover:text-teal-855 bg-teal-50 hover:bg-teal-100/80 px-2.5 py-1 rounded-md border border-teal-150 transition-colors"
+                                                >
+                                                  <Play className="w-3.5 h-3.5" /> Play Recording
+                                                </a>
+                                              )}
+                                            </div>
+                                          )}
+
+                                          {(item.followup_date || item.status === "Interview Scheduled") && (
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-1.5">
+                                              {item.followup_date && (
+                                                <div className="bg-amber-500/5 border border-amber-500/10 p-2.5 rounded-lg text-[10px] font-bold text-amber-700 dark:text-amber-500 flex items-center gap-2">
+                                                  <CalendarClock className="w-4 h-4 text-amber-500" />
+                                                  <span>Follow-up Date: <strong className="text-slate-800 dark:text-gray-250 font-extrabold">{new Date(item.followup_date).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}</strong></span>
+                                                </div>
+                                              )}
+                                              {item.status === "Interview Scheduled" && (
+                                                <div className="bg-emerald-500/5 border border-emerald-555/10 p-2.5 rounded-lg text-[10px] font-bold text-emerald-800 dark:text-emerald-500 space-y-1 col-span-1 sm:col-span-2">
+                                                  <p className="font-extrabold flex items-center gap-1.5 text-[11px] text-emerald-700 dark:text-emerald-400">
+                                                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" /> Interview Details
+                                                  </p>
+                                                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1 font-extrabold text-[9px] uppercase text-slate-500 dark:text-gray-400 tracking-wider">
+                                                    <div>Round: <span className="text-slate-800 dark:text-gray-250 font-black">{item.interview_round || "1"}</span></div>
+                                                    <div>Mode: <span className="text-slate-800 dark:text-gray-250 font-black">{item.interview_mode || "online"}</span></div>
+                                                    <div>Date: <span className="text-slate-800 dark:text-gray-250 font-black">{item.interview_date || "N/A"}</span></div>
+                                                    <div>Time: <span className="text-slate-800 dark:text-gray-250 font-black">{item.interview_time || "N/A"}</span></div>
+                                                  </div>
+                                                  {item.interview_video_link && item.interview_mode !== "offline" && (
+                                                    <p className="text-[9px] pt-1">
+                                                      Meeting Link: <a href={item.interview_video_link} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="text-indigo-600 hover:underline font-black break-all">{item.interview_video_link}</a>
+                                                    </p>
+                                                  )}
+                                                </div>
+                                              )}
+                                            </div>
+                                          )}
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                </div>
+                              );
+                            })()}
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </React.Fragment>
                 ))}
               </tbody>
             </table>
@@ -436,7 +1015,7 @@ export default function BusinessLeads({
       {isImportModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4">
           <div className="bg-white dark:bg-slate-900 w-full max-w-2xl rounded-2xl shadow-xl border border-slate-100 dark:border-gray-800/80 overflow-hidden flex flex-col max-h-[85vh] animate-scaleIn">
-            
+
             {/* Modal Header */}
             <div className="px-6 py-4 border-b border-slate-100 dark:border-gray-850 flex items-center justify-between">
               <div>
@@ -471,7 +1050,7 @@ export default function BusinessLeads({
 
             {/* Step Content Area */}
             <div className="flex-1 overflow-y-auto p-6">
-              
+
               {/* STEP 1: Select or Create Platform */}
               {importStep === 1 && (
                 <div className="space-y-4">
@@ -484,11 +1063,9 @@ export default function BusinessLeads({
                             key={plat.id}
                             onClick={() => {
                               setSelectedPlatformId(plat.id);
-                              setImportStep(2);
                             }}
-                            className={`p-4 border rounded-xl cursor-pointer hover:border-[#714B67] hover:bg-[#714B67]/5 dark:hover:bg-slate-950/20 transition-all flex items-center gap-3 group ${
-                              selectedPlatformId === plat.id ? "border-[#714B67] bg-[#714B67]/5 dark:bg-slate-950/30" : "border-slate-200 dark:border-gray-800"
-                            }`}
+                            className={`p-4 border rounded-xl cursor-pointer hover:border-[#714B67] hover:bg-[#714B67]/5 dark:hover:bg-slate-950/20 transition-all flex items-center gap-3 group ${selectedPlatformId === plat.id ? "border-[#714B67] bg-[#714B67]/5 dark:bg-slate-950/30" : "border-slate-200 dark:border-gray-800"
+                              }`}
                           >
                             <div className="w-8 h-8 rounded-lg bg-[#714B67]/10 text-[#714B67] flex items-center justify-center font-bold text-xs">
                               {plat.prefix}
@@ -501,6 +1078,144 @@ export default function BusinessLeads({
                           </div>
                         ))}
                       </div>
+
+                      {/* Department & Role Dropdowns */}
+                      {selectedPlatformId && (
+                        <div className="p-4 bg-slate-50/50 dark:bg-slate-955/10 border border-slate-100 dark:border-gray-850 rounded-xl space-y-4 animate-fadeIn">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            {/* Department Dropdown */}
+                            <div className="space-y-1">
+                              <label className="text-[10px] font-bold text-slate-450 uppercase block">Assign Department</label>
+                              {!isCreatingDept ? (
+                                <div className="flex gap-2">
+                                  <select
+                                    value={selectedDepartmentId}
+                                    onChange={(e) => {
+                                      if (e.target.value === "add-new") {
+                                        setIsCreatingDept(true);
+                                        setSelectedDepartmentId("");
+                                      } else {
+                                        setSelectedDepartmentId(e.target.value);
+                                      }
+                                    }}
+                                    className="w-full px-3 py-2 text-xs border border-slate-200 dark:border-gray-800 rounded-lg bg-white dark:bg-slate-955/20 focus:outline-none focus:ring-1 focus:ring-[#714B67]"
+                                  >
+                                    <option value="">-- Select Department --</option>
+                                    {departments.map((dept) => (
+                                      <option key={dept.id} value={dept.id}>{dept.name}</option>
+                                    ))}
+                                    <option value="add-new" className="text-[#714B67] font-bold">+ Add New Department</option>
+                                  </select>
+                                </div>
+                              ) : (
+                                <div className="flex items-center gap-2 animate-scaleIn">
+                                  <input
+                                    type="text"
+                                    placeholder="New Department Name"
+                                    value={newDeptName}
+                                    onChange={(e) => setNewDeptName(e.target.value)}
+                                    className="flex-1 px-3 py-1.5 text-xs border border-slate-200 dark:border-gray-800 rounded-lg dark:bg-slate-950 focus:outline-none focus:ring-1 focus:ring-[#714B67]"
+                                  />
+                                  <button
+                                    type="button"
+                                    onClick={handleCreateDepartment}
+                                    disabled={savingDept}
+                                    className="px-3 py-1.5 bg-[#714B67] hover:bg-[#8A5B7D] text-white text-xs font-bold rounded-lg disabled:opacity-50"
+                                  >
+                                    {savingDept ? "Saving..." : "Save"}
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setIsCreatingDept(false);
+                                      setNewDeptName("");
+                                    }}
+                                    className="px-2 py-1.5 text-xs text-slate-500 hover:text-slate-700"
+                                  >
+                                    Cancel
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Role Dropdown */}
+                            <div className="space-y-1">
+                              <label className="text-[10px] font-bold text-slate-450 uppercase block">Assign Role</label>
+                              {selectedDepartmentId ? (
+                                !isCreatingRole ? (
+                                  <div className="flex gap-2">
+                                    <select
+                                      value={selectedRoleId}
+                                      onChange={(e) => {
+                                        if (e.target.value === "add-new") {
+                                          setIsCreatingRole(true);
+                                          setSelectedRoleId("");
+                                        } else {
+                                          setSelectedRoleId(e.target.value);
+                                        }
+                                      }}
+                                      className="w-full px-3 py-2 text-xs border border-slate-200 dark:border-gray-800 rounded-lg bg-white dark:bg-slate-955/20 focus:outline-none focus:ring-1 focus:ring-[#714B67]"
+                                    >
+                                      <option value="">-- Select Role --</option>
+                                      {filteredRoles.map((role) => (
+                                        <option key={role.id} value={role.id}>{role.name}</option>
+                                      ))}
+                                      <option value="add-new" className="text-[#714B67] font-bold">+ Add New Role</option>
+                                    </select>
+                                  </div>
+                                ) : (
+                                  <div className="flex items-center gap-2 animate-scaleIn">
+                                    <input
+                                      type="text"
+                                      placeholder="New Role Name"
+                                      value={newRoleName}
+                                      onChange={(e) => setNewRoleName(e.target.value)}
+                                      className="flex-1 px-3 py-1.5 text-xs border border-slate-200 dark:border-gray-850 rounded-lg dark:bg-slate-955/20 focus:outline-none focus:ring-1 focus:ring-[#714B67]"
+                                    />
+                                    <button
+                                      type="button"
+                                      onClick={handleCreateRole}
+                                      disabled={savingRole}
+                                      className="px-3 py-1.5 bg-[#714B67] hover:bg-[#8A5B7D] text-white text-xs font-bold rounded-lg disabled:opacity-50"
+                                    >
+                                      {savingRole ? "Saving..." : "Save"}
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setIsCreatingRole(false);
+                                        setNewRoleName("");
+                                      }}
+                                      className="px-2 py-1.5 text-xs text-slate-500 hover:text-slate-700"
+                                    >
+                                      Cancel
+                                    </button>
+                                  </div>
+                                )
+                              ) : (
+                                <select
+                                  disabled
+                                  className="w-full px-3 py-2 text-xs border border-slate-200 dark:border-gray-150 rounded-lg bg-slate-100/60 dark:bg-slate-955/10 text-slate-400 dark:text-gray-500 cursor-not-allowed focus:outline-none"
+                                >
+                                  <option>-- Select Department First --</option>
+                                </select>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Proceed to Upload Button */}
+                          <div className="pt-2 flex justify-end">
+                            <button
+                              type="button"
+                              onClick={() => setImportStep(2)}
+                              disabled={!selectedPlatformId || !selectedDepartmentId || !selectedRoleId}
+                              className="px-5 py-2 rounded-lg bg-[#714B67] hover:bg-[#8A5B7D] text-white font-bold text-xs shadow-md disabled:opacity-50 active:scale-95 transition-all"
+                            >
+                              Proceed to Upload →
+                            </button>
+                          </div>
+                        </div>
+                      )}
 
                       <div className="pt-4 border-t border-slate-100 dark:border-gray-850 flex justify-center">
                         <button
@@ -515,7 +1230,7 @@ export default function BusinessLeads({
                   ) : (
                     <form onSubmit={handleCreatePlatformSubmit} className="space-y-4 max-w-md mx-auto">
                       <h3 className="text-xs font-bold text-slate-600 uppercase tracking-wide">Register New Platform & Physical Table</h3>
-                      
+
                       <div className="space-y-1">
                         <label className="text-[10px] font-bold text-slate-400 uppercase">Platform Name</label>
                         <input
@@ -658,7 +1373,7 @@ export default function BusinessLeads({
                     >
                       ← Re-upload File
                     </button>
-                    
+
                     <button
                       onClick={handleImportSubmit}
                       disabled={uploading}
@@ -685,7 +1400,308 @@ export default function BusinessLeads({
         </div>
       )}
 
+      {/* LEAD CALL DETAILS / INTERVIEW WIZARD MODAL */}
+      {selectedLeadForEdit && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4 animate-fadeIn">
+          <div className="bg-white dark:bg-slate-900 w-full max-w-3xl rounded-2xl shadow-xl border border-slate-100 dark:border-gray-850 overflow-hidden flex flex-col max-h-[85vh] animate-scaleIn">
+
+                    <div className="px-6 py-4 border-b border-slate-100 dark:border-gray-850 flex items-center justify-between">
+              <div>
+                <h2 className="text-base font-extrabold text-black dark:text-white">Update Call Details & Actions</h2>
+                <p className="text-[10px] text-slate-400 font-medium">Lead: {selectedLeadForEdit.name || selectedLeadForEdit.full_name || selectedLeadForEdit.fullname || selectedLeadForEdit.candidate_name || selectedLeadForEdit.lead_name || "Unknown Candidate"} ({selectedLeadForEdit.id})</p>
+              </div>
+              <button
+                onClick={() => {
+                  setSelectedLeadForEdit(null);
+                  clearEditForm();
+                }}
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-gray-300 font-bold"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Split Grid for Details and Edit Form */}
+            <div className="flex-1 overflow-y-auto p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+
+              {/* Left Side: Candidate Info Overview */}
+              <div className="space-y-4">
+                <h3 className="text-xs font-extrabold text-black dark:text-white uppercase tracking-wider">Candidate Profile</h3>
+                <div className="grid grid-cols-2 gap-2 max-h-[50vh] overflow-y-auto pr-2 custom-scrollbar">
+                  {Object.keys(selectedLeadForEdit)
+                    .filter((k) => ["id", "name", "full_name", "fullname", "candidate_name", "lead_name", "phone", "mobile", "mobile_no", "phone_no", "phone_number", "contact_no", "contact", "email", "email_id", "emailid", "email_address", "city", "qualification", "experience", "level_of_experience", "level_of_experien", "exp", "relevant_experience"].includes(k) && selectedLeadForEdit[k])
+                    .map((k) => (
+                      <div key={k} className="p-2.5 bg-slate-50 dark:bg-slate-955/20 border border-slate-100 dark:border-gray-855 rounded-lg">
+                        <p className="text-[9px] uppercase font-bold text-slate-400">{formatHeader(k)}</p>
+                        <p className="text-xs font-semibold text-slate-700 dark:text-gray-300 whitespace-pre-wrap break-all">{String(selectedLeadForEdit[k])}</p>
+                      </div>
+                    ))}
+                </div>
+              </div>
+
+              {/* Right Side: Edit Form */}
+              <form onSubmit={handleSaveLeadEdit} className="space-y-4">
+                <h3 className="text-xs font-extrabold text-black dark:text-white uppercase tracking-wider">Log Call & Schedule</h3>
+
+                {/* Call Status Dropdown */}
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase">Call/Lead Status</label>
+                  {!isCreatingStatus ? (
+                    <select
+                      value={editStatus}
+                      onChange={(e) => {
+                        if (e.target.value === "add-new") {
+                          setIsCreatingStatus(true);
+                        } else {
+                          setEditStatus(e.target.value);
+                        }
+                      }}
+                      className="w-full px-3 py-2 text-xs border border-slate-200 dark:border-gray-800 rounded-lg bg-slate-50 dark:bg-slate-950 focus:outline-none focus:ring-1 focus:ring-[#714B67]"
+                    >
+                      <option value="">-- Select Status --</option>
+                      {leadStatuses.map((st) => (
+                        <option key={st.id} value={st.name}>{st.name}</option>
+                      ))}
+                      <option value="add-new" className="text-[#714B67] font-bold">+ Add New Status</option>
+                    </select>
+                  ) : (
+                    <div className="flex items-center gap-2 animate-scaleIn">
+                      <input
+                        type="text"
+                        placeholder="New Status Name"
+                        value={newStatusName}
+                        onChange={(e) => setNewStatusName(e.target.value)}
+                        className="flex-1 px-3 py-1.5 text-xs border border-slate-200 dark:border-gray-800 rounded-lg bg-white dark:bg-slate-900 text-slate-800 focus:outline-none focus:ring-1 focus:ring-[#714B67]"
+                      />
+                      <button
+                        type="button"
+                        onClick={handleCreateStatus}
+                        disabled={savingStatus}
+                        className="px-3 py-1.5 bg-[#714B67] hover:bg-[#8A5B7D] text-white text-xs font-bold rounded-lg disabled:opacity-50"
+                      >
+                        {savingStatus ? "Saving..." : "Save"}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsCreatingStatus(false);
+                          setNewStatusName("");
+                        }}
+                        className="px-2 py-1.5 text-xs text-slate-500 hover:text-slate-700"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                {/* Call Remarks / Conversation Notes */}
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase">Remarks / Discussion Notes</label>
+                  <textarea
+                    rows={3}
+                    placeholder="E.g., Candidate is interested, scheduled round 1 interview..."
+                    value={editCallRemarks}
+                    onChange={(e) => setEditCallRemarks(e.target.value)}
+                    className="w-full px-3 py-2 text-xs border border-slate-200 dark:border-gray-800 rounded-lg bg-slate-50 dark:bg-slate-950 focus:outline-none focus:ring-1 focus:ring-[#714B67]"
+                  />
+                </div>
+
+                {/* Conditional Screenshot Upload Proof (No Answer / Busy) */}
+                {["No Answer", "Busy"].includes(editStatus) && (
+                  <div className="space-y-1.5 p-3 bg-slate-50 dark:bg-slate-955/20 border border-slate-100 dark:border-gray-850 rounded-xl animate-fadeIn">
+                    <label className="text-[10px] font-bold text-slate-400 uppercase block">Upload Screenshot Proof</label>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => handleFileUpload(e, "screenshot")}
+                        className="hidden"
+                        id="screenshot-upload"
+                        disabled={uploadingFile}
+                      />
+                      <label
+                        htmlFor="screenshot-upload"
+                        className="px-3 py-1.5 bg-[#714B67] hover:bg-[#8A5B7D] text-white text-[11px] font-bold rounded-lg cursor-pointer flex items-center gap-1 active:scale-95 transition-all"
+                      >
+                        {uploadingFile ? "Uploading..." : "Choose Screenshot"}
+                      </label>
+                      {screenshotUrl ? (
+                        <span className="text-[10px] text-green-600 font-bold truncate max-w-[150px]">
+                          ✓ Uploaded (
+                          <a href={screenshotUrl} target="_blank" rel="noopener noreferrer" className="underline hover:text-green-800">
+                            View
+                          </a>
+                          )
+                        </span>
+                      ) : (
+                        <span className="text-[10px] text-slate-400 font-medium">No screenshot uploaded</span>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Conditional Call Recording Upload Proof (Connected / Not Interested) */}
+                {["Connected", "Not Interested"].includes(editStatus) && (
+                  <div className="space-y-1.5 p-3 bg-slate-50 dark:bg-slate-955/20 border border-slate-100 dark:border-gray-850 rounded-xl animate-fadeIn">
+                    <label className="text-[10px] font-bold text-slate-400 uppercase block">Upload Call Recording Proof</label>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="file"
+                        accept="audio/*"
+                        onChange={(e) => handleFileUpload(e, "recording")}
+                        className="hidden"
+                        id="recording-upload"
+                        disabled={uploadingFile}
+                      />
+                      <label
+                        htmlFor="recording-upload"
+                        className="px-3 py-1.5 bg-[#714B67] hover:bg-[#8A5B7D] text-white text-[11px] font-bold rounded-lg cursor-pointer flex items-center gap-1 active:scale-95 transition-all"
+                      >
+                        {uploadingFile ? "Uploading..." : "Choose Audio"}
+                      </label>
+                      {recordingUrl ? (
+                        <span className="text-[10px] text-green-600 font-bold truncate max-w-[150px]">
+                          ✓ Uploaded (
+                          <a href={recordingUrl} target="_blank" rel="noopener noreferrer" className="underline hover:text-green-800">
+                            Listen
+                          </a>
+                          )
+                        </span>
+                      ) : (
+                        <span className="text-[10px] text-slate-400 font-medium">No recording uploaded</span>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Conditional Virtual Scheduler (Interview Scheduled) */}
+                {editStatus === "Interview Scheduled" && (
+                  <div className="p-4 bg-slate-50/50 dark:bg-slate-950/20 border border-slate-100 dark:border-gray-850 rounded-xl space-y-3 animate-fadeIn text-xs">
+                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider font-mono">Virtual Scheduler Settings</p>
+
+                    <div className="grid grid-cols-2 gap-3 font-semibold text-slate-650">
+
+                      {/* Assessment Round */}
+                      <div className="flex flex-col gap-1.5">
+                        <label className="text-[10px] font-bold text-slate-400 uppercase">Assessment Round</label>
+                        <select
+                          value={schedRound}
+                          onChange={(e) => setSchedRound(e.target.value)}
+                          className="w-full px-2 py-1.5 border border-slate-200 dark:border-gray-800 rounded bg-white dark:bg-slate-900 text-slate-800 focus:outline-none"
+                        >
+                          <option value="1">Round-1: HR Assessment</option>
+                          <option value="2">Round-2: Department Manager</option>
+                          <option value="3">Round-3: DSM + Management (Mandatory)</option>
+                        </select>
+                      </div>
+
+                      {/* Interview Mode */}
+                      <div className="flex flex-col gap-1.5">
+                        <label className="text-[10px] font-bold text-slate-400 uppercase">Interview Mode</label>
+                        <select
+                          value={schedMode}
+                          onChange={(e) => setSchedMode(e.target.value as "online" | "offline")}
+                          className="w-full px-2 py-1.5 border border-slate-200 dark:border-gray-800 rounded bg-white dark:bg-slate-900 text-slate-800 focus:outline-none"
+                        >
+                          <option value="online">Online</option>
+                          <option value="offline">Offline</option>
+                        </select>
+                      </div>
+
+                      {/* Schedule Date */}
+                      <div className="flex flex-col gap-1.5">
+                        <label className="text-[10px] font-bold text-slate-400 uppercase">Schedule Date</label>
+                        <input
+                          type="date"
+                          value={schedDate}
+                          onChange={(e) => setSchedDate(e.target.value)}
+                          className="w-full px-2 py-1.5 border border-slate-200 dark:border-gray-800 rounded bg-white dark:bg-slate-900 text-slate-800 focus:outline-none"
+                          required={editStatus === "Interview Scheduled"}
+                        />
+                      </div>
+
+                      {/* Schedule Time */}
+                      <div className="flex flex-col gap-1.5">
+                        <label className="text-[10px] font-bold text-slate-400 uppercase">Schedule Time</label>
+                        <input
+                          type="time"
+                          value={schedTime}
+                          onChange={(e) => setSchedTime(e.target.value)}
+                          className="w-full px-2 py-1.5 border border-slate-200 dark:border-gray-800 rounded bg-white dark:bg-slate-900 text-slate-800 focus:outline-none"
+                          required={editStatus === "Interview Scheduled"}
+                        />
+                      </div>
+
+                      {/* Meeting Link (Suggested Google Meet) */}
+                      {schedMode === "online" && (
+                        <div className="col-span-2 flex flex-col gap-1.5 animate-fadeIn">
+                          <label className="text-[10px] font-bold text-slate-400 uppercase">Virtual Meeting Link (Suggested Google Meet)</label>
+                          <input
+                            type="url"
+                            value={schedVideoLink}
+                            onChange={(e) => setSchedVideoLink(e.target.value)}
+                            placeholder="Google Meet or Zoom Video url"
+                            className="w-full px-2 py-1.5 border border-slate-200 dark:border-gray-800 rounded bg-white dark:bg-slate-900 text-slate-800 focus:outline-none"
+                          />
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Follow-up Date & Time (Conditional on No Answer / Busy) */}
+                {["No Answer", "Busy"].includes(editStatus) && (
+                  <div className="grid grid-cols-2 gap-3 mt-2 p-3 bg-slate-50 dark:bg-slate-950/40 rounded-xl border border-slate-100 dark:border-gray-850 animate-fadeIn">
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold text-slate-450 uppercase">Set Follow-up Date</label>
+                      <input
+                        type="date"
+                        value={editFollowupDate}
+                        onChange={(e) => setEditFollowupDate(e.target.value)}
+                        className="w-full px-3 py-2 text-xs border border-slate-200 dark:border-gray-800 rounded-lg bg-white dark:bg-slate-900 text-slate-800 focus:outline-none focus:ring-1 focus:ring-[#714B67]"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold text-slate-450 uppercase">Set Follow-up Time</label>
+                      <input
+                        type="time"
+                        value={editFollowupTime}
+                        onChange={(e) => setEditFollowupTime(e.target.value)}
+                        className="w-full px-3 py-2 text-xs border border-slate-200 dark:border-gray-800 rounded-lg bg-white dark:bg-slate-900 text-slate-800 focus:outline-none focus:ring-1 focus:ring-[#714B67]"
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {/* Submit button */}
+                <div className="flex items-center justify-end gap-2 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedLeadForEdit(null);
+                      clearEditForm();
+                    }}
+                    className="px-3 py-1.5 text-xs font-semibold text-slate-500 hover:text-slate-700"
+                  >
+                    Close
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={savingEdit || uploadingFile}
+                    className="px-4 py-1.5 text-xs font-bold bg-[#714B67] hover:bg-[#8A5B7D] text-white rounded-lg disabled:opacity-50 active:scale-95 transition-all shadow-md"
+                  >
+                    {savingEdit ? "Saving..." : "Save details"}
+                  </button>
+                </div>
+              </form>
+
+            </div>
+          </div>
+        </div>
+      )}
     </div>
+
   );
 }
 
@@ -704,3 +1720,4 @@ function ChevronRightIcon(props: React.SVGProps<SVGSVGElement>) {
     </svg>
   );
 }
+// Hot-reload recompile trigger comment

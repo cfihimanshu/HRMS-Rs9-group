@@ -402,8 +402,10 @@ export function HiringApproval({
                                 onChange={e => handlePlatformChange(req.id, e.target.value)}
                               >
                                 <option value="Indeed">Indeed</option>
+                                <option value="Workindia">Workindia</option>
                                 <option value="Naukri">Naukri</option>
                                 <option value="Linkedin">Linkedin</option>
+                                <option value="Bhaskar">Bhaskar</option>
                               </select>
                             </div>
                             <div className="w-1/5">
@@ -933,14 +935,13 @@ export function CandidatesPipeline({
               <div>
                 <h3 className="text-[9px] font-black uppercase text-slate-400 tracking-wider font-mono">Candidate Profile Details</h3>
                 <h2 className="text-base font-black text-slate-850 mt-1">{selectedCandidate.name}</h2>
-                <span className={`text-[9px] font-bold px-2 py-0.5 rounded border mt-1 inline-block ${
-                  selectedCandidate.status === "Selected" ? "bg-emerald-55 border-emerald-200 text-emerald-600" : "bg-[#714B67]/10 text-[#714B67] border-[#714B67]/20"
-                }`}>
+                <span className={`text-[9px] font-bold px-2 py-0.5 rounded border mt-1 inline-block ${selectedCandidate.status === "Selected" ? "bg-emerald-55 border-emerald-200 text-emerald-600" : "bg-[#714B67]/10 text-[#714B67] border-[#714B67]/20"
+                  }`}>
                   Status: {selectedCandidate.status}
                 </span>
               </div>
               {selectedCandidate.status !== "Selected" && selectedCandidate.status !== "Rejected" && (
-                <button 
+                <button
                   onClick={() => toggleModal("interview", true)}
                   className="bg-[#714B67] hover:bg-[#5F3F56] px-3 py-1.5 rounded-lg text-xs font-bold text-white transition-all shadow-sm mt-3"
                 >
@@ -3258,14 +3259,14 @@ export function InterviewsQueue({ triggerToast }: { triggerToast: (msg: string) 
                                           </strong>
                                         </div>
                                         <div className="w-full bg-slate-200 rounded-full h-2">
-                                          <div 
+                                          <div
                                             className="bg-[#714B67] h-2 rounded-full transition-all duration-300"
-                                            style={{ 
+                                            style={{
                                               width: `${(() => {
                                                 const rated = customQuestions.filter((q: any) => q.rating);
                                                 const total = rated.reduce((sum, q) => sum + (q.rating === "average" ? 20 : q.rating === "low" ? 40 : q.rating === "good" ? 60 : q.rating === "medium" ? 80 : q.rating === "excellent" ? 100 : 0), 0);
                                                 return rated.length > 0 ? Math.round(total / rated.length) : 0;
-                                              })()}%` 
+                                              })()}%`
                                             }}
                                           ></div>
                                         </div>

@@ -1056,12 +1056,6 @@ export default function UnifiedEnterpriseDashboard() {
 
           {activeTab === "dashboard" && (
             <OwnerDashboard
-              stats={stats}
-              riskAlertList={riskAlertList}
-              onResolveAlert={handleAlertResolve}
-              onNavigateTab={setActiveTab}
-              triggerToast={triggerToast}
-            <OwnerDashboard
               sessionUser={session?.user}
               stats={stats}
               riskAlertList={riskAlertList}

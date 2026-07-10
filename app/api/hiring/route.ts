@@ -133,6 +133,50 @@ export async function PUT(req: Request) {
       }
       if (postingPlatform !== undefined) {
         requisition.postingPlatform = postingPlatform;
+
+        // Auto-ensure the LeadPlatform is registered and its table exists!
+        try {
+          const LeadPlatform = (await import("@/models/sequelize/LeadPlatform")).default;
+          const cleanName = postingPlatform.trim();
+          const exists = await LeadPlatform.findOne({
+            where: { name: cleanName }
+          });
+
+          if (!exists && cleanName) {
+            const prefix = cleanName.slice(0, 3).toUpperCase();
+            const id = cleanName.toLowerCase().replace(/[^a-z0-9]+/g, "-") + "-" + Math.floor(100 + Math.random() * 900);
+            const tableName = `leads_${id.replace(/-/g, "_")}`;
+
+            await LeadPlatform.create({
+              id,
+              name: cleanName,
+              prefix,
+              tableName
+            });
+
+            // Create the physical table dynamically in MySQL with standard schema
+            await sequelize.query(`
+              CREATE TABLE IF NOT EXISTS ${tableName} (
+                id VARCHAR(50) PRIMARY KEY,
+                name VARCHAR(255) NULL,
+                email VARCHAR(255) NULL,
+                phone VARCHAR(50) NULL,
+                company VARCHAR(255) NULL,
+                status VARCHAR(50) DEFAULT 'New',
+                notes TEXT NULL,
+                createdAt DATETIME NOT NULL,
+                updatedAt DATETIME NOT NULL,
+                platform_id VARCHAR(255) NULL,
+                department_id VARCHAR(255) NULL,
+                role_id VARCHAR(255) NULL,
+                call_history TEXT NULL
+              ) ENGINE=InnoDB;
+            `);
+            console.log(`[AUTO PLATFORM REGISTER] Successfully registered platform '${cleanName}' with table '${tableName}'`);
+          }
+        } catch (platformErr) {
+          console.error("[AUTO PLATFORM REGISTER ERROR] Failed to auto-register platform:", platformErr);
+        }
       }
       if (postingDuration !== undefined) {
         requisition.postingDuration = Number(postingDuration);
