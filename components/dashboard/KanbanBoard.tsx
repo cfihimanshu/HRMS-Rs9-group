@@ -320,32 +320,44 @@ export default function KanbanBoard() {
     if (!selectedTask || !e.target.files?.[0]) return;
     const file = e.target.files[0];
     
-    const reader = new FileReader();
-    reader.readAsDataURL(file);
-    reader.onload = async () => {
-      const base64String = reader.result as string;
-      setUploadingProof(true);
-      try {
-        const res = await fetch("/api/tasks", {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ taskId: selectedTask.id, proofAttachment: base64String }),
-        });
-        const data = await res.json();
-        if (data.success) {
-          setTasks(prev => prev.map(t => t.id === selectedTask.id ? { ...t, proofAttachment: base64String } : t));
-          setSelectedTask(prev => prev ? { ...prev, proofAttachment: base64String } : null);
-          alert("Proof uploaded successfully!");
-        } else {
-          alert(data.error || "Failed to upload proof.");
-        }
-      } catch (err) {
-        console.error(err);
-        alert("Failed to upload proof.");
-      } finally {
+    setUploadingProof(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      
+      const uploadRes = await fetch("/api/documents/upload", {
+        method: "POST",
+        body: formData,
+      });
+      const uploadData = await uploadRes.json();
+      
+      if (!uploadData.success) {
+        alert(uploadData.error || "Failed to upload file to FTP.");
         setUploadingProof(false);
+        return;
       }
-    };
+      
+      const fileUrl = uploadData.url;
+
+      const res = await fetch("/api/tasks", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ taskId: selectedTask.id, proofAttachment: fileUrl }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setTasks(prev => prev.map(t => t.id === selectedTask.id ? { ...t, proofAttachment: fileUrl } : t));
+        setSelectedTask(prev => prev ? { ...prev, proofAttachment: fileUrl } : null);
+        alert("Proof uploaded successfully via FTP!");
+      } else {
+        alert(data.error || "Failed to link proof to task.");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Failed to upload proof.");
+    } finally {
+      setUploadingProof(false);
+    }
   };
 
   const handleSaveEditNote = async (noteId: string) => {
@@ -1454,8 +1466,11 @@ export default function KanbanBoard() {
                       <div className="space-y-2">
                         {(() => {
                           const url = selectedTask.proofAttachment.toLowerCase();
-                          if (url.includes('application/pdf')) {
-                            return <div className="p-3 bg-white rounded border border-slate-200 text-xs font-bold text-slate-700 flex items-center gap-2"><Paperclip className="w-4 h-4"/> PDF Document Uploaded</div>;
+                          if (url.includes('application/pdf') || url.endsWith('.pdf')) {
+                            return <a href={selectedTask.proofAttachment} target="_blank" rel="noopener noreferrer" download="Task_Document.pdf" className="p-3 bg-white hover:bg-slate-50 transition-colors rounded border border-slate-200 text-xs font-bold text-slate-700 flex items-center justify-between gap-2 cursor-pointer"><div className="flex items-center gap-2"><Paperclip className="w-4 h-4"/> PDF Document Uploaded</div> <Download className="w-4 h-4 text-slate-400" /></a>;
+                          }
+                          if (url.includes('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet') || url.includes('application/vnd.ms-excel') || url.includes('text/csv') || url.endsWith('.xls') || url.endsWith('.xlsx') || url.endsWith('.csv')) {
+                            return <a href={selectedTask.proofAttachment} target="_blank" rel="noopener noreferrer" download="Task_Document.xlsx" className="p-3 bg-white hover:bg-slate-50 transition-colors rounded border border-slate-200 text-xs font-bold text-slate-700 flex items-center justify-between gap-2 cursor-pointer"><div className="flex items-center gap-2"><Paperclip className="w-4 h-4"/> Excel/CSV Document Uploaded</div> <Download className="w-4 h-4 text-slate-400" /></a>;
                           }
                           if (url.includes('audio/')) {
                             return <audio controls className="w-full h-10"><source src={selectedTask.proofAttachment} /></audio>;
@@ -1483,7 +1498,7 @@ export default function KanbanBoard() {
                               {uploadingProof ? "Uploading..." : "Click to upload Proof"}
                             </p>
                           </div>
-                          <input type="file" className="hidden" accept="image/*,.pdf,audio/*" onChange={handleUploadProof} disabled={uploadingProof} />
+                          <input type="file" className="hidden" accept="image/*,.pdf,audio/*,.xlsx,.xls,.csv" onChange={handleUploadProof} disabled={uploadingProof} />
                         </label>
                       </div>
                     )}
