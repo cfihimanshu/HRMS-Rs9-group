@@ -990,7 +990,7 @@ export default function LegalRecoveryModule({ userRole, triggerToast, sessionUse
         )}
 
         {activeSubModule === "work-logs" && (
-          <LegalWorkLogsView workLogs={globalWorkLogs} cases={cases} loading={loadingGlobalWorkLogs} onRefresh={fetchGlobalWorkLogs} />
+          <LegalWorkLogsView workLogs={globalWorkLogs} branches={branchesList} banks={banksList} loading={loadingGlobalWorkLogs} onRefresh={fetchGlobalWorkLogs} />
         )}
       </div>
 

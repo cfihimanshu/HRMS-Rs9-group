@@ -40,9 +40,13 @@ const WORK_CATEGORIES: Record<string, string[]> = {
   ]
 };
 
-export default function LegalWorkLogsView({ workLogs, cases, loading, onRefresh }: { workLogs: any[], cases: any[], loading: boolean, onRefresh?: () => void }) {
+export default function LegalWorkLogsView({ workLogs, branches, banks, loading, onRefresh }: { workLogs: any[], branches: any[], banks: any[], loading: boolean, onRefresh?: () => void }) {
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedCase, setSelectedCase] = useState<number | null>(null);
+  const [selectedBranch, setSelectedBranch] = useState<number | null>(null);
+
+  const getBankName = (bankId: number) => {
+    return banks?.find((b: any) => b.id == bankId)?.bankName || "Unknown Bank";
+  };
   const [expandedCategories, setExpandedCategories] = useState<Record<string, boolean>>({});
   const [updatingTask, setUpdatingTask] = useState<string | null>(null);
   const [activeStepForm, setActiveStepForm] = useState<string | null>(null);
@@ -51,11 +55,12 @@ export default function LegalWorkLogsView({ workLogs, cases, loading, onRefresh 
   const [reportSearchQuery, setReportSearchQuery] = useState("");
   const [reportCategoryFilter, setReportCategoryFilter] = useState("");
 
-  const filteredCases = cases.filter(c => {
+  const filteredBranches = branches.filter(b => {
+    const bankName = getBankName(b.bankId);
     return (
-      (c?.bankName || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (c?.branchName || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (c?.aoName || "").toLowerCase().includes(searchQuery.toLowerCase())
+      (bankName || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (b?.branchName || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (b?.aoName || "").toLowerCase().includes(searchQuery.toLowerCase())
     );
   });
 
@@ -63,15 +68,15 @@ export default function LegalWorkLogsView({ workLogs, cases, loading, onRefresh 
     setExpandedCategories(prev => ({ ...prev, [cat]: !prev[cat] }));
   };
 
-  const handleMarkTaskDone = async (caseId: number, category: string, subCategory: string, remarks: string) => {
-    const taskKey = `${caseId}-${category}-${subCategory}`;
+  const handleMarkTaskDone = async (branchId: number, category: string, subCategory: string, remarks: string) => {
+    const taskKey = `${branchId}-${category}-${subCategory}`;
     setUpdatingTask(taskKey);
     try {
       const res = await fetch("/api/legal-recovery/work-log", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          masterId: caseId,
+          masterId: branchId,
           category,
           subCategory,
           remarks: remarks || "Marked as completed",
@@ -91,26 +96,27 @@ export default function LegalWorkLogsView({ workLogs, cases, loading, onRefresh 
     }
   };
 
-  const getCompletedTaskLog = (caseId: number, category: string, subCategory: string) => {
-    return workLogs.find(log => log.masterId === caseId && log.category === category && log.subCategory === subCategory);
+  const getCompletedTaskLog = (branchId: number, category: string, subCategory: string) => {
+    return workLogs.find(log => log.masterId === branchId && log.category === category && log.subCategory === subCategory);
   };
 
-  const getTaskCompletionData = (caseId: number, category: string) => {
+  const getTaskCompletionData = (branchId: number, category: string) => {
     const steps = WORK_CATEGORIES[category];
-    const completed = steps.filter(step => getCompletedTaskLog(caseId, category, step)).length;
+    const completed = steps.filter(step => getCompletedTaskLog(branchId, category, step)).length;
     return { completed, total: steps.length, percentage: Math.round((completed / steps.length) * 100) };
   };
 
-  const getCaseDetails = (masterId: number) => {
-    return cases.find(c => c.id === masterId);
+  const getBranchDetails = (masterId: number) => {
+    return branches.find(b => b.id === masterId);
   };
 
   const filteredWorkLogs = workLogs.filter(log => {
-    const c = getCaseDetails(log.masterId);
+    const bObj = getBranchDetails(log.masterId);
+    const bankName = bObj ? getBankName(bObj.bankId) : "";
     const matchesSearch = 
       (log.employeeName || "").toLowerCase().includes(reportSearchQuery.toLowerCase()) ||
       (log.category || "").toLowerCase().includes(reportSearchQuery.toLowerCase()) ||
-      (c?.bankName || "").toLowerCase().includes(reportSearchQuery.toLowerCase());
+      (bankName || "").toLowerCase().includes(reportSearchQuery.toLowerCase());
     const matchesCategory = reportCategoryFilter ? log.category === reportCategoryFilter : true;
     return matchesSearch && matchesCategory;
   });
@@ -118,12 +124,12 @@ export default function LegalWorkLogsView({ workLogs, cases, loading, onRefresh 
   const exportWorkLogsCSV = () => {
     const headers = ["Date", "Employee", "Bank", "Branch", "Category", "Task/Step", "Remarks"];
     const rows = filteredWorkLogs.map(log => {
-      const c = getCaseDetails(log.masterId);
+      const bObj = getBranchDetails(log.masterId);
       return [
         log.workDate ? new Date(log.workDate).toLocaleDateString() : new Date(log.createdAt).toLocaleDateString(),
         `"${log.employeeName || 'Unknown'}"`,
-        `"${c?.bankName || 'N/A'}"`,
-        `"${c?.branchName || 'N/A'}"`,
+        `"${bObj ? getBankName(bObj.bankId) : 'N/A'}"`,
+        `"${bObj?.branchName || 'N/A'}"`,
         `"${log.category}"`,
         `"${log.subCategory}"`,
         `"${log.remarks || ''}"`
@@ -182,47 +188,48 @@ export default function LegalWorkLogsView({ workLogs, cases, loading, onRefresh 
               <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
               <input 
                 type="text" 
-                placeholder="Search Cases..." 
+                placeholder="Search Branches..." 
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full pl-9 pr-4 py-2 bg-white border border-[#E8E4DF] focus:border-blue-500 rounded-xl text-xs focus:outline-none transition-colors"
               />
             </div>
-            <h3 className="text-xs font-black text-slate-700 uppercase tracking-wider">Select a Case</h3>
+            <h3 className="text-xs font-black text-slate-700 uppercase tracking-wider">Select a Branch</h3>
           </div>
           <div className="overflow-y-auto flex-1 p-2 space-y-2">
-            {filteredCases.map(c => (
+            {filteredBranches.map(b => (
               <button
-                key={c.id}
-                onClick={() => setSelectedCase(c.id)}
+                key={b.id}
+                onClick={() => setSelectedBranch(b.id)}
                 className={`w-full text-left p-3 rounded-lg border transition-all ${
-                  selectedCase === c.id 
+                  selectedBranch === b.id 
                     ? 'border-blue-500 bg-blue-50 shadow-sm' 
                     : 'border-transparent hover:bg-slate-50 border-slate-100'
                 }`}
               >
-                <div className="font-bold text-xs text-slate-800">{c.bankName}</div>
-                <div className="text-[10px] text-slate-500 font-semibold mb-1">Branch: {c.branchName}</div>
-                <div className="text-[10px] text-[#9C9890]">AO: {c.aoName || 'N/A'}</div>
+                <div className="font-bold text-xs text-slate-800">{getBankName(b.bankId)}</div>
+                <div className="text-[10px] text-slate-500 font-semibold mb-1">Branch: {b.branchName}</div>
+                <div className="text-[10px] text-[#9C9890]">AO: {b.aoName || 'N/A'}</div>
               </button>
             ))}
-            {filteredCases.length === 0 && (
-              <div className="text-center p-6 text-xs text-slate-400 font-semibold">No cases match your search.</div>
+            {filteredBranches.length === 0 && (
+              <div className="text-center p-6 text-xs text-slate-400 font-semibold">No branches match your search.</div>
             )}
           </div>
         </div>
 
         {/* Work Checklist Panel */}
         <div className="lg:col-span-2 bg-white border border-[#E8E4DF] rounded-xl overflow-hidden shadow-sm h-[600px] flex flex-col">
-          {selectedCase ? (
+          {selectedBranch ? (
             <>
               {(() => {
-                const c = cases.find(caseObj => caseObj.id === selectedCase);
+                const b = branches.find((branchObj: any) => branchObj.id === selectedBranch);
+                const bankName = b ? getBankName(b.bankId) : "";
                 return (
                   <div className="p-5 border-b border-[#E8E4DF] bg-slate-50 flex items-center justify-between">
                     <div>
-                      <h2 className="text-sm font-black text-slate-800">{c?.bankName}</h2>
-                      <div className="text-xs text-slate-500 font-semibold mt-1">Branch: {c?.branchName}</div>
+                      <h2 className="text-sm font-black text-slate-800">{bankName}</h2>
+                      <div className="text-xs text-slate-500 font-semibold mt-1">Branch: {b?.branchName}</div>
                     </div>
                   </div>
                 );
@@ -230,7 +237,7 @@ export default function LegalWorkLogsView({ workLogs, cases, loading, onRefresh 
               
               <div className="p-6 overflow-y-auto flex-1 space-y-4">
                 {Object.keys(WORK_CATEGORIES).map(category => {
-                  const progress = getTaskCompletionData(selectedCase, category);
+                  const progress = getTaskCompletionData(selectedBranch, category);
                   const isExpanded = expandedCategories[category];
                   
                   return (
@@ -257,9 +264,9 @@ export default function LegalWorkLogsView({ workLogs, cases, loading, onRefresh 
                       {isExpanded && (
                         <div className="bg-slate-50 border-t border-slate-200 p-4 space-y-2">
                           {WORK_CATEGORIES[category].map((step, idx) => {
-                            const completedLog = getCompletedTaskLog(selectedCase, category, step);
+                            const completedLog = getCompletedTaskLog(selectedBranch, category, step);
                             const done = !!completedLog;
-                            const taskKey = `${selectedCase}-${category}-${step}`;
+                            const taskKey = `${selectedBranch}-${category}-${step}`;
                             const isUpdating = updatingTask === taskKey;
                             
                             return (
@@ -318,7 +325,7 @@ export default function LegalWorkLogsView({ workLogs, cases, loading, onRefresh 
                                       </button>
                                       <button 
                                         disabled={isUpdating}
-                                        onClick={() => handleMarkTaskDone(selectedCase, category, step, stepRemarks)}
+                                        onClick={() => handleMarkTaskDone(selectedBranch, category, step, stepRemarks)}
                                         className="px-3 py-1.5 bg-blue-600 text-white hover:bg-blue-700 rounded text-[10px] font-bold uppercase tracking-wide transition-colors disabled:opacity-50"
                                       >
                                         {isUpdating ? "Saving..." : "Confirm Done"}
@@ -348,9 +355,9 @@ export default function LegalWorkLogsView({ workLogs, cases, loading, onRefresh 
               <div className="w-16 h-16 bg-slate-100 text-slate-400 rounded-2xl flex items-center justify-center mb-4">
                 <Briefcase size={32} />
               </div>
-              <h3 className="text-sm font-black text-slate-500 uppercase tracking-wider mb-2">No Case Selected</h3>
+              <h3 className="text-sm font-black text-slate-500 uppercase tracking-wider mb-2">No Branch Selected</h3>
               <p className="text-xs text-slate-400 font-semibold max-w-[250px]">
-                Select a case from the list on the left to manage its work execution checklist.
+                Select a branch from the list on the left to manage its work execution checklist.
               </p>
             </div>
           )}
@@ -400,7 +407,7 @@ export default function LegalWorkLogsView({ workLogs, cases, loading, onRefresh 
                 <thead>
                   <tr className="bg-[#FCFBF9] border-b border-[#E8E4DF]">
                     <th className="py-3 px-4 text-[10px] font-black text-[#9C9890] uppercase tracking-wider">Date & Employee</th>
-                    <th className="py-3 px-4 text-[10px] font-black text-[#9C9890] uppercase tracking-wider">Case Details</th>
+                    <th className="py-3 px-4 text-[10px] font-black text-[#9C9890] uppercase tracking-wider">Branch Details</th>
                     <th className="py-3 px-4 text-[10px] font-black text-[#9C9890] uppercase tracking-wider">Category</th>
                     <th className="py-3 px-4 text-[10px] font-black text-[#9C9890] uppercase tracking-wider">Work Action & Remarks</th>
                   </tr>
@@ -416,7 +423,7 @@ export default function LegalWorkLogsView({ workLogs, cases, loading, onRefresh 
                     </tr>
                   ) : (
                     filteredWorkLogs.map(log => {
-                      const caseObj = getCaseDetails(log.masterId);
+                      const caseObj = getBranchDetails(log.masterId);
                       return (
                         <tr key={log.id} className="hover:bg-slate-50 transition-colors">
                           <td className="py-3 px-4">

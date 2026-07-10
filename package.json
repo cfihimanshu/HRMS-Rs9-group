@@ -24,7 +24,6 @@
     "radix-ui": "^1.4.3",
     "react": "^18",
     "react-dom": "^18",
-    "react-leaflet": "^5.0.0",
     "recharts": "^3.8.1",
     "sequelize": "^6.37.8",
     "shadcn": "^4.8.2",
