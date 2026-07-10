@@ -55,6 +55,7 @@ export default function BusinessLeads({
     rejected: 0,
     systemJobLink: 0
   });
+  const [activeFilterCard, setActiveFilterCard] = useState<string>("all");
 
   // Modal/Wizard States
   const [isImportModalOpen, setIsImportModalOpen] = useState<boolean>(false);
@@ -420,6 +421,7 @@ export default function BusinessLeads({
     if (activePlatformId) {
       loadLeads(activePlatformId);
       setExpandedLeadId(null);
+      setActiveFilterCard("all");
     }
   }, [activePlatformId]);
 
@@ -549,8 +551,53 @@ export default function BusinessLeads({
     XLSX.writeFile(wb, "Leads_Import_Template.xlsx");
   };
 
-  // Filtered Leads list for display search
+  // Export filtered/all leads to Excel
+  const exportToExcel = () => {
+    if (filteredLeads.length === 0) {
+      triggerToast("No data available to export.");
+      return;
+    }
+
+    const exportData = filteredLeads.map((lead) => {
+      const row: any = {};
+      visibleColumns.forEach((col) => {
+        row[formatHeader(col)] = lead[col] || "-";
+      });
+      return row;
+    });
+
+    const ws = XLSX.utils.json_to_sheet(exportData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "HR Leads");
+
+    const platObj = platforms.find((p) => p.id === activePlatformId);
+    const platformName = platObj ? platObj.name : "Leads";
+    XLSX.writeFile(wb, `${platformName}_Leads_Export.xlsx`);
+    triggerToast("📊 Leads exported to Excel successfully!");
+  };
+
+  // Filtered Leads list for display search and card filters
   const filteredLeads = leads.filter((lead) => {
+    // 1. Filter by Active Card
+    const status = (lead.status || "").toLowerCase();
+
+    if (activeFilterCard === "new") {
+      if (status !== "new") return false;
+    } else if (activeFilterCard === "called") {
+      if (!status || status === "new") return false;
+    } else if (activeFilterCard === "connected") {
+      if (!status.includes("connected")) return false;
+    } else if (activeFilterCard === "not_connected") {
+      if (!status.includes("no answer") && !status.includes("busy")) return false;
+    } else if (activeFilterCard === "scheduled") {
+      if (!status.includes("interview") && !status.includes("schedule")) return false;
+    } else if (activeFilterCard === "selected_rejected") {
+      if (!status.includes("select") && !status.includes("reject")) return false;
+    } else if (activeFilterCard === "system_link") {
+      if (!lead.isSystemLink) return false;
+    }
+
+    // 2. Filter by search text
     if (!searchTerm) return true;
     const term = searchTerm.toLowerCase();
     return Object.values(lead).some((val) =>
@@ -563,8 +610,8 @@ export default function BusinessLeads({
   const visibleColumns = columns.filter((col) => {
     const cleaned = col.toLowerCase().replace(/[^a-z0-9]/g, "");
     const excludedKeywords = [
-      "callremarks", "remarks", "screenshoturl", "recordingurl", 
-      "interviewround", "interviewdate", "interviewtime", "interviewmode", 
+      "callremarks", "remarks", "screenshoturl", "recordingurl",
+      "interviewround", "interviewdate", "interviewtime", "interviewmode",
       "interviewvideolink", "followupdate", "callhistory"
     ];
     if (excludedKeywords.includes(cleaned)) return false;
@@ -594,7 +641,7 @@ export default function BusinessLeads({
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight bg-gradient-to-r from-[#714B67] to-[#9D688E] bg-clip-text text-transparent">
-            Business Leads Directory
+            HR Leads Directory
           </h1>
           <p className="text-slate-500 dark:text-gray-400 text-xs font-medium">
             Manage your sales leads, import lists dynamically from multiple platforms, and evolve schemas automatically.
@@ -602,14 +649,16 @@ export default function BusinessLeads({
         </div>
 
         <div className="flex items-center gap-2">
+          {/* Export Excel (Downloads filtered leads or all leads) */}
           <button
-            onClick={downloadTemplate}
+            onClick={exportToExcel}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-gray-800 text-xs font-semibold bg-white dark:bg-slate-900 text-slate-600 dark:text-gray-300 hover:bg-slate-50 dark:hover:bg-gray-850 hover:shadow-sm active:scale-95 transition-all"
           >
             <Download className="w-3.5 h-3.5" />
-            Template
+            Export
           </button>
 
+          {/* Import Excel */}
           <button
             onClick={() => {
               setIsImportModalOpen(true);
@@ -625,7 +674,11 @@ export default function BusinessLeads({
 
       {/* Metrics Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-gray-900/60 p-4 rounded-xl shadow-sm flex items-center gap-4">
+        <div
+          onClick={() => setActiveFilterCard("all")}
+          className={`bg-white dark:bg-slate-900 border border-slate-100 dark:border-gray-900/60 p-4 rounded-xl shadow-sm flex items-center gap-4 cursor-pointer transition-all hover:scale-[1.02] hover:shadow-md ${activeFilterCard === "all" ? "ring-2 ring-[#714B67] bg-[#714B67]/5" : ""
+            }`}
+        >
           <div className="w-10 h-10 rounded-lg bg-[#714B67]/10 flex items-center justify-center text-[#714B67]">
             <Database className="w-5 h-5" />
           </div>
@@ -635,7 +688,11 @@ export default function BusinessLeads({
           </div>
         </div>
 
-        <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-gray-900/60 p-4 rounded-xl shadow-sm flex items-center gap-4">
+        <div
+          onClick={() => setActiveFilterCard("new")}
+          className={`bg-white dark:bg-slate-900 border border-slate-100 dark:border-gray-900/60 p-4 rounded-xl shadow-sm flex items-center gap-4 cursor-pointer transition-all hover:scale-[1.02] hover:shadow-md ${activeFilterCard === "new" ? "ring-2 ring-green-600 bg-green-600/5" : ""
+            }`}
+        >
           <div className="w-10 h-10 rounded-lg bg-green-550/10 flex items-center justify-center text-green-600">
             <CheckCircle2 className="w-5 h-5" />
           </div>
@@ -675,7 +732,11 @@ export default function BusinessLeads({
       {/* Dynamic HR Calling & System Job Link Stats */}
       <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
         {/* Called by HR */}
-        <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-gray-900/60 p-4 rounded-xl shadow-sm flex items-center gap-3.5 hover:shadow transition-shadow">
+        <div
+          onClick={() => setActiveFilterCard("called")}
+          className={`bg-white dark:bg-slate-900 border border-slate-100 dark:border-gray-900/60 p-4 rounded-xl shadow-sm flex items-center gap-3.5 cursor-pointer transition-all hover:scale-[1.02] hover:shadow-md ${activeFilterCard === "called" ? "ring-2 ring-indigo-650 bg-indigo-600/5" : ""
+            }`}
+        >
           <div className="w-9 h-9 rounded-lg bg-indigo-500/10 flex items-center justify-center text-indigo-600">
             <Phone className="w-4 h-4" />
           </div>
@@ -686,7 +747,11 @@ export default function BusinessLeads({
         </div>
 
         {/* Connected */}
-        <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-gray-900/60 p-4 rounded-xl shadow-sm flex items-center gap-3.5 hover:shadow transition-shadow">
+        <div
+          onClick={() => setActiveFilterCard("connected")}
+          className={`bg-white dark:bg-slate-900 border border-slate-100 dark:border-gray-900/60 p-4 rounded-xl shadow-sm flex items-center gap-3.5 cursor-pointer transition-all hover:scale-[1.02] hover:shadow-md ${activeFilterCard === "connected" ? "ring-2 ring-emerald-650 bg-emerald-650/5" : ""
+            }`}
+        >
           <div className="w-9 h-9 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-600">
             <CheckCircle2 className="w-4 h-4" />
           </div>
@@ -697,7 +762,11 @@ export default function BusinessLeads({
         </div>
 
         {/* Not Connected */}
-        <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-gray-900/60 p-4 rounded-xl shadow-sm flex items-center gap-3.5 hover:shadow transition-shadow">
+        <div
+          onClick={() => setActiveFilterCard("not_connected")}
+          className={`bg-white dark:bg-slate-900 border border-slate-100 dark:border-gray-900/60 p-4 rounded-xl shadow-sm flex items-center gap-3.5 cursor-pointer transition-all hover:scale-[1.02] hover:shadow-md ${activeFilterCard === "not_connected" ? "ring-2 ring-rose-650 bg-rose-650/5" : ""
+            }`}
+        >
           <div className="w-9 h-9 rounded-lg bg-rose-500/10 flex items-center justify-center text-rose-600">
             <AlertCircle className="w-4 h-4" />
           </div>
@@ -708,7 +777,11 @@ export default function BusinessLeads({
         </div>
 
         {/* Interview Scheduled */}
-        <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-gray-900/60 p-4 rounded-xl shadow-sm flex items-center gap-3.5 hover:shadow transition-shadow">
+        <div
+          onClick={() => setActiveFilterCard("scheduled")}
+          className={`bg-white dark:bg-slate-900 border border-slate-100 dark:border-gray-900/60 p-4 rounded-xl shadow-sm flex items-center gap-3.5 cursor-pointer transition-all hover:scale-[1.02] hover:shadow-md ${activeFilterCard === "scheduled" ? "ring-2 ring-cyan-650 bg-cyan-650/5" : ""
+            }`}
+        >
           <div className="w-9 h-9 rounded-lg bg-cyan-500/10 flex items-center justify-center text-cyan-600">
             <CalendarClock className="w-4 h-4" />
           </div>
@@ -719,7 +792,11 @@ export default function BusinessLeads({
         </div>
 
         {/* Select & Reject */}
-        <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-gray-900/60 p-4 rounded-xl shadow-sm flex items-center gap-3.5 hover:shadow transition-shadow">
+        <div
+          onClick={() => setActiveFilterCard("selected_rejected")}
+          className={`bg-white dark:bg-slate-900 border border-slate-100 dark:border-gray-900/60 p-4 rounded-xl shadow-sm flex items-center gap-3.5 cursor-pointer transition-all hover:scale-[1.02] hover:shadow-md ${activeFilterCard === "selected_rejected" ? "ring-2 ring-amber-650 bg-amber-650/5" : ""
+            }`}
+        >
           <div className="w-9 h-9 rounded-lg bg-amber-500/10 flex items-center justify-center text-amber-600">
             <User className="w-4 h-4" />
           </div>
@@ -732,7 +809,11 @@ export default function BusinessLeads({
         </div>
 
         {/* Added from System Job Link */}
-        <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-gray-900/60 p-4 rounded-xl shadow-sm flex items-center gap-3.5 hover:shadow transition-shadow">
+        <div
+          onClick={() => setActiveFilterCard("system_link")}
+          className={`bg-white dark:bg-slate-900 border border-slate-100 dark:border-gray-900/60 p-4 rounded-xl shadow-sm flex items-center gap-3.5 cursor-pointer transition-all hover:scale-[1.02] hover:shadow-md ${activeFilterCard === "system_link" ? "ring-2 ring-purple-650 bg-purple-650/5" : ""
+            }`}
+        >
           <div className="w-9 h-9 rounded-lg bg-purple-500/10 flex items-center justify-center text-purple-600">
             <Plus className="w-4 h-4" />
           </div>
@@ -753,8 +834,8 @@ export default function BusinessLeads({
               key={plat.id}
               onClick={() => setActivePlatformId(plat.id)}
               className={`px-5 py-3 text-xs font-bold whitespace-nowrap transition-all border-b-2 ${activePlatformId === plat.id
-                  ? "border-[#714B67] text-[#714B67] bg-white dark:bg-slate-900"
-                  : "border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-gray-300"
+                ? "border-[#714B67] text-[#714B67] bg-white dark:bg-slate-900"
+                : "border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-gray-300"
                 }`}
             >
               {plat.name} ({plat.prefix})
@@ -1405,7 +1486,7 @@ export default function BusinessLeads({
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4 animate-fadeIn">
           <div className="bg-white dark:bg-slate-900 w-full max-w-3xl rounded-2xl shadow-xl border border-slate-100 dark:border-gray-850 overflow-hidden flex flex-col max-h-[85vh] animate-scaleIn">
 
-                    <div className="px-6 py-4 border-b border-slate-100 dark:border-gray-850 flex items-center justify-between">
+            <div className="px-6 py-4 border-b border-slate-100 dark:border-gray-850 flex items-center justify-between">
               <div>
                 <h2 className="text-base font-extrabold text-black dark:text-white">Update Call Details & Actions</h2>
                 <p className="text-[10px] text-slate-400 font-medium">Lead: {selectedLeadForEdit.name || selectedLeadForEdit.full_name || selectedLeadForEdit.fullname || selectedLeadForEdit.candidate_name || selectedLeadForEdit.lead_name || "Unknown Candidate"} ({selectedLeadForEdit.id})</p>

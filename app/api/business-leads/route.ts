@@ -112,19 +112,6 @@ export async function GET(req: Request) {
       };
     };
 
-    // Fetch candidates to match emails and mobile numbers
-    let candidateEmails = new Set<string>();
-    let candidateMobiles = new Set<string>();
-    try {
-      const [candidates]: any[] = await sequelize.query("SELECT email, mobile FROM candidates");
-      candidates.forEach((c: any) => {
-        if (c.email) candidateEmails.add(c.email.trim().toLowerCase());
-        if (c.mobile) candidateMobiles.add(c.mobile.trim());
-      });
-    } catch (e) {
-      console.error("[GET LEADS STATS] Failed to fetch candidates database details:", e);
-    }
-
     let systemJobLinkCount = 0;
     let leadsCalled = 0;
     let connected = 0;
@@ -153,26 +140,8 @@ export async function GET(req: Request) {
         rejected++;
       }
 
-      // Check System Job Link matching
-      let isSystemLink = lead.source_type === "System Job Link";
-      if (!isSystemLink) {
-        const emailKeys = ["email_id", "emailid", "email_address", "email"];
-        const mobileKeys = ["mobile_no", "mobile", "phone_no", "phoneno", "phone_number", "contact_no", "contact", "phone"];
-        for (const k of emailKeys) {
-          if (lead[k] && candidateEmails.has(String(lead[k]).trim().toLowerCase())) {
-            isSystemLink = true;
-            break;
-          }
-        }
-        if (!isSystemLink) {
-          for (const k of mobileKeys) {
-            if (lead[k] && candidateMobiles.has(String(lead[k]).trim())) {
-              isSystemLink = true;
-              break;
-            }
-          }
-        }
-      }
+      // Check System Job Link matching (strictly by source_type to avoid matching imported leads)
+      const isSystemLink = lead.source_type === "System Job Link";
       if (isSystemLink) {
         systemJobLinkCount++;
       }
@@ -212,6 +181,7 @@ export async function GET(req: Request) {
 
       return {
         ...lead,
+        isSystemLink,
         call_history: mergedList.length > 0 ? JSON.stringify(mergedList) : null
       };
     });

@@ -339,6 +339,14 @@ export async function POST(req: Request) {
                      : existingCols.includes("exp") ? "exp"
                      : existingCols.includes("relevant_experience") ? "relevant_experience" : "experience";
 
+        const cityCol = existingCols.includes("city") ? "city"
+                      : existingCols.includes("current_city") ? "current_city"
+                      : existingCols.includes("currentcity") ? "currentcity" : "city";
+
+        const resumeCol = existingCols.includes("resume_link") ? "resume_link"
+                        : existingCols.includes("resumelink") ? "resumelink"
+                        : existingCols.includes("resume") ? "resume" : "cvUpload";
+
         const standardFields = [
           { name: nameCol, type: "TEXT", val: name },
           { name: phoneCol, type: "TEXT", val: mobile },
@@ -349,7 +357,9 @@ export async function POST(req: Request) {
           { name: "platform_id", type: "VARCHAR(255)", val: platform.id },
           { name: "department_id", type: "VARCHAR(255)", val: deptPart },
           { name: "role_id", type: "VARCHAR(255)", val: roleId },
-          { name: "source_type", type: "VARCHAR(255)", val: "System Job Link" }
+          { name: "source_type", type: "VARCHAR(255)", val: "System Job Link" },
+          { name: cityCol, type: "TEXT", val: body.currentCity || null },
+          { name: resumeCol, type: "TEXT", val: (uploads ? uploads.resume : null) || null }
         ];
 
         for (const f of standardFields) {
