@@ -1043,7 +1043,7 @@ export default function UnifiedEnterpriseDashboard() {
 
         {/* Upper Header status bar */}
         <Topbar
-          activeTabLabel={activeTab.replace("-", " ").toUpperCase()}
+          activeTabLabel={activeTab === "business-leads" ? "HR LEADS" : activeTab.replace("-", " ").toUpperCase()}
           activeTab={activeTab}
           setActiveTab={setActiveTab}
           user={session?.user}

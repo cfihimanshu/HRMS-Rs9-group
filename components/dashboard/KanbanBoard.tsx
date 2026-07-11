@@ -627,7 +627,7 @@ export default function KanbanBoard() {
   });
 
   const handleExportTasks = () => {
-    const headers = ["Task ID", "Title", "Type", "Description", "Status", "Assigned User", "Created At", "Progress Notes"];
+    const headers = ["Task ID", "Title", "Type", "Description", "Status", "Created By", "Forwarded To", "Created At", "Progress Notes"];
     const rows = filteredTasks.map(t => {
       let notesText = "";
       if (t.progressNotes) {
@@ -642,14 +642,16 @@ export default function KanbanBoard() {
           notesText = t.progressNotes;
         }
       }
-      const assignedUser = (t.employee as any)?.name || "Unassigned";
+      const createdBy = (t.employee as any)?.name || "Unknown User";
+      const forwardedTo = (t.forwardedUser as any)?.name || "-";
       return {
         "Task ID": t.id,
         "Title": t.taskTitle,
         "Type": t.taskType,
         "Description": t.description || "",
         "Status": t.status,
-        "Assigned User": assignedUser,
+        "Created By": createdBy,
+        "Forwarded To": forwardedTo,
         "Created At": t.createdAt ? new Date(t.createdAt).toLocaleDateString("en-IN") : t.date || "",
         "Progress Notes": notesText
       };

@@ -130,7 +130,7 @@ export async function GET(req: Request) {
       const statusLower = status.toLowerCase();
       if (statusLower.includes("connected")) {
         connected++;
-      } else if (statusLower.includes("no answer") || statusLower.includes("busy")) {
+      } else if (statusLower.includes("no answer") || statusLower.includes("busy") || statusLower.includes("not interested") || statusLower.includes("not intrested")) {
         notConnected++;
       } else if (statusLower.includes("interview")) {
         interviewScheduled++;
