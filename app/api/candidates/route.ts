@@ -438,6 +438,7 @@ export async function GET(req: Request) {
     }
 
     await sequelize.authenticate();
+    await Candidate.sync({ alter: true });
     const url = new URL(req.url);
     const pageStr = url.searchParams.get("page");
     const limitStr = url.searchParams.get("limit");
