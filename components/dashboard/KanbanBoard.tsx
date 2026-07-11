@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useSession } from "next-auth/react";
 import * as XLSX from "xlsx";
+import { cn } from "@/lib/utils";
 import {
   Plus,
   GripVertical,
@@ -70,6 +71,19 @@ export default function KanbanBoard() {
   const { data: session, status } = useSession();
   const sessionUser = session?.user;
 
+  const cleanDescription = (desc: string): string => {
+    if (!desc) return "";
+    return desc
+      .split("\n")
+      .filter(
+        (line) =>
+          !line.toLowerCase().includes("screenshot proof link:") &&
+          !line.toLowerCase().includes("call recording link:")
+      )
+      .join("\n")
+      .trim();
+  };
+
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
@@ -112,10 +126,16 @@ export default function KanbanBoard() {
   const [savingTimer, setSavingTimer] = useState(false);
   const [, setTick] = useState(0); // force re-render every second for live clock
 
+  // Views & Date Filters
+  const [viewMode, setViewMode] = useState<"kanban" | "list">("kanban");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+  const [showFiltersDropdown, setShowFiltersDropdown] = useState(false);
+
   // Drag state
   const dragIdRef = useRef<string | null>(null);
   const [dragOverCol, setDragOverCol] = useState<string | null>(null);
-  
+
   const [uploadingProof, setUploadingProof] = useState(false);
 
   // Pagination state
@@ -319,24 +339,24 @@ export default function KanbanBoard() {
   const handleUploadProof = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!selectedTask || !e.target.files?.[0]) return;
     const file = e.target.files[0];
-    
+
     setUploadingProof(true);
     try {
       const formData = new FormData();
       formData.append("file", file);
-      
+
       const uploadRes = await fetch("/api/documents/upload", {
         method: "POST",
         body: formData,
       });
       const uploadData = await uploadRes.json();
-      
+
       if (!uploadData.success) {
         alert(uploadData.error || "Failed to upload file to FTP.");
         setUploadingProof(false);
         return;
       }
-      
+
       const fileUrl = uploadData.url;
 
       const res = await fetch("/api/tasks", {
@@ -584,13 +604,12 @@ export default function KanbanBoard() {
 
   const [filterUser, setFilterUser] = useState("All");
   const [filterDate, setFilterDate] = useState("");
-  const [viewMode, setViewMode] = useState<"kanban" | "list">("kanban");
 
   const uniqueUsers = Array.from(new Set(tasks.map(t => (t.employee as any)?.name).filter(Boolean)));
 
   const filteredTasks = tasks.filter(t => {
     let matchUser = filterUser === "All" || (t.employee as any)?.name === filterUser;
-    
+
     let matchDate = true;
     if (filterDate) {
       const taskDate = t.date ? new Date(t.date) : (t.createdAt ? new Date(t.createdAt) : null);
@@ -603,12 +622,12 @@ export default function KanbanBoard() {
         matchDate = false;
       }
     }
-    
+
     return matchUser && matchDate;
   });
 
   const handleExportTasks = () => {
-    const headers = ["Task ID", "Title", "Type", "Description", "Status", "Assigned User", "Created At", "Progress Notes"];
+    const headers = ["Task ID", "Title", "Type", "Description", "Status", "Created By", "Forwarded To", "Created At", "Progress Notes"];
     const rows = filteredTasks.map(t => {
       let notesText = "";
       if (t.progressNotes) {
@@ -623,21 +642,23 @@ export default function KanbanBoard() {
           notesText = t.progressNotes;
         }
       }
-      const assignedUser = (t.employee as any)?.name || "Unassigned";
+      const createdBy = (t.employee as any)?.name || "Unknown User";
+      const forwardedTo = (t.forwardedUser as any)?.name || "-";
       return {
         "Task ID": t.id,
         "Title": t.taskTitle,
         "Type": t.taskType,
         "Description": t.description || "",
         "Status": t.status,
-        "Assigned User": assignedUser,
+        "Created By": createdBy,
+        "Forwarded To": forwardedTo,
         "Created At": t.createdAt ? new Date(t.createdAt).toLocaleDateString("en-IN") : t.date || "",
         "Progress Notes": notesText
       };
     });
 
     const worksheet = XLSX.utils.json_to_sheet(rows, { header: headers });
-    
+
     // Set auto widths based on content
     const max_widths = headers.map(h => {
       let max_len = h.length;
@@ -752,8 +773,8 @@ export default function KanbanBoard() {
         </span>
 
         {/* Description */}
-        {task.description && (
-          <p className="text-[10px] text-slate-500 mt-2 font-medium line-clamp-2 leading-relaxed">{task.description}</p>
+        {task.description && cleanDescription(task.description) && (
+          <p className="text-[10px] text-slate-500 mt-2 font-medium line-clamp-2 leading-relaxed whitespace-pre-line">{cleanDescription(task.description)}</p>
         )}
 
         {/* Progress notes indicator */}
@@ -793,7 +814,7 @@ export default function KanbanBoard() {
                 {new Date(task.createdAt || task.date).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}
               </div>
             </div>
-            
+
             {/* Timer Next to Date/Time */}
             {task.status !== "Completed" && (
               <span className="flex items-center gap-1 text-[10px] font-mono font-black px-2 py-1 rounded-lg border bg-green-50 text-green-700 border-green-200">
@@ -859,13 +880,13 @@ export default function KanbanBoard() {
   return (
     <div className="space-y-6 animate-fadeIn h-full flex flex-col">
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4">
         <div>
           <h1 className="text-xl font-black text-slate-800 flex items-center gap-2">
             <LayoutGrid className="w-5 h-5 text-[#714B67]" />
-            My Tasks Kanban
+            My Tasks
           </h1>
-          <p className="text-xs text-slate-500 mt-1">Manage your daily workload — drag cards across columns or click to open.</p>
+          <p className="text-xs text-slate-500 mt-1">Manage your daily workload — view as Kanban or list, filter by dates.</p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
           {uniqueUsers.length > 1 && (
@@ -925,139 +946,140 @@ export default function KanbanBoard() {
       </div>
 
       {viewMode === "kanban" ? (
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 flex-1 items-start">
-        {/* Kanban Grid */}
-        {cols.map(col => {
-          const isOver = dragOverCol === col.id;
-          return (
-            <div
-              key={col.id}
-              className={`rounded-2xl border flex flex-col min-h-[520px] transition-all duration-200 ${isOver ? col.dropHighlight : `${col.dropBg} ${col.dropBorder}`}`}
-              onDragOver={e => handleDragOver(e, col.id)}
-              onDragLeave={() => setDragOverCol(null)}
-              onDrop={e => handleDrop(e, col.id)}
-            >
-              {/* Column header */}
-              <div className={`p-4 border-b ${col.dropBorder} flex items-center justify-between ${col.headerBg} rounded-t-2xl`}>
-                <h3 className={`text-[11px] uppercase font-black tracking-wider font-mono flex items-center gap-2 ${col.headerText}`}>
-                  {col.icon}
-                  {col.label} ({col.count})
-                </h3>
-                {isOver && (
-                  <span className="text-[9px] font-black text-indigo-500 uppercase tracking-wider animate-pulse">Drop here</span>
-                )}
-              </div>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 flex-1 items-start">
+          {/* Kanban Grid */}
+          {cols.map(col => {
+            const isOver = dragOverCol === col.id;
+            return (
+              <div
+                key={col.id}
+                className={`rounded-2xl border flex flex-col min-h-[520px] transition-all duration-200 ${isOver ? col.dropHighlight : `${col.dropBg} ${col.dropBorder}`}`}
+                onDragOver={e => handleDragOver(e, col.id)}
+                onDragLeave={() => setDragOverCol(null)}
+                onDrop={e => handleDrop(e, col.id)}
+              >
+                {/* Column header */}
+                <div className={`p-4 border-b ${col.dropBorder} flex items-center justify-between ${col.headerBg} rounded-t-2xl`}>
+                  <h3 className={`text-[11px] uppercase font-black tracking-wider font-mono flex items-center gap-2 ${col.headerText}`}>
+                    {col.icon}
+                    {col.label} ({col.count})
+                  </h3>
+                  {isOver && (
+                    <span className="text-[9px] font-black text-indigo-500 uppercase tracking-wider animate-pulse">Drop here</span>
+                  )}
+                </div>
 
-              {/* Cards area */}
-              <div className="p-4 space-y-3 flex-1 overflow-y-auto">
-                {/* Add task button — only in Pending */}
-                {col.id === "Pending" && (
-                  !showAdd ? (
-                    <button
-                      onClick={() => setShowAdd(true)}
-                      className="w-full border-2 border-dashed border-slate-300 hover:border-[#714B67] bg-white hover:bg-[#714B67]/5 rounded-xl p-3 flex items-center justify-center gap-2 text-xs font-black text-slate-400 hover:text-[#714B67] transition-all"
-                    >
-                      <Plus className="w-4 h-4" /> Add Task
-                    </button>
-                  ) : (
-                    <form
-                      onSubmit={handleAddTask}
-                      className="bg-white border border-[#714B67]/30 shadow-lg rounded-xl p-4 space-y-3"
-                    >
-                      <div className="flex items-center justify-between mb-1">
-                        <h4 className="text-[10px] uppercase font-black text-[#714B67] tracking-wider">New Task</h4>
-                        <button type="button" onClick={() => setShowAdd(false)} className="text-slate-400 hover:text-slate-600">
-                          <X className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
-                      <input
-                        className="w-full border border-slate-200 rounded-lg px-3 py-2 text-xs font-bold focus:outline-none focus:border-[#714B67] placeholder-slate-400 text-slate-800"
-                        placeholder="Task Title *"
-                        value={title}
-                        onChange={e => setTitle(e.target.value)}
-                        required
-                        autoFocus
-                      />
-                      <select
-                        className="w-full border border-slate-200 rounded-lg px-3 py-2 text-xs font-bold focus:outline-none focus:border-[#714B67] text-slate-700"
-                        value={type}
-                        onChange={e => setType(e.target.value)}
+                {/* Cards area */}
+                <div className="p-4 space-y-3 flex-1 overflow-y-auto">
+                  {/* Add task button — only in Pending */}
+                  {col.id === "Pending" && (
+                    !showAdd ? (
+                      <button
+                        onClick={() => setShowAdd(true)}
+                        className="w-full border-2 border-dashed border-slate-300 hover:border-[#714B67] bg-white hover:bg-[#714B67]/5 rounded-xl p-3 flex items-center justify-center gap-2 text-xs font-black text-slate-400 hover:text-[#714B67] transition-all"
                       >
-                        <option>Call</option>
-                        <option>Meeting</option>
-                        <option>Development</option>
-                        <option>Field Visit</option>
-                        <option>Operations</option>
-                        <option>Support</option>
-                        <option>Other</option>
-                      </select>
-                      <textarea
-                        className="w-full border border-slate-200 rounded-lg px-3 py-2 text-xs font-medium focus:outline-none focus:border-[#714B67] placeholder-slate-400 resize-none text-slate-800"
-                        rows={2}
-                        placeholder="Description (optional)..."
-                        value={desc}
-                        onChange={e => setDesc(e.target.value)}
-                      />
-                      <div className="flex gap-2 pt-1">
-                        <button
-                          type="button"
-                          onClick={() => setShowAdd(false)}
-                          className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-600 py-2 rounded-lg text-[10px] font-black uppercase transition-all"
+                        <Plus className="w-4 h-4" /> Add Task
+                      </button>
+                    ) : (
+                      <form
+                        onSubmit={handleAddTask}
+                        className="bg-white border border-[#714B67]/30 shadow-lg rounded-xl p-4 space-y-3"
+                      >
+                        <div className="flex items-center justify-between mb-1">
+                          <h4 className="text-[10px] uppercase font-black text-[#714B67] tracking-wider">New Task</h4>
+                          <button type="button" onClick={() => setShowAdd(false)} className="text-slate-400 hover:text-slate-600">
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                        <input
+                          className="w-full border border-slate-200 rounded-lg px-3 py-2 text-xs font-bold focus:outline-none focus:border-[#714B67] placeholder-slate-400 text-slate-800"
+                          placeholder="Task Title *"
+                          value={title}
+                          onChange={e => setTitle(e.target.value)}
+                          required
+                          autoFocus
+                        />
+                        <select
+                          className="w-full border border-slate-200 rounded-lg px-3 py-2 text-xs font-bold focus:outline-none focus:border-[#714B67] text-slate-700 bg-white"
+                          value={type}
+                          onChange={e => setType(e.target.value)}
                         >
-                          Cancel
-                        </button>
-                        <button
-                          type="submit"
-                          disabled={submitting}
-                          className="flex-1 bg-[#714B67] hover:bg-[#5F3F56] disabled:opacity-50 text-white py-2 rounded-lg text-[10px] font-black uppercase flex items-center justify-center gap-1 transition-all"
-                        >
-                          {submitting ? <Loader2 className="w-3 h-3 animate-spin" /> : <><Plus className="w-3 h-3" /> Save</>}
-                        </button>
+                          <option value="Meeting">Meeting</option>
+                          <option value="Call">Call</option>
+                          <option value="Development">Development</option>
+                          <option value="Marketing">Marketing</option>
+                          <option value="Field Visit">Field Visit</option>
+                          <option value="Operations">Operations</option>
+                          <option value="Support">Support</option>
+                          <option value="Other">Other</option>
+                        </select>
+                        <textarea
+                          className="w-full border border-slate-200 rounded-lg px-3 py-2 text-xs font-bold focus:outline-none focus:border-[#714B67] placeholder-slate-400 text-slate-800"
+                          placeholder="Task Description"
+                          rows={3}
+                          value={desc}
+                          onChange={e => setDesc(e.target.value)}
+                        />
+                        <div className="flex gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setShowAdd(false)}
+                            className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-600 py-2 rounded-lg text-[10px] font-black uppercase transition-all"
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            type="submit"
+                            disabled={submitting}
+                            className="flex-1 bg-[#714B67] hover:bg-[#5F3F56] disabled:opacity-50 text-white py-2 rounded-lg text-[10px] font-black uppercase flex items-center justify-center gap-1 transition-all"
+                          >
+                            {submitting ? <Loader2 className="w-3 h-3 animate-spin" /> : <><Plus className="w-3 h-3" /> Save</>}
+                          </button>
+                        </div>
+                      </form>
+                    )
+                  )}
+
+                  {/* Task cards */}
+                  {col.tasks.map(renderCard)}
+
+                  {/* Empty state */}
+                  {col.tasks.length === 0 && (
+                    <div className={`flex flex-col items-center justify-center pt-16 text-[10px] font-black uppercase tracking-wider ${col.emptyText}`}>
+                      <div className="w-10 h-10 rounded-full border-2 border-dashed border-current flex items-center justify-center mb-3 opacity-50">
+                        {col.icon}
                       </div>
-                    </form>
-                  )
-                )}
-
-                {/* Task cards */}
-                {col.tasks.map(renderCard)}
-
-                {/* Empty state */}
-                {col.tasks.length === 0 && (
-                  <div className={`flex flex-col items-center justify-center pt-16 text-[10px] font-black uppercase tracking-wider ${col.emptyText}`}>
-                    <div className="w-10 h-10 rounded-full border-2 border-dashed border-current flex items-center justify-center mb-3 opacity-50">
-                      {col.icon}
+                      Drop tasks here
                     </div>
-                    Drop tasks here
-                  </div>
-                )}
+                  )}
 
-                {/* Pagination Controls */}
-                {col.totalPages > 1 && (
-                  <div className="flex items-center justify-between pt-4 mt-2 border-t border-slate-200/60 pb-2">
-                    <button
-                      onClick={() => col.setPage((p: number) => Math.max(1, p - 1))}
-                      disabled={col.page === 1}
-                      className="px-2 py-1 bg-white border border-slate-200 rounded text-[10px] font-bold text-slate-500 disabled:opacity-40 hover:bg-slate-50 transition-colors"
-                    >
-                      Prev
-                    </button>
-                    <span className="text-[10px] font-black tracking-widest text-slate-400">
-                      {col.page} / {col.totalPages}
-                    </span>
-                    <button
-                      onClick={() => col.setPage((p: number) => Math.min(col.totalPages, p + 1))}
-                      disabled={col.page === col.totalPages}
-                      className="px-2 py-1 bg-white border border-slate-200 rounded text-[10px] font-bold text-slate-500 disabled:opacity-40 hover:bg-slate-50 transition-colors"
-                    >
-                      Next
-                    </button>
-                  </div>
-                )}
+                  {/* Pagination Controls */}
+                  {col.totalPages > 1 && (
+                    <div className="flex items-center justify-between pt-4 mt-2 border-t border-slate-200/60 pb-2">
+                      <button
+                        onClick={() => col.setPage((p: number) => Math.max(1, p - 1))}
+                        disabled={col.page === 1}
+                        className="px-2 py-1 bg-white border border-slate-200 rounded text-[10px] font-bold text-slate-500 disabled:opacity-40 hover:bg-slate-50 transition-colors"
+                      >
+                        Prev
+                      </button>
+                      <span className="text-[10px] font-black tracking-widest text-slate-400">
+                        {col.page} / {col.totalPages}
+                      </span>
+                      <button
+                        onClick={() => col.setPage((p: number) => Math.min(col.totalPages, p + 1))}
+                        disabled={col.page === col.totalPages}
+                        className="px-2 py-1 bg-white border border-slate-200 rounded text-[10px] font-bold text-slate-500 disabled:opacity-40 hover:bg-slate-50 transition-colors"
+                      >
+                        Next
+                      </button>
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
-          );
-        })}
-      </div>
+            );
+          })}
+        </div>
       ) : (
         <div className="flex-1 bg-white border border-slate-200 rounded-2xl overflow-auto shadow-sm">
           <table className="w-full text-left border-collapse min-w-[1000px]">
@@ -1081,15 +1103,15 @@ export default function KanbanBoard() {
                   if (t.progressNotes) {
                     try {
                       parsedNotes = JSON.parse(t.progressNotes);
-                    } catch(e) {}
+                    } catch (e) { }
                   }
-                  
+
                   return (
                     <tr key={t.id} className="hover:bg-slate-50/50 transition-colors">
                       <td className="p-4 align-top">
                         <div className="font-bold text-slate-800 text-sm mb-1">{t.taskTitle}</div>
                         <div className="text-[10px] font-black uppercase tracking-wider text-[#714B67] bg-[#714B67]/10 inline-block px-2 py-0.5 rounded-md mb-2">{t.taskType}</div>
-                        <p className="text-xs text-slate-600 line-clamp-2">{t.description}</p>
+                        <p className="text-xs text-slate-650 line-clamp-2 whitespace-pre-line">{cleanDescription(t.description)}</p>
                       </td>
                       <td className="p-4 align-top text-xs font-bold text-slate-700">
                         {(t.employee as any)?.name || "Unknown"}
@@ -1220,8 +1242,8 @@ export default function KanbanBoard() {
                       {selectedTask.taskType}
                     </span>
                     <h2 className="text-base font-black text-slate-800 leading-tight">{selectedTask.taskTitle}</h2>
-                    {selectedTask.description && (
-                      <p className="text-xs text-slate-500 mt-1 font-medium">{selectedTask.description}</p>
+                    {selectedTask.description && cleanDescription(selectedTask.description) && (
+                      <p className="text-xs text-slate-500 mt-1 font-medium whitespace-pre-line">{cleanDescription(selectedTask.description)}</p>
                     )}
                   </div>
 
@@ -1231,7 +1253,7 @@ export default function KanbanBoard() {
                       onClick={() => {
                         setEditTitle(selectedTask.taskTitle);
                         setEditType(selectedTask.taskType);
-                        setEditDesc(selectedTask.description || "");
+                        setEditDesc(cleanDescription(selectedTask.description || ""));
                         setIsEditingTask(true);
                       }}
                       className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center transition-all"
@@ -1287,7 +1309,7 @@ export default function KanbanBoard() {
 
                 {/* Call Follow-up Date & Time Section */}
                 <div className="px-6 py-4 border-b border-slate-100 bg-violet-50/30">
-                  <div 
+                  <div
                     className="flex items-center gap-2 mb-3 cursor-pointer select-none"
                     onClick={() => setExpandFollowUpHistory(!expandFollowUpHistory)}
                   >
@@ -1302,7 +1324,7 @@ export default function KanbanBoard() {
                       </span>
                     )}
                   </div>
-                  
+
                   {expandFollowUpHistory && (
                     <div className="space-y-3 animate-fadeIn">
                       <div className="grid grid-cols-2 gap-3">
@@ -1443,11 +1465,10 @@ export default function KanbanBoard() {
                   <div className="flex items-center gap-2">
                     <Timer className="w-3.5 h-3.5 text-slate-400" />
                     <span className="text-[9px] uppercase font-black text-slate-400 tracking-wider">Time Elapsed</span>
-                    <span className={`ml-auto text-[11px] font-black px-3 py-1 rounded-full border font-mono ${
-                      selectedTask.timerState === "Running"
-                        ? "bg-green-100 text-green-700 border-green-200"
-                        : "bg-slate-100 text-slate-500 border-slate-200"
-                    }`}>
+                    <span className={`ml-auto text-[11px] font-black px-3 py-1 rounded-full border font-mono ${selectedTask.timerState === "Running"
+                      ? "bg-green-100 text-green-700 border-green-200"
+                      : "bg-slate-100 text-slate-500 border-slate-200"
+                      }`}>
                       {selectedTask.timerState === "Running" && <span className="inline-block w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse mr-1.5" />}
                       {formatTimer(getLiveElapsed(selectedTask))}
                     </span>
@@ -1467,18 +1488,18 @@ export default function KanbanBoard() {
                         {(() => {
                           const url = selectedTask.proofAttachment.toLowerCase();
                           if (url.includes('application/pdf') || url.endsWith('.pdf')) {
-                            return <a href={selectedTask.proofAttachment} target="_blank" rel="noopener noreferrer" download="Task_Document.pdf" className="p-3 bg-white hover:bg-slate-50 transition-colors rounded border border-slate-200 text-xs font-bold text-slate-700 flex items-center justify-between gap-2 cursor-pointer"><div className="flex items-center gap-2"><Paperclip className="w-4 h-4"/> PDF Document Uploaded</div> <Download className="w-4 h-4 text-slate-400" /></a>;
+                            return <a href={selectedTask.proofAttachment} target="_blank" rel="noopener noreferrer" download="Task_Document.pdf" className="p-3 bg-white hover:bg-slate-50 transition-colors rounded border border-slate-200 text-xs font-bold text-slate-700 flex items-center justify-between gap-2 cursor-pointer"><div className="flex items-center gap-2"><Paperclip className="w-4 h-4" /> PDF Document Uploaded</div> <Download className="w-4 h-4 text-slate-400" /></a>;
                           }
                           if (url.includes('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet') || url.includes('application/vnd.ms-excel') || url.includes('text/csv') || url.endsWith('.xls') || url.endsWith('.xlsx') || url.endsWith('.csv')) {
-                            return <a href={selectedTask.proofAttachment} target="_blank" rel="noopener noreferrer" download="Task_Document.xlsx" className="p-3 bg-white hover:bg-slate-50 transition-colors rounded border border-slate-200 text-xs font-bold text-slate-700 flex items-center justify-between gap-2 cursor-pointer"><div className="flex items-center gap-2"><Paperclip className="w-4 h-4"/> Excel/CSV Document Uploaded</div> <Download className="w-4 h-4 text-slate-400" /></a>;
+                            return <a href={selectedTask.proofAttachment} target="_blank" rel="noopener noreferrer" download="Task_Document.xlsx" className="p-3 bg-white hover:bg-slate-50 transition-colors rounded border border-slate-200 text-xs font-bold text-slate-700 flex items-center justify-between gap-2 cursor-pointer"><div className="flex items-center gap-2"><Paperclip className="w-4 h-4" /> Excel/CSV Document Uploaded</div> <Download className="w-4 h-4 text-slate-400" /></a>;
                           }
                           if (url.includes('audio/')) {
                             return <audio controls className="w-full h-10"><source src={selectedTask.proofAttachment} /></audio>;
                           }
                           return (
-                            <img 
-                              src={selectedTask.proofAttachment} 
-                              alt="Proof" 
+                            <img
+                              src={selectedTask.proofAttachment}
+                              alt="Proof"
                               className="max-h-48 rounded-lg border border-slate-200 object-contain shadow-sm bg-slate-100"
                             />
                           );
@@ -1506,140 +1527,140 @@ export default function KanbanBoard() {
 
                   {/* Progress Notes */}
                   <div>
-                  <div 
-                    className="flex items-center gap-2 mb-3 cursor-pointer select-none"
-                    onClick={() => setExpandNotesHistory(!expandNotesHistory)}
-                  >
-                    <StickyNote className="w-4 h-4 text-indigo-500" />
-                    <p className="text-[10px] uppercase font-black text-slate-700 tracking-wider">Progress Notes History</p>
-                    {expandNotesHistory ? <ChevronUp className="w-3.5 h-3.5 text-indigo-500" /> : <ChevronDown className="w-3.5 h-3.5 text-indigo-500" />}
-                  </div>
+                    <div
+                      className="flex items-center gap-2 mb-3 cursor-pointer select-none"
+                      onClick={() => setExpandNotesHistory(!expandNotesHistory)}
+                    >
+                      <StickyNote className="w-4 h-4 text-indigo-500" />
+                      <p className="text-[10px] uppercase font-black text-slate-700 tracking-wider">Progress Notes History</p>
+                      {expandNotesHistory ? <ChevronUp className="w-3.5 h-3.5 text-indigo-500" /> : <ChevronDown className="w-3.5 h-3.5 text-indigo-500" />}
+                    </div>
 
-                  {/* Previous Notes List */}
-                  {expandNotesHistory && (() => {
-                    let notesList: any[] = [];
-                    if (selectedTask.progressNotes) {
-                      try {
-                        const parsed = JSON.parse(selectedTask.progressNotes);
-                        notesList = Array.isArray(parsed) ? parsed : [{ id: 'legacy', note: selectedTask.progressNotes, createdAt: selectedTask.createdAt || new Date(), userName: "System" }];
-                      } catch (e) {
-                        notesList = [{ id: 'legacy', note: selectedTask.progressNotes, createdAt: selectedTask.createdAt || new Date(), userName: "System" }];
+                    {/* Previous Notes List */}
+                    {expandNotesHistory && (() => {
+                      let notesList: any[] = [];
+                      if (selectedTask.progressNotes) {
+                        try {
+                          const parsed = JSON.parse(selectedTask.progressNotes);
+                          notesList = Array.isArray(parsed) ? parsed : [{ id: 'legacy', note: selectedTask.progressNotes, createdAt: selectedTask.createdAt || new Date(), userName: "System" }];
+                        } catch (e) {
+                          notesList = [{ id: 'legacy', note: selectedTask.progressNotes, createdAt: selectedTask.createdAt || new Date(), userName: "System" }];
+                        }
                       }
-                    }
 
-                    return notesList.length > 0 && (
-                      <div className="mb-4 space-y-2.5 max-h-48 overflow-y-auto pr-1 animate-fadeIn">
-                        {notesList.map((n, idx) => {
-                          const noteId = n.id || idx.toString();
-                          const isEditingThisNote = editingNoteId === noteId;
-                          const canEdit = (sessionUser as any)?.role === "Owner" || (n.userName && sessionUser?.name && n.userName.trim() === sessionUser.name.trim());
+                      return notesList.length > 0 && (
+                        <div className="mb-4 space-y-2.5 max-h-48 overflow-y-auto pr-1 animate-fadeIn">
+                          {notesList.map((n, idx) => {
+                            const noteId = n.id || idx.toString();
+                            const isEditingThisNote = editingNoteId === noteId;
+                            const canEdit = (sessionUser as any)?.role === "Owner" || (n.userName && sessionUser?.name && n.userName.trim() === sessionUser.name.trim());
 
-                          return (
-                            <div key={noteId} className="p-2.5 rounded-xl border border-slate-100 bg-slate-50/60 text-left">
-                              <div className="flex items-center justify-between gap-2 mb-1">
-                                <div className="flex items-center gap-1.5">
-                                  <span className="text-[9px] font-black uppercase text-indigo-650 tracking-wider">
-                                    {n.userName || "System"}
-                                  </span>
-                                  {n.updatedAt && (
-                                    <span className="text-[7px] font-bold text-slate-400 bg-slate-100 px-1 rounded uppercase tracking-wider">Edited</span>
-                                  )}
-                                </div>
-                                <div className="flex items-center gap-2">
-                                  <span className="text-[9px] text-slate-450 font-medium">
-                                    {new Date(n.createdAt).toLocaleString("en-IN", { hour: "2-digit", minute: "2-digit", day: "2-digit", month: "short" })}
-                                  </span>
-                                  {canEdit && !isEditingThisNote && (
-                                    <button
-                                      onClick={() => {
-                                        setEditingNoteId(noteId);
-                                        setEditingNoteText(n.note);
-                                      }}
-                                      className="text-slate-455 hover:text-indigo-600 transition-colors p-0.5"
-                                      title="Edit Note"
-                                    >
-                                      <Edit2 className="w-3 h-3" />
-                                    </button>
-                                  )}
-                                </div>
-                              </div>
-                              {isEditingThisNote ? (
-                                <div className="mt-1 space-y-1.5">
-                                  <textarea
-                                    className="w-full border border-indigo-200 rounded-lg p-2 text-xs font-semibold focus:outline-none focus:border-indigo-400 focus:ring-1 focus:ring-indigo-100 text-slate-700 bg-white"
-                                    rows={2}
-                                    value={editingNoteText}
-                                    onChange={e => setEditingNoteText(e.target.value)}
-                                  />
-                                  <div className="flex justify-end gap-1.5">
-                                    <button
-                                      onClick={() => {
-                                        setEditingNoteId(null);
-                                        setEditingNoteText("");
-                                      }}
-                                      disabled={savingEditNote}
-                                      className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-655 rounded text-[9px] font-black uppercase transition-all"
-                                    >
-                                      Cancel
-                                    </button>
-                                    <button
-                                      onClick={() => handleSaveEditNote(noteId)}
-                                      disabled={savingEditNote || !editingNoteText.trim() || editingNoteText.trim() === n.note.trim()}
-                                      className="px-2.5 py-1 bg-indigo-650 hover:bg-indigo-700 disabled:opacity-50 text-white rounded text-[9px] font-black uppercase flex items-center gap-1 transition-all"
-                                    >
-                                      {savingEditNote ? <Loader2 className="w-2.5 h-2.5 animate-spin" /> : <Save className="w-2.5 h-2.5" />}
-                                      Save
-                                    </button>
+                            return (
+                              <div key={noteId} className="p-2.5 rounded-xl border border-slate-100 bg-slate-50/60 text-left">
+                                <div className="flex items-center justify-between gap-2 mb-1">
+                                  <div className="flex items-center gap-1.5">
+                                    <span className="text-[9px] font-black uppercase text-indigo-650 tracking-wider">
+                                      {n.userName || "System"}
+                                    </span>
+                                    {n.updatedAt && (
+                                      <span className="text-[7px] font-bold text-slate-400 bg-slate-100 px-1 rounded uppercase tracking-wider">Edited</span>
+                                    )}
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-[9px] text-slate-450 font-medium">
+                                      {new Date(n.createdAt).toLocaleString("en-IN", { hour: "2-digit", minute: "2-digit", day: "2-digit", month: "short" })}
+                                    </span>
+                                    {canEdit && !isEditingThisNote && (
+                                      <button
+                                        onClick={() => {
+                                          setEditingNoteId(noteId);
+                                          setEditingNoteText(n.note);
+                                        }}
+                                        className="text-slate-455 hover:text-indigo-600 transition-colors p-0.5"
+                                        title="Edit Note"
+                                      >
+                                        <Edit2 className="w-3 h-3" />
+                                      </button>
+                                    )}
                                   </div>
                                 </div>
-                              ) : (
-                                <p className="text-[11px] text-slate-700 leading-relaxed font-semibold break-words whitespace-pre-wrap">
-                                  {n.note}
-                                </p>
-                              )}
-                            </div>
-                          );
-                        })}
-                      </div>
-                    );
-                  })()}
+                                {isEditingThisNote ? (
+                                  <div className="mt-1 space-y-1.5">
+                                    <textarea
+                                      className="w-full border border-indigo-200 rounded-lg p-2 text-xs font-semibold focus:outline-none focus:border-indigo-400 focus:ring-1 focus:ring-indigo-100 text-slate-700 bg-white"
+                                      rows={2}
+                                      value={editingNoteText}
+                                      onChange={e => setEditingNoteText(e.target.value)}
+                                    />
+                                    <div className="flex justify-end gap-1.5">
+                                      <button
+                                        onClick={() => {
+                                          setEditingNoteId(null);
+                                          setEditingNoteText("");
+                                        }}
+                                        disabled={savingEditNote}
+                                        className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-655 rounded text-[9px] font-black uppercase transition-all"
+                                      >
+                                        Cancel
+                                      </button>
+                                      <button
+                                        onClick={() => handleSaveEditNote(noteId)}
+                                        disabled={savingEditNote || !editingNoteText.trim() || editingNoteText.trim() === n.note.trim()}
+                                        className="px-2.5 py-1 bg-indigo-650 hover:bg-indigo-700 disabled:opacity-50 text-white rounded text-[9px] font-black uppercase flex items-center gap-1 transition-all"
+                                      >
+                                        {savingEditNote ? <Loader2 className="w-2.5 h-2.5 animate-spin" /> : <Save className="w-2.5 h-2.5" />}
+                                        Save
+                                      </button>
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <p className="text-[11px] text-slate-700 leading-relaxed font-semibold break-words whitespace-pre-wrap">
+                                    {n.note}
+                                  </p>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      );
+                    })()}
 
-                  <textarea
-                    className="w-full border border-slate-200 rounded-xl px-4 py-3 text-xs font-medium text-slate-800 focus:outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 resize-none placeholder-slate-400 leading-relaxed"
-                    rows={3}
-                    placeholder="Add a new progress note, blocker, or update here..."
-                    value={editNotes}
-                    onChange={e => setEditNotes(e.target.value)}
-                  />
-                  <div className="flex items-center justify-between mt-3">
-                    <p className="text-[9px] text-slate-450 font-medium">
-                      Created: {new Date(selectedTask.createdAt || selectedTask.date).toLocaleString("en-IN", { hour: "2-digit", minute: "2-digit", day: "2-digit", month: "short" })}
-                    </p>
-                    <div className="flex gap-2">
-                      <button
-                        onClick={saveProgressNotes}
-                        disabled={savingNotes || !editNotes.trim()}
-                        className="flex items-center gap-2 bg-indigo-50 border border-indigo-200 hover:bg-indigo-100 disabled:opacity-40 disabled:cursor-not-allowed text-indigo-700 px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all"
-                      >
-                        {savingNotes ? <Loader2 className="w-3 h-3 animate-spin" /> : <Save className="w-3 h-3" />}
-                        {savingNotes ? "Saving..." : "Add Note"}
-                      </button>
-                      <button
-                        onClick={async () => {
-                          if (editNotes.trim()) {
-                            const success = await saveProgressNotes();
-                            if (!success) return;
-                          }
-                          setSelectedTask(null);
-                          setIsEditingTask(false);
-                        }}
-                        disabled={savingNotes}
-                        className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all"
-                      >
-                        <CheckCircle2 className="w-3 h-3" /> Close Task View
-                      </button>
+                    <textarea
+                      className="w-full border border-slate-200 rounded-xl px-4 py-3 text-xs font-medium text-slate-800 focus:outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 resize-none placeholder-slate-400 leading-relaxed"
+                      rows={3}
+                      placeholder="Add a new progress note, blocker, or update here..."
+                      value={editNotes}
+                      onChange={e => setEditNotes(e.target.value)}
+                    />
+                    <div className="flex items-center justify-between mt-3">
+                      <p className="text-[9px] text-slate-450 font-medium">
+                        Created: {new Date(selectedTask.createdAt || selectedTask.date).toLocaleString("en-IN", { hour: "2-digit", minute: "2-digit", day: "2-digit", month: "short" })}
+                      </p>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={saveProgressNotes}
+                          disabled={savingNotes || !editNotes.trim()}
+                          className="flex items-center gap-2 bg-indigo-50 border border-indigo-200 hover:bg-indigo-100 disabled:opacity-40 disabled:cursor-not-allowed text-indigo-700 px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all"
+                        >
+                          {savingNotes ? <Loader2 className="w-3 h-3 animate-spin" /> : <Save className="w-3 h-3" />}
+                          {savingNotes ? "Saving..." : "Add Note"}
+                        </button>
+                        <button
+                          onClick={async () => {
+                            if (editNotes.trim()) {
+                              const success = await saveProgressNotes();
+                              if (!success) return;
+                            }
+                            setSelectedTask(null);
+                            setIsEditingTask(false);
+                          }}
+                          disabled={savingNotes}
+                          className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all"
+                        >
+                          <CheckCircle2 className="w-3 h-3" /> Close Task View
+                        </button>
+                      </div>
                     </div>
-                  </div>
                   </div>
                 </div>
               </>

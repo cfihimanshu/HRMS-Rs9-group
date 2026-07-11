@@ -51,10 +51,12 @@ import EmployeeDirectory from "@/components/dashboard/EmployeePanels";
 import BDADirectory from "@/components/dashboard/BDAPanels";
 import AssetsRegistry from "@/components/dashboard/AssetsRegistry";
 import InventoryManagement from "@/components/dashboard/InventoryManagement";
-import LegalRecoveryModule from "@/components/dashboard/LegalRecoveryModule";
+import AdministratorAccess from "@/components/dashboard/AdministratorAccess";
+import LegalRecovery from "@/components/dashboard/LegalRecoveryModule";
 import KanbanBoard from "@/components/dashboard/KanbanBoard";
 import { AssetRequestLogs } from "@/components/dashboard/AssetRequestPanels";
 import LiveTrackingMap from "@/components/dashboard/LiveTrackingMap";
+import BusinessLeads from "@/components/dashboard/BusinessLeads";
 
 export default function UnifiedEnterpriseDashboard() {
   const { data: session, status } = useSession();
@@ -118,6 +120,7 @@ export default function UnifiedEnterpriseDashboard() {
   const [exitRecordList, setExitRecordList] = useState<any[]>([]);
   const [requisitions, setRequisitions] = useState<any[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
+  const [liveMenuAccess, setLiveMenuAccess] = useState<any>(null);
 
   // Selected Candidate for detailed view
   const [selectedCandidate, setSelectedCandidate] = useState<any>(null);
@@ -290,6 +293,7 @@ export default function UnifiedEnterpriseDashboard() {
       const empId = u.employeeId || u.id || "EMP";
       const expectedPath = `/dashboard/${encodeURIComponent(comp)}/${encodeURIComponent(dept)}/${encodeURIComponent(role)}/${encodeURIComponent(empId)}`;
 
+
       if (window.location.pathname !== expectedPath && window.location.pathname.startsWith('/dashboard')) {
         window.history.replaceState(null, '', expectedPath + window.location.search);
       }
@@ -321,8 +325,10 @@ export default function UnifiedEnterpriseDashboard() {
 
   const loadStats = async (companyId?: string) => {
     try {
-      const url = companyId ? `/api/dashboard/stats?companyId=${companyId}` : "/api/dashboard/stats";
-      const res = await fetch(url);
+      const url = companyId
+        ? `/api/dashboard/stats?companyId=${companyId}&_=${Date.now()}`
+        : `/api/dashboard/stats?_=${Date.now()}`;
+      const res = await fetch(url, { cache: "no-store" });
       const data = await res.json();
       if (data.success) {
         setStats(data.stats);
@@ -331,6 +337,12 @@ export default function UnifiedEnterpriseDashboard() {
           setActiveTab("attendance");
           toggleModal("sodModal", true);
           triggerToast("⚠️ Please submit your Start of Day (SOD) declaration first.");
+        }
+      }
+      if (data.success) {
+        setStats(data.stats);
+        if (data.userMenuAccess !== undefined) {
+          setLiveMenuAccess(data.userMenuAccess);
         }
       }
     } catch (err) {
@@ -465,6 +477,7 @@ export default function UnifiedEnterpriseDashboard() {
 
         if (tab && tab !== activeTab) {
           setActiveTab(tab);
+          setActiveTab(tab);
         } else if (role === "Owner" || role === "Director") {
           setActiveTab("dashboard");
         } else if (role === "HR Head" || role === "HR Executive") {
@@ -491,6 +504,9 @@ export default function UnifiedEnterpriseDashboard() {
   // Auto popup SOD on load if missing
   useEffect(() => {
     if (stats?.currentUserCompliance && userRole === "Employee") {
+      if (!stats.currentUserCompliance.hasSod && !modals.sodModal && activeTab !== "attendance") {
+        toggleModal("sodModal", true);
+      }
       if (!stats.currentUserCompliance.hasSod && !modals.sodModal && activeTab !== "attendance") {
         toggleModal("sodModal", true);
       }
@@ -601,6 +617,22 @@ export default function UnifiedEnterpriseDashboard() {
           riskLevel: "Low",
           expectedOutput: "",
         });
+        triggerToast("Hiring requisition registered at Stage 1 (Dept Head Desk)!");
+        setHiringForm({
+          companyName: "Acolyte Group of Companies",
+          department: "Sales",
+          role: "",
+          category: "Staff",
+          location: "",
+          qty: 1,
+          jd: "",
+          kra: "",
+          kpi: "",
+          qualification: "",
+          salaryBudget: "",
+          riskLevel: "Low",
+          expectedOutput: "",
+        });
         toggleModal("hiring", false);
         await loadRequisitions();
         await loadStats();
@@ -660,6 +692,7 @@ export default function UnifiedEnterpriseDashboard() {
   const handleJobTitleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newVal = e.target.value;
 
+
     if (!newVal) {
       setJobForm({
         title: "",
@@ -682,6 +715,7 @@ export default function UnifiedEnterpriseDashboard() {
     const matchedReq = requisitions.find(
       r => r.status === "Approved — Pending HR Post" && r.role.trim().toLowerCase() === newVal.trim().toLowerCase()
     );
+
 
     if (matchedReq) {
       const expMin = matchedReq.experience?.min || 0;
@@ -857,6 +891,7 @@ export default function UnifiedEnterpriseDashboard() {
       const isOnline = interviewForm.mode === "Video Call";
       const link = isOnline ? `https://meet.acolyte.in/r${interviewForm.round}-${interviewForm.candidateId.slice(-6)}` : "In-Office (Offline)";
 
+
       const res = await fetch("/api/interviews", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -988,7 +1023,7 @@ export default function UnifiedEnterpriseDashboard() {
         activeTab={activeTab}
         setActiveTab={setActiveTab}
         stats={stats}
-        user={{ ...session?.user, role: userRole }}
+        user={{ ...session?.user, role: userRole, menuAccess: liveMenuAccess }}
         triggerToast={triggerToast}
         toggleModal={toggleModal}
         mobileMenuOpen={mobileMenuOpen}
@@ -1008,7 +1043,7 @@ export default function UnifiedEnterpriseDashboard() {
 
         {/* Upper Header status bar */}
         <Topbar
-          activeTabLabel={activeTab.replace("-", " ").toUpperCase()}
+          activeTabLabel={activeTab === "business-leads" ? "HR LEADS" : activeTab.replace("-", " ").toUpperCase()}
           activeTab={activeTab}
           setActiveTab={setActiveTab}
           user={session?.user}
@@ -1094,6 +1129,12 @@ export default function UnifiedEnterpriseDashboard() {
             />
           )}
 
+          {activeTab === "business-leads" && (
+            <BusinessLeads
+              triggerToast={triggerToast}
+            />
+          )}
+
           {activeTab === "employees" && (
             <EmployeeDirectory
               userRole={userRole}
@@ -1126,8 +1167,16 @@ export default function UnifiedEnterpriseDashboard() {
             />
           )}
 
+          {activeTab === "admin-access" && (
+            <AdministratorAccess
+              userRole={userRole}
+              triggerToast={triggerToast}
+              sessionUser={session?.user}
+            />
+          )}
+
           {activeTab === "legal-recovery" && (
-            <LegalRecoveryModule
+            <LegalRecovery
               userRole={userRole}
               triggerToast={triggerToast}
               sessionUser={session?.user}
@@ -1743,12 +1792,44 @@ export default function UnifiedEnterpriseDashboard() {
               />
             </div>
           </div>
+          <div className="bg-[#F4F5F7] w-full max-w-3xl max-h-[90vh] overflow-y-auto custom-scrollbar rounded-2xl shadow-2xl relative border border-slate-200">
+            <button className="absolute top-6 right-6 text-slate-500 hover:text-slate-800 bg-white hover:bg-slate-100 rounded-full p-1.5 border shadow-sm z-10 transition-all" onClick={() => toggleModal("sodModal", false)}><X className="w-5 h-5" /></button>
+            <div className="p-8">
+              <DailyCommitments
+                sessionUser={session?.user}
+                stats={stats}
+                handleAttendancePunch={handleAttendancePunch}
+                formMode="sod"
+                handleSodSubmit={async (payload) => {
+                  const success = await handleSodSubmit(payload);
+                  if (success) toggleModal("sodModal", false);
+                }}
+                handleEodSubmit={handleEodSubmit}
+              />
+            </div>
+          </div>
         </div>
       )}
 
       {/* MODAL 11: EOD MODAL */}
       {modals.eodModal && (
         <div className="fixed inset-0 bg-[#070810]/40 z-[90] flex items-center justify-center p-4 backdrop-blur-sm animate-fadeIn">
+          <div className="bg-[#F4F5F7] w-full max-w-3xl max-h-[90vh] overflow-y-auto custom-scrollbar rounded-2xl shadow-2xl relative border border-slate-200">
+            <button className="absolute top-6 right-6 text-slate-500 hover:text-slate-800 bg-white hover:bg-slate-100 rounded-full p-1.5 border shadow-sm z-10 transition-all" onClick={() => toggleModal("eodModal", false)}><X className="w-5 h-5" /></button>
+            <div className="p-8">
+              <DailyCommitments
+                sessionUser={session?.user}
+                stats={stats}
+                handleAttendancePunch={handleAttendancePunch}
+                formMode="eod"
+                handleSodSubmit={handleSodSubmit}
+                handleEodSubmit={async (payload) => {
+                  const success = await handleEodSubmit(payload);
+                  if (success) toggleModal("eodModal", false);
+                }}
+              />
+            </div>
+          </div>
           <div className="bg-[#F4F5F7] w-full max-w-3xl max-h-[90vh] overflow-y-auto custom-scrollbar rounded-2xl shadow-2xl relative border border-slate-200">
             <button className="absolute top-6 right-6 text-slate-500 hover:text-slate-800 bg-white hover:bg-slate-100 rounded-full p-1.5 border shadow-sm z-10 transition-all" onClick={() => toggleModal("eodModal", false)}><X className="w-5 h-5" /></button>
             <div className="p-8">

@@ -1,13 +1,14 @@
-import React, { useState, useEffect } from "react";
-import { 
-  CalendarCheck, 
-  FileText, 
-  Coins, 
+import React, { useState, useEffect, useMemo } from "react";
+import {
+  CalendarCheck,
+  FileText,
+  Coins,
   Download,
   Plus,
   Clock,
   TrendingUp,
-  AlertCircle
+  AlertCircle,
+  Trash2
 } from "lucide-react";
 import StatCard from "./StatCard";
 
@@ -55,60 +56,60 @@ export function ESSDashboard({ user, triggerToast, setActiveTab, toggleModal, st
         </div>
         <div className="flex items-center gap-3">
           {(!stats?.currentUserCompliance?.hasSod) && (
-            <button 
-              onClick={() => toggleModal ? toggleModal("sodModal", true) : setActiveTab?.("attendance")} 
+            <button
+              onClick={() => toggleModal ? toggleModal("sodModal", true) : setActiveTab?.("attendance")}
               className="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-lg text-xs font-black shadow-lg shadow-indigo-600/20 flex items-center gap-2 transition-all"
             >
               <Clock className="w-4 h-4" /> Declare SOD
             </button>
           )}
           {(stats?.currentUserCompliance?.hasSod && !stats?.currentUserCompliance?.hasEod) && (
-            <button 
-              onClick={() => toggleModal ? toggleModal("eodModal", true) : setActiveTab?.("attendance")} 
+            <button
+              onClick={() => toggleModal ? toggleModal("eodModal", true) : setActiveTab?.("attendance")}
               className="bg-[#714B67] hover:bg-[#5F3F56] text-white px-5 py-2.5 rounded-lg text-xs font-black shadow-lg shadow-[#714B67]/20 flex items-center gap-2 transition-all"
             >
               <CalendarCheck className="w-4 h-4" /> Submit EOD
             </button>
           )}
           {(stats?.currentUserCompliance?.hasEod) && (
-             <span className="text-xs font-bold text-emerald-600 bg-emerald-50 px-4 py-2 rounded-lg border border-emerald-200 flex items-center gap-2">
-               <CalendarCheck className="w-4 h-4" /> Day Completed
-             </span>
+            <span className="text-xs font-bold text-emerald-600 bg-emerald-50 px-4 py-2 rounded-lg border border-emerald-200 flex items-center gap-2">
+              <CalendarCheck className="w-4 h-4" /> Day Completed
+            </span>
           )}
         </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <StatCard 
-          title="Present Days (This Month)" 
-          value={`${dynamicStats.presentDays} / ${dynamicStats.totalWorkingDays}`} 
-          trend={`${dynamicStats.attendancePercent}% Attendance`} 
-          trendUp={dynamicStats.attendancePercent >= 90} 
-          icon={<CalendarCheck className="w-5 h-5 text-indigo-500" />} 
+        <StatCard
+          title="Present Days (This Month)"
+          value={`${dynamicStats.presentDays} / ${dynamicStats.totalWorkingDays}`}
+          trend={`${dynamicStats.attendancePercent}% Attendance`}
+          trendUp={dynamicStats.attendancePercent >= 90}
+          icon={<CalendarCheck className="w-5 h-5 text-indigo-500" />}
           dark={isDark}
         />
-        <StatCard 
-          title="Casual Leave (This Month)" 
-          value={String(dynamicStats.casualLeaveTaken ?? 0)} 
-          trend="Taken in current month" 
-          trendUp={true} 
-          icon={<FileText className="w-5 h-5 text-rose-500" />} 
+        <StatCard
+          title="Casual Leave (This Month)"
+          value={String(dynamicStats.casualLeaveTaken ?? 0)}
+          trend="Taken in current month"
+          trendUp={true}
+          icon={<FileText className="w-5 h-5 text-rose-500" />}
           dark={isDark}
         />
-        <StatCard 
-          title="Sick Leave (This Month)" 
-          value={String(dynamicStats.sickLeaveTaken ?? 0)} 
-          trend="Taken in current month" 
-          trendUp={true} 
-          icon={<FileText className="w-5 h-5 text-emerald-500" />} 
+        <StatCard
+          title="Sick Leave (This Month)"
+          value={String(dynamicStats.sickLeaveTaken ?? 0)}
+          trend="Taken in current month"
+          trendUp={true}
+          icon={<FileText className="w-5 h-5 text-emerald-500" />}
           dark={isDark}
         />
-        <StatCard 
-          title="Upcoming Holiday" 
-          value={dynamicStats.holidayName} 
-          trend={dynamicStats.holidayDate} 
-          trendUp={true} 
-          icon={<AlertCircle className="w-5 h-5 text-amber-500" />} 
+        <StatCard
+          title="Upcoming Holiday"
+          value={dynamicStats.holidayName}
+          trend={dynamicStats.holidayDate}
+          trendUp={true}
+          icon={<AlertCircle className="w-5 h-5 text-amber-500" />}
           dark={isDark}
         />
       </div>
@@ -174,7 +175,7 @@ export function ESSLeaves({ user, triggerToast, stats }: ESSProps) {
           <h1 className="text-xl font-black text-slate-800">Leave Management</h1>
           <p className="text-xs text-slate-500 mt-1">Apply for leaves and track your approval status.</p>
         </div>
-        <button 
+        <button
           className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2.5 rounded-lg text-xs font-bold shadow-md flex items-center gap-2"
           onClick={() => setShowApply(!showApply)}
         >
@@ -185,8 +186,8 @@ export function ESSLeaves({ user, triggerToast, stats }: ESSProps) {
       {showApply ? (
         <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm max-w-2xl">
           <h2 className="text-sm font-black text-slate-800 mb-4">New Leave Request</h2>
-          <form className="space-y-4" onSubmit={async (e) => { 
-            e.preventDefault(); 
+          <form className="space-y-4" onSubmit={async (e) => {
+            e.preventDefault();
             const form = e.target as HTMLFormElement;
             try {
               const res = await fetch("/api/leaves", {
@@ -215,7 +216,7 @@ export function ESSLeaves({ user, triggerToast, stats }: ESSProps) {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="text-[10px] uppercase font-black text-slate-400 font-mono">Leave Type</label>
-                 <select name="type" className="w-full bg-slate-50 border border-slate-200 p-2.5 rounded text-xs mt-1" required>
+                <select name="type" className="w-full bg-slate-50 border border-slate-200 p-2.5 rounded text-xs mt-1" required>
                   <option value="Casual Leave">Casual Leave</option>
                   <option value="Sick Leave">Sick Leave</option>
                   <option value="Earned Leave">Earned Leave</option>
@@ -279,14 +280,14 @@ export function ESSLeaves({ user, triggerToast, stats }: ESSProps) {
                     </td>
                     <td className="py-3 px-2 font-mono">{l.days}</td>
                     <td className="py-3 px-2">
-                       <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${l.status === 'Approved' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : l.status === 'Rejected' ? 'bg-rose-50 text-rose-700 border border-rose-200' : l.status === 'Pending HR Approval' ? 'bg-blue-50 text-blue-700 border border-blue-200' : 'bg-amber-50 text-amber-700 border border-amber-200'}`}>
-                         {l.status}
-                       </span>
+                      <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${l.status === 'Approved' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : l.status === 'Rejected' ? 'bg-rose-50 text-rose-700 border border-rose-200' : l.status === 'Pending HR Approval' ? 'bg-blue-50 text-blue-700 border border-blue-200' : 'bg-amber-50 text-amber-700 border border-amber-200'}`}>
+                        {l.status}
+                      </span>
                     </td>
                     <td className="py-3 pl-2 text-slate-500 text-[11px] italic">
-                       {l.status !== "Pending Manager Approval" && l.status !== "Pending HR Approval" ? 
-                         (l.approvedBy?.name ? `By: ${l.approvedBy?.name} ${l.remarks ? `(${l.remarks})` : ''}` : '') : 
-                         'Awaiting Approval'}
+                      {l.status !== "Pending Manager Approval" && l.status !== "Pending HR Approval" ?
+                        (l.approvedBy?.name ? `By: ${l.approvedBy?.name} ${l.remarks ? `(${l.remarks})` : ''}` : '') :
+                        'Awaiting Approval'}
                     </td>
                   </tr>
                 ))
@@ -303,30 +304,113 @@ export function ESSPayroll({ user, triggerToast }: ESSProps) {
   const [employees, setEmployees] = useState<any[]>([]);
   const [selectedEmpId, setSelectedEmpId] = useState("");
   const [baseSalary, setBaseSalary] = useState(13000);
-  const [timingDays, setTimingDays] = useState(25);
-  const [taskDays, setTaskDays] = useState(25);
-  const [outputPercent, setOutputPercent] = useState(100);
-  const [payrollMonth, setPayrollMonth] = useState("March");
-  const [payrollYear, setPayrollYear] = useState(2026);
+  const monthsList = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+  const [payrollMonth, setPayrollMonth] = useState(monthsList[new Date().getMonth()]);
+  const [payrollYear, setPayrollYear] = useState(new Date().getFullYear());
   const [processedPayslips, setProcessedPayslips] = useState<any[]>([]);
-  
+  const [sodReports, setSodReports] = useState<any[]>([]);
+  const [eodReports, setEodReports] = useState<any[]>([]);
+  const [calcBase, setCalcBase] = useState(true);
+  const [calcOvertime, setCalcOvertime] = useState(true);
+
   const [loading, setLoading] = useState(false);
   const isAdmin = ["Owner", "Director", "HR Head"].includes(user?.role);
 
-  const standardPayableDays = 25;
-  const timingWeight = 0.30;
-  const taskWeight = 0.30;
-  const outputWeight = 0.40;
+  const monthMap: { [key: string]: number } = {
+    "January": 0, "February": 1, "March": 2, "April": 3, "May": 4, "June": 5,
+    "July": 6, "August": 7, "September": 8, "October": 9, "November": 10, "December": 11
+  };
 
-  const maxTimingAmount = baseSalary * timingWeight;
-  const maxTaskAmount = baseSalary * taskWeight;
-  const maxOutputAmount = baseSalary * outputWeight;
+  const selectedMonthIndex = useMemo(() => {
+    return monthMap[payrollMonth] ?? 2;
+  }, [payrollMonth]);
 
-  const timingContribution = (timingDays / standardPayableDays) * maxTimingAmount;
-  const taskContribution = (taskDays / standardPayableDays) * maxTaskAmount;
-  const outputContribution = (outputPercent / 100) * maxOutputAmount;
+  const employeeSods = useMemo(() => {
+    if (!selectedEmpId) return [];
+    return sodReports.filter((report: any) => {
+      const empIdStr = report.employee?.id ? report.employee.id.toString() : report.employee?.toString();
+      if (empIdStr !== selectedEmpId.toString()) return false;
+      const d = new Date(report.date || report.createdAt);
+      return d.getMonth() === selectedMonthIndex && d.getFullYear() === payrollYear;
+    });
+  }, [sodReports, selectedEmpId, selectedMonthIndex, payrollYear]);
 
-  const calculatedNetSalary = Math.round(timingContribution + taskContribution + outputContribution);
+  const employeeEods = useMemo(() => {
+    if (!selectedEmpId) return [];
+    return eodReports.filter((report: any) => {
+      const empIdStr = report.employee?.id ? report.employee.id.toString() : report.employee?.toString();
+      if (empIdStr !== selectedEmpId.toString()) return false;
+      const d = new Date(report.date || report.createdAt);
+      return d.getMonth() === selectedMonthIndex && d.getFullYear() === payrollYear;
+    });
+  }, [eodReports, selectedEmpId, selectedMonthIndex, payrollYear]);
+
+  const getLocalDateString = (dateObj: any) => {
+    const d = new Date(dateObj);
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  };
+
+  const dailyWorkSummary = useMemo(() => {
+    const summary: { [dateStr: string]: { sod?: any; eod?: any; minutes: number } } = {};
+
+    employeeSods.forEach((sod) => {
+      const dateStr = getLocalDateString(sod.date || sod.createdAt);
+      if (!summary[dateStr]) summary[dateStr] = { minutes: 0 };
+      summary[dateStr].sod = sod;
+    });
+
+    employeeEods.forEach((eod) => {
+      const dateStr = getLocalDateString(eod.date || eod.createdAt);
+      if (!summary[dateStr]) summary[dateStr] = { minutes: 0 };
+      summary[dateStr].eod = eod;
+    });
+
+    let totalMinutes = 0;
+    let totalBaseMinutes = 0;
+    let totalOtMinutes = 0;
+    Object.keys(summary).forEach((dateStr) => {
+      const day = summary[dateStr];
+      let dayMinutes = 0;
+      if (day.sod && day.eod) {
+        const sodTime = new Date(day.sod.createdAt);
+        const eodTime = new Date(day.eod.createdAt);
+        let diffMs = eodTime.getTime() - sodTime.getTime();
+        if (diffMs < 0) diffMs = 0;
+
+        let diffMins = Math.round(diffMs / 60000);
+        if (diffMins > 1440) diffMins = 1440;
+        dayMinutes = diffMins;
+      } else if (day.sod) {
+        dayMinutes = 540; // standard 9-hour shift fallback
+      }
+
+      day.minutes = dayMinutes;
+      totalMinutes += dayMinutes;
+
+      const baseMins = Math.min(dayMinutes, 540);
+      const otMins = Math.max(0, dayMinutes - 540);
+      totalBaseMinutes += baseMins;
+      totalOtMinutes += otMins;
+    });
+
+    return {
+      days: summary,
+      totalMinutes,
+      totalBaseMinutes,
+      totalOtMinutes
+    };
+  }, [employeeSods, employeeEods]);
+
+  const perDaySalary = baseSalary / 30;
+  const perMinuteSalary = perDaySalary / 540;
+
+  const calculatedBaseAmount = calcBase ? Math.round(dailyWorkSummary.totalBaseMinutes * perMinuteSalary) : 0;
+  const calculatedOtAmount = calcOvertime ? Math.round(dailyWorkSummary.totalOtMinutes * perMinuteSalary) : 0;
+
+  const calculatedNetSalary = calculatedBaseAmount + calculatedOtAmount;
 
   useEffect(() => {
     fetchData();
@@ -341,6 +425,13 @@ export function ESSPayroll({ user, triggerToast }: ESSProps) {
         setProcessedPayslips(pData.data);
       }
 
+      const res = await fetch("/api/reports/work-report");
+      const rData = await res.json();
+      if (rData.success && rData.data) {
+        setSodReports(rData.data.sod || []);
+        setEodReports(rData.data.eod || []);
+      }
+
       if (isAdmin) {
         const empRes = await fetch("/api/employees");
         const empData = await empRes.json();
@@ -350,6 +441,20 @@ export function ESSPayroll({ user, triggerToast }: ESSProps) {
             setSelectedEmpId(empData.data[0].id);
             setBaseSalary(empData.data[0].employeeProfile?.baseSalary || 13000);
           }
+        }
+      } else if (user?.id) {
+        setSelectedEmpId(user.id);
+        try {
+          const selfRes = await fetch(`/api/employees`);
+          const selfData = await selfRes.json();
+          if (selfData.success && selfData.data) {
+            const selfEmp = selfData.data.find((e: any) => e.id.toString() === user.id.toString());
+            if (selfEmp) {
+              setBaseSalary(selfEmp.employeeProfile?.baseSalary || 13000);
+            }
+          }
+        } catch (e) {
+          console.error("Error fetching self profile details:", e);
         }
       }
     } catch (err) {
@@ -375,17 +480,17 @@ export function ESSPayroll({ user, triggerToast }: ESSProps) {
       triggerToast("Please select an employee.");
       return;
     }
-    
+
     setLoading(true);
     try {
       const payload = {
         employeeId: selectedEmpId,
         month: payrollMonth,
         year: Number(payrollYear),
-        basicPay: Math.round(timingContribution),
+        basicPay: calculatedNetSalary,
         hra: 0,
-        conveyance: Math.round(taskContribution),
-        specialAllowance: Math.round(outputContribution),
+        conveyance: 0,
+        specialAllowance: 0,
         pfDeduction: 0,
         ptDeduction: 0,
         tdsDeduction: 0
@@ -410,21 +515,46 @@ export function ESSPayroll({ user, triggerToast }: ESSProps) {
     }
   };
 
+  const handleDeletePayslip = async (id: string) => {
+    if (!confirm("Are you sure you want to delete this processed payslip record?")) {
+      return;
+    }
+    setLoading(true);
+    try {
+      const res = await fetch(`/api/payroll?id=${id}`, {
+        method: "DELETE"
+      });
+      const data = await res.json();
+      if (data.success) {
+        triggerToast("🎉 Payslip deleted successfully.");
+        fetchData();
+      } else {
+        triggerToast(`Error: ${data.error}`);
+      }
+    } catch (err) {
+      triggerToast("Failed to delete payslip.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+
+
   return (
     <div className="space-y-8 animate-fade-in text-[#1C1C1A]">
-      
+
       {/* Header */}
       <div className="border-b border-[#E8E4DF] pb-5">
         <span className="text-[9px] uppercase tracking-widest text-[#C9A84C] font-bold">Compensation</span>
         <h1 className="text-xl font-light tracking-wide font-serif" style={{ fontFamily: "'Playfair Display', serif" }}>
           Payroll & Salary Administration
         </h1>
-        <p className="text-[10px] text-[#9C9890] uppercase tracking-wider mt-1.5 font-semibold">
-          {isAdmin 
+        {/* <p className="text-[10px] text-[#9C9890] uppercase tracking-wider mt-1.5 font-semibold">
+          {isAdmin
             ? "Calculate, audit and process employee salaries based on performance weights."
             : "Monitor salary structures, payslips and run simulators."
           }
-        </p>
+        </p> */}
       </div>
 
       {isAdmin && (
@@ -434,15 +564,15 @@ export function ESSPayroll({ user, triggerToast }: ESSProps) {
             <h2 className="text-[10px] font-bold uppercase text-[#C9A84C] tracking-widest mb-6">
               Calculate Salary & Generate Payslip
             </h2>
-            
+
             <form onSubmit={handleProcessPayroll} className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
                   <label className="text-[9px] uppercase font-bold text-[#9C9890] tracking-wider">Select Employee</label>
-                  <select 
-                    value={selectedEmpId} 
+                  <select
+                    value={selectedEmpId}
                     onChange={(e) => handleEmployeeChange(e.target.value)}
-                    className="w-full bg-[#FCFBF9] border border-[#E8E4DF] focus:border-[#C9A84C] p-2.5 rounded-lg text-xs mt-1 text-[#1C1C1A] outline-none" 
+                    className="w-full bg-[#FCFBF9] border border-[#E8E4DF] focus:border-[#C9A84C] p-2.5 rounded-lg text-xs mt-1 text-[#1C1C1A] outline-none"
                     required
                   >
                     {employees.map(emp => (
@@ -454,10 +584,10 @@ export function ESSPayroll({ user, triggerToast }: ESSProps) {
                 </div>
                 <div>
                   <label className="text-[9px] uppercase font-bold text-[#9C9890] tracking-wider">Payroll Month</label>
-                  <select 
-                    value={payrollMonth} 
+                  <select
+                    value={payrollMonth}
                     onChange={(e) => setPayrollMonth(e.target.value)}
-                    className="w-full bg-[#FCFBF9] border border-[#E8E4DF] focus:border-[#C9A84C] p-2.5 rounded-lg text-xs mt-1 text-[#1C1C1A] outline-none" 
+                    className="w-full bg-[#FCFBF9] border border-[#E8E4DF] focus:border-[#C9A84C] p-2.5 rounded-lg text-xs mt-1 text-[#1C1C1A] outline-none"
                     required
                   >
                     {["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"].map(m => (
@@ -467,11 +597,11 @@ export function ESSPayroll({ user, triggerToast }: ESSProps) {
                 </div>
                 <div>
                   <label className="text-[9px] uppercase font-bold text-[#9C9890] tracking-wider">Payroll Year</label>
-                  <input 
-                    type="number" 
-                    value={payrollYear} 
+                  <input
+                    type="number"
+                    value={payrollYear}
                     onChange={(e) => setPayrollYear(Number(e.target.value))}
-                    className="w-full bg-[#FCFBF9] border border-[#E8E4DF] focus:border-[#C9A84C] p-2.5 rounded-lg text-xs mt-1 text-[#1C1C1A] outline-none" 
+                    className="w-full bg-[#FCFBF9] border border-[#E8E4DF] focus:border-[#C9A84C] p-2.5 rounded-lg text-xs mt-1 text-[#1C1C1A] outline-none"
                     required
                   />
                 </div>
@@ -480,73 +610,101 @@ export function ESSPayroll({ user, triggerToast }: ESSProps) {
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4 p-4 bg-[#FAFAF7] rounded-xl border border-[#E8E4DF]">
                 <div>
                   <label className="text-[9px] uppercase font-bold text-[#9C9890] tracking-wider block">Base Salary</label>
-                  <input 
-                    type="number" 
-                    value={baseSalary} 
+                  <input
+                    type="number"
+                    value={baseSalary}
                     onChange={(e) => setBaseSalary(Number(e.target.value))}
-                    className="w-full bg-[#FCFBF9] border border-[#E8E4DF] focus:border-[#C9A84C] p-2 rounded text-xs mt-1 font-bold text-[#1C1C1A] outline-none" 
+                    className="w-full bg-[#FCFBF9] border border-[#E8E4DF] focus:border-[#C9A84C] p-2 rounded text-xs mt-1 font-bold text-[#1C1C1A] outline-none"
                     required
                   />
                 </div>
                 <div>
-                  <label className="text-[9px] uppercase font-bold text-[#9C9890] tracking-wider block">Timing Days (Max 25)</label>
-                  <input 
-                    type="number" 
-                    min="0" 
-                    max="25"
-                    step="0.5"
-                    value={timingDays} 
-                    onChange={(e) => setTimingDays(parseFloat(e.target.value) || 0)}
-                    className="w-full bg-[#FCFBF9] border border-[#E8E4DF] focus:border-[#C9A84C] p-2 rounded text-xs mt-1 text-[#1C1C1A] outline-none" 
-                    required
-                  />
+                  <label className="text-[9px] uppercase font-bold text-[#9C9890] tracking-wider block">Per-Day Salary</label>
+                  <div className="w-full bg-[#FCFBF9] border border-[#E8E4DF] p-2.5 rounded-lg text-xs mt-1 font-bold text-[#C9A84C]">
+                    ₹{perDaySalary.toFixed(2)}
+                  </div>
                 </div>
                 <div>
-                  <label className="text-[9px] uppercase font-bold text-[#9C9890] tracking-wider block">Task Days (Max 25)</label>
-                  <input 
-                    type="number" 
-                    min="0" 
-                    max="25"
-                    step="0.5"
-                    value={taskDays} 
-                    onChange={(e) => setTaskDays(parseFloat(e.target.value) || 0)}
-                    className="w-full bg-[#FCFBF9] border border-[#E8E4DF] focus:border-[#C9A84C] p-2 rounded text-xs mt-1 text-[#1C1C1A] outline-none" 
-                    required
-                  />
+                  <label className="text-[9px] uppercase font-bold text-[#9C9890] tracking-wider block">Per-Minute Salary</label>
+                  <div className="w-full bg-[#FCFBF9] border border-[#E8E4DF] p-2.5 rounded-lg text-xs mt-1 font-bold text-[#C9A84C]">
+                    ₹{perMinuteSalary.toFixed(4)}
+                  </div>
                 </div>
                 <div>
-                  <label className="text-[9px] uppercase font-bold text-[#9C9890] tracking-wider block">Output Level (%)</label>
-                  <input 
-                    type="number" 
-                    min="0" 
-                    max="100"
-                    value={outputPercent} 
-                    onChange={(e) => setOutputPercent(parseInt(e.target.value) || 0)}
-                    className="w-full bg-[#FCFBF9] border border-[#E8E4DF] focus:border-[#C9A84C] p-2 rounded text-xs mt-1 text-[#1C1C1A] outline-none" 
-                    required
-                  />
+                  <label className="text-[9px] uppercase font-bold text-[#9C9890] tracking-wider block">Worked Base + Overtime</label>
+                  <div className="w-full bg-[#FCFBF9] border border-[#E8E4DF] p-2.5 rounded-lg text-xs mt-1 font-bold text-[#1C1C1A]">
+                    {dailyWorkSummary.totalBaseMinutes} + {dailyWorkSummary.totalOtMinutes} mins
+                  </div>
                 </div>
+              </div>
+
+              {/* Checkboxes Row */}
+              <div className="flex gap-6 items-center p-3.5 bg-[#FAFAF7] rounded-xl border border-[#E8E4DF]">
+                <span className="text-[10px] uppercase font-bold text-[#9C9890] tracking-wider">Salary Components:</span>
+                <label className="flex items-center gap-2 cursor-pointer select-none text-xs font-semibold text-[#1C1C1A]">
+                  <input
+                    type="checkbox"
+                    checked={calcBase}
+                    onChange={(e) => setCalcBase(e.target.checked)}
+                    className="accent-[#C9A84C] h-4 w-4 rounded border-[#E8E4DF]"
+                  />
+                  Base Salary
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer select-none text-xs font-semibold text-[#1C1C1A]">
+                  <input
+                    type="checkbox"
+                    checked={calcOvertime}
+                    onChange={(e) => setCalcOvertime(e.target.checked)}
+                    className="accent-[#C9A84C] h-4 w-4 rounded border-[#E8E4DF]"
+                  />
+                  Calculate Overtime
+                </label>
               </div>
 
               {/* Dynamic Formula Board */}
               <div className="border border-[#E8E4DF] rounded-xl p-4 space-y-3 bg-[#FCFBF9]">
                 <div className="flex justify-between border-b border-[#E8E4DF]/50 pb-2 text-[11px] font-medium">
                   <div className="text-[#5D5B57]">
-                    Timing Portion (30%): <span className="text-[#9C9890]">({timingDays}/25 days)</span>
+                    Total Registered SOD/EOD Working Days:
                   </div>
-                  <div className="text-[#1C1C1A] font-bold">₹{Math.round(timingContribution).toLocaleString()} / ₹{Math.round(maxTimingAmount).toLocaleString()}</div>
+                  <div className="text-[#1C1C1A] font-bold">
+                    {Object.keys(dailyWorkSummary.days).length} Days
+                  </div>
                 </div>
                 <div className="flex justify-between border-b border-[#E8E4DF]/50 pb-2 text-[11px] font-medium">
                   <div className="text-[#5D5B57]">
-                    Work Task Input (30%): <span className="text-[#9C9890]">({taskDays}/25 days)</span>
+                    Accumulated Working Time (Base + OT):
                   </div>
-                  <div className="text-[#1C1C1A] font-bold">₹{Math.round(taskContribution).toLocaleString()} / ₹{Math.round(maxTaskAmount).toLocaleString()}</div>
+                  <div className="text-[#1C1C1A] font-bold">
+                    {(dailyWorkSummary.totalMinutes / 60).toFixed(1)} Hours ({dailyWorkSummary.totalBaseMinutes} + {dailyWorkSummary.totalOtMinutes} Mins)
+                  </div>
                 </div>
                 <div className="flex justify-between border-b border-[#E8E4DF]/50 pb-2 text-[11px] font-medium">
                   <div className="text-[#5D5B57]">
-                    Output Performance (40%): <span className="text-[#9C9890]">({outputPercent}%)</span>
+                    Base Salary Portion {calcBase ? "✅" : "❌"}:
                   </div>
-                  <div className="text-[#1C1C1A] font-bold">₹{Math.round(outputContribution).toLocaleString()} / ₹{Math.round(maxOutputAmount).toLocaleString()}</div>
+                  <div className="text-[#1C1C1A] font-bold">
+                    ₹{calculatedBaseAmount.toLocaleString()} <span className="text-[9px] text-[#9C9890]">({dailyWorkSummary.totalBaseMinutes} mins)</span>
+                  </div>
+                </div>
+                <div className="flex justify-between border-b border-[#E8E4DF]/50 pb-2 text-[11px] font-medium">
+                  <div className="text-[#5D5B57]">
+                    Calculate Overtime {calcOvertime ? "✅" : "❌"}:
+                  </div>
+                  <div className="text-[#1C1C1A] font-bold">
+                    {calculatedOtAmount > 0
+                      ? `₹${calculatedOtAmount.toLocaleString()} (${dailyWorkSummary.totalOtMinutes} mins)`
+                      : "—"
+                    }
+                  </div>
+                </div>
+                <div className="flex justify-between border-b border-[#E8E4DF]/50 pb-2 text-[11px] font-medium">
+                  <div className="text-[#5D5B57]">
+                    Per-Minute Salary Rate:
+                  </div>
+                  <div className="text-[#1C1C1A] font-bold">
+                    ₹{perMinuteSalary.toFixed(4)} / min
+                  </div>
                 </div>
                 <div className="flex justify-between pt-2 text-xs font-bold uppercase tracking-widest text-[#1C1C1A]">
                   <div>Calculated Net Payout</div>
@@ -554,8 +712,8 @@ export function ESSPayroll({ user, triggerToast }: ESSProps) {
                 </div>
               </div>
 
-              <button 
-                type="submit" 
+              <button
+                type="submit"
                 disabled={loading || !selectedEmpId}
                 className="w-full bg-[#C9A84C] hover:bg-[#B3923E] text-white py-3 rounded-lg text-[10px] font-semibold uppercase tracking-widest transition-all shadow-[0_2px_15px_rgba(201,168,76,0.15)]"
               >
@@ -569,26 +727,26 @@ export function ESSPayroll({ user, triggerToast }: ESSProps) {
             <h2 className="text-[10px] font-bold uppercase text-[#C9A84C] tracking-widest">
               Calculation Rules
             </h2>
-            
+
             <div className="text-[11px] leading-relaxed space-y-3 font-medium text-[#5D5B57]">
               <div className="p-3 bg-[#FAFAF7] rounded-lg border border-[#E8E4DF]">
-                <span className="font-semibold text-[#1C1C1A] block mb-1">📅 Base Month Duration</span>
-                30 Days Month - 4 Sundays - 1 PL = <strong className="text-[#C9A84C]">25 Payable Days</strong>.
+                <span className="font-semibold text-[#1C1C1A] block mb-1">📅 Base Month Standard</span>
+                Month is calculated on a standard of <strong className="text-[#C9A84C]">30 Calendar Days</strong>.
               </div>
 
               <div className="p-3 bg-[#FAFAF7] rounded-lg border border-[#E8E4DF]">
-                <span className="font-semibold text-[#1C1C1A] block mb-1">⏱️ Timing Portion (30%)</span>
-                Calculated on check-in timing logs and compliance ratio over 25 days.
+                <span className="font-semibold text-[#1C1C1A] block mb-1">⏱️ Per-Day </span>
+                Per-Day Salary = Base Salary ÷ 30 calendar days.
               </div>
 
               <div className="p-3 bg-[#FAFAF7] rounded-lg border border-[#E8E4DF]">
-                <span className="font-semibold text-[#1C1C1A] block mb-1">📋 Work Task Input (30%)</span>
-                Weighted on daily task commitments (SOD/EOD task reports submitted).
+                <span className="font-semibold text-[#1C1C1A] block mb-1">⏰ Per-Minute </span>
+                Per-Minute Salary = Per-Day Salary ÷ 540 minutes (based on standard 9-hour shift).
               </div>
 
               <div className="p-3 bg-[#FAFAF7] rounded-lg border border-[#E8E4DF]">
-                <span className="font-semibold text-[#1C1C1A] block mb-1">🚀 Quality Output (40%)</span>
-                Linked directly to final output achievements and quality scores.
+                <span className="font-semibold text-[#1C1C1A] block mb-1">📊 Dynamic SOD/EOD Tracking</span>
+                Calculates actual working minutes between EOD and SOD report submissions daily, and sums them up for the final payout.
               </div>
             </div>
           </div>
@@ -610,64 +768,75 @@ export function ESSPayroll({ user, triggerToast }: ESSProps) {
                 <div className="space-y-4 text-[11px] font-medium">
                   <div>
                     <label className="text-[9px] uppercase font-bold text-[#9C9890] tracking-wider">Base Salary Target</label>
-                    <input 
-                      type="number" 
-                      value={baseSalary} 
+                    <input
+                      type="number"
+                      value={baseSalary}
                       onChange={(e) => setBaseSalary(Number(e.target.value))}
-                      className="w-full bg-[#FCFBF9] border border-[#E8E4DF] focus:border-[#C9A84C] p-2 rounded text-xs mt-1 text-[#1C1C1A] outline-none" 
+                      className="w-full bg-[#FCFBF9] border border-[#E8E4DF] focus:border-[#C9A84C] p-2 rounded text-xs mt-1 text-[#1C1C1A] outline-none"
                     />
                   </div>
-                  <div className="grid grid-cols-3 gap-2">
+                  <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="text-[9px] uppercase font-bold text-[#9C9890] tracking-wider">Timing Days</label>
-                      <input 
-                        type="number" 
-                        min="0" 
-                        max="25"
-                        value={timingDays} 
-                        onChange={(e) => setTimingDays(parseFloat(e.target.value) || 0)}
-                        className="w-full bg-[#FCFBF9] border border-[#E8E4DF] focus:border-[#C9A84C] p-2 rounded text-xs mt-1 text-[#1C1C1A] outline-none" 
-                      />
+                      <span className="text-[9px] uppercase font-bold text-[#9C9890] tracking-wider block">Per-Day Salary</span>
+                      <div className="text-xs font-bold text-[#C9A84C] mt-1">₹{perDaySalary.toFixed(2)}</div>
                     </div>
                     <div>
-                      <label className="text-[9px] uppercase font-bold text-[#9C9890] tracking-wider">Task Days</label>
-                      <input 
-                        type="number" 
-                        min="0" 
-                        max="25"
-                        value={taskDays} 
-                        onChange={(e) => setTaskDays(parseFloat(e.target.value) || 0)}
-                        className="w-full bg-[#FCFBF9] border border-[#E8E4DF] focus:border-[#C9A84C] p-2 rounded text-xs mt-1 text-[#1C1C1A] outline-none" 
-                      />
-                    </div>
-                    <div>
-                      <label className="text-[9px] uppercase font-bold text-[#9C9890] tracking-wider">Output %</label>
-                      <input 
-                        type="number" 
-                        min="0" 
-                        max="100"
-                        value={outputPercent} 
-                        onChange={(e) => setOutputPercent(parseInt(e.target.value) || 0)}
-                        className="w-full bg-[#FCFBF9] border border-[#E8E4DF] focus:border-[#C9A84C] p-2 rounded text-xs mt-1 text-[#1C1C1A] outline-none" 
-                      />
+                      <span className="text-[9px] uppercase font-bold text-[#9C9890] tracking-wider block">Per-Minute Salary</span>
+                      <div className="text-xs font-bold text-[#C9A84C] mt-1">₹{perMinuteSalary.toFixed(4)}</div>
                     </div>
                   </div>
+                  {/* Checkboxes Row */}
+                  <div className="flex gap-4 items-center p-2.5 bg-[#FCFBF9] rounded-lg border border-[#E8E4DF]">
+                    <span className="text-[9px] uppercase font-bold text-[#9C9890] tracking-wider">Components:</span>
+                    <label className="flex items-center gap-1.5 cursor-pointer select-none text-[11px] font-semibold text-[#1C1C1A]">
+                      <input
+                        type="checkbox"
+                        checked={calcBase}
+                        onChange={(e) => setCalcBase(e.target.checked)}
+                        className="accent-[#C9A84C] h-3.5 w-3.5 rounded border-[#E8E4DF]"
+                      />
+                      Base
+                    </label>
+                    <label className="flex items-center gap-1.5 cursor-pointer select-none text-[11px] font-semibold text-[#1C1C1A]">
+                      <input
+                        type="checkbox"
+                        checked={calcOvertime}
+                        onChange={(e) => setCalcOvertime(e.target.checked)}
+                        className="accent-[#C9A84C] h-3.5 w-3.5 rounded border-[#E8E4DF]"
+                      />
+                      Calculate Overtime
+                    </label>
+                  </div>
+
                   <div className="p-3 bg-[#FCFBF9] rounded-lg space-y-2 border border-[#E8E4DF]">
                     <div className="flex justify-between">
-                      <span className="text-[#5D5B57]">Timing (30%):</span>
-                      <span>₹{Math.round(timingContribution)}</span>
+                      <span className="text-[#5D5B57]">Total Working Days (SOD/EOD):</span>
+                      <span>{Object.keys(dailyWorkSummary.days).length} Days</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-[#5D5B57]">Tasks (30%):</span>
-                      <span>₹{Math.round(taskContribution)}</span>
+                      <span className="text-[#5D5B57]">Total Worked Time (Base + OT):</span>
+                      <span>{(dailyWorkSummary.totalMinutes / 60).toFixed(1)} Hours ({dailyWorkSummary.totalBaseMinutes} + {dailyWorkSummary.totalOtMinutes} mins)</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-[#5D5B57]">Output (40%):</span>
-                      <span>₹{Math.round(outputContribution)}</span>
+                      <span className="text-[#5D5B57]">Base Portion {calcBase ? "✅" : "❌"}:</span>
+                      <span>₹{calculatedBaseAmount.toLocaleString()} ({dailyWorkSummary.totalBaseMinutes} mins)</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-[#5D5B57]">Calculate Overtime {calcOvertime ? "✅" : "❌"}:</span>
+                      <span>
+                        {calculatedOtAmount > 0
+                          ? `₹${calculatedOtAmount.toLocaleString()} (${dailyWorkSummary.totalOtMinutes} mins)`
+                          : "—"
+                        }
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-[#5D5B57]">Per-Minute Rate:</span>
+                      <span>₹{perMinuteSalary.toFixed(4)} / min</span>
                     </div>
                     <div className="flex justify-between pt-1 border-t border-[#E8E4DF] text-xs font-semibold uppercase tracking-wider text-[#1C1C1A]">
                       <span>Simulated Net Payout:</span>
-                      <span className="text-[#C9A84C]">₹{calculatedNetSalary}</span>
+                      <span className="text-[#6B8F71]">₹{calculatedNetSalary.toLocaleString()}</span>
                     </div>
                   </div>
                 </div>
@@ -676,11 +845,11 @@ export function ESSPayroll({ user, triggerToast }: ESSProps) {
               {/* Explanatory Policy Card */}
               <div className="p-5 bg-[#FAFAF7] rounded-xl border border-[#E8E4DF] text-[11px] leading-relaxed space-y-3 font-medium text-[#5D5B57]">
                 <h3 className="text-[10px] font-bold text-[#C9A84C] uppercase tracking-widest">Salary Payout Policy</h3>
-                <p>Your monthly salary is dynamically calculated based on three metrics over a <strong>25-day payable month</strong> (30 days total - 4 Sundays - 1 PL):</p>
+                <p>Your monthly salary is dynamically calculated based on actual logged working time over a standard <strong>30-day calendar month</strong>:</p>
                 <ul className="list-disc pl-4 space-y-1">
-                  <li><strong>30% Timing Weight</strong>: Attendance hours, check-in and check-out logs.</li>
-                  <li><strong>30% Work Task Weight</strong>: Daily task inputs, SOD / EOD commitments.</li>
-                  <li><strong>40% Output Weight</strong>: Performance quality scores and target completions.</li>
+                  <li><strong>Per-Day</strong>: Computed as Base Salary ÷ 30 calendar days.</li>
+                  <li><strong>Per-Minute</strong>: Computed as Per-Day ÷ 540 minutes (standard 9-hour shift).</li>
+                  <li><strong>Dynamic Logging</strong>: Calculated based on the precise duration between your daily EOD and SOD report submissions.</li>
                 </ul>
               </div>
             </div>
@@ -694,17 +863,15 @@ export function ESSPayroll({ user, triggerToast }: ESSProps) {
                   {isAdmin && <th className="pb-3 pr-2">Employee</th>}
                   <th className="pb-3 px-2">Month / Year</th>
                   <th className="pb-3 px-2">Basic Salary</th>
-                  <th className="pb-3 px-2">Timing Portion</th>
-                  <th className="pb-3 px-2">Task Portion</th>
                   <th className="pb-3 px-2 text-center">Net Salary</th>
                   <th className="pb-3 px-2">Status</th>
-                  <th className="pb-3 pl-2 text-right">Actions</th>
+                  {isAdmin && <th className="pb-3 pl-2 text-right">Actions</th>}
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#E8E4DF] text-[#5D5B57] font-medium">
                 {processedPayslips.length === 0 ? (
                   <tr>
-                    <td colSpan={isAdmin ? 8 : 7} className="py-8 text-center text-[#9C9890] italic">
+                    <td colSpan={isAdmin ? 6 : 4} className="py-8 text-center text-[#9C9890] italic">
                       No processed payroll records found.
                     </td>
                   </tr>
@@ -717,9 +884,7 @@ export function ESSPayroll({ user, triggerToast }: ESSProps) {
                         </td>
                       )}
                       <td className="py-4 px-2 font-semibold text-[#1C1C1A]">{slip.month} {slip.year}</td>
-                      <td className="py-4 px-2">₹{baseSalary.toLocaleString()}</td>
-                      <td className="py-4 px-2">₹{slip.basicPay?.toLocaleString()}</td>
-                      <td className="py-4 px-2">₹{slip.conveyance?.toLocaleString()}</td>
+                      <td className="py-4 px-2">₹{(slip.employee?.baseSalary || 13000).toLocaleString()}</td>
                       <td className="py-4 px-2 text-center">
                         <span className="px-3 py-1.5 rounded bg-[#C9A84C] text-white font-bold text-xs tracking-wider shadow-[0_2px_10px_rgba(201,168,76,0.15)]">
                           ₹{slip.netPay?.toLocaleString()}
@@ -730,14 +895,18 @@ export function ESSPayroll({ user, triggerToast }: ESSProps) {
                           {slip.status}
                         </span>
                       </td>
-                      <td className="py-4 pl-2 text-right">
-                        <button 
-                          onClick={() => triggerToast(`Payslip generated for ${slip.employee?.name || "Staff"}`)}
-                          className="border border-[#C9A84C] text-[#C9A84C] hover:bg-[#C9A84C] hover:text-white px-3 py-1.5 rounded-lg text-[9px] uppercase tracking-wider font-bold transition-all"
-                        >
-                          Generate Payslip
-                        </button>
-                      </td>
+                      {isAdmin && (
+                        <td className="py-4 pl-2 text-right">
+                          <button
+                            onClick={() => handleDeletePayslip(slip.id)}
+                            disabled={loading}
+                            className="border border-red-500 text-red-500 hover:bg-red-500 hover:text-white px-3 py-1.5 rounded-lg text-[9px] uppercase tracking-wider font-bold transition-all flex items-center gap-1 ml-auto"
+                          >
+                            <Trash2 className="w-3 h-3" />
+                            Delete
+                          </button>
+                        </td>
+                      )}
                     </tr>
                   ))
                 )}
@@ -758,7 +927,7 @@ export function ESSExpenses({ user, triggerToast }: ESSProps) {
           <h1 className="text-xl font-black text-slate-800">Expense Claims</h1>
           <p className="text-xs text-slate-500 mt-1">Submit receipts for reimbursement.</p>
         </div>
-        <button 
+        <button
           className="bg-amber-600 hover:bg-amber-700 text-white px-4 py-2.5 rounded-lg text-xs font-bold shadow-md flex items-center gap-2"
           onClick={() => triggerToast("New Claim form opening... (Demo)")}
         >

@@ -35,8 +35,18 @@ class Candidate extends Model {
   public suggestedQuestions!: string;
   public recommendation!: string;
   public screenedAt!: Date;
-  public currentRound!: number;
   public status!: string;
+  public currentRound!: number;
+  public drivingLicense!: string;
+  public sourceOfJobInfo!: string;
+  public declaration!: string;
+  public preferredLocation!: string;
+  public lastEmployerDetails!: string;
+  public whatsappNumber!: string;
+  public willingToTravel!: string;
+  public verticalField!: string;
+  public joiningTime!: string;
+  public applicationDate!: string;
 
   public uploads!: any;
   public riskAnswers!: any;
@@ -242,6 +252,46 @@ Candidate.init(
     },
     status: {
       type: DataTypes.STRING,
+      allowNull: true,
+    },
+    drivingLicense: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+    },
+    sourceOfJobInfo: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+    },
+    declaration: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+    },
+    preferredLocation: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+    },
+    lastEmployerDetails: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+    },
+    whatsappNumber: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+    },
+    willingToTravel: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+    },
+    verticalField: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+    },
+    joiningTime: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+    },
+    applicationDate: {
+      type: DataTypes.TEXT,
       allowNull: true,
     },
     createdAt: {

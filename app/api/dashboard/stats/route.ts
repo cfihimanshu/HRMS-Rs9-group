@@ -23,6 +23,7 @@ import Verification from "@/models/sequelize/Verification";
 import ExitRecord from "@/models/sequelize/ExitRecord";
 import Leave from "@/models/sequelize/Leave";
 import HRRecentActivity from "@/models/sequelize/HRRecentActivity";
+import Expense from "@/models/sequelize/Expense";
 
 export async function GET(req: Request) {
   try {
@@ -31,10 +32,13 @@ export async function GET(req: Request) {
       return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
     }
 
+    await sequelize.authenticate();
+    const dbUser = await User.findByPk((session.user as any).id, { raw: true });
+    const userMenuAccess = dbUser?.menuAccess || null;
+
     const { searchParams } = new URL(req.url);
     const companyId = searchParams.get("companyId");
 
-    await sequelize.authenticate();
 
     // Filters based on selected company
     let userFilter: any = {};
@@ -434,6 +438,112 @@ export async function GET(req: Request) {
         sickLeaveTaken += lDays;
       }
     });
+    // 8. Department Dashboard metrics
+    // Calculate deptStats dynamically for Managers/Owners
+    let deptStats: any = null;
+    const userRole = (session.user as any).role;
+
+    if (userRole === "Department Manager" || userRole === "Owner" || userRole === "Director" || userRole === "HR Head" || userRole === "HR Executive") {
+      let deptUserIds: any[] = [];
+      let managerProfile = null;
+
+      if (userRole === "Department Manager") {
+        managerProfile = await EmployeeProfile.findOne({ where: { user: userId } });
+      }
+
+      if (managerProfile && managerProfile.department) {
+        // Fetch all profiles in this department
+        const profilesInDept = await EmployeeProfile.findAll({
+          where: { department: managerProfile.department },
+          attributes: ["user"]
+        });
+        deptUserIds = profilesInDept.map((p: any) => p.user).filter(Boolean);
+      } else {
+        // For Owner/Director/Global Admin without a specific department, show company wide or all active users
+        const activeUsers = await User.findAll({
+          where: { status: "active" },
+          attributes: ["id"]
+        });
+        deptUserIds = activeUsers.map((u: any) => u.id);
+      }
+
+      // 1. Team Members: active staff members in the department
+      const teamMembersCount = await User.count({
+        where: {
+          id: { [Op.in]: deptUserIds },
+          status: "active"
+        }
+      });
+
+      // 2. SOD/EOD compliances for department today
+      const deptSodsToday = await SodReport.findAll({
+        where: {
+          employee: { [Op.in]: deptUserIds },
+          date: {
+            [Op.gte]: today,
+            [Op.lt]: tomorrow
+          }
+        }
+      });
+      const deptSodCount = new Set(deptSodsToday.map((r: any) => r.employee?.toString()).filter(Boolean)).size;
+
+      const deptEodsToday = await EodReport.findAll({
+        where: {
+          employee: { [Op.in]: deptUserIds },
+          date: {
+            [Op.gte]: today,
+            [Op.lt]: tomorrow
+          }
+        }
+      });
+      const deptEodCount = new Set(deptEodsToday.map((r: any) => r.employee?.toString()).filter(Boolean)).size;
+
+      // 3. Tasks planned for today in department
+      const deptTasksToday = deptSodsToday.reduce((acc: number, curr: any) => {
+        return acc + (curr.callsPlanned || 0) + (curr.meetings || 0) + (curr.fieldVisits || 0);
+      }, 0);
+
+      // 4. Pending manager approvals (leaves and expense claims) for department members
+      const pendingLeavesCount = await Leave.count({
+        where: {
+          employee: { [Op.in]: deptUserIds },
+          status: { [Op.in]: ["Pending", "Pending Manager Approval"] }
+        }
+      });
+
+      const pendingExpensesCount = await Expense.count({
+        where: {
+          employee: { [Op.in]: deptUserIds },
+          status: "Pending"
+        }
+      });
+
+      const pendingApprovalsCount = pendingLeavesCount + pendingExpensesCount;
+
+      // 5. Avg Performance (compliance rate: % of team members who submitted SOD today)
+      const performanceAvg = teamMembersCount > 0 
+        ? Math.round((deptSodCount / teamMembersCount) * 100) 
+        : 100;
+
+      deptStats = {
+        teamMembers: teamMembersCount,
+        tasksToday: deptTasksToday,
+        sod: deptSodCount,
+        eod: deptEodCount,
+        performanceAvg: Math.min(100, performanceAvg),
+        pendingApprovals: pendingApprovalsCount
+      };
+    } else {
+      // Fallback for non-managers
+      deptStats = {
+        teamMembers: 0,
+        tasksToday: 0,
+        sod: 0,
+        eod: 0,
+        performanceAvg: 0,
+        pendingApprovals: 0
+      };
+    }
 
     // Fetch staff list for dashboard viewing (filtered by userFilter)
     const staffUsers = await User.findAll({ where: userFilter, attributes: ['id', 'name', 'email', 'role', 'status', 'companies'] });
@@ -524,15 +634,9 @@ export async function GET(req: Request) {
           hrLeadsCount: selectedCandidates,
           rejectedCount: rejectedCandidatesCount,
         },
-        deptStats: {
-          teamMembers: totalEmployees,
-          tasksToday: tasksToday,
-          sod: uniqueSodEmployees.length,
-          eod: uniqueEodEmployees.length,
-          performanceAvg: 88, // Proxy value since no dedicated performance metric collection exists yet
-          pendingApprovals: 5 // Proxy value for pending manager approvals (leaves/expenses)
-        }
+        deptStats
       },
+      userMenuAccess
     });
   } catch (error: any) {
     console.error("Dashboard stats error:", error);

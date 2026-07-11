@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import sequelize from "@/lib/sequelize";
 import TaskLog from "@/models/sequelize/TaskLog";
 import User from "@/models/sequelize/User";
+import Notification from "@/models/sequelize/Notification";
 import { sendEmail } from "@/lib/email";
 import { Op } from "sequelize";
 
@@ -126,6 +127,33 @@ export async function GET(req: Request) {
           subject: `📅 Follow-up Reminder: ${task.taskTitle}`,
           html,
         });
+
+        // Insert in-app notifications
+        try {
+          await Notification.sync({ alter: true });
+          
+          if (task.employee) {
+            await Notification.create({
+              id: `notif_${Date.now()}_owner_${task.id.replace(/[^a-zA-Z0-9]/g, "").slice(-6)}`,
+              recipient: task.employee,
+              title: `⏰ Follow-up Due: ${task.taskTitle}`,
+              message: `Your scheduled follow-up task is due now: ${task.taskTitle}.`,
+              read: false
+            });
+          }
+          
+          if (task.forwardedTo) {
+            await Notification.create({
+              id: `notif_${Date.now()}_fwd_${task.id.replace(/[^a-zA-Z0-9]/g, "").slice(-6)}`,
+              recipient: task.forwardedTo,
+              title: `⏰ Forwarded Follow-up Due: ${task.taskTitle}`,
+              message: `A follow-up task forwarded to you is due now: ${task.taskTitle}`,
+              read: false
+            });
+          }
+        } catch (notifErr) {
+          console.error("Failed to create in-app notification for task reminder:", notifErr);
+        }
 
         // Mark reminder as sent
         task.reminderSent = true;

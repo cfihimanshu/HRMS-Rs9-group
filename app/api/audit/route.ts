@@ -31,7 +31,7 @@ export async function GET(req: Request) {
         raw: true
       });
       const targetUserIds = usersOfCompany.map((u: any) => u.id);
-      
+
       auditLogFilter.user = {
         [Op.in]: targetUserIds
       };

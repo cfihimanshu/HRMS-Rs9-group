@@ -9,17 +9,34 @@ import { logHRActivity } from "@/lib/hrAudit";
 import User from "@/models/sequelize/User";
 import { Op } from "sequelize";
 import { sendEmail } from "@/lib/email";
+import Notification from "@/models/sequelize/Notification";
+import { sendRequestNotification } from "@/lib/notificationHelper";
 
 // ─── Leave Approval Notification Helpers ─────────────────────────────────────
 
 function getUserCompanies(user: any): string[] {
   if (!user || !user.companies) return [];
-  try {
-    const parsed = typeof user.companies === "string" ? JSON.parse(user.companies) : user.companies;
-    return Array.isArray(parsed) ? parsed.map(String) : [];
-  } catch {
-    return [];
+  let comps = user.companies;
+  while (typeof comps === "string") {
+    try {
+      const parsed = JSON.parse(comps);
+      if (parsed === comps) {
+        comps = [parsed];
+        break;
+      }
+      comps = parsed;
+    } catch {
+      if (comps.startsWith("[") && comps.endsWith("]")) {
+        comps = [comps];
+      } else {
+        return comps.split(",").map((s: string) => s.trim()).filter(Boolean);
+      }
+      break;
+    }
   }
+  if (Array.isArray(comps)) return comps.map(String);
+  if (comps) return [String(comps)];
+  return [];
 }
 
 async function findDepartmentManagers(applicantId: string, department: string) {
@@ -217,6 +234,7 @@ export async function POST(req: Request) {
 
     // Determine initial approval status based on roles and reporting structure
     let initialStatus = "Pending Manager Approval";
+    let companyManagers: any[] = [];
 
     if (["Owner", "Director", "HR Head", "HR Executive"].includes(applicantRole)) {
       // Management/HR leaves bypass Manager approval and go directly to Pending HR Approval
@@ -257,7 +275,7 @@ export async function POST(req: Request) {
         if (companyId) {
           // Find any active user in same company with Owner/Director or role containing Manager
           const allUsers = await User.findAll({ where: { status: "active" }, raw: true });
-          const companyManagers = allUsers.filter((u: any) => {
+          companyManagers = allUsers.filter((u: any) => {
             let comps = [];
             try {
               comps = typeof u.companies === 'string' ? JSON.parse(u.companies) : u.companies;
@@ -294,6 +312,19 @@ export async function POST(req: Request) {
       managerStatus: initialStatus === "Pending Manager Approval" ? "Pending" : "Approved",
       hrStatus: "Pending",
     });
+
+    // In-app notifications
+    try {
+      const applicantUser = await User.findByPk(applicantId);
+      await sendRequestNotification({
+        applicantId,
+        requestType: "Leave",
+        action: "created",
+        details: `${applicantUser?.name || "An employee"} has applied for a ${days}-day ${type} leave (Status: ${initialStatus}).`
+      });
+    } catch (notifErr) {
+      console.error("Error creating leave notifications:", notifErr);
+    }
 
     // ── Email Notification dispatch for new leave application
     try {
@@ -568,6 +599,34 @@ export async function PUT(req: Request) {
     if (remarks) (leave as any).remarks = remarks;
 
     await leave.save();
+
+    // In-app notifications for leave status updates
+    try {
+      if (currentStatus === "Pending Manager Approval" && finalStatus === "Pending HR Approval") {
+        await sendRequestNotification({
+          applicantId,
+          requestType: "Leave",
+          action: "approved_by_manager",
+          details: `Leave request by ${applicantUser?.name || "Employee"} is approved by Manager and is now pending HR approval. Remarks: ${remarks || "None"}`
+        });
+      } else if (finalStatus === "Approved") {
+        await sendRequestNotification({
+          applicantId,
+          requestType: "Leave",
+          action: "approved",
+          details: `Leave request by ${applicantUser?.name || "Employee"} is fully approved. Remarks: ${remarks || "None"}`
+        });
+      } else if (finalStatus === "Rejected") {
+        await sendRequestNotification({
+          applicantId,
+          requestType: "Leave",
+          action: currentStatus === "Pending Manager Approval" ? "rejected_by_manager" : "rejected_by_hr",
+          details: `Leave request by ${applicantUser?.name || "Employee"} has been rejected. Remarks: ${remarks || "None"}`
+        });
+      }
+    } catch (notifErr) {
+      console.error("Error creating leave status update notifications:", notifErr);
+    }
 
     // ── Email notification dispatch for Leave approval updates
     try {

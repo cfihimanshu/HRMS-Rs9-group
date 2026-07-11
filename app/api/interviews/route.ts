@@ -5,6 +5,7 @@ import { authOptions } from "@/lib/auth";
 import sequelize from "@/lib/sequelize";
 import Interview from "@/models/sequelize/Interview";
 import Candidate from "@/models/sequelize/Candidate";
+import LeadPlatform from "@/models/sequelize/LeadPlatform";
 import { Op } from "sequelize";
 import { logAudit } from "@/lib/audit";
 import { logHRActivity } from "@/lib/hrAudit";
@@ -126,6 +127,88 @@ export async function POST(req: Request) {
       customQuestions,
     });
 
+    // Sync scheduled interview back to the Business Lead's call history
+    if (scheduleTime && candidate) {
+      try {
+        const platforms = await LeadPlatform.findAll();
+        
+        for (const platform of platforms) {
+          const tableName = platform.tableName;
+          
+          // Check if this candidate ID exists in this platform's table
+          const [existingLeads]: any[] = await sequelize.query(
+            `SELECT * FROM ${tableName} WHERE id = ?`,
+            { replacements: [candidate.id] }
+          );
+          
+          if (existingLeads && existingLeads.length > 0) {
+            const lead = existingLeads[0];
+            let historyList: any[] = [];
+            
+            if (lead.call_history) {
+              try {
+                const parsed = JSON.parse(lead.call_history);
+                if (Array.isArray(parsed)) {
+                  historyList = parsed;
+                }
+              } catch (e) {
+                console.error("[SYNC INTERVIEW HISTORY] Failed to parse call_history:", e);
+              }
+            }
+            
+            const datePart = scheduleTime.includes("T") ? scheduleTime.split("T")[0] : scheduleTime;
+            const timePart = scheduleTime.includes("T") ? scheduleTime.split("T")[1] : null;
+            
+            // Build the history entry
+            const followUpHistoryEntry = {
+              id: "followup_" + Date.now().toString(),
+              status: "Interview Scheduled",
+              call_remarks: `Interview Scheduled (Round ${round || 1}). Mode: ${mode || "online"}.${videoLink ? ` Meeting Link: ${videoLink}` : ""}`,
+              interview_round: String(round || 1),
+              interview_date: datePart,
+              interview_time: timePart,
+              interview_mode: mode || "online",
+              interview_video_link: videoLink || null,
+              updatedAt: new Date().toISOString(),
+              updatedBy: session.user.name || "System"
+            };
+            
+            historyList.push(followUpHistoryEntry);
+            
+            // Update call_history JSON and other fields on the lead record
+            await sequelize.query(
+              `UPDATE ${tableName} 
+               SET call_history = ?, 
+                   status = ?,
+                   interview_round = ?,
+                   interview_date = ?,
+                   interview_time = ?,
+                   interview_mode = ?,
+                   interview_video_link = ?
+               WHERE id = ?`,
+              {
+                replacements: [
+                  JSON.stringify(historyList),
+                  "Interview Scheduled",
+                  String(round || 1),
+                  datePart,
+                  timePart,
+                  mode || "online",
+                  videoLink || null,
+                  candidate.id
+                ]
+              }
+            );
+            
+            console.log(`[SYNC INTERVIEW SUCCESS] Appended interview log to lead ${candidate.id} in ${tableName}`);
+            break; // Matched and updated, break the loop
+          }
+        }
+      } catch (syncErr) {
+        console.error("[SYNC INTERVIEW ERROR] Failed to sync schedule to lead:", syncErr);
+      }
+    }
+
     // Track Audit Log
     await logAudit({
       userId: (session.user as any).id,
@@ -237,6 +320,88 @@ export async function PUT(req: Request) {
         }
       }
       await candidate.save();
+    }
+
+    // Sync scheduled follow-up interview back to the Business Lead's call history
+    if (scheduleTime && candidate) {
+      try {
+        const platforms = await LeadPlatform.findAll();
+        
+        for (const platform of platforms) {
+          const tableName = platform.tableName;
+          
+          // Check if this candidate ID exists in this platform's table
+          const [existingLeads]: any[] = await sequelize.query(
+            `SELECT * FROM ${tableName} WHERE id = ?`,
+            { replacements: [candidate.id] }
+          );
+          
+          if (existingLeads && existingLeads.length > 0) {
+            const lead = existingLeads[0];
+            let historyList: any[] = [];
+            
+            if (lead.call_history) {
+              try {
+                const parsed = JSON.parse(lead.call_history);
+                if (Array.isArray(parsed)) {
+                  historyList = parsed;
+                }
+              } catch (e) {
+                console.error("[SYNC INTERVIEW HISTORY] Failed to parse call_history:", e);
+              }
+            }
+            
+            const datePart = scheduleTime.includes("T") ? scheduleTime.split("T")[0] : scheduleTime;
+            const timePart = scheduleTime.includes("T") ? scheduleTime.split("T")[1] : null;
+            
+            // Build the follow-up history entry
+            const followUpHistoryEntry = {
+              id: "followup_" + Date.now().toString(),
+              status: "Interview Scheduled",
+              call_remarks: `Follow-up Interview Scheduled (Round ${interview.round || 1}). Mode: ${mode || "online"}.${videoLink ? ` Meeting Link: ${videoLink}` : ""}`,
+              interview_round: String(interview.round || 1),
+              interview_date: datePart,
+              interview_time: timePart,
+              interview_mode: mode || "online",
+              interview_video_link: videoLink || null,
+              updatedAt: new Date().toISOString(),
+              updatedBy: session.user.name || "System"
+            };
+            
+            historyList.push(followUpHistoryEntry);
+            
+            // Update call_history JSON and other fields on the lead record
+            await sequelize.query(
+              `UPDATE ${tableName} 
+               SET call_history = ?, 
+                   status = ?,
+                   interview_round = ?,
+                   interview_date = ?,
+                   interview_time = ?,
+                   interview_mode = ?,
+                   interview_video_link = ?
+               WHERE id = ?`,
+              {
+                replacements: [
+                  JSON.stringify(historyList),
+                  "Interview Scheduled",
+                  String(interview.round || 1),
+                  datePart,
+                  timePart,
+                  mode || "online",
+                  videoLink || null,
+                  candidate.id
+                ]
+              }
+            );
+            
+            console.log(`[SYNC INTERVIEW SUCCESS] Appended follow-up interview log to lead ${candidate.id} in ${tableName}`);
+            break; // Matched and updated, break the loop
+          }
+        }
+      } catch (syncErr) {
+        console.error("[SYNC INTERVIEW ERROR] Failed to sync follow-up schedule to lead:", syncErr);
+      }
     }
 
     // Write Audit Entry

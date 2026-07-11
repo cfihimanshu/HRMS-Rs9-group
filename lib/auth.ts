@@ -7,6 +7,9 @@ import Department from "@/models/sequelize/Department";
 import Company from "@/models/sequelize/Company";
 import bcrypt from "bcryptjs";
 import { logAudit } from "./audit";
+import TaskLog from "@/models/sequelize/TaskLog";
+import Notification from "@/models/sequelize/Notification";
+import { Op } from "sequelize";
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -89,6 +92,40 @@ export const authOptions: NextAuthOptions = {
           ipAddress: (req.headers as any)?.["x-forwarded-for"] || "127.0.0.1",
         });
 
+        // Clear previous Pending Tasks notifications and add a fresh one with current count
+        try {
+          const userIdStr = user.id?.toString() || user.id.toString();
+          await Notification.sync({ alter: true });
+          await Notification.destroy({
+            where: {
+              recipient: userIdStr,
+              title: "Pending Tasks"
+            }
+          });
+
+          const pendingTasksCount = await TaskLog.count({
+            where: {
+              [Op.or]: [
+                { employee: userIdStr },
+                { forwardedTo: userIdStr }
+              ],
+              status: {
+                [Op.ne]: "Completed"
+              }
+            }
+          });
+
+          await Notification.create({
+            id: Date.now().toString() + Math.random().toString(36).substring(2, 8),
+            recipient: userIdStr,
+            title: "Pending Tasks",
+            message: `Welcome back! You have ${pendingTasksCount} pending task(s) to address.`,
+            read: false
+          });
+        } catch (err) {
+          console.error("Error creating login task notification:", err);
+        }
+
         // Fetch department and company
         let departmentName = "General";
         let designation = user.role;
@@ -111,8 +148,22 @@ export const authOptions: NextAuthOptions = {
           // or we can just fetch the first company if it's an array.
           // Since we might not have a direct relation here, let's parse companies.
           let userCompanies = user.companies;
-          if (typeof userCompanies === "string") {
-            try { userCompanies = JSON.parse(userCompanies); } catch(e) {}
+          while (typeof userCompanies === "string") {
+            try {
+              const parsed = JSON.parse(userCompanies);
+              if (parsed === userCompanies) {
+                userCompanies = [parsed];
+                break;
+              }
+              userCompanies = parsed;
+            } catch (e) {
+              if (userCompanies.startsWith("[") && userCompanies.endsWith("]")) {
+                userCompanies = [userCompanies];
+              } else {
+                userCompanies = userCompanies.split(",").map((s: string) => s.trim()).filter(Boolean);
+              }
+              break;
+            }
           }
           if (Array.isArray(userCompanies) && userCompanies.length > 0) {
              // For simplicity, we just take the first one or assume it's the company string

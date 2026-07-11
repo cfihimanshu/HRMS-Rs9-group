@@ -12,6 +12,31 @@ import { logAudit } from "@/lib/audit";
 import { logHRActivity } from "@/lib/hrAudit";
 import { sendEmail } from "@/lib/email";
 
+function getUserCompanies(user: any): string[] {
+  if (!user || !user.companies) return [];
+  let comps = user.companies;
+  while (typeof comps === "string") {
+    try {
+      const parsed = JSON.parse(comps);
+      if (parsed === comps) {
+        comps = [parsed];
+        break;
+      }
+      comps = parsed;
+    } catch {
+      if (comps.startsWith("[") && comps.endsWith("]")) {
+        comps = [comps];
+      } else {
+        return comps.split(",").map((s: string) => s.trim()).filter(Boolean);
+      }
+      break;
+    }
+  }
+  if (Array.isArray(comps)) return comps.map(String);
+  if (comps) return [String(comps)];
+  return [];
+}
+
 // GET /api/employees - Get list of all staff members
 export async function GET(req: Request) {
   try {
@@ -26,7 +51,7 @@ export async function GET(req: Request) {
     const userId = (session.user as any).id;
     const dbUser = await User.findByPk(userId, { raw: true });
     const userRole = (dbUser?.role || "Employee").toLowerCase();
-    
+
     const isOwnerOrDirector = ["owner", "director"].includes(userRole);
     const isHR = ["hr head", "hr-head", "hr executive", "hr-executive"].includes(userRole);
 
@@ -43,26 +68,16 @@ export async function GET(req: Request) {
       return NextResponse.json({ success: false, error: "Unauthorized access" }, { status: 401 });
     }
 
-    let adminCompanies: string[] = [];
-    if (dbUser && dbUser.companies) {
-      let parsed = dbUser.companies;
-      if (typeof parsed === 'string') {
-        try { parsed = JSON.parse(parsed); } catch(e) {}
-      }
-      if (Array.isArray(parsed)) {
-        adminCompanies = parsed;
-      }
-    }
-    const adminCompaniesNormalized = Array.isArray(adminCompanies) ? adminCompanies.map(String) : [];
+    const adminCompaniesNormalized = getUserCompanies(dbUser);
 
     // Fetch employees
     const employees = await User.findAll({ where: {}, raw: true });
-      
+
     // Fetch profiles to merge data
     const profiles = await EmployeeProfile.findAll({ where: {}, raw: true });
     const departments = await Department.findAll({ where: {}, raw: true });
     const allCompanies = await Company.findAll({ where: {}, raw: true });
-    
+
     const deptMap = departments.reduce((acc: any, dept: any) => {
       acc[dept.id] = dept;
       return acc;
@@ -85,10 +100,10 @@ export async function GET(req: Request) {
     const mergedData = employees.map(emp => {
       const empJson = { ...emp } as any;
       const profile = profilesWithDept.find((p: any) => p.user?.toString() === empJson.id?.toString());
-      
+
       // Populate companies
       if (typeof empJson.companies === 'string') {
-        try { empJson.companies = JSON.parse(empJson.companies); } catch (e) {}
+        try { empJson.companies = JSON.parse(empJson.companies); } catch (e) { }
       }
       if (empJson.companies && Array.isArray(empJson.companies)) {
         empJson.companies = empJson.companies.map((compId: string) => compMap[compId] || { id: compId, name: "Unknown Company", code: "N/A" });
@@ -107,7 +122,7 @@ export async function GET(req: Request) {
         if (Array.isArray(emp.companies)) {
           empComps = emp.companies;
         } else if (typeof emp.companies === "string") {
-          try { empComps = JSON.parse(emp.companies); } catch(e) {}
+          try { empComps = JSON.parse(emp.companies); } catch (e) { }
         }
         if (!Array.isArray(empComps)) return false;
         return empComps.some((c: any) => {
@@ -136,8 +151,8 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json();
-    const { 
-      name, email, password, role, mobile, companyId, 
+    const {
+      name, email, password, role, mobile, companyId,
       employeeId, designation, dateOfJoining, baseSalary,
       department
     } = body;
@@ -156,7 +171,7 @@ export async function POST(req: Request) {
     if (existingUser) {
       return NextResponse.json({ success: false, error: "A user with this email already exists" }, { status: 400 });
     }
-    
+
     // Check if Employee ID already exists
     const existingProfile = await EmployeeProfile.findOne({ where: { employeeId } });
     if (existingProfile) {
@@ -172,10 +187,10 @@ export async function POST(req: Request) {
     // Resolve or create department for this company
     let resolvedDepartmentId = null;
     if (department) {
-      let deptDoc = await Department.findOne({ 
+      let deptDoc = await Department.findOne({
         where: {
-          name: department, 
-          company: company.id 
+          name: department,
+          company: company.id
         }
       });
       if (!deptDoc) {
@@ -191,6 +206,12 @@ export async function POST(req: Request) {
 
     const userStatus = role === "Employee" ? "probation" : "active";
 
+    let userCompanies = [company.id];
+    if (role === "Owner") {
+      const companiesList = await Company.findAll({ raw: true });
+      userCompanies = companiesList.map(c => c.id);
+    }
+
     // Create User with company linked
     const newUser = await User.create({
       id: Date.now().toString(),
@@ -200,7 +221,7 @@ export async function POST(req: Request) {
       role,
       mobile: mobile || null,
       status: "active",
-      companies: [company.id],
+      companies: userCompanies,
       loginHistory: [],
     });
 
@@ -506,7 +527,7 @@ export async function PUT(req: Request) {
     const userId = (session.user as any).id;
     const dbUser = await User.findByPk(userId, { raw: true });
     const userRole = (dbUser?.role || "Employee").toLowerCase();
-    
+
     const isOwnerOrDirector = ["owner", "director"].includes(userRole);
     const isHR = ["hr head", "hr-head", "hr executive", "hr-executive"].includes(userRole);
 
@@ -524,11 +545,11 @@ export async function PUT(req: Request) {
     }
 
     const body = await req.json();
-    const { 
-      employeeId, 
-      allocatedAsset, 
-      allocatedSim, 
-      allocatedGmail, 
+    const {
+      employeeId,
+      allocatedAsset,
+      allocatedSim,
+      allocatedGmail,
       allocatedWhatsapp,
       designation,
       baseSalary,
@@ -549,7 +570,9 @@ export async function PUT(req: Request) {
       ifscCode,
       pfNumber,
       uanNumber,
-      esiNumber
+      esiNumber,
+      companies,
+      menuAccess
     } = body;
 
     if (!employeeId) {
@@ -567,22 +590,12 @@ export async function PUT(req: Request) {
         return NextResponse.json({ success: false, error: "Target employee not found." }, { status: 404 });
       }
 
-      let adminCompanies: string[] = [];
-      if (dbUser && dbUser.companies) {
-        let parsed = dbUser.companies;
-        if (typeof parsed === 'string') {
-          try { parsed = JSON.parse(parsed); } catch(e) {}
-        }
-        if (Array.isArray(parsed)) {
-          adminCompanies = parsed;
-        }
-      }
-      const adminCompaniesNormalized = Array.isArray(adminCompanies) ? adminCompanies.map(String) : [];
+      const adminCompaniesNormalized = getUserCompanies(dbUser);
 
       let targetComps: any[] = [];
       if (Array.isArray(targetUser.companies)) targetComps = targetUser.companies;
       else if (typeof targetUser.companies === "string") {
-        try { targetComps = JSON.parse(targetUser.companies); } catch(e) {}
+        try { targetComps = JSON.parse(targetUser.companies); } catch (e) { }
       }
       if (!Array.isArray(targetComps)) targetComps = [];
       const hasSharedCompany = targetComps.some((c: any) => {
@@ -640,6 +653,13 @@ export async function PUT(req: Request) {
         if (mobile !== undefined) userRec.mobile = mobile;
         if (role !== undefined) userRec.role = role;
         if (status !== undefined) userRec.status = status;
+        if (companies !== undefined) {
+          // If companies is passed as a string or array, save it
+          userRec.companies = Array.isArray(companies) ? companies : JSON.parse(companies);
+        }
+        if (menuAccess !== undefined) {
+          userRec.menuAccess = Array.isArray(menuAccess) ? menuAccess : JSON.parse(menuAccess);
+        }
         await userRec.save();
       }
     }

@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth";
 import sequelize from "@/lib/sequelize";
 import User from "@/models/sequelize/User";
 import Payroll from "@/models/sequelize/Payroll";
+import EmployeeProfile from "@/models/sequelize/EmployeeProfile";
 
 // GET: Fetch Payslips
 export async function GET(req: Request) {
@@ -32,8 +33,19 @@ export async function GET(req: Request) {
       raw: true
     });
 
+    const profiles = await EmployeeProfile.findAll({
+      where: { user: userIds },
+      attributes: ['user', 'baseSalary'],
+      raw: true
+    });
+
+    const profileMap = profiles.reduce((acc: any, p: any) => {
+      acc[p.user] = p.baseSalary;
+      return acc;
+    }, {});
+
     const userMap = users.reduce((acc: any, u: any) => {
-      acc[u.id] = u;
+      acc[u.id] = { ...u, baseSalary: profileMap[u.id] || 13000 };
       return acc;
     }, {});
 
@@ -92,6 +104,37 @@ export async function POST(req: Request) {
     if (error.code === "ER_DUP_ENTRY" || error.code === 11000) {
       return NextResponse.json({ success: false, error: "Payslip already generated for this month" }, { status: 400 });
     }
+    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+  }
+}
+
+// DELETE: Delete a Payslip
+export async function DELETE(req: Request) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session || !session.user || !(session.user as any).id || !["Owner", "HR Head", "Accounts"].includes((session.user as any).role)) {
+      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
+    }
+
+    const { searchParams } = new URL(req.url);
+    const id = searchParams.get("id");
+
+    if (!id) {
+      return NextResponse.json({ success: false, error: "Missing required id parameter" }, { status: 400 });
+    }
+
+    await sequelize.authenticate();
+
+    const deletedCount = await Payroll.destroy({
+      where: { id }
+    });
+
+    if (deletedCount === 0) {
+      return NextResponse.json({ success: false, error: "Payslip not found" }, { status: 404 });
+    }
+
+    return NextResponse.json({ success: true, message: "Payslip deleted successfully" });
+  } catch (error: any) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
 }

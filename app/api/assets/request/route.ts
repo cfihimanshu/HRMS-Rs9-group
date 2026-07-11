@@ -10,19 +10,33 @@ import { sendEmail } from "@/lib/email";
 import { Op } from "sequelize";
 import Department from "@/models/sequelize/Department";
 import AssetPurchaseRequest from "@/models/sequelize/AssetPurchaseRequest";
+import { sendRequestNotification } from "@/lib/notificationHelper";
 
 // ─── Asset Request Approval Helper Functions ───────────────────────────────
 
 function getUserCompanies(user: any): string[] {
   if (!user || !user.companies) return [];
-  try {
-    const parsed = typeof user.companies === "string" ? JSON.parse(user.companies) : user.companies;
-    if (Array.isArray(parsed)) return parsed.map(String);
-    if (parsed) return [String(parsed)];
-    return [];
-  } catch {
-    return [String(user.companies)];
+  let comps = user.companies;
+  while (typeof comps === "string") {
+    try {
+      const parsed = JSON.parse(comps);
+      if (parsed === comps) {
+        comps = [parsed];
+        break;
+      }
+      comps = parsed;
+    } catch {
+      if (comps.startsWith("[") && comps.endsWith("]")) {
+        comps = [comps];
+      } else {
+        return comps.split(",").map((s: string) => s.trim()).filter(Boolean);
+      }
+      break;
+    }
   }
+  if (Array.isArray(comps)) return comps.map(String);
+  if (comps) return [String(comps)];
+  return [];
 }
 
 async function findDepartmentManagers(applicantId: string, department: string) {
@@ -348,39 +362,39 @@ export async function POST(req: Request) {
           });
         }
 
-        // Create a notification in portal for each matched approver
-        const adminEmails: string[] = [];
-        for (const admin of matchedApprovers) {
-          if (admin.id === userId) continue;
-          if (admin.email) adminEmails.push(admin.email);
-          await Notification.create({
-            id: Date.now().toString() + Math.random().toString(36).substring(2, 8),
-            recipient: admin.id,
-            title: "New Asset Request",
-            message: `${requesterName} has requested a new asset: ${asset_type}`,
-            read: false
-          });
-        }
+      // Create a notification in portal for each matched approver
+      await sendRequestNotification({
+        applicantId: userId,
+        requestType: "Asset",
+        action: "created",
+        details: `${requesterName} has requested a new asset: ${asset_type}. Priority: ${priority || "Medium"}.`
+      });
 
-        // Send Email to matched Approvers
-        if (adminEmails.length > 0) {
-          const emailHtml = getAssetRequestEmailHtml({
-            applicantName: requesterName,
-            department: dept,
-            assetType: asset_type,
-            priority: priority || "Medium",
-            reason: reason,
-          });
-
-          await sendEmail({
-            to: adminEmails,
-            subject: `💻 Asset Request Approval Required: ${requesterName} – ${asset_type}`,
-            html: emailHtml,
-          });
-        }
-      } catch (notifErr) {
-        console.error("Error creating notifications:", notifErr);
+      const adminEmails: string[] = [];
+      for (const admin of matchedApprovers) {
+        if (admin.id === userId) continue;
+        if (admin.email) adminEmails.push(admin.email);
       }
+
+      // Send Email to matched Approvers
+      if (adminEmails.length > 0) {
+        const emailHtml = getAssetRequestEmailHtml({
+          applicantName: requesterName,
+          department: dept,
+          assetType: asset_type,
+          priority: priority || "Medium",
+          reason: reason,
+        });
+
+        await sendEmail({
+          to: adminEmails,
+          subject: `💻 Asset Request Approval Required: ${requesterName} – ${asset_type}`,
+          html: emailHtml,
+        });
+      }
+    } catch (notifErr) {
+      console.error("Error creating notifications:", notifErr);
+    }
 
       return NextResponse.json({
         success: true,
@@ -417,6 +431,17 @@ export async function POST(req: Request) {
           status: targetStatus,
           owner_remarks: admin_remarks || purchaseRequest.owner_remarks
         });
+
+        try {
+          await sendRequestNotification({
+            applicantId: purchaseRequest.requested_by,
+            requestType: "Asset Purchase",
+            action: targetStatus === "Approved" ? "approved" : "rejected",
+            details: `Purchase request for ${purchaseRequest.asset_type} has been ${targetStatus.toLowerCase()}. Remarks: ${admin_remarks || 'None'}`
+          });
+        } catch (err) {
+          console.error("Error creating purchase request notification:", err);
+        }
 
         return NextResponse.json({
           success: true,
@@ -456,6 +481,28 @@ export async function POST(req: Request) {
         status: nextStatus,
         admin_remarks: admin_remarks || request.admin_remarks
       });
+
+      try {
+        let actionVal: "approved" | "rejected" | "dispatched" | "approved_by_manager" | "hold" = "approved";
+        if (nextStatus === "Pending Owner Approval") {
+          actionVal = "approved_by_manager";
+        } else if (nextStatus === "Approved") {
+          actionVal = "approved";
+        } else if (nextStatus === "Rejected") {
+          actionVal = "rejected";
+        } else if (nextStatus.startsWith("Dispatched")) {
+          actionVal = "dispatched";
+        }
+
+        await sendRequestNotification({
+          applicantId: request.employee_id,
+          requestType: "Asset",
+          action: actionVal,
+          details: `Request for ${request.asset_type} status is now: ${nextStatus}. Remarks: ${admin_remarks || 'None'}`
+        });
+      } catch (err) {
+        console.error("Error creating request status update notification:", err);
+      }
 
       return NextResponse.json({
         success: true,
