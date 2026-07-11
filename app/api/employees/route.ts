@@ -91,7 +91,7 @@ export async function GET(req: Request) {
     const profilesWithDept = profiles.map(p => {
       const pJson = { ...p } as any;
       if (pJson.department) {
-        pJson.department = deptMap[pJson.department] || null;
+        pJson.department = deptMap[pJson.department] || { id: pJson.department, name: pJson.department };
       }
       return pJson;
     });
@@ -111,6 +111,10 @@ export async function GET(req: Request) {
 
       return {
         ...empJson,
+        profilePhoto: profile?.profilePhoto || null,
+        reportingManager: profile?.reportingManager || null,
+        dailyWorkingHours: profile?.dailyWorkingHours || 8,
+        workingDays: profile?.workingDays || "Mon,Tue,Wed,Thu,Fri,Sat",
         employeeProfile: profile || null
       };
     });
@@ -154,7 +158,7 @@ export async function POST(req: Request) {
     const {
       name, email, password, role, mobile, companyId,
       employeeId, designation, dateOfJoining, baseSalary,
-      department
+      department, jobTitle, reportingManager, assignedManager, profilePhoto, dailyWorkingHours, workingDays
     } = body;
 
     // Security check: Only an Owner can onboard another Owner
@@ -249,6 +253,10 @@ export async function POST(req: Request) {
       department: resolvedDepartmentId,
       dateOfJoining: dateOfJoining || new Date(),
       baseSalary: baseSalary || 0,
+      reportingManager: reportingManager || assignedManager || null,
+      profilePhoto: profilePhoto || null,
+      dailyWorkingHours: Number(dailyWorkingHours) || 8,
+      workingDays: workingDays || "Mon,Tue,Wed,Thu,Fri,Sat",
       "salaryStructure.basic": baseSalary ? baseSalary * 0.5 : 0,
       "salaryStructure.hra": 0,
       "salaryStructure.conveyance": baseSalary ? baseSalary * 0.1 : 0,
@@ -572,7 +580,11 @@ export async function PUT(req: Request) {
       uanNumber,
       esiNumber,
       companies,
-      menuAccess
+      menuAccess,
+      dailyWorkingHours,
+      workingDays,
+      reportingManager,
+      profilePhoto
     } = body;
 
     if (!employeeId) {
@@ -628,7 +640,39 @@ export async function PUT(req: Request) {
     if (allocatedWhatsapp !== undefined) profile.allocatedWhatsapp = allocatedWhatsapp;
     if (designation !== undefined) profile.designation = designation;
     if (baseSalary !== undefined) profile.baseSalary = baseSalary;
-    if (department !== undefined) profile.department = department;
+    if (department !== undefined) {
+      let resolvedDepartmentId = department;
+      if (department && profile.user) {
+        const targetUser = await User.findByPk(profile.user, { raw: true });
+        if (targetUser) {
+          let userComps: any[] = [];
+          if (Array.isArray(targetUser.companies)) {
+            userComps = targetUser.companies;
+          } else if (typeof targetUser.companies === "string") {
+            try { userComps = JSON.parse(targetUser.companies); } catch (e) { }
+          }
+          const companyId = userComps[0];
+          if (companyId) {
+            let deptDoc = await Department.findOne({
+              where: {
+                name: department,
+                company: companyId
+              }
+            });
+            if (!deptDoc) {
+              deptDoc = await Department.create({
+                id: Date.now().toString(),
+                name: department,
+                company: companyId,
+                status: "active"
+              });
+            }
+            resolvedDepartmentId = deptDoc.id;
+          }
+        }
+      }
+      profile.department = resolvedDepartmentId;
+    }
     if (dateOfJoining !== undefined) profile.dateOfJoining = dateOfJoining === "" ? null : dateOfJoining;
     if (dateOfBirth !== undefined) profile.dateOfBirth = dateOfBirth === "" ? null : dateOfBirth;
     if (gender !== undefined) profile.gender = gender;
@@ -641,6 +685,10 @@ export async function PUT(req: Request) {
     if (pfNumber !== undefined) profile.pfNumber = pfNumber;
     if (uanNumber !== undefined) profile.uanNumber = uanNumber;
     if (esiNumber !== undefined) profile.esiNumber = esiNumber;
+    if (dailyWorkingHours !== undefined) profile.dailyWorkingHours = dailyWorkingHours;
+    if (workingDays !== undefined) profile.workingDays = workingDays;
+    if (reportingManager !== undefined) profile.reportingManager = reportingManager;
+    if (profilePhoto !== undefined) profile.profilePhoto = profilePhoto;
 
     await profile.save();
 

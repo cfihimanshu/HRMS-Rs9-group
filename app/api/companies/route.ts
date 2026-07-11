@@ -15,3 +15,24 @@ export async function GET() {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
 }
+
+export async function POST(req: Request) {
+  try {
+    await sequelize.authenticate();
+    const body = await req.json();
+    const { name, code, address } = body;
+    if (!name || !code) {
+      return NextResponse.json({ success: false, error: "Missing required fields: name, code" }, { status: 400 });
+    }
+    const newCompany = await Company.create({
+      id: Date.now().toString(),
+      name,
+      code: code.toUpperCase(),
+      address: address || "",
+      status: "active"
+    });
+    return NextResponse.json({ success: true, data: newCompany });
+  } catch (error: any) {
+    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+  }
+}

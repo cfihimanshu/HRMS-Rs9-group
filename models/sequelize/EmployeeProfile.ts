@@ -24,6 +24,10 @@ class EmployeeProfile extends Model {
   public allocatedSim!: string;
   public allocatedGmail!: string;
   public allocatedWhatsapp!: string;
+  public reportingManager!: string;
+  public profilePhoto!: string;
+  public dailyWorkingHours!: number;
+  public workingDays!: string;
 }
 
 EmployeeProfile.init(
@@ -48,6 +52,24 @@ EmployeeProfile.init(
     department: {
       type: DataTypes.STRING,
       allowNull: true,
+    },
+    reportingManager: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    profilePhoto: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+    },
+    dailyWorkingHours: {
+      type: DataTypes.FLOAT,
+      allowNull: true,
+      defaultValue: 8
+    },
+    workingDays: {
+      type: DataTypes.STRING,
+      allowNull: true,
+      defaultValue: "Mon,Tue,Wed,Thu,Fri,Sat"
     },
     dateOfJoining: {
       type: DataTypes.DATE,

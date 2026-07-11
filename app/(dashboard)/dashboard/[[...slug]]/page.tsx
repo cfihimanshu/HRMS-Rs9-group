@@ -334,7 +334,7 @@ export default function UnifiedEnterpriseDashboard() {
         setStats(data.stats);
 
         if (userRole === "Employee" && data.stats?.currentUserCompliance && !data.stats.currentUserCompliance.hasSod) {
-          setActiveTab("attendance");
+          setActiveTab("ess-dashboard");
           toggleModal("sodModal", true);
           triggerToast("⚠️ Please submit your Start of Day (SOD) declaration first.");
         }
@@ -504,9 +504,6 @@ export default function UnifiedEnterpriseDashboard() {
   // Auto popup SOD on load if missing
   useEffect(() => {
     if (stats?.currentUserCompliance && userRole === "Employee") {
-      if (!stats.currentUserCompliance.hasSod && !modals.sodModal && activeTab !== "attendance") {
-        toggleModal("sodModal", true);
-      }
       if (!stats.currentUserCompliance.hasSod && !modals.sodModal && activeTab !== "attendance") {
         toggleModal("sodModal", true);
       }
@@ -1773,25 +1770,8 @@ export default function UnifiedEnterpriseDashboard() {
         </div>
       )}
 
-      {/* MODAL 10: SOD MODAL */}
       {modals.sodModal && (
         <div className="fixed inset-0 bg-[#070810]/40 z-[90] flex items-center justify-center p-4 backdrop-blur-sm animate-fadeIn">
-          <div className="bg-[#F4F5F7] w-full max-w-3xl max-h-[90vh] overflow-y-auto custom-scrollbar rounded-2xl shadow-2xl relative border border-slate-200">
-            <button className="absolute top-6 right-6 text-slate-500 hover:text-slate-800 bg-white hover:bg-slate-100 rounded-full p-1.5 border shadow-sm z-10 transition-all" onClick={() => toggleModal("sodModal", false)}><X className="w-5 h-5" /></button>
-            <div className="p-8">
-              <DailyCommitments
-                sessionUser={session?.user}
-                stats={stats}
-                handleAttendancePunch={handleAttendancePunch}
-                formMode="sod"
-                handleSodSubmit={async (payload) => {
-                  const success = await handleSodSubmit(payload);
-                  if (success) toggleModal("sodModal", false);
-                }}
-                handleEodSubmit={handleEodSubmit}
-              />
-            </div>
-          </div>
           <div className="bg-[#F4F5F7] w-full max-w-3xl max-h-[90vh] overflow-y-auto custom-scrollbar rounded-2xl shadow-2xl relative border border-slate-200">
             <button className="absolute top-6 right-6 text-slate-500 hover:text-slate-800 bg-white hover:bg-slate-100 rounded-full p-1.5 border shadow-sm z-10 transition-all" onClick={() => toggleModal("sodModal", false)}><X className="w-5 h-5" /></button>
             <div className="p-8">
