@@ -50,29 +50,81 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
   const [showCustomDeptInput, setShowCustomDeptInput] = useState(false);
   const [showCustomRoleInput, setShowCustomRoleInput] = useState(false);
   const [showCustomDesignationInput, setShowCustomDesignationInput] = useState(false);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [isDeptManager, setIsDeptManager] = useState(false);
+
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadingPhoto(true);
+    triggerToast("Uploading profile photo...");
+
+    const fd = new FormData();
+    fd.append("file", file);
+
+    try {
+      const res = await fetch("/api/documents/upload", {
+        method: "POST",
+        body: fd
+      });
+      const data = await res.json();
+      if (data.success && data.url) {
+        setFormData(prev => ({ ...prev, profilePhoto: data.url }));
+        triggerToast("Profile photo uploaded successfully!");
+      } else {
+        triggerToast("Failed to upload photo: " + (data.error || "unknown error"));
+      }
+    } catch (err) {
+      console.error(err);
+      triggerToast("Error uploading profile photo.");
+    } finally {
+      setUploadingPhoto(false);
+    }
+  };
+
+  const [uploadingEditPhoto, setUploadingEditPhoto] = useState(false);
+
+  const handleEditPhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadingEditPhoto(true);
+    triggerToast("Uploading profile photo...");
+
+    const fd = new FormData();
+    fd.append("file", file);
+
+    try {
+      const res = await fetch("/api/documents/upload", {
+        method: "POST",
+        body: fd
+      });
+      const data = await res.json();
+      if (data.success && data.url) {
+        setEditForm(prev => ({ ...prev, profilePhoto: data.url }));
+        triggerToast("Profile photo uploaded successfully!");
+      } else {
+        triggerToast("Failed to upload photo: " + (data.error || "unknown error"));
+      }
+    } catch (err) {
+      console.error(err);
+      triggerToast("Error uploading profile photo.");
+    } finally {
+      setUploadingEditPhoto(false);
+    }
+  };
 
   const handleTopCompanyChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const val = e.target.value;
     setTopCompany(val);
 
     if (val) {
-      const matched = companies.find(c => {
-        const nameLower = c.name.toLowerCase();
-        const codeLower = (c.code || "").toLowerCase();
-
-        if (val === "CFI") return nameLower.includes("cfi") || nameLower.includes("chartered");
-        if (val === "RAA") return nameLower.includes("raa") || nameLower.includes("ruksana");
-        if (val === "CTPL") return nameLower.includes("ctpl") || nameLower.includes("citiline");
-        if (val === "ATPL") return nameLower.includes("atpl") || nameLower.includes("acolyte");
-        if (val === "RNPL") return nameLower.includes("rnpl") || nameLower.includes("ruhan");
-        if (val === "MVPL") return nameLower.includes("mvpl") || nameLower.includes("mavics");
-        return false;
-      });
-
+      const matched = companies.find(c => c.name === val || (c.code || "").toUpperCase() === val.toUpperCase());
       if (matched) {
         setFormData(prev => ({ ...prev, companyId: matched.id }));
       } else {
-        const fallback = companies.find(c => c.name.toLowerCase().includes(val.toLowerCase()));
+        const fallback = companies.find(c => c.name.toLowerCase().includes(val.toLowerCase()) || (c.code && c.code.toLowerCase() === val.toLowerCase()));
         if (fallback) {
           setFormData(prev => ({ ...prev, companyId: fallback.id }));
         } else {
@@ -91,7 +143,7 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
       return;
     }
     setTopRole(val);
-    setFormData(prev => ({ ...prev, role: val }));
+    setFormData(prev => ({ ...prev, role: val, jobTitle: val }));
   };
 
   const [formData, setFormData] = useState({
@@ -105,8 +157,57 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
     designation: "Employee",
     dateOfJoining: "",
     baseSalary: "",
-    department: "Human Resources (HR)"
+    department: "Human Resources (HR)",
+    jobTitle: "Employee",
+    reportingManager: "",
+    assignedManager: "",
+    profilePhoto: "",
+    dailyWorkingHours: "8",
+    workingDays: "Mon,Tue,Wed,Thu,Fri,Sat"
   });
+
+  const [showCustomCompanyInput, setShowCustomCompanyInput] = useState(false);
+  const [customCompanyName, setCustomCompanyName] = useState("");
+  const [customCompanyCode, setCustomCompanyCode] = useState("");
+
+  const handleAddCustomCompany = async () => {
+    if (!customCompanyName.trim() || !customCompanyCode.trim()) {
+      triggerToast("Please fill both Company Name and Code");
+      return;
+    }
+    try {
+      const res = await fetch("/api/companies", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: customCompanyName.trim(),
+          code: customCompanyCode.trim().toUpperCase()
+        })
+      });
+      const data = await res.json();
+      if (data.success && data.data) {
+        triggerToast("Company created successfully!");
+        
+        const updatedCompRes = await fetch("/api/companies");
+        const updatedCompData = await updatedCompRes.json();
+        if (updatedCompData.success && updatedCompData.data) {
+          setCompanies(updatedCompData.data);
+        }
+
+        const newComp = data.data;
+        setTopCompany(newComp.name);
+        setFormData(prev => ({ ...prev, companyId: newComp.id }));
+        setShowCustomCompanyInput(false);
+        setCustomCompanyName("");
+        setCustomCompanyCode("");
+      } else {
+        triggerToast("Failed to create company: " + (data.error || "unknown error"));
+      }
+    } catch (err) {
+      console.error(err);
+      triggerToast("Error creating company");
+    }
+  };
 
   const fetchData = async () => {
     try {
@@ -264,10 +365,12 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
         setIsOnboardingOwner(false);
         setTopCompany("");
         setTopRole("Employee");
+        setIsDeptManager(false);
         setFormData({
           name: "", email: "", password: "", role: "HR Executive", mobile: "",
           companyId: "", employeeId: "", designation: "Employee", dateOfJoining: "", baseSalary: "",
-          department: "Human Resources (HR)"
+          department: "Human Resources (HR)", jobTitle: "HR Executive", reportingManager: "", assignedManager: "",
+          profilePhoto: "", dailyWorkingHours: "8", workingDays: "Mon,Tue,Wed,Thu,Fri,Sat"
         });
         fetchData(); // Refresh list
       } else {
@@ -470,11 +573,144 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
     ifscCode: "",
     pfNumber: "",
     uanNumber: "",
-    esiNumber: ""
+    esiNumber: "",
+    dailyWorkingHours: "8",
+    workingDays: "Mon,Tue,Wed,Thu,Fri,Sat",
+    reportingManager: "",
+    profilePhoto: ""
   });
+
+  const [showEditCustomDeptInput, setShowEditCustomDeptInput] = useState(false);
+  const [showEditCustomRoleInput, setShowEditCustomRoleInput] = useState(false);
+  const [showEditCustomDesignationInput, setShowEditCustomDesignationInput] = useState(false);
+  const [editCustomDeptName, setEditCustomDeptName] = useState("");
+  const [editCustomRoleName, setEditCustomRoleName] = useState("");
+  const [editCustomDesignationName, setEditCustomDesignationName] = useState("");
+
+  const handleEditAddCustomDept = async () => {
+    if (!editCustomDeptName.trim()) {
+      triggerToast("Department name cannot be empty");
+      return;
+    }
+    const currentCompanyId = editForm.companyId || (employees.find(emp => emp.id === editForm.employeeId)?.employeeProfile?.companyId || undefined);
+    try {
+      const res = await fetch("/api/roles", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: "Employee",
+          department: editCustomDeptName.trim(),
+          companyId: currentCompanyId
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        triggerToast(`Department "${editCustomDeptName.trim()}" created successfully!`);
+        setShowEditCustomDeptInput(false);
+        setEditCustomDeptName("");
+
+        if (currentCompanyId) {
+          await fetchCompanyRoles(currentCompanyId);
+        } else {
+          await fetchGlobalRoles();
+        }
+
+        setEditForm(prev => ({
+          ...prev,
+          department: editCustomDeptName.trim(),
+          role: "Employee"
+        }));
+      } else {
+        triggerToast("Failed to create department: " + data.error);
+      }
+    } catch (err) {
+      triggerToast("Error creating custom department");
+    }
+  };
+
+  const handleEditAddCustomRole = async () => {
+    if (!editCustomRoleName.trim()) {
+      triggerToast("Role name cannot be empty");
+      return;
+    }
+    const currentCompanyId = editForm.companyId || (employees.find(emp => emp.id === editForm.employeeId)?.employeeProfile?.companyId || undefined);
+    try {
+      const res = await fetch("/api/roles", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: editCustomRoleName.trim(),
+          department: editForm.department,
+          companyId: currentCompanyId
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        triggerToast(`Role "${editCustomRoleName.trim()}" created under "${editForm.department}" successfully!`);
+        setShowEditCustomRoleInput(false);
+        setEditCustomRoleName("");
+
+        if (currentCompanyId) {
+          await fetchCompanyRoles(currentCompanyId);
+        } else {
+          await fetchGlobalRoles();
+        }
+
+        setEditForm(prev => ({
+          ...prev,
+          role: editCustomRoleName.trim()
+        }));
+      } else {
+        triggerToast("Failed to create role: " + data.error);
+      }
+    } catch (err) {
+      triggerToast("Error creating custom role");
+    }
+  };
+
+  const handleEditAddCustomDesignation = async () => {
+    if (!editCustomDesignationName.trim()) {
+      triggerToast("Designation name cannot be empty");
+      return;
+    }
+    try {
+      const res = await fetch("/api/designations", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: editCustomDesignationName.trim(),
+          departmentId: editForm.department
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        triggerToast(`Designation "${editCustomDesignationName.trim()}" created successfully!`);
+        setShowEditCustomDesignationInput(false);
+        // Refresh designations list
+        const desigRes = await fetch("/api/designations");
+        const desigData = await desigRes.json();
+        if (desigData.success && desigData.data) {
+          setDbDesignations(desigData.data);
+        }
+        setEditForm(prev => ({ ...prev, designation: editCustomDesignationName.trim() }));
+        setEditCustomDesignationName("");
+      } else {
+        triggerToast("Failed to create designation: " + data.error);
+      }
+    } catch (err) {
+      triggerToast("Error creating custom designation");
+    }
+  };
 
   const handleStartEditEmployee = (emp: any) => {
     const profile = emp.employeeProfile || {};
+
+    setShowEditCustomDeptInput(false);
+    setShowEditCustomRoleInput(false);
+    setShowEditCustomDesignationInput(false);
+    setEditCustomDeptName("");
+    setEditCustomRoleName("");
+    setEditCustomDesignationName("");
 
     const formatDate = (dateStr: any) => {
       if (!dateStr) return "";
@@ -494,7 +730,7 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
       role: emp.role || "Employee",
       status: emp.status || "active",
       designation: profile.designation || "",
-      department: typeof profile.department === "object" ? (profile.department?.id || "") : (profile.department || ""),
+      department: typeof profile.department === "object" ? (profile.department?.name || "") : (profile.department || ""),
       dateOfJoining: formatDate(profile.dateOfJoining),
       baseSalary: profile.baseSalary !== undefined ? String(profile.baseSalary) : "",
       gender: profile.gender || "",
@@ -507,7 +743,11 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
       ifscCode: profile.ifscCode || "",
       pfNumber: profile.pfNumber || "",
       uanNumber: profile.uanNumber || "",
-      esiNumber: profile.esiNumber || ""
+      esiNumber: profile.esiNumber || "",
+      dailyWorkingHours: profile.dailyWorkingHours !== undefined ? String(profile.dailyWorkingHours) : "8",
+      workingDays: profile.workingDays || "Mon,Tue,Wed,Thu,Fri,Sat",
+      reportingManager: profile.reportingManager || "",
+      profilePhoto: profile.profilePhoto || ""
     });
 
     setShowEditModal(true);
@@ -526,6 +766,7 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
           baseSalary: editForm.baseSalary ? Number(editForm.baseSalary) : null,
           dateOfBirth: editForm.dateOfBirth === "" ? null : editForm.dateOfBirth,
           dateOfJoining: editForm.dateOfJoining === "" ? null : editForm.dateOfJoining,
+          dailyWorkingHours: editForm.dailyWorkingHours ? Number(editForm.dailyWorkingHours) : 8,
         })
       });
       const data = await res.json();
@@ -563,7 +804,7 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
     ? Array.from(new Set(dbRoles.map((r: any) => r.department).filter(Boolean))).sort()
     : defaultDepts;
 
-  const allowedCompanies = ["CFI", "RAA", "CTPL", "ATPL", "RNPL", "MVPL"];
+  // const allowedCompanies = ["CFI", "RAA", "CTPL", "ATPL", "RNPL", "MVPL"];
 
   // Find current user profile
   const currentUser = employees.find(emp => emp.id === sessionUser?.id);
@@ -665,22 +906,14 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
   });
 
   // Filter top company dropdown options based on role
-  let visibleCompanyOptions = allowedCompanies;
+  let visibleCompanyOptions = companies.map(c => c.name);
   const normalizedRoleOptions = (userRole || "").trim().toLowerCase();
   const isHrRoleOptions = normalizedRoleOptions === "hr head" || normalizedRoleOptions === "hr executive";
   if (isHrRoleOptions) {
     if (hrCompany && hrCompany.name) {
       const hrCompName = hrCompany.name.toLowerCase();
-      const matchedOption = allowedCompanies.find(opt => {
-        if (opt === "CFI") return hrCompName.includes("cfi") || hrCompName.includes("chartered");
-        if (opt === "RAA") return hrCompName.includes("raa") || hrCompName.includes("ruksana");
-        if (opt === "CTPL") return hrCompName.includes("ctpl") || hrCompName.includes("citiline");
-        if (opt === "ATPL") return hrCompName.includes("atpl") || hrCompName.includes("acolyte");
-        if (opt === "RNPL") return hrCompName.includes("rnpl") || hrCompName.includes("ruhan");
-        if (opt === "MVPL") return hrCompName.includes("mvpl") || hrCompName.includes("mavics");
-        return hrCompName.includes(opt.toLowerCase());
-      });
-      visibleCompanyOptions = matchedOption ? [matchedOption] : [];
+      const matched = companies.find(c => c.name.toLowerCase() === hrCompName || hrCompName.includes(c.name.toLowerCase()) || (c.code && hrCompName.includes(c.code.toLowerCase())));
+      visibleCompanyOptions = matched ? [matched.name] : [];
     } else {
       visibleCompanyOptions = []; // HR has no company assigned yet
     }
@@ -694,18 +927,7 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
       const defaultCompany = visibleCompanyOptions[0];
       setTopCompany(defaultCompany);
 
-      const matched = companies.find(c => {
-        const nameLower = c.name.toLowerCase();
-        const codeLower = (c.code || "").toLowerCase();
-
-        if (defaultCompany === "CFI") return nameLower.includes("cfi") || nameLower.includes("chartered");
-        if (defaultCompany === "RAA") return nameLower.includes("raa") || nameLower.includes("ruksana");
-        if (defaultCompany === "CTPL") return nameLower.includes("ctpl") || nameLower.includes("citiline");
-        if (defaultCompany === "ATPL") return nameLower.includes("atpl") || nameLower.includes("acolyte");
-        if (defaultCompany === "RNPL") return nameLower.includes("rnpl") || nameLower.includes("ruhan");
-        if (defaultCompany === "MVPL") return nameLower.includes("mvpl") || nameLower.includes("mavics");
-        return false;
-      });
+      const matched = companies.find(c => c.name === defaultCompany || (c.code || "").toUpperCase() === defaultCompany.toUpperCase());
       if (matched) {
         setFormData(prev => ({ ...prev, companyId: matched.id }));
       }
@@ -721,39 +943,83 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
   // Get all unique roles of actually created users/employees across all companies
   const uniqueRoleNames = Array.from(new Set(employees.map((emp: any) => emp.role).filter(Boolean))).sort();
 
+  // Employees in the same company (for Department Manager dropdown, showing all departments of the company)
+  const deptEmployeesForManager = employees.filter((emp: any) => {
+    let compMatch = true;
+    if (formData.companyId) {
+      let empComps: any[] = [];
+      if (Array.isArray(emp.companies)) empComps = emp.companies;
+      else if (typeof emp.companies === "string") { try { empComps = JSON.parse(emp.companies); } catch { empComps = []; } }
+      compMatch = empComps.some((c: any) => (typeof c === "string" ? c : c?.id?.toString()) === formData.companyId);
+    }
+    return compMatch;
+  });
+
+  // Manager-role users in selected company (for Assign Manager dropdown)
+  const managerRoleKeywords = ["manager", "head", "director", "ceo", "coo", "cfo", "cto", "vp", "owner", "lead"];
+  const companyManagersList = employees.filter((emp: any) => {
+    const roleLower = (emp.role || "").toLowerCase();
+    const isManagerRole = managerRoleKeywords.some(kw => roleLower.includes(kw));
+    if (!isManagerRole) return false;
+    if (!formData.companyId) return true;
+    let empComps: any[] = [];
+    if (Array.isArray(emp.companies)) empComps = emp.companies;
+    else if (typeof emp.companies === "string") { try { empComps = JSON.parse(emp.companies); } catch { empComps = []; } }
+    return empComps.some((c: any) => (typeof c === "string" ? c : c?.id?.toString()) === formData.companyId);
+  });
+
   // Filter designations based on selected department
   const filteredDesignations = dbDesignations.filter(
     (d: any) => (d.department_id || "").toLowerCase() === (formData.department || "Human Resources (HR)").toLowerCase()
   );
-  const displayDesignations = filteredDesignations.length > 0
-    ? filteredDesignations
+  let displayDesignations = filteredDesignations.length > 0
+    ? [...filteredDesignations]
     : dbDesignations.filter((d: any) => d.department_id === "global").length > 0
-      ? dbDesignations.filter((d: any) => d.department_id === "global")
+      ? [...dbDesignations.filter((d: any) => d.department_id === "global")]
       : [
           { id: "desig_intern", name: "Intern" },
           { id: "desig_employee", name: "Employee" },
           { id: "desig_dept_head", name: "Department Head" },
           { id: "desig_manager", name: "Manager" }
         ];
+  if (!displayDesignations.some((d: any) => (d.name || "").toLowerCase() === "employee")) {
+    displayDesignations.push({ id: "desig_employee_default", name: "Employee" });
+  }
 
   // Helper definitions for editing employee designations and roles dynamically based on department selection
   const editFilteredDesignations = dbDesignations.filter(
     (d: any) => (d.department_id || "").toLowerCase() === (editForm.department || "Human Resources (HR)").toLowerCase()
   );
-  const editDisplayDesignations = editFilteredDesignations.length > 0
-    ? editFilteredDesignations
+  let editDisplayDesignations = editFilteredDesignations.length > 0
+    ? [...editFilteredDesignations]
     : dbDesignations.filter((d: any) => d.department_id === "global").length > 0
-      ? dbDesignations.filter((d: any) => d.department_id === "global")
+      ? [...dbDesignations.filter((d: any) => d.department_id === "global")]
       : [
           { id: "desig_intern", name: "Intern" },
           { id: "desig_employee", name: "Employee" },
           { id: "desig_dept_head", name: "Department Head" },
           { id: "desig_manager", name: "Manager" }
         ];
+  if (!editDisplayDesignations.some((d: any) => (d.name || "").toLowerCase() === "employee")) {
+    editDisplayDesignations.push({ id: "desig_employee_default", name: "Employee" });
+  }
 
   const editRolesList = dbRoles.length > 0
     ? Array.from(new Set(dbRoles.filter((r: any) => (r.department || "").toLowerCase() === (editForm.department || "Human Resources (HR)").toLowerCase()).map((r: any) => r.name)))
     : (departmentRoles[editForm.department || "Human Resources (HR)"] || ["Employee"]);
+
+  const editDeptEmployees = employees.filter((emp: any) => {
+    if (emp.employeeProfile?.employeeId === editForm.employeeId) return false;
+
+    const currentCompanyId = editForm.companyId || (employees.find(e => e.employeeProfile?.employeeId === editForm.employeeId)?.employeeProfile?.companyId || "");
+    if (!currentCompanyId) return true;
+
+    let empComps: any[] = [];
+    if (Array.isArray(emp.companies)) empComps = emp.companies;
+    else if (typeof emp.companies === "string") { try { empComps = JSON.parse(emp.companies); } catch { empComps = []; } }
+    
+    return empComps.some((c: any) => (typeof c === "string" ? c : c?.id?.toString()) === currentCompanyId);
+  });
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -775,11 +1041,13 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
                 } else {
                   setShowAddForm(true);
                   setIsOnboardingOwner(false);
-                  setFormData({
+                   setFormData({
                     name: "", email: "", password: "", role: "HR Executive", mobile: "",
                     companyId: "", employeeId: "", designation: "Employee", dateOfJoining: "", baseSalary: "",
-                    department: "Human Resources (HR)"
+                    department: "Human Resources (HR)", jobTitle: "HR Executive", reportingManager: "", assignedManager: "",
+                    profilePhoto: "", dailyWorkingHours: "8", workingDays: "Mon,Tue,Wed,Thu,Fri,Sat"
                   });
+                  setIsDeptManager(false);
                 }
               }}
               className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2.5 rounded-lg text-sm font-bold shadow-md transition-all flex items-center gap-2"
@@ -796,8 +1064,10 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
                   setFormData({
                     name: "", email: "", password: "", role: "HR Executive", mobile: "",
                     companyId: "", employeeId: "", designation: "Employee", dateOfJoining: "", baseSalary: "",
-                    department: "Human Resources (HR)"
+                    department: "Human Resources (HR)", jobTitle: "HR Executive", reportingManager: "", assignedManager: "",
+                    profilePhoto: "", dailyWorkingHours: "8", workingDays: "Mon,Tue,Wed,Thu,Fri,Sat"
                   });
+                  setIsDeptManager(false);
                 } else {
                   setShowAddForm(true);
                   setIsOnboardingOwner(true);
@@ -825,289 +1095,348 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
           </h2>
 
           <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Top Selection for Company, Department, Role, and Designation */}
-            {!isOnboardingOwner && (
-              <div className={`p-4 rounded-xl border mb-6 grid grid-cols-1 md:grid-cols-4 gap-6 ${isDark ? "bg-gray-800/40 border-gray-700" : "bg-slate-50 border-slate-200"}`}>
-                <div>
-                  <label className={`block text-xs font-bold mb-1.5 ${isDark ? "text-indigo-400" : "text-indigo-600"}`}>Company *</label>
-                  <select
-                    value={topCompany}
-                    onChange={handleTopCompanyChange}
-                    required
-                    className={`w-full p-2.5 rounded-lg border text-sm font-bold focus:border-indigo-500 focus:outline-none ${isDark ? "bg-gray-800 border-gray-700 text-white" : "bg-white border-slate-350"}`}
-                  >
-                    {visibleCompanyOptions.length > 1 && <option value="">-- Choose Company --</option>}
-                    {visibleCompanyOptions.map(opt => (
-                      <option key={opt} value={opt}>{opt}</option>
-                    ))}
-                  </select>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
+              
+              {/* Left Column: Personal Information */}
+              <div className="space-y-6">
+                <div className="flex items-center gap-2 mb-2 pb-2 border-b border-dashed border-slate-200 dark:border-gray-800">
+                  <div className={`w-1.5 h-4 rounded-full ${isDark ? "bg-indigo-400" : "bg-indigo-500"}`} />
+                  <span className={`text-xs font-black tracking-widest uppercase font-mono ${isDark ? "text-indigo-400" : "text-indigo-600"}`}>Personal Information</span>
                 </div>
 
-                <div>
-                  <label className={`block text-xs font-bold mb-1.5 ${isDark ? "text-indigo-400" : "text-indigo-600"}`}>Department *</label>
-                  <select
-                    name="department"
-                    value={formData.department}
-                    onChange={handleChange}
-                    required
-                    className={`w-full p-2.5 rounded-lg border text-sm font-bold focus:border-indigo-500 focus:outline-none ${isDark ? "bg-gray-800 border-gray-700 text-white" : "bg-white border-slate-355"}`}
-                  >
-                    {availableDepartments.map(dept => (
-                      <option key={dept} value={dept}>{dept}</option>
-                    ))}
-                    <option value="add_custom_department">+ Add Custom Department...</option>
-                  </select>
-                  {showCustomDeptInput && (
-                    <div className="mt-2 flex gap-2">
-                      <input
-                        type="text"
-                        value={customDeptName}
-                        onChange={e => setCustomDeptName(e.target.value)}
-                        placeholder="New Dept Name"
-                        className={`flex-1 p-2 rounded border text-xs focus:outline-none focus:border-indigo-500 ${isDark ? "bg-gray-800 border-gray-700 text-white" : "bg-slate-50 border-slate-200 text-slate-700"}`}
-                      />
-                      <button
-                        type="button"
-                        onClick={handleAddCustomDept}
-                        className="bg-indigo-600 hover:bg-indigo-700 text-white text-xs px-3 py-1.5 rounded font-bold transition-all"
-                      >
-                        Add
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => { setShowCustomDeptInput(false); setCustomDeptName(""); }}
-                        className={`text-xs px-3 py-1.5 rounded font-bold border transition-all ${isDark ? "bg-gray-800 border-gray-700 text-gray-300 hover:bg-gray-700" : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"}`}
-                      >
-                        Cancel
-                      </button>
-                    </div>
-                  )}
+                <div className="flex flex-col sm:flex-row gap-6 items-center sm:items-start p-4 rounded-xl border border-indigo-50/50 dark:border-gray-800 bg-slate-50/30 dark:bg-gray-800/10">
+                  {/* Photo Upload Area */}
+                  <div className="flex flex-col items-center justify-center p-3 border-2 border-dashed rounded-xl w-32 h-32 text-center cursor-pointer relative group transition-all hover:border-indigo-500 hover:bg-indigo-50/5 dark:hover:bg-indigo-950/10">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handlePhotoUpload}
+                      className="absolute inset-0 opacity-0 cursor-pointer z-10"
+                      disabled={uploadingPhoto}
+                    />
+                    {uploadingPhoto ? (
+                      <div className="text-[10px] font-semibold text-slate-400 animate-pulse">Uploading...</div>
+                    ) : formData.profilePhoto ? (
+                      <div className="w-full h-full relative">
+                        <img
+                          src={formData.profilePhoto}
+                          alt="Preview"
+                          className="w-full h-full object-cover rounded-lg"
+                        />
+                        <div className="absolute inset-0 bg-black/40 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                          <span className="text-white text-[10px] font-bold">Change</span>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex flex-col items-center">
+                        <UserPlus className="w-5 h-5 text-indigo-500 mb-1" />
+                        <span className="text-[10px] font-bold text-slate-700 dark:text-gray-300">Upload Photo</span>
+                        <span className="text-[8px] text-slate-400 mt-0.5">PNG, JPG</span>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="text-center sm:text-left">
+                    <h4 className="font-bold text-xs text-slate-800 dark:text-slate-200">Profile Photograph</h4>
+                    <p className="text-[10px] text-slate-500 dark:text-gray-400 mt-1 max-w-[200px] leading-relaxed">
+                      Upload a passport size photograph of the employee. Accepted formats: JPG, PNG under 5MB.
+                    </p>
+                  </div>
                 </div>
 
-                <div>
-                  <label className={`block text-xs font-bold mb-1.5 ${isDark ? "text-indigo-400" : "text-indigo-600"}`}>System Role *</label>
-                  <select
-                    value={topRole}
-                    onChange={handleTopRoleChange}
-                    required
-                    className={`w-full p-2.5 rounded-lg border text-sm font-bold focus:border-indigo-500 focus:outline-none ${isDark ? "bg-gray-800 border-gray-700 text-white" : "bg-white border-slate-355"}`}
-                  >
-                    {finalRolesList.map((r, i) => (
-                      <option key={i} value={r}>{r}</option>
-                    ))}
-                    <option value="add_custom_role">+ Add Custom Role...</option>
-                  </select>
-                  {showCustomRoleInput && (
-                    <div className="mt-2 flex gap-2">
-                      <input
-                        type="text"
-                        value={customRoleName}
-                        onChange={e => setCustomRoleName(e.target.value)}
-                        placeholder="New Role Name"
-                        className={`flex-1 p-2 rounded border text-xs focus:outline-none focus:border-indigo-500 ${isDark ? "bg-gray-800 border-gray-700 text-white" : "bg-slate-50 border-slate-200 text-slate-700"}`}
-                      />
-                      <button
-                        type="button"
-                        onClick={handleAddCustomRole}
-                        className="bg-indigo-600 hover:bg-indigo-700 text-white text-xs px-3 py-1.5 rounded font-bold transition-all"
-                      >
-                        Add
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => { setShowCustomRoleInput(false); setCustomRoleName(""); }}
-                        className={`text-xs px-3 py-1.5 rounded font-bold border transition-all ${isDark ? "bg-gray-800 border-gray-700 text-gray-300 hover:bg-gray-700" : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"}`}
-                      >
-                        Cancel
-                      </button>
-                    </div>
-                  )}
-                </div>
+                <div className="space-y-4">
+                  <div>
+                    <label className={`block text-xs font-bold mb-1.5 ${isDark ? "text-gray-300" : "text-slate-700"}`}>Full Name *</label>
+                    <input type="text" name="name" value={formData.name} onChange={handleChange} required
+                      className={`w-full p-2.5 rounded-lg border text-xs focus:border-indigo-500 focus:outline-none ${isDark ? "bg-gray-800 border-gray-700 text-white" : "bg-slate-50 border-slate-200"}`} />
+                  </div>
 
-                <div>
-                  <label className={`block text-xs font-bold mb-1.5 ${isDark ? "text-indigo-400" : "text-indigo-600"}`}>Designation *</label>
-                  <select
-                    value={formData.designation}
-                    onChange={(e) => {
-                      if (e.target.value === "add_custom_designation") {
-                        setShowCustomDesignationInput(true);
-                      } else {
-                        setShowCustomDesignationInput(false);
-                        setFormData(prev => ({ ...prev, designation: e.target.value }));
-                      }
-                    }}
-                    required
-                    className={`w-full p-2.5 rounded-lg border text-sm font-bold focus:border-indigo-500 focus:outline-none ${isDark ? "bg-gray-800 border-gray-750 text-white" : "bg-white border-slate-200"}`}
-                  >
-                    {displayDesignations.map((d: any) => (
-                      <option key={d.id} value={d.name}>{d.name}</option>
-                    ))}
-                    <option value="add_custom_designation">+ Add New Designation...</option>
-                  </select>
-                  {showCustomDesignationInput && (
-                    <div className="mt-2 flex gap-2">
-                      <input
-                        type="text"
-                        value={customDesignationName}
-                        onChange={e => setCustomDesignationName(e.target.value)}
-                        placeholder="New Designation"
-                        className={`flex-1 p-2 rounded border text-xs focus:outline-none focus:border-indigo-500 ${isDark ? "bg-gray-800 border-gray-700 text-white" : "bg-slate-50 border-slate-200 text-slate-700"}`}
-                      />
-                      <button
-                        type="button"
-                        onClick={handleAddCustomDesignation}
-                        className="bg-indigo-600 hover:bg-indigo-700 text-white text-xs px-3 py-1.5 rounded font-bold transition-all"
-                      >
-                        Add
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => { setShowCustomDesignationInput(false); setCustomDesignationName(""); }}
-                        className={`text-xs px-3 py-1.5 rounded font-bold border transition-all ${isDark ? "bg-gray-800 border-gray-700 text-gray-300 hover:bg-gray-700" : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"}`}
-                      >
-                        Cancel
-                      </button>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Account Details */}
-              <div className="space-y-4">
-                <h3 className={`text-xs font-bold uppercase tracking-wider font-mono ${isDark ? "text-indigo-400" : "text-indigo-600"}`}>1. System Account Details</h3>
-
-                <div>
-                  <label className={`block text-xs font-bold mb-1.5 ${isDark ? "text-gray-300" : "text-slate-700"}`}>Full Name *</label>
-                  <input type="text" name="name" value={formData.name} onChange={handleChange} required
-                    className={`w-full p-2.5 rounded-lg border text-sm focus:border-indigo-500 focus:outline-none ${isDark ? "bg-gray-800 border-gray-700 text-white" : "bg-slate-50 border-slate-200"}`} />
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className={`block text-xs font-bold mb-1.5 ${isDark ? "text-gray-300" : "text-slate-700"}`}>Email *</label>
                     <input type="email" name="email" value={formData.email} onChange={handleChange} required
-                      className={`w-full p-2.5 rounded-lg border text-sm focus:border-indigo-500 focus:outline-none ${isDark ? "bg-gray-800 border-gray-700 text-white" : "bg-slate-50 border-slate-200"}`} />
+                      className={`w-full p-2.5 rounded-lg border text-xs focus:border-indigo-500 focus:outline-none ${isDark ? "bg-gray-800 border-gray-700 text-white" : "bg-slate-50 border-slate-200"}`} />
                   </div>
-                  <div>
-                    <label className={`block text-xs font-bold mb-1.5 ${isDark ? "text-gray-300" : "text-slate-700"}`}>Password *</label>
-                    <input type="password" name="password" value={formData.password} onChange={handleChange} required
-                      className={`w-full p-2.5 rounded-lg border text-sm focus:border-indigo-500 focus:outline-none ${isDark ? "bg-gray-800 border-gray-700 text-white" : "bg-slate-50 border-slate-200"}`} />
-                  </div>
-                </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className={`block text-xs font-bold mb-1.5 ${isDark ? "text-gray-300" : "text-slate-700"}`}>Mobile</label>
-                    <input type="text" name="mobile" value={formData.mobile} onChange={handleChange}
-                      className={`w-full p-2.5 rounded-lg border text-sm focus:border-indigo-500 focus:outline-none ${isDark ? "bg-gray-800 border-gray-700 text-white" : "bg-slate-50 border-slate-200"}`} />
-                  </div>
-                  {!isOnboardingOwner && (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                      <label className={`block text-xs font-bold mb-1.5 ${isDark ? "text-gray-300" : "text-slate-700"}`}>System Role *</label>
-                      <select name="role" value={formData.role} onChange={handleChange} required disabled
-                        className={`w-full p-2.5 rounded-lg border text-sm focus:border-indigo-500 focus:outline-none opacity-60 cursor-not-allowed ${isDark ? "bg-gray-800 border-gray-700 text-white" : "bg-slate-200 border-slate-200"}`}>
-                        {finalRolesList.map((r, i) => (
-                          <option key={i} value={r}>{r}</option>
-                        ))}
-                      </select>
+                      <label className={`block text-xs font-bold mb-1.5 ${isDark ? "text-gray-300" : "text-slate-700"}`}>Password *</label>
+                      <input type="password" name="password" value={formData.password} onChange={handleChange} required
+                        className={`w-full p-2.5 rounded-lg border text-xs focus:border-indigo-500 focus:outline-none ${isDark ? "bg-gray-800 border-gray-700 text-white" : "bg-slate-50 border-slate-200"}`} />
                     </div>
-                  )}
+                    <div>
+                      <label className={`block text-xs font-bold mb-1.5 ${isDark ? "text-gray-300" : "text-slate-700"}`}>Mobile Number</label>
+                      <input type="text" name="mobile" value={formData.mobile} onChange={handleChange}
+                        className={`w-full p-2.5 rounded-lg border text-xs focus:border-indigo-500 focus:outline-none ${isDark ? "bg-gray-800 border-gray-700 text-white" : "bg-slate-50 border-slate-200"}`} />
+                    </div>
+                  </div>
                 </div>
               </div>
 
-              {/* Employment Details */}
-              <div className="space-y-4">
-                <h3 className={`text-xs font-bold uppercase tracking-wider font-mono ${isDark ? "text-emerald-400" : "text-emerald-600"}`}>
-                  {isOnboardingOwner ? "Owner Profile" : "2. Company & Employment Profile"}
-                </h3>
+              {/* Right Column: Company & Employment Details */}
+              <div className="space-y-6">
+                <div className="flex items-center gap-2 mb-2 pb-2 border-b border-dashed border-slate-200 dark:border-gray-800">
+                  <div className={`w-1.5 h-4 rounded-full ${isDark ? "bg-emerald-400" : "bg-emerald-500"}`} />
+                  <span className={`text-xs font-black tracking-widest uppercase font-mono ${isDark ? "text-emerald-400" : "text-emerald-600"}`}>
+                    {isOnboardingOwner ? "Owner Configuration" : "Company & Employment Details"}
+                  </span>
+                </div>
 
-                {!isOnboardingOwner && (
-                  <div>
-                    <label className={`block text-xs font-bold mb-1.5 ${isDark ? "text-gray-300" : "text-slate-700"}`}>Assign to Company *</label>
-                    <select name="companyId" value={formData.companyId} onChange={handleChange} required disabled
-                      className={`w-full p-2.5 rounded-lg border text-sm focus:border-indigo-500 focus:outline-none opacity-60 cursor-not-allowed ${isDark ? "bg-gray-800 border-gray-700 text-white" : "bg-slate-200 border-slate-200"}`}>
-                      <option value="">-- Select Company --</option>
-                      {companies.map(c => (
-                        <option key={c.id} value={c.id}>{c.name} ({c.code})</option>
-                      ))}
-                    </select>
-                  </div>
-                )}
+                {!isOnboardingOwner ? (
+                  <div className="space-y-4">
+                    {/* Row 1: Company & Department */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className={`block text-xs font-bold mb-1.5 ${isDark ? "text-indigo-400" : "text-indigo-600"}`}>Company *</label>
+                        <select
+                          value={topCompany}
+                          onChange={(e) => {
+                            if (e.target.value === "add_custom_company") {
+                              setShowCustomCompanyInput(true);
+                            } else {
+                              setShowCustomCompanyInput(false);
+                              handleTopCompanyChange(e);
+                            }
+                          }}
+                          required
+                          className={`w-full p-2.5 rounded-lg border text-sm font-bold focus:border-indigo-500 focus:outline-none transition-all ${isDark ? "bg-gray-800 border-gray-700 text-white" : "bg-white border-slate-300 hover:border-indigo-400"}`}
+                        >
+                          {visibleCompanyOptions.length > 1 && <option value="">-- Choose Company --</option>}
+                          {visibleCompanyOptions.map(opt => (
+                            <option key={opt} value={opt}>{opt}</option>
+                          ))}
+                          <option value="add_custom_company">+ Add Custom Company...</option>
+                        </select>
+                        {showCustomCompanyInput && (
+                          <div className="mt-2 p-3 border border-dashed rounded bg-slate-50 dark:bg-gray-800 space-y-2">
+                            <div>
+                              <input
+                                type="text"
+                                value={customCompanyName}
+                                onChange={e => setCustomCompanyName(e.target.value)}
+                                placeholder="Company Name (e.g. Acolyte)"
+                                className={`w-full p-2 rounded border text-xs focus:outline-none focus:border-indigo-500 ${isDark ? "bg-gray-850 border-gray-700 text-white" : "bg-slate-50 border-slate-200 text-slate-700"}`}
+                              />
+                            </div>
+                            <div className="flex gap-2">
+                              <input
+                                type="text"
+                                value={customCompanyCode}
+                                onChange={e => setCustomCompanyCode(e.target.value)}
+                                placeholder="Code (e.g. ACT)"
+                                className={`flex-1 p-2 rounded border text-xs focus:outline-none focus:border-indigo-500 ${isDark ? "bg-gray-850 border-gray-700 text-white" : "bg-slate-50 border-slate-200 text-slate-700"}`}
+                              />
+                              <button type="button" onClick={handleAddCustomCompany} className="bg-indigo-600 hover:bg-indigo-700 text-white text-xs px-3 py-1.5 rounded font-bold transition-all">Add</button>
+                              <button type="button" onClick={() => { setShowCustomCompanyInput(false); setCustomCompanyName(""); setCustomCompanyCode(""); }} className={`text-xs px-3 py-1.5 rounded font-bold border transition-all ${isDark ? "bg-gray-800 border-gray-700 text-gray-300 hover:bg-gray-700" : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"}`}>Cancel</button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
 
-                {!isOnboardingOwner && (
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className={`block text-xs font-bold mb-1.5 ${isDark ? "text-gray-300" : "text-slate-700"}`}>Employee ID *</label>
-                      <input type="text" name="employeeId" value={formData.employeeId} readOnly required placeholder="Select company to auto-generate"
-                        className={`w-full p-2.5 rounded-lg border text-sm focus:outline-none opacity-80 cursor-not-allowed ${isDark ? "bg-gray-800/80 border-gray-700 text-gray-400" : "bg-slate-100 border-slate-200 text-slate-500"}`} />
+                      <div>
+                        <label className={`block text-xs font-bold mb-1.5 ${isDark ? "text-indigo-400" : "text-indigo-600"}`}>Department *</label>
+                        <select
+                          name="department"
+                          value={formData.department}
+                          onChange={handleChange}
+                          required
+                          className={`w-full p-2.5 rounded-lg border text-sm font-bold focus:border-indigo-500 focus:outline-none transition-all ${isDark ? "bg-gray-800 border-gray-700 text-white" : "bg-white border-slate-300 hover:border-indigo-400"}`}
+                        >
+                          {availableDepartments.map(dept => (
+                            <option key={dept} value={dept}>{dept}</option>
+                          ))}
+                          <option value="add_custom_department">+ Add Custom Department...</option>
+                        </select>
+                        {showCustomDeptInput && (
+                          <div className="mt-2 flex gap-2">
+                            <input
+                              type="text"
+                              value={customDeptName}
+                              onChange={e => setCustomDeptName(e.target.value)}
+                              placeholder="New Dept Name"
+                              className={`flex-1 p-2 rounded border text-xs focus:outline-none focus:border-indigo-500 ${isDark ? "bg-gray-800 border-gray-700 text-white" : "bg-slate-50 border-slate-200 text-slate-700"}`}
+                            />
+                            <button type="button" onClick={handleAddCustomDept} className="bg-indigo-600 hover:bg-indigo-700 text-white text-xs px-3 py-1.5 rounded font-bold transition-all">Add</button>
+                            <button type="button" onClick={() => { setShowCustomDeptInput(false); setCustomDeptName(""); }} className={`text-xs px-3 py-1.5 rounded font-bold border transition-all ${isDark ? "bg-gray-800 border-gray-700 text-gray-300 hover:bg-gray-700" : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"}`}>Cancel</button>
+                          </div>
+                        )}
+                      </div>
                     </div>
+
+                    {/* Row 2: Role & Job Title */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className={`block text-xs font-bold mb-1.5 ${isDark ? "text-indigo-400" : "text-indigo-600"}`}>Role *</label>
+                        <select
+                          value={topRole}
+                          onChange={handleTopRoleChange}
+                          required
+                          className={`w-full p-2.5 rounded-lg border text-sm font-bold focus:border-indigo-500 focus:outline-none transition-all ${isDark ? "bg-gray-800 border-gray-700 text-white" : "bg-white border-slate-300 hover:border-indigo-400"}`}
+                        >
+                          {finalRolesList.map((r, i) => (
+                            <option key={i} value={r}>{r}</option>
+                          ))}
+                          <option value="add_custom_role">+ Add Custom Role...</option>
+                        </select>
+                        {showCustomRoleInput && (
+                          <div className="mt-2 flex gap-2">
+                            <input
+                              type="text"
+                              value={customRoleName}
+                              onChange={e => setCustomRoleName(e.target.value)}
+                              placeholder="New Role Name"
+                              className={`flex-1 p-2 rounded border text-xs focus:outline-none focus:border-indigo-500 ${isDark ? "bg-gray-800 border-gray-700 text-white" : "bg-slate-50 border-slate-200 text-slate-700"}`}
+                        />
+                            <button type="button" onClick={handleAddCustomRole} className="bg-indigo-600 hover:bg-indigo-700 text-white text-xs px-3 py-1.5 rounded font-bold transition-all">Add</button>
+                            <button type="button" onClick={() => { setShowCustomRoleInput(false); setCustomRoleName(""); }} className={`text-xs px-3 py-1.5 rounded font-bold border transition-all ${isDark ? "bg-gray-800 border-gray-700 text-gray-300 hover:bg-gray-700" : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"}`}>Cancel</button>
+                      </div>
+                        )}
+                      </div>
+
+                      <div>
+                        <label className={`block text-xs font-bold mb-1.5 ${isDark ? "text-emerald-400" : "text-emerald-600"}`}>
+                          Job Title
+                          <span className={`ml-1.5 text-[9px] font-normal px-1.5 py-0.5 rounded ${isDark ? "bg-emerald-900/40 text-emerald-400" : "bg-emerald-50 text-emerald-600"}`}>Auto-filled</span>
+                        </label>
+                        <input
+                          type="text"
+                          value={formData.jobTitle || formData.role}
+                          onChange={(e) => setFormData(prev => ({ ...prev, jobTitle: e.target.value, designation: e.target.value }))}
+                          placeholder="Job title"
+                          className={`w-full p-2.5 rounded-lg border text-sm font-bold focus:border-emerald-500 focus:outline-none transition-all ${isDark ? "bg-gray-800 border-gray-700 text-white" : "bg-white border-slate-300 hover:border-emerald-400"}`}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Department Manager Switch Toggle */}
+                    <div className="flex items-center gap-2 pt-1">
+                      <label className="relative inline-flex items-center cursor-pointer select-none">
+                        <input
+                          type="checkbox"
+                          checked={isDeptManager}
+                          onChange={(e) => {
+                            const checked = e.target.checked;
+                            setIsDeptManager(checked);
+                            if (checked) {
+                              setFormData(prev => ({
+                                ...prev,
+                                reportingManager: ""
+                              }));
+                            }
+                          }}
+                          className="sr-only peer"
+                        />
+                        <div className="w-9 h-5 bg-gray-200 dark:bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 dark:after:border-gray-600 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-indigo-600"></div>
+                        <span className="ml-2.5 text-xs font-bold text-slate-700 dark:text-gray-300">
+                          Make this user the Manager of this Department
+                        </span>
+                      </label>
+                    </div>
+
+                    {/* Row 3: Department Manager (Assign Manager is removed) */}
                     <div>
-                      <label className={`block text-xs font-bold mb-1.5 ${isDark ? "text-gray-300" : "text-slate-700"}`}>Designation *</label>
-                      <select
-                        name="designation"
-                        value={formData.designation}
-                        onChange={(e) => {
-                          if (e.target.value === "add_custom_designation") {
-                            setShowCustomDesignationInput(true);
-                          } else {
-                            setShowCustomDesignationInput(false);
-                            setFormData(prev => ({ ...prev, designation: e.target.value }));
-                          }
-                        }}
-                        required
-                        className={`w-full p-2.5 rounded-lg border text-sm font-bold focus:border-indigo-500 focus:outline-none ${isDark ? "bg-gray-800 border-gray-700 text-white" : "bg-white border-slate-200"}`}
-                      >
-                        {displayDesignations.map((d: any) => (
-                          <option key={d.id} value={d.name}>{d.name}</option>
-                        ))}
-                        <option value="add_custom_designation">+ Add New Designation...</option>
-                      </select>
-                      {showCustomDesignationInput && (
-                        <div className="mt-2 flex gap-2">
-                          <input
-                            type="text"
-                            value={customDesignationName}
-                            onChange={e => setCustomDesignationName(e.target.value)}
-                            placeholder="New Designation Name"
-                            className={`flex-1 p-2 rounded border text-xs focus:outline-none focus:border-indigo-500 ${isDark ? "bg-gray-800 border-gray-700 text-white" : "bg-slate-50 border-slate-200 text-slate-700"}`}
-                          />
-                          <button
-                            type="button"
-                            onClick={handleAddCustomDesignation}
-                            className="bg-indigo-600 hover:bg-indigo-700 text-white text-xs px-3 py-1.5 rounded font-bold transition-all"
+                      {!isDeptManager ? (
+                        <div>
+                          <label className={`block text-xs font-bold mb-1 ${isDark ? "text-amber-400" : "text-amber-700"}`}>
+                            Department Reporting Manager
+                          </label>
+                          <select
+                            value={formData.reportingManager}
+                            onChange={(e) => setFormData(prev => ({ ...prev, reportingManager: e.target.value }))}
+                            className={`w-full p-2.5 rounded-lg border text-sm font-bold focus:border-amber-500 focus:outline-none transition-all ${isDark ? "bg-gray-800 border-gray-700 text-white" : "bg-white border-slate-300 hover:border-amber-400"}`}
                           >
-                            Add
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => { setShowCustomDesignationInput(false); setCustomDesignationName(""); }}
-                            className={`text-xs px-3 py-1.5 rounded font-bold border transition-all ${isDark ? "bg-gray-800 border-gray-700 text-gray-300 hover:bg-gray-700" : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"}`}
-                          >
-                            Cancel
-                          </button>
+                            <option value="">— No direct dept. manager —</option>
+                            {deptEmployeesForManager.map((emp: any) => (
+                              <option key={emp.id} value={emp.name}>{emp.name} ({emp.role})</option>
+                            ))}
+                          </select>
+                        </div>
+                      ) : (
+                        <div className="flex items-center justify-center p-3 bg-indigo-50/30 dark:bg-indigo-950/20 border border-dashed border-indigo-200 dark:border-indigo-800 rounded-lg">
+                          <span className="text-xs font-semibold text-indigo-700 dark:text-indigo-400 text-center">
+                            ⭐ Onboarding as Department Manager. Reporting manager dropdown disabled.
+                          </span>
                         </div>
                       )}
                     </div>
+
+                    {/* Row 4: ID, Joining Date, Salary */}
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                      <div>
+                        <label className={`block text-xs font-bold mb-1.5 ${isDark ? "text-gray-300" : "text-slate-700"}`}>Employee ID *</label>
+                        <input type="text" name="employeeId" value={formData.employeeId} readOnly required placeholder="Auto-generated"
+                          className={`w-full p-2.5 rounded-lg border text-sm focus:outline-none opacity-80 cursor-not-allowed ${isDark ? "bg-gray-800/80 border-gray-700 text-gray-400" : "bg-slate-100 border-slate-200 text-slate-500"}`} />
+                      </div>
+                      <div>
+                        <label className={`block text-xs font-bold mb-1.5 ${isDark ? "text-gray-300" : "text-slate-700"}`}>Date of Joining *</label>
+                        <input type="date" name="dateOfJoining" value={formData.dateOfJoining} onChange={handleChange} required
+                          className={`w-full p-2.5 rounded-lg border text-sm focus:border-indigo-500 focus:outline-none ${isDark ? "bg-gray-800 border-gray-700 text-white" : "bg-slate-50 border-slate-200"}`} />
+                      </div>
+                      <div>
+                        <label className={`block text-xs font-bold mb-1.5 ${isDark ? "text-gray-300" : "text-slate-700"}`}>Base Salary (Monthly) *</label>
+                        <input type="number" name="baseSalary" value={formData.baseSalary} onChange={handleChange} required
+                          className={`w-full p-2.5 rounded-lg border text-sm focus:border-indigo-500 focus:outline-none ${isDark ? "bg-gray-800 border-gray-700 text-white" : "bg-slate-50 border-slate-200"}`} />
+                      </div>
+                    </div>
+
+                    {/* Row 5: Daily Working Hours & Working Days Selector */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className={`block text-xs font-bold mb-1.5 ${isDark ? "text-gray-300" : "text-slate-700"}`}>Daily Working Hours *</label>
+                        <input type="number" name="dailyWorkingHours" min="1" max="24" value={formData.dailyWorkingHours} onChange={handleChange} required
+                          className={`w-full p-2.5 rounded-lg border text-sm focus:border-indigo-500 focus:outline-none ${isDark ? "bg-gray-800 border-gray-700 text-white" : "bg-slate-50 border-slate-200"}`} />
+                      </div>
+                      <div>
+                        <label className={`block text-xs font-bold mb-1.5 ${isDark ? "text-gray-300" : "text-slate-700"}`}>Working Days *</label>
+                        <div className="flex gap-1.5 pt-1">
+                          {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((day) => {
+                            const isWorking = formData.workingDays ? formData.workingDays.split(",").includes(day) : day !== "Sun";
+                            return (
+                              <button
+                                type="button"
+                                key={day}
+                                onClick={() => {
+                                  const currentDays = formData.workingDays ? formData.workingDays.split(",").filter(Boolean) : ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+                                  let newDays = [];
+                                  if (currentDays.includes(day)) {
+                                    newDays = currentDays.filter(d => d !== day);
+                                  } else {
+                                    newDays = [...currentDays, day];
+                                  }
+                                  setFormData(prev => ({ ...prev, workingDays: newDays.join(",") }));
+                                }}
+                                className={`w-8 h-8 rounded-lg text-[10px] font-black uppercase transition-all shadow-sm border ${
+                                  isWorking
+                                    ? "bg-blue-600 border-blue-600 text-white hover:bg-blue-700"
+                                    : "bg-white dark:bg-gray-850 border-slate-250 dark:border-gray-750 text-slate-500 dark:text-gray-450 hover:bg-slate-50"
+                                }`}
+                              >
+                                {day.slice(0, 1)}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {/* Owner specific profile inputs */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className={`block text-xs font-bold mb-1.5 ${isDark ? "text-gray-300" : "text-slate-700"}`}>Employee ID *</label>
+                        <input type="text" name="employeeId" value="Auto-generated Owner ID" readOnly
+                          className={`w-full p-2.5 rounded-lg border text-sm focus:outline-none opacity-80 cursor-not-allowed ${isDark ? "bg-gray-800/80 border-gray-700 text-gray-400" : "bg-slate-100 border-slate-200 text-slate-500"}`} />
+                      </div>
+                      <div>
+                        <label className={`block text-xs font-bold mb-1.5 ${isDark ? "text-gray-300" : "text-slate-700"}`}>Date of Joining *</label>
+                        <input type="date" name="dateOfJoining" value={formData.dateOfJoining} onChange={handleChange} required
+                          className={`w-full p-2.5 rounded-lg border text-sm focus:border-indigo-500 focus:outline-none ${isDark ? "bg-gray-800 border-gray-700 text-white" : "bg-slate-50 border-slate-200"}`} />
+                      </div>
+                    </div>
                   </div>
                 )}
-
-                <div className={isOnboardingOwner ? "grid grid-cols-1" : "grid grid-cols-2 gap-4"}>
-                  <div>
-                    <label className={`block text-xs font-bold mb-1.5 ${isDark ? "text-gray-300" : "text-slate-700"}`}>Date of Joining *</label>
-                    <input type="date" name="dateOfJoining" value={formData.dateOfJoining} onChange={handleChange} required
-                      className={`w-full p-2.5 rounded-lg border text-sm focus:border-indigo-500 focus:outline-none ${isDark ? "bg-gray-800 border-gray-700 text-white" : "bg-slate-50 border-slate-200"}`} />
-                  </div>
-                  {!isOnboardingOwner && (
-                    <div>
-                      <label className={`block text-xs font-bold mb-1.5 ${isDark ? "text-gray-300" : "text-slate-700"}`}>Base Salary (Monthly) *</label>
-                      <input type="number" name="baseSalary" value={formData.baseSalary} onChange={handleChange} required
-                        className={`w-full p-2.5 rounded-lg border text-sm focus:border-indigo-500 focus:outline-none ${isDark ? "bg-gray-800 border-gray-700 text-white" : "bg-slate-50 border-slate-200"}`} />
-                    </div>
-                  )}
-                </div>
               </div>
+
             </div>
 
             <div className={`p-4 rounded-lg flex items-start gap-3 mt-4 border ${isDark ? "bg-gray-800/50 border-gray-700" : "bg-slate-50 border-slate-200"}`}>
@@ -1196,9 +1525,24 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
                             onClick={() => toggleRow(emp.id)}
                           >
                             <td className="px-6 py-4">
-                              <div className="font-bold">{emp.name}</div>
-                              <div className={`text-xs mt-0.5 flex items-center gap-1 ${isDark ? "text-gray-500" : "text-slate-500"}`}>
-                                <Mail className="w-3 h-3" /> {emp.email}
+                              <div className="flex items-center gap-3">
+                                {emp.profilePhoto || emp.employeeProfile?.profilePhoto ? (
+                                  <img
+                                    src={emp.profilePhoto || emp.employeeProfile.profilePhoto}
+                                    alt={emp.name}
+                                    className="w-9 h-9 rounded-full object-cover border border-indigo-200 dark:border-gray-700 shadow-sm"
+                                  />
+                                ) : (
+                                  <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-indigo-500 to-violet-600 text-white font-black text-xs flex items-center justify-center shadow-sm border border-indigo-400">
+                                    {(emp.name || "E").split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2)}
+                                  </div>
+                                )}
+                                <div>
+                                  <div className="font-bold text-slate-800 dark:text-slate-200">{emp.name}</div>
+                                  <div className={`text-xs mt-0.5 flex items-center gap-1 ${isDark ? "text-gray-500" : "text-slate-500"}`}>
+                                    <Mail className="w-3 h-3 text-slate-400" /> {emp.email}
+                                  </div>
+                                </div>
                               </div>
                             </td>
                             <td className="px-6 py-4">
@@ -1269,44 +1613,101 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
                                     <h4 className="font-bold text-xs uppercase tracking-wider">Complete Employee Profile</h4>
                                   </div>
 
-                                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                                    <div className="space-y-3">
-                                      <div>
-                                        <div className="text-[10px] font-bold uppercase text-slate-400 dark:text-gray-500 mb-0.5">Contact Number</div>
-                                        <div className="text-sm font-semibold">{emp.mobile || <span className="italic text-slate-300">Not provided</span>}</div>
-                                      </div>
-                                      <div>
-                                        <div className="text-[10px] font-bold uppercase text-slate-400 dark:text-gray-500 mb-0.5">Base Salary</div>
-                                        <div className="text-sm font-mono text-indigo-600 dark:text-indigo-400 font-bold">
-                                          ₹{emp.employeeProfile?.baseSalary ? emp.employeeProfile.baseSalary.toLocaleString('en-IN') : "0"} / mo
+                                  <div className="flex flex-col lg:flex-row gap-6">
+                                    {/* Left Profile Card */}
+                                    <div className="flex flex-col items-center justify-center p-4 border rounded-xl bg-slate-50/50 dark:bg-gray-800/30 w-full lg:w-48 text-center shrink-0">
+                                      {emp.profilePhoto || emp.employeeProfile?.profilePhoto ? (
+                                        <img
+                                          src={emp.profilePhoto || emp.employeeProfile.profilePhoto}
+                                          alt={emp.name}
+                                          className="w-20 h-20 rounded-full object-cover border-4 border-white dark:border-gray-800 shadow-md mb-3"
+                                        />
+                                      ) : (
+                                        <div className="w-20 h-20 rounded-full bg-gradient-to-tr from-indigo-500 to-violet-600 text-white font-black text-2xl flex items-center justify-center shadow-md border-4 border-white dark:border-gray-800 mb-3">
+                                          {(emp.name || "E").split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2)}
                                         </div>
-                                      </div>
+                                      )}
+                                      <h5 className="font-bold text-slate-800 dark:text-slate-100 text-sm line-clamp-1">{emp.name}</h5>
+                                      <p className="text-[10px] text-slate-450 dark:text-gray-400 mt-1 font-mono uppercase tracking-wider">{emp.employeeProfile?.employeeId || "No ID"}</p>
                                     </div>
 
-                                    <div className="space-y-3">
-                                      <div>
-                                        <div className="text-[10px] font-bold uppercase text-slate-400 dark:text-gray-500 mb-0.5">Date of Joining</div>
-                                        <div className="text-sm font-semibold">{emp.employeeProfile?.dateOfJoining ? new Date(emp.employeeProfile.dateOfJoining).toLocaleDateString() : "N/A"}</div>
-                                      </div>
-                                      <div>
-                                        <div className="text-[10px] font-bold uppercase text-slate-400 dark:text-gray-500 mb-0.5">System Access</div>
-                                        <div className="text-xs font-mono">{emp.role} Access Level</div>
-                                      </div>
-                                    </div>
-
-                                    <div className="space-y-3">
-                                      <div>
-                                        <div className="text-[10px] font-bold uppercase text-slate-400 dark:text-gray-500 mb-0.5">Leave Balances</div>
-                                        <div className="text-xs grid grid-cols-2 gap-1 mt-1">
-                                          <div className="flex justify-between border-b border-dashed border-slate-200 dark:border-gray-700 pb-1">
-                                            <span className="text-slate-500">Casual:</span>
-                                            <span className="font-bold">{emp.employeeProfile?.leaveBalances?.casualLeave || 0}</span>
-                                          </div>
-                                          <div className="flex justify-between border-b border-dashed border-slate-200 dark:border-gray-700 pb-1">
-                                            <span className="text-slate-500">Sick:</span>
-                                            <span className="font-bold">{emp.employeeProfile?.leaveBalances?.sickLeave || 0}</span>
+                                    {/* Right Grid Details */}
+                                    <div className="flex-1 grid grid-cols-1 md:grid-cols-3 gap-6">
+                                      {/* Column 1 */}
+                                      <div className="space-y-3">
+                                        <div>
+                                          <div className="text-[10px] font-bold uppercase text-slate-400 dark:text-gray-500 mb-0.5">Contact Number</div>
+                                          <div className="text-sm font-semibold">{emp.mobile || <span className="italic text-slate-300">Not provided</span>}</div>
+                                        </div>
+                                        <div>
+                                          <div className="text-[10px] font-bold uppercase text-slate-400 dark:text-gray-500 mb-0.5">Base Salary</div>
+                                          <div className="text-sm font-mono text-indigo-600 dark:text-indigo-400 font-bold">
+                                            ₹{emp.employeeProfile?.baseSalary ? emp.employeeProfile.baseSalary.toLocaleString('en-IN') : "0"} / mo
                                           </div>
                                         </div>
+                                      </div>
+
+                                      {/* Column 2 */}
+                                      <div className="space-y-3">
+                                        <div>
+                                          <div className="text-[10px] font-bold uppercase text-slate-400 dark:text-gray-500 mb-0.5">Date of Joining</div>
+                                          <div className="text-sm font-semibold">{emp.employeeProfile?.dateOfJoining ? new Date(emp.employeeProfile.dateOfJoining).toLocaleDateString() : "N/A"}</div>
+                                        </div>
+                                        <div>
+                                          <div className="text-[10px] font-bold uppercase text-slate-400 dark:text-gray-500 mb-0.5">System Access</div>
+                                          <div className="text-xs font-mono">{emp.role} Access Level</div>
+                                        </div>
+                                        <div>
+                                          <div className="text-[10px] font-bold uppercase text-slate-400 dark:text-gray-500 mb-0.5">Required Work Duration</div>
+                                          <div className="text-xs font-semibold">{emp.dailyWorkingHours || emp.employeeProfile?.dailyWorkingHours || 8} Hours / Day</div>
+                                        </div>
+                                        <div>
+                                          <div className="text-[10px] font-bold uppercase text-slate-400 dark:text-gray-500 mb-0.5">Working Days</div>
+                                          <div className="flex gap-1 mt-1">
+                                            {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((day) => {
+                                              const wDays = emp.workingDays || emp.employeeProfile?.workingDays || "Mon,Tue,Wed,Thu,Fri,Sat";
+                                              const isWorking = wDays.split(",").includes(day);
+                                              return (
+                                                <span
+                                                  key={day}
+                                                  className={`px-1.5 py-0.5 rounded text-[8px] font-black uppercase border ${
+                                                    isWorking
+                                                      ? "bg-blue-600 border-blue-600 text-white"
+                                                      : "bg-white dark:bg-gray-800 border-slate-200 dark:border-gray-700 text-slate-400"
+                                                  }`}
+                                                >
+                                                  {day.slice(0, 1)}
+                                                </span>
+                                              );
+                                            })}
+                                          </div>
+                                        </div>
+                                      </div>
+
+                                      {/* Column 3 */}
+                                      <div className="space-y-3">
+                                        <div>
+                                          <div className="text-[10px] font-bold uppercase text-slate-400 dark:text-gray-500 mb-0.5">Leave Balances</div>
+                                          <div className="text-xs grid grid-cols-2 gap-2 mt-1">
+                                            <div className="flex justify-between border-b border-dashed border-slate-200 dark:border-gray-700 pb-1">
+                                              <span className="text-slate-500">Casual:</span>
+                                              <span className="font-bold">{emp.employeeProfile?.leaveBalances?.casualLeave || 0}</span>
+                                            </div>
+                                            <div className="flex justify-between border-b border-dashed border-slate-200 dark:border-gray-700 pb-1">
+                                              <span className="text-slate-500">Sick:</span>
+                                              <span className="font-bold">{emp.employeeProfile?.leaveBalances?.sickLeave || 0}</span>
+                                            </div>
+                                          </div>
+                                        </div>
+                                        {/* Display reporting manager if present */}
+                                        {(emp.reportingManager || emp.employeeProfile?.reportingManager) && (
+                                          <div>
+                                            <div className="text-[10px] font-bold uppercase text-slate-400 dark:text-gray-500 mb-0.5">Reporting Manager</div>
+                                            <div className="text-xs font-bold text-slate-700 dark:text-gray-300">
+                                              {emp.reportingManager || emp.employeeProfile.reportingManager}
+                                            </div>
+                                          </div>
+                                        )}
                                       </div>
                                     </div>
                                   </div>
@@ -1375,6 +1776,44 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
             <form onSubmit={handleEditEmployeeSubmit} className="flex flex-col h-full max-h-[85vh] text-left">
               {/* Scrollable inputs */}
               <div className="flex-1 overflow-y-auto pr-2 space-y-6 max-h-[55vh]">
+                {/* Photo Upload Area in Edit Form */}
+                <div className="flex flex-col sm:flex-row gap-4 items-center sm:items-start p-4 rounded-xl border border-indigo-50/50 dark:border-gray-800 bg-slate-50/30 dark:bg-gray-800/10">
+                  <div className="flex flex-col items-center justify-center p-2 border-2 border-dashed rounded-xl w-24 h-24 text-center cursor-pointer relative group transition-all hover:border-indigo-500 hover:bg-indigo-50/5 dark:hover:bg-indigo-950/10">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleEditPhotoUpload}
+                      className="absolute inset-0 opacity-0 cursor-pointer z-10"
+                      disabled={uploadingEditPhoto}
+                    />
+                    {uploadingEditPhoto ? (
+                      <div className="text-[9px] font-semibold text-slate-400 animate-pulse">Uploading...</div>
+                    ) : editForm.profilePhoto ? (
+                      <div className="w-full h-full relative">
+                        <img
+                          src={editForm.profilePhoto}
+                          alt="Preview"
+                          className="w-full h-full object-cover rounded-lg"
+                        />
+                        <div className="absolute inset-0 bg-black/40 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                          <span className="text-white text-[9px] font-bold">Change</span>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex flex-col items-center">
+                        <UserPlus className="w-4 h-4 text-indigo-500 mb-1" />
+                        <span className="text-[9px] font-bold text-slate-700 dark:text-gray-300">Upload Photo</span>
+                      </div>
+                    )}
+                  </div>
+                  <div className="text-center sm:text-left">
+                    <h4 className="font-bold text-xs text-slate-805 dark:text-slate-200">Profile Photograph</h4>
+                    <p className="text-[9px] text-slate-450 dark:text-gray-400 mt-1 max-w-[320px] leading-relaxed">
+                      Upload employee photograph. JPEG or PNG formats supported.
+                    </p>
+                  </div>
+                </div>
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {/* Company (disabled) */}
                   <div>
@@ -1463,6 +1902,11 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
                       value={editForm.department}
                       onChange={(e) => {
                         const newDept = e.target.value;
+                        if (newDept === "add_custom_department") {
+                          setShowEditCustomDeptInput(true);
+                          return;
+                        }
+                        setShowEditCustomDeptInput(false);
                         const currentList = dbRoles.length > 0
                           ? Array.from(new Set(dbRoles.filter((r: any) => (r.department || "").toLowerCase() === newDept.toLowerCase()).map((r: any) => r.name)))
                           : (departmentRoles[newDept] || ["Employee"]);
@@ -1470,7 +1914,8 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
                         setEditForm(prev => ({
                           ...prev,
                           department: newDept,
-                          role: defaultRole
+                          role: defaultRole,
+                          designation: defaultRole
                         }));
                       }}
                       required
@@ -1480,22 +1925,33 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
                       {availableDepartments.map(dept => (
                         <option key={dept} value={dept}>{dept}</option>
                       ))}
+                      <option value="add_custom_department">+ Add Custom Department...</option>
                     </select>
-                  </div>
-
-                  {/* Designation */}
-                  <div>
-                    <label className="block text-xs font-bold mb-1.5 text-slate-700 dark:text-gray-300">Designation *</label>
-                    <select
-                      value={editForm.designation}
-                      onChange={(e) => setEditForm(prev => ({ ...prev, designation: e.target.value }))}
-                      required
-                      className={`w-full p-2.5 rounded-lg border text-sm focus:border-indigo-500 focus:outline-none ${isDark ? "bg-gray-800 border-gray-700 text-white" : "bg-slate-50 border-slate-200 font-semibold"}`}
-                    >
-                      {editDisplayDesignations.map((d: any) => (
-                        <option key={d.id} value={d.name}>{d.name}</option>
-                      ))}
-                    </select>
+                    {showEditCustomDeptInput && (
+                      <div className="mt-2 flex gap-2">
+                        <input
+                          type="text"
+                          value={editCustomDeptName}
+                          onChange={e => setEditCustomDeptName(e.target.value)}
+                          placeholder="New Dept Name"
+                          className={`flex-1 p-2 rounded border text-xs focus:outline-none focus:border-indigo-500 ${isDark ? "bg-gray-800 border-gray-700 text-white" : "bg-slate-50 border-slate-200 text-slate-700"}`}
+                        />
+                        <button
+                          type="button"
+                          onClick={handleEditAddCustomDept}
+                          className="bg-indigo-600 hover:bg-indigo-700 text-white text-xs px-3 py-1.5 rounded font-bold transition-all shadow-sm"
+                        >
+                          Add
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => { setShowEditCustomDeptInput(false); setEditCustomDeptName(""); }}
+                          className={`text-xs px-3 py-1.5 rounded font-bold border transition-all ${isDark ? "bg-gray-800 border-gray-700 text-gray-300 hover:bg-gray-700" : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"}`}
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    )}
                   </div>
 
                   {/* System Role */}
@@ -1503,32 +1959,85 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
                     <label className="block text-xs font-bold mb-1.5 text-slate-700 dark:text-gray-300">System Role *</label>
                     <select
                       value={editForm.role}
-                      onChange={(e) => setEditForm(prev => ({ ...prev, role: e.target.value }))}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        if (val === "add_custom_role") {
+                          setShowEditCustomRoleInput(true);
+                        } else {
+                          setShowEditCustomRoleInput(false);
+                          setEditForm(prev => ({ ...prev, role: val, designation: val }));
+                        }
+                      }}
                       required
                       className={`w-full p-2.5 rounded-lg border text-sm focus:border-indigo-500 focus:outline-none ${isDark ? "bg-gray-800 border-gray-700 text-white" : "bg-slate-50 border-slate-200 font-semibold"}`}
                     >
                       {editRolesList.map((r: any, idx: number) => (
                         <option key={idx} value={r}>{r}</option>
                       ))}
+                      <option value="add_custom_role">+ Add Custom Role...</option>
+                    </select>
+                    {showEditCustomRoleInput && (
+                      <div className="mt-2 flex gap-2">
+                        <input
+                          type="text"
+                          value={editCustomRoleName}
+                          onChange={e => setEditCustomRoleName(e.target.value)}
+                          placeholder="New Role Name"
+                          className={`flex-1 p-2 rounded border text-xs focus:outline-none focus:border-indigo-500 ${isDark ? "bg-gray-800 border-gray-700 text-white" : "bg-slate-50 border-slate-200 text-slate-700"}`}
+                        />
+                        <button
+                          type="button"
+                          onClick={handleEditAddCustomRole}
+                          className="bg-indigo-600 hover:bg-indigo-700 text-white text-xs px-3 py-1.5 rounded font-bold transition-all shadow-sm"
+                        >
+                          Add
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => { setShowEditCustomRoleInput(false); setEditCustomRoleName(""); }}
+                          className={`text-xs px-3 py-1.5 rounded font-bold border transition-all ${isDark ? "bg-gray-800 border-gray-700 text-gray-300 hover:bg-gray-700" : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"}`}
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Job Title / Designation */}
+                  <div>
+                    <label className="block text-xs font-bold mb-1.5 text-emerald-650 dark:text-emerald-400">
+                      Job Title
+                      <span className={`ml-1.5 text-[9px] font-normal px-1.5 py-0.5 rounded ${isDark ? "bg-emerald-900/40 text-emerald-400" : "bg-emerald-50 text-emerald-600"}`}>Auto-filled</span>
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={editForm.designation}
+                      onChange={(e) => setEditForm(prev => ({ ...prev, designation: e.target.value }))}
+                      placeholder="Job title"
+                      className={`w-full p-2.5 rounded-lg border text-sm font-bold focus:border-emerald-500 focus:outline-none transition-all ${isDark ? "bg-gray-800 border-gray-700 text-white" : "bg-white border-slate-350 hover:border-emerald-400"}`}
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Department Reporting Manager */}
+                  <div>
+                    <label className="block text-xs font-bold mb-1.5 text-slate-700 dark:text-gray-300">Department Reporting Manager</label>
+                    <select
+                      value={editForm.reportingManager || ""}
+                      onChange={(e) => setEditForm(prev => ({ ...prev, reportingManager: e.target.value }))}
+                      className={`w-full p-2.5 rounded-lg border text-sm focus:border-indigo-500 focus:outline-none ${isDark ? "bg-gray-800 border-gray-700 text-white" : "bg-slate-50 border-slate-200"}`}
+                    >
+                      <option value="">— No direct dept. manager —</option>
+                      {editDeptEmployees.map((emp: any) => (
+                        <option key={emp.id} value={emp.name}>{emp.name} ({emp.role})</option>
+                      ))}
                     </select>
                   </div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {/* Status */}
-                  <div>
-                    <label className="block text-xs font-bold mb-1.5 text-slate-700 dark:text-gray-300">Status *</label>
-                    <select
-                      value={editForm.status}
-                      onChange={(e) => setEditForm(prev => ({ ...prev, status: e.target.value }))}
-                      className={`w-full p-2.5 rounded-lg border text-sm focus:border-indigo-500 focus:outline-none ${isDark ? "bg-gray-800 border-gray-700 text-white" : "bg-slate-50 border-slate-200 font-semibold"}`}
-                    >
-                      <option value="active">Active</option>
-                      <option value="inactive">Inactive</option>
-                      <option value="on notice">On Notice</option>
-                    </select>
-                  </div>
-
                   {/* Date of Joining */}
                   <div>
                     <label className="block text-xs font-bold mb-1.5 text-slate-700 dark:text-gray-300">Date of Joining *</label>
@@ -1539,6 +2048,55 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
                       onChange={(e) => setEditForm(prev => ({ ...prev, dateOfJoining: e.target.value }))}
                       className={`w-full p-2.5 rounded-lg border text-sm focus:border-indigo-500 focus:outline-none ${isDark ? "bg-gray-800 border-gray-700 text-white" : "bg-slate-50 border-slate-200"}`}
                     />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Daily Working Hours */}
+                  <div>
+                    <label className="block text-xs font-bold mb-1.5 text-slate-700 dark:text-gray-300">Daily Working Hours *</label>
+                    <input
+                      type="number"
+                      required
+                      min="1"
+                      max="24"
+                      value={editForm.dailyWorkingHours}
+                      onChange={(e) => setEditForm(prev => ({ ...prev, dailyWorkingHours: e.target.value }))}
+                      className={`w-full p-2.5 rounded-lg border text-sm focus:border-indigo-500 focus:outline-none ${isDark ? "bg-gray-800 border-gray-700 text-white" : "bg-slate-50 border-slate-200"}`}
+                    />
+                  </div>
+
+                  {/* Working Days */}
+                  <div>
+                    <label className="block text-xs font-bold mb-1.5 text-slate-700 dark:text-gray-300">Working Days *</label>
+                    <div className="flex gap-1.5 pt-1.5">
+                      {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((day) => {
+                        const isWorking = editForm.workingDays ? editForm.workingDays.split(",").includes(day) : day !== "Sun";
+                        return (
+                          <button
+                            type="button"
+                            key={day}
+                            onClick={() => {
+                              const currentDays = editForm.workingDays ? editForm.workingDays.split(",").filter(Boolean) : ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+                              let newDays = [];
+                              if (currentDays.includes(day)) {
+                                newDays = currentDays.filter(d => d !== day);
+                              } else {
+                                newDays = [...currentDays, day];
+                              }
+                              setEditForm(prev => ({ ...prev, workingDays: newDays.join(",") }));
+                            }}
+                            className={`w-8 h-8 rounded-lg text-[10px] font-black uppercase transition-all shadow-sm border ${
+                              isWorking
+                                ? "bg-blue-600 border-blue-600 text-white hover:bg-blue-700"
+                                : "bg-white dark:bg-gray-850 border-slate-250 dark:border-gray-750 text-slate-500 dark:text-gray-450 hover:bg-slate-50"
+                            }`}
+                          >
+                            {day.slice(0, 1)}
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
                 </div>
               </div>

@@ -648,8 +648,9 @@ export default function BusinessLeads({
     // 1. Build main sheet rows (Table starts at Row 1!)
     const sheetRows: any[] = [];
     
-    // Add headers row (exactly matches frontend visible columns)
+    // Add headers row (exactly matches frontend visible columns + Call History Timeline)
     const headers = visibleColumns.map((col) => formatHeader(col));
+    headers.push("Call History Timeline");
     sheetRows.push(headers);
 
     // Add candidate records rows
@@ -677,6 +678,74 @@ export default function BusinessLeads({
         return lead[col] || "-";
       });
 
+      // Calculate call history timeline text
+      let historyList: any[] = [];
+      if (lead.call_history) {
+        try {
+          const parsed = JSON.parse(lead.call_history);
+          if (Array.isArray(parsed)) {
+            historyList = parsed;
+          }
+        } catch (_) {}
+      }
+      if (historyList.length === 0) {
+        const remarksText = lead.call_remarks || lead.remarks;
+        const hasCurrentCallInfo = remarksText || (lead.status && lead.status !== "New");
+        if (hasCurrentCallInfo) {
+          historyList.push({
+            status: lead.status || "No Answer",
+            call_remarks: remarksText || "No remarks logged.",
+            followup_date: lead.followup_date || null,
+            followup_time: lead.followup_time || null,
+            interview_round: lead.interview_round || null,
+            interview_date: lead.interview_date || null,
+            interview_time: lead.interview_time || null,
+            interview_mode: lead.interview_mode || null,
+            interview_video_link: lead.interview_video_link || null,
+            screenshot_url: lead.screenshot_url || null,
+            recording_url: lead.recording_url || null,
+            updatedAt: lead.updatedAt || lead.createdAt || new Date().toISOString(),
+            updatedBy: "HR System"
+          });
+        }
+      }
+
+      const sortedHistory = [...historyList].reverse();
+      const timelineText = sortedHistory.map((log) => {
+        const dateStr = new Date(log.updatedAt).toLocaleString("en-IN", {
+          day: "2-digit",
+          month: "short",
+          year: "numeric",
+          hour: "2-digit",
+          minute: "2-digit"
+        });
+        const status = log.status || "-";
+        const remarks = log.call_remarks || "-";
+        const by = log.updatedBy || "HR System";
+        
+        let extra = "";
+        if (log.followup_date) {
+          let fUp = new Date(log.followup_date).toLocaleDateString("en-IN", {
+            day: "2-digit",
+            month: "short",
+            year: "numeric"
+          });
+          if (log.followup_time) fUp += ` ${log.followup_time}`;
+          extra += ` (Follow-up: ${fUp})`;
+        }
+        if (log.interview_date) {
+          const intv = `Round-${log.interview_round || "1"} on ${new Date(log.interview_date).toLocaleDateString("en-IN", {
+            day: "2-digit",
+            month: "short",
+            year: "numeric"
+          })} ${log.interview_time || ""} (${log.interview_mode || "online"})`;
+          extra += ` (Interview: ${intv})`;
+        }
+        
+        return `[${dateStr} by ${by}]: ${status} - Remarks: ${remarks}${extra}`;
+      }).join("\n");
+
+      recordRow.push(timelineText || "-");
       sheetRows.push(recordRow);
     });
 
@@ -696,6 +765,27 @@ export default function BusinessLeads({
     sheetRows.push(["System Link Added", computedStats.systemJobLink]);
 
     const ws = XLSX.utils.aoa_to_sheet(sheetRows);
+    
+    // Set auto widths for HR Leads worksheet
+    if (sheetRows.length > 0) {
+      const numCols = sheetRows[0].length;
+      const colWidths = Array(numCols).fill(10);
+      sheetRows.forEach((row) => {
+        row.forEach((cell: any, colIdx: number) => {
+          if (cell !== null && cell !== undefined) {
+            const val = String(cell);
+            const lines = val.split("\n");
+            lines.forEach((l) => {
+              if (l.length > colWidths[colIdx]) {
+                colWidths[colIdx] = l.length;
+              }
+            });
+          }
+        });
+      });
+      ws["!cols"] = colWidths.map((w) => ({ wch: Math.min(Math.max(w + 2, 10), 80) }));
+    }
+
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "HR Leads");
 
@@ -784,6 +874,18 @@ export default function BusinessLeads({
     });
 
     const wsCallLogs = XLSX.utils.json_to_sheet(callLogsRows);
+    if (callLogsRows.length > 0) {
+      const callLogsHeaders = Object.keys(callLogsRows[0]);
+      const callLogsColWidths = callLogsHeaders.map((h) => {
+        let maxLen = h.length;
+        callLogsRows.forEach((r) => {
+          const val = String(r[h] || "");
+          if (val.length > maxLen) maxLen = val.length;
+        });
+        return { wch: Math.min(Math.max(maxLen + 2, 10), 60) };
+      });
+      wsCallLogs["!cols"] = callLogsColWidths;
+    }
     XLSX.utils.book_append_sheet(wb, wsCallLogs, "Call Logs History");
 
     // 3. Stats Summary Sheet
@@ -799,6 +901,18 @@ export default function BusinessLeads({
       { "Metric Statistics": "System Link Added", "Count Value": computedStats.systemJobLink }
     ];
     const wsStats = XLSX.utils.json_to_sheet(summaryData);
+    if (summaryData.length > 0) {
+      const statsHeaders = Object.keys(summaryData[0]);
+      const statsColWidths = statsHeaders.map((h) => {
+        let maxLen = h.length;
+        summaryData.forEach((r) => {
+          const val = String((r as any)[h] || "");
+          if (val.length > maxLen) maxLen = val.length;
+        });
+        return { wch: Math.min(Math.max(maxLen + 2, 10), 60) };
+      });
+      wsStats["!cols"] = statsColWidths;
+    }
     XLSX.utils.book_append_sheet(wb, wsStats, "Summary Stats");
 
     XLSX.writeFile(wb, `${platformName}_Leads_Export.xlsx`);
