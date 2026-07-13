@@ -98,6 +98,9 @@ export default function BusinessLeads({
   const [isCreatingStatus, setIsCreatingStatus] = useState<boolean>(false);
   const [newStatusName, setNewStatusName] = useState<string>("");
   const [savingStatus, setSavingStatus] = useState<boolean>(false);
+  const [newStatusHasSchedule, setNewStatusHasSchedule] = useState<boolean>(false);
+  const [newStatusHasScreenshot, setNewStatusHasScreenshot] = useState<boolean>(false);
+  const [newStatusHasAudio, setNewStatusHasAudio] = useState<boolean>(false);
   const selectedDeptObj = departments.find((d) => String(d.id) === String(selectedDepartmentId));
   const selectedDeptName = selectedDeptObj ? selectedDeptObj.name : "";
   const filteredRoles = roles.filter((r) => r.department === selectedDeptName);
@@ -228,7 +231,12 @@ export default function BusinessLeads({
       const res = await fetch("/api/business-leads/statuses", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: newStatusName })
+        body: JSON.stringify({ 
+          name: newStatusName,
+          hasSchedule: newStatusHasSchedule,
+          hasScreenshot: newStatusHasScreenshot,
+          hasAudio: newStatusHasAudio
+        })
       });
       const data = await res.json();
       if (data.success) {
@@ -237,6 +245,9 @@ export default function BusinessLeads({
         setEditStatus(data.data.name);
         setIsCreatingStatus(false);
         setNewStatusName("");
+        setNewStatusHasSchedule(false);
+        setNewStatusHasScreenshot(false);
+        setNewStatusHasAudio(false);
       } else {
         triggerToast(data.error || "Failed to create status");
       }
@@ -347,16 +358,21 @@ export default function BusinessLeads({
     if (!selectedLeadForEdit || !activePlatformId) return;
     setSavingEdit(true);
 
+    const statusObj = leadStatuses.find(st => st.name === editStatus);
+    const hasScreenshot = statusObj ? statusObj.hasScreenshot : ["No Answer", "Busy"].includes(editStatus);
+    const hasAudio = statusObj ? statusObj.hasAudio : ["Connected", "Not Interested", "Connected & Interested"].includes(editStatus);
+    const hasSchedule = statusObj ? statusObj.hasSchedule : ["No Answer", "Busy", "Connected & Interested"].includes(editStatus);
+
     const updateFields: any = {
       status: editStatus,
       call_remarks: editCallRemarks,
-      followup_date: ["No Answer", "Busy", "Connected & Interested"].includes(editStatus) ? (editFollowupDate || null) : null,
-      followup_time: ["No Answer", "Busy", "Connected & Interested"].includes(editStatus) ? (editFollowupTime || null) : null,
-      screenshot_url: ["No Answer", "Busy"].includes(editStatus) ? (screenshotUrl || null) : null,
-      recording_url: ["Connected", "Not Interested", "Connected & Interested"].includes(editStatus) ? (recordingUrl || null) : null
+      followup_date: hasSchedule ? (editFollowupDate || null) : null,
+      followup_time: hasSchedule ? (editFollowupTime || null) : null,
+      screenshot_url: hasScreenshot ? (screenshotUrl || null) : null,
+      recording_url: hasAudio ? (recordingUrl || null) : null
     };
 
-    if (editStatus === "Interview Scheduled") {
+    if (hasSchedule || editStatus === "Interview Scheduled") {
       updateFields.interview_round = schedRound;
       updateFields.interview_date = schedDate || null;
       updateFields.interview_time = schedTime || null;
@@ -2048,32 +2064,66 @@ export default function BusinessLeads({
                       <option value="add-new" className="text-[#714B67] font-bold">+ Add New Status</option>
                     </select>
                   ) : (
-                    <div className="flex items-center gap-2 animate-scaleIn">
-                      <input
-                        type="text"
-                        placeholder="New Status Name"
-                        value={newStatusName}
-                        onChange={(e) => setNewStatusName(e.target.value)}
-                        className="flex-1 px-3 py-1.5 text-xs border border-slate-200 dark:border-gray-800 rounded-lg bg-white dark:bg-slate-900 text-slate-800 focus:outline-none focus:ring-1 focus:ring-[#714B67]"
-                      />
-                      <button
-                        type="button"
-                        onClick={handleCreateStatus}
-                        disabled={savingStatus}
-                        className="px-3 py-1.5 bg-[#714B67] hover:bg-[#8A5B7D] text-white text-xs font-bold rounded-lg disabled:opacity-50"
-                      >
-                        {savingStatus ? "Saving..." : "Save"}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setIsCreatingStatus(false);
-                          setNewStatusName("");
-                        }}
-                        className="px-2 py-1.5 text-xs text-slate-500 hover:text-slate-700"
-                      >
-                        Cancel
-                      </button>
+                    <div className="flex flex-col gap-2 p-3 bg-slate-50 dark:bg-slate-950 rounded-xl border border-slate-100 dark:border-gray-800 mt-2 animate-scaleIn">
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="text"
+                          placeholder="New Status Name"
+                          value={newStatusName}
+                          onChange={(e) => setNewStatusName(e.target.value)}
+                          className="flex-1 px-3 py-1.5 text-xs border border-slate-200 dark:border-gray-800 rounded-lg bg-white dark:bg-slate-900 text-slate-800 focus:outline-none focus:ring-1 focus:ring-[#714B67]"
+                        />
+                        <button
+                          type="button"
+                          onClick={handleCreateStatus}
+                          disabled={savingStatus}
+                          className="px-3 py-1.5 bg-[#714B67] hover:bg-[#8A5B7D] text-white text-xs font-bold rounded-lg disabled:opacity-50 whitespace-nowrap"
+                        >
+                          {savingStatus ? "Saving..." : "Save"}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsCreatingStatus(false);
+                            setNewStatusName("");
+                            setNewStatusHasSchedule(false);
+                            setNewStatusHasScreenshot(false);
+                            setNewStatusHasAudio(false);
+                          }}
+                          className="px-2 py-1.5 text-xs text-slate-500 hover:text-slate-700"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                      <div className="flex flex-wrap items-center gap-3.5 mt-1 text-[10px] font-bold text-slate-650 dark:text-gray-300">
+                        <label className="flex items-center gap-1.5 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={newStatusHasSchedule}
+                            onChange={(e) => setNewStatusHasSchedule(e.target.checked)}
+                            className="rounded border-slate-350 text-[#714B67] focus:ring-[#714B67] w-3.5 h-3.5"
+                          />
+                          Schedule Date/Time
+                        </label>
+                        <label className="flex items-center gap-1.5 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={newStatusHasScreenshot}
+                            onChange={(e) => setNewStatusHasScreenshot(e.target.checked)}
+                            className="rounded border-slate-350 text-[#714B67] focus:ring-[#714B67] w-3.5 h-3.5"
+                          />
+                          Upload Screenshot
+                        </label>
+                        <label className="flex items-center gap-1.5 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={newStatusHasAudio}
+                            onChange={(e) => setNewStatusHasAudio(e.target.checked)}
+                            className="rounded border-slate-350 text-[#714B67] focus:ring-[#714B67] w-3.5 h-3.5"
+                          />
+                          Upload Audio
+                        </label>
+                      </div>
                     </div>
                   )}
                 </div>
@@ -2090,8 +2140,8 @@ export default function BusinessLeads({
                   />
                 </div>
 
-                {/* Conditional Screenshot Upload Proof (No Answer / Busy) */}
-                {["No Answer", "Busy"].includes(editStatus) && (
+                {/* Conditional Screenshot Upload Proof */}
+                {(leadStatuses.find(st => st.name === editStatus)?.hasScreenshot || ["No Answer", "Busy"].includes(editStatus)) && (
                   <div className="space-y-1.5 p-3 bg-slate-50 dark:bg-slate-955/20 border border-slate-100 dark:border-gray-850 rounded-xl animate-fadeIn">
                     <label className="text-[10px] font-bold text-slate-400 uppercase block">Upload Screenshot Proof</label>
                     <div className="flex items-center gap-2">
@@ -2124,8 +2174,8 @@ export default function BusinessLeads({
                   </div>
                 )}
 
-                {/* Conditional Call Recording Upload Proof (Connected / Not Interested) */}
-                {["Connected", "Not Interested", "Connected & Interested"].includes(editStatus) && (
+                {/* Conditional Call Recording Upload Proof */}
+                {(leadStatuses.find(st => st.name === editStatus)?.hasAudio || ["Connected", "Not Interested", "Connected & Interested"].includes(editStatus)) && (
                   <div className="space-y-1.5 p-3 bg-slate-50 dark:bg-slate-955/20 border border-slate-100 dark:border-gray-850 rounded-xl animate-fadeIn">
                     <label className="text-[10px] font-bold text-slate-400 uppercase block">Upload Call Recording Proof</label>
                     <div className="flex items-center gap-2">
@@ -2233,8 +2283,8 @@ export default function BusinessLeads({
                   </div>
                 )}
 
-                {/* Follow-up Date & Time (Conditional on No Answer / Busy / Connected & Interested) */}
-                {["No Answer", "Busy", "Connected & Interested"].includes(editStatus) && (
+                {/* Follow-up Date & Time (Conditional on No Answer / Busy / Connected & Interested or status settings) */}
+                {(leadStatuses.find(st => st.name === editStatus)?.hasSchedule || ["No Answer", "Busy", "Connected & Interested"].includes(editStatus)) && (
                   <div className="grid grid-cols-2 gap-3 mt-2 p-3 bg-slate-50 dark:bg-slate-950/40 rounded-xl border border-slate-100 dark:border-gray-850 animate-fadeIn">
                     <div className="space-y-1">
                       <label className="text-[10px] font-bold text-slate-450 uppercase">Set Follow-up Date</label>

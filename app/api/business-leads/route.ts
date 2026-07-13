@@ -7,6 +7,9 @@ import LeadPlatform from "@/models/sequelize/LeadPlatform";
 import Candidate from "@/models/sequelize/Candidate";
 import Interview from "@/models/sequelize/Interview";
 import TaskLog from "@/models/sequelize/TaskLog";
+import Job from "@/models/sequelize/Job";
+import Department from "@/models/sequelize/Department";
+import { Op } from "sequelize";
 
 // GET: Fetch leads and columns from a specific platform's physical table
 export async function GET(req: Request) {
@@ -736,29 +739,76 @@ export async function PUT(req: Request) {
 
         if (schedDate && schedTime) {
           const candId = leadId;
+          
+          // 1. Search candidate by ID
           let candidate = await Candidate.findByPk(candId);
+          
+          // 2. Search candidate by phone/email to prevent duplicates
           if (!candidate) {
-            await Candidate.create({
+            const searchOr = [];
+            if (leadPhone && leadPhone.trim()) searchOr.push({ mobile: leadPhone.trim() });
+            if (leadEmail && leadEmail.trim()) searchOr.push({ email: leadEmail.trim() });
+            
+            if (searchOr.length > 0) {
+              candidate = await Candidate.findOne({
+                where: { [Op.or]: searchOr }
+              });
+            }
+          }
+
+          // 3. Create or reuse/update candidate
+          if (!candidate) {
+            candidate = await Candidate.create({
               id: candId,
               name: leadName || "Lead Candidate",
               mobile: leadPhone || "",
               email: leadEmail || "",
               qualification: leadQual || "",
               experience: leadExp || "",
-              status: "Selected"
+              status: "Selected",
+              sourcingChannel: "Business Lead",
+              currentRound: 1
             });
+          } else {
+            // Upgrade existing profile status & sourcingChannel
+            candidate.status = "Selected";
+            if (!candidate.currentRound) {
+              candidate.currentRound = 1;
+            }
+            if (candidate.sourcingChannel === "System Job Link") {
+              candidate.sourcingChannel = "Both";
+            }
+            await candidate.save();
           }
 
+          // 4. Resolve vacancy title dynamically
+          let vacancyName = "Business Lead Application";
+          if (candidate.job) {
+            try {
+              const jobRecord = await Job.findByPk(candidate.job, {
+                include: [{ model: Department, as: "department" }]
+              });
+              if (jobRecord) {
+                const deptName = jobRecord.department ? jobRecord.department.name : "";
+                vacancyName = deptName ? `${deptName} - ${jobRecord.title}` : jobRecord.title;
+              }
+            } catch (e) {
+              console.error("Failed to load Job details for business lead sync:", e);
+            }
+          }
+
+          const actualCandId = candidate.id;
           const scheduleTimeVal = new Date(`${schedDate}T${schedTime}`);
+          
           await Interview.create({
             id: `int_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
-            candidate: candId,
-            candidateName: leadName || "Lead Candidate",
+            candidate: actualCandId,
+            candidateName: candidate.name || leadName || "Lead Candidate",
             round: parseFloat(schedRound),
             scheduleTime: scheduleTimeVal,
             videoLink: schedMode === "offline" ? "" : schedVideo,
             mode: schedMode,
-            vacancyName: "Business Lead Application",
+            vacancyName: vacancyName,
             status: "Pending"
           });
         }

@@ -63,8 +63,17 @@ export function OwnerDashboard({
   const exportAttendanceReport = () => {
     if (!stats?.staffList) return;
     
-    const headers = ["Employee Name", "Email", "Role", "Department", "Company", "Status", "Attendance Today"];
+    const headers = ["Employee Name", "Email", "Role", "Department", "Company", "Status", "Attendance Today", "SOD Time", "EOD Time"];
     
+    const formatTime = (isoString: string | null) => {
+      if (!isoString) return "-";
+      try {
+        return new Date(isoString).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      } catch (e) {
+        return "-";
+      }
+    };
+
     const rows = stats.staffList.map((staff: any) => [
       staff.name || "Unknown",
       staff.email || "N/A",
@@ -72,7 +81,9 @@ export function OwnerDashboard({
       staff.department || "N/A",
       staff.companies || "N/A",
       staff.status || "N/A",
-      staff.isPresent ? "Present" : "Absent"
+      staff.isPresent ? "Present" : "Absent",
+      formatTime(staff.sodTime),
+      formatTime(staff.eodTime)
     ]);
 
     let excelTemplate = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">`;

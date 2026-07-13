@@ -2452,12 +2452,14 @@ export function InterviewsQueue({ triggerToast }: { triggerToast: (msg: string) 
   const [followUpTime, setFollowUpTime] = useState("");
   const [followUpMode, setFollowUpMode] = useState<"online" | "offline">("online");
   const [followUpVideoLink, setFollowUpVideoLink] = useState("");
+  const [followUpRemarks, setFollowUpRemarks] = useState("");
   const [followUpSubmitting, setFollowUpSubmitting] = useState(false);
 
   const handleFollowUpClick = (item: any) => {
     setFollowUpInterview(item);
     setFollowUpMode(item.mode || "online");
     setFollowUpVideoLink(item.videoLink || "");
+    setFollowUpRemarks("");
     if (item.scheduleTime) {
       const d = new Date(item.scheduleTime);
       const year = d.getFullYear();
@@ -2489,8 +2491,7 @@ export function InterviewsQueue({ triggerToast }: { triggerToast: (msg: string) 
         body: JSON.stringify({
           interviewId: followUpInterview.id,
           scheduleTime: `${followUpDate}T${followUpTime}`,
-          videoLink: followUpMode === "offline" ? "" : followUpVideoLink,
-          mode: followUpMode,
+          remarks: followUpRemarks,
         }),
       });
       const data = await res.json();
@@ -2588,16 +2589,40 @@ export function InterviewsQueue({ triggerToast }: { triggerToast: (msg: string) 
       return;
     }
 
-    // Validate round progression: Candidate can only be scheduled for round if they've cleared previous rounds
+    // Validate progression of rounds and timing constraints
     const targetRound = parseInt(schedRound);
+
+    // Find all interviews of the selected candidate
+    const candidateInterviews = interviews.filter(
+      (int: any) => (int.candidate === schedCandidateId || int.candidate?.id === schedCandidateId) && int.id !== editingInterviewId
+    );
+
+    // 1. Time check: Check if candidate has any scheduled interview in the future
+    const now = new Date();
+    const futureInterview = candidateInterviews.find((int: any) => new Date(int.scheduleTime) > now);
+
+    if (futureInterview) {
+      const formattedTime = new Date(futureInterview.scheduleTime).toLocaleString("en-IN", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+      triggerToast(`Cannot schedule next round. Candidate already has an interview scheduled at ${formattedTime} which has not occurred yet.`);
+      return;
+    }
+
+    // 2. Selection check: Candidate must be selected in Round X-1 before scheduling Round X
     if (targetRound > 1) {
-      const selectedCand = candidates.find(c => c.id === schedCandidateId);
-      if (selectedCand) {
-        const currentRound = selectedCand.currentRound || 1;
-        if (currentRound < targetRound) {
-          triggerToast(`Cannot schedule Round-${targetRound} interview. Candidate must clear Round-${targetRound - 1} first.`);
-          return;
-        }
+      const prevRound = targetRound - 1;
+      const prevRoundSelected = candidateInterviews.some(
+        (int: any) => parseInt(int.round) === prevRound && int.status === "Selected"
+      );
+
+      if (!prevRoundSelected) {
+        triggerToast(`Cannot schedule Round-${targetRound} interview. Candidate must clear Round-${prevRound} (marked as Selected) first.`);
+        return;
       }
     }
 
@@ -3427,40 +3452,17 @@ export function InterviewsQueue({ triggerToast }: { triggerToast: (msg: string) 
                 />
               </div>
 
-              {/* Interview Mode selection */}
+              {/* Remarks / Reason for follow-up */}
               <div className="flex flex-col gap-1.5">
-                <label className="text-slate-700">Interview Mode</label>
-                <select
-                  value={followUpMode}
-                  onChange={(e) => {
-                    const newMode = e.target.value as "online" | "offline";
-                    setFollowUpMode(newMode);
-                    if (newMode === "online" && !followUpVideoLink) {
-                      const candId = followUpInterview.candidate?.id || "";
-                      const roundNum = followUpInterview.round || "1";
-                      setFollowUpVideoLink(`https://meet.acolyte.in/round${roundNum}-${candId.slice(-6)}`);
-                    }
-                  }}
-                  className="rounded border border-slate-250 p-2.5 text-slate-800 focus:ring-2 focus:ring-[#714B67] focus:border-[#714B67] focus:outline-none"
-                >
-                  <option value="online">Online</option>
-                  <option value="offline">Offline</option>
-                </select>
+                <label className="text-slate-700">Remarks / Follow-up Reason</label>
+                <textarea
+                  rows={2}
+                  value={followUpRemarks}
+                  onChange={(e) => setFollowUpRemarks(e.target.value)}
+                  placeholder="E.g., Discussing salary expectations, checking notice period details..."
+                  className="rounded border border-slate-250 p-2.5 text-slate-800 focus:ring-2 focus:ring-[#714B67] focus:outline-none"
+                />
               </div>
-
-              {/* Video link field if online */}
-              {followUpMode === "online" && (
-                <div className="flex flex-col gap-1.5 animate-fadeIn">
-                  <label className="text-slate-700">Virtual Meeting Link</label>
-                  <input
-                    type="url"
-                    value={followUpVideoLink}
-                    onChange={(e) => setFollowUpVideoLink(e.target.value)}
-                    placeholder="Google Meet or Zoom Video URL"
-                    className="rounded border border-slate-250 p-2.5 text-slate-800 focus:ring-2 focus:ring-[#714B67] focus:outline-none font-mono text-[11px]"
-                  />
-                </div>
-              )}
 
               {/* Actions */}
               <div className="flex gap-3 pt-2">

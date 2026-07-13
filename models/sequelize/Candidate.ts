@@ -37,6 +37,7 @@ class Candidate extends Model {
   public screenedAt!: Date;
   public status!: string;
   public currentRound!: number;
+  public sourcingChannel!: string;
   public drivingLicense!: string;
   public sourceOfJobInfo!: string;
   public declaration!: string;
@@ -259,6 +260,10 @@ Candidate.init(
       allowNull: true,
     },
     status: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    sourcingChannel: {
       type: DataTypes.STRING,
       allowNull: true,
     },

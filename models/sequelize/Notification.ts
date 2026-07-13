@@ -20,7 +20,7 @@ Notification.init(
       allowNull: true,
     },
     message: {
-      type: DataTypes.STRING,
+      type: DataTypes.TEXT,
       allowNull: true,
     },
     read: {

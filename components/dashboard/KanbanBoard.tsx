@@ -95,6 +95,28 @@ export default function KanbanBoard() {
   const [desc, setDesc] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
+  // Call sub-fields & masters
+  const [callCategory, setCallCategory] = useState<"Interview" | "Bank" | "">("");
+  const [selectedBankId, setSelectedBankId] = useState<string>("");
+  const [bankName, setBankName] = useState("");
+  const [branchName, setBranchName] = useState("");
+  const [officerName, setOfficerName] = useState("");
+  const [officerPhone, setOfficerPhone] = useState("");
+  const [bankCategory, setBankCategory] = useState("Operations");
+  const [bankCategoryOther, setBankCategoryOther] = useState("");
+
+  // Dynamic Bank Category List
+  const [bankCategories, setBankCategories] = useState<string[]>([]);
+  const [showAddCategoryInput, setShowAddCategoryInput] = useState(false);
+  const [newCategoryText, setNewCategoryText] = useState("");
+
+  // Dynamic Custom Fields
+  const [customCallFields, setCustomCallFields] = useState<{ key: string; value: string }[]>([]);
+
+  // Bank / Branch master data (from Legal Recovery)
+  const [banksList, setBanksList] = useState<{ id: string | number; bankName: string; bankCode: string }[]>([]);
+  const [branchesList, setBranchesList] = useState<{ id: string | number; branchName: string; branchCode: string }[]>([]);
+
   // Progress Notes Modal & Task Details
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [editNotes, setEditNotes] = useState("");
@@ -147,14 +169,73 @@ export default function KanbanBoard() {
   useEffect(() => {
     if (status !== "loading") {
       fetchTasks();
+      fetchBanks();
+      fetchCategories();
     }
   }, [session, status]);
 
-  // Live tick every second to update running timer display
-  useEffect(() => {
-    const interval = setInterval(() => setTick(t => t + 1), 1000);
-    return () => clearInterval(interval);
-  }, []);
+  const fetchCategories = async () => {
+    try {
+      const res = await fetch("/api/tasks/call-categories");
+      const data = await res.json();
+      if (data.success) {
+        setBankCategories(data.data || []);
+      }
+    } catch (err) {
+      console.error("Failed to load call categories:", err);
+    }
+  };
+
+  const handleAddCategory = async () => {
+    const trimmed = newCategoryText.trim();
+    if (!trimmed) return;
+    if (bankCategories.map(c => c.toLowerCase()).includes(trimmed.toLowerCase())) {
+      alert("Category already exists!");
+      return;
+    }
+    
+    try {
+      const res = await fetch("/api/tasks/call-categories", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: trimmed }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        const updated = [...bankCategories, data.data];
+        setBankCategories(updated);
+        setBankCategory(data.data);
+        setNewCategoryText("");
+        setShowAddCategoryInput(false);
+      } else {
+        alert(data.error || "Failed to save category to DB.");
+      }
+    } catch (err) {
+      console.error("Failed to save category to DB:", err);
+      alert("Failed to save category to DB.");
+    }
+  };
+
+  const fetchBanks = async () => {
+    try {
+      const res = await fetch("/api/legal-recovery/banks");
+      const data = await res.json();
+      if (data.success) setBanksList(data.data || []);
+    } catch (err) {
+      console.error("Failed to load banks:", err);
+    }
+  };
+
+  const fetchBranches = async (bankId: string) => {
+    if (!bankId) { setBranchesList([]); return; }
+    try {
+      const res = await fetch(`/api/legal-recovery/branches?bankId=${bankId}`);
+      const data = await res.json();
+      if (data.success) setBranchesList(data.data || []);
+    } catch (err) {
+      console.error("Failed to load branches:", err);
+    }
+  };
 
   const fetchTasks = async () => {
     try {
@@ -168,20 +249,59 @@ export default function KanbanBoard() {
     }
   };
 
+  // Live tick every second to update running timer display
+  useEffect(() => {
+    const interval = setInterval(() => setTick(t => t + 1), 1000);
+    return () => clearInterval(interval);
+  }, []);
+
   const handleAddTask = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim()) return;
     setSubmitting(true);
+
+    // Build structured description for Call tasks
+    let finalDesc = desc;
+    if (type === "Call" && callCategory === "Bank") {
+      const cat = bankCategory === "Other" ? (bankCategoryOther.trim() || "Other") : bankCategory;
+      const customLines = customCallFields
+        .filter(f => f.key.trim() && f.value.trim())
+        .map(f => `${f.key.trim()}: ${f.value.trim()}`);
+
+      finalDesc = [
+        `Call Category: Bank`,
+        bankName ? `Bank: ${bankName}` : "",
+        branchName ? `Branch: ${branchName}` : "",
+        officerName ? `Officer Name: ${officerName}` : "",
+        officerPhone ? `Officer Phone: ${officerPhone}` : "",
+        `Category: ${cat}`,
+        ...customLines,
+        desc ? `Remark: ${desc}` : "",
+      ].filter(Boolean).join("\n");
+    } else if (type === "Call" && callCategory === "Interview") {
+      finalDesc = [`Call Category: Interview`, desc ? `Remark: ${desc}` : ""].filter(Boolean).join("\n");
+    }
+
     try {
       const res = await fetch("/api/tasks", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ taskTitle: title, taskType: type, description: desc, status: "Pending" }),
+        body: JSON.stringify({ taskTitle: title, taskType: type, description: finalDesc, status: "Pending" }),
       });
       const data = await res.json();
       if (data.success) {
         setTitle("");
         setDesc("");
+        setCallCategory("");
+        setBankName("");
+        setBranchName("");
+        setSelectedBankId("");
+        setBranchesList([]);
+        setOfficerName("");
+        setOfficerPhone("");
+        setBankCategory("Operations");
+        setBankCategoryOther("");
+        setCustomCallFields([]);
         setShowAdd(false);
         fetchTasks();
       } else {
@@ -199,7 +319,21 @@ export default function KanbanBoard() {
     // Guard: cannot complete without progressNotes and proofAttachment
     if (newStatus === "Completed") {
       const task = tasks.find(t => t.id === taskId);
-      if (!task?.progressNotes?.trim() || !task?.proofAttachment?.trim()) {
+      let proofUrls: string[] = [];
+      if (task?.proofAttachment) {
+        if (task.proofAttachment.startsWith('[') && task.proofAttachment.endsWith(']')) {
+          try {
+            proofUrls = JSON.parse(task.proofAttachment);
+          } catch (_) {
+            proofUrls = [task.proofAttachment];
+          }
+        } else {
+          proofUrls = task.proofAttachment.split(',').map((u: string) => u.trim()).filter(Boolean);
+        }
+      }
+      const hasProof = proofUrls.length > 0;
+
+      if (!task?.progressNotes?.trim() || !hasProof) {
         alert("To complete this task, you must provide Progress Notes AND upload Proof of Work (Screenshot/Photo). Please open the task to do this.");
         if (task) {
           openTask(task);
@@ -359,15 +493,32 @@ export default function KanbanBoard() {
 
       const fileUrl = uploadData.url;
 
+      // Parse existing proofs
+      let currentProofs: string[] = [];
+      if (selectedTask.proofAttachment) {
+        if (selectedTask.proofAttachment.startsWith('[') && selectedTask.proofAttachment.endsWith(']')) {
+          try {
+            currentProofs = JSON.parse(selectedTask.proofAttachment);
+          } catch (_) {
+            currentProofs = [selectedTask.proofAttachment];
+          }
+        } else {
+          currentProofs = selectedTask.proofAttachment.split(',').map((u: string) => u.trim()).filter(Boolean);
+        }
+      }
+
+      const updatedProofs = [...currentProofs, fileUrl];
+      const payloadStr = JSON.stringify(updatedProofs);
+
       const res = await fetch("/api/tasks", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ taskId: selectedTask.id, proofAttachment: fileUrl }),
+        body: JSON.stringify({ taskId: selectedTask.id, proofAttachment: payloadStr }),
       });
       const data = await res.json();
       if (data.success) {
-        setTasks(prev => prev.map(t => t.id === selectedTask.id ? { ...t, proofAttachment: fileUrl } : t));
-        setSelectedTask(prev => prev ? { ...prev, proofAttachment: fileUrl } : null);
+        setTasks(prev => prev.map(t => t.id === selectedTask.id ? { ...t, proofAttachment: payloadStr } : t));
+        setSelectedTask(prev => prev ? { ...prev, proofAttachment: payloadStr } : null);
         alert("Proof uploaded successfully via FTP!");
       } else {
         alert(data.error || "Failed to link proof to task.");
@@ -377,6 +528,45 @@ export default function KanbanBoard() {
       alert("Failed to upload proof.");
     } finally {
       setUploadingProof(false);
+    }
+  };
+
+  const handleRemoveProofAt = async (indexToRemove: number) => {
+    if (!selectedTask) return;
+    if (!confirm("Are you sure you want to remove this proof item?")) return;
+    try {
+      // Parse existing proofs
+      let currentProofs: string[] = [];
+      if (selectedTask.proofAttachment) {
+        if (selectedTask.proofAttachment.startsWith('[') && selectedTask.proofAttachment.endsWith(']')) {
+          try {
+            currentProofs = JSON.parse(selectedTask.proofAttachment);
+          } catch (_) {
+            currentProofs = [selectedTask.proofAttachment];
+          }
+        } else {
+          currentProofs = selectedTask.proofAttachment.split(',').map((u: string) => u.trim()).filter(Boolean);
+        }
+      }
+
+      const updatedProofs = currentProofs.filter((_, idx) => idx !== indexToRemove);
+      const payloadStr = updatedProofs.length > 0 ? JSON.stringify(updatedProofs) : "";
+
+      const res = await fetch("/api/tasks", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ taskId: selectedTask.id, proofAttachment: payloadStr }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setTasks(prev => prev.map(t => t.id === selectedTask.id ? { ...t, proofAttachment: payloadStr } : t));
+        setSelectedTask(prev => prev ? { ...prev, proofAttachment: payloadStr } : null);
+      } else {
+        alert(data.error || "Failed to remove proof.");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Failed to remove proof.");
     }
   };
 
@@ -1002,7 +1192,7 @@ export default function KanbanBoard() {
                         <select
                           className="w-full border border-slate-200 rounded-lg px-3 py-2 text-xs font-bold focus:outline-none focus:border-[#714B67] text-slate-700 bg-white"
                           value={type}
-                          onChange={e => setType(e.target.value)}
+                          onChange={e => { setType(e.target.value); setCallCategory(""); }}
                         >
                           <option value="Meeting">Meeting</option>
                           <option value="Call">Call</option>
@@ -1013,13 +1203,207 @@ export default function KanbanBoard() {
                           <option value="Support">Support</option>
                           <option value="Other">Other</option>
                         </select>
-                        <textarea
-                          className="w-full border border-slate-200 rounded-lg px-3 py-2 text-xs font-bold focus:outline-none focus:border-[#714B67] placeholder-slate-400 text-slate-800"
-                          placeholder="Task Description"
-                          rows={3}
-                          value={desc}
-                          onChange={e => setDesc(e.target.value)}
-                        />
+
+                        {/* ── Call Sub-Fields ── */}
+                        {type === "Call" && (
+                          <div className="space-y-2 bg-emerald-50 border border-emerald-200 rounded-xl p-3 animate-fade-in text-[#1C1C1A]">
+                            {/* Call Category */}
+                            <div>
+                              <label className="block text-[9px] uppercase tracking-wider text-emerald-700 font-black mb-1">Call Category *</label>
+                              <select
+                                required
+                                value={callCategory}
+                                onChange={e => setCallCategory(e.target.value as "Interview" | "Bank" | "")}
+                                className="w-full border border-emerald-200 rounded-lg px-3 py-2 text-xs font-bold focus:outline-none focus:border-emerald-500 text-slate-700 bg-white"
+                              >
+                                <option value="">-- Select Category --</option>
+                                <option value="Interview">Interview</option>
+                                <option value="Bank">Bank</option>
+                              </select>
+                            </div>
+
+                            {/* Interview — just remark */}
+                            {callCategory === "Interview" && (
+                              <div className="animate-fade-in">
+                                <label className="block text-[9px] uppercase tracking-wider text-emerald-700 font-black mb-1">Remark</label>
+                                <textarea
+                                  className="w-full border border-emerald-200 rounded-lg px-3 py-2 text-xs font-bold focus:outline-none focus:border-emerald-500 placeholder-slate-400 text-slate-800 bg-white"
+                                  placeholder="Add remark..."
+                                  rows={2}
+                                  value={desc}
+                                  onChange={e => setDesc(e.target.value)}
+                                />
+                              </div>
+                            )}
+
+                            {/* Bank — full fields */}
+                            {callCategory === "Bank" && (
+                              <div className="space-y-2 animate-fade-in">
+                                <div className="grid grid-cols-2 gap-2">
+                                  <div>
+                                    <label className="block text-[9px] uppercase tracking-wider text-emerald-700 font-black mb-1">Select Bank *</label>
+                                    <select
+                                      required
+                                      value={selectedBankId}
+                                      onChange={e => {
+                                        const bid = e.target.value;
+                                        const bObj = banksList.find(b => String(b.id) === bid);
+                                        setSelectedBankId(bid);
+                                        setBankName(bObj?.bankName || "");
+                                        setBranchName("");
+                                        fetchBranches(bid);
+                                      }}
+                                      className="w-full border border-emerald-200 rounded-lg px-2 py-2 text-xs font-bold focus:outline-none focus:border-emerald-500 text-slate-700 bg-white"
+                                    >
+                                      <option value="">-- Select Bank --</option>
+                                      {banksList.map(b => (
+                                        <option key={String(b.id)} value={String(b.id)}>{b.bankName}</option>
+                                      ))}
+                                    </select>
+                                  </div>
+                                  <div>
+                                    <label className="block text-[9px] uppercase tracking-wider text-emerald-700 font-black mb-1">Select Branch *</label>
+                                    <select
+                                      required
+                                      value={branchName}
+                                      onChange={e => setBranchName(e.target.value)}
+                                      disabled={!selectedBankId}
+                                      className="w-full border border-emerald-200 rounded-lg px-2 py-2 text-xs font-bold focus:outline-none focus:border-emerald-500 text-slate-700 bg-white disabled:opacity-50"
+                                    >
+                                      <option value="">{selectedBankId ? "-- Select Branch --" : "Select a bank first"}</option>
+                                      {branchesList.map(br => (
+                                        <option key={String(br.id)} value={br.branchName}>{br.branchName}</option>
+                                      ))}
+                                    </select>
+                                  </div>
+                                </div>
+                                <div className="grid grid-cols-2 gap-2">
+                                  <div>
+                                    <label className="block text-[9px] uppercase tracking-wider text-emerald-700 font-black mb-1">Officer Name *</label>
+                                    <input
+                                      type="text"
+                                      required
+                                      placeholder="e.g. Ramesh Sharma"
+                                      value={officerName}
+                                      onChange={e => setOfficerName(e.target.value)}
+                                      className="w-full border border-emerald-200 rounded-lg px-2 py-2 text-xs font-bold focus:outline-none focus:border-emerald-500 placeholder-slate-400 text-slate-800 bg-white"
+                                    />
+                                  </div>
+                                  <div>
+                                    <label className="block text-[9px] uppercase tracking-wider text-emerald-700 font-black mb-1">Officer Phone *</label>
+                                    <input
+                                      type="tel"
+                                      required
+                                      placeholder="e.g. 9876543210"
+                                      value={officerPhone}
+                                      onChange={e => setOfficerPhone(e.target.value)}
+                                      className="w-full border border-emerald-200 rounded-lg px-2 py-2 text-xs font-bold focus:outline-none focus:border-emerald-500 placeholder-slate-400 text-slate-800 bg-white"
+                                    />
+                                  </div>
+                                </div>
+                                
+                                <div>
+                                  <label className="block text-[9px] uppercase tracking-wider text-emerald-700 font-black mb-1">Category *</label>
+                                  <div className="flex gap-2">
+                                    <select
+                                      required
+                                      value={bankCategory}
+                                      onChange={e => {
+                                        const val = e.target.value;
+                                        if (val === "__ADD_NEW__") {
+                                          setShowAddCategoryInput(true);
+                                          setBankCategory("");
+                                        } else {
+                                          setBankCategory(val);
+                                          setShowAddCategoryInput(false);
+                                        }
+                                      }}
+                                      className="flex-1 border border-emerald-200 rounded-lg px-2 py-2 text-xs font-bold focus:outline-none focus:border-emerald-500 text-slate-700 bg-white"
+                                    >
+                                      <option value="">-- Select Category --</option>
+                                      {bankCategories.map(cat => (
+                                        <option key={cat} value={cat}>{cat}</option>
+                                      ))}
+                                      <option value="Other">Other</option>
+                                      <option value="__ADD_NEW__" className="text-indigo-600 font-bold">+ Add New Category</option>
+                                    </select>
+                                    {showAddCategoryInput && (
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          setShowAddCategoryInput(false);
+                                          setBankCategory("Operations");
+                                        }}
+                                        className="px-2 py-1 text-[10px] bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold rounded-lg border border-slate-250 animate-fade-in"
+                                      >
+                                        Cancel
+                                      </button>
+                                    )}
+                                  </div>
+                                </div>
+
+                                {showAddCategoryInput && (
+                                  <div className="bg-indigo-50 border border-indigo-150 rounded-lg p-2.5 space-y-2 animate-fade-in">
+                                    <label className="block text-[9px] uppercase tracking-wider text-indigo-700 font-black">New Category Name</label>
+                                    <div className="flex gap-2">
+                                      <input
+                                        type="text"
+                                        placeholder="e.g. Sales, Auditing"
+                                        value={newCategoryText}
+                                        onChange={e => setNewCategoryText(e.target.value)}
+                                        className="flex-1 bg-white border border-indigo-200 rounded-lg px-3 py-1.5 text-xs text-[#1C1C1A] focus:outline-none font-semibold focus:border-indigo-500"
+                                      />
+                                      <button
+                                        type="button"
+                                        onClick={handleAddCategory}
+                                        className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-bold transition-all"
+                                      >
+                                        Add
+                                      </button>
+                                    </div>
+                                  </div>
+                                )}
+
+                                {bankCategory === "Other" && (
+                                  <div className="animate-fade-in">
+                                    <label className="block text-[9px] uppercase tracking-wider text-emerald-700 font-black mb-1">Specify Category</label>
+                                    <input
+                                      type="text"
+                                      placeholder="Enter custom category"
+                                      value={bankCategoryOther}
+                                      onChange={e => setBankCategoryOther(e.target.value)}
+                                      className="w-full border border-emerald-200 rounded-lg px-2 py-2 text-xs font-bold focus:outline-none focus:border-emerald-500 placeholder-slate-400 text-slate-800 bg-white"
+                                    />
+                                  </div>
+                                )}
+
+
+
+                                <div>
+                                  <label className="block text-[9px] uppercase tracking-wider text-emerald-700 font-black mb-1">Remark</label>
+                                  <textarea
+                                    className="w-full border border-emerald-200 rounded-lg px-2 py-2 text-xs font-bold focus:outline-none focus:border-emerald-500 placeholder-slate-400 text-slate-800 bg-white"
+                                    placeholder="Add remark..."
+                                    rows={2}
+                                    value={desc}
+                                    onChange={e => setDesc(e.target.value)}
+                                  />
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        )}
+
+                        {/* Non-Call description */}
+                        {type !== "Call" && (
+                          <textarea
+                            className="w-full border border-slate-200 rounded-lg px-3 py-2 text-xs font-bold focus:outline-none focus:border-[#714B67] placeholder-slate-400 text-slate-800"
+                            placeholder="Task Description"
+                            rows={3}
+                            value={desc}
+                            onChange={e => setDesc(e.target.value)}
+                          />
+                        )}
                         <div className="flex gap-2">
                           <button
                             type="button"
@@ -1483,46 +1867,90 @@ export default function KanbanBoard() {
                       <ImageIcon className="w-4 h-4 text-emerald-500" />
                       <p className="text-[10px] uppercase font-black text-slate-700 tracking-wider">Proof of Work (Mandatory for Completion)</p>
                     </div>
-                    {selectedTask.proofAttachment ? (
-                      <div className="space-y-2">
-                        {(() => {
-                          const url = selectedTask.proofAttachment.toLowerCase();
-                          if (url.includes('application/pdf') || url.endsWith('.pdf')) {
-                            return <a href={selectedTask.proofAttachment} target="_blank" rel="noopener noreferrer" download="Task_Document.pdf" className="p-3 bg-white hover:bg-slate-50 transition-colors rounded border border-slate-200 text-xs font-bold text-slate-700 flex items-center justify-between gap-2 cursor-pointer"><div className="flex items-center gap-2"><Paperclip className="w-4 h-4" /> PDF Document Uploaded</div> <Download className="w-4 h-4 text-slate-400" /></a>;
+                    {(() => {
+                      let proofUrls: string[] = [];
+                      if (selectedTask.proofAttachment) {
+                        if (selectedTask.proofAttachment.startsWith('[') && selectedTask.proofAttachment.endsWith(']')) {
+                          try {
+                            proofUrls = JSON.parse(selectedTask.proofAttachment);
+                          } catch (_) {
+                            proofUrls = [selectedTask.proofAttachment];
                           }
-                          if (url.includes('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet') || url.includes('application/vnd.ms-excel') || url.includes('text/csv') || url.endsWith('.xls') || url.endsWith('.xlsx') || url.endsWith('.csv')) {
-                            return <a href={selectedTask.proofAttachment} target="_blank" rel="noopener noreferrer" download="Task_Document.xlsx" className="p-3 bg-white hover:bg-slate-50 transition-colors rounded border border-slate-200 text-xs font-bold text-slate-700 flex items-center justify-between gap-2 cursor-pointer"><div className="flex items-center gap-2"><Paperclip className="w-4 h-4" /> Excel/CSV Document Uploaded</div> <Download className="w-4 h-4 text-slate-400" /></a>;
-                          }
-                          if (url.includes('audio/')) {
-                            return <audio controls className="w-full h-10"><source src={selectedTask.proofAttachment} /></audio>;
-                          }
-                          return (
-                            <img
-                              src={selectedTask.proofAttachment}
-                              alt="Proof"
-                              className="max-h-48 rounded-lg border border-slate-200 object-contain shadow-sm bg-slate-100"
-                            />
-                          );
-                        })()}
-                        <p className="text-[9px] font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded inline-block">Proof uploaded</p>
-                      </div>
-                    ) : (
-                      <div className="flex flex-col gap-2">
-                        <label className="flex items-center justify-center w-full h-24 border-2 border-dashed border-slate-300 rounded-lg cursor-pointer hover:bg-slate-50 transition-colors">
-                          <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                            {uploadingProof ? (
-                              <Loader2 className="w-6 h-6 text-slate-400 animate-spin mb-2" />
-                            ) : (
-                              <Paperclip className="w-6 h-6 text-slate-400 mb-2" />
-                            )}
-                            <p className="mb-2 text-[10px] uppercase font-bold text-slate-500 tracking-wider">
-                              {uploadingProof ? "Uploading..." : "Click to upload Proof"}
-                            </p>
+                        } else {
+                          proofUrls = selectedTask.proofAttachment.split(',').map((u: string) => u.trim()).filter(Boolean);
+                        }
+                      }
+
+                      return (
+                        <div className="space-y-4">
+                          {proofUrls.length > 0 && (
+                            <div className="space-y-3">
+                              {proofUrls.map((proofUrl, idx) => {
+                                const url = proofUrl.toLowerCase();
+                                return (
+                                  <div key={idx} className="border border-slate-200 rounded-xl p-3 bg-white space-y-2 relative shadow-sm">
+                                    <div className="text-[9px] font-black text-slate-400 uppercase tracking-wider">Proof #{idx + 1}</div>
+                                    <div className="pr-10">
+                                      {(() => {
+                                        if (url.includes('application/pdf') || url.includes('.pdf')) {
+                                          return <a href={proofUrl} target="_blank" rel="noopener noreferrer" download={`Task_Document_${idx+1}.pdf`} className="p-2.5 bg-slate-50 hover:bg-slate-100 transition-colors rounded-lg border border-slate-200 text-xs font-bold text-slate-700 flex items-center justify-between gap-2 cursor-pointer"><div className="flex items-center gap-2"><Paperclip className="w-4 h-4" /> PDF Document Uploaded</div> <Download className="w-4 h-4 text-slate-400" /></a>;
+                                        }
+                                        if (url.includes('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet') || url.includes('application/vnd.ms-excel') || url.includes('text/csv') || url.includes('.xls') || url.includes('.xlsx') || url.includes('.csv')) {
+                                          return <a href={proofUrl} target="_blank" rel="noopener noreferrer" download={`Task_Document_${idx+1}.xlsx`} className="p-2.5 bg-slate-50 hover:bg-slate-100 transition-colors rounded-lg border border-slate-200 text-xs font-bold text-slate-700 flex items-center justify-between gap-2 cursor-pointer"><div className="flex items-center gap-2"><Paperclip className="w-4 h-4" /> Excel/CSV Document Uploaded</div> <Download className="w-4 h-4 text-slate-400" /></a>;
+                                        }
+                                        
+                                        const isAudio = url.includes('audio/') || url.includes('.mp3') || url.includes('.wav') || url.includes('.m4a') || url.includes('.ogg') || url.includes('.aac') || url.includes('.wma') || url.includes('.amr') || url.includes('.opus');
+                                        const isVideo = url.includes('video/') || url.includes('.mp4') || url.includes('.mov') || url.includes('.webm') || url.includes('.avi') || url.includes('.mkv');
+
+                                        if (isAudio) {
+                                          return <audio controls className="w-full mt-1 border border-slate-100 rounded-lg p-1 bg-slate-50 shadow-sm"><source src={proofUrl} /></audio>;
+                                        }
+                                        if (isVideo) {
+                                          return <video controls className="max-h-48 w-full rounded-lg border border-slate-200 object-contain shadow-sm bg-slate-50 mt-1"><source src={proofUrl} /></video>;
+                                        }
+                                        return (
+                                          <img
+                                            src={proofUrl}
+                                            alt={`Proof ${idx + 1}`}
+                                            className="max-h-36 rounded-lg border border-slate-200 object-contain shadow-sm bg-slate-50"
+                                          />
+                                        );
+                                      })()}
+                                    </div>
+                                    
+                                    <button
+                                      type="button"
+                                      onClick={() => handleRemoveProofAt(idx)}
+                                      className="absolute top-2 right-2 p-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-lg border border-rose-100 transition-colors"
+                                      title="Remove this proof"
+                                    >
+                                      <Trash2 className="w-3.5 h-3.5" />
+                                    </button>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )}
+
+                           {/* Upload Area Dropzone */}
+                          <div className="flex flex-col gap-2">
+                            <label className="flex items-center justify-center w-full h-11 border border-dashed border-slate-300 rounded-lg cursor-pointer hover:bg-slate-50 transition-colors bg-white/70">
+                              <div className="flex items-center justify-center gap-2 py-1">
+                                {uploadingProof ? (
+                                  <Loader2 className="w-4 h-4 text-slate-400 animate-spin" />
+                                ) : (
+                                  <Paperclip className="w-4 h-4 text-slate-400" />
+                                )}
+                                <p className="text-[9px] uppercase font-black text-slate-500 tracking-wider">
+                                  {uploadingProof ? "Uploading..." : proofUrls.length > 0 ? "+ Add Another Proof" : "Click to upload Proof"}
+                                </p>
+                              </div>
+                              <input type="file" className="hidden" accept="image/*,.pdf,audio/*,video/*,.mp3,.mp4,.wav,.m4a,.aac,.mov,.webm,.xlsx,.xls,.csv" onChange={handleUploadProof} disabled={uploadingProof} />
+                            </label>
                           </div>
-                          <input type="file" className="hidden" accept="image/*,.pdf,audio/*,.xlsx,.xls,.csv" onChange={handleUploadProof} disabled={uploadingProof} />
-                        </label>
-                      </div>
-                    )}
+                        </div>
+                      );
+                    })()}
                   </div>
 
                   {/* Progress Notes */}

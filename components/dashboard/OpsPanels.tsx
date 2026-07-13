@@ -2173,19 +2173,41 @@ export function PerformanceCompliance({
                                                 {task.description}
                                               </p>
                                             )}
-                                            {task.proofAttachment && (
-                                              <button
-                                                onClick={(e) => {
-                                                  e.stopPropagation();
-                                                  setSelectedSelfie(task.proofAttachment);
-                                                }}
-                                                className="mt-1 w-fit bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 text-[9px] font-black uppercase px-2 py-1.5 rounded-lg flex items-center gap-1.5 transition-colors"
-                                                title="View Task Proof"
-                                              >
-                                                <Eye className="w-3 h-3" />
-                                                View Proof
-                                              </button>
-                                            )}
+                                             {(() => {
+                                               let proofUrls: string[] = [];
+                                               if (task.proofAttachment) {
+                                                 if (task.proofAttachment.startsWith('[') && task.proofAttachment.endsWith(']')) {
+                                                   try {
+                                                     proofUrls = JSON.parse(task.proofAttachment);
+                                                   } catch (_) {
+                                                     proofUrls = [task.proofAttachment];
+                                                   }
+                                                 } else {
+                                                   proofUrls = task.proofAttachment.split(',').map((u: any) => u.trim()).filter(Boolean);
+                                                 }
+                                               }
+
+                                               if (proofUrls.length === 0) return null;
+
+                                               return (
+                                                 <div className="flex flex-wrap gap-1.5 mt-1.5">
+                                                   {proofUrls.map((pUrl: string, index: number) => (
+                                                     <button
+                                                       key={index}
+                                                       onClick={(e) => {
+                                                         e.stopPropagation();
+                                                         setSelectedSelfie(pUrl);
+                                                       }}
+                                                       className="bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-250 text-[9px] font-black uppercase px-2 py-1 rounded-lg flex items-center gap-1 transition-colors"
+                                                       title={`View Task Proof #${index + 1}`}
+                                                     >
+                                                       <Eye className="w-3 h-3" />
+                                                       Proof #{index + 1}
+                                                     </button>
+                                                   ))}
+                                                 </div>
+                                               );
+                                             })()}
                                             {task.updatedAt && 
                                              new Date(task.updatedAt).toDateString() !== item.date.toDateString() && 
                                              item.date.toDateString() === new Date(task.date).toDateString() && (
@@ -2321,9 +2343,9 @@ export function PerformanceCompliance({
             <div className="flex-1 bg-slate-900 flex items-center justify-center p-4 min-h-[50vh] overflow-hidden">
               {(() => {
                 const url = selectedSelfie.toLowerCase();
-                const isPdf = url.includes('application/pdf') || url.endsWith('.pdf');
-                const isAudio = url.includes('audio/') || url.match(/\.(mp3|wav|m4a|ogg)$/i);
-                const isVideo = url.includes('video/') || url.match(/\.(mp4|webm|mov)$/i);
+                const isPdf = url.includes('application/pdf') || url.includes('.pdf');
+                const isAudio = url.includes('audio/') || url.includes('.mp3') || url.includes('.wav') || url.includes('.m4a') || url.includes('.ogg') || url.includes('.aac') || url.includes('.amr') || url.includes('.opus') || url.includes('.wma');
+                const isVideo = url.includes('video/') || url.includes('.mp4') || url.includes('.webm') || url.includes('.mov') || url.includes('.avi') || url.includes('.mkv');
 
                 if (isPdf) {
                   return (

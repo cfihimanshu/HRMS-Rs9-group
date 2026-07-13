@@ -6,12 +6,12 @@ import sequelize from "@/lib/sequelize";
 import LeadStatus from "@/models/sequelize/LeadStatus";
 
 const defaultStatuses = [
-  "No Answer",
-  "Busy",
-  "Connected & Interested",
-  "Not Interested",
-  "Interview Scheduled",
-  "Rejected"
+  { name: "No Answer", hasScreenshot: true },
+  { name: "Busy", hasScreenshot: true },
+  { name: "Connected & Interested", hasAudio: true },
+  { name: "Not Interested", hasAudio: true },
+  { name: "Interview Scheduled", hasSchedule: true },
+  { name: "Rejected" }
 ];
 
 export async function GET(req: Request) {
@@ -27,11 +27,40 @@ export async function GET(req: Request) {
     let statuses = await LeadStatus.findAll({ order: [["createdAt", "ASC"]] });
 
     if (statuses.length === 0) {
-      for (const name of defaultStatuses) {
-        const id = "status_" + name.toLowerCase().replace(/[^a-z0-9]+/g, "_");
-        await LeadStatus.create({ id, name, status: "Active" });
+      for (const item of defaultStatuses) {
+        const id = "status_" + item.name.toLowerCase().replace(/[^a-z0-9]+/g, "_");
+        await LeadStatus.create({ 
+          id, 
+          name: item.name, 
+          status: "Active",
+          hasScreenshot: !!item.hasScreenshot,
+          hasAudio: !!item.hasAudio,
+          hasSchedule: !!item.hasSchedule
+        });
       }
       statuses = await LeadStatus.findAll({ order: [["createdAt", "ASC"]] });
+    } else {
+      // One-time upgrade migration for existing database status records
+      let updatedAny = false;
+      for (const st of statuses) {
+        let needsSave = false;
+        if (st.name === "No Answer" || st.name === "Busy") {
+          if (!st.hasScreenshot) { st.hasScreenshot = true; needsSave = true; }
+        }
+        if (st.name === "Connected & Interested" || st.name === "Not Interested" || st.name === "Connected") {
+          if (!st.hasAudio) { st.hasAudio = true; needsSave = true; }
+        }
+        if (st.name === "Interview Scheduled") {
+          if (!st.hasSchedule) { st.hasSchedule = true; needsSave = true; }
+        }
+        if (needsSave) {
+          await st.save();
+          updatedAny = true;
+        }
+      }
+      if (updatedAny) {
+        statuses = await LeadStatus.findAll({ order: [["createdAt", "ASC"]] });
+      }
     }
 
     return NextResponse.json({ success: true, data: statuses });
@@ -48,7 +77,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
     }
 
-    const { name } = await req.json();
+    const { name, hasSchedule, hasScreenshot, hasAudio } = await req.json();
     if (!name || !name.trim()) {
       return NextResponse.json({ success: false, error: "Status name is required" }, { status: 400 });
     }
@@ -60,8 +89,22 @@ export async function POST(req: Request) {
 
     const [status, created] = await LeadStatus.findOrCreate({
       where: { name: name.trim() },
-      defaults: { id, name: name.trim(), status: "Active" }
+      defaults: { 
+        id, 
+        name: name.trim(), 
+        status: "Active",
+        hasSchedule: !!hasSchedule,
+        hasScreenshot: !!hasScreenshot,
+        hasAudio: !!hasAudio
+      }
     });
+
+    if (!created) {
+      status.hasSchedule = !!hasSchedule;
+      status.hasScreenshot = !!hasScreenshot;
+      status.hasAudio = !!hasAudio;
+      await status.save();
+    }
 
     return NextResponse.json({ success: true, data: status, created });
   } catch (error: any) {
