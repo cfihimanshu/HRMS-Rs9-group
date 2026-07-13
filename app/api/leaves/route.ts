@@ -344,23 +344,55 @@ export async function POST(req: Request) {
           pendingStatus: initialStatus,
         });
 
+        const targetEmails: string[] = [];
+
+        // Try to fetch applicant's reporting manager email from EmployeeProfile
+        if (profile?.reportingManager) {
+          const repManager = await User.findOne({
+            where: { name: profile.reportingManager, status: "active" },
+            attributes: ["email"]
+          });
+          if (repManager?.email) {
+            targetEmails.push(repManager.email);
+          }
+        }
+
         if (initialStatus === "Pending Manager Approval" && profile?.department) {
           const deptManagers = await findDepartmentManagers(applicantId, profile.department);
-          const emails = deptManagers.map((m: any) => m.email).filter(Boolean);
-          if (emails.length > 0) {
+          deptManagers.forEach((m: any) => {
+            if (m.email && !targetEmails.includes(m.email)) {
+              targetEmails.push(m.email);
+            }
+          });
+          
+          if (targetEmails.length > 0) {
             await sendEmail({
-              to: emails,
+              to: targetEmails,
               subject: `🌴 Leave Approval Required: ${applicantUser.name} – ${type}`,
               html: emailHtml,
             });
           }
         } else if (initialStatus === "Pending HR Approval") {
           const hrUsers = await findHRUsers(applicantId);
-          const emails = hrUsers.map((h: any) => h.email).filter(Boolean);
-          if (emails.length > 0) {
+          hrUsers.forEach((h: any) => {
+            if (h.email && !targetEmails.includes(h.email)) {
+              targetEmails.push(h.email);
+            }
+          });
+          
+          if (targetEmails.length > 0) {
             await sendEmail({
-              to: emails,
+              to: targetEmails,
               subject: `🌴 Leave Approval Required (HR): ${applicantUser.name} – ${type}`,
+              html: emailHtml,
+            });
+          }
+        } else {
+          // Fallback if initialStatus is different but reporting manager or target exists
+          if (targetEmails.length > 0) {
+            await sendEmail({
+              to: targetEmails,
+              subject: `🌴 Leave Request Submitted: ${applicantUser.name} – ${type}`,
               html: emailHtml,
             });
           }

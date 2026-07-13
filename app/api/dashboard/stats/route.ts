@@ -560,6 +560,26 @@ export async function GET(req: Request) {
       };
     });
 
+    const sodMap: Record<string, string> = {};
+    sodReportsToday.forEach((r: any) => {
+      if (r.employee) {
+        const timeVal = r.createdAt || r.timestamp || r.date;
+        if (timeVal) {
+          sodMap[r.employee.toString()] = new Date(timeVal).toISOString();
+        }
+      }
+    });
+
+    const eodMap: Record<string, string> = {};
+    eodReportsToday.forEach((r: any) => {
+      if (r.employee) {
+        const timeVal = r.createdAt || r.timestamp || r.date;
+        if (timeVal) {
+          eodMap[r.employee.toString()] = new Date(timeVal).toISOString();
+        }
+      }
+    });
+
     const staffList = staffUsers.map((u: any) => ({
       id: u.id,
       name: u.name || 'Unnamed',
@@ -569,7 +589,9 @@ export async function GET(req: Request) {
       companies: Array.isArray(u.companies) ? u.companies.join(', ') : (u.companies || 'N/A'),
       department: staffProfilesMap[u.id]?.department || 'N/A',
       designation: staffProfilesMap[u.id]?.designation || 'N/A',
-      isPresent: finalPresentIds.includes(u.id.toString())
+      isPresent: finalPresentIds.includes(u.id.toString()),
+      sodTime: sodMap[u.id.toString()] || null,
+      eodTime: eodMap[u.id.toString()] || null
     }));
 
     return NextResponse.json({

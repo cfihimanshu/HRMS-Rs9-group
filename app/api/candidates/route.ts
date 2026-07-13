@@ -102,11 +102,18 @@ export async function POST(req: Request) {
         status: { [Op.ne]: "inactive" }
       }
     });
+
+    let existingLeadCandidate = null;
     if (duplicateByMobile) {
-      return NextResponse.json({
-        success: false,
-        error: `A candidate with mobile number ${mobile.trim()} already exists in the system. Please check existing leads.`
-      }, { status: 400 });
+      const isLead = duplicateByMobile.sourcingChannel === "Business Lead" || !duplicateByMobile.job;
+      if (isLead) {
+        existingLeadCandidate = duplicateByMobile;
+      } else {
+        return NextResponse.json({
+          success: false,
+          error: `A candidate with mobile number ${mobile.trim()} already exists in the system. Please check existing leads.`
+        }, { status: 400 });
+      }
     }
 
     // 3-month Reapply Limitation Check
@@ -148,7 +155,6 @@ export async function POST(req: Request) {
     // 1. Construct parameters mapping
     const nowStr = new Date().toISOString().slice(0, 19).replace("T", " ");
     const createData: { [key: string]: any } = {
-      id: Date.now().toString(),
       job: jobId || null,
       name: name || null,
       mobile: mobile || null,
@@ -159,8 +165,8 @@ export async function POST(req: Request) {
       currentSalary: currentSalary || null,
       expectedSalary: expectedSalary || null,
       noticePeriod: noticePeriod || null,
-      status: "Pending",
-      currentRound: 1,
+      status: existingLeadCandidate ? (existingLeadCandidate.status === "Selected" ? "Selected" : "Pending") : "Pending",
+      sourcingChannel: existingLeadCandidate ? "Both" : "System Job Link",
       gender: gender || null,
       resumeLink: resumeLink || null,
       skills: skills || null,
@@ -169,9 +175,14 @@ export async function POST(req: Request) {
       collegeName: collegeName || null,
       previousDesignation: previousDesignation || null,
       previousCompanyName: previousCompanyName || null,
-      createdAt: nowStr,
       updatedAt: nowStr
     };
+
+    if (!existingLeadCandidate) {
+      createData.id = "SYS-" + Date.now().toString();
+      createData.currentRound = 1;
+      createData.createdAt = nowStr;
+    }
 
     // Map virtual uploads to literal MySQL column names
     if (uploads) {
@@ -207,19 +218,32 @@ export async function POST(req: Request) {
       console.error("[POST CANDIDATES] Failed to dynamically map custom fields:", e);
     }
 
-    // 2. Insert candidate via raw SQL to support runtime schema additions
-    const colsList = Object.keys(createData);
-    const placeholders = colsList.map(() => "?").join(", ");
-    const paramValues = colsList.map((k) => createData[k]);
-    
-    await sequelize.query(
-      `INSERT INTO candidates (${colsList.map(k => `\`${k}\``).join(", ")}) VALUES (${placeholders})`,
-      { replacements: paramValues }
-    );
+    const targetCandId = existingLeadCandidate ? existingLeadCandidate.id : createData.id;
 
-    // 3. Fetch newly inserted record
+    // 2. Insert or Update candidate via raw SQL to support runtime schema additions
+    if (existingLeadCandidate) {
+      const updatePairs = Object.keys(createData).map(k => `\`${k}\` = ?`).join(", ");
+      const paramValues = Object.keys(createData).map(k => createData[k]);
+      paramValues.push(existingLeadCandidate.id);
+      
+      await sequelize.query(
+        `UPDATE candidates SET ${updatePairs} WHERE id = ?`,
+        { replacements: paramValues }
+      );
+    } else {
+      const colsList = Object.keys(createData);
+      const placeholders = colsList.map(() => "?").join(", ");
+      const paramValues = colsList.map((k) => createData[k]);
+      
+      await sequelize.query(
+        `INSERT INTO candidates (${colsList.map(k => `\`${k}\``).join(", ")}) VALUES (${placeholders})`,
+        { replacements: paramValues }
+      );
+    }
+
+    // 3. Fetch newly inserted or updated record
     const [insertedCandidates]: any[] = await sequelize.query("SELECT * FROM candidates WHERE id = ?", {
-      replacements: [createData.id]
+      replacements: [targetCandId]
     });
     const candidate = insertedCandidates[0];
 

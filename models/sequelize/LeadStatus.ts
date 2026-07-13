@@ -18,6 +18,21 @@ LeadStatus.init(
       type: DataTypes.STRING,
       allowNull: true,
     },
+    hasSchedule: {
+      type: DataTypes.BOOLEAN,
+      allowNull: true,
+      defaultValue: false,
+    },
+    hasScreenshot: {
+      type: DataTypes.BOOLEAN,
+      allowNull: true,
+      defaultValue: false,
+    },
+    hasAudio: {
+      type: DataTypes.BOOLEAN,
+      allowNull: true,
+      defaultValue: false,
+    },
   },
   {
     sequelize,

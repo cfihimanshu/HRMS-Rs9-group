@@ -54,6 +54,66 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
   const [isCustomRegisterType, setIsCustomRegisterType] = useState(false);
   const [isCustomEditType, setIsCustomEditType] = useState(false);
 
+  // Dynamic Asset Type Custom Fields State
+  const [assetFields, setAssetFields] = useState<Record<string, string>>({});
+  const [emailsList, setEmailsList] = useState<string[]>([""]);
+
+  useEffect(() => {
+    setEmailsList([""]);
+    const typeClean = registerForm.assetType?.toLowerCase().trim();
+    if (typeClean === "sim card" || typeClean === "sim") {
+      setAssetFields({
+        simOperator: "Jio",
+        simNetwork: "5G",
+        simMobile: "",
+        simIccid: ""
+      });
+    } else if (typeClean === "headset / accessories") {
+      setAssetFields({
+        accType: "Wired",
+        accName: "",
+        accSerial: ""
+      });
+    } else if (typeClean === "printer / scanner") {
+      setAssetFields({
+        printerType: "Laser Printer",
+        printerModel: "",
+        printerSerial: ""
+      });
+    } else if (typeClean === "laptop") {
+      setAssetFields({
+        laptopModel: "",
+        laptopSpecs: "",
+        laptopSerial: ""
+      });
+    } else if (typeClean === "mobile phone") {
+      setAssetFields({
+        phoneModel: "",
+        phoneImei1: "",
+        phoneImei2: "",
+        phoneSpecs: ""
+      });
+    } else if (typeClean === "id card / lanyard") {
+      setAssetFields({
+        idEmployee: "",
+        idBarcode: ""
+      });
+    } else if (typeClean === "office chair / table") {
+      setAssetFields({
+        furnitureDesc: "",
+        furnitureTag: ""
+      });
+    } else if (typeClean === "router / networking") {
+      setAssetFields({
+        routerModel: "",
+        routerMac: "",
+        routerSerial: ""
+      });
+    } else {
+      setAssetFields({});
+    }
+  }, [registerForm.assetType]);
+
   const defaultTypes = [
     "Laptop",
     "Mobile Phone",
@@ -246,12 +306,148 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
       triggerToast("Asset Type is required");
       return;
     }
+
+    const typeClean = registerForm.assetType.toLowerCase().trim();
+    let finalDetail = registerForm.assetDetail;
+    let finalSerial = registerForm.serialNumber;
+    let finalNotes = registerForm.notes;
+
+    if (typeClean === "sim card" || typeClean === "sim") {
+      const mobile = assetFields.simMobile || "";
+      if (!mobile) {
+        triggerToast("SIM Mobile Number is required");
+        return;
+      }
+      finalDetail = `${assetFields.simOperator || "Jio"} - ${assetFields.simNetwork || "5G"} Network`;
+      finalSerial = mobile;
+      if (assetFields.simIccid) {
+        finalNotes = `SIM Number (ICCID): ${assetFields.simIccid}${registerForm.notes ? `\n${registerForm.notes}` : ""}`;
+      }
+    } else if (typeClean === "laptop") {
+      const model = assetFields.laptopModel || "";
+      const specs = assetFields.laptopSpecs || "";
+      const serial = assetFields.laptopSerial || "";
+      if (!model || !specs) {
+        triggerToast("Laptop Brand & Model and Specifications are required");
+        return;
+      }
+      finalDetail = `${model} (${specs})`;
+      finalSerial = serial;
+
+      // Logged-in Emails
+      const filteredEmails = emailsList.map(e => e.trim()).filter(Boolean);
+      if (filteredEmails.length > 0) {
+        finalNotes = `Logged-in Emails: ${filteredEmails.join(", ")}${registerForm.notes ? `\n${registerForm.notes}` : ""}`;
+      }
+    } else if (typeClean === "mobile phone") {
+      const model = assetFields.phoneModel || "";
+      const imei1 = assetFields.phoneImei1 || "";
+      const imei2 = assetFields.phoneImei2 || "";
+      const specs = assetFields.phoneSpecs || "";
+      
+      const simSlots = assetFields.phoneSimSlots || "None";
+      const sim1No = assetFields.phoneSim1No || "";
+      const sim2No = assetFields.phoneSim2No || "";
+
+      if (!model || !imei1) {
+        triggerToast("Phone Brand & Model and IMEI Number 1 are required");
+        return;
+      }
+      finalDetail = `${model}${specs ? ` (${specs})` : ""}`;
+      finalSerial = imei2 ? `IMEI 1: ${imei1}, IMEI 2: ${imei2}` : imei1;
+
+      // Logged-in Emails & SIMs
+      const filteredEmails = emailsList.map(e => e.trim()).filter(Boolean);
+      let mobileInfo = "";
+      if (filteredEmails.length > 0) {
+        mobileInfo += `Logged-in Emails: ${filteredEmails.join(", ")}\n`;
+      }
+      if (simSlots !== "None") {
+        mobileInfo += `SIM Slots Used: ${simSlots}\n`;
+        if (sim1No) {
+          const wa1 = assetFields.phoneSim1Whatsapp || "No";
+          const wa1Type = wa1 === "Yes" ? ` (${assetFields.phoneSim1WhatsappType || "Personal"})` : "";
+          mobileInfo += `SIM 1 Mobile No: ${sim1No} [WhatsApp: ${wa1}${wa1Type}]\n`;
+        }
+        if (sim2No) {
+          const wa2 = assetFields.phoneSim2Whatsapp || "No";
+          const wa2Type = wa2 === "Yes" ? ` (${assetFields.phoneSim2WhatsappType || "Personal"})` : "";
+          mobileInfo += `SIM 2 Mobile No: ${sim2No} [WhatsApp: ${wa2}${wa2Type}]\n`;
+        }
+      } else {
+        mobileInfo += `SIM Slots Used: None\n`;
+      }
+
+      if (mobileInfo) {
+        finalNotes = `${mobileInfo}${registerForm.notes ? `\n${registerForm.notes}` : ""}`;
+      }
+    } else if (typeClean === "headset / accessories") {
+      const name = assetFields.accName || "";
+      const type = assetFields.accType || "Wired";
+      const serial = assetFields.accSerial || "";
+      if (!name) {
+        triggerToast("Accessory Name/Brand is required");
+        return;
+      }
+      finalDetail = `${name} (${type})`;
+      finalSerial = serial;
+    } else if (typeClean === "id card / lanyard") {
+      const emp = assetFields.idEmployee || "";
+      const barcode = assetFields.idBarcode || "";
+      if (!emp || !barcode) {
+        triggerToast("Employee Name/ID and Card ID Number are required");
+        return;
+      }
+      finalDetail = `ID Card for: ${emp}`;
+      finalSerial = barcode;
+    } else if (typeClean === "office chair / table") {
+      const desc = assetFields.furnitureDesc || "";
+      const tag = assetFields.furnitureTag || "";
+      if (!desc) {
+        triggerToast("Furniture Description is required");
+        return;
+      }
+      finalDetail = desc;
+      finalSerial = tag;
+    } else if (typeClean === "router / networking") {
+      const model = assetFields.routerModel || "";
+      const mac = assetFields.routerMac || "";
+      const serial = assetFields.routerSerial || "";
+      if (!model || !mac) {
+        triggerToast("Router Brand & Model and MAC Address are required");
+        return;
+      }
+      finalDetail = model;
+      finalSerial = `MAC: ${mac}`;
+      if (serial) {
+        finalNotes = `Serial Number: ${serial}${registerForm.notes ? `\n${registerForm.notes}` : ""}`;
+      }
+    } else if (typeClean === "printer / scanner") {
+      const model = assetFields.printerModel || "";
+      const type = assetFields.printerType || "Laser Printer";
+      const serial = assetFields.printerSerial || "";
+      if (!model || !serial) {
+        triggerToast("Printer Brand & Model and Serial Number are required");
+        return;
+      }
+      finalDetail = `${model} (${type})`;
+      finalSerial = serial;
+    }
+
     try {
       setSubmittingRegister(true);
+
+      const payload = {
+        ...registerForm,
+        assetDetail: finalDetail,
+        serialNumber: finalSerial,
+        notes: finalNotes
+      };
+
       const res = await fetch("/api/assets/inventory", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(registerForm)
+        body: JSON.stringify(payload)
       });
       const result = await res.json();
       if (result.success) {
@@ -288,6 +484,8 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
           companyId: "",
           notes: ""
         });
+        setAssetFields({});
+        setEmailsList([""]);
         fetchData();
       } else {
         triggerToast(result.error || "Failed to register asset");
@@ -399,6 +597,8 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
   const availableCount = inventory.filter(a => a.status === "Available").length;
   const newCount = inventory.filter(a => a.condition === "New").length;
   const inUseCount = inventory.filter(a => a.status === "In Use").length;
+
+  const typeClean = registerForm.assetType?.toLowerCase().trim();
 
   return (
     <div className="space-y-6 animate-fade-in text-[#1C1C1A]">
@@ -594,29 +794,502 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Asset Detail / Specification *</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. Dell Latitude 5420, 16GB RAM, 512GB SSD"
-                  value={registerForm.assetDetail}
-                  onChange={(e) => setRegisterForm(p => ({ ...p, assetDetail: e.target.value }))}
-                  className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all"
-                />
+            {typeClean === "sim card" || typeClean === "sim" ? (
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div>
+                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">SIM Mobile Number *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. 9876543210"
+                    value={assetFields.simMobile || ""}
+                    onChange={(e) => setAssetFields(p => ({ ...p, simMobile: e.target.value }))}
+                    className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Telecom Operator *</label>
+                  <select
+                    value={assetFields.simOperator || "Jio"}
+                    onChange={(e) => setAssetFields(p => ({ ...p, simOperator: e.target.value }))}
+                    className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                  >
+                    <option value="Jio">Jio</option>
+                    <option value="Airtel">Airtel</option>
+                    <option value="Vodafone Idea (Vi)">Vodafone Idea (Vi)</option>
+                    <option value="BSNL">BSNL</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Network Type</label>
+                  <select
+                    value={assetFields.simNetwork || "5G"}
+                    onChange={(e) => setAssetFields(p => ({ ...p, simNetwork: e.target.value }))}
+                    className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                  >
+                    <option value="5G">5G</option>
+                    <option value="4G">4G</option>
+                    <option value="3G">3G</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">SIM Card Number / ICCID</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. 89910000..."
+                    value={assetFields.simIccid || ""}
+                    onChange={(e) => setAssetFields(p => ({ ...p, simIccid: e.target.value }))}
+                    className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-mono"
+                  />
+                </div>
               </div>
-              <div>
-                <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Serial Number / Unique Identifier</label>
-                <input
-                  type="text"
-                  placeholder="e.g. SN-H1G4691X, MAC Address, etc."
-                  value={registerForm.serialNumber}
-                  onChange={(e) => setRegisterForm(p => ({ ...p, serialNumber: e.target.value }))}
-                  className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-mono"
-                />
+            ) : typeClean === "laptop" ? (
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Laptop Brand & Model *</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. HP EliteBook 840 G8"
+                      value={assetFields.laptopModel || ""}
+                      onChange={(e) => setAssetFields(p => ({ ...p, laptopModel: e.target.value }))}
+                      className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Processor / RAM / Storage *</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. Intel i5, 16GB RAM, 512GB SSD"
+                      value={assetFields.laptopSpecs || ""}
+                      onChange={(e) => setAssetFields(p => ({ ...p, laptopSpecs: e.target.value }))}
+                      className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Serial Number</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. SN-H1G4691X"
+                      value={assetFields.laptopSerial || ""}
+                      onChange={(e) => setAssetFields(p => ({ ...p, laptopSerial: e.target.value }))}
+                      className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-mono"
+                    />
+                  </div>
+                </div>
+
+                <div className="max-w-md">
+                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Logged-in Email IDs</label>
+                  <div className="space-y-2">
+                    {emailsList.map((email, index) => (
+                      <div key={index} className="flex gap-2 items-center">
+                        <input
+                          type="email"
+                          placeholder="e.g. user@company.com"
+                          value={email}
+                          onChange={(e) => {
+                            const newList = [...emailsList];
+                            newList[index] = e.target.value;
+                            setEmailsList(newList);
+                          }}
+                          className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                        />
+                        {emailsList.length > 1 && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const newList = emailsList.filter((_, i) => i !== index);
+                              setEmailsList(newList);
+                            }}
+                            className="px-2.5 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-lg text-xs font-bold transition-all border border-rose-100 animate-fade-in"
+                          >
+                            Remove
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                    <button
+                      type="button"
+                      onClick={() => setEmailsList([...emailsList, ""])}
+                      className="mt-1 px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-[10px] font-bold rounded-lg transition-all border border-indigo-150 flex items-center gap-1.5 w-fit"
+                    >
+                      + Add Email ID
+                    </button>
+                  </div>
+                </div>
               </div>
-            </div>
+            ) : typeClean === "mobile phone" ? (
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                  <div>
+                    <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Phone Brand & Model *</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. Samsung Galaxy S23"
+                      value={assetFields.phoneModel || ""}
+                      onChange={(e) => setAssetFields(p => ({ ...p, phoneModel: e.target.value }))}
+                      className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">IMEI Number 1 *</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. 358901234567890"
+                      value={assetFields.phoneImei1 || ""}
+                      onChange={(e) => setAssetFields(p => ({ ...p, phoneImei1: e.target.value }))}
+                      className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-mono"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">IMEI Number 2</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. 358901234567891 (Optional)"
+                      value={assetFields.phoneImei2 || ""}
+                      onChange={(e) => setAssetFields(p => ({ ...p, phoneImei2: e.target.value }))}
+                      className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-mono"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">RAM & Storage</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. 8GB/128GB"
+                      value={assetFields.phoneSpecs || ""}
+                      onChange={(e) => setAssetFields(p => ({ ...p, phoneSpecs: e.target.value }))}
+                      className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">SIM Slots Used</label>
+                    <select
+                      value={assetFields.phoneSimSlots || "None"}
+                      onChange={(e) => setAssetFields(p => ({ ...p, phoneSimSlots: e.target.value }))}
+                      className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                    >
+                      <option value="None">None</option>
+                      <option value="1 SIM">1 SIM</option>
+                      <option value="2 SIMs">2 SIMs</option>
+                    </select>
+                  </div>
+                  {(assetFields.phoneSimSlots === "1 SIM" || assetFields.phoneSimSlots === "2 SIMs") && (
+                    <div className="bg-[#FCFBF9] border border-[#E8E4DF] p-3 rounded-lg space-y-2">
+                      <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold">SIM 1 Config</label>
+                      <div>
+                        <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">SIM 1 Mobile Number *</label>
+                        <input
+                          type="text"
+                          required
+                          placeholder="e.g. 9876543210"
+                          value={assetFields.phoneSim1No || ""}
+                          onChange={(e) => setAssetFields(p => ({ ...p, phoneSim1No: e.target.value }))}
+                          className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                        />
+                      </div>
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">WhatsApp On?</label>
+                          <select
+                            value={assetFields.phoneSim1Whatsapp || "No"}
+                            onChange={(e) => setAssetFields(p => ({ ...p, phoneSim1Whatsapp: e.target.value }))}
+                            className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                          >
+                            <option value="No">No</option>
+                            <option value="Yes">Yes</option>
+                          </select>
+                        </div>
+                        {assetFields.phoneSim1Whatsapp === "Yes" && (
+                          <div>
+                            <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">WhatsApp Type</label>
+                            <select
+                              value={assetFields.phoneSim1WhatsappType || "Personal"}
+                              onChange={(e) => setAssetFields(p => ({ ...p, phoneSim1WhatsappType: e.target.value }))}
+                              className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                            >
+                              <option value="Personal">Personal</option>
+                              <option value="Business">Business</option>
+                            </select>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                  {assetFields.phoneSimSlots === "2 SIMs" && (
+                    <div className="bg-[#FCFBF9] border border-[#E8E4DF] p-3 rounded-lg space-y-2">
+                      <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold">SIM 2 Config</label>
+                      <div>
+                        <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">SIM 2 Mobile Number *</label>
+                        <input
+                          type="text"
+                          required
+                          placeholder="e.g. 9876543211"
+                          value={assetFields.phoneSim2No || ""}
+                          onChange={(e) => setAssetFields(p => ({ ...p, phoneSim2No: e.target.value }))}
+                          className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                        />
+                      </div>
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">WhatsApp On?</label>
+                          <select
+                            value={assetFields.phoneSim2Whatsapp || "No"}
+                            onChange={(e) => setAssetFields(p => ({ ...p, phoneSim2Whatsapp: e.target.value }))}
+                            className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                          >
+                            <option value="No">No</option>
+                            <option value="Yes">Yes</option>
+                          </select>
+                        </div>
+                        {assetFields.phoneSim2Whatsapp === "Yes" && (
+                          <div>
+                            <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">WhatsApp Type</label>
+                            <select
+                              value={assetFields.phoneSim2WhatsappType || "Personal"}
+                              onChange={(e) => setAssetFields(p => ({ ...p, phoneSim2WhatsappType: e.target.value }))}
+                              className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                            >
+                              <option value="Personal">Personal</option>
+                              <option value="Business">Business</option>
+                            </select>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <div className="max-w-md">
+                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Logged-in Email IDs</label>
+                  <div className="space-y-2">
+                    {emailsList.map((email, index) => (
+                      <div key={index} className="flex gap-2 items-center">
+                        <input
+                          type="email"
+                          placeholder="e.g. user@company.com"
+                          value={email}
+                          onChange={(e) => {
+                            const newList = [...emailsList];
+                            newList[index] = e.target.value;
+                            setEmailsList(newList);
+                          }}
+                          className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                        />
+                        {emailsList.length > 1 && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const newList = emailsList.filter((_, i) => i !== index);
+                              setEmailsList(newList);
+                            }}
+                            className="px-2.5 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-lg text-xs font-bold transition-all border border-rose-100 animate-fade-in"
+                          >
+                            Remove
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                    <button
+                      type="button"
+                      onClick={() => setEmailsList([...emailsList, ""])}
+                      className="mt-1 px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-[10px] font-bold rounded-lg transition-all border border-indigo-150 flex items-center gap-1.5 w-fit"
+                    >
+                      + Add Email ID
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ) : typeClean === "headset / accessories" ? (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Accessory Name / Brand *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. Logitech USB Headset H390"
+                    value={assetFields.accName || ""}
+                    onChange={(e) => setAssetFields(p => ({ ...p, accName: e.target.value }))}
+                    className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Accessory Type *</label>
+                  <select
+                    value={assetFields.accType || "Wired"}
+                    onChange={(e) => setAssetFields(p => ({ ...p, accType: e.target.value }))}
+                    className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                  >
+                    <option value="Wired">Wired</option>
+                    <option value="Wireless Bluetooth">Wireless Bluetooth</option>
+                    <option value="USB Dongle">USB Dongle</option>
+                    <option value="Other">Other</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Serial Number / Unique ID</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. SN-ACC12345"
+                    value={assetFields.accSerial || ""}
+                    onChange={(e) => setAssetFields(p => ({ ...p, accSerial: e.target.value }))}
+                    className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-mono"
+                  />
+                </div>
+              </div>
+            ) : typeClean === "id card / lanyard" ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Employee Name / ID *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. Rahul Sharma - EMP101"
+                    value={assetFields.idEmployee || ""}
+                    onChange={(e) => setAssetFields(p => ({ ...p, idEmployee: e.target.value }))}
+                    className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Card ID Number / Barcode *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. ID-887192"
+                    value={assetFields.idBarcode || ""}
+                    onChange={(e) => setAssetFields(p => ({ ...p, idBarcode: e.target.value }))}
+                    className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-mono font-semibold"
+                  />
+                </div>
+              </div>
+            ) : typeClean === "office chair / table" ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Furniture Description *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. Ergonomic Black Mesh Chair, Adjustable Back"
+                    value={assetFields.furnitureDesc || ""}
+                    onChange={(e) => setAssetFields(p => ({ ...p, furnitureDesc: e.target.value }))}
+                    className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Inventory Tag / Asset Tag</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. TAG-CHR-0042"
+                    value={assetFields.furnitureTag || ""}
+                    onChange={(e) => setAssetFields(p => ({ ...p, furnitureTag: e.target.value }))}
+                    className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-mono"
+                  />
+                </div>
+              </div>
+            ) : typeClean === "router / networking" ? (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Router Brand & Model *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. TP-Link Archer C6"
+                    value={assetFields.routerModel || ""}
+                    onChange={(e) => setAssetFields(p => ({ ...p, routerModel: e.target.value }))}
+                    className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">MAC Address *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. 00:1A:2B:3C:4D:5E"
+                    value={assetFields.routerMac || ""}
+                    onChange={(e) => setAssetFields(p => ({ ...p, routerMac: e.target.value }))}
+                    className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-mono"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Serial Number</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. SN-RTR99887"
+                    value={assetFields.routerSerial || ""}
+                    onChange={(e) => setAssetFields(p => ({ ...p, routerSerial: e.target.value }))}
+                    className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-mono"
+                  />
+                </div>
+              </div>
+            ) : typeClean === "printer / scanner" ? (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Printer Brand & Model *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. HP LaserJet Pro M12w"
+                    value={assetFields.printerModel || ""}
+                    onChange={(e) => setAssetFields(p => ({ ...p, printerModel: e.target.value }))}
+                    className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Printer Type *</label>
+                  <select
+                    value={assetFields.printerType || "Laser Printer"}
+                    onChange={(e) => setAssetFields(p => ({ ...p, printerType: e.target.value }))}
+                    className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                  >
+                    <option value="Laser Printer">Laser Printer</option>
+                    <option value="Inkjet Printer">Inkjet Printer</option>
+                    <option value="Flatbed Scanner">Flatbed Scanner</option>
+                    <option value="Multi-Function Printer">Multi-Function Printer</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Serial Number *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. SN-PRN1928"
+                    value={assetFields.printerSerial || ""}
+                    onChange={(e) => setAssetFields(p => ({ ...p, printerSerial: e.target.value }))}
+                    className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-mono"
+                  />
+                </div>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Asset Detail / Specification *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. Dell Latitude 5420, 16GB RAM, 512GB SSD"
+                    value={registerForm.assetDetail}
+                    onChange={(e) => setRegisterForm(p => ({ ...p, assetDetail: e.target.value }))}
+                    className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Serial Number / Unique Identifier</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. SN-H1G4691X, MAC Address, etc."
+                    value={registerForm.serialNumber}
+                    onChange={(e) => setRegisterForm(p => ({ ...p, serialNumber: e.target.value }))}
+                    className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-mono"
+                  />
+                </div>
+              </div>
+            )}
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>

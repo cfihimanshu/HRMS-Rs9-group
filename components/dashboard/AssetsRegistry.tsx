@@ -99,6 +99,30 @@ export default function AssetsRegistry({ userRole, triggerToast, sessionUser }: 
     selectedInventoryId: ""
   });
 
+  // Dynamic Emails, SIM, and Custom Fields states for Assign Asset form
+  const [emailsList, setEmailsList] = useState<string[]>([""]);
+  const [simSlots, setSimSlots] = useState("None");
+  const [sim1No, setSim1No] = useState("");
+  const [sim2No, setSim2No] = useState("");
+  const [sim1Whatsapp, setSim1Whatsapp] = useState("No");
+  const [sim1WhatsappType, setSim1WhatsappType] = useState("Personal");
+  const [sim2Whatsapp, setSim2Whatsapp] = useState("No");
+  const [sim2WhatsappType, setSim2WhatsappType] = useState("Personal");
+  const [assetFields, setAssetFields] = useState<Record<string, string>>({});
+
+  // Clear states when assetType changes or modal opens
+  useEffect(() => {
+    setEmailsList([""]);
+    setSimSlots("None");
+    setSim1No("");
+    setSim2No("");
+    setSim1Whatsapp("No");
+    setSim1WhatsappType("Personal");
+    setSim2Whatsapp("No");
+    setSim2WhatsappType("Personal");
+    setAssetFields({});
+  }, [assignForm.assetType, showAssignModal]);
+
   // Sync assignedBy with sessionUser name when sessionUser loads
   useEffect(() => {
     if (sessionUser?.name) {
@@ -165,15 +189,119 @@ export default function AssetsRegistry({ userRole, triggerToast, sessionUser }: 
         allocatedWhatsapp: assignForm.allocatedWhatsapp,
       };
 
-      const formattedDetails = `${assignForm.assetValue}${assignForm.assetType === "Mobile Phone" && assignForm.simWithMobile ? " (SIM card included)" : ""} (Assigned: ${assignForm.date} | By: ${assignForm.assignedBy})`;
+      const typeClean = assignForm.assetType.toLowerCase().trim();
+      let finalDetail = assignForm.assetValue; // fallback
+      let finalSerial = "";
 
-      if (assignForm.assetType === "SIM Card") {
+      if (typeClean === "sim card" || typeClean === "sim") {
+        const operator = assetFields.simOperator || "Jio";
+        const network = assetFields.simNetwork || "5G";
+        const mobile = assetFields.simMobile || "";
+        if (!mobile) {
+          triggerToast("SIM Mobile Number is required");
+          return;
+        }
+        finalDetail = `${operator} - ${network} Network`;
+        finalSerial = mobile;
+      } else if (typeClean === "laptop") {
+        const model = assetFields.laptopModel || "";
+        const specs = assetFields.laptopSpecs || "";
+        const serial = assetFields.laptopSerial || "";
+        if (!model || !specs) {
+          triggerToast("Laptop Brand & Model and Specifications are required");
+          return;
+        }
+        finalDetail = `${model} (${specs})`;
+        finalSerial = serial;
+      } else if (typeClean === "mobile phone") {
+        const model = assetFields.phoneModel || "";
+        const imei1 = assetFields.phoneImei1 || "";
+        const imei2 = assetFields.phoneImei2 || "";
+        const specs = assetFields.phoneSpecs || "";
+        if (!model || !imei1) {
+          triggerToast("Phone Brand & Model and IMEI Number 1 are required");
+          return;
+        }
+        finalDetail = `${model}${specs ? ` (${specs})` : ""}`;
+        finalSerial = imei2 ? `IMEI 1: ${imei1}, IMEI 2: ${imei2}` : imei1;
+      } else if (typeClean === "headset / accessories") {
+        const name = assetFields.accName || "";
+        const type = assetFields.accType || "Wired";
+        const serial = assetFields.accSerial || "";
+        if (!name) {
+          triggerToast("Accessory Name/Brand is required");
+          return;
+        }
+        finalDetail = `${name} (${type})`;
+        finalSerial = serial;
+      } else if (typeClean === "id card / lanyard") {
+        const emp = assetFields.idEmployee || "";
+        const barcode = assetFields.idBarcode || "";
+        if (!emp || !barcode) {
+          triggerToast("Employee Name/ID and Card ID Number are required");
+          return;
+        }
+        finalDetail = `ID Card for: ${emp}`;
+        finalSerial = barcode;
+      } else if (typeClean === "office chair / table") {
+        const desc = assetFields.furnitureDesc || "";
+        const tag = assetFields.furnitureTag || "";
+        if (!desc) {
+          triggerToast("Furniture Description is required");
+          return;
+        }
+        finalDetail = desc;
+        finalSerial = tag;
+      } else if (typeClean === "router / networking") {
+        const model = assetFields.routerModel || "";
+        const mac = assetFields.routerMac || "";
+        if (!model || !mac) {
+          triggerToast("Router Brand & Model and MAC Address are required");
+          return;
+        }
+        finalDetail = model;
+        finalSerial = `MAC: ${mac}`;
+      } else if (typeClean === "printer / scanner") {
+        const model = assetFields.printerModel || "";
+        const type = assetFields.printerType || "Laser Printer";
+        const serial = assetFields.printerSerial || "";
+        if (!model || !serial) {
+          triggerToast("Printer Brand & Model and Serial Number are required");
+          return;
+        }
+        finalDetail = `${model} (${type})`;
+        finalSerial = serial;
+      }
+
+      // Validation for Mobile Phone SIM slots
+      if (typeClean === "mobile phone" && simSlots !== "None" && !sim1No) {
+        triggerToast("SIM 1 Phone Number is required");
+        return;
+      }
+
+      const filteredEmails = emailsList.map(e => e.trim()).filter(Boolean);
+      const emailsStr = filteredEmails.length > 0 ? ` | Logged-in Emails: ${filteredEmails.join(", ")}` : "";
+
+      let displayValue = finalSerial ? `[S/N: ${finalSerial}] ${finalDetail}` : finalDetail;
+      const formattedDetails = `${displayValue}${emailsStr} (Assigned: ${assignForm.date} | By: ${assignForm.assignedBy})`;
+
+      if (typeClean === "sim card" || typeClean === "sim") {
         payload.allocatedSim = formattedDetails;
       } else {
         payload.allocatedAsset = `${assignForm.assetType}: ${formattedDetails}`;
-        if (assignForm.assetType === "Mobile Phone" && assignForm.simWithMobile) {
-          const simDetails = assignForm.simPhoneNumber ? assignForm.simPhoneNumber : "Yes";
+        if (typeClean === "mobile phone" && simSlots !== "None") {
+          let simDetails = `SIM Slots Used: ${simSlots}`;
+          if (sim1No) {
+            const wa1Type = sim1Whatsapp === "Yes" ? ` (${sim1WhatsappType})` : "";
+            simDetails += `, SIM 1: ${sim1No} [WhatsApp: ${sim1Whatsapp}${wa1Type}]`;
+          }
+          if (sim2No) {
+            const wa2Type = sim2Whatsapp === "Yes" ? ` (${sim2WhatsappType})` : "";
+            simDetails += `, SIM 2: ${sim2No} [WhatsApp: ${sim2Whatsapp}${wa2Type}]`;
+          }
           payload.allocatedSim = `${simDetails} (Assigned with Mobile Phone | Assigned: ${assignForm.date} | By: ${assignForm.assignedBy})`;
+        } else if (typeClean === "mobile phone") {
+          payload.allocatedSim = "";
         }
       }
 
@@ -198,6 +326,61 @@ export default function AssetsRegistry({ userRole, triggerToast, sessionUser }: 
             });
           } catch (invErr) {
             console.error("Failed to update inventory status:", invErr);
+          }
+        } else {
+          // AUTO-REGISTER MANUAL ASSET INTO INVENTORY MANAGEMENT WITH "In Use" STATUS
+          try {
+            let notesText = "";
+            if (filteredEmails.length > 0) {
+              notesText += `Logged-in Emails: ${filteredEmails.join(", ")}\n`;
+            }
+            if (typeClean === "mobile phone" && simSlots !== "None") {
+              notesText += `SIM Slots Used: ${simSlots}\n`;
+              if (sim1No) {
+                const wa1Type = sim1Whatsapp === "Yes" ? ` (${sim1WhatsappType})` : "";
+                notesText += `SIM 1 Mobile No: ${sim1No} [WhatsApp: ${sim1Whatsapp}${wa1Type}]\n`;
+              }
+              if (sim2No) {
+                const wa2Type = sim2Whatsapp === "Yes" ? ` (${sim2WhatsappType})` : "";
+                notesText += `SIM 2 Mobile No: ${sim2No} [WhatsApp: ${sim2Whatsapp}${wa2Type}]\n`;
+              }
+            } else if (typeClean === "sim card" || typeClean === "sim") {
+              const iccid = assetFields.simIccid || "";
+              if (iccid) {
+                notesText += `SIM Number (ICCID): ${iccid}\n`;
+              }
+            }
+
+            // 1. Create asset in inventory (returns default status "Available" first due to backend route code)
+            const createInvRes = await fetch("/api/assets/inventory", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                assetType: assignForm.assetType,
+                assetDetail: finalDetail,
+                serialNumber: finalSerial,
+                purchaseDate: assignForm.date,
+                purchaseValue: "0",
+                condition: "Good",
+                companyId: assignForm.companyId || null,
+                notes: notesText
+              })
+            });
+            const createInvResult = await createInvRes.json();
+            
+            // 2. Mark it as "In Use" (assigned) in the inventory list
+            if (createInvResult.success && createInvResult.data?.id) {
+              await fetch("/api/assets/inventory", {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  id: Number(createInvResult.data.id),
+                  status: "In Use"
+                })
+              });
+            }
+          } catch (invCreateErr) {
+            console.error("Failed to auto-register manual asset into inventory:", invCreateErr);
           }
         }
         triggerToast(`Asset assigned successfully to ${employees.find(emp => emp.employeeProfile?.employeeId === assignForm.assignedToId)?.name || "employee"}`);
@@ -924,10 +1107,10 @@ export default function AssetsRegistry({ userRole, triggerToast, sessionUser }: 
       {showAssignModal && typeof document !== "undefined" && ReactDOM.createPortal(
         <div className="fixed inset-0 z-[9999] flex items-center justify-center" style={{ backgroundColor: "rgba(0,0,0,0.4)" }} onClick={() => setShowAssignModal(false)}>
           <div
-            className="bg-white rounded-2xl shadow-2xl p-6 w-[450px] max-w-[95vw] border border-[#E8E4DF]"
+            className="bg-white rounded-2xl shadow-2xl p-6 w-[680px] max-w-[95vw] border border-[#E8E4DF] flex flex-col max-h-[90vh]"
             onClick={(e) => e.stopPropagation()}
           >
-             <div className="flex justify-between items-center border-b border-[#E8E4DF] pb-3 mb-4">
+             <div className="flex justify-between items-center border-b border-[#E8E4DF] pb-3 mb-4 flex-shrink-0">
               <h3 className="text-lg font-serif font-light text-[#1C1C1A]" style={{ fontFamily: "'Playfair Display', serif" }}>
                 Assign New Asset
               </h3>
@@ -936,7 +1119,7 @@ export default function AssetsRegistry({ userRole, triggerToast, sessionUser }: 
               </button>
             </div>
 
-            <form onSubmit={handleAssignSubmit} className="space-y-4 text-left">
+            <form onSubmit={handleAssignSubmit} className="space-y-4 text-left overflow-y-auto max-h-[75vh] pr-2 scrollbar-thin">
               {/* Date field */}
               <div>
                 <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Allocation Date *</label>
@@ -1064,96 +1247,491 @@ export default function AssetsRegistry({ userRole, triggerToast, sessionUser }: 
                     <option key={type} value={type}>{type}</option>
                   ))}
                 </select>
-                {assignForm.assetType === "Mobile Phone" && (
-                  <div className="space-y-2 mt-2 bg-[#FCFBF9] border border-[#E8E4DF] p-2 rounded-lg">
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="checkbox"
-                        id="simWithMobile"
-                        checked={assignForm.simWithMobile}
-                        onChange={(e) => setAssignForm(prev => ({ 
-                          ...prev, 
-                          simWithMobile: e.target.checked,
-                          simPhoneNumber: e.target.checked ? prev.simPhoneNumber : "" 
-                        }))}
-                        className="w-3.5 h-3.5 accent-[#C9A84C] rounded cursor-pointer"
-                      />
-                      <label htmlFor="simWithMobile" className="text-[10px] text-[#5D5B57] font-semibold cursor-pointer select-none">
-                        Is SIM card included with mobile phone?
-                      </label>
-                    </div>
-                    {assignForm.simWithMobile && (
-                      <div className="mt-2 animate-fade-in">
-                        <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">SIM Phone Number *</label>
-                        <input
-                          type="text"
-                          required
-                          placeholder="e.g. +91 9876543210"
-                          value={assignForm.simPhoneNumber}
-                          onChange={(e) => setAssignForm(prev => ({ ...prev, simPhoneNumber: e.target.value }))}
+
+                {/* Available Stock Selector */}
+                {assignForm.companyId && (
+                  <div className="bg-[#FCFBF9] border border-[#E8E4DF] p-3 rounded-lg space-y-2 mt-3">
+                    <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold">
+                      Available Stock (Select to Auto-Fill details)
+                    </label>
+                    {(() => {
+                      const available = inventoryItems.filter(item => 
+                        item.assetType === assignForm.assetType &&
+                        item.status === "Available"
+                      ).sort((a, b) => {
+                        const aMatches = String(a.companyId || "") === String(assignForm.companyId || "");
+                        const bMatches = String(b.companyId || "") === String(assignForm.companyId || "");
+                        if (aMatches && !bMatches) return -1;
+                        if (!aMatches && bMatches) return 1;
+                        return 0;
+                      });
+
+                      if (available.length === 0) {
+                        return (
+                          <p className="text-[10px] text-[#A67C1E] italic bg-[#FFFBF0] border border-[#FFEAB5] p-2 rounded">
+                            No available items in stock for this asset type across all companies. You can still type details manually below.
+                          </p>
+                        );
+                      }
+
+                      return (
+                        <select
+                          value={assignForm.selectedInventoryId}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            const selectedInv = available.find(i => String(i.id) === String(val));
+                            setAssignForm(prev => ({
+                              ...prev,
+                              selectedInventoryId: val,
+                              assetValue: selectedInv ? `[S/N: ${selectedInv.serialNumber || 'N/A'}] ${selectedInv.assetDetail || ''}` : ""
+                            }));
+
+                            if (selectedInv) {
+                              const typeClean = (selectedInv.assetType || "").toLowerCase().trim();
+                              
+                              // 1. Logged-in Emails
+                              const emailMatch = selectedInv.notes?.match(/Logged-in Emails:\s*([^\n]+)/);
+                              if (emailMatch) {
+                                setEmailsList(emailMatch[1].split(",").map((em: any) => em.trim()).filter(Boolean));
+                              } else {
+                                setEmailsList([""]);
+                              }
+
+                              // 2. SIM Slots Used & SIM Mobile Nos
+                              const slotsMatch = selectedInv.notes?.match(/SIM Slots Used:\s*([^\n]+)/);
+                              if (slotsMatch) {
+                                setSimSlots(slotsMatch[1].trim());
+                              } else {
+                                setSimSlots("None");
+                              }
+
+                              const sim1Match = selectedInv.notes?.match(/SIM 1 Mobile No:\s*([^\n]+)/);
+                              if (sim1Match) setSim1No(sim1Match[1].trim());
+                              else setSim1No("");
+
+                              const sim2Match = selectedInv.notes?.match(/SIM 2 Mobile No:\s*([^\n]+)/);
+                              if (sim2Match) setSim2No(sim2Match[1].trim());
+                              else setSim2No("");
+
+                              // 3. Custom Fields based on Asset Type
+                              if (typeClean === "sim card" || typeClean === "sim") {
+                                let operator = "Jio";
+                                let network = "5G";
+                                const simMatch = selectedInv.assetDetail?.match(/([^-]+)-\s*(.+)\s+Network/);
+                                if (simMatch) {
+                                  operator = simMatch[1].trim();
+                                  network = simMatch[2].trim();
+                                }
+                                setAssetFields({
+                                  simMobile: selectedInv.assetValue || "",
+                                  simIccid: selectedInv.serialNumber || "",
+                                  simOperator: operator,
+                                  simNetwork: network
+                                });
+                              } else if (typeClean === "laptop") {
+                                let model = selectedInv.assetDetail || "";
+                                let specs = "";
+                                const lpMatch = selectedInv.assetDetail?.match(/^([^(]+)\s*\(([^)]+)\)$/);
+                                if (lpMatch) {
+                                  model = lpMatch[1].trim();
+                                  specs = lpMatch[2].trim();
+                                }
+                                setAssetFields({
+                                  laptopModel: model,
+                                  laptopSpecs: specs,
+                                  laptopSerial: selectedInv.serialNumber || ""
+                                });
+                              } else if (typeClean === "mobile phone") {
+                                let model = selectedInv.assetDetail || "";
+                                let specs = "";
+                                const mbMatch = selectedInv.assetDetail?.match(/^([^(]+)\s*\(([^)]+)\)$/);
+                                if (mbMatch) {
+                                  model = mbMatch[1].trim();
+                                  specs = mbMatch[2].trim();
+                                }
+                                let imei1 = selectedInv.serialNumber || "";
+                                let imei2 = "";
+                                if (selectedInv.serialNumber?.includes("IMEI")) {
+                                  const im1 = selectedInv.serialNumber.match(/IMEI 1:\s*([^,]+)/);
+                                  const im2 = selectedInv.serialNumber.match(/IMEI 2:\s*([^\n]+)/);
+                                  if (im1) imei1 = im1[1].trim();
+                                  if (im2) imei2 = im2[1].trim();
+                                }
+                                setAssetFields({
+                                  phoneModel: model,
+                                  phoneSpecs: specs,
+                                  phoneImei1: imei1,
+                                  phoneImei2: imei2
+                                });
+                              } else if (typeClean === "headset / accessories") {
+                                let name = selectedInv.assetDetail || "";
+                                let type = "Wired";
+                                const matchType = selectedInv.assetDetail?.match(/\(([^)]+)\)$/);
+                                if (matchType) {
+                                  type = matchType[1];
+                                  name = name.replace(/\([^)]+\)$/, "").trim();
+                                }
+                                setAssetFields({
+                                  accName: name,
+                                  accType: type,
+                                  accSerial: selectedInv.serialNumber || ""
+                                });
+                              } else if (typeClean === "id card / lanyard") {
+                                const emp = selectedInv.assetDetail?.replace(/^ID Card for:\s*/, "") || "";
+                                setAssetFields({
+                                  idEmployee: emp,
+                                  idBarcode: selectedInv.serialNumber || ""
+                                });
+                              } else if (typeClean === "office chair / table") {
+                                setAssetFields({
+                                  furnitureDesc: selectedInv.assetDetail || "",
+                                  furnitureTag: selectedInv.serialNumber || ""
+                                });
+                              } else if (typeClean === "router / networking") {
+                                setAssetFields({
+                                  routerModel: selectedInv.assetDetail || "",
+                                  routerMac: selectedInv.serialNumber?.replace(/^MAC:\s*/, "") || "",
+                                  routerSerial: ""
+                                });
+                              } else if (typeClean === "printer / scanner") {
+                                let model = selectedInv.assetDetail || "";
+                                let ptype = "Laser Printer";
+                                const matchType = selectedInv.assetDetail?.match(/\(([^)]+)\)$/);
+                                if (matchType) {
+                                  ptype = matchType[1];
+                                  model = model.replace(/\([^)]+\)$/, "").trim();
+                                }
+                                setAssetFields({
+                                  printerModel: model,
+                                  printerType: ptype,
+                                  printerSerial: selectedInv.serialNumber || ""
+                                });
+                              }
+                            } else {
+                              setEmailsList([""]);
+                              setSimSlots("None");
+                              setSim1No("");
+                              setSim2No("");
+                              setSim1Whatsapp("No");
+                              setSim1WhatsappType("Personal");
+                              setSim2Whatsapp("No");
+                              setSim2WhatsappType("Personal");
+                              setAssetFields({});
+                            }
+                          }}
                           className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
-                        />
+                        >
+                          <option value="">-- Select from Available Stock --</option>
+                          {available.map(item => {
+                            const compName = companies.find(c => String(c.id) === String(item.companyId))?.name || "General Stock";
+                            const isMatch = String(item.companyId || "") === String(assignForm.companyId || "");
+                            return (
+                              <option key={item.id} value={item.id}>
+                                {isMatch ? "★ " : ""}[S/N: {item.serialNumber || 'N/A'}] {item.assetDetail} ({compName} | {item.condition})
+                              </option>
+                            );
+                          })}
+                        </select>
+                      );
+                    })()}
+                  </div>
+                )}
+
+                {/* Dynamic Asset-Type Specific Fields */}
+                {(() => {
+                  const tc = assignForm.assetType.toLowerCase().trim();
+                  if (tc === "sim card" || tc === "sim") return (
+                    <div className="mt-3 grid grid-cols-1 gap-3 bg-[#FCFBF9] border border-[#E8E4DF] p-3 rounded-lg animate-fade-in">
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">SIM Mobile Number *</label>
+                          <input type="text" required placeholder="e.g. 9876543210" value={assetFields.simMobile || ""} onChange={(e) => setAssetFields(p => ({ ...p, simMobile: e.target.value }))} className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold" />
+                        </div>
+                        <div>
+                          <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">SIM Number / ICCID</label>
+                          <input type="text" placeholder="e.g. 89910000..." value={assetFields.simIccid || ""} onChange={(e) => setAssetFields(p => ({ ...p, simIccid: e.target.value }))} className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-mono" />
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Operator</label>
+                          <select value={assetFields.simOperator || "Jio"} onChange={(e) => setAssetFields(p => ({ ...p, simOperator: e.target.value }))} className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold">
+                            <option value="Jio">Jio</option><option value="Airtel">Airtel</option><option value="Vodafone Idea (Vi)">Vodafone Idea (Vi)</option><option value="BSNL">BSNL</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Network Type</label>
+                          <select value={assetFields.simNetwork || "5G"} onChange={(e) => setAssetFields(p => ({ ...p, simNetwork: e.target.value }))} className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold">
+                            <option value="5G">5G</option><option value="4G">4G</option><option value="3G">3G</option>
+                          </select>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                  if (tc === "laptop") return (
+                    <div className="mt-3 space-y-3 bg-[#FCFBF9] border border-[#E8E4DF] p-3 rounded-lg animate-fade-in">
+                      <div className="grid grid-cols-3 gap-3">
+                        <div>
+                          <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Laptop Brand & Model *</label>
+                          <input type="text" required placeholder="e.g. HP EliteBook 840 G8" value={assetFields.laptopModel || ""} onChange={(e) => setAssetFields(p => ({ ...p, laptopModel: e.target.value }))} className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold" />
+                        </div>
+                        <div>
+                          <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Processor / RAM / Storage *</label>
+                          <input type="text" required placeholder="e.g. Intel i5, 16GB, 512GB SSD" value={assetFields.laptopSpecs || ""} onChange={(e) => setAssetFields(p => ({ ...p, laptopSpecs: e.target.value }))} className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold" />
+                        </div>
+                        <div>
+                          <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Serial Number</label>
+                          <input type="text" placeholder="e.g. SN-H1G4691X" value={assetFields.laptopSerial || ""} onChange={(e) => setAssetFields(p => ({ ...p, laptopSerial: e.target.value }))} className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-mono" />
+                        </div>
+                      </div>
+                    </div>
+                  );
+                  if (tc === "mobile phone") return (
+                    <div className="mt-3 space-y-3 bg-[#FCFBF9] border border-[#E8E4DF] p-3 rounded-lg animate-fade-in">
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Phone Brand & Model *</label>
+                          <input type="text" required placeholder="e.g. Samsung Galaxy S23" value={assetFields.phoneModel || ""} onChange={(e) => setAssetFields(p => ({ ...p, phoneModel: e.target.value }))} className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold" />
+                        </div>
+                        <div>
+                          <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">RAM & Storage</label>
+                          <input type="text" placeholder="e.g. 8GB/128GB" value={assetFields.phoneSpecs || ""} onChange={(e) => setAssetFields(p => ({ ...p, phoneSpecs: e.target.value }))} className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold" />
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">IMEI Number 1 *</label>
+                          <input type="text" required placeholder="e.g. 358901234567890" value={assetFields.phoneImei1 || ""} onChange={(e) => setAssetFields(p => ({ ...p, phoneImei1: e.target.value }))} className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-mono" />
+                        </div>
+                        <div>
+                          <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">IMEI Number 2</label>
+                          <input type="text" placeholder="e.g. 358901234567891 (Optional)" value={assetFields.phoneImei2 || ""} onChange={(e) => setAssetFields(p => ({ ...p, phoneImei2: e.target.value }))} className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-mono" />
+                        </div>
+                      </div>
+                    </div>
+                  );
+                  if (tc === "headset / accessories") return (
+                    <div className="mt-3 grid grid-cols-3 gap-3 bg-[#FCFBF9] border border-[#E8E4DF] p-3 rounded-lg animate-fade-in">
+                      <div>
+                        <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Accessory Name *</label>
+                        <input type="text" required placeholder="e.g. Sony WH-1000XM4" value={assetFields.accName || ""} onChange={(e) => setAssetFields(p => ({ ...p, accName: e.target.value }))} className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold" />
+                      </div>
+                      <div>
+                        <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Type</label>
+                        <select value={assetFields.accType || "Wired"} onChange={(e) => setAssetFields(p => ({ ...p, accType: e.target.value }))} className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold">
+                          <option value="Wired">Wired</option><option value="Wireless">Wireless</option><option value="Bluetooth">Bluetooth</option><option value="USB Hub">USB Hub</option><option value="Other">Other</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Serial Number</label>
+                        <input type="text" placeholder="e.g. SN-HS4521" value={assetFields.accSerial || ""} onChange={(e) => setAssetFields(p => ({ ...p, accSerial: e.target.value }))} className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-mono" />
+                      </div>
+                    </div>
+                  );
+                  if (tc === "id card / lanyard") return (
+                    <div className="mt-3 grid grid-cols-2 gap-3 bg-[#FCFBF9] border border-[#E8E4DF] p-3 rounded-lg animate-fade-in">
+                      <div>
+                        <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Employee Name / ID *</label>
+                        <input type="text" required placeholder="e.g. Rahul Sharma / EMP001" value={assetFields.idEmployee || ""} onChange={(e) => setAssetFields(p => ({ ...p, idEmployee: e.target.value }))} className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold" />
+                      </div>
+                      <div>
+                        <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Card ID Number / Barcode *</label>
+                        <input type="text" required placeholder="e.g. ID-0042" value={assetFields.idBarcode || ""} onChange={(e) => setAssetFields(p => ({ ...p, idBarcode: e.target.value }))} className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-mono" />
+                      </div>
+                    </div>
+                  );
+                  if (tc === "office chair / table") return (
+                    <div className="mt-3 grid grid-cols-2 gap-3 bg-[#FCFBF9] border border-[#E8E4DF] p-3 rounded-lg animate-fade-in">
+                      <div>
+                        <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Furniture Description *</label>
+                        <input type="text" required placeholder="e.g. Ergonomic Black Mesh Chair" value={assetFields.furnitureDesc || ""} onChange={(e) => setAssetFields(p => ({ ...p, furnitureDesc: e.target.value }))} className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold" />
+                      </div>
+                      <div>
+                        <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Inventory Tag</label>
+                        <input type="text" placeholder="e.g. TAG-CHR-0042" value={assetFields.furnitureTag || ""} onChange={(e) => setAssetFields(p => ({ ...p, furnitureTag: e.target.value }))} className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-mono" />
+                      </div>
+                    </div>
+                  );
+                  if (tc === "router / networking") return (
+                    <div className="mt-3 grid grid-cols-3 gap-3 bg-[#FCFBF9] border border-[#E8E4DF] p-3 rounded-lg animate-fade-in">
+                      <div>
+                        <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Router Brand & Model *</label>
+                        <input type="text" required placeholder="e.g. TP-Link Archer C6" value={assetFields.routerModel || ""} onChange={(e) => setAssetFields(p => ({ ...p, routerModel: e.target.value }))} className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold" />
+                      </div>
+                      <div>
+                        <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">MAC Address *</label>
+                        <input type="text" required placeholder="e.g. 00:1A:2B:3C:4D:5E" value={assetFields.routerMac || ""} onChange={(e) => setAssetFields(p => ({ ...p, routerMac: e.target.value }))} className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-mono" />
+                      </div>
+                      <div>
+                        <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Serial Number</label>
+                        <input type="text" placeholder="e.g. SN-RTR99887" value={assetFields.routerSerial || ""} onChange={(e) => setAssetFields(p => ({ ...p, routerSerial: e.target.value }))} className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-mono" />
+                      </div>
+                    </div>
+                  );
+                  if (tc === "printer / scanner") return (
+                    <div className="mt-3 grid grid-cols-3 gap-3 bg-[#FCFBF9] border border-[#E8E4DF] p-3 rounded-lg animate-fade-in">
+                      <div>
+                        <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Printer Brand & Model *</label>
+                        <input type="text" required placeholder="e.g. HP LaserJet Pro M12w" value={assetFields.printerModel || ""} onChange={(e) => setAssetFields(p => ({ ...p, printerModel: e.target.value }))} className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold" />
+                      </div>
+                      <div>
+                        <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Printer Type</label>
+                        <select value={assetFields.printerType || "Laser Printer"} onChange={(e) => setAssetFields(p => ({ ...p, printerType: e.target.value }))} className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold">
+                          <option value="Laser Printer">Laser Printer</option><option value="Inkjet Printer">Inkjet Printer</option><option value="Flatbed Scanner">Flatbed Scanner</option><option value="Multi-Function Printer">Multi-Function Printer</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Serial Number *</label>
+                        <input type="text" required placeholder="e.g. SN-PRN1928" value={assetFields.printerSerial || ""} onChange={(e) => setAssetFields(p => ({ ...p, printerSerial: e.target.value }))} className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-mono" />
+                      </div>
+                    </div>
+                  );
+                  return null;
+                })()}
+
+                {assignForm.assetType === "Mobile Phone" && (
+                  <div className="space-y-3 mt-2 bg-[#FCFBF9] border border-[#E8E4DF] p-3 rounded-lg">
+                    <div>
+                      <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">SIM Slots Used</label>
+                      <select
+                        value={simSlots}
+                        onChange={(e) => setSimSlots(e.target.value)}
+                        className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                      >
+                        <option value="None">None</option>
+                        <option value="1 SIM">1 SIM</option>
+                        <option value="2 SIMs">2 SIMs</option>
+                      </select>
+                    </div>
+                     {(simSlots === "1 SIM" || simSlots === "2 SIMs") && (
+                      <div className="bg-white border border-[#E8E4DF] p-3 rounded-lg space-y-2 animate-fade-in">
+                        <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold">SIM 1 Config</label>
+                        <div>
+                          <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">SIM 1 Phone Number *</label>
+                          <input
+                            type="text"
+                            required
+                            placeholder="e.g. +91 9876543210"
+                            value={sim1No}
+                            onChange={(e) => setSim1No(e.target.value)}
+                            className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                          />
+                        </div>
+                        <div className="grid grid-cols-2 gap-2">
+                          <div>
+                            <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">WhatsApp On?</label>
+                            <select
+                              value={sim1Whatsapp}
+                              onChange={(e) => setSim1Whatsapp(e.target.value)}
+                              className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                            >
+                              <option value="No">No</option>
+                              <option value="Yes">Yes</option>
+                            </select>
+                          </div>
+                          {sim1Whatsapp === "Yes" && (
+                            <div>
+                              <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">WhatsApp Type</label>
+                              <select
+                                value={sim1WhatsappType}
+                                onChange={(e) => setSim1WhatsappType(e.target.value)}
+                                className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                              >
+                                <option value="Personal">Personal</option>
+                                <option value="Business">Business</option>
+                              </select>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                    {simSlots === "2 SIMs" && (
+                      <div className="bg-white border border-[#E8E4DF] p-3 rounded-lg space-y-2 animate-fade-in">
+                        <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold">SIM 2 Config</label>
+                        <div>
+                          <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">SIM 2 Phone Number *</label>
+                          <input
+                            type="text"
+                            required
+                            placeholder="e.g. +91 9876543211"
+                            value={sim2No}
+                            onChange={(e) => setSim2No(e.target.value)}
+                            className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                          />
+                        </div>
+                        <div className="grid grid-cols-2 gap-2">
+                          <div>
+                            <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">WhatsApp On?</label>
+                            <select
+                              value={sim2Whatsapp}
+                              onChange={(e) => setSim2Whatsapp(e.target.value)}
+                              className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                            >
+                              <option value="No">No</option>
+                              <option value="Yes">Yes</option>
+                            </select>
+                          </div>
+                          {sim2Whatsapp === "Yes" && (
+                            <div>
+                              <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">WhatsApp Type</label>
+                              <select
+                                value={sim2WhatsappType}
+                                onChange={(e) => setSim2WhatsappType(e.target.value)}
+                                className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                              >
+                                <option value="Personal">Personal</option>
+                                <option value="Business">Business</option>
+                              </select>
+                            </div>
+                          )}
+                        </div>
                       </div>
                     )}
                   </div>
                 )}
-              </div>
 
-              {/* Available Stock Selector */}
-              {assignForm.companyId && (
-                <div className="bg-[#FCFBF9] border border-[#E8E4DF] p-3 rounded-lg space-y-2">
-                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold">
-                    Available Stock (Select to Auto-Fill details)
-                  </label>
-                  {(() => {
-                    const available = inventoryItems.filter(item => 
-                      item.assetType === assignForm.assetType &&
-                      item.status === "Available"
-                    ).sort((a, b) => {
-                      const aMatches = String(a.companyId || "") === String(assignForm.companyId || "");
-                      const bMatches = String(b.companyId || "") === String(assignForm.companyId || "");
-                      if (aMatches && !bMatches) return -1;
-                      if (!aMatches && bMatches) return 1;
-                      return 0;
-                    });
-
-                    if (available.length === 0) {
-                      return (
-                        <p className="text-[10px] text-[#A67C1E] italic bg-[#FFFBF0] border border-[#FFEAB5] p-2 rounded">
-                          No available items in stock for this asset type across all companies. You can still type details manually below.
-                        </p>
-                      );
-                    }
-
-                    return (
-                      <select
-                        value={assignForm.selectedInventoryId}
-                        onChange={(e) => {
-                          const val = e.target.value;
-                          const selectedInv = available.find(i => String(i.id) === String(val));
-                          setAssignForm(prev => ({
-                            ...prev,
-                            selectedInventoryId: val,
-                            assetValue: selectedInv ? `[S/N: ${selectedInv.serialNumber || 'N/A'}] ${selectedInv.assetDetail || ''}` : prev.assetValue
-                          }));
-                        }}
-                        className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                {(assignForm.assetType === "Laptop" || assignForm.assetType === "Mobile Phone") && (
+                  <div className="space-y-2 mt-3 bg-[#FCFBF9] border border-[#E8E4DF] p-3 rounded-lg">
+                    <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold">Logged-in Email IDs</label>
+                    <div className="space-y-2">
+                      {emailsList.map((email, index) => (
+                        <div key={index} className="flex gap-2 items-center">
+                          <input
+                            type="email"
+                            placeholder="e.g. user@company.com"
+                            value={email}
+                            onChange={(e) => {
+                              const newList = [...emailsList];
+                              newList[index] = e.target.value;
+                              setEmailsList(newList);
+                            }}
+                            className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                          />
+                          {emailsList.length > 1 && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const newList = emailsList.filter((_, i) => i !== index);
+                                setEmailsList(newList);
+                              }}
+                              className="px-2.5 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-lg text-xs font-bold transition-all border border-rose-100 animate-fade-in"
+                            >
+                              Remove
+                            </button>
+                          )}
+                        </div>
+                      ))}
+                      <button
+                        type="button"
+                        onClick={() => setEmailsList([...emailsList, ""])}
+                        className="mt-1 px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-[10px] font-bold rounded-lg transition-all border border-indigo-150 flex items-center gap-1.5 w-fit"
                       >
-                        <option value="">-- Select from Available Stock --</option>
-                        {available.map(item => {
-                          const compName = companies.find(c => String(c.id) === String(item.companyId))?.name || "General Stock";
-                          const isMatch = String(item.companyId || "") === String(assignForm.companyId || "");
-                          return (
-                            <option key={item.id} value={item.id}>
-                              {isMatch ? "★ " : ""}[S/N: {item.serialNumber || 'N/A'}] {item.assetDetail} ({compName} | {item.condition})
-                            </option>
-                          );
-                        })}
-                      </select>
-                    );
-                  })()}
-                </div>
-              )}
+                        + Add Email ID
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
 
               {/* Asset Value field */}
               <div>

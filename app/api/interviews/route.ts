@@ -6,6 +6,9 @@ import sequelize from "@/lib/sequelize";
 import Interview from "@/models/sequelize/Interview";
 import Candidate from "@/models/sequelize/Candidate";
 import LeadPlatform from "@/models/sequelize/LeadPlatform";
+import TaskLog from "@/models/sequelize/TaskLog";
+import Job from "@/models/sequelize/Job";
+import Department from "@/models/sequelize/Department";
 import { Op } from "sequelize";
 import { logAudit } from "@/lib/audit";
 import { logHRActivity } from "@/lib/hrAudit";
@@ -80,13 +83,58 @@ export async function POST(req: Request) {
 
     let vacancyTitle = "General Application";
     if (candidate.job) {
-      const jobObj = candidate.job as any;
-      const deptName = jobObj.department ? jobObj.department.name : "";
-      vacancyTitle = deptName ? `${deptName} - ${jobObj.title}` : jobObj.title;
+      try {
+        const jobRecord = await Job.findByPk(candidate.job, {
+          include: [{ model: Department, as: "department" }]
+        });
+        if (jobRecord) {
+          const deptName = jobRecord.department ? jobRecord.department.name : "";
+          vacancyTitle = deptName ? `${deptName} - ${jobRecord.title}` : jobRecord.title;
+        }
+      } catch (e) {
+        console.error("Failed to load Job details for vacancy title:", e);
+      }
+    }
+
+    if (vacancyTitle === "General Application") {
+      const prevInt = await Interview.findOne({
+        where: {
+          candidate: candidateId,
+          vacancyName: { [Op.ne]: "General Application" }
+        },
+        order: [["createdAt", "DESC"]]
+      });
+      if (prevInt && prevInt.vacancyName) {
+        vacancyTitle = prevInt.vacancyName;
+      }
     }
 
     // Validate progression of rounds
     const targetRound = parseInt(round);
+
+    // Time check: Check if candidate has any scheduled interview whose scheduleTime has NOT passed yet
+    const now = new Date();
+    const futureInterview = await Interview.findOne({
+      where: {
+        candidate: candidateId,
+        scheduleTime: { [Op.gt]: now }
+      }
+    });
+
+    if (futureInterview) {
+      const formattedTime = new Date(futureInterview.scheduleTime).toLocaleString("en-IN", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+      return NextResponse.json({
+        success: false,
+        error: `Cannot schedule next round. Candidate already has an interview scheduled at ${formattedTime} which has not occurred yet.`
+      }, { status: 400 });
+    }
+
     if (targetRound > 1) {
       const prevRound = targetRound - 1;
       const prevSelectedInterview = await Interview.findOne({
@@ -207,6 +255,28 @@ export async function POST(req: Request) {
       } catch (syncErr) {
         console.error("[SYNC INTERVIEW ERROR] Failed to sync schedule to lead:", syncErr);
       }
+
+      // Also create a TaskLog for the scheduled interview
+      try {
+        await TaskLog.sync({ alter: true });
+        const taskId = await TaskLog.generateNextTaskId((session.user as any).id);
+        
+        await TaskLog.create({
+          id: taskId,
+          employee: (session.user as any).id,
+          date: new Date(),
+          taskTitle: `Scheduled Interview: ${candidate.name} (Round ${round || 1})`,
+          taskType: "INTERVIEW",
+          description: `Scheduled interview for Candidate ${candidate.name} (Round ${round || 1}). Mode: ${mode || "online"}.${videoLink ? ` Meeting Link: ${videoLink}` : ""}`,
+          status: "Pending",
+          scheduledAt: new Date(scheduleTime),
+          timerState: "Stopped",
+          elapsedSeconds: 0
+        });
+        console.log(`[TASK CREATED] Created TaskLog for candidate interview: ${taskId}`);
+      } catch (taskErr) {
+        console.error("[TASK LOG ERROR] Failed to create task log for interview schedule:", taskErr);
+      }
     }
 
     // Track Audit Log
@@ -272,6 +342,32 @@ export async function PUT(req: Request) {
       return NextResponse.json({ success: false, error: "Interview not found" }, { status: 404 });
     }
 
+    // Time check: Check if candidate has any other scheduled interview in the future
+    if (scheduleTime !== undefined || round !== undefined) {
+      const now = new Date();
+      const futureInterview = await Interview.findOne({
+        where: {
+          candidate: interview.candidate,
+          id: { [Op.ne]: interviewId },
+          scheduleTime: { [Op.gt]: now }
+        }
+      });
+
+      if (futureInterview) {
+        const formattedTime = new Date(futureInterview.scheduleTime).toLocaleString("en-IN", {
+          day: "2-digit",
+          month: "short",
+          year: "numeric",
+          hour: "2-digit",
+          minute: "2-digit",
+        });
+        return NextResponse.json({
+          success: false,
+          error: `Cannot schedule next round. Candidate already has an interview scheduled at ${formattedTime} which has not occurred yet.`
+        }, { status: 400 });
+      }
+    }
+
     // Validate progression of rounds if round is being updated
     if (round !== undefined) {
       const targetRound = parseInt(round);
@@ -314,12 +410,51 @@ export async function PUT(req: Request) {
     if (status !== undefined && candidate) {
       candidate.status = status;
       if (status === "Selected") {
-        if (candidate.currentRound < 3) {
+        const curRound = candidate.currentRound || 1;
+        if (curRound < 3) {
           // Advance to next round
-          candidate.currentRound += 1;
+          candidate.currentRound = curRound + 1;
         }
       }
       await candidate.save();
+
+      // Sync selection/rejection/status back to the Lead Platform tables
+      try {
+        const platforms = await LeadPlatform.findAll();
+        for (const platform of platforms) {
+          const tableName = platform.tableName;
+          
+          // Check if this candidate ID exists in this platform's table
+          const [existingLeads]: any[] = await sequelize.query(
+            `SELECT * FROM ${tableName} WHERE id = ?`,
+            { replacements: [candidate.id] }
+          );
+          
+          if (existingLeads && existingLeads.length > 0) {
+            let leadStatus = status;
+            if (status === "Selected") {
+              leadStatus = `Selected (Round ${interview.round || 1})`;
+            } else if (status === "Rejected") {
+              leadStatus = `Rejected (Round ${interview.round || 1})`;
+            } else if (status === "Hold") {
+              leadStatus = `Hold (Round ${interview.round || 1})`;
+            } else if (status === "High Risk") {
+              leadStatus = `High Risk (Round ${interview.round || 1})`;
+            } else if (status === "Pending") {
+              leadStatus = `Pending (Round ${interview.round || 1})`;
+            }
+
+            await sequelize.query(
+              `UPDATE ${tableName} SET status = ? WHERE id = ?`,
+              { replacements: [leadStatus, candidate.id] }
+            );
+            console.log(`[SYNC LEAD STATUS SUCCESS] Updated status for lead ${candidate.id} to '${leadStatus}' in ${tableName}`);
+            break;
+          }
+        }
+      } catch (syncErr) {
+        console.error("[SYNC LEAD STATUS ERROR] Failed to sync status to lead table:", syncErr);
+      }
     }
 
     // Sync scheduled follow-up interview back to the Business Lead's call history
@@ -354,16 +489,19 @@ export async function PUT(req: Request) {
             const datePart = scheduleTime.includes("T") ? scheduleTime.split("T")[0] : scheduleTime;
             const timePart = scheduleTime.includes("T") ? scheduleTime.split("T")[1] : null;
             
+            const activeMode = mode !== undefined ? mode : interview.mode;
+            const activeVideoLink = videoLink !== undefined ? videoLink : interview.videoLink;
+
             // Build the follow-up history entry
             const followUpHistoryEntry = {
               id: "followup_" + Date.now().toString(),
               status: "Interview Scheduled",
-              call_remarks: `Follow-up Interview Scheduled (Round ${interview.round || 1}). Mode: ${mode || "online"}.${videoLink ? ` Meeting Link: ${videoLink}` : ""}`,
+              call_remarks: `Follow-up Interview Scheduled (Round ${interview.round || 1}). Mode: ${activeMode || "online"}.${activeVideoLink ? ` Meeting Link: ${activeVideoLink}` : ""}`,
               interview_round: String(interview.round || 1),
               interview_date: datePart,
               interview_time: timePart,
-              interview_mode: mode || "online",
-              interview_video_link: videoLink || null,
+              interview_mode: activeMode || "online",
+              interview_video_link: activeVideoLink || null,
               updatedAt: new Date().toISOString(),
               updatedBy: session.user.name || "System"
             };
@@ -388,8 +526,8 @@ export async function PUT(req: Request) {
                   String(interview.round || 1),
                   datePart,
                   timePart,
-                  mode || "online",
-                  videoLink || null,
+                  activeMode || "online",
+                  activeVideoLink || null,
                   candidate.id
                 ]
               }
@@ -401,6 +539,31 @@ export async function PUT(req: Request) {
         }
       } catch (syncErr) {
         console.error("[SYNC INTERVIEW ERROR] Failed to sync follow-up schedule to lead:", syncErr);
+      }
+
+      // Also create a TaskLog for the scheduled follow-up interview
+      try {
+        await TaskLog.sync({ alter: true });
+        const taskId = await TaskLog.generateNextTaskId((session.user as any).id);
+        
+        const activeMode = mode !== undefined ? mode : interview.mode;
+        const activeVideoLink = videoLink !== undefined ? videoLink : interview.videoLink;
+
+        await TaskLog.create({
+          id: taskId,
+          employee: (session.user as any).id,
+          date: new Date(),
+          taskTitle: `Follow-up Interview: ${candidate.name} (Round ${interview.round || 1})`,
+          taskType: "INTERVIEW",
+          description: `Scheduled follow-up interview for Candidate ${candidate.name} (Round ${interview.round || 1}). Mode: ${activeMode || "online"}.${activeVideoLink ? ` Meeting Link: ${activeVideoLink}` : ""}${remarks ? `\nRemarks: ${remarks}` : ""}`,
+          status: "Pending",
+          scheduledAt: new Date(scheduleTime),
+          timerState: "Stopped",
+          elapsedSeconds: 0
+        });
+        console.log(`[TASK CREATED] Created TaskLog for candidate follow-up: ${taskId}`);
+      } catch (taskErr) {
+        console.error("[TASK LOG ERROR] Failed to create task log for interview follow-up:", taskErr);
       }
     }
 
