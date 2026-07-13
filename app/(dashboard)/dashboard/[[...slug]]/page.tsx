@@ -228,7 +228,15 @@ export default function UnifiedEnterpriseDashboard() {
     loanPressure: false,
     legalMatter: false,
     bgvAgreement: true,
-    dataConfidentiality: true
+    dataConfidentiality: true,
+    gender: "",
+    resumeLink: "",
+    skills: "",
+    age: "",
+    course: "",
+    collegeName: "",
+    previousDesignation: "",
+    previousCompanyName: ""
   });
 
   const [interviewForm, setInterviewForm] = useState({
@@ -837,6 +845,14 @@ export default function UnifiedEnterpriseDashboard() {
           noticePeriod: candForm.noticePeriod || "Immediate",
           currentRound: 1,
           status: "Pending",
+          gender: candForm.gender || null,
+          resumeLink: candForm.resumeLink || null,
+          skills: candForm.skills || null,
+          age: candForm.age || null,
+          course: candForm.course || null,
+          collegeName: candForm.collegeName || null,
+          previousDesignation: candForm.previousDesignation || null,
+          previousCompanyName: candForm.previousCompanyName || null,
           riskAnswers: {
             sideBusiness: candForm.sideBusiness ? "Yes" : "No",
             loanPressure: candForm.loanPressure ? "Yes" : "No",
@@ -865,7 +881,15 @@ export default function UnifiedEnterpriseDashboard() {
           loanPressure: false,
           legalMatter: false,
           bgvAgreement: true,
-          dataConfidentiality: true
+          dataConfidentiality: true,
+          gender: "",
+          resumeLink: "",
+          skills: "",
+          age: "",
+          course: "",
+          collegeName: "",
+          previousDesignation: "",
+          previousCompanyName: ""
         });
         toggleModal("cand", false);
         await loadCandidates();
@@ -1129,6 +1153,7 @@ export default function UnifiedEnterpriseDashboard() {
           {activeTab === "business-leads" && (
             <BusinessLeads
               triggerToast={triggerToast}
+              toggleModal={toggleModal}
             />
           )}
 
@@ -1562,6 +1587,58 @@ export default function UnifiedEnterpriseDashboard() {
                 <input className="w-full bg-white border border-slate-300 rounded p-2.5 text-slate-900 mt-1 focus:outline-none focus:border-[#714B67]" placeholder="e.g. Immediate / 30 Days" value={candForm.noticePeriod} onChange={e => setCandForm({ ...candForm, noticePeriod: e.target.value })} required />
               </div>
 
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-[10px] uppercase font-black text-slate-500 font-mono tracking-widest">Gender</label>
+                  <select
+                    className="w-full bg-white border border-slate-300 rounded p-2.5 text-slate-700 mt-1 focus:outline-none focus:border-[#714B67]"
+                    value={candForm.gender}
+                    onChange={e => setCandForm({ ...candForm, gender: e.target.value })}
+                  >
+                    <option value="">Select Gender</option>
+                    <option value="Male">Male</option>
+                    <option value="Female">Female</option>
+                    <option value="Other">Other</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-[10px] uppercase font-black text-slate-500 font-mono tracking-widest">Age</label>
+                  <input className="w-full bg-white border border-slate-300 rounded p-2.5 text-slate-900 mt-1 focus:outline-none focus:border-[#714B67]" placeholder="e.g. 25" value={candForm.age} onChange={e => setCandForm({ ...candForm, age: e.target.value })} />
+                </div>
+              </div>
+
+              <div>
+                <label className="text-[10px] uppercase font-black text-slate-500 font-mono tracking-widest">Skills</label>
+                <input className="w-full bg-white border border-slate-300 rounded p-2.5 text-slate-900 mt-1 focus:outline-none focus:border-[#714B67]" placeholder="e.g. React, Node.js, SQL" value={candForm.skills} onChange={e => setCandForm({ ...candForm, skills: e.target.value })} />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-[10px] uppercase font-black text-slate-500 font-mono tracking-widest">Course</label>
+                  <input className="w-full bg-white border border-slate-300 rounded p-2.5 text-slate-900 mt-1 focus:outline-none focus:border-[#714B67]" placeholder="e.g. B.Tech / MCA" value={candForm.course} onChange={e => setCandForm({ ...candForm, course: e.target.value })} />
+                </div>
+                <div>
+                  <label className="text-[10px] uppercase font-black text-slate-500 font-mono tracking-widest">College Name</label>
+                  <input className="w-full bg-white border border-slate-300 rounded p-2.5 text-slate-900 mt-1 focus:outline-none focus:border-[#714B67]" placeholder="e.g. ABC Institute" value={candForm.collegeName} onChange={e => setCandForm({ ...candForm, collegeName: e.target.value })} />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-[10px] uppercase font-black text-slate-500 font-mono tracking-widest">Previous Designation</label>
+                  <input className="w-full bg-white border border-slate-300 rounded p-2.5 text-slate-900 mt-1 focus:outline-none focus:border-[#714B67]" placeholder="e.g. Software Engineer" value={candForm.previousDesignation} onChange={e => setCandForm({ ...candForm, previousDesignation: e.target.value })} />
+                </div>
+                <div>
+                  <label className="text-[10px] uppercase font-black text-slate-500 font-mono tracking-widest">Previous Company Name</label>
+                  <input className="w-full bg-white border border-slate-300 rounded p-2.5 text-slate-900 mt-1 focus:outline-none focus:border-[#714B67]" placeholder="e.g. ABC Solutions" value={candForm.previousCompanyName} onChange={e => setCandForm({ ...candForm, previousCompanyName: e.target.value })} />
+                </div>
+              </div>
+
+              <div>
+                <label className="text-[10px] uppercase font-black text-slate-500 font-mono tracking-widest">Resume Link</label>
+                <input className="w-full bg-white border border-slate-300 rounded p-2.5 text-slate-900 mt-1 focus:outline-none focus:border-[#714B67] font-mono text-[11px]" placeholder="e.g. https://drive.google.com/... or resume URL" value={candForm.resumeLink} onChange={e => setCandForm({ ...candForm, resumeLink: e.target.value })} />
+              </div>
+
               <div className="p-3.5 bg-slate-50 rounded-lg space-y-2 border border-slate-200">
                 <h4 className="text-[9px] uppercase font-black tracking-widest text-[#714B67] font-mono">AI Risks Vetting Pre-screener</h4>
                 <div className="space-y-1.5 font-bold text-slate-700">
@@ -1794,22 +1871,6 @@ export default function UnifiedEnterpriseDashboard() {
       {/* MODAL 11: EOD MODAL */}
       {modals.eodModal && (
         <div className="fixed inset-0 bg-[#070810]/40 z-[90] flex items-center justify-center p-4 backdrop-blur-sm animate-fadeIn">
-          <div className="bg-[#F4F5F7] w-full max-w-3xl max-h-[90vh] overflow-y-auto custom-scrollbar rounded-2xl shadow-2xl relative border border-slate-200">
-            <button className="absolute top-6 right-6 text-slate-500 hover:text-slate-800 bg-white hover:bg-slate-100 rounded-full p-1.5 border shadow-sm z-10 transition-all" onClick={() => toggleModal("eodModal", false)}><X className="w-5 h-5" /></button>
-            <div className="p-8">
-              <DailyCommitments
-                sessionUser={session?.user}
-                stats={stats}
-                handleAttendancePunch={handleAttendancePunch}
-                formMode="eod"
-                handleSodSubmit={handleSodSubmit}
-                handleEodSubmit={async (payload) => {
-                  const success = await handleEodSubmit(payload);
-                  if (success) toggleModal("eodModal", false);
-                }}
-              />
-            </div>
-          </div>
           <div className="bg-[#F4F5F7] w-full max-w-3xl max-h-[90vh] overflow-y-auto custom-scrollbar rounded-2xl shadow-2xl relative border border-slate-200">
             <button className="absolute top-6 right-6 text-slate-500 hover:text-slate-800 bg-white hover:bg-slate-100 rounded-full p-1.5 border shadow-sm z-10 transition-all" onClick={() => toggleModal("eodModal", false)}><X className="w-5 h-5" /></button>
             <div className="p-8">

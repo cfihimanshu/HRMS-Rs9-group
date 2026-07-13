@@ -19,10 +19,12 @@ import {
   Phone,
   FileText,
   User,
+  UserPlus,
   Image as ImageIcon,
   Play,
   CalendarRange as CalendarClock,
-  History
+  History,
+  SlidersHorizontal
 } from "lucide-react";
 import * as XLSX from "xlsx";
 
@@ -34,9 +36,11 @@ interface Platform {
 }
 
 export default function BusinessLeads({
-  triggerToast
+  triggerToast,
+  toggleModal
 }: {
   triggerToast: (msg: string) => void;
+  toggleModal?: (modalId: string, open: boolean) => void;
 }) {
   // App States
   const [platforms, setPlatforms] = useState<Platform[]>([]);
@@ -44,6 +48,8 @@ export default function BusinessLeads({
   const [leads, setLeads] = useState<any[]>([]);
   const [columns, setColumns] = useState<string[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
+  const [columnVisibility, setColumnVisibility] = useState<Record<string, boolean>>({});
+  const [showColToggleDropdown, setShowColToggleDropdown] = useState<boolean>(false);
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [stats, setStats] = useState<any>({
     totalLeads: 0,
@@ -95,6 +101,23 @@ export default function BusinessLeads({
   const selectedDeptObj = departments.find((d) => String(d.id) === String(selectedDepartmentId));
   const selectedDeptName = selectedDeptObj ? selectedDeptObj.name : "";
   const filteredRoles = roles.filter((r) => r.department === selectedDeptName);
+
+  const columnToggleDropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        columnToggleDropdownRef.current &&
+        !columnToggleDropdownRef.current.contains(event.target as Node)
+      ) {
+        setShowColToggleDropdown(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
 
   // Fetch departments and roles when modal opens
   useEffect(() => {
@@ -439,8 +462,9 @@ export default function BusinessLeads({
   };
 
   const processFile = (file: File) => {
-    if (!file.name.endsWith(".xlsx") && !file.name.endsWith(".xls")) {
-      triggerToast("Please upload a valid Excel file (.xlsx or .xls)");
+    const ext = file.name.toLowerCase().split(".").pop();
+    if (ext !== "xlsx" && ext !== "xls" && ext !== "csv") {
+      triggerToast("Please upload a valid Excel or CSV file (.xlsx, .xls, or .csv)");
       return;
     }
 
@@ -456,7 +480,7 @@ export default function BusinessLeads({
         const headers = XLSX.utils.sheet_to_json(worksheet, { header: 1 })[0] as string[];
 
         if (json.length === 0 || !headers || headers.length === 0) {
-          triggerToast("The selected Excel sheet seems to be empty.");
+          triggerToast("The selected sheet/file seems to be empty.");
           return;
         }
 
@@ -464,7 +488,7 @@ export default function BusinessLeads({
         setParsedHeaders(headers);
         setImportStep(3); // Move to Preview step
       } catch (err) {
-        triggerToast("Failed to parse the Excel file.");
+        triggerToast("Failed to parse the file.");
       }
     };
     reader.readAsArrayBuffer(file);
@@ -948,26 +972,39 @@ export default function BusinessLeads({
     );
   });
 
-  const visibleColumns = columns.filter((col) => {
-    const cleaned = col.toLowerCase().replace(/[^a-z0-9]/g, "");
-    const excludedKeywords = [
-      "callremarks", "remarks", "screenshoturl", "recordingurl",
-      "interviewround", "interviewdate", "interviewtime", "interviewmode",
-      "interviewvideolink", "followupdate", "callhistory",
-      "srno", "srno", "sr_no", "sr",
-      "unlockedat",
-      "coursestarttime", "courcestarttime", "courcesstarttime",
-      "courseendtime", "courceendtime", "courcesendtime",
-      "platformid", "platform_id",
-      "departmentid", "department_id",
-      "roleid", "role_id",
-      "lastactive", "last_active"
-    ];
-    if (excludedKeywords.includes(cleaned)) return false;
+  const eligibleColumns = useMemo(() => {
+    return columns.filter((col) => {
+      const cleaned = col.toLowerCase().replace(/[^a-z0-9]/g, "");
+      const excludedKeywords = [
+        "callremarks", "remarks", "screenshoturl", "recordingurl",
+        "interviewround", "interviewdate", "interviewtime", "interviewmode",
+        "interviewvideolink", "followupdate", "callhistory",
+        "srno", "srno", "sr_no", "sr",
+        "unlockedat",
+        "coursestarttime", "courcestarttime", "courcesstarttime",
+        "courseendtime", "courceendtime", "courcesendtime",
+        "platformid", "platform_id",
+        "departmentid", "department_id",
+        "roleid", "role_id",
+        "lastactive", "last_active"
+      ];
+      if (excludedKeywords.includes(cleaned)) return false;
 
-    if (["id", "status", "createdAt", "updatedAt"].includes(col)) return true;
-    return leads.some((lead: any) => lead[col] !== null && lead[col] !== undefined && String(lead[col]).trim() !== "");
-  });
+      if (["id", "status", "createdAt", "updatedAt"].includes(col)) return true;
+      return leads.some((lead: any) => lead[col] !== null && lead[col] !== undefined && String(lead[col]).trim() !== "");
+    });
+  }, [columns, leads]);
+
+  const visibleColumns = useMemo(() => {
+    return eligibleColumns.filter((col) => columnVisibility[col] !== false);
+  }, [eligibleColumns, columnVisibility]);
+
+  const toggleColumnVisibility = (col: string) => {
+    setColumnVisibility((prev) => ({
+      ...prev,
+      [col]: prev[col] === false ? true : false
+    }));
+  };
 
   const getSourceDisplay = (platId: string) => {
     return platforms.find((p) => p.id === platId)?.name || platId.toUpperCase();
@@ -1013,6 +1050,17 @@ export default function BusinessLeads({
             </select>
           </div>
 
+          {/* Add Candidate Button */}
+          {toggleModal && (
+            <button
+              onClick={() => toggleModal("cand", true)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#714B67] hover:bg-[#5F3F56] text-white text-xs font-semibold shadow-md active:scale-95 transition-all"
+            >
+              <UserPlus className="w-3.5 h-3.5" />
+              Add Candidate
+            </button>
+          )}
+
           {/* Custom Range Inputs */}
           {dateFilter === "custom" && (
             <div className="flex items-center gap-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-gray-800 rounded-lg px-3 py-1.5 shadow-sm animate-fadeIn">
@@ -1050,7 +1098,7 @@ export default function BusinessLeads({
             className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg bg-[#714B67] text-white text-xs font-semibold shadow-md hover:bg-[#8A5B7D] active:scale-95 transition-all"
           >
             <Plus className="w-3.5 h-3.5" />
-            Import Excel
+            Import Excel/CSV
           </button>
         </div>
       </div>
@@ -1239,8 +1287,46 @@ export default function BusinessLeads({
             />
           </div>
 
-          <div className="text-[10px] font-medium text-slate-400">
-            Showing {filteredLeads.length} of {dateFilteredLeads.length} leads
+          <div className="flex items-center gap-3">
+            <div className="text-[10px] font-medium text-slate-400">
+              Showing {filteredLeads.length} of {dateFilteredLeads.length} leads
+            </div>
+
+            {/* Column Toggle Button & Dropdown */}
+            <div className="relative" ref={columnToggleDropdownRef}>
+              <button
+                onClick={() => setShowColToggleDropdown(!showColToggleDropdown)}
+                className="p-1.5 rounded-lg border border-slate-200 dark:border-gray-800 bg-white dark:bg-slate-900 text-slate-650 dark:text-gray-300 hover:bg-slate-50 dark:hover:bg-gray-850 hover:shadow-sm active:scale-95 transition-all flex items-center gap-1.5"
+                title="Toggle Columns"
+              >
+                <SlidersHorizontal className="w-3.5 h-3.5" />
+              </button>
+
+              {showColToggleDropdown && (
+                <div className="absolute right-0 top-full mt-2 w-56 max-h-72 overflow-y-auto bg-white dark:bg-slate-900 border border-slate-200 dark:border-gray-800 rounded-lg shadow-xl z-50 p-3 space-y-2 animate-fadeIn custom-scrollbar">
+                  <div className="text-[10px] font-bold text-slate-405 dark:text-gray-400 uppercase tracking-widest border-b border-slate-100 dark:border-gray-850 pb-1.5 mb-1.5">
+                    Toggle Columns
+                  </div>
+                  {eligibleColumns.map((col) => {
+                    const isVisible = columnVisibility[col] !== false;
+                    return (
+                      <label
+                        key={col}
+                        className="flex items-center gap-2 px-1 py-1 rounded hover:bg-slate-50 dark:hover:bg-gray-850 cursor-pointer text-xs font-semibold text-slate-700 dark:text-gray-250 select-none"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={isVisible}
+                          onChange={() => toggleColumnVisibility(col)}
+                          className="w-3.5 h-3.5 rounded text-[#714B67] border-slate-350 dark:border-gray-700 focus:ring-[#714B67] cursor-pointer"
+                        />
+                        <span>{formatHeader(col)}</span>
+                      </label>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
@@ -1255,7 +1341,7 @@ export default function BusinessLeads({
             <div className="py-20 text-center">
               <FileSpreadsheet className="w-10 h-10 text-slate-300 dark:text-gray-755 mx-auto mb-3" />
               <p className="text-sm font-semibold text-slate-600 dark:text-gray-400">No leads found</p>
-              <p className="text-xs text-slate-400 mt-1">Upload an Excel file to start importing leads for this platform.</p>
+              <p className="text-xs text-slate-400 mt-1">Upload an Excel or CSV file to start importing leads for this platform.</p>
             </div>
           ) : (
             <table className="w-full text-left border-collapse">
@@ -1516,7 +1602,7 @@ export default function BusinessLeads({
             {/* Modal Header */}
             <div className="px-6 py-4 border-b border-slate-100 dark:border-gray-850 flex items-center justify-between">
               <div>
-                <h2 className="text-base font-bold text-slate-800 dark:text-gray-150">Excel Lead Importer</h2>
+                <h2 className="text-base font-bold text-slate-800 dark:text-gray-150">Excel/CSV Lead Importer</h2>
                 <p className="text-[10px] text-slate-400 font-medium">Dynamic table & column schema builder</p>
               </div>
               <button
@@ -1773,7 +1859,7 @@ export default function BusinessLeads({
                 </div>
               )}
 
-              {/* STEP 2: Drag and Drop Excel */}
+              {/* STEP 2: Drag and Drop Excel/CSV */}
               {importStep === 2 && (
                 <div className="space-y-4">
                   <div
@@ -1781,13 +1867,13 @@ export default function BusinessLeads({
                     className="border-2 border-dashed border-slate-200 dark:border-gray-850 hover:border-[#714B67] rounded-xl p-10 text-center cursor-pointer transition-all bg-slate-50/50 dark:bg-slate-950/10 hover:bg-[#714B67]/5"
                   >
                     <UploadCloud className="w-10 h-10 text-slate-350 mx-auto mb-3 animate-bounce" />
-                    <p className="text-xs font-bold text-slate-700 dark:text-gray-250">Click or drag Excel file to upload</p>
-                    <p className="text-[10px] text-slate-400 mt-1">Supports .xlsx or .xls spreadsheets</p>
+                    <p className="text-xs font-bold text-slate-700 dark:text-gray-250">Click or drag Excel or CSV file to upload</p>
+                    <p className="text-[10px] text-slate-400 mt-1">Supports .xlsx, .xls or .csv files</p>
                     <input
                       type="file"
                       ref={fileInputRef}
                       className="hidden"
-                      accept=".xlsx, .xls"
+                      accept=".xlsx, .xls, .csv"
                       onChange={handleFileChange}
                     />
                   </div>
@@ -1822,7 +1908,7 @@ export default function BusinessLeads({
                     <div>
                       <p className="font-bold">Schema Sync Alert</p>
                       <p className="text-[10px] mt-0.5 opacity-90">
-                        Any columns in this Excel file that do not currently exist in the database table will be created dynamically as new database columns. No columns will be skipped.
+                        Any columns in this Excel/CSV file that do not currently exist in the database table will be created dynamically as new database columns. No columns will be skipped.
                       </p>
                     </div>
                   </div>

@@ -16,8 +16,9 @@ import { Op } from "sequelize";
 // Works continuously inside the running Next.js dev server process.
 
 let daemonStarted = (global as any).__reminderDaemonStarted || false;
+const isServerless = process.env.VERCEL === "1" || process.env.NODE_ENV === "production";
 
-if (!daemonStarted) {
+if (!daemonStarted && !isServerless) {
   (global as any).__reminderDaemonStarted = true;
   console.log("⏰ [Task Reminder Daemon] Started background check interval (every 30s)...");
 

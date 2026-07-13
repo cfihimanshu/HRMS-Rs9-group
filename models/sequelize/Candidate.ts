@@ -47,6 +47,14 @@ class Candidate extends Model {
   public verticalField!: string;
   public joiningTime!: string;
   public applicationDate!: string;
+  public gender!: string;
+  public resumeLink!: string;
+  public skills!: string;
+  public age!: string;
+  public course!: string;
+  public collegeName!: string;
+  public previousDesignation!: string;
+  public previousCompanyName!: string;
 
   public uploads!: any;
   public riskAnswers!: any;
@@ -292,6 +300,38 @@ Candidate.init(
     },
     applicationDate: {
       type: DataTypes.TEXT,
+      allowNull: true,
+    },
+    gender: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    resumeLink: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+    },
+    skills: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+    },
+    age: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    course: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    collegeName: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    previousDesignation: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    previousCompanyName: {
+      type: DataTypes.STRING,
       allowNull: true,
     },
     createdAt: {
