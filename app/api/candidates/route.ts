@@ -10,6 +10,18 @@ import LeadRole from "@/models/sequelize/LeadRole";
 import { logAudit } from "@/lib/audit";
 import { Op } from "sequelize";
 
+// ── One-time schema sync guard ────────────────────────────────────────────────
+// Runs Candidate.sync({ alter: true }) only once per server process lifetime
+// to avoid concurrent MySQL ALTER TABLE errors from simultaneous requests.
+let candidateSyncDone = (global as any).__candidateSyncDone || false;
+async function ensureCandidateSync() {
+  if (!candidateSyncDone) {
+    (global as any).__candidateSyncDone = true;
+    candidateSyncDone = true;
+    await Candidate.sync({ alter: true });
+  }
+}
+
 // POST: Candidate submits their application form (Public Endpoint)
 export async function POST(req: Request) {
   try {
@@ -49,6 +61,14 @@ export async function POST(req: Request) {
       noticePeriod,
       riskAnswers,
       uploads,
+      gender,
+      resumeLink,
+      skills,
+      age,
+      course,
+      collegeName,
+      previousDesignation,
+      previousCompanyName,
     } = body;
 
     if (
@@ -72,6 +92,21 @@ export async function POST(req: Request) {
       if (!jobExists) {
         return NextResponse.json({ success: false, error: "Job posting not found" }, { status: 400 });
       }
+    }
+
+    // ── Global Duplicate Mobile Number Check ──────────────────────────────────
+    // Prevent same mobile number from being registered more than once.
+    const duplicateByMobile = await Candidate.findOne({
+      where: {
+        mobile: mobile.trim(),
+        status: { [Op.ne]: "inactive" }
+      }
+    });
+    if (duplicateByMobile) {
+      return NextResponse.json({
+        success: false,
+        error: `A candidate with mobile number ${mobile.trim()} already exists in the system. Please check existing leads.`
+      }, { status: 400 });
     }
 
     // 3-month Reapply Limitation Check
@@ -126,6 +161,14 @@ export async function POST(req: Request) {
       noticePeriod: noticePeriod || null,
       status: "Pending",
       currentRound: 1,
+      gender: gender || null,
+      resumeLink: resumeLink || null,
+      skills: skills || null,
+      age: age || null,
+      course: course || null,
+      collegeName: collegeName || null,
+      previousDesignation: previousDesignation || null,
+      previousCompanyName: previousCompanyName || null,
       createdAt: nowStr,
       updatedAt: nowStr
     };
@@ -438,7 +481,7 @@ export async function GET(req: Request) {
     }
 
     await sequelize.authenticate();
-    await Candidate.sync({ alter: true });
+    await ensureCandidateSync();
     const url = new URL(req.url);
     const pageStr = url.searchParams.get("page");
     const limitStr = url.searchParams.get("limit");
