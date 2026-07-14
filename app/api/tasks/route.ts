@@ -101,27 +101,113 @@ if (!daemonStarted && !isServerless) {
       <h2>${task.taskTitle}</h2>
       ${task.description ? `<p>${task.description}</p>` : ""}
     </div>
-    <div class="due">⏰ Follow-up was scheduled for: <strong>${scheduledLabel}</strong></div>
-    ${task.forwardedTo ? `<p>⚠️ This task has been forwarded. Please coordinate accordingly.</p>` : ""}
+    <div class="due">
+      ⏰ Scheduled Follow-up: <span>${scheduledLabel}</span>
+    </div>
+    <p>Please log in to the portal to update the task status and progress notes.</p>
     <p style="text-align:center;margin-top:20px">
       <a href="${portalUrl}" style="background:#4f46e5;color:#fff;padding:10px 24px;border-radius:8px;text-decoration:none;font-weight:700;font-size:13px">Open Portal →</a>
     </p>
   </div>
-  <div class="footer">RS9 Group HRMS • Automated follow-up reminder</div>
+  <div class="footer">RS9 Group HRMS • This is an automated reminder</div>
 </div>
 </body></html>`;
 
             await sendEmail({
-              to: [...new Set(recipients)],
-              subject: `📅 Follow-up Reminder: ${task.taskTitle}`,
+              to: recipients,
+              subject: `📅 Task Follow-up Due – ${task.taskTitle}`,
               html,
             });
 
             task.reminderSent = true;
             await task.save();
-            console.log(`⏰ [Task Reminder Daemon] Successfully sent reminder email for task: ${task.taskTitle}`);
           } catch (err) {
-            console.error(`⏰ [Task Reminder Daemon] Error for task ${task.id}:`, err);
+            console.error("Daemon email error for task:", task.id, err);
+          }
+        }
+      }
+
+      // ─── Overdue Deadline Check ───
+      const overdueTasks = await TaskLog.findAll({
+        where: {
+          deadlineAt: {
+            [Op.lte]: now,
+          },
+          status: { [Op.ne]: "Completed" },
+          deadlineReminderSent: { [Op.or]: [false, null] },
+        },
+      }) as any[];
+
+      if (overdueTasks.length > 0) {
+        console.log(`⏰ [Task Reminder Daemon] Found ${overdueTasks.length} overdue tasks! Sending reminders...`);
+        for (const task of overdueTasks) {
+          try {
+            const employee = await User.findOne({ where: { id: task.employee }, raw: true }) as any;
+            if (employee && employee.email) {
+              const deadlineLabel = new Date(task.deadlineAt).toLocaleString("en-IN", {
+                day: "2-digit", month: "short", year: "numeric",
+                hour: "2-digit", minute: "2-digit",
+              });
+
+              // Send Overdue Reminder Email
+              await sendEmail({
+                to: employee.email,
+                subject: `⚠️ URGENT REMINDER: Task Overdue – ${task.taskTitle}`,
+                html: `<!DOCTYPE html>
+<html><head><meta charset="utf-8">
+<style>
+  body{font-family:'Segoe UI',system-ui,sans-serif;background:#f1f5f9;margin:0;padding:0;color:#1e293b}
+  .wrap{max-width:580px;margin:32px auto;background:#fff;border-radius:16px;overflow:hidden;border:1px solid #e2e8f0;box-shadow:0 4px 20px rgba(0,0,0,.06)}
+  .header{background:linear-gradient(135deg,#e11d48 0%,#be123c 100%);padding:28px 24px;color:#fff;text-align:center}
+  .header h1{margin:0;font-size:20px;font-weight:700}
+  .header p{margin:6px 0 0;font-size:13px;opacity:.9}
+  .body{padding:28px 24px}
+  .badge{display:inline-block;padding:4px 12px;border-radius:999px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;background:#fff1f2;color:#be123c;margin-bottom:12px}
+  .task-box{background:#fff1f2;border:1px solid #fecdd3;border-radius:12px;padding:16px;margin:16px 0}
+  .task-box h2{margin:0 0 6px;font-size:16px;font-weight:700;color:#0f172a}
+  .task-box p{margin:0;font-size:13px;color:#475569}
+  .due{background:#ffe4e6;border:1px solid #fecdd3;border-radius:10px;padding:12px 16px;margin:16px 0;font-size:13px;font-weight:700;color:#9f1239}
+  .footer{background:#f8fafc;padding:16px 24px;text-align:center;font-size:11px;color:#94a3b8;border-top:1px solid #e2e8f0}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="header">
+    <h1>⚠️ Task Overdue Reminder</h1>
+    <p>Your task deadline has passed. Please complete it immediately.</p>
+  </div>
+  <div class="body">
+    <p>Hello <strong>${employee.name || "Team Member"}</strong>,</p>
+    <p>This is an urgent reminder that your task deadline has passed but the task is still not completed:</p>
+    <div class="badge">${task.taskType || "Task"}</div>
+    <div class="task-box">
+      <h2>${task.taskTitle}</h2>
+      ${task.description ? `<p>${task.description}</p>` : ""}
+    </div>
+    <div class="due">
+      ⏰ Deadline was: <strong>${deadlineLabel}</strong>
+    </div>
+    <p>Please log in to the portal and complete the task as soon as possible.</p>
+  </div>
+  <div class="footer">RS9 Group HRMS • This is an automated reminder</div>
+</div>
+</body></html>`,
+              });
+            }
+
+            // Create in-app notification
+            await Notification.create({
+              id: Date.now().toString() + Math.random().toString(36).substring(2, 8),
+              recipient: task.employee,
+              title: "Task Overdue Reminder",
+              message: `Your task is past its deadline: ${task.taskTitle}. Please complete it now.`,
+              read: false
+            });
+
+            task.deadlineReminderSent = true;
+            await task.save();
+          } catch (err) {
+            console.error("Failed to process overdue reminder:", err);
           }
         }
       }
@@ -254,6 +340,7 @@ export async function GET(req: Request) {
     const userRole = (session.user as any).role || "Employee";
     
     await sequelize.authenticate();
+    try { await TaskLog.sync({ alter: true }); } catch (_) {}
     const { searchParams } = new URL(req.url);
     const filterDate = searchParams.get("date");
 
@@ -281,7 +368,8 @@ export async function GET(req: Request) {
 
     const empIds = records.map((r: any) => r.employee).filter(Boolean);
     const fwdIds = records.map((r: any) => r.forwardedTo).filter(Boolean);
-    const allUserIds = Array.from(new Set([...empIds, ...fwdIds]));
+    const assignerIds = records.map((r: any) => r.assignedBy).filter(Boolean);
+    const allUserIds = Array.from(new Set([...empIds, ...fwdIds, ...assignerIds]));
 
     const employees = await User.findAll({
       where: { id: { [Op.in]: allUserIds } },
@@ -306,6 +394,14 @@ export async function GET(req: Request) {
       } else {
         plain.forwardedUser = null;
       }
+
+      if (plain.assignedBy) {
+        const assignerDetail = empMap.get(plain.assignedBy);
+        plain.assignedByUser = assignerDetail ? { ...assignerDetail, id: assignerDetail.id } : { id: plain.assignedBy, name: "Owner", role: "Owner" };
+      } else {
+        plain.assignedByUser = null;
+      }
+
       return plain;
     });
 
@@ -327,9 +423,10 @@ export async function POST(req: Request) {
     }
 
     const userId = (session.user as any).id;
+    const userRole = (session.user as any).role || "Employee";
     const userName = session.user.name || "Employee";
     const body = await req.json();
-    const { taskTitle, taskType, description, status } = body;
+    const { taskTitle, taskType, description, status, employeeId, deadlineAt } = body;
 
     if (!taskTitle || !taskType) {
       return NextResponse.json({ success: false, error: "Missing required fields (Task Title, Task Type)" }, { status: 400 });
@@ -341,11 +438,31 @@ export async function POST(req: Request) {
     const { scheduledAt } = body;
 
     const now = new Date();
-    const nextId = await TaskLog.generateNextTaskId(userId);
+
+    // Owner can assign tasks to other users
+    let targetEmployeeId = userId;
+    let assignedBy = null;
+    if (userRole === "Owner" && employeeId) {
+      targetEmployeeId = employeeId;
+      assignedBy = userId;
+    }
+
+    let finalDeadlineAt = null;
+    let calculatedDeadlineHours = null;
+    if (deadlineAt) {
+      finalDeadlineAt = new Date(deadlineAt);
+      const diffMs = finalDeadlineAt.getTime() - now.getTime();
+      calculatedDeadlineHours = Math.max(1, Math.round(diffMs / (1000 * 60 * 60)));
+    }
+
+    const nextId = await TaskLog.generateNextTaskId(targetEmployeeId);
 
     const record = await TaskLog.create({
       id: nextId,
-      employee: userId,
+      employee: targetEmployeeId,
+      assignedBy,
+      deadlineHours: calculatedDeadlineHours,
+      deadlineAt: finalDeadlineAt,
       date: now,
       taskTitle,
       taskType,
@@ -357,6 +474,79 @@ export async function POST(req: Request) {
       timerStart: now,
       elapsedSeconds: 0,
     });
+
+    // Notify assigned employee (if assigned by Owner to someone else)
+    if (userRole === "Owner" && employeeId && employeeId !== userId) {
+      try {
+        const assignedUser = await User.findOne({ where: { id: employeeId }, raw: true }) as any;
+        if (assignedUser && assignedUser.email) {
+          const deadlineLabel = finalDeadlineAt
+            ? new Date(finalDeadlineAt).toLocaleString("en-IN", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })
+            : "No deadline";
+
+          const portalUrl = "https://hrms.cfi247.com/";
+
+          await sendEmail({
+            to: assignedUser.email,
+            subject: `📥 New Task Assigned to You by ${userName} – ${taskTitle}`,
+            html: `<!DOCTYPE html>
+<html><head><meta charset="utf-8">
+<style>
+  body{font-family:'Segoe UI',system-ui,sans-serif;background:#f1f5f9;margin:0;padding:0;color:#1e293b}
+  .wrap{max-width:580px;margin:32px auto;background:#fff;border-radius:16px;overflow:hidden;border:1px solid #e2e8f0;box-shadow:0 4px 20px rgba(0,0,0,.06)}
+  .header{background:linear-gradient(135deg,#db2777 0%,#be185d 100%);padding:28px 24px;color:#fff;text-align:center}
+  .header h1{margin:0;font-size:20px;font-weight:700}
+  .header p{margin:6px 0 0;font-size:13px;opacity:.9}
+  .body{padding:28px 24px}
+  .badge{display:inline-block;padding:4px 12px;border-radius:999px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;background:#fdf2f8;color:#be185d;margin-bottom:12px}
+  .task-box{background:#fdf2f8;border:1px solid #fbcfe8;border-radius:12px;padding:16px;margin:16px 0}
+  .task-box h2{margin:0 0 6px;font-size:16px;font-weight:700;color:#0f172a}
+  .task-box p{margin:0;font-size:13px;color:#475569}
+  .due{background:#fef3c7;border:1px solid #fde68a;border-radius:10px;padding:12px 16px;margin:16px 0;font-size:13px;font-weight:600;color:#92400e}
+  .footer{background:#f8fafc;padding:16px 24px;text-align:center;font-size:11px;color:#94a3b8;border-top:1px solid #e2e8f0}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="header">
+    <h1>📥 New Task Assigned</h1>
+    <p>A new task has been assigned to you by ${userName}</p>
+  </div>
+  <div class="body">
+    <p>Hello <strong>${assignedUser.name || "Team Member"}</strong>,</p>
+    <p>You have been assigned the following task by <strong>${userName}</strong>:</p>
+    <div class="badge">${taskType}</div>
+    <div class="task-box">
+      <h2>${taskTitle}</h2>
+      ${description ? `<p>${description}</p>` : ""}
+    </div>
+    <div class="due">
+      ⏰ Deadline: <strong>${deadlineLabel}</strong>
+    </div>
+    <p>Please log in to the portal to start working on this task.</p>
+    <p style="text-align:center;margin-top:20px">
+      <a href="${portalUrl}" style="background:#be185d;color:#fff;padding:10px 24px;border-radius:8px;text-decoration:none;font-weight:700;font-size:13px">Open My Tasks →</a>
+    </p>
+  </div>
+  <div class="footer">RS9 Group HRMS • This is an automated notification</div>
+</div>
+</body></html>`,
+          });
+        }
+
+        // Send In-App Notification
+        await Notification.sync({ alter: true });
+        await Notification.create({
+          id: Date.now().toString() + Math.random().toString(36).substring(2, 8),
+          recipient: employeeId,
+          title: "New Task Assigned",
+          message: `${userName} assigned a task to you: ${taskTitle}`,
+          read: false
+        });
+      } catch (err) {
+        console.error("Failed to notify assigned user:", err);
+      }
+    }
 
     await logAudit({
       userId,

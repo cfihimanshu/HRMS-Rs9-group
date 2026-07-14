@@ -48,6 +48,18 @@ LegalMarketingCall.init(
       allowNull: true,
       defaultValue: DataTypes.NOW,
     },
+    taskId: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    bankName: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    branchName: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
   },
   {
     sequelize,

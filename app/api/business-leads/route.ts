@@ -164,21 +164,85 @@ export async function GET(req: Request) {
       const tasklogsList = taskLogsByLeadId[lead.id] || [];
       const parsedTasklogs = tasklogsList.map(parseTaskLogDescription);
 
-      // Merge and deduplicate by status, remarks, and timestamp
-      const mergedMap = new Map<string, any>();
-      
-      parsedTasklogs.forEach((item) => {
-        const key = `${item.status}_${item.call_remarks}_${new Date(item.updatedAt).getTime()}`;
-        mergedMap.set(key, item);
-      });
+      // Merge all items and deduplicate dynamically
+      const allHistoryItems = [...parsedTasklogs, ...callHistoryList];
+      const deduplicatedHistory: any[] = [];
 
-      callHistoryList.forEach((item) => {
-        const key = `${item.status}_${item.call_remarks}_${new Date(item.updatedAt).getTime()}`;
-        mergedMap.set(key, item);
+      allHistoryItems.forEach((item) => {
+        const itemTime = new Date(item.updatedAt).getTime();
+        
+        // Find if this is a duplicate of an already processed log
+        const duplicateIndex = deduplicatedHistory.findIndex((existing) => {
+          const existingTime = new Date(existing.updatedAt).getTime();
+          const timeDiffMinutes = Math.abs(itemTime - existingTime) / (1000 * 60);
+          
+          if (existing.status !== item.status || timeDiffMinutes > 5) {
+            return false;
+          }
+
+          // Clean up remarks strings to compare them meaningfully
+          const cleanRemarks = (text: string) => {
+            return (text || "").trim().toLowerCase().replace(/^(n\/a|no remarks logged\.?)$/, "");
+          };
+
+          const r1 = cleanRemarks(existing.call_remarks);
+          const r2 = cleanRemarks(item.call_remarks);
+
+          // If remarks match exactly, or one of them is empty/unspecified, they are duplicate logs of the same event
+          return r1 === r2 || r1 === "" || r2 === "";
+        });
+
+        if (duplicateIndex >= 0) {
+          // Merge duplicates and choose the best updatedBy name
+          const existing = deduplicatedHistory[duplicateIndex];
+          const isExistingRawId = existing.updatedBy?.startsWith("USER_") || existing.updatedBy === "HR System";
+          const isItemRawId = item.updatedBy?.startsWith("USER_") || item.updatedBy === "HR System";
+
+          // Prefer the human readable username
+          if (isExistingRawId && !isItemRawId) {
+            existing.updatedBy = item.updatedBy;
+          }
+
+          // Prefer the non-empty remarks string
+          const cleanRemarks = (text: string) => {
+            return (text || "").trim().toLowerCase().replace(/^(n\/a|no remarks logged\.?)$/, "");
+          };
+          if (cleanRemarks(item.call_remarks) && !cleanRemarks(existing.call_remarks)) {
+            existing.call_remarks = item.call_remarks;
+          }
+
+          // Merge additional fields if available in the other log copy
+          if (!existing.screenshot_url && item.screenshot_url) {
+            existing.screenshot_url = item.screenshot_url;
+          }
+          if (!existing.recording_url && item.recording_url) {
+            existing.recording_url = item.recording_url;
+          }
+          if (!existing.interview_round && item.interview_round) {
+            existing.interview_round = item.interview_round;
+          }
+          if (!existing.interview_date && item.interview_date) {
+            existing.interview_date = item.interview_date;
+          }
+          if (!existing.interview_time && item.interview_time) {
+            existing.interview_time = item.interview_time;
+          }
+          if (!existing.interview_mode && item.interview_mode) {
+            existing.interview_mode = item.interview_mode;
+          }
+          if (!existing.interview_video_link && item.interview_video_link) {
+            existing.interview_video_link = item.interview_video_link;
+          }
+          if (!existing.followup_date && item.followup_date) {
+            existing.followup_date = item.followup_date;
+          }
+        } else {
+          deduplicatedHistory.push({ ...item });
+        }
       });
 
       // Sort chronological
-      const mergedList = Array.from(mergedMap.values()).sort(
+      const mergedList = deduplicatedHistory.sort(
         (a, b) => new Date(a.updatedAt).getTime() - new Date(b.updatedAt).getTime()
       );
 

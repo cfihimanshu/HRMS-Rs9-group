@@ -43,3 +43,26 @@ export async function POST(request: Request) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
 }
+
+export async function PUT(request: Request) {
+  try {
+    const data = await request.json();
+    const { id, ...updateData } = data;
+    if (!id) {
+      return NextResponse.json({ success: false, error: "Branch ID is required" }, { status: 400 });
+    }
+    await sequelize.authenticate();
+    await BranchMaster.sync({ alter: true });
+
+    const branch = await BranchMaster.findByPk(id);
+    if (!branch) {
+      return NextResponse.json({ success: false, error: "Branch not found" }, { status: 404 });
+    }
+
+    await branch.update(updateData);
+    return NextResponse.json({ success: true, data: branch });
+  } catch (error: any) {
+    console.error("Branch PUT Error:", error);
+    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+  }
+}

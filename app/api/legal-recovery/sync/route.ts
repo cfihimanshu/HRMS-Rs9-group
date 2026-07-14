@@ -3,11 +3,13 @@ import LegalNotice from "@/models/sequelize/LegalNotice";
 import LegalExpense from "@/models/sequelize/LegalExpense";
 import LegalAssetSeizure from "@/models/sequelize/LegalAssetSeizure";
 import LegalAdvocateMaster from "@/models/sequelize/LegalAdvocateMaster";
+import LegalNoticeType from "@/models/sequelize/LegalNoticeType";
 import sequelize from "@/lib/sequelize";
 
 export async function GET() {
   try {
     await sequelize.authenticate();
+    await LegalNoticeType.sync({ alter: true });
     await LegalNotice.sync({ alter: true });
     await LegalExpense.sync({ alter: true });
     await LegalAssetSeizure.sync({ alter: true });

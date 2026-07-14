@@ -46,6 +46,14 @@ LegalRecoveryFollowUp.init(
       type: DataTypes.DATE,
       allowNull: true,
     },
+    bankName: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    branchName: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
     createdAt: {
       type: DataTypes.DATE,
       allowNull: true,
@@ -59,6 +67,9 @@ LegalRecoveryFollowUp.init(
     sequelize,
     tableName: "legal_recovery_followups",
     timestamps: true,
+    indexes: [
+      { fields: ["masterId"] }
+    ]
   }
 );
 

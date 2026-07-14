@@ -117,6 +117,23 @@ TaskLog.init(
       type: DataTypes.STRING,
       allowNull: true,
     },
+    assignedBy: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    deadlineHours: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+    },
+    deadlineAt: {
+      type: DataTypes.DATE,
+      allowNull: true,
+    },
+    deadlineReminderSent: {
+      type: DataTypes.BOOLEAN,
+      allowNull: true,
+      defaultValue: false,
+    },
     reminderSent: {
       type: DataTypes.BOOLEAN,
       allowNull: true,

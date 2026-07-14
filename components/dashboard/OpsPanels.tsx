@@ -148,6 +148,9 @@ export function DailyCommitments({
         setSodAlreadySubmitted(true);
       } else {
         setSodAlreadySubmitted(false);
+        if (sodData.lastEodPlan) {
+          setTaskSummary(sodData.lastEodPlan);
+        }
       }
       if (eodData.success && eodData.data) {
         setEodAlreadySubmitted(true);
@@ -1052,8 +1055,8 @@ export function PerformanceCompliance({
     const compsSource = dbUser?.companies || sessionUser?.companies;
     if (!compsSource) return [];
     try {
-      const parsed = typeof compsSource === "string" 
-        ? JSON.parse(compsSource) 
+      const parsed = typeof compsSource === "string"
+        ? JSON.parse(compsSource)
         : compsSource;
       if (Array.isArray(parsed)) return parsed.map(String);
       return [String(parsed)];
@@ -1528,15 +1531,15 @@ export function PerformanceCompliance({
 
         const tasksCount = item.tasks ? item.tasks.length : 0;
         const tasksDetails = item.tasks && item.tasks.length > 0
-           ? item.tasks.map((t: any) => {
-               let suffix = "";
-               if (t.updatedAt && new Date(t.updatedAt).toDateString() !== item.date.toDateString() && item.date.toDateString() === new Date(t.date).toDateString()) {
-                 const dateStr = new Date(t.updatedAt).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
-                 suffix = ` (This task is shifted for working on ${dateStr})`;
-               }
-               return `[${t.status}] ${t.taskTitle} (${t.taskType})${suffix}`;
-             }).join(" | ")
-           : "-";
+          ? item.tasks.map((t: any) => {
+            let suffix = "";
+            if (t.updatedAt && new Date(t.updatedAt).toDateString() !== item.date.toDateString() && item.date.toDateString() === new Date(t.date).toDateString()) {
+              const dateStr = new Date(t.updatedAt).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
+              suffix = ` (This task is shifted for working on ${dateStr})`;
+            }
+            return `[${t.status}] ${t.taskTitle} (${t.taskType})${suffix}`;
+          }).join(" | ")
+          : "-";
 
         const fieldVisitKm = item.fieldVisits && item.fieldVisits.length > 0
           ? item.fieldVisits.reduce((sum: number, v: any) => sum + (v.distance_travelled || 0), 0)
@@ -1836,11 +1839,10 @@ export function PerformanceCompliance({
               <button
                 type="button"
                 onClick={() => setShowFilters(!showFilters)}
-                className={`flex items-center gap-2 border px-4 py-2 text-xs font-bold transition-all rounded-xl shadow-sm focus:outline-none ${
-                  showFilters
+                className={`flex items-center gap-2 border px-4 py-2 text-xs font-bold transition-all rounded-xl shadow-sm focus:outline-none ${showFilters
                     ? "bg-[#C9A84C] border-[#C9A84C] text-[#FCFBF9]"
                     : "bg-[#FCFBF9] hover:bg-[#F5F2EC] border-[#E8E4DF] text-[#1C1C1A]"
-                }`}
+                  }`}
               >
                 <Filter className="w-3.5 h-3.5" />
                 <span>Filter Reports</span>
@@ -2173,49 +2175,49 @@ export function PerformanceCompliance({
                                                 {task.description}
                                               </p>
                                             )}
-                                             {(() => {
-                                               let proofUrls: string[] = [];
-                                               if (task.proofAttachment) {
-                                                 if (task.proofAttachment.startsWith('[') && task.proofAttachment.endsWith(']')) {
-                                                   try {
-                                                     proofUrls = JSON.parse(task.proofAttachment);
-                                                   } catch (_) {
-                                                     proofUrls = [task.proofAttachment];
-                                                   }
-                                                 } else {
-                                                   proofUrls = task.proofAttachment.split(',').map((u: any) => u.trim()).filter(Boolean);
-                                                 }
-                                               }
+                                            {(() => {
+                                              let proofUrls: string[] = [];
+                                              if (task.proofAttachment) {
+                                                if (task.proofAttachment.startsWith('[') && task.proofAttachment.endsWith(']')) {
+                                                  try {
+                                                    proofUrls = JSON.parse(task.proofAttachment);
+                                                  } catch (_) {
+                                                    proofUrls = [task.proofAttachment];
+                                                  }
+                                                } else {
+                                                  proofUrls = task.proofAttachment.split(',').map((u: any) => u.trim()).filter(Boolean);
+                                                }
+                                              }
 
-                                               if (proofUrls.length === 0) return null;
+                                              if (proofUrls.length === 0) return null;
 
-                                               return (
-                                                 <div className="flex flex-wrap gap-1.5 mt-1.5">
-                                                   {proofUrls.map((pUrl: string, index: number) => (
-                                                     <button
-                                                       key={index}
-                                                       onClick={(e) => {
-                                                         e.stopPropagation();
-                                                         setSelectedSelfie(pUrl);
-                                                       }}
-                                                       className="bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-250 text-[9px] font-black uppercase px-2 py-1 rounded-lg flex items-center gap-1 transition-colors"
-                                                       title={`View Task Proof #${index + 1}`}
-                                                     >
-                                                       <Eye className="w-3 h-3" />
-                                                       Proof #{index + 1}
-                                                     </button>
-                                                   ))}
-                                                 </div>
-                                               );
-                                             })()}
-                                            {task.updatedAt && 
-                                             new Date(task.updatedAt).toDateString() !== item.date.toDateString() && 
-                                             item.date.toDateString() === new Date(task.date).toDateString() && (
-                                               <div className="mt-1 bg-indigo-50 border border-indigo-100 text-[10px] font-semibold text-indigo-650 px-2 py-1.5 rounded-lg flex items-center gap-1.5">
-                                                 <Info className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
-                                                 <span>This task is shifted for working on {new Date(task.updatedAt).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}</span>
-                                               </div>
-                                             )}
+                                              return (
+                                                <div className="flex flex-wrap gap-1.5 mt-1.5">
+                                                  {proofUrls.map((pUrl: string, index: number) => (
+                                                    <button
+                                                      key={index}
+                                                      onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        setSelectedSelfie(pUrl);
+                                                      }}
+                                                      className="bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-250 text-[9px] font-black uppercase px-2 py-1 rounded-lg flex items-center gap-1 transition-colors"
+                                                      title={`View Task Proof #${index + 1}`}
+                                                    >
+                                                      <Eye className="w-3 h-3" />
+                                                      Proof #{index + 1}
+                                                    </button>
+                                                  ))}
+                                                </div>
+                                              );
+                                            })()}
+                                            {task.updatedAt &&
+                                              new Date(task.updatedAt).toDateString() !== item.date.toDateString() &&
+                                              item.date.toDateString() === new Date(task.date).toDateString() && (
+                                                <div className="mt-1 bg-indigo-50 border border-indigo-100 text-[10px] font-semibold text-indigo-650 px-2 py-1.5 rounded-lg flex items-center gap-1.5">
+                                                  <Info className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
+                                                  <span>This task is shifted for working on {new Date(task.updatedAt).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}</span>
+                                                </div>
+                                              )}
                                           </div>
                                         ))}
                                       </div>
@@ -2339,7 +2341,7 @@ export function PerformanceCompliance({
                 <X className="w-5 h-5" />
               </button>
             </div>
-            
+
             <div className="flex-1 bg-slate-900 flex items-center justify-center p-4 min-h-[50vh] overflow-hidden">
               {(() => {
                 const url = selectedSelfie.toLowerCase();
@@ -2349,14 +2351,14 @@ export function PerformanceCompliance({
 
                 if (isPdf) {
                   return (
-                    <iframe 
-                      src={selectedSelfie} 
-                      className="w-full h-[70vh] rounded bg-white" 
+                    <iframe
+                      src={selectedSelfie}
+                      className="w-full h-[70vh] rounded bg-white"
                       title="PDF Document"
                     />
                   );
                 }
-                
+
                 if (isAudio) {
                   return (
                     <div className="bg-slate-800 p-8 rounded-xl flex flex-col items-center justify-center w-full max-w-md">
@@ -2709,11 +2711,10 @@ export function LeaveRequestTab({ sessionUser }: { sessionUser?: any }) {
               <button
                 type="button"
                 onClick={() => setShowFilters(!showFilters)}
-                className={`flex items-center gap-2 border px-4 py-2 text-xs font-bold transition-all rounded-xl shadow-sm focus:outline-none ${
-                  showFilters
+                className={`flex items-center gap-2 border px-4 py-2 text-xs font-bold transition-all rounded-xl shadow-sm focus:outline-none ${showFilters
                     ? "bg-[#C9A84C] border-[#C9A84C] text-[#FCFBF9]"
                     : "bg-[#FCFBF9] hover:bg-[#F5F2EC] border-[#E8E4DF] text-[#1C1C1A]"
-                }`}
+                  }`}
               >
                 <Filter className="w-3.5 h-3.5" />
                 <span>Filter Leaves</span>
@@ -2834,111 +2835,111 @@ export function LeaveRequestTab({ sessionUser }: { sessionUser?: any }) {
                     </thead>
                     <tbody className="divide-y divide-slate-100 font-semibold text-slate-650">
                       {filteredLeaves.map((leave: any) => {
-                    const start = new Date(leave.startDate);
-                    const end = new Date(leave.endDate);
+                        const start = new Date(leave.startDate);
+                        const end = new Date(leave.endDate);
 
-                    const isDirectReportManager = leave.employee && String(leave.employee.id) !== String(sessionUser?.id);
-                    // Show actions if the current user is authorized to approve this specific status level
-                    const showActions =
-                      ((isManager || isDirectReportManager) && (leave.status === "Pending Manager Approval" || leave.status === "Pending")) ||
-                      ((isHR || isOwnerOrDirector) && (leave.status === "Pending HR Approval" || leave.status === "Pending Manager Approval" || leave.status === "Pending"));
+                        const isDirectReportManager = leave.employee && String(leave.employee.id) !== String(sessionUser?.id);
+                        // Show actions if the current user is authorized to approve this specific status level
+                        const showActions =
+                          ((isManager || isDirectReportManager) && (leave.status === "Pending Manager Approval" || leave.status === "Pending")) ||
+                          ((isHR || isOwnerOrDirector) && (leave.status === "Pending HR Approval" || leave.status === "Pending Manager Approval" || leave.status === "Pending"));
 
-                    return (
-                      <tr key={leave.id} className="hover:bg-slate-50/50">
-                        {canApprove && (
-                          <td className="py-3.5 px-4">
-                            <div className="flex flex-col">
-                              <span className="font-black text-slate-800">{leave.employee?.name || "Unknown"}</span>
-                              <span className="text-[10px] text-slate-400 font-mono font-bold">{leave.employee?.email || ""}</span>
-                            </div>
-                          </td>
-                        )}
-                        <td className="py-3.5 px-4 whitespace-nowrap">
-                          <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-50 text-indigo-600 border border-indigo-100">
-                            {leave.type}
-                          </span>
-                        </td>
-                        <td className="py-3.5 px-4 whitespace-nowrap text-slate-700">
-                          {start.toLocaleDateString()} to {end.toLocaleDateString()}
-                        </td>
-                        <td className="py-3.5 px-4 text-center text-slate-700 font-mono">
-                          {leave.days}
-                        </td>
-                        <td className="py-3.5 px-4 max-w-xs truncate text-slate-600" title={leave.reason}>
-                          {leave.reason}
-                        </td>
-                        <td className="py-3.5 px-4 text-center whitespace-nowrap">
-                          <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${leave.status === "Approved"
-                            ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
-                            : leave.status === "Rejected"
-                              ? "bg-rose-50 text-rose-700 border border-rose-200"
-                              : leave.status === "Pending HR Approval"
-                                ? "bg-blue-50 text-blue-700 border border-blue-200"
-                                : "bg-amber-50 text-amber-700 border border-amber-200"
-                            }`}>
-                            {leave.status}
-                          </span>
-                        </td>
-
-                        {/* Actions for Managers/HR/Owners */}
-                        {canApprove && (
-                          <td className="py-3.5 px-4 whitespace-nowrap">
-                            {showActions ? (
-                              <div className="flex items-center gap-2">
-                                <input
-                                  className="bg-white border border-slate-300 rounded px-2 py-1 text-xs font-bold text-slate-900 focus:outline-none focus:border-[#714B67]"
-                                  placeholder="remarks..."
-                                  value={actionRemarks[leave.id] || ""}
-                                  onChange={(e) => setActionRemarks({ ...actionRemarks, [leave.id]: e.target.value })}
-                                />
-                                <button
-                                  onClick={() => handleUpdateStatus(leave.id, "Approved")}
-                                  className="bg-emerald-600 hover:bg-emerald-700 text-white px-2.5 py-1 rounded text-[10px] font-bold transition-all shadow"
-                                >
-                                  {isManager ? "Approve & Forward" : "Final Approve"}
-                                </button>
-                                <button
-                                  onClick={() => handleUpdateStatus(leave.id, "Rejected")}
-                                  className="bg-rose-600 hover:bg-rose-700 text-white px-2.5 py-1 rounded text-[10px] font-bold transition-all shadow"
-                                >
-                                  Reject
-                                </button>
-                              </div>
-                            ) : (
-                              <span className="text-slate-450 text-[11px] italic">
-                                {leave.status === "Pending HR Approval"
-                                  ? "Forwarded to HR - Awaiting HR Review"
-                                  : leave.remarks ? `Remarks: ${leave.remarks}` : "Awaiting Manager Review"}
-                              </span>
+                        return (
+                          <tr key={leave.id} className="hover:bg-slate-50/50">
+                            {canApprove && (
+                              <td className="py-3.5 px-4">
+                                <div className="flex flex-col">
+                                  <span className="font-black text-slate-800">{leave.employee?.name || "Unknown"}</span>
+                                  <span className="text-[10px] text-slate-400 font-mono font-bold">{leave.employee?.email || ""}</span>
+                                </div>
+                              </td>
                             )}
-                          </td>
-                        )}
+                            <td className="py-3.5 px-4 whitespace-nowrap">
+                              <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-50 text-indigo-600 border border-indigo-100">
+                                {leave.type}
+                              </span>
+                            </td>
+                            <td className="py-3.5 px-4 whitespace-nowrap text-slate-700">
+                              {start.toLocaleDateString()} to {end.toLocaleDateString()}
+                            </td>
+                            <td className="py-3.5 px-4 text-center text-slate-700 font-mono">
+                              {leave.days}
+                            </td>
+                            <td className="py-3.5 px-4 max-w-xs truncate text-slate-600" title={leave.reason}>
+                              {leave.reason}
+                            </td>
+                            <td className="py-3.5 px-4 text-center whitespace-nowrap">
+                              <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${leave.status === "Approved"
+                                ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                                : leave.status === "Rejected"
+                                  ? "bg-rose-50 text-rose-700 border border-rose-200"
+                                  : leave.status === "Pending HR Approval"
+                                    ? "bg-blue-50 text-blue-700 border border-blue-200"
+                                    : "bg-amber-50 text-amber-700 border border-amber-200"
+                                }`}>
+                                {leave.status}
+                              </span>
+                            </td>
 
-                        {/* processed info for Employees */}
-                        {!canApprove && (
-                          <td className="py-3.5 px-4 text-slate-500 text-[11px] italic max-w-xs truncate">
-                            {leave.status !== "Pending" && leave.status !== "Pending Manager Approval" && leave.status !== "Pending HR Approval" ? (
-                              <span>
-                                By: {leave.approvedBy?.name || "HR/Manager"}
-                                {leave.remarks ? ` (${leave.remarks})` : ""}
-                              </span>
-                            ) : (
-                              <span>
-                                {leave.status === "Pending Manager Approval" ? "Awaiting Manager Review" : "Awaiting HR Review"}
-                              </span>
+                            {/* Actions for Managers/HR/Owners */}
+                            {canApprove && (
+                              <td className="py-3.5 px-4 whitespace-nowrap">
+                                {showActions ? (
+                                  <div className="flex items-center gap-2">
+                                    <input
+                                      className="bg-white border border-slate-300 rounded px-2 py-1 text-xs font-bold text-slate-900 focus:outline-none focus:border-[#714B67]"
+                                      placeholder="remarks..."
+                                      value={actionRemarks[leave.id] || ""}
+                                      onChange={(e) => setActionRemarks({ ...actionRemarks, [leave.id]: e.target.value })}
+                                    />
+                                    <button
+                                      onClick={() => handleUpdateStatus(leave.id, "Approved")}
+                                      className="bg-emerald-600 hover:bg-emerald-700 text-white px-2.5 py-1 rounded text-[10px] font-bold transition-all shadow"
+                                    >
+                                      {isManager ? "Approve & Forward" : "Final Approve"}
+                                    </button>
+                                    <button
+                                      onClick={() => handleUpdateStatus(leave.id, "Rejected")}
+                                      className="bg-rose-600 hover:bg-rose-700 text-white px-2.5 py-1 rounded text-[10px] font-bold transition-all shadow"
+                                    >
+                                      Reject
+                                    </button>
+                                  </div>
+                                ) : (
+                                  <span className="text-slate-450 text-[11px] italic">
+                                    {leave.status === "Pending HR Approval"
+                                      ? "Forwarded to HR - Awaiting HR Review"
+                                      : leave.remarks ? `Remarks: ${leave.remarks}` : "Awaiting Manager Review"}
+                                  </span>
+                                )}
+                              </td>
                             )}
-                          </td>
-                        )}
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
+
+                            {/* processed info for Employees */}
+                            {!canApprove && (
+                              <td className="py-3.5 px-4 text-slate-500 text-[11px] italic max-w-xs truncate">
+                                {leave.status !== "Pending" && leave.status !== "Pending Manager Approval" && leave.status !== "Pending HR Approval" ? (
+                                  <span>
+                                    By: {leave.approvedBy?.name || "HR/Manager"}
+                                    {leave.remarks ? ` (${leave.remarks})` : ""}
+                                  </span>
+                                ) : (
+                                  <span>
+                                    {leave.status === "Pending Manager Approval" ? "Awaiting Manager Review" : "Awaiting HR Review"}
+                                  </span>
+                                )}
+                              </td>
+                            )}
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </>
           )}
-        </>
-      )}
-    </div>
+        </div>
 
       </div>
     </div>
