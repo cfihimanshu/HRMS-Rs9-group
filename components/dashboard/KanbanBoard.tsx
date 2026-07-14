@@ -96,7 +96,8 @@ export default function KanbanBoard() {
   const [submitting, setSubmitting] = useState(false);
 
   // Call sub-fields & masters
-  const [callCategory, setCallCategory] = useState<"Interview" | "Bank" | "">("");
+  const [callCategory, setCallCategory] = useState<"Interview" | "Bank" | "Others" | "">("");
+  const [otherCategoryDesc, setOtherCategoryDesc] = useState("");
   const [selectedBankId, setSelectedBankId] = useState<string>("");
   const [bankName, setBankName] = useState("");
   const [branchName, setBranchName] = useState("");
@@ -280,6 +281,12 @@ export default function KanbanBoard() {
       ].filter(Boolean).join("\n");
     } else if (type === "Call" && callCategory === "Interview") {
       finalDesc = [`Call Category: Interview`, desc ? `Remark: ${desc}` : ""].filter(Boolean).join("\n");
+    } else if (type === "Call" && callCategory === "Others") {
+      finalDesc = [
+        `Call Category: Others`,
+        otherCategoryDesc ? `Describe: ${otherCategoryDesc}` : "",
+        desc ? `Remark: ${desc}` : "",
+      ].filter(Boolean).join("\n");
     }
 
     try {
@@ -293,6 +300,7 @@ export default function KanbanBoard() {
         setTitle("");
         setDesc("");
         setCallCategory("");
+        setOtherCategoryDesc("");
         setBankName("");
         setBranchName("");
         setSelectedBankId("");
@@ -1192,7 +1200,7 @@ export default function KanbanBoard() {
                         <select
                           className="w-full border border-slate-200 rounded-lg px-3 py-2 text-xs font-bold focus:outline-none focus:border-[#714B67] text-slate-700 bg-white"
                           value={type}
-                          onChange={e => { setType(e.target.value); setCallCategory(""); }}
+                          onChange={e => { setType(e.target.value); setCallCategory(""); setOtherCategoryDesc(""); }}
                         >
                           <option value="Meeting">Meeting</option>
                           <option value="Call">Call</option>
@@ -1213,12 +1221,13 @@ export default function KanbanBoard() {
                               <select
                                 required
                                 value={callCategory}
-                                onChange={e => setCallCategory(e.target.value as "Interview" | "Bank" | "")}
+                                onChange={e => setCallCategory(e.target.value as "Interview" | "Bank" | "Others" | "")}
                                 className="w-full border border-emerald-200 rounded-lg px-3 py-2 text-xs font-bold focus:outline-none focus:border-emerald-500 text-slate-700 bg-white"
                               >
                                 <option value="">-- Select Category --</option>
                                 <option value="Interview">Interview</option>
                                 <option value="Bank">Bank</option>
+                                <option value="Others">Others</option>
                               </select>
                             </div>
 
@@ -1233,6 +1242,33 @@ export default function KanbanBoard() {
                                   value={desc}
                                   onChange={e => setDesc(e.target.value)}
                                 />
+                              </div>
+                            )}
+
+                            {/* Others — describe input box and remark */}
+                            {callCategory === "Others" && (
+                              <div className="space-y-2 animate-fade-in">
+                                <div>
+                                  <label className="block text-[9px] uppercase tracking-wider text-emerald-700 font-black mb-1">Describe Category *</label>
+                                  <input
+                                    type="text"
+                                    required
+                                    className="w-full border border-emerald-200 rounded-lg px-3 py-2 text-xs font-bold focus:outline-none focus:border-emerald-500 placeholder-slate-400 text-slate-800 bg-white"
+                                    placeholder="Describe the category..."
+                                    value={otherCategoryDesc}
+                                    onChange={e => setOtherCategoryDesc(e.target.value)}
+                                  />
+                                </div>
+                                <div>
+                                  <label className="block text-[9px] uppercase tracking-wider text-emerald-700 font-black mb-1">Remark</label>
+                                  <textarea
+                                    className="w-full border border-emerald-200 rounded-lg px-3 py-2 text-xs font-bold focus:outline-none focus:border-emerald-500 placeholder-slate-400 text-slate-800 bg-white"
+                                    placeholder="Add remark..."
+                                    rows={2}
+                                    value={desc}
+                                    onChange={e => setDesc(e.target.value)}
+                                  />
+                                </div>
                               </div>
                             )}
 

@@ -381,13 +381,18 @@ export default function BusinessLeads({
     }
 
     try {
+      const payload = {
+        platformId: activePlatformId,
+        leadId: selectedLeadForEdit.id,
+        fields: updateFields
+      };
+
       const res = await fetch("/api/business-leads", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          platformId: activePlatformId,
-          leadId: selectedLeadForEdit.id,
-          fields: updateFields
+          isEncoded: true,
+          data: btoa(unescape(encodeURIComponent(JSON.stringify(payload))))
         })
       });
       const data = await res.json();
@@ -479,51 +484,103 @@ export default function BusinessLeads({
 
   const processFile = (file: File) => {
     const ext = file.name.toLowerCase().split(".").pop();
-    if (ext !== "xlsx" && ext !== "xls" && ext !== "csv") {
-      triggerToast("Please upload a valid Excel or CSV file (.xlsx, .xls, or .csv)");
+    if (ext !== "xlsx" && ext !== "xls" && ext !== "csv" && ext !== "json") {
+      triggerToast("Please upload a valid Excel, CSV or JSON file (.xlsx, .xls, .csv, or .json)");
       return;
     }
 
     setFileName(file.name);
     const reader = new FileReader();
-    reader.onload = (e) => {
-      try {
-        const buffer = e.target?.result;
-        const workbook = XLSX.read(buffer, { type: "array" });
-        const sheetName = workbook.SheetNames[0];
-        const worksheet = workbook.Sheets[sheetName];
-        const json: any[] = XLSX.utils.sheet_to_json(worksheet);
-        const headers = XLSX.utils.sheet_to_json(worksheet, { header: 1 })[0] as string[];
 
-        if (json.length === 0 || !headers || headers.length === 0) {
-          triggerToast("The selected sheet/file seems to be empty.");
-          return;
+    if (ext === "json") {
+      reader.onload = (e) => {
+        try {
+          const text = e.target?.result as string;
+          let parsedData = JSON.parse(text);
+
+          // If the parsed JSON is an object, try to find an array in it (e.g. data or leads)
+          if (!Array.isArray(parsedData) && typeof parsedData === "object" && parsedData !== null) {
+            const possibleArrays = Object.values(parsedData).filter(Array.isArray);
+            if (possibleArrays.length > 0) {
+              parsedData = possibleArrays[0];
+            } else {
+              parsedData = [parsedData];
+            }
+          }
+
+          if (!Array.isArray(parsedData) || parsedData.length === 0) {
+            triggerToast("The JSON file must contain a non-empty array of lead objects.");
+            return;
+          }
+
+          // Extract all unique keys from all objects in the array to build headers
+          const headerSet = new Set<string>();
+          parsedData.forEach((row: any) => {
+            if (row && typeof row === "object") {
+              Object.keys(row).forEach((key) => headerSet.add(key));
+            }
+          });
+          const headers = Array.from(headerSet);
+
+          if (headers.length === 0) {
+            triggerToast("The JSON file does not contain valid key-value data.");
+            return;
+          }
+
+          setParsedLeads(parsedData);
+          setParsedHeaders(headers);
+          setImportStep(3); // Move to Preview step
+        } catch (err) {
+          triggerToast("Failed to parse the JSON file.");
         }
+      };
+      reader.readAsText(file);
+    } else {
+      reader.onload = (e) => {
+        try {
+          const buffer = e.target?.result;
+          const workbook = XLSX.read(buffer, { type: "array" });
+          const sheetName = workbook.SheetNames[0];
+          const worksheet = workbook.Sheets[sheetName];
+          const json: any[] = XLSX.utils.sheet_to_json(worksheet);
+          const headers = XLSX.utils.sheet_to_json(worksheet, { header: 1 })[0] as string[];
 
-        setParsedLeads(json);
-        setParsedHeaders(headers);
-        setImportStep(3); // Move to Preview step
-      } catch (err) {
-        triggerToast("Failed to parse the file.");
-      }
-    };
-    reader.readAsArrayBuffer(file);
+          if (json.length === 0 || !headers || headers.length === 0) {
+            triggerToast("The selected sheet/file seems to be empty.");
+            return;
+          }
+
+          setParsedLeads(json);
+          setParsedHeaders(headers);
+          setImportStep(3); // Move to Preview step
+        } catch (err) {
+          triggerToast("Failed to parse the file.");
+        }
+      };
+      reader.readAsArrayBuffer(file);
+    }
   };
+
 
   // Submit Import data to API
   const handleImportSubmit = async () => {
     if (parsedLeads.length === 0 || !selectedPlatformId) return;
     setUploading(true);
     try {
+      const payload = {
+        platformId: selectedPlatformId,
+        leads: parsedLeads,
+        headers: parsedHeaders,
+        departmentId: selectedDepartmentId || null,
+        roleId: selectedRoleId || null
+      };
+
       const res = await fetch("/api/business-leads", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          platformId: selectedPlatformId,
-          leads: parsedLeads,
-          headers: parsedHeaders,
-          departmentId: selectedDepartmentId || null,
-          roleId: selectedRoleId || null
+          isEncoded: true,
+          data: btoa(unescape(encodeURIComponent(JSON.stringify(payload))))
         })
       });
       const data = await res.json();
@@ -1875,7 +1932,7 @@ export default function BusinessLeads({
                 </div>
               )}
 
-              {/* STEP 2: Drag and Drop Excel/CSV */}
+              {/* STEP 2: Drag and Drop Excel/CSV/JSON */}
               {importStep === 2 && (
                 <div className="space-y-4">
                   <div
@@ -1883,13 +1940,13 @@ export default function BusinessLeads({
                     className="border-2 border-dashed border-slate-200 dark:border-gray-850 hover:border-[#714B67] rounded-xl p-10 text-center cursor-pointer transition-all bg-slate-50/50 dark:bg-slate-950/10 hover:bg-[#714B67]/5"
                   >
                     <UploadCloud className="w-10 h-10 text-slate-350 mx-auto mb-3 animate-bounce" />
-                    <p className="text-xs font-bold text-slate-700 dark:text-gray-250">Click or drag Excel or CSV file to upload</p>
-                    <p className="text-[10px] text-slate-400 mt-1">Supports .xlsx, .xls or .csv files</p>
+                    <p className="text-xs font-bold text-slate-700 dark:text-gray-250">Click or drag Excel, CSV or JSON file to upload</p>
+                    <p className="text-[10px] text-slate-400 mt-1">Supports .xlsx, .xls, .csv or .json files</p>
                     <input
                       type="file"
                       ref={fileInputRef}
                       className="hidden"
-                      accept=".xlsx, .xls, .csv"
+                      accept=".xlsx, .xls, .csv, .json"
                       onChange={handleFileChange}
                     />
                   </div>

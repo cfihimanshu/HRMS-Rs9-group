@@ -2403,9 +2403,6 @@ export function LeaveRequestTab({ sessionUser }: { sessionUser?: any }) {
   const isHR = ["HR Head", "HR Executive"].includes(userRole);
   const isOwnerOrDirector = userRole === "Owner" || userRole === "Director";
 
-  const canApprove = isOwnerOrDirector || isHR || isManager;
-  const canApply = userRole === "Employee" || isManager;
-
   // Form states
   const [leaveType, setLeaveType] = useState("Casual Leave");
   const [startDate, setStartDate] = useState("");
@@ -2416,6 +2413,13 @@ export function LeaveRequestTab({ sessionUser }: { sessionUser?: any }) {
   // History/List states
   const [leavesList, setLeavesList] = useState<any[]>([]);
   const [loadingList, setLoadingList] = useState(true);
+
+  const hasDirectReports = React.useMemo(() => {
+    return leavesList.some((l) => l.employee && String(l.employee.id) !== String(sessionUser?.id));
+  }, [leavesList, sessionUser]);
+
+  const canApprove = isOwnerOrDirector || isHR || isManager || hasDirectReports;
+  const canApply = userRole === "Employee" || isManager || !canApprove || hasDirectReports;
 
   // Filter states
   const [filterUser, setFilterUser] = useState("");
@@ -2462,8 +2466,8 @@ export function LeaveRequestTab({ sessionUser }: { sessionUser?: any }) {
       if (leave.employee && leave.employee.id) {
         const empId = leave.employee.id.toString();
 
-        // 1. If not Manager/Owner, they only see themselves
-        if (!["Owner", "Director", "HR Head", "HR Executive", "Department Manager"].includes(role)) {
+        // 1. If not Manager/Owner, they only see themselves (unless they have direct reports)
+        if (!["Owner", "Director", "HR Head", "HR Executive", "Department Manager"].includes(role) && !hasDirectReports) {
           if (empId !== userId) return;
         }
 
@@ -2478,7 +2482,7 @@ export function LeaveRequestTab({ sessionUser }: { sessionUser?: any }) {
     });
 
     return Array.from(userMap.values());
-  }, [leavesList, sessionUser]);
+  }, [leavesList, sessionUser, hasDirectReports]);
 
   // Synchronize selection
   useEffect(() => {
@@ -2833,9 +2837,10 @@ export function LeaveRequestTab({ sessionUser }: { sessionUser?: any }) {
                     const start = new Date(leave.startDate);
                     const end = new Date(leave.endDate);
 
+                    const isDirectReportManager = leave.employee && String(leave.employee.id) !== String(sessionUser?.id);
                     // Show actions if the current user is authorized to approve this specific status level
                     const showActions =
-                      (isManager && (leave.status === "Pending Manager Approval" || leave.status === "Pending")) ||
+                      ((isManager || isDirectReportManager) && (leave.status === "Pending Manager Approval" || leave.status === "Pending")) ||
                       ((isHR || isOwnerOrDirector) && (leave.status === "Pending HR Approval" || leave.status === "Pending Manager Approval" || leave.status === "Pending"));
 
                     return (
