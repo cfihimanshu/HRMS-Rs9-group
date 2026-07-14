@@ -239,6 +239,9 @@ export async function POST(req: Request) {
     if (["Owner", "Director", "HR Head", "HR Executive"].includes(applicantRole)) {
       // Management/HR leaves bypass Manager approval and go directly to Pending HR Approval
       initialStatus = "Pending HR Approval";
+    } else if (profile && profile.reportingManager) {
+      // If employee has designated reporting manager, they must go through manager approval
+      initialStatus = "Pending Manager Approval";
     } else if (profile && profile.department) {
       // 1. Find if there is any active "Department Manager" in the applicant's department
       const departmentManagers = await User.findAll({
