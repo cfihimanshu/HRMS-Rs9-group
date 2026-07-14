@@ -222,8 +222,12 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
     }
 
-    const body = await req.json();
-    const { platformId, leads, headers, departmentId, roleId } = body; // leads: array of raw objects, headers: array of original excel column names
+    let body = await req.json();
+    if (body.isEncoded && body.data) {
+      const decodedStr = Buffer.from(body.data, "base64").toString("utf-8");
+      body = JSON.parse(decodedStr);
+    }
+    const { platformId, leads, headers, departmentId, roleId } = body;
 
     if (!platformId || !leads || !Array.isArray(leads) || !headers || !Array.isArray(headers)) {
       return NextResponse.json({ success: false, error: "Invalid parameters. platformId, leads, and headers are required." }, { status: 400 });
@@ -551,7 +555,11 @@ export async function PUT(req: Request) {
       return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
     }
 
-    const body = await req.json();
+    let body = await req.json();
+    if (body.isEncoded && body.data) {
+      const decodedStr = Buffer.from(body.data, "base64").toString("utf-8");
+      body = JSON.parse(decodedStr);
+    }
     const { platformId, leadId, fields } = body;
 
     if (!platformId || !leadId || !fields || typeof fields !== "object") {

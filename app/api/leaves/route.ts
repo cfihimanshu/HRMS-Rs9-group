@@ -444,36 +444,56 @@ export async function GET(req: Request) {
       return comps.some((id: any) => loggedInUserCompanies.some((cid: any) => cid.toString() === id.toString()));
     }).map((u: any) => u.id);
 
+    // Find direct reports of this user (even if reporting manager is in a different department/role)
+    let directReportUserIds: string[] = [];
+    if (loggedInUser && loggedInUser.name) {
+      const reports = await EmployeeProfile.findAll({
+        where: { reportingManager: loggedInUser.name },
+        attributes: ["user"]
+      });
+      directReportUserIds = reports.map((p: any) => p.user).filter(Boolean);
+    }
+
     let filter: any = {};
 
     if (userRole === "Employee") {
-      filter = { employee: userId };
+      // If employee role user has direct reports, let them see their reports' leaves too
+      if (directReportUserIds.length > 0) {
+        filter = {
+          [Op.or]: [
+            { employee: userId },
+            { employee: { [Op.in]: directReportUserIds } }
+          ]
+        };
+      } else {
+        filter = { employee: userId };
+      }
     } else if (userRole === "Department Manager") {
       // Get manager's department
       const managerProfile = await EmployeeProfile.findOne({ where: { user: userId } });
+      let deptUserIds: string[] = [];
       if (managerProfile && managerProfile.department) {
         // Find users in the same department
         const profilesInDept = await EmployeeProfile.findAll({
           where: { department: managerProfile.department },
           attributes: ["user"]
         });
-        const deptUserIds = profilesInDept.map((p: any) => p.user).filter(Boolean);
-
-        // Manager sees their own leaves plus their department's leaves
-        filter = {
-          [Op.or]: [
-            { employee: userId },
-            { employee: { [Op.in]: deptUserIds } }
-          ]
-        };
-      } else {
-        filter = { employee: userId };
+        deptUserIds = profilesInDept.map((p: any) => p.user).filter(Boolean);
       }
+      
+      const allTargetUserIds = Array.from(new Set([...deptUserIds, ...directReportUserIds]));
+      filter = {
+        [Op.or]: [
+          { employee: userId },
+          { employee: { [Op.in]: allTargetUserIds } }
+        ]
+      };
     } else {
-      // HR/Owner/Director sees leaves from the same company
+      // HR/Owner/Director sees leaves from the same company (or direct reports if any)
+      const allTargetUserIds = Array.from(new Set([...sameCompanyUserIds, ...directReportUserIds]));
       if (loggedInUserCompanies.length > 0) {
         filter = {
-          employee: { [Op.in]: sameCompanyUserIds }
+          employee: { [Op.in]: allTargetUserIds }
         };
       } else {
         filter = {}; // Global admin sees everything
@@ -524,12 +544,6 @@ export async function PUT(req: Request) {
     const loggedInUserRole = (session.user as any).role;
     const loggedInUserId = (session.user as any).id;
 
-    // Check privileges
-    const isPrivileged = ["Owner", "Director", "HR Head", "HR Executive", "Department Manager"].includes(loggedInUserRole);
-    if (!isPrivileged) {
-      return NextResponse.json({ success: false, error: "Access Denied" }, { status: 403 });
-    }
-
     await sequelize.authenticate();
     const { leaveId, status, remarks } = await req.json();
 
@@ -578,18 +592,30 @@ export async function PUT(req: Request) {
     // Verify same company alignment
     const isSameCompany = applicantCompanyId && loggedInUserCompanies.some((cid: any) => cid.toString() === applicantCompanyId.toString());
 
+    // Check if logged-in user is explicitly the direct reporting manager of applicant
+    const isDirectReportManager = applicantProfile?.reportingManager && loggedInUser?.name && applicantProfile.reportingManager === loggedInUser.name;
+
+    // Check privileges
+    const isPrivileged = ["Owner", "Director", "HR Head", "HR Executive", "Department Manager"].includes(loggedInUserRole) || isDirectReportManager;
+    if (!isPrivileged) {
+      return NextResponse.json({ success: false, error: "Access Denied" }, { status: 403 });
+    }
+
     if (currentStatus === "Pending Manager Approval" || currentStatus === "Pending") {
       // Who can approve Manager stage?
-      // 1. Department Manager (same department, same company)
-      // 2. Company Manager (Owner, Director, or role containing "manager", same company)
+      // 1. Assigned Direct Reporting Manager (bypass department match)
+      // 2. Department Manager (same department, same company)
+      // 3. Company Manager (Owner, Director, or role containing "manager", same company)
       const isDeptManager = loggedInUserRole === "Department Manager";
       const isCompanyManager = ["Owner", "Director"].includes(loggedInUserRole) || (loggedInUserRole || "").toLowerCase().includes("manager");
 
-      if (loggedInUserCompanies.length > 0 && !isSameCompany) {
+      if (loggedInUserCompanies.length > 0 && !isSameCompany && !isDirectReportManager) {
         return NextResponse.json({ success: false, error: "Access Denied: Applicant belongs to a different company." }, { status: 403 });
       }
 
-      if (isDeptManager) {
+      if (isDirectReportManager) {
+        // Explicitly authorized direct reporting manager, bypass department checks
+      } else if (isDeptManager) {
         const managerProfile = await EmployeeProfile.findOne({ where: { user: loggedInUserId } });
         if (!applicantProfile || !managerProfile || applicantProfile.department !== managerProfile.department) {
           return NextResponse.json({ success: false, error: "Access Denied: You are not the manager of this department." }, { status: 403 });
