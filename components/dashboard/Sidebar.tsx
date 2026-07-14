@@ -123,7 +123,7 @@ export default function DashboardSidebar({
   }
 
   const menuItems = allMenuItems.filter(item => {
-    if (!isOwnerOrDirector && allowedPageIds) {
+    if (!isOwnerOrDirector && allowedPageIds && allowedPageIds.length > 0) {
       const hasPageLevelPermissions = allowedPageIds.some(p => 
         !["Core Workspace", "Employee Self Service", "AI & Vetting Hub", "Training & Probation", "Daily Operations", "Network Partners", "Compliance & Exit"].includes(p)
       );

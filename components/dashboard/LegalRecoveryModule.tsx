@@ -12,6 +12,7 @@ import CasesMasterView from "./legal-recovery/CasesMasterView";
 import DailyCallReportsView from "./legal-recovery/DailyCallReportsView";
 import PaymentCollectionsView from "./legal-recovery/PaymentCollectionsView";
 import LegalWorkLogsView from "./legal-recovery/LegalWorkLogsView";
+import NoticeBoardView from "./legal-recovery/NoticeBoardView";
 
 interface LegalRecoveryModuleProps {
   userRole?: string;
@@ -59,7 +60,7 @@ const WORK_CATEGORIES: Record<string, string[]> = {
 };
 
 export default function LegalRecoveryModule({ userRole, triggerToast, sessionUser }: LegalRecoveryModuleProps) {
-  const [activeSubModule, setActiveSubModule] = useState<"launcher" | "follow-up" | "masters" | "history" | "banks" | "branches" | "collections" | "work-logs">("launcher");
+  const [activeSubModule, setActiveSubModule] = useState<"launcher" | "follow-up" | "masters" | "history" | "banks" | "branches" | "collections" | "work-logs" | "notices">("launcher");
 
   const [cases, setCases] = useState<any[]>([]);
   const [banksList, setBanksList] = useState<any[]>([]);
@@ -70,6 +71,7 @@ export default function LegalRecoveryModule({ userRole, triggerToast, sessionUse
   const [showAddCaseForm, setShowAddCaseForm] = useState(false);
   const [showAddBankForm, setShowAddBankForm] = useState(false);
   const [showAddBranchForm, setShowAddBranchForm] = useState(false);
+  const [editBranchId, setEditBranchId] = useState<number | null>(null);
   const [showFollowUpForm, setShowFollowUpForm] = useState<{ show: boolean, master: any | null }>({ show: false, master: null });
   const [showWorkLogForm, setShowWorkLogForm] = useState<{ show: boolean, master: any | null }>({ show: false, master: null });
   const [showMarketingForm, setShowMarketingForm] = useState<{ show: boolean, branch: any | null }>({ show: false, branch: null });
@@ -111,8 +113,10 @@ export default function LegalRecoveryModule({ userRole, triggerToast, sessionUse
     category: "ADVOCATE NOTICE", subCategory: "NOTICE KA KAM LENA", remarks: "", workDate: new Date().toISOString().split('T')[0]
   });
   const [marketingForm, setMarketingForm] = useState({
-    callType: "Marketing", callStatus: "Connected", conversationDetails: "", nextFollowUpDate: "", callDate: new Date().toISOString().split('T')[0]
+    callType: "Business Development", callStatus: "Connected", conversationDetails: "", nextFollowUpDate: "", callDate: new Date().toISOString().split('T')[0]
   });
+  const [customCallType, setCustomCallType] = useState("");
+  const [customCallStatus, setCustomCallStatus] = useState("");
   const [audioFile, setAudioFile] = useState<File | null>(null);
 
   const [paymentForm, setPaymentForm] = useState({
@@ -184,11 +188,38 @@ export default function LegalRecoveryModule({ userRole, triggerToast, sessionUse
   const fetchGlobalHistory = async () => {
     try {
       setLoadingGlobalHistory(true);
-      const res = await fetch("/api/legal-recovery/followup");
-      const data = await res.json();
-      if (res.ok && data.success) {
-        setGlobalHistory(data.data || []);
+      const [resFollowup, resMarketing, resWorkLog, resPayment] = await Promise.all([
+        fetch("/api/legal-recovery/followup"),
+        fetch("/api/legal-recovery/marketing-call"),
+        fetch("/api/legal-recovery/work-log"),
+        fetch("/api/legal-recovery/payment")
+      ]);
+      const dataFollowup = await resFollowup.json();
+      const dataMarketing = await resMarketing.json();
+      const dataWorkLog = await resWorkLog.json();
+      const dataPayment = await resPayment.json();
+
+      let merged: any[] = [];
+      if (dataFollowup.success && dataFollowup.data) {
+        merged = [...merged, ...dataFollowup.data.map((item: any) => ({ ...item, logType: 'Follow-up' }))];
       }
+      if (dataMarketing.success && dataMarketing.data) {
+        merged = [...merged, ...dataMarketing.data.map((item: any) => ({ ...item, logType: 'Business Development' }))];
+      }
+      if (dataWorkLog.success && dataWorkLog.data) {
+        merged = [...merged, ...dataWorkLog.data.map((item: any) => ({ ...item, logType: 'Legal Work Log' }))];
+      }
+      if (dataPayment.success && dataPayment.data) {
+        merged = [...merged, ...dataPayment.data.map((item: any) => ({ ...item, logType: 'Payment Collection' }))];
+      }
+
+      merged.sort((a, b) => {
+        const dateA = new Date(a.callDate || a.workDate || a.paymentDate || a.createdAt).getTime();
+        const dateB = new Date(b.callDate || b.workDate || b.paymentDate || b.createdAt).getTime();
+        return dateB - dateA;
+      });
+
+      setGlobalHistory(merged);
     } catch (error) {
       console.error("Error fetching global history:", error);
     } finally {
@@ -232,6 +263,7 @@ export default function LegalRecoveryModule({ userRole, triggerToast, sessionUse
       triggerToast("Bank Name is required.");
       return;
     }
+    if (submittingBank) return;
     try {
       setSubmittingBank(true);
       const res = await fetch("/api/legal-recovery/banks", {
@@ -262,28 +294,53 @@ export default function LegalRecoveryModule({ userRole, triggerToast, sessionUse
       triggerToast("Bank and Branch Name are required.");
       return;
     }
+    if (submittingBranch) return;
     try {
       setSubmittingBranch(true);
-      const res = await fetch("/api/legal-recovery/branches", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ...branchForm,
-          bankId: parseInt(branchForm.bankId)
-        })
-      });
-      const result = await res.json();
-      if (result.success) {
-        triggerToast(`Branch Registered Successfully! ID: ${result.data.branchCode}`);
-        setShowAddBranchForm(false);
-        setBranchForm({ bankId: "", branchName: "", branchCode: "", branchEmail: "", branchManager: "", branchManagerContact: "", aoName: "", foName: "", foContact: "", rbo: "" });
-        fetchBranches();
+      if (editBranchId) {
+        // Edit existing branch
+        const res = await fetch("/api/legal-recovery/branches", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            id: editBranchId,
+            ...branchForm,
+            bankId: parseInt(branchForm.bankId)
+          })
+        });
+        const result = await res.json();
+        if (result.success) {
+          triggerToast("Branch Updated Successfully!");
+          setShowAddBranchForm(false);
+          setEditBranchId(null);
+          setBranchForm({ bankId: "", branchName: "", branchCode: "", branchEmail: "", branchManager: "", branchManagerContact: "", aoName: "", foName: "", foContact: "", rbo: "" });
+          fetchBranches();
+        } else {
+          triggerToast(result.error || "Failed to update branch");
+        }
       } else {
-        triggerToast(result.error || "Failed to add branch");
+        // Add new branch
+        const res = await fetch("/api/legal-recovery/branches", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            ...branchForm,
+            bankId: parseInt(branchForm.bankId)
+          })
+        });
+        const result = await res.json();
+        if (result.success) {
+          triggerToast(`Branch Registered Successfully! ID: ${result.data.branchCode}`);
+          setShowAddBranchForm(false);
+          setBranchForm({ bankId: "", branchName: "", branchCode: "", branchEmail: "", branchManager: "", branchManagerContact: "", aoName: "", foName: "", foContact: "", rbo: "" });
+          fetchBranches();
+        } else {
+          triggerToast(result.error || "Failed to add branch");
+        }
       }
     } catch (error) {
       console.error(error);
-      triggerToast("Error adding branch");
+      triggerToast("Error saving branch");
     } finally {
       setSubmittingBranch(false);
     }
@@ -295,6 +352,7 @@ export default function LegalRecoveryModule({ userRole, triggerToast, sessionUse
       triggerToast("Bank Name and Pending Amount are required.");
       return;
     }
+    if (submittingCase) return;
     try {
       setSubmittingCase(true);
       const isEdit = !!editCaseId;
@@ -354,7 +412,7 @@ export default function LegalRecoveryModule({ userRole, triggerToast, sessionUse
   const handleFollowUpSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!showFollowUpForm.master?.id) return;
-
+    if (submittingFollowUp) return;
     try {
       setSubmittingFollowUp(true);
       let callRecordingUrl = "";
@@ -378,6 +436,7 @@ export default function LegalRecoveryModule({ userRole, triggerToast, sessionUse
       const payload = {
         masterId: showFollowUpForm.master.id,
         bankName: showFollowUpForm.master.bankName,
+        branchName: showFollowUpForm.master.branchName,
         callerId: sessionUser?.id || "",
         callerName: sessionUser?.name || (sessionUser?.firstName ? `${sessionUser.firstName} ${sessionUser.lastName || ''}`.trim() : "Employee"),
         callStatus: followUpForm.callStatus,
@@ -413,9 +472,10 @@ export default function LegalRecoveryModule({ userRole, triggerToast, sessionUse
   const handleMarketingSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!showMarketingForm.branch) return;
-    setSubmittingMarketing(true);
-
+    if (submittingMarketing) return;
     try {
+      setSubmittingMarketing(true);
+
       let callRecordingUrl = "";
 
       if (audioFile) {
@@ -439,16 +499,22 @@ export default function LegalRecoveryModule({ userRole, triggerToast, sessionUse
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...marketingForm,
+          callType: marketingForm.callType === "Others" ? customCallType : marketingForm.callType,
+          callStatus: marketingForm.callStatus === "Others" ? customCallStatus : marketingForm.callStatus,
           branchCode: showMarketingForm.branch.branchCode,
+          branchName: showMarketingForm.branch.branchName,
+          bankName: banksList.find((b: any) => b.id === showMarketingForm.branch.bankId)?.bankName || 'Unknown Bank',
           callRecordingUrl
         })
       });
 
       const result = await res.json();
       if (result.success) {
-        triggerToast("Call Logged Successfully!");
+        triggerToast("Business Development call logged & Task created successfully!");
         setShowMarketingForm({ show: false, branch: null });
-        setMarketingForm({ callType: "Marketing", callStatus: "Connected", conversationDetails: "", nextFollowUpDate: "", callDate: new Date().toISOString().split('T')[0] });
+        setMarketingForm({ callType: "Business Development", callStatus: "Connected", conversationDetails: "", nextFollowUpDate: "", callDate: new Date().toISOString().split('T')[0] });
+        setCustomCallType("");
+        setCustomCallStatus("");
         setAudioFile(null);
       } else {
         triggerToast(result.error || "Failed to log branch call");
@@ -667,6 +733,18 @@ export default function LegalRecoveryModule({ userRole, triggerToast, sessionUse
             <span className="text-[10px] text-slate-500 mt-1 uppercase tracking-wider font-semibold">Work Log History</span>
           </button>
 
+          {/* Module 8: Notice Board */}
+          <button
+            onClick={() => setActiveSubModule("notices")}
+            className="group flex flex-col items-center justify-center p-6 bg-white border border-[#E8E4DF] rounded-2xl hover:shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:border-purple-200 transition-all duration-300"
+          >
+            <div className="w-16 h-16 bg-gradient-to-br from-purple-50 to-purple-100 text-purple-600 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform shadow-sm">
+              <FileText size={28} strokeWidth={2} />
+            </div>
+            <span className="font-bold text-sm text-slate-800">Notice Board</span>
+            <span className="text-[10px] text-slate-500 mt-1 uppercase tracking-wider font-semibold">Track & Manage Notices</span>
+          </button>
+
         </div>
       </div>
     );
@@ -719,7 +797,15 @@ export default function LegalRecoveryModule({ userRole, triggerToast, sessionUse
 
             {activeSubModule === "branches" && (
               <button
-                onClick={() => setShowAddBranchForm(!showAddBranchForm)}
+                onClick={() => {
+                  if (showAddBranchForm) {
+                    setShowAddBranchForm(false);
+                    setEditBranchId(null);
+                    setBranchForm({ bankId: "", branchName: "", branchCode: "", branchEmail: "", branchManager: "", branchManagerContact: "", aoName: "", foName: "", foContact: "", rbo: "" });
+                  } else {
+                    setShowAddBranchForm(true);
+                  }
+                }}
                 className="px-3 py-1.5 bg-pink-600 hover:bg-pink-700 text-white rounded-lg text-[10px] font-semibold tracking-wider uppercase transition-all flex items-center gap-1.5 shadow-sm"
               >
                 <PlusCircle className="w-3.5 h-3.5" />
@@ -786,14 +872,14 @@ export default function LegalRecoveryModule({ userRole, triggerToast, sessionUse
           </div>
         )}
 
-        {/* Add New Branch Form */}
+        {/* Add / Edit Branch Form */}
         {showAddBranchForm && activeSubModule === "branches" && (
           <div className="bg-white border border-[#E8E4DF] rounded-xl p-5 shadow-sm animate-slide-down">
             <div className="flex justify-between items-center border-b border-[#E8E4DF] pb-3 mb-4">
               <h3 className="text-sm font-bold text-slate-800 flex items-center gap-1.5">
-                <Network className="w-4 h-4 text-pink-600" /> Register New Branch
+                <Network className="w-4 h-4 text-pink-600" /> {editBranchId ? "✏️ Edit Branch Details" : "Register New Branch"}
               </h3>
-              <button onClick={() => setShowAddBranchForm(false)} className="text-slate-400 hover:text-slate-600">
+              <button onClick={() => { setShowAddBranchForm(false); setEditBranchId(null); setBranchForm({ bankId: "", branchName: "", branchCode: "", branchEmail: "", branchManager: "", branchManagerContact: "", aoName: "", foName: "", foContact: "", rbo: "" }); }} className="text-slate-400 hover:text-slate-600">
                 <X className="w-4 h-4" />
               </button>
             </div>
@@ -865,7 +951,7 @@ export default function LegalRecoveryModule({ userRole, triggerToast, sessionUse
 
               <div className="flex justify-end">
                 <button disabled={submittingBranch} type="submit" className="px-4 py-2 bg-pink-600 text-white rounded-lg text-xs font-semibold uppercase tracking-wider hover:bg-pink-700 disabled:opacity-50">
-                  {submittingBranch ? "Saving..." : "Save Branch"}
+                  {submittingBranch ? "Saving..." : (editBranchId ? "Update Branch" : "Save Branch")}
                 </button>
               </div>
             </form>
@@ -974,15 +1060,44 @@ export default function LegalRecoveryModule({ userRole, triggerToast, sessionUse
         )}
 
         {activeSubModule === "branches" && (
-          <BranchMasterView branchesList={branchesList} banksList={banksList} loading={loading} setShowMarketingForm={setShowMarketingForm} />
+          <BranchMasterView
+            branchesList={branchesList}
+            banksList={banksList}
+            loading={loading}
+            setShowMarketingForm={setShowMarketingForm}
+            onEditBranch={(br: any) => {
+              const parentBank = banksList.find((b: any) => b.id === br.bankId);
+              setBranchForm({
+                bankId: br.bankId?.toString() || "",
+                branchName: br.branchName || "",
+                branchCode: br.branchCode || "",
+                branchEmail: br.branchEmail || "",
+                branchManager: br.branchManager || "",
+                branchManagerContact: br.branchManagerContact || "",
+                aoName: br.aoName || "",
+                foName: br.foName || "",
+                foContact: br.foContact || "",
+                rbo: br.rbo || ""
+              });
+              setEditBranchId(br.id);
+              setShowAddBranchForm(true);
+              window.scrollTo({ top: 0, behavior: "smooth" });
+            }}
+          />
         )}
 
-        {activeSubModule !== "banks" && activeSubModule !== "branches" && activeSubModule !== "history" && activeSubModule !== "collections" && activeSubModule !== "work-logs" && (
+        {activeSubModule !== "banks" && activeSubModule !== "branches" && activeSubModule !== "history" && activeSubModule !== "collections" && activeSubModule !== "work-logs" && activeSubModule !== "notices" && (
           <CasesMasterView cases={cases} loading={loading} setShowFollowUpForm={setShowFollowUpForm} setShowPaymentForm={setShowPaymentForm} openHistory={openHistory} userRole={userRole} onEditCase={handleEditCase} onDeleteCase={handleDeleteCase} />
         )}
 
         {activeSubModule === "history" && (
-          <DailyCallReportsView globalHistory={globalHistory} cases={cases} loadingGlobalHistory={loadingGlobalHistory} />
+          <DailyCallReportsView
+            globalHistory={globalHistory}
+            cases={cases}
+            loadingGlobalHistory={loadingGlobalHistory}
+            branchesList={branchesList}
+            banksList={banksList}
+          />
         )}
 
         {activeSubModule === "collections" && (
@@ -991,6 +1106,14 @@ export default function LegalRecoveryModule({ userRole, triggerToast, sessionUse
 
         {activeSubModule === "work-logs" && (
           <LegalWorkLogsView workLogs={globalWorkLogs} branches={branchesList} banks={banksList} loading={loadingGlobalWorkLogs} onRefresh={fetchGlobalWorkLogs} />
+        )}
+
+        {activeSubModule === "notices" && (
+          <NoticeBoardView
+            banksList={banksList}
+            branchesList={branchesList}
+            triggerToast={triggerToast}
+          />
         )}
       </div>
 
@@ -1214,13 +1337,13 @@ export default function LegalRecoveryModule({ userRole, triggerToast, sessionUse
         </div>
       )}
 
-      {/* Marketing Form Modal */}
+      {/* Business Development Form Modal */}
       {showMarketingForm.show && (
         <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in">
           <div className="bg-[#FCFBF9] rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden animate-slide-up">
             <div className="px-6 py-4 border-b border-[#E8E4DF] flex justify-between items-center bg-white">
               <h2 className="text-sm font-black text-indigo-900 uppercase tracking-wider flex items-center gap-2">
-                <PhoneCall className="w-5 h-5 text-indigo-500" /> Log Branch Call
+                <PhoneCall className="w-5 h-5 text-indigo-500" /> Business Development
               </h2>
               <button onClick={() => setShowMarketingForm({ show: false, branch: null })} className="text-slate-400 hover:text-rose-600 transition-colors">
                 <X className="w-5 h-5" />
@@ -1242,10 +1365,24 @@ export default function LegalRecoveryModule({ userRole, triggerToast, sessionUse
                       onChange={e => setMarketingForm({ ...marketingForm, callType: e.target.value })}
                       className="w-full bg-white border border-[#E8E4DF] focus:border-indigo-500 rounded-lg px-3 py-2 text-xs focus:outline-none font-semibold text-slate-700"
                     >
-                      <option>Marketing</option>
+                      <option>Business Development</option>
                       <option>General </option>
+                      <option value="Others">Others</option>
                     </select>
                   </div>
+                  {marketingForm.callType === "Others" && (
+                    <div className="col-span-2">
+                      <label className="block text-[9px] uppercase tracking-wider text-rose-600 font-bold mb-1">Mention Custom Call Type *</label>
+                      <input
+                        type="text"
+                        required
+                        placeholder="E.g., Client Visit, Escalation, etc."
+                        value={customCallType}
+                        onChange={e => setCustomCallType(e.target.value)}
+                        className="w-full bg-white border border-[#E8E4DF] focus:border-indigo-500 rounded-lg px-3 py-2 text-xs focus:outline-none font-semibold text-slate-700"
+                      />
+                    </div>
+                  )}
                   <div>
                     <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Call Date *</label>
                     <input
@@ -1268,8 +1405,22 @@ export default function LegalRecoveryModule({ userRole, triggerToast, sessionUse
                       <option>Switched Off</option>
                       <option>Busy</option>
                       <option>Invalid Number</option>
+                      <option value="Others">Others</option>
                     </select>
                   </div>
+                  {marketingForm.callStatus === "Others" && (
+                    <div className="col-span-2">
+                      <label className="block text-[9px] uppercase tracking-wider text-rose-600 font-bold mb-1">Mention Custom Call Status *</label>
+                      <input
+                        type="text"
+                        required
+                        placeholder="E.g., Call Back Later, Line Busy, etc."
+                        value={customCallStatus}
+                        onChange={e => setCustomCallStatus(e.target.value)}
+                        className="w-full bg-white border border-[#E8E4DF] focus:border-indigo-500 rounded-lg px-3 py-2 text-xs focus:outline-none font-semibold text-slate-700"
+                      />
+                    </div>
+                  )}
                 </div>
 
                 <div>
@@ -1295,10 +1446,10 @@ export default function LegalRecoveryModule({ userRole, triggerToast, sessionUse
                     />
                   </div>
                   <div>
-                    <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Upload Call Recording (Optional)</label>
+                    <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Upload Document (Optional)</label>
                     <input
                       type="file"
-                      accept="audio/*"
+                      accept="*/*"
                       onChange={e => setAudioFile(e.target.files ? e.target.files[0] : null)}
                       className="block w-full text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 cursor-pointer border border-[#E8E4DF] rounded-lg"
                     />
@@ -1321,7 +1472,7 @@ export default function LegalRecoveryModule({ userRole, triggerToast, sessionUse
                     disabled={submittingMarketing}
                     className="flex-1 px-4 py-3 bg-indigo-600 text-white rounded-xl text-xs font-black shadow-lg shadow-indigo-600/20 hover:bg-indigo-700 transition-colors disabled:opacity-50"
                   >
-                    {submittingMarketing ? "Saving..." : "Save Call Log"}
+                    {submittingMarketing ? "Saving & Creating Task..." : "Save Call Log "}
                   </button>
                 </div>
               </form>

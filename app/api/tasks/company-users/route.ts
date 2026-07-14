@@ -27,6 +27,24 @@ export async function GET() {
 
     console.log("[company-users] currentUser companies:", currentUser.companies);
 
+    const userRole = (session.user as any).role || "Employee";
+
+    // Fetch all users
+    const allUsers = await User.findAll({
+      attributes: ["id", "name", "role", "email", "companies"],
+      raw: true,
+    }) as any[];
+
+    if (userRole === "Owner") {
+      const mapped = allUsers.map((u: any) => ({
+        id: u.id,
+        name: u.name || "Unknown",
+        role: u.role || "Employee",
+        email: u.email || "",
+      }));
+      return NextResponse.json({ success: true, data: mapped });
+    }
+
     // Parse companies array (stored as JSON in DB)
     let userCompanies: string[] = [];
     try {
@@ -48,17 +66,9 @@ export async function GET() {
       return NextResponse.json({ success: true, data: [] });
     }
 
-    // Fetch all users and filter those sharing at least one company
-    const allUsers = await User.findAll({
-      attributes: ["id", "name", "role", "email", "companies"],
-      raw: true,
-    }) as any[];
-
-    console.log("[company-users] total users in system:", allUsers.length);
-
     const companyUsers = allUsers
       .filter((u: any) => {
-        if (u.id === userId) return false; // exclude self
+        if (u.id === userId) return false; // exclude self for forwarding
         let uCompanies: string[] = [];
         try {
           const raw = u.companies;

@@ -54,6 +54,11 @@ interface Task {
   timerState?: "Running" | "Paused" | "Stopped" | string;
   elapsedSeconds?: number;
   proofAttachment?: string | null;
+  assignedBy?: string | null;
+  assignedByUser?: { id: string; name: string; role: string } | null;
+  deadlineHours?: number | null;
+  deadlineAt?: string | null;
+  updatedAt?: string | null;
 }
 
 const TYPE_COLORS: Record<string, string> = {
@@ -138,6 +143,11 @@ export default function KanbanBoard() {
   const [selectedForwardTo, setSelectedForwardTo] = useState("");
   const [savingForward, setSavingForward] = useState(false);
 
+  // Owner task assignment and deadline states
+  const [assigneeId, setAssigneeId] = useState("");
+  const [deadlineDate, setDeadlineDate] = useState("");
+  const [deadlineTime, setDeadlineTime] = useState("");
+
   // Task Editing & Deletion
   const [isEditingTask, setIsEditingTask] = useState(false);
   const [editTitle, setEditTitle] = useState("");
@@ -174,6 +184,21 @@ export default function KanbanBoard() {
       fetchCategories();
     }
   }, [session, status]);
+
+  useEffect(() => {
+    if (showAdd && (sessionUser as any)?.role === "Owner") {
+      const fetchUsers = async () => {
+        try {
+          const res = await fetch("/api/tasks/company-users");
+          const data = await res.json();
+          if (data.success) setCompanyUsers(data.data);
+        } catch (e) {
+          console.error("Failed to fetch users for task assignment:", e);
+        }
+      };
+      fetchUsers();
+    }
+  }, [showAdd, sessionUser]);
 
   const fetchCategories = async () => {
     try {
@@ -261,6 +286,19 @@ export default function KanbanBoard() {
     if (!title.trim()) return;
     setSubmitting(true);
 
+    if ((sessionUser as any)?.role === "Owner") {
+      if (!assigneeId) {
+        alert("Please select a user to assign this task to.");
+        setSubmitting(false);
+        return;
+      }
+      if (!deadlineDate) {
+        alert("Please select a deadline date.");
+        setSubmitting(false);
+        return;
+      }
+    }
+
     // Build structured description for Call tasks
     let finalDesc = desc;
     if (type === "Call" && callCategory === "Bank") {
@@ -289,11 +327,24 @@ export default function KanbanBoard() {
       ].filter(Boolean).join("\n");
     }
 
+    let deadlineAt: string | null = null;
+    if (deadlineDate) {
+      const timeVal = deadlineTime || "18:00";
+      deadlineAt = new Date(`${deadlineDate}T${timeVal}`).toISOString();
+    }
+
     try {
       const res = await fetch("/api/tasks", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ taskTitle: title, taskType: type, description: finalDesc, status: "Pending" }),
+        body: JSON.stringify({
+          taskTitle: title,
+          taskType: type,
+          description: finalDesc,
+          status: "Pending",
+          employeeId: assigneeId || undefined,
+          deadlineAt: deadlineAt || undefined
+        }),
       });
       const data = await res.json();
       if (data.success) {
@@ -310,6 +361,9 @@ export default function KanbanBoard() {
         setBankCategory("Operations");
         setBankCategoryOther("");
         setCustomCallFields([]);
+        setAssigneeId("");
+        setDeadlineDate("");
+        setDeadlineTime("");
         setShowAdd(false);
         fetchTasks();
       } else {
@@ -945,6 +999,56 @@ export default function KanbanBoard() {
     const typeColor = TYPE_COLORS[task.taskType] || TYPE_COLORS.Other;
     const creatorName = (task.employee as any)?.name || "Unknown User";
 
+    let deadlineBadge = null;
+    if (task.deadlineAt) {
+      const deadline = new Date(task.deadlineAt);
+      const now = new Date();
+      const diffMs = deadline.getTime() - now.getTime();
+      const diffHours = diffMs / (1000 * 60 * 60);
+
+      if (task.status === "Completed") {
+        let overdueText = "";
+        if (task.deadlineAt && task.updatedAt) {
+          const deadline = new Date(task.deadlineAt);
+          const completedAt = new Date(task.updatedAt);
+          const diffMs = completedAt.getTime() - deadline.getTime();
+          if (diffMs > 0) {
+            const overdueHrs = Math.floor(diffMs / (1000 * 60 * 60));
+            const overdueMins = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+            overdueText = `⚠️ Overdue by ${overdueHrs}h ${overdueMins}m when completed`;
+          }
+        }
+        deadlineBadge = {
+          text: `Deadline: ${new Date(task.deadlineAt).toLocaleString("en-IN", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}`,
+          className: "bg-slate-50 text-slate-400 border-slate-200",
+          overdueText
+        };
+      } else if (diffHours < 0) {
+        const overdueMs = Math.abs(diffMs);
+        const overdueHrs = Math.floor(overdueMs / (1000 * 60 * 60));
+        const overdueMins = Math.floor((overdueMs % (1000 * 60 * 60)) / (1000 * 60));
+        const overdueSecs = Math.floor((overdueMs % (1000 * 60)) / 1000);
+        deadlineBadge = {
+          text: `⚠️ Overdue by ${overdueHrs}h ${overdueMins}m ${overdueSecs}s`,
+          className: "bg-rose-50 text-rose-700 border-rose-200 font-extrabold animate-pulse"
+        };
+      } else {
+        const remainingHours = Math.floor(diffHours);
+        if (remainingHours === 0) {
+          const remainingMinutes = Math.floor(diffMs / (1000 * 60));
+          deadlineBadge = {
+            text: `⏰ Due in ${remainingMinutes}m`,
+            className: "bg-amber-50 text-amber-700 border-amber-200 font-extrabold animate-pulse"
+          };
+        } else {
+          deadlineBadge = {
+            text: `⏰ Remaining: ${remainingHours}h`,
+            className: "bg-indigo-50 text-indigo-700 border-indigo-200 font-extrabold"
+          };
+        }
+      }
+    }
+
     return (
       <div
         key={task.id}
@@ -961,8 +1065,15 @@ export default function KanbanBoard() {
         </div>
 
         {/* Creator Name */}
-        <div className="text-[9px] font-bold text-slate-400 mb-2 uppercase tracking-wide">
-          Created by: <span className="text-slate-600">{creatorName}</span>
+        <div className="text-[9px] font-bold text-slate-400 mb-2 uppercase tracking-wide flex flex-col gap-0.5">
+          <div>
+            Employee: <span className="text-slate-600 font-extrabold">{creatorName}</span>
+          </div>
+          {(task as any).assignedByUser && (
+            <div className="text-rose-500 font-extrabold">
+              Assigned by: <span>{(task as any).assignedByUser.name}</span>
+            </div>
+          )}
         </div>
 
         {/* Type badge */}
@@ -996,6 +1107,20 @@ export default function KanbanBoard() {
           <div className="mt-1.5 flex items-center gap-1 text-[9px] text-teal-600 font-bold bg-teal-50 rounded-lg px-2 py-1 border border-teal-200">
             <Send className="w-3 h-3" />
             <span>Forwarded to: {task.forwardedUser?.name || "Team Member"}</span>
+          </div>
+        )}
+
+        {/* Deadline Badge */}
+        {deadlineBadge && (
+          <div>
+            <div className={`mt-1.5 flex items-center gap-1 text-[9px] font-bold rounded-lg px-2 py-1 border ${deadlineBadge.className}`}>
+              <span>{deadlineBadge.text}</span>
+            </div>
+            {(deadlineBadge as any).overdueText && (
+              <div className="mt-1 text-[9px] font-extrabold text-rose-600 bg-rose-50 border border-rose-100 rounded-lg px-2 py-0.5 inline-block">
+                {(deadlineBadge as any).overdueText}
+              </div>
+            )}
           </div>
         )}
 
@@ -1440,6 +1565,50 @@ export default function KanbanBoard() {
                             onChange={e => setDesc(e.target.value)}
                           />
                         )}
+                        {/* Owner Task Assignment and Deadline Fields */}
+                        {(sessionUser as any)?.role === "Owner" && (
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 border-t border-slate-100 pt-3">
+                            <div>
+                              <label className="block text-[9px] uppercase tracking-wider text-slate-500 font-black mb-1">Assign To *</label>
+                              <select
+                                required
+                                className="w-full border border-slate-200 rounded-lg px-3 py-2 text-xs font-bold focus:outline-none focus:border-[#714B67] text-slate-700 bg-white"
+                                value={assigneeId}
+                                onChange={e => setAssigneeId(e.target.value)}
+                              >
+                                <option value="">-- Select User --</option>
+                                {companyUsers.map((u: any) => (
+                                  <option key={u.id} value={u.id}>{u.name} ({u.role})</option>
+                                ))}
+                              </select>
+                            </div>
+                            <div>
+                              <div className="grid grid-cols-2 gap-2">
+                                <div>
+                                  <label className="block text-[9px] uppercase tracking-wider text-slate-500 font-black mb-1">Deadline Date *</label>
+                                  <input
+                                    type="date"
+                                    required
+                                    className="w-full border border-slate-200 rounded-lg px-2 py-2 text-xs font-bold focus:outline-none focus:border-[#714B67] text-slate-800 bg-white"
+                                    value={deadlineDate}
+                                    onChange={e => setDeadlineDate(e.target.value)}
+                                  />
+                                </div>
+                                <div>
+                                  <label className="block text-[9px] uppercase tracking-wider text-slate-500 font-black mb-1">Deadline Time *</label>
+                                  <input
+                                    type="time"
+                                    required
+                                    className="w-full border border-slate-200 rounded-lg px-2 py-2 text-xs font-bold focus:outline-none focus:border-[#714B67] text-slate-800 bg-white"
+                                    value={deadlineTime}
+                                    onChange={e => setDeadlineTime(e.target.value)}
+                                  />
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
                         <div className="flex gap-2">
                           <button
                             type="button"
@@ -1530,7 +1699,64 @@ export default function KanbanBoard() {
                     <tr key={t.id} className="hover:bg-slate-50/50 transition-colors">
                       <td className="p-4 align-top">
                         <div className="font-bold text-slate-800 text-sm mb-1">{t.taskTitle}</div>
-                        <div className="text-[10px] font-black uppercase tracking-wider text-[#714B67] bg-[#714B67]/10 inline-block px-2 py-0.5 rounded-md mb-2">{t.taskType}</div>
+                        <div className="flex flex-wrap items-center gap-2 mb-2">
+                          <div className="text-[10px] font-black uppercase tracking-wider text-[#714B67] bg-[#714B67]/10 inline-block px-2 py-0.5 rounded-md">{t.taskType}</div>
+                          {t.deadlineAt && (() => {
+                            const deadline = new Date(t.deadlineAt);
+                            const now = new Date();
+                            const diffMs = deadline.getTime() - now.getTime();
+                            const diffHours = diffMs / (1000 * 60 * 60);
+                            let text = "";
+                            let className = "";
+
+                            let overdueText = "";
+                            if (t.status === "Completed") {
+                              text = `Deadline: ${new Date(t.deadlineAt).toLocaleString("en-IN", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}`;
+                              className = "bg-slate-50 text-slate-400 border-slate-200";
+                              if (t.updatedAt) {
+                                const completedAt = new Date(t.updatedAt);
+                                const overdueMs = completedAt.getTime() - deadline.getTime();
+                                if (overdueMs > 0) {
+                                  const overdueHrs = Math.floor(overdueMs / (1000 * 60 * 60));
+                                  const overdueMins = Math.floor((overdueMs % (1000 * 60 * 60)) / (1000 * 60));
+                                  overdueText = `⚠️ Overdue by ${overdueHrs}h ${overdueMins}m when completed`;
+                                }
+                              }
+                            } else if (diffHours < 0) {
+                              const overdueMs = Math.abs(diffMs);
+                              const overdueHrs = Math.floor(overdueMs / (1000 * 60 * 60));
+                              const overdueMins = Math.floor((overdueMs % (1000 * 60 * 60)) / (1000 * 60));
+                              const overdueSecs = Math.floor((overdueMs % (1000 * 60)) / 1000);
+                              text = `⚠️ Overdue by ${overdueHrs}h ${overdueMins}m ${overdueSecs}s`;
+                              className = "bg-rose-50 text-rose-700 border-rose-200 animate-pulse font-extrabold";
+                            } else {
+                              const remainingHours = Math.floor(diffHours);
+                              text = remainingHours === 0 
+                                ? `⏰ Due in ${Math.floor(diffMs / (1000 * 60))}m`
+                                : `⏰ Remaining: ${remainingHours}h`;
+                              className = remainingHours === 0
+                                ? "bg-amber-50 text-amber-700 border-amber-200 animate-pulse font-extrabold"
+                                : "bg-indigo-50 text-indigo-700 border-indigo-200 font-extrabold";
+                            }
+                            return (
+                              <div className="flex flex-col gap-1">
+                                <div className={`text-[9px] font-bold px-2 py-0.5 rounded-md border ${className}`}>
+                                  {text}
+                                </div>
+                                {overdueText && (
+                                  <div className="text-[9px] font-extrabold text-rose-600 bg-rose-50 border border-rose-100 rounded-md px-2 py-0.5 inline-block">
+                                    {overdueText}
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })()}
+                          {(t as any).assignedByUser && (
+                            <div className="text-[9px] font-extrabold text-rose-500 bg-rose-50 border border-rose-200 px-2 py-0.5 rounded-md">
+                              Assigned by: {(t as any).assignedByUser.name}
+                            </div>
+                          )}
+                        </div>
                         <p className="text-xs text-slate-650 line-clamp-2 whitespace-pre-line">{cleanDescription(t.description)}</p>
                       </td>
                       <td className="p-4 align-top text-xs font-bold text-slate-700">

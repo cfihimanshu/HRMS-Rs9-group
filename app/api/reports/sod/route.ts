@@ -4,6 +4,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import sequelize from "@/lib/sequelize";
 import SodReport from "@/models/sequelize/SodReport";
+import EodReport from "@/models/sequelize/EodReport";
 import Attendance from "@/models/sequelize/Attendance";
 import TaskLog from "@/models/sequelize/TaskLog";
 import { logAudit } from "@/lib/audit";
@@ -35,6 +36,20 @@ export async function GET(req: Request) {
         }
       }
     });
+
+    if (!record) {
+      // Fetch the last submitted EOD to get the tomorrowPlan
+      const lastEod = await EodReport.findOne({
+        where: { employee: userId },
+        order: [["date", "DESC"]]
+      });
+      return NextResponse.json({
+        success: true,
+        data: null,
+        lastEodPlan: lastEod ? (lastEod as any).tomorrowPlan : null
+      });
+    }
+
     return NextResponse.json({ success: true, data: record });
   } catch (error: any) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
@@ -122,14 +137,18 @@ export async function POST(req: Request) {
 
     // Auto-create task in Kanban from SOD declaration
     const sodTaskId = await TaskLog.generateNextTaskId(userId);
+    const nowTimestamp = new Date();
     await TaskLog.create({
       id: sodTaskId,
       employee: userId,
-      date: new Date(), // exact current timestamp
+      date: nowTimestamp, // exact current timestamp
       taskTitle: taskSummary,
       taskType: taskType,
       description: taskType === "Development" && projectName ? `[Project: ${projectName}] ${remarks || ""}` : (remarks || ""),
       status: "Pending", // Set as Pending so it goes to "My Tasks (Kanban)" Pending column
+      timerState: "Running",
+      timerStart: nowTimestamp,
+      elapsedSeconds: 0,
     });
 
     await logAudit({

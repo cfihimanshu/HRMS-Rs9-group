@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import LegalMarketingCall from "@/models/sequelize/LegalMarketingCall";
+import TaskLog from "@/models/sequelize/TaskLog";
 import sequelize from "@/lib/sequelize";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
@@ -33,15 +34,35 @@ export async function POST(request: Request) {
     const data = await request.json();
     await sequelize.authenticate();
     await LegalMarketingCall.sync({ alter: true });
+    await TaskLog.sync({ alter: true });
     
     const session = await getServerSession(authOptions);
     if (session?.user) {
       data.callerId = (session.user as any).id;
       data.callerName = (session.user as any).name;
     }
+
+    // Create Task in TaskLog (used by Kanban)
+    const taskTitle = `Business Development - Branch: ${data.branchName || 'Unknown'}`;
+    const nextId = await TaskLog.generateNextTaskId(data.callerId);
+
+    const newTask = await TaskLog.create({
+      id: nextId,
+      employee: data.callerId || null,
+      date: new Date(),
+      taskTitle: taskTitle,
+      taskType: "CALL",
+      description: data.conversationDetails,
+      status: "Pending",
+      scheduledAt: data.nextFollowUpDate ? new Date(data.nextFollowUpDate) : null,
+      timerState: "Stopped",
+      elapsedSeconds: 0,
+    });
+
+    data.taskId = newTask.id;
     
     const newCall = await LegalMarketingCall.create(data);
-    return NextResponse.json({ success: true, data: newCall });
+    return NextResponse.json({ success: true, data: newCall, task: newTask });
   } catch (error: any) {
     console.error("Marketing Call POST Error:", error);
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });

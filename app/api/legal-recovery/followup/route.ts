@@ -39,6 +39,8 @@ export async function POST(request: Request) {
       callRecordingUrl: data.callRecordingUrl,
       nextFollowUpDate: data.nextFollowUpDate || null,
       callDate: data.callDate || new Date(),
+      bankName: data.bankName,
+      branchName: data.branchName,
       taskId: newTask.id // Link the task
     };
     
@@ -57,6 +59,7 @@ export async function GET(request: Request) {
     const masterId = searchParams.get('masterId');
     
     await sequelize.authenticate();
+    await LegalRecoveryFollowUp.sync({ alter: true });
     
     const whereClause = masterId ? { masterId } : {};
     

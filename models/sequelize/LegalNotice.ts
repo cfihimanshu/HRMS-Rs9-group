@@ -11,47 +11,145 @@ LegalNotice.init(
       primaryKey: true,
     },
     masterId: {
-      type: DataTypes.INTEGER, // Link to LegalRecoveryMaster
-      allowNull: false,
+      type: DataTypes.INTEGER, // Optional Link to LegalRecoveryMaster
+      allowNull: true,
     },
-    noticeType: {
-      type: DataTypes.STRING, // e.g. Demand Notice, Sec 138, Sec 25
-      allowNull: false,
+    bankId: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+    },
+    branchId: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+    },
+    noticeOrderDate: {
+      type: DataTypes.DATEONLY,
+      allowNull: true,
     },
     noticeDate: {
       type: DataTypes.DATEONLY,
       allowNull: true,
     },
-    advocateId: {
-      type: DataTypes.INTEGER, // Link to LegalAdvocateMaster
-      allowNull: true,
-    },
-    dispatchMode: {
-      type: DataTypes.STRING, // Speed Post, Registered AD, Email
-      allowNull: true,
-    },
-    trackingNumber: {
+    noticeType: {
       type: DataTypes.STRING,
       allowNull: true,
     },
-    deliveryStatus: {
-      type: DataTypes.STRING, // Dispatched, Delivered, RTO
+    noticeTypeId: {
+      type: DataTypes.INTEGER,
       allowNull: true,
-      defaultValue: "Pending",
     },
-    remarks: {
-      type: DataTypes.TEXT,
+    quantity: {
+      type: DataTypes.INTEGER,
       allowNull: true,
+      defaultValue: 1,
     },
     documentUrl: {
-      type: DataTypes.STRING, // URL of the softcopy of the notice
+      type: DataTypes.STRING,
       allowNull: true,
-    }
+    },
+    broughtBy: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    noOfPrint: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+      defaultValue: 0,
+    },
+    printedBy: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    noOfScan: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+      defaultValue: 0,
+    },
+    scannedBy: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    renamedBy: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    noticeRenameBy: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    dispatchedBy: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    billDate: {
+      type: DataTypes.DATEONLY,
+      allowNull: true,
+    },
+    billNo: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    billAmount: {
+      type: DataTypes.DECIMAL(10, 2),
+      allowNull: true,
+      defaultValue: 0.0,
+    },
+    billMailedToBM: {
+      type: DataTypes.BOOLEAN,
+      allowNull: true,
+      defaultValue: false,
+    },
+    paymentRcvdDate: {
+      type: DataTypes.DATEONLY,
+      allowNull: true,
+    },
+    amountRcvd: {
+      type: DataTypes.DECIMAL(10, 2),
+      allowNull: true,
+      defaultValue: 0.0,
+    },
+    tdsDeduction: {
+      type: DataTypes.DECIMAL(10, 2),
+      allowNull: true,
+      defaultValue: 0.0,
+    },
+    gstDeduction: {
+      type: DataTypes.DECIMAL(10, 2),
+      allowNull: true,
+      defaultValue: 0.0,
+    },
+    expenses: {
+      type: DataTypes.DECIMAL(10, 2),
+      allowNull: true,
+      defaultValue: 0.0,
+    },
+    handoverTo: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    handedOverBy: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    handoverRemarks: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    handoverReceiptUrl: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
   },
   {
     sequelize,
     tableName: "legal_notices",
     timestamps: true,
+    indexes: [
+      { fields: ["masterId"] },
+      { fields: ["bankId"] },
+      { fields: ["branchId"] },
+      { fields: ["noticeTypeId"] }
+    ]
   }
 );
 

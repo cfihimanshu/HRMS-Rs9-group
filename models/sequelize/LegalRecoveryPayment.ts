@@ -47,6 +47,9 @@ LegalRecoveryPayment.init(
     sequelize,
     tableName: "legal_recovery_payments",
     timestamps: true,
+    indexes: [
+      { fields: ["masterId"] }
+    ]
   }
 );
 

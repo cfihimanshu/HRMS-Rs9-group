@@ -46,6 +46,9 @@ BranchMaster.init(
     sequelize,
     tableName: "branch_masters",
     timestamps: true,
+    indexes: [
+      { fields: ["bankId"] }
+    ]
   }
 );
 
