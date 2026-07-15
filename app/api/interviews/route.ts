@@ -402,18 +402,29 @@ export async function PUT(req: Request) {
     if (customQuestions !== undefined) interview.customQuestions = customQuestions;
     
     interview.remarks = remarks !== undefined ? remarks : interview.remarks;
-    if (status !== undefined) interview.status = status;
+    if (status !== undefined) {
+      if (status === "Hired") {
+        interview.status = "Selected";
+      } else {
+        interview.status = status;
+      }
+    }
     await interview.save();
 
     // Update candidate profile state based on interview output
     const candidate = await Candidate.findByPk(interview.candidate);
     if (status !== undefined && candidate) {
-      candidate.status = status;
-      if (status === "Selected") {
-        const curRound = candidate.currentRound || 1;
-        if (curRound < 3) {
-          // Advance to next round
-          candidate.currentRound = curRound + 1;
+      if (status === "Hired") {
+        candidate.status = "Selected";
+        candidate.currentRound = 3;
+      } else {
+        candidate.status = status;
+        if (status === "Selected") {
+          const curRound = candidate.currentRound || 1;
+          if (curRound < 3) {
+            // Advance to next round
+            candidate.currentRound = curRound + 1;
+          }
         }
       }
       await candidate.save();
@@ -434,6 +445,8 @@ export async function PUT(req: Request) {
             let leadStatus = status;
             if (status === "Selected") {
               leadStatus = `Selected (Round ${interview.round || 1})`;
+            } else if (status === "Hired") {
+              leadStatus = `Selected (Round ${interview.round || 1} - Direct Hire)`;
             } else if (status === "Rejected") {
               leadStatus = `Rejected (Round ${interview.round || 1})`;
             } else if (status === "Hold") {

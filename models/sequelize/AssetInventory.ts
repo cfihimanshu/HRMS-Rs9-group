@@ -6,9 +6,8 @@ class AssetInventory extends Model<any, any> { [key: string]: any; }
 AssetInventory.init(
   {
     id: {
-      type: DataTypes.INTEGER,
+      type: DataTypes.STRING,
       primaryKey: true,
-      autoIncrement: true,
       allowNull: false,
     },
     assetType: {
@@ -55,6 +54,14 @@ AssetInventory.init(
     },
     createdAt: {
       type: DataTypes.DATE,
+      allowNull: true,
+    },
+    photoUrl: {
+      type: DataTypes.TEXT("long"),
+      allowNull: true,
+    },
+    customFields: {
+      type: DataTypes.TEXT("long"),
       allowNull: true,
     },
     updatedAt: {

@@ -73,6 +73,10 @@ EodReport.init(
     sequelize,
     tableName: "eodreports",
     timestamps: true,
+    indexes: [
+      { fields: ["employee"] },
+      { fields: ["date"] }
+    ]
   }
 );
 

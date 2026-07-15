@@ -56,13 +56,22 @@ export async function POST(req: Request) {
     try { await AssetInventory.sync({ alter: true }); } catch (_) {}
 
     const body = await req.json();
-    const { assetType, assetDetail, serialNumber, purchaseDate, purchaseValue, condition, companyId, notes } = body;
+    const { id, assetType, assetDetail, serialNumber, purchaseDate, purchaseValue, condition, companyId, notes, photoUrl, customFields } = body;
 
+    if (!id || !id.trim()) {
+      return NextResponse.json({ success: false, error: "Asset ID is required" }, { status: 400 });
+    }
     if (!assetType) {
       return NextResponse.json({ success: false, error: "Asset Type is required" }, { status: 400 });
     }
 
+    const existing = await AssetInventory.findByPk(id.trim());
+    if (existing) {
+      return NextResponse.json({ success: false, error: `Asset with ID '${id.trim()}' already exists` }, { status: 400 });
+    }
+
     const record = await AssetInventory.create({
+      id: id.trim(),
       assetType,
       assetDetail: assetDetail || "",
       serialNumber: serialNumber || "",
@@ -73,6 +82,8 @@ export async function POST(req: Request) {
       companyId: companyId || null,
       notes: notes || "",
       registeredBy: userName,
+      photoUrl: photoUrl || null,
+      customFields: customFields || null,
     });
 
     return NextResponse.json({ success: true, data: record });
@@ -98,9 +109,10 @@ export async function PUT(req: Request) {
     }
 
     await sequelize.authenticate();
+    try { await AssetInventory.sync({ alter: true }); } catch (_) {}
 
     const body = await req.json();
-    const { id, assetType, assetDetail, serialNumber, purchaseDate, purchaseValue, condition, status, companyId, notes } = body;
+    const { id, assetType, assetDetail, serialNumber, purchaseDate, purchaseValue, condition, status, companyId, notes, photoUrl, customFields } = body;
 
     if (!id) {
       return NextResponse.json({ success: false, error: "Missing asset id" }, { status: 400 });
@@ -118,8 +130,10 @@ export async function PUT(req: Request) {
     if (purchaseValue !== undefined) asset.purchaseValue = purchaseValue;
     if (condition !== undefined) asset.condition = condition;
     if (status !== undefined) asset.status = status;
-    if (companyId !== undefined) asset.companyId = companyId;
+    if (companyId !== undefined) asset.companyId = companyId || null;
     if (notes !== undefined) asset.notes = notes;
+    if (photoUrl !== undefined) asset.photoUrl = photoUrl || null;
+    if (customFields !== undefined) asset.customFields = customFields || null;
 
     await asset.save();
     return NextResponse.json({ success: true, data: asset });

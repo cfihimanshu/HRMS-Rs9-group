@@ -79,7 +79,7 @@ export async function POST(req: Request) {
     const { action } = body;
 
     if (action === "create") {
-      const { asset_type, asset_detail, estimated_cost, vendor_details, justification, company_id } = body;
+      const { asset_type, asset_detail, estimated_cost, vendor_details, justification, company_id, asset_id } = body;
 
       if (!asset_type || !asset_detail || !estimated_cost || !vendor_details) {
         return NextResponse.json({ success: false, error: "Asset Type, Details, Cost, and Vendor Details are required." }, { status: 400 });
@@ -93,7 +93,8 @@ export async function POST(req: Request) {
         vendor_details,
         justification: justification || "",
         company_id: company_id || null,
-        status: "Pending Owner Approval"
+        status: "Pending Owner Approval",
+        asset_id: asset_id || null
       });
 
       return NextResponse.json({

@@ -24,7 +24,7 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
   const [selectedType, setSelectedType] = useState("all");
 
   // Editing state
-  const [editingAssetId, setEditingAssetId] = useState<number | null>(null);
+  const [editingAssetId, setEditingAssetId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState({
     assetType: "Laptop",
     assetDetail: "",
@@ -34,13 +34,19 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
     condition: "Good",
     status: "Available",
     companyId: "",
-    notes: ""
+    notes: "",
+    photoUrl: ""
   });
   const [updating, setUpdating] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editingAsset, setEditingAsset] = useState<any>(null);
+  const [editAssetFields, setEditAssetFields] = useState<Record<string, string>>({});
+  const [editEmailsList, setEditEmailsList] = useState<string[]>([""]);
 
   // Registration form
   const [showRegisterForm, setShowRegisterForm] = useState(false);
   const [registerForm, setRegisterForm] = useState({
+    id: "",
     assetType: "Laptop",
     assetDetail: "",
     serialNumber: "",
@@ -48,7 +54,8 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
     purchaseValue: "",
     condition: "Good",
     companyId: "",
-    notes: ""
+    notes: "",
+    photoUrl: ""
   });
   const [submittingRegister, setSubmittingRegister] = useState(false);
   const [isCustomRegisterType, setIsCustomRegisterType] = useState(false);
@@ -57,6 +64,113 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
   // Dynamic Asset Type Custom Fields State
   const [assetFields, setAssetFields] = useState<Record<string, string>>({});
   const [emailsList, setEmailsList] = useState<string[]>([""]);
+
+  const defaultTypes = [
+    "Laptop",
+    "Mobile Phone",
+    "SIM Card",
+    "Headset / Accessories",
+    "ID Card / Lanyard",
+    "Office Chair / Table",
+    "Router / Networking",
+    "Printer / Scanner"
+  ];
+
+  const dynamicAssetTypes = React.useMemo(() => {
+    const existingTypes = inventory.map(item => item.assetType).filter(Boolean);
+    const combined = Array.from(new Set([...defaultTypes, ...existingTypes]));
+    return combined.sort();
+  }, [inventory]);
+
+  // Delete confirmation
+  const [deleteConfirm, setDeleteConfirm] = useState<{ show: boolean; assetId?: string; assetType?: string; serialNumber?: string }>({ show: false });
+  const [deleting, setDeleting] = useState(false);
+
+  // Action roles mapping
+  const loggedRole = (sessionUser?.role || "").toLowerCase();
+  const loggedDept = (sessionUser?.department || "").toLowerCase();
+  const isOwner = ["owner", "director"].includes(loggedRole);
+  const isAdminDept = loggedDept.includes("administration");
+
+  // Purchase Requests States
+  const [activeSubTab, setActiveSubTab] = useState("stock");
+  const [purchaseRequests, setPurchaseRequests] = useState<any[]>([]);
+  const [loadingPurchases, setLoadingPurchases] = useState(false);
+  const [showPurchaseModal, setShowPurchaseModal] = useState(false);
+  const [purchaseForm, setPurchaseForm] = useState({
+    asset_type: "Laptop",
+    asset_detail: "",
+    estimated_cost: "",
+    vendor_details: "",
+    justification: "",
+    company_id: "",
+    asset_id: ""
+  });
+  const [submittingPurchase, setSubmittingPurchase] = useState(false);
+  const [isCustomPurchaseType, setIsCustomPurchaseType] = useState(false);
+  const [ownerRemarksMap, setOwnerRemarksMap] = useState<Record<string, string>>({});
+
+  const generateNextAssetId = useCallback((type: string) => {
+    const typeClean = (type || "").toLowerCase().trim();
+    let prefix = "AST";
+    if (typeClean.startsWith("laptop")) {
+      prefix = "LAP";
+    } else if (typeClean.startsWith("mobile") || typeClean.includes("phone")) {
+      prefix = "MOB";
+    } else if (typeClean.startsWith("sim")) {
+      prefix = "SIM";
+    } else if (typeClean.startsWith("headset") || typeClean.startsWith("accessor")) {
+      prefix = "ACC";
+    } else if (typeClean.startsWith("id card") || typeClean.startsWith("lanyard")) {
+      prefix = "IDC";
+    } else if (typeClean.startsWith("office") || typeClean.startsWith("chair") || typeClean.startsWith("table") || typeClean.startsWith("furniture")) {
+      prefix = "FUR";
+    } else if (typeClean.startsWith("router") || typeClean.startsWith("network")) {
+      prefix = "NET";
+    } else if (typeClean.startsWith("printer") || typeClean.startsWith("scanner")) {
+      prefix = "PRN";
+    } else {
+      const alphaOnly = typeClean.replace(/[^a-z0-9]/g, "");
+      if (alphaOnly.length >= 2) {
+        prefix = alphaOnly.substring(0, Math.min(alphaOnly.length, 3)).toUpperCase();
+      } else {
+        prefix = "AST";
+      }
+    }
+
+    let maxNum = 0;
+    const regex = new RegExp(`^${prefix}-(\\d+)$`, "i");
+    
+    // Check existing inventory
+    inventory.forEach(item => {
+      if (item.id) {
+        const match = item.id.trim().match(regex);
+        if (match) {
+          const num = parseInt(match[1], 10);
+          if (num > maxNum) {
+            maxNum = num;
+          }
+        }
+      }
+    });
+
+    // Check existing purchase requests (to prevent duplicates)
+    purchaseRequests.forEach(req => {
+      if (req.asset_id) {
+        const match = req.asset_id.trim().match(regex);
+        if (match) {
+          const num = parseInt(match[1], 10);
+          if (num > maxNum) {
+            maxNum = num;
+          }
+        }
+      }
+    });
+
+    const nextNum = maxNum + 1;
+    const suffix = nextNum < 10 ? `0${nextNum}` : `${nextNum}`;
+    return `${prefix}-${suffix}`;
+  }, [inventory, purchaseRequests]);
 
   useEffect(() => {
     setEmailsList([""]);
@@ -112,51 +226,24 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
     } else {
       setAssetFields({});
     }
-  }, [registerForm.assetType]);
 
-  const defaultTypes = [
-    "Laptop",
-    "Mobile Phone",
-    "SIM Card",
-    "Headset / Accessories",
-    "ID Card / Lanyard",
-    "Office Chair / Table",
-    "Router / Networking",
-    "Printer / Scanner"
-  ];
+    const isFromPurchaseRequest = registerForm.notes?.includes("Approved Purchase Request ID:");
+    if (!isFromPurchaseRequest) {
+      setRegisterForm(p => ({
+        ...p,
+        id: generateNextAssetId(p.assetType)
+      }));
+    }
+  }, [registerForm.assetType, generateNextAssetId, registerForm.notes]);
 
-  const dynamicAssetTypes = React.useMemo(() => {
-    const existingTypes = inventory.map(item => item.assetType).filter(Boolean);
-    const combined = Array.from(new Set([...defaultTypes, ...existingTypes]));
-    return combined.sort();
-  }, [inventory]);
-
-  // Delete confirmation
-  const [deleteConfirm, setDeleteConfirm] = useState<{ show: boolean; assetId?: number; assetType?: string; serialNumber?: string }>({ show: false });
-  const [deleting, setDeleting] = useState(false);
-
-  // Action roles mapping
-  const loggedRole = (sessionUser?.role || "").toLowerCase();
-  const loggedDept = (sessionUser?.department || "").toLowerCase();
-  const isOwner = ["owner", "director"].includes(loggedRole);
-  const isAdminDept = loggedDept.includes("administration");
-
-  // Purchase Requests States
-  const [activeSubTab, setActiveSubTab] = useState("stock");
-  const [purchaseRequests, setPurchaseRequests] = useState<any[]>([]);
-  const [loadingPurchases, setLoadingPurchases] = useState(false);
-  const [showPurchaseModal, setShowPurchaseModal] = useState(false);
-  const [purchaseForm, setPurchaseForm] = useState({
-    asset_type: "Laptop",
-    asset_detail: "",
-    estimated_cost: "",
-    vendor_details: "",
-    justification: "",
-    company_id: ""
-  });
-  const [submittingPurchase, setSubmittingPurchase] = useState(false);
-  const [isCustomPurchaseType, setIsCustomPurchaseType] = useState(false);
-  const [ownerRemarksMap, setOwnerRemarksMap] = useState<Record<string, string>>({});
+  useEffect(() => {
+    if (showPurchaseModal) {
+      setPurchaseForm(p => ({
+        ...p,
+        asset_id: generateNextAssetId(p.asset_type)
+      }));
+    }
+  }, [purchaseForm.asset_type, showPurchaseModal, generateNextAssetId]);
 
   const fetchData = async () => {
     try {
@@ -196,7 +283,7 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
 
   const handlePurchaseSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!purchaseForm.asset_type || !purchaseForm.asset_detail || !purchaseForm.estimated_cost || !purchaseForm.vendor_details) {
+    if (!purchaseForm.asset_type || !purchaseForm.asset_detail || !purchaseForm.estimated_cost || !purchaseForm.vendor_details || !purchaseForm.asset_id) {
       triggerToast("Please fill all required fields");
       return;
     }
@@ -221,7 +308,8 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
           estimated_cost: "",
           vendor_details: "",
           justification: "",
-          company_id: ""
+          company_id: "",
+          asset_id: ""
         });
         fetchPurchaseRequests();
       } else {
@@ -287,7 +375,8 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
         estimated_cost: "",
         vendor_details: "",
         justification: justification,
-        company_id: ""
+        company_id: "",
+        asset_id: ""
       });
 
       setShowPurchaseModal(true);
@@ -300,8 +389,33 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
     }
   }, []);
 
+  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>, isEditMode: boolean = false) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      triggerToast("Please upload an image file");
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const base64String = reader.result as string;
+      if (isEditMode) {
+        setEditForm(prev => ({ ...prev, photoUrl: base64String }));
+      } else {
+        setRegisterForm(prev => ({ ...prev, photoUrl: base64String }));
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
   const handleRegisterSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!registerForm.id.trim()) {
+      triggerToast("Asset ID is required");
+      return;
+    }
     if (!registerForm.assetType) {
       triggerToast("Asset Type is required");
       return;
@@ -441,7 +555,11 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
         ...registerForm,
         assetDetail: finalDetail,
         serialNumber: finalSerial,
-        notes: finalNotes
+        notes: finalNotes,
+        customFields: JSON.stringify({
+          assetFields,
+          emailsList
+        })
       };
 
       const res = await fetch("/api/assets/inventory", {
@@ -475,6 +593,7 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
           }
         }
         setRegisterForm({
+          id: "",
           assetType: "Laptop",
           assetDetail: "",
           serialNumber: "",
@@ -482,7 +601,8 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
           purchaseValue: "",
           condition: "Good",
           companyId: "",
-          notes: ""
+          notes: "",
+          photoUrl: ""
         });
         setAssetFields({});
         setEmailsList([""]);
@@ -499,7 +619,111 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
   };
 
   const handleStartEdit = (asset: any) => {
-    setEditingAssetId(asset.id);
+    let fields: Record<string, string> = {};
+    let emails: string[] = [""];
+    
+    if (asset.customFields) {
+      try {
+        const parsed = JSON.parse(asset.customFields);
+        fields = parsed.assetFields || {};
+        emails = parsed.emailsList || [""];
+      } catch (e) {
+        console.error("Error parsing customFields", e);
+      }
+    } else {
+      // Fallback parsing for legacy assets
+      const typeClean = asset.assetType?.toLowerCase().trim();
+      if (typeClean === "sim card" || typeClean === "sim") {
+        fields = {
+          simMobile: asset.serialNumber || "",
+          simOperator: asset.assetDetail?.split(" - ")?.[0] || "Jio",
+          simNetwork: asset.assetDetail?.split(" - ")?.[1]?.replace(" Network", "") || "5G",
+          simIccid: asset.notes?.match(/SIM Number \(ICCID\): (.*)/)?.[1] || ""
+        };
+      } else if (typeClean === "laptop") {
+        const detail = asset.assetDetail || "";
+        const openParen = detail.indexOf("(");
+        const closeParen = detail.indexOf(")");
+        fields = {
+          laptopModel: openParen > -1 ? detail.substring(0, openParen).trim() : detail,
+          laptopSpecs: openParen > -1 && closeParen > openParen ? detail.substring(openParen + 1, closeParen).trim() : "",
+          laptopSerial: asset.serialNumber || ""
+        };
+        const emailsMatch = asset.notes?.match(/Logged-in Emails: ([^\n]*)/);
+        if (emailsMatch) {
+          emails = emailsMatch[1].split(", ").map((e: string) => e.trim());
+        }
+      } else if (typeClean === "mobile phone") {
+        const detail = asset.assetDetail || "";
+        const openParen = detail.indexOf("(");
+        const closeParen = detail.indexOf(")");
+        const serialStr = asset.serialNumber || "";
+        const imei1 = serialStr.match(/IMEI 1: ([^,]*)/)?.[1] || serialStr;
+        const imei2 = serialStr.match(/IMEI 2: (.*)/)?.[1] || "";
+        
+        const simSlots = asset.notes?.match(/SIM Slots Used: ([^\n]*)/)?.[1] || "None";
+        const sim1No = asset.notes?.match(/SIM 1 Mobile No: ([^ ]*)/)?.[1] || "";
+        const sim1Whatsapp = asset.notes?.match(/SIM 1 Mobile No:.*WhatsApp: (Yes|No)/)?.[1] || "No";
+        const sim1WhatsappType = asset.notes?.match(/SIM 1 Mobile No:.*WhatsApp: Yes \(([^)]*)\)/)?.[1] || "Personal";
+        const sim2No = asset.notes?.match(/SIM 2 Mobile No: ([^ ]*)/)?.[1] || "";
+        const sim2Whatsapp = asset.notes?.match(/SIM 2 Mobile No:.*WhatsApp: (Yes|No)/)?.[1] || "No";
+        const sim2WhatsappType = asset.notes?.match(/SIM 2 Mobile No:.*WhatsApp: Yes \(([^)]*)\)/)?.[1] || "Personal";
+        
+        fields = {
+          phoneModel: openParen > -1 ? detail.substring(0, openParen).trim() : detail,
+          phoneSpecs: openParen > -1 && closeParen > openParen ? detail.substring(openParen + 1, closeParen).trim() : "",
+          phoneImei1: imei1,
+          phoneImei2: imei2,
+          phoneSimSlots: simSlots,
+          phoneSim1No: sim1No,
+          phoneSim1Whatsapp: sim1Whatsapp,
+          phoneSim1WhatsappType: sim1WhatsappType,
+          phoneSim2No: sim2No,
+          phoneSim2Whatsapp: sim2Whatsapp,
+          phoneSim2WhatsappType: sim2WhatsappType
+        };
+        const emailsMatch = asset.notes?.match(/Logged-in Emails: ([^\n]*)/);
+        if (emailsMatch) {
+          emails = emailsMatch[1].split(", ").map((e: string) => e.trim());
+        }
+      } else if (typeClean === "headset / accessories") {
+        const detail = asset.assetDetail || "";
+        const openParen = detail.indexOf("(");
+        const closeParen = detail.indexOf(")");
+        fields = {
+          accName: openParen > -1 ? detail.substring(0, openParen).trim() : detail,
+          accType: openParen > -1 && closeParen > openParen ? detail.substring(openParen + 1, closeParen).trim() : "Wired",
+          accSerial: asset.serialNumber || ""
+        };
+      } else if (typeClean === "id card / lanyard") {
+        fields = {
+          idEmployee: asset.assetDetail?.replace("ID Card for: ", "") || "",
+          idBarcode: asset.serialNumber || ""
+        };
+      } else if (typeClean === "office chair / table") {
+        fields = {
+          furnitureDesc: asset.assetDetail || "",
+          furnitureTag: asset.serialNumber || ""
+        };
+      } else if (typeClean === "router / networking") {
+        fields = {
+          routerModel: asset.assetDetail || "",
+          routerMac: asset.serialNumber?.replace("MAC: ", "") || "",
+          routerSerial: asset.notes?.match(/Serial Number: (.*)/)?.[1] || ""
+        };
+      } else if (typeClean === "printer / scanner") {
+        const detail = asset.assetDetail || "";
+        const openParen = detail.indexOf("(");
+        const closeParen = detail.indexOf(")");
+        fields = {
+          printerModel: openParen > -1 ? detail.substring(0, openParen).trim() : detail,
+          printerType: openParen > -1 && closeParen > openParen ? detail.substring(openParen + 1, closeParen).trim() : "Laser Printer",
+          printerSerial: asset.serialNumber || ""
+        };
+      }
+    }
+
+    setEditingAsset(asset);
     setEditForm({
       assetType: asset.assetType || "Laptop",
       assetDetail: asset.assetDetail || "",
@@ -509,32 +733,175 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
       condition: asset.condition || "Good",
       status: asset.status || "Available",
       companyId: asset.companyId || "",
-      notes: asset.notes || ""
+      notes: asset.notes || "",
+      photoUrl: asset.photoUrl || ""
     });
+    setEditAssetFields(fields);
+    setEditEmailsList(emails);
+    setShowEditModal(true);
   };
 
   const handleCancelEdit = () => {
-    setEditingAssetId(null);
-    setIsCustomEditType(false);
+    setShowEditModal(false);
+    setEditingAsset(null);
+    setEditAssetFields({});
+    setEditEmailsList([""]);
   };
 
-  const handleSaveEdit = async (assetId: number) => {
+  const handleSaveEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingAsset) return;
+
+    const typeClean = editForm.assetType.toLowerCase().trim();
+    let finalDetail = editForm.assetDetail;
+    let finalSerial = editForm.serialNumber;
+    let finalNotes = editForm.notes;
+
+    if (typeClean === "sim card" || typeClean === "sim") {
+      const mobile = editAssetFields.simMobile || "";
+      if (!mobile) {
+        triggerToast("SIM Mobile Number is required");
+        return;
+      }
+      finalDetail = `${editAssetFields.simOperator || "Jio"} - ${editAssetFields.simNetwork || "5G"} Network`;
+      finalSerial = mobile;
+      if (editAssetFields.simIccid) {
+        finalNotes = `SIM Number (ICCID): ${editAssetFields.simIccid}${editForm.notes ? `\n${editForm.notes}` : ""}`;
+      }
+    } else if (typeClean === "laptop") {
+      const model = editAssetFields.laptopModel || "";
+      const specs = editAssetFields.laptopSpecs || "";
+      const serial = editAssetFields.laptopSerial || "";
+      if (!model || !specs) {
+        triggerToast("Laptop Brand & Model and Specifications are required");
+        return;
+      }
+      finalDetail = `${model} (${specs})`;
+      finalSerial = serial;
+
+      // Logged-in Emails
+      const filteredEmails = editEmailsList.map(e => e.trim()).filter(Boolean);
+      if (filteredEmails.length > 0) {
+        finalNotes = `Logged-in Emails: ${filteredEmails.join(", ")}${editForm.notes ? `\n${editForm.notes}` : ""}`;
+      }
+    } else if (typeClean === "mobile phone") {
+      const model = editAssetFields.phoneModel || "";
+      const imei1 = editAssetFields.phoneImei1 || "";
+      const imei2 = editAssetFields.phoneImei2 || "";
+      const specs = editAssetFields.phoneSpecs || "";
+      
+      const simSlots = editAssetFields.phoneSimSlots || "None";
+      const sim1No = editAssetFields.phoneSim1No || "";
+      const sim2No = editAssetFields.phoneSim2No || "";
+
+      if (!model || !imei1) {
+        triggerToast("Phone Brand & Model and IMEI Number 1 are required");
+        return;
+      }
+      finalDetail = `${model}${specs ? ` (${specs})` : ""}`;
+      finalSerial = imei2 ? `IMEI 1: ${imei1}, IMEI 2: ${imei2}` : imei1;
+
+      // Logged-in Emails & SIMs
+      const filteredEmails = editEmailsList.map(e => e.trim()).filter(Boolean);
+      let mobileInfo = "";
+      if (filteredEmails.length > 0) {
+        mobileInfo += `Logged-in Emails: ${filteredEmails.join(", ")}\n`;
+      }
+      if (simSlots !== "None") {
+        mobileInfo += `SIM Slots Used: ${simSlots}\n`;
+        if (sim1No) {
+          const wa1 = editAssetFields.phoneSim1Whatsapp || "No";
+          const wa1Type = wa1 === "Yes" ? ` (${editAssetFields.phoneSim1WhatsappType || "Personal"})` : "";
+          mobileInfo += `SIM 1 Mobile No: ${sim1No} [WhatsApp: ${wa1}${wa1Type}]\n`;
+        }
+        if (sim2No) {
+          const wa2 = editAssetFields.phoneSim2Whatsapp || "No";
+          const wa2Type = wa2 === "Yes" ? ` (${editAssetFields.phoneSim2WhatsappType || "Personal"})` : "";
+          mobileInfo += `SIM 2 Mobile No: ${sim2No} [WhatsApp: ${wa2}${wa2Type}]\n`;
+        }
+      } else {
+        mobileInfo += `SIM Slots Used: None\n`;
+      }
+
+      if (mobileInfo) {
+        finalNotes = `${mobileInfo}${editForm.notes ? `\n${editForm.notes}` : ""}`;
+      }
+    } else if (typeClean === "headset / accessories") {
+      const name = editAssetFields.accName || "";
+      const type = editAssetFields.accType || "Wired";
+      const serial = editAssetFields.accSerial || "";
+      if (!name) {
+        triggerToast("Accessory Name/Brand is required");
+        return;
+      }
+      finalDetail = `${name} (${type})`;
+      finalSerial = serial;
+    } else if (typeClean === "id card / lanyard") {
+      const emp = editAssetFields.idEmployee || "";
+      const barcode = editAssetFields.idBarcode || "";
+      if (!emp || !barcode) {
+        triggerToast("Employee Name/ID and Card ID Number are required");
+        return;
+      }
+      finalDetail = `ID Card for: ${emp}`;
+      finalSerial = barcode;
+    } else if (typeClean === "office chair / table") {
+      const desc = editAssetFields.furnitureDesc || "";
+      const tag = editAssetFields.furnitureTag || "";
+      if (!desc) {
+        triggerToast("Furniture Description is required");
+        return;
+      }
+      finalDetail = desc;
+      finalSerial = tag;
+    } else if (typeClean === "router / networking") {
+      const model = editAssetFields.routerModel || "";
+      const mac = editAssetFields.routerMac || "";
+      const serial = editAssetFields.routerSerial || "";
+      if (!model || !mac) {
+        triggerToast("Router Brand & Model and MAC Address are required");
+        return;
+      }
+      finalDetail = model;
+      finalSerial = `MAC: ${mac}`;
+      if (serial) {
+        finalNotes = `Serial Number: ${serial}${editForm.notes ? `\n${editForm.notes}` : ""}`;
+      }
+    } else if (typeClean === "printer / scanner") {
+      const model = editAssetFields.printerModel || "";
+      const type = editAssetFields.printerType || "Laser Printer";
+      const serial = editAssetFields.printerSerial || "";
+      if (!model || !serial) {
+        triggerToast("Printer Brand & Model and Serial Number are required");
+        return;
+      }
+      finalDetail = `${model} (${type})`;
+      finalSerial = serial;
+    }
+
     try {
       setUpdating(true);
       const res = await fetch("/api/assets/inventory", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          id: assetId,
-          ...editForm
+          id: editingAsset.id,
+          ...editForm,
+          assetDetail: finalDetail,
+          serialNumber: finalSerial,
+          notes: finalNotes,
+          customFields: JSON.stringify({
+            assetFields: editAssetFields,
+            emailsList: editEmailsList
+          })
         })
       });
 
       const result = await res.json();
       if (result.success) {
         triggerToast("Inventory asset updated successfully");
-        setEditingAssetId(null);
-        setIsCustomEditType(false);
+        setShowEditModal(false);
+        setEditingAsset(null);
         fetchData();
       } else {
         triggerToast(result.error || "Failed to update asset");
@@ -593,10 +960,10 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
   });
 
   // Calculate quick stats
-  const totalCount = inventory.length;
-  const availableCount = inventory.filter(a => a.status === "Available").length;
-  const newCount = inventory.filter(a => a.condition === "New").length;
-  const inUseCount = inventory.filter(a => a.status === "In Use").length;
+  const totalCount = filteredInventory.length;
+  const availableCount = filteredInventory.filter(a => a.status === "Available").length;
+  const newCount = filteredInventory.filter(a => a.condition === "New").length;
+  const inUseCount = filteredInventory.filter(a => a.status === "In Use").length;
 
   const typeClean = registerForm.assetType?.toLowerCase().trim();
 
@@ -723,7 +1090,18 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
             </button>
           </div>
           <form onSubmit={handleRegisterSubmit} className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div>
+                <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Asset ID * (Auto Generated)</label>
+                <input
+                  type="text"
+                  required
+                  readOnly
+                  placeholder="Generating ID..."
+                  value={registerForm.id}
+                  className="w-full bg-slate-50 border border-[#E8E4DF] rounded-lg px-3 py-2 text-xs text-slate-500 font-mono font-semibold focus:outline-none transition-all cursor-not-allowed"
+                />
+              </div>
               <div>
                 <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Asset Type *</label>
                 {!isCustomRegisterType ? (
@@ -1313,6 +1691,32 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
               </div>
             </div>
 
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Asset Photo</label>
+                <div className="flex gap-4 items-center">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => handlePhotoUpload(e, false)}
+                    className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-1.5 text-xs text-[#1C1C1A] focus:outline-none transition-all file:mr-4 file:py-1 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100"
+                  />
+                  {registerForm.photoUrl && (
+                    <div className="relative w-12 h-12 rounded-lg border border-[#E8E4DF] overflow-hidden bg-slate-50 flex-shrink-0 shadow-sm group">
+                      <img src={registerForm.photoUrl} alt="Asset preview" className="w-full h-full object-cover" />
+                      <button
+                        type="button"
+                        onClick={() => setRegisterForm(prev => ({ ...prev, photoUrl: "" }))}
+                        className="absolute inset-0 bg-black/55 text-white text-[8px] font-black uppercase opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
             <div>
               <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Internal Notes</label>
               <textarea
@@ -1445,81 +1849,30 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
               </thead>
               <tbody className="divide-y divide-[#E8E4DF] text-xs">
                 {filteredInventory.map((asset) => {
-                  const isEditing = editingAssetId === asset.id;
                   const companyName = companies.find(c => String(c.id) === String(asset.companyId))?.name || "General Stock";
 
                   return (
                     <tr key={asset.id} className="hover:bg-white transition-colors">
                       {/* Asset Category */}
                       <td className="py-4 px-4 whitespace-nowrap">
-                        {isEditing ? (
-                          !isCustomEditType ? (
-                            <select
-                              value={editForm.assetType}
-                              onChange={(e) => {
-                                if (e.target.value === "__ADD_NEW__") {
-                                  setIsCustomEditType(true);
-                                  setEditForm(p => ({ ...p, assetType: "" }));
-                                } else {
-                                  setEditForm({ ...editForm, assetType: e.target.value });
-                                }
-                              }}
-                              className="bg-white border border-[#E8E4DF] rounded px-2 py-1 text-xs focus:outline-none font-semibold"
-                            >
-                              {dynamicAssetTypes.map(type => (
-                                <option key={type} value={type}>{type}</option>
-                              ))}
-                              <option value="__ADD_NEW__">+ Add New Asset Type</option>
-                            </select>
-                          ) : (
-                            <div className="flex gap-1.5 items-center">
-                              <input
-                                type="text"
-                                required
-                                placeholder="Custom type"
-                                value={editForm.assetType}
-                                onChange={(e) => setEditForm({ ...editForm, assetType: e.target.value })}
-                                className="bg-white border border-[#E8E4DF] rounded px-2 py-1 text-xs focus:outline-none font-semibold w-24"
-                              />
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setIsCustomEditType(false);
-                                  setEditForm(p => ({ ...p, assetType: asset.assetType || "Laptop" }));
-                                }}
-                                className="p-1 bg-slate-100 hover:bg-slate-200 text-[#5D5B57] text-[10px] font-bold rounded"
-                              >
-                                Cancel
-                              </button>
-                            </div>
-                          )
-                        ) : (
+                        <div className="flex flex-col gap-1 items-start">
+                          <span className="text-[10px] bg-slate-100 text-[#5D5B57] px-2 py-0.5 rounded font-mono font-bold border border-slate-200">
+                            ID: {asset.id}
+                          </span>
                           <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-indigo-50 text-indigo-700 text-[10px] font-bold border border-indigo-100 uppercase tracking-wide">
                             <Cpu className="w-3 h-3" /> {asset.assetType}
                           </span>
-                        )}
+                        </div>
                       </td>
 
                       {/* Detail & Serial */}
                       <td className="py-4 px-4">
-                        {isEditing ? (
-                          <div className="space-y-2">
-                            <input
-                              type="text"
-                              value={editForm.assetDetail}
-                              onChange={(e) => setEditForm({ ...editForm, assetDetail: e.target.value })}
-                              placeholder="Asset detail"
-                              className="bg-white border border-[#E8E4DF] rounded px-2 py-1 text-xs focus:outline-none w-full max-w-[250px] font-semibold"
-                            />
-                            <input
-                              type="text"
-                              value={editForm.serialNumber}
-                              onChange={(e) => setEditForm({ ...editForm, serialNumber: e.target.value })}
-                              placeholder="Serial number"
-                              className="bg-white border border-[#E8E4DF] rounded px-2 py-1 text-xs focus:outline-none w-full max-w-[250px] font-mono"
-                            />
-                          </div>
-                        ) : (
+                        <div className="flex gap-3 items-start">
+                          {asset.photoUrl && (
+                            <div className="w-12 h-12 rounded-lg border border-[#E8E4DF] overflow-hidden bg-slate-50 flex-shrink-0 shadow-sm cursor-pointer hover:scale-105 transition-transform" onClick={() => window.open(asset.photoUrl, "_blank")}>
+                              <img src={asset.photoUrl} alt="Asset photo" className="w-full h-full object-cover" />
+                            </div>
+                          )}
                           <div>
                             <div className="font-semibold text-[#1C1C1A]">{asset.assetDetail || "No Description"}</div>
                             {asset.serialNumber && (
@@ -1528,160 +1881,76 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
                               </div>
                             )}
                           </div>
-                        )}
+                        </div>
                       </td>
 
                       {/* Condition */}
                       <td className="py-4 px-4">
-                        {isEditing ? (
-                          <select
-                            value={editForm.condition}
-                            onChange={(e) => setEditForm({ ...editForm, condition: e.target.value })}
-                            className="bg-white border border-[#E8E4DF] rounded px-2 py-1 text-xs focus:outline-none font-semibold"
-                          >
-                            <option>New</option>
-                            <option>Good</option>
-                            <option>Fair</option>
-                            <option>Needs Repair</option>
-                          </select>
-                        ) : (
-                          <span className={cn(
-                            "inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold border uppercase tracking-wider",
-                            asset.condition === "New" ? "bg-emerald-50 text-emerald-700 border-emerald-250" :
-                              asset.condition === "Good" ? "bg-blue-50 text-blue-700 border-blue-250" :
-                                asset.condition === "Fair" ? "bg-amber-50 text-amber-700 border-amber-250" :
-                                  "bg-rose-50 text-rose-700 border-rose-250"
-                          )}>
-                            {asset.condition || "Good"}
-                          </span>
-                        )}
+                        <span className={cn(
+                          "inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold border uppercase tracking-wider",
+                          asset.condition === "New" ? "bg-emerald-50 text-emerald-700 border-emerald-250" :
+                            asset.condition === "Good" ? "bg-blue-50 text-blue-700 border-blue-250" :
+                              asset.condition === "Fair" ? "bg-amber-50 text-amber-700 border-amber-250" :
+                                "bg-rose-50 text-rose-700 border-rose-250"
+                        )}>
+                          {asset.condition || "Good"}
+                        </span>
                       </td>
 
                       {/* Status */}
                       <td className="py-4 px-4">
-                        {isEditing ? (
-                          <select
-                            value={editForm.status}
-                            onChange={(e) => setEditForm({ ...editForm, status: e.target.value })}
-                            className="bg-white border border-[#E8E4DF] rounded px-2 py-1 text-xs focus:outline-none font-semibold"
-                          >
-                            <option>Available</option>
-                            <option>In Use</option>
-                            <option>Damaged</option>
-                            <option>Disposed</option>
-                          </select>
-                        ) : (
-                          <span className={cn(
-                            "inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold border uppercase tracking-wider",
-                            asset.status === "Available" ? "bg-emerald-50 text-emerald-700 border-emerald-200" :
-                              asset.status === "In Use" ? "bg-amber-50 text-amber-700 border-amber-200" :
-                                "bg-rose-50 text-rose-700 border-rose-200"
-                          )}>
-                            {asset.status || "Available"}
-                          </span>
-                        )}
+                        <span className={cn(
+                          "inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold border uppercase tracking-wider",
+                          asset.status === "Available" ? "bg-emerald-50 text-emerald-700 border-emerald-200" :
+                            asset.status === "In Use" ? "bg-amber-50 text-amber-700 border-amber-200" :
+                              "bg-rose-50 text-rose-700 border-rose-200"
+                        )}>
+                          {asset.status || "Available"}
+                        </span>
                       </td>
 
                       {/* Purchase details */}
                       <td className="py-4 px-4">
-                        {isEditing ? (
-                          <div className="space-y-2">
-                            <input
-                              type="date"
-                              value={editForm.purchaseDate}
-                              onChange={(e) => setEditForm({ ...editForm, purchaseDate: e.target.value })}
-                              className="bg-white border border-[#E8E4DF] rounded px-2 py-1 text-xs focus:outline-none font-semibold w-full"
-                            />
-                            <input
-                              type="text"
-                              value={editForm.purchaseValue}
-                              onChange={(e) => setEditForm({ ...editForm, purchaseValue: e.target.value })}
-                              placeholder="Value e.g. ₹50,000"
-                              className="bg-white border border-[#E8E4DF] rounded px-2 py-1 text-xs focus:outline-none font-semibold w-full"
-                            />
-                          </div>
-                        ) : (
-                          <div>
-                            <div className="font-semibold text-slate-700">{asset.purchaseValue || "—"}</div>
-                            {asset.purchaseDate && (
-                              <div className="text-[9px] text-[#9C9890] font-semibold mt-0.5 flex items-center gap-1">
-                                <Calendar className="w-2.5 h-2.5" /> {asset.purchaseDate}
-                              </div>
-                            )}
-                          </div>
-                        )}
+                        <div>
+                          <div className="font-semibold text-slate-700">{asset.purchaseValue || "—"}</div>
+                          {asset.purchaseDate && (
+                            <div className="text-[9px] text-[#9C9890] font-semibold mt-0.5 flex items-center gap-1">
+                              <Calendar className="w-2.5 h-2.5" /> {asset.purchaseDate}
+                            </div>
+                          )}
+                        </div>
                       </td>
 
                       {/* Company & Notes */}
                       <td className="py-4 px-4 max-w-[200px]">
-                        {isEditing ? (
-                          <div className="space-y-2">
-                            <select
-                              value={editForm.companyId}
-                              onChange={(e) => setEditForm({ ...editForm, companyId: e.target.value })}
-                              className="bg-white border border-[#E8E4DF] rounded px-2 py-1 text-xs focus:outline-none font-semibold w-full"
-                            >
-                              <option value="">-- General Stock --</option>
-                              {companies.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                            </select>
-                            <textarea
-                              value={editForm.notes}
-                              onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })}
-                              rows={2}
-                              className="bg-white border border-[#E8E4DF] rounded px-2 py-1 text-xs focus:outline-none w-full resize-none"
-                            />
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-1 text-[9px] font-bold text-slate-800 uppercase tracking-wide">
+                            <Building2 className="w-2.5 h-2.5 text-[#C9A84C]" /> {companyName}
                           </div>
-                        ) : (
-                          <div className="space-y-1">
-                            <div className="flex items-center gap-1 text-[9px] font-bold text-slate-800 uppercase tracking-wide">
-                              <Building2 className="w-2.5 h-2.5 text-[#C9A84C]" /> {companyName}
-                            </div>
-                            {asset.notes && (
-                              <p className="text-[10px] text-[#9C9890] italic line-clamp-2">
-                                {asset.notes}
-                              </p>
-                            )}
-                          </div>
-                        )}
+                          {asset.notes && (
+                            <p className="text-[10px] text-[#9C9890] italic line-clamp-2">
+                              {asset.notes}
+                            </p>
+                          )}
+                        </div>
                       </td>
 
                       {/* Actions */}
                       <td className="py-4 px-4 text-center whitespace-nowrap">
-                        {isEditing ? (
-                          <div className="flex justify-center items-center gap-1.5">
-                            <button
-                              onClick={() => handleSaveEdit(asset.id)}
-                              disabled={updating}
-                              className="p-1.5 text-emerald-600 hover:bg-emerald-50 rounded-lg border border-emerald-250 transition-all"
-                              title="Save Allocation"
-                            >
-                              <Check className="w-3.5 h-3.5" />
-                            </button>
-                            <button
-                              onClick={handleCancelEdit}
-                              disabled={updating}
-                              className="p-1.5 text-rose-600 hover:bg-rose-50 rounded-lg border border-rose-250 transition-all"
-                              title="Cancel"
-                            >
-                              <X className="w-3.5 h-3.5" />
-                            </button>
-                          </div>
-                        ) : (
-                          <div className="flex justify-center items-center gap-1.5">
-                            <button
-                              onClick={() => handleStartEdit(asset)}
-                              className="px-2 py-1.5 text-[10px] font-bold uppercase tracking-wider text-[#C9A84C] hover:text-white border border-[#C9A84C]/35 hover:bg-[#C9A84C] rounded-lg transition-all flex items-center gap-1"
-                            >
-                              <Edit3 className="w-3 h-3" /> Edit
-                            </button>
-                            <button
-                              onClick={() => setDeleteConfirm({ show: true, assetId: asset.id, assetType: asset.assetType, serialNumber: asset.serialNumber })}
-                              className="px-2 py-1.5 text-[10px] font-bold uppercase tracking-wider text-rose-500 hover:text-white border border-rose-250 hover:bg-rose-500 rounded-lg transition-all flex items-center gap-1"
-                            >
-                              <Trash2 className="w-3 h-3" /> Delete
-                            </button>
-                          </div>
-                        )}
+                        <div className="flex justify-center items-center gap-1.5">
+                          <button
+                            onClick={() => handleStartEdit(asset)}
+                            className="px-2 py-1.5 text-[10px] font-bold uppercase tracking-wider text-[#C9A84C] hover:text-white border border-[#C9A84C]/35 hover:bg-[#C9A84C] rounded-lg transition-all flex items-center gap-1"
+                          >
+                            <Edit3 className="w-3 h-3" /> Edit
+                          </button>
+                          <button
+                            onClick={() => setDeleteConfirm({ show: true, assetId: asset.id, assetType: asset.assetType, serialNumber: asset.serialNumber })}
+                            className="px-2 py-1.5 text-[10px] font-bold uppercase tracking-wider text-rose-500 hover:text-white border border-rose-250 hover:bg-rose-500 rounded-lg transition-all flex items-center gap-1"
+                          >
+                            <Trash2 className="w-3 h-3" /> Delete
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   );
@@ -1731,9 +2000,16 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
                         <td className="p-3 font-mono font-bold text-[#1C1C1A]">REQ-{req.id}</td>
                         {isOwner && <td className="p-3 text-indigo-600 font-bold">{req.requester}</td>}
                         <td className="p-3">
-                          <span className="px-2 py-0.5 bg-slate-100 rounded text-[10px] font-bold text-slate-700">
-                            {req.asset_type}
-                          </span>
+                          <div className="flex flex-col gap-0.5">
+                            <span className="px-2 py-0.5 bg-slate-100 rounded text-[10px] font-bold text-slate-700 w-fit">
+                              {req.asset_type}
+                            </span>
+                            {req.asset_id && (
+                              <span className="text-[10px] text-indigo-650 font-mono font-bold">
+                                ID: {req.asset_id}
+                              </span>
+                            )}
+                          </div>
                         </td>
                         <td className="p-3 max-w-[200px] truncate">{req.asset_detail}</td>
                         <td className="p-3 font-bold text-[#1C1C1A]">₹{req.estimated_cost}</td>
@@ -1790,6 +2066,7 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
                             <button
                               onClick={() => {
                                 setRegisterForm({
+                                  id: req.asset_id || "",
                                   assetType: req.asset_type,
                                   assetDetail: req.asset_detail,
                                   serialNumber: "",
@@ -1797,7 +2074,8 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
                                   purchaseValue: req.estimated_cost,
                                   condition: "Good",
                                   companyId: req.company_id || "",
-                                  notes: `Approved Purchase Request ID: ${req.id}`
+                                  notes: `Approved Purchase Request ID: ${req.id}`,
+                                  photoUrl: ""
                                 });
                                 setShowRegisterForm(true);
                                 setActiveSubTab("stock");
@@ -1891,6 +2169,18 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
                     </button>
                   </div>
                 )}
+              </div>
+
+              <div>
+                <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-black mb-1">Asset ID * (Auto Generated)</label>
+                <input
+                  type="text"
+                  required
+                  readOnly
+                  placeholder="Generating ID..."
+                  value={purchaseForm.asset_id}
+                  className="w-full bg-slate-50 border border-[#E8E4DF] rounded-lg px-3 py-2 text-xs text-slate-500 font-mono font-semibold focus:outline-none transition-all cursor-not-allowed"
+                />
               </div>
 
               <div>
@@ -2008,6 +2298,671 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
                 {deleting ? "Deleting..." : "Yes, Delete"}
               </button>
             </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* Edit Asset Modal */}
+      {showEditModal && editingAsset && typeof document !== "undefined" && ReactDOM.createPortal(
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4" style={{ backgroundColor: "rgba(0,0,0,0.45)" }}>
+          <div className="bg-white rounded-2xl w-full max-w-4xl shadow-2xl overflow-hidden flex flex-col font-sans max-h-[90vh]">
+            {/* Header */}
+            <div className="p-4 border-b border-[#E8E4DF] flex items-center justify-between">
+              <h3 className="text-sm font-black uppercase tracking-wider text-indigo-650 flex items-center gap-1.5">
+                <Edit3 className="w-4 h-4 text-indigo-500" /> Edit Asset (ID: {editingAsset.id})
+              </h3>
+              <button
+                onClick={handleCancelEdit}
+                className="p-1 rounded hover:bg-slate-100 text-slate-400"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Form Content */}
+            <form onSubmit={handleSaveEdit} className="p-5 space-y-4 overflow-y-auto">
+              <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+                <div>
+                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Asset ID</label>
+                  <input
+                    type="text"
+                    disabled
+                    value={editingAsset.id}
+                    className="w-full bg-slate-50 border border-[#E8E4DF] rounded-lg px-3 py-2 text-xs text-[#5D5B57] focus:outline-none font-mono font-semibold cursor-not-allowed"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Asset Type *</label>
+                  <select
+                    required
+                    value={editForm.assetType}
+                    onChange={(e) => setEditForm(p => ({ ...p, assetType: e.target.value }))}
+                    className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                  >
+                    {dynamicAssetTypes.map(type => (
+                      <option key={type} value={type}>{type}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Condition</label>
+                  <select
+                    value={editForm.condition}
+                    onChange={(e) => setEditForm(p => ({ ...p, condition: e.target.value }))}
+                    className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                  >
+                    <option>New</option>
+                    <option>Good</option>
+                    <option>Fair</option>
+                    <option>Needs Repair</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Company Belonging</label>
+                  <select
+                    value={editForm.companyId}
+                    onChange={(e) => setEditForm(p => ({ ...p, companyId: e.target.value }))}
+                    className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                  >
+                    <option value="">-- General Stock --</option>
+                    {companies.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Status</label>
+                  <select
+                    value={editForm.status}
+                    onChange={(e) => setEditForm(p => ({ ...p, status: e.target.value }))}
+                    className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                  >
+                    <option>Available</option>
+                    <option>In Use</option>
+                    <option>Damaged</option>
+                    <option>Disposed</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Dynamic form inputs based on selected type */}
+              {(editForm.assetType?.toLowerCase().trim() === "sim card" || editForm.assetType?.toLowerCase().trim() === "sim") ? (
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                  <div>
+                    <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">SIM Mobile Number *</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. 9876543210"
+                      value={editAssetFields.simMobile || ""}
+                      onChange={(e) => setEditAssetFields(p => ({ ...p, simMobile: e.target.value }))}
+                      className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Telecom Operator *</label>
+                    <select
+                      value={editAssetFields.simOperator || "Jio"}
+                      onChange={(e) => setEditAssetFields(p => ({ ...p, simOperator: e.target.value }))}
+                      className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                    >
+                      <option value="Jio">Jio</option>
+                      <option value="Airtel">Airtel</option>
+                      <option value="Vodafone Idea (Vi)">Vodafone Idea (Vi)</option>
+                      <option value="BSNL">BSNL</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Network Type</label>
+                    <select
+                      value={editAssetFields.simNetwork || "5G"}
+                      onChange={(e) => setEditAssetFields(p => ({ ...p, simNetwork: e.target.value }))}
+                      className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                    >
+                      <option value="5G">5G</option>
+                      <option value="4G">4G</option>
+                      <option value="3G">3G</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">SIM Card Number / ICCID</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. 89910000..."
+                      value={editAssetFields.simIccid || ""}
+                      onChange={(e) => setEditAssetFields(p => ({ ...p, simIccid: e.target.value }))}
+                      className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-mono"
+                    />
+                  </div>
+                </div>
+              ) : editForm.assetType?.toLowerCase().trim() === "laptop" ? (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Laptop Brand & Model *</label>
+                      <input
+                        type="text"
+                        required
+                        placeholder="e.g. HP EliteBook 840 G8"
+                        value={editAssetFields.laptopModel || ""}
+                        onChange={(e) => setEditAssetFields(p => ({ ...p, laptopModel: e.target.value }))}
+                        className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Processor / RAM / Storage *</label>
+                      <input
+                        type="text"
+                        required
+                        placeholder="e.g. Intel i5, 16GB RAM, 512GB SSD"
+                        value={editAssetFields.laptopSpecs || ""}
+                        onChange={(e) => setEditAssetFields(p => ({ ...p, laptopSpecs: e.target.value }))}
+                        className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Serial Number</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. SN-H1G4691X"
+                        value={editAssetFields.laptopSerial || ""}
+                        onChange={(e) => setEditAssetFields(p => ({ ...p, laptopSerial: e.target.value }))}
+                        className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-mono"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="max-w-md">
+                    <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Logged-in Email IDs</label>
+                    <div className="space-y-2">
+                      {editEmailsList.map((email, index) => (
+                        <div key={index} className="flex gap-2 items-center">
+                          <input
+                            type="email"
+                            placeholder="e.g. user@company.com"
+                            value={email}
+                            onChange={(e) => {
+                              const newList = [...editEmailsList];
+                              newList[index] = e.target.value;
+                              setEditEmailsList(newList);
+                            }}
+                            className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                          />
+                          {editEmailsList.length > 1 && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const newList = editEmailsList.filter((_, i) => i !== index);
+                                setEditEmailsList(newList);
+                              }}
+                              className="px-2.5 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-lg text-xs font-bold transition-all border border-rose-100"
+                            >
+                              Remove
+                            </button>
+                          )}
+                        </div>
+                      ))}
+                      <button
+                        type="button"
+                        onClick={() => setEditEmailsList([...editEmailsList, ""])}
+                        className="mt-1 px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-[10px] font-bold rounded-lg transition-all border border-indigo-150 flex items-center gap-1.5 w-fit"
+                      >
+                        + Add Email ID
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ) : editForm.assetType?.toLowerCase().trim() === "mobile phone" ? (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div>
+                      <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Phone Brand & Model *</label>
+                      <input
+                        type="text"
+                        required
+                        placeholder="e.g. Samsung Galaxy S23"
+                        value={editAssetFields.phoneModel || ""}
+                        onChange={(e) => setEditAssetFields(p => ({ ...p, phoneModel: e.target.value }))}
+                        className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">IMEI Number 1 *</label>
+                      <input
+                        type="text"
+                        required
+                        placeholder="e.g. 358901234567890"
+                        value={editAssetFields.phoneImei1 || ""}
+                        onChange={(e) => setEditAssetFields(p => ({ ...p, phoneImei1: e.target.value }))}
+                        className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-mono"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">IMEI Number 2</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. 358901234567891 (Optional)"
+                        value={editAssetFields.phoneImei2 || ""}
+                        onChange={(e) => setEditAssetFields(p => ({ ...p, phoneImei2: e.target.value }))}
+                        className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-mono"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">RAM & Storage</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. 8GB/128GB"
+                        value={editAssetFields.phoneSpecs || ""}
+                        onChange={(e) => setEditAssetFields(p => ({ ...p, phoneSpecs: e.target.value }))}
+                        className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">SIM Slots Used</label>
+                      <select
+                        value={editAssetFields.phoneSimSlots || "None"}
+                        onChange={(e) => setEditAssetFields(p => ({ ...p, phoneSimSlots: e.target.value }))}
+                        className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                      >
+                        <option value="None">None</option>
+                        <option value="1 SIM">1 SIM</option>
+                        <option value="2 SIMs">2 SIMs</option>
+                      </select>
+                    </div>
+                    {(editAssetFields.phoneSimSlots === "1 SIM" || editAssetFields.phoneSimSlots === "2 SIMs") && (
+                      <div className="bg-[#FCFBF9] border border-[#E8E4DF] p-3 rounded-lg space-y-2">
+                        <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold">SIM 1 Config</label>
+                        <div>
+                          <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">SIM 1 Mobile Number *</label>
+                          <input
+                            type="text"
+                            required
+                            placeholder="e.g. 9876543210"
+                            value={editAssetFields.phoneSim1No || ""}
+                            onChange={(e) => setEditAssetFields(p => ({ ...p, phoneSim1No: e.target.value }))}
+                            className="w-full bg-white border border-[#E8E4DF] p-3 rounded-lg text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                          />
+                        </div>
+                        <div className="grid grid-cols-2 gap-2">
+                          <div>
+                            <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">WhatsApp On?</label>
+                            <select
+                              value={editAssetFields.phoneSim1Whatsapp || "No"}
+                              onChange={(e) => setEditAssetFields(p => ({ ...p, phoneSim1Whatsapp: e.target.value }))}
+                              className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                            >
+                              <option value="No">No</option>
+                              <option value="Yes">Yes</option>
+                            </select>
+                          </div>
+                          {editAssetFields.phoneSim1Whatsapp === "Yes" && (
+                            <div>
+                              <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">WhatsApp Type</label>
+                              <select
+                                value={editAssetFields.phoneSim1WhatsappType || "Personal"}
+                                onChange={(e) => setEditAssetFields(p => ({ ...p, phoneSim1WhatsappType: e.target.value }))}
+                                className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                              >
+                                <option value="Personal">Personal</option>
+                                <option value="Business">Business</option>
+                              </select>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                    {editAssetFields.phoneSimSlots === "2 SIMs" && (
+                      <div className="bg-[#FCFBF9] border border-[#E8E4DF] p-3 rounded-lg space-y-2">
+                        <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold">SIM 2 Config</label>
+                        <div>
+                          <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">SIM 2 Mobile Number *</label>
+                          <input
+                            type="text"
+                            required
+                            placeholder="e.g. 9876543211"
+                            value={editAssetFields.phoneSim2No || ""}
+                            onChange={(e) => setEditAssetFields(p => ({ ...p, phoneSim2No: e.target.value }))}
+                            className="w-full bg-white border border-[#E8E4DF] p-3 rounded-lg text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                          />
+                        </div>
+                        <div className="grid grid-cols-2 gap-2">
+                          <div>
+                            <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">WhatsApp On?</label>
+                            <select
+                              value={editAssetFields.phoneSim2Whatsapp || "No"}
+                              onChange={(e) => setEditAssetFields(p => ({ ...p, phoneSim2Whatsapp: e.target.value }))}
+                              className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                            >
+                              <option value="No">No</option>
+                              <option value="Yes">Yes</option>
+                            </select>
+                          </div>
+                          {editAssetFields.phoneSim2Whatsapp === "Yes" && (
+                            <div>
+                              <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">WhatsApp Type</label>
+                              <select
+                                value={editAssetFields.phoneSim2WhatsappType || "Personal"}
+                                onChange={(e) => setEditAssetFields(p => ({ ...p, phoneSim2WhatsappType: e.target.value }))}
+                                className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                              >
+                                <option value="Personal">Personal</option>
+                                <option value="Business">Business</option>
+                              </select>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="max-w-md">
+                    <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Logged-in Email IDs</label>
+                    <div className="space-y-2">
+                      {editEmailsList.map((email, index) => (
+                        <div key={index} className="flex gap-2 items-center">
+                          <input
+                            type="email"
+                            placeholder="e.g. user@company.com"
+                            value={email}
+                            onChange={(e) => {
+                              const newList = [...editEmailsList];
+                              newList[index] = e.target.value;
+                              setEditEmailsList(newList);
+                            }}
+                            className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                          />
+                          {editEmailsList.length > 1 && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const newList = editEmailsList.filter((_, i) => i !== index);
+                                setEditEmailsList(newList);
+                              }}
+                              className="px-2.5 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-lg text-xs font-bold transition-all border border-rose-100"
+                            >
+                              Remove
+                            </button>
+                          )}
+                        </div>
+                      ))}
+                      <button
+                        type="button"
+                        onClick={() => setEditEmailsList([...editEmailsList, ""])}
+                        className="mt-1 px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-[10px] font-bold rounded-lg transition-all border border-indigo-155 flex items-center gap-1.5 w-fit"
+                      >
+                        + Add Email ID
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ) : editForm.assetType?.toLowerCase().trim() === "headset / accessories" ? (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Accessory Name/Brand *</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. Logitech H390 USB"
+                      value={editAssetFields.accName || ""}
+                      onChange={(e) => setEditAssetFields(p => ({ ...p, accName: e.target.value }))}
+                      className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Accessory Type *</label>
+                    <select
+                      value={editAssetFields.accType || "Wired"}
+                      onChange={(e) => setEditAssetFields(p => ({ ...p, accType: e.target.value }))}
+                      className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                    >
+                      <option value="Wired">Wired</option>
+                      <option value="Wireless Bluetooth">Wireless Bluetooth</option>
+                      <option value="USB Dongle">USB Dongle</option>
+                      <option value="Other">Other</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Serial Number / Unique ID</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. SN-ACC12345"
+                      value={editAssetFields.accSerial || ""}
+                      onChange={(e) => setEditAssetFields(p => ({ ...p, accSerial: e.target.value }))}
+                      className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-mono"
+                    />
+                  </div>
+                </div>
+              ) : editForm.assetType?.toLowerCase().trim() === "id card / lanyard" ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Employee Name / ID *</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. Rahul Sharma - EMP101"
+                      value={editAssetFields.idEmployee || ""}
+                      onChange={(e) => setEditAssetFields(p => ({ ...p, idEmployee: e.target.value }))}
+                      className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Card ID Number / Barcode *</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. ID-887192"
+                      value={editAssetFields.idBarcode || ""}
+                      onChange={(e) => setEditAssetFields(p => ({ ...p, idBarcode: e.target.value }))}
+                      className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-mono font-semibold"
+                    />
+                  </div>
+                </div>
+              ) : editForm.assetType?.toLowerCase().trim() === "office chair / table" ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Furniture Description *</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. Ergonomic Black Mesh Chair, Adjustable Back"
+                      value={editAssetFields.furnitureDesc || ""}
+                      onChange={(e) => setEditAssetFields(p => ({ ...p, furnitureDesc: e.target.value }))}
+                      className="w-full bg-white border border-[#E8E4DF] rounded px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Inventory Tag / Asset Tag</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. TAG-CHR-0042"
+                      value={editAssetFields.furnitureTag || ""}
+                      onChange={(e) => setEditAssetFields(p => ({ ...p, furnitureTag: e.target.value }))}
+                      className="w-full bg-white border border-[#E8E4DF] rounded px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-mono"
+                    />
+                  </div>
+                </div>
+              ) : editForm.assetType?.toLowerCase().trim() === "router / networking" ? (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Router Brand & Model *</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. TP-Link Archer C6"
+                      value={editAssetFields.routerModel || ""}
+                      onChange={(e) => setEditAssetFields(p => ({ ...p, routerModel: e.target.value }))}
+                      className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">MAC Address *</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. 00:1A:2B:3C:4D:5E"
+                      value={editAssetFields.routerMac || ""}
+                      onChange={(e) => setEditAssetFields(p => ({ ...p, routerMac: e.target.value }))}
+                      className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-mono"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Serial Number</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. SN-RTR99887"
+                      value={editAssetFields.routerSerial || ""}
+                      onChange={(e) => setEditAssetFields(p => ({ ...p, routerSerial: e.target.value }))}
+                      className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-mono"
+                    />
+                  </div>
+                </div>
+              ) : editForm.assetType?.toLowerCase().trim() === "printer / scanner" ? (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Printer Brand & Model *</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. HP LaserJet Pro M12w"
+                      value={editAssetFields.printerModel || ""}
+                      onChange={(e) => setEditAssetFields(p => ({ ...p, printerModel: e.target.value }))}
+                      className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Printer Type *</label>
+                    <select
+                      value={editAssetFields.printerType || "Laser Printer"}
+                      onChange={(e) => setEditAssetFields(p => ({ ...p, printerType: e.target.value }))}
+                      className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                    >
+                      <option value="Laser Printer">Laser Printer</option>
+                      <option value="Inkjet Printer">Inkjet Printer</option>
+                      <option value="Flatbed Scanner">Flatbed Scanner</option>
+                      <option value="Multi-Function Printer">Multi-Function Printer</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Serial Number *</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. SN-PRN1928"
+                      value={editAssetFields.printerSerial || ""}
+                      onChange={(e) => setEditAssetFields(p => ({ ...p, printerSerial: e.target.value }))}
+                      className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-mono"
+                    />
+                  </div>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Asset Detail / Specification *</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. Dell Latitude 5420, 16GB RAM, 512GB SSD"
+                      value={editForm.assetDetail}
+                      onChange={(e) => setEditForm(p => ({ ...p, assetDetail: e.target.value }))}
+                      className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Serial Number / Unique Identifier</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. SN-H1G4691X, MAC Address, etc."
+                      value={editForm.serialNumber}
+                      onChange={(e) => setEditForm(p => ({ ...p, serialNumber: e.target.value }))}
+                      className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-mono"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Purchase Date & Value */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Purchase Date</label>
+                  <input
+                    type="date"
+                    value={editForm.purchaseDate}
+                    onChange={(e) => setEditForm(p => ({ ...p, purchaseDate: e.target.value }))}
+                    className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Purchase Value / Cost</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. ₹45,500"
+                    value={editForm.purchaseValue}
+                    onChange={(e) => setEditForm(p => ({ ...p, purchaseValue: e.target.value }))}
+                    className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                  />
+                </div>
+              </div>
+
+              {/* Asset Photo */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Asset Photo</label>
+                  <div className="flex gap-4 items-center">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => handlePhotoUpload(e, true)}
+                      className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-1.5 text-xs text-[#1C1C1A] focus:outline-none transition-all file:mr-4 file:py-1 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100"
+                    />
+                    {editForm.photoUrl && (
+                      <div className="relative w-12 h-12 rounded-lg border border-[#E8E4DF] overflow-hidden bg-slate-50 flex-shrink-0 shadow-sm group">
+                        <img src={editForm.photoUrl} alt="Asset preview" className="w-full h-full object-cover" />
+                        <button
+                          type="button"
+                          onClick={() => setEditForm(prev => ({ ...prev, photoUrl: "" }))}
+                          className="absolute inset-0 bg-black/55 text-white text-[8px] font-black uppercase opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Internal Notes */}
+              <div>
+                <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Internal Notes</label>
+                <textarea
+                  value={editForm.notes}
+                  onChange={(e) => setEditForm(p => ({ ...p, notes: e.target.value }))}
+                  rows={2}
+                  placeholder="Any vendor details, warranty information, or storage locations..."
+                  className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all resize-none"
+                />
+              </div>
+
+              {/* Footer */}
+              <div className="pt-3 border-t border-[#E8E4DF] flex justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={handleCancelEdit}
+                  disabled={updating}
+                  className="px-4 py-2 border border-[#E8E4DF] rounded-lg text-xs font-bold text-slate-500 hover:bg-slate-100 transition-all"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={updating}
+                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-black transition-all disabled:opacity-50"
+                >
+                  {updating ? "Saving..." : "Save Changes"}
+                </button>
+              </div>
+            </form>
           </div>
         </div>,
         document.body

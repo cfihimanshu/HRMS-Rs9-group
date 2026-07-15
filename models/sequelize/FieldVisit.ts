@@ -97,6 +97,10 @@ FieldVisit.init(
     sequelize,
     tableName: "field_visits",
     timestamps: true,
+    indexes: [
+      { fields: ["employee_id"] },
+      { fields: ["date"] }
+    ]
   }
 );
 
