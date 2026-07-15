@@ -502,6 +502,19 @@ export function TrainingClassroom({ triggerToast }: { triggerToast: (msg: string
   const [assessmentForm, setAssessmentForm] = useState({ dayNumber: 1, sopScore: 0, crmScore: 0, reportingScore: 0, behaviourScore: 0, remarks: "" });
   const [finalRec, setFinalRec] = useState("Activation");
 
+  const parseTrainingRecord = (record: any) => {
+    if (!record) return null;
+    let assessmentsArr = [];
+    if (record.assessments) {
+      try {
+        assessmentsArr = typeof record.assessments === 'string' ? JSON.parse(record.assessments) : record.assessments;
+      } catch {
+        assessmentsArr = [];
+      }
+    }
+    return { ...record, assessments: Array.isArray(assessmentsArr) ? assessmentsArr : [] };
+  };
+
   const isThreeDaysCompleted = trainingRecord && (trainingRecord.status === "Final Status" || (trainingRecord.assessments?.length >= 3 && trainingRecord.status !== "Activation"));
   const showPendingFromHRHead = isThreeDaysCompleted && !canSubmitFinalVerdict;
 
@@ -556,13 +569,17 @@ export function TrainingClassroom({ triggerToast }: { triggerToast: (msg: string
           }
         });
 
-        // Filter: Candidate ID must have 1, 2, and 3 all selected, AND must be vetting-verified
-        const eligibleCandIds = Object.keys(candidateInterviewsMap).filter(cid => {
-          const rounds = candidateInterviewsMap[cid];
-          const isThreeRoundsSelected = rounds.has(1) && rounds.has(2) && rounds.has(3);
-          const isVettingVerified = verifiedCandIds.includes(cid);
-          return isThreeRoundsSelected && isVettingVerified;
-        });
+        // Filter: Candidate must be vetting-verified AND (have passed all 3 rounds OR status === Selected & currentRound === 3)
+        const eligibleCandIds = candidates
+          .filter((c: any) => {
+            const cid = c.id.toString();
+            const rounds = candidateInterviewsMap[cid] || new Set();
+            const isThreeRoundsSelected = rounds.has(1) && rounds.has(2) && rounds.has(3);
+            const isDirectlyHired = c.status === "Selected" && c.currentRound === 3;
+            const isVettingVerified = verifiedCandIds.includes(cid);
+            return (isThreeRoundsSelected || isDirectlyHired) && isVettingVerified;
+          })
+          .map((c: any) => c.id.toString());
 
         // Merge: all active training records + candidates who don't have a training record
         // ONLY candidates in eligibleCandIds are shown!
@@ -571,7 +588,7 @@ export function TrainingClassroom({ triggerToast }: { triggerToast: (msg: string
         // Add candidates from training records ONLY if they are eligible
         activeTrainings.forEach((tr: any) => {
           if (tr.candidate && eligibleCandIds.includes(tr.candidate.id)) {
-            traineesList.push({ ...tr.candidate, trainingRecord: tr });
+            traineesList.push({ ...tr.candidate, trainingRecord: parseTrainingRecord(tr) });
           }
         });
 
@@ -611,10 +628,11 @@ export function TrainingClassroom({ triggerToast }: { triggerToast: (msg: string
 
   const handleSelectTrainee = (trainee: any) => {
     setSelectedTrainee(trainee);
-    setTrainingRecord(trainee.trainingRecord);
+    const parsedRecord = parseTrainingRecord(trainee.trainingRecord);
+    setTrainingRecord(parsedRecord);
     // Reset forms
-    if (trainee.trainingRecord && trainee.trainingRecord.assessments?.length > 0) {
-      setAssessmentForm(prev => ({ ...prev, dayNumber: trainee.trainingRecord.assessments.length + 1 > 3 ? 3 : trainee.trainingRecord.assessments.length + 1 }));
+    if (parsedRecord && parsedRecord.assessments?.length > 0) {
+      setAssessmentForm(prev => ({ ...prev, dayNumber: parsedRecord.assessments.length + 1 > 3 ? 3 : parsedRecord.assessments.length + 1 }));
     } else {
       setAssessmentForm({ dayNumber: 1, sopScore: 0, crmScore: 0, reportingScore: 0, behaviourScore: 0, remarks: "" });
     }
@@ -635,7 +653,7 @@ export function TrainingClassroom({ triggerToast }: { triggerToast: (msg: string
       const data = await res.json();
       if (data.success) {
         triggerToast("Training started successfully");
-        setTrainingRecord(data.data);
+        setTrainingRecord(parseTrainingRecord(data.data));
         loadData(); // refresh list
       }
     } catch (err) {
@@ -675,7 +693,7 @@ export function TrainingClassroom({ triggerToast }: { triggerToast: (msg: string
        const data = await res.json();
       if (data.success) {
         triggerToast(`Day ${assessmentForm.dayNumber} assessment saved!`);
-        setTrainingRecord(data.data);
+        setTrainingRecord(parseTrainingRecord(data.data));
         if (assessmentForm.dayNumber < 3) {
           setAssessmentForm(prev => ({ ...prev, dayNumber: prev.dayNumber + 1, sopScore: 0, crmScore: 0, reportingScore: 0, behaviourScore: 0, remarks: "" }));
         }
@@ -706,7 +724,7 @@ export function TrainingClassroom({ triggerToast }: { triggerToast: (msg: string
       const data = await res.json();
       if (data.success) {
         triggerToast(`Final recommendation submitted: ${finalRec}`);
-        setTrainingRecord(data.data);
+        setTrainingRecord(parseTrainingRecord(data.data));
         loadData();
       } else {
         triggerToast(`Error submitting recommendation: ${data.error}`);

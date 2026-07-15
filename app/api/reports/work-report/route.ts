@@ -29,23 +29,60 @@ export async function GET(req: Request) {
     await TaskLog.sync({ alter: true });
     await FieldVisit.sync({ alter: true });
 
-    let filter: any = {};
-    let deptUserIds: any[] = [];
+    const { searchParams } = new URL(req.url);
+    const range = searchParams.get("range");
 
-    if (!isManagerial) {
-      filter = { employee: userId };
-    } else if (role === "Department Manager") {
-      const managerProfile = await EmployeeProfile.findOne({ where: { user: userId } });
-      if (managerProfile && managerProfile.department) {
-        const profilesInDept = await EmployeeProfile.findAll({
-          where: { department: managerProfile.department },
+    let filter: any = {};
+    let fieldVisitFilter: any = {};
+    let managedUserIds: any[] = [userId];
+
+    const isGlobalManager = ["Owner", "Director", "HR Head", "HR Executive"].includes(role);
+
+    if (!isGlobalManager) {
+      // 1. Get logged-in user's profile to check department
+      const loggedInProfile = await EmployeeProfile.findOne({ where: { user: userId } });
+      
+      // 2. Add department profiles if they are Department Manager
+      if (role === "Department Manager" && loggedInProfile?.department) {
+        const deptProfiles = await EmployeeProfile.findAll({
+          where: { department: loggedInProfile.department },
           attributes: ['user']
         });
-        deptUserIds = profilesInDept.map((p: any) => p.user).filter(Boolean);
-        filter = { employee: { [Op.in]: deptUserIds } };
-      } else {
-        filter = { employee: userId };
+        deptProfiles.forEach((p: any) => {
+          if (p.user && !managedUserIds.includes(p.user)) {
+            managedUserIds.push(p.user);
+          }
+        });
       }
+
+      // 3. Add reporting manager subordinates
+      const userName = session.user.name;
+      if (userName) {
+        const reportProfiles = await EmployeeProfile.findAll({
+          where: { reportingManager: userName },
+          attributes: ['user']
+        });
+        reportProfiles.forEach((p: any) => {
+          if (p.user && !managedUserIds.includes(p.user)) {
+            managedUserIds.push(p.user);
+          }
+        });
+      }
+
+      filter = { employee: { [Op.in]: managedUserIds } };
+      fieldVisitFilter = { employee_id: { [Op.in]: managedUserIds } };
+    }
+
+    if (range === "today") {
+      const todayStart = new Date();
+      todayStart.setHours(0, 0, 0, 0);
+      const todayEnd = new Date(todayStart);
+      todayEnd.setDate(todayEnd.getDate() + 1);
+
+      filter.date = { [Op.gte]: todayStart, [Op.lt]: todayEnd };
+      
+      const todayStr = new Date().toISOString().split("T")[0];
+      fieldVisitFilter.date = todayStr;
     }
 
     const sods = await SodReport.findAll({ 
@@ -63,16 +100,7 @@ export async function GET(req: Request) {
       order: [['createdAt', 'DESC']]
     });
 
-    let fieldVisitFilter: any = {};
-    if (!isManagerial) {
-      fieldVisitFilter = { employee_id: userId };
-    } else if (role === "Department Manager") {
-      if (deptUserIds.length > 0) {
-        fieldVisitFilter = { employee_id: { [Op.in]: deptUserIds } };
-      } else {
-        fieldVisitFilter = { employee_id: userId };
-      }
-    }
+    // fieldVisitFilter is already initialized and filtered above
 
     const fieldVisits = await FieldVisit.findAll({
       where: fieldVisitFilter,

@@ -265,9 +265,20 @@ export default function KanbanBoard() {
 
   const fetchTasks = async () => {
     try {
-      const res = await fetch("/api/tasks");
-      const data = await res.json();
-      if (data.success) setTasks(data.data);
+      // First load today's tasks for speed
+      const resToday = await fetch("/api/tasks?range=today");
+      const dataToday = await resToday.json();
+      if (dataToday.success) {
+        setTasks(dataToday.data);
+      }
+      setLoading(false); // Hide loading spinner early!
+
+      // Then load all tasks
+      const resAll = await fetch("/api/tasks?range=all");
+      const dataAll = await resAll.json();
+      if (dataAll.success) {
+        setTasks(dataAll.data);
+      }
     } catch (err) {
       console.error(err);
     } finally {

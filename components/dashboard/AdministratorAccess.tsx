@@ -80,6 +80,7 @@ export default function AdministratorAccess({ userRole, triggerToast, sessionUse
         { id: "attendance", label: "Attendance Punch & SOD" },
         { id: "tasks", label: "My Tasks (Kanban)" },
         { id: "performance", label: "Work Report" },
+        { id: "live-tracking", label: "Live GPS Tracking" },
         { id: "field-visit", label: "Field Visit Logs" },
         { id: "leave-request", label: "Leave Request" }
       ]
@@ -103,7 +104,25 @@ export default function AdministratorAccess({ userRole, triggerToast, sessionUse
   ];
 
   const getRoleDefaultPageIds = (role: string) => {
-    const roleLower = (role || "Employee").toLowerCase();
+    const SYSTEM_ROLES = [
+      "Owner",
+      "Director",
+      "HR Head",
+      "HR Executive",
+      "Department Manager",
+      "Employee",
+      "Accounts",
+      "Trainer",
+      "IT Admin",
+      "DSM",
+      "RIBP / Risk Officer",
+      "Business Associate",
+      "Vendor",
+      "Franchisee",
+      "Territory Partner"
+    ];
+    const systemRole = SYSTEM_ROLES.find(r => r.toLowerCase() === role?.toLowerCase()) || "Employee";
+    const roleLower = systemRole.toLowerCase();
     
     if (["owner", "director"].includes(roleLower)) {
       const allIds: string[] = [];
@@ -142,6 +161,7 @@ export default function AdministratorAccess({ userRole, triggerToast, sessionUse
       { id: "attendance", roles: ["Owner", "Director", "HR Head", "HR Executive", "Department Manager", "Accounts", "Trainer", "IT Admin", "DSM", "RIBP / Risk Officer"] },
       { id: "tasks", roles: ["Owner", "Director", "HR Head", "HR Executive", "Department Manager", "Accounts", "Trainer", "Employee", "IT Admin", "DSM", "RIBP / Risk Officer"] },
       { id: "performance", roles: ["Owner", "Director", "HR Head", "HR Executive", "Department Manager", "Employee"] },
+      { id: "live-tracking", roles: ["Owner", "Director", "HR Head", "Department Manager"] },
       { id: "field-visit", roles: ["Owner", "Director", "HR Head", "HR Executive", "Department Manager", "Employee"] },
       { id: "leave-request", roles: ["Owner", "Director", "HR Head", "HR Executive", "Department Manager", "Accounts", "Trainer", "Employee", "IT Admin", "DSM", "RIBP / Risk Officer", "Business Associate", "Vendor", "Franchisee", "Territory Partner"] },
       { id: "associates", roles: ["Owner", "Director", "HR Head", "Franchisee", "Territory Partner", "Business Associate"] },
@@ -159,6 +179,27 @@ export default function AdministratorAccess({ userRole, triggerToast, sessionUse
     });
 
     return defaultIds;
+  };
+
+  const getEmployeeAccess = (emp: any): string[] => {
+    let currentAccess: string[] = [];
+    if (Array.isArray(emp.menuAccess) && emp.menuAccess.length > 0) {
+      currentAccess = emp.menuAccess.map(String);
+    } else if (typeof emp.menuAccess === "string" && emp.menuAccess) {
+      try {
+        const parsed = JSON.parse(emp.menuAccess);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          currentAccess = parsed.map(String);
+        } else {
+          currentAccess = getRoleDefaultPageIds(emp.role);
+        }
+      } catch {
+        currentAccess = getRoleDefaultPageIds(emp.role);
+      }
+    } else {
+      currentAccess = getRoleDefaultPageIds(emp.role);
+    }
+    return currentAccess;
   };
 
   const fetchData = async () => {
@@ -335,17 +376,7 @@ export default function AdministratorAccess({ userRole, triggerToast, sessionUse
   };
 
   const handleOpenPopover = (emp: any, cat: string) => {
-    let currentAccess: string[] = [];
-    if (Array.isArray(emp.menuAccess)) {
-      currentAccess = emp.menuAccess.map(String);
-    } else if (typeof emp.menuAccess === "string" && emp.menuAccess) {
-      try {
-        const parsed = JSON.parse(emp.menuAccess);
-        if (Array.isArray(parsed)) currentAccess = parsed.map(String);
-      } catch {}
-    } else {
-      currentAccess = getRoleDefaultPageIds(emp.role);
-    }
+    const currentAccess = getEmployeeAccess(emp);
     setDraftAccess(currentAccess);
     setActivePopover({ userId: emp.id, category: cat });
   };
@@ -586,17 +617,7 @@ export default function AdministratorAccess({ userRole, triggerToast, sessionUse
                       ) : (
                         menuCategories.map(cat => {
                           const catPages = menuCategoriesWithPages.find(c => c.category === cat)?.pages || [];
-                          let currentAccess: string[] = [];
-                          if (Array.isArray(emp.menuAccess)) {
-                            currentAccess = emp.menuAccess.map(String);
-                          } else if (typeof emp.menuAccess === "string" && emp.menuAccess) {
-                            try {
-                              const parsed = JSON.parse(emp.menuAccess);
-                              if (Array.isArray(parsed)) currentAccess = parsed.map(String);
-                            } catch {}
-                          } else {
-                            currentAccess = getRoleDefaultPageIds(emp.role);
-                          }
+                          const currentAccess = getEmployeeAccess(emp);
 
                           const checkedPages = catPages.filter(p => currentAccess.includes(p.id));
                           const checkedCount = checkedPages.length;

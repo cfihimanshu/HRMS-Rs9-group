@@ -6,6 +6,7 @@ import { authOptions } from "@/lib/auth";
 import sequelize from "@/lib/sequelize";
 import TaskLog from "@/models/sequelize/TaskLog";
 import User from "@/models/sequelize/User";
+import EmployeeProfile from "@/models/sequelize/EmployeeProfile";
 import { logAudit } from "@/lib/audit";
 import { sendEmail } from "@/lib/email";
 import Notification from "@/models/sequelize/Notification";
@@ -343,6 +344,7 @@ export async function GET(req: Request) {
     try { await TaskLog.sync({ alter: true }); } catch (_) {}
     const { searchParams } = new URL(req.url);
     const filterDate = searchParams.get("date");
+    const range = searchParams.get("range");
 
     let query: any = {};
     if (filterDate) {
@@ -351,12 +353,46 @@ export async function GET(req: Request) {
       const nextDay = new Date(targetDate);
       nextDay.setDate(nextDay.getDate() + 1);
       query.date = { [Op.gte]: targetDate, [Op.lt]: nextDay };
+    } else if (range === "today") {
+      const targetDate = new Date();
+      targetDate.setHours(0, 0, 0, 0);
+      const nextDay = new Date(targetDate);
+      nextDay.setDate(nextDay.getDate() + 1);
+      query.date = { [Op.gte]: targetDate, [Op.lt]: nextDay };
     }
     
-    // Only the "Owner" role sees all tasks. Everyone else (Employee, Department Manager, HR, Director, etc.) sees only their own tasks.
+    // Owner sees all tasks.
+    // Managers (Department Manager or Reporting Manager) see their own tasks, tasks of their subordinates, and forwarded tasks.
+    // Employees see their own tasks and forwarded tasks.
     if (userRole !== "Owner") {
+      const managedUserIds = [userId];
+      const loggedInProfile = await EmployeeProfile.findOne({ where: { user: userId } });
+      if (userRole === "Department Manager" && loggedInProfile?.department) {
+        const deptProfiles = await EmployeeProfile.findAll({
+          where: { department: loggedInProfile.department },
+          attributes: ["user"]
+        });
+        deptProfiles.forEach((p: any) => {
+          if (p.user && !managedUserIds.includes(p.user)) {
+            managedUserIds.push(p.user);
+          }
+        });
+      }
+      const userName = session.user.name;
+      if (userName) {
+        const reportProfiles = await EmployeeProfile.findAll({
+          where: { reportingManager: userName },
+          attributes: ["user"]
+        });
+        reportProfiles.forEach((p: any) => {
+          if (p.user && !managedUserIds.includes(p.user)) {
+            managedUserIds.push(p.user);
+          }
+        });
+      }
+
       query[Op.or] = [
-        { employee: userId },
+        { employee: { [Op.in]: managedUserIds } },
         { forwardedTo: userId }
       ];
     }

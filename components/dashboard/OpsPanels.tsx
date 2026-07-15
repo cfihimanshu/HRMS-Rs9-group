@@ -1095,7 +1095,7 @@ export function PerformanceCompliance({
   const [calendarMonth, setCalendarMonth] = useState(new Date().getMonth()); // 0-11
   const [loadingCalendar, setLoadingCalendar] = useState(false);
 
-  const isOwner = ["Owner", "Director", "HR Head", "HR Executive", "Department Manager"].includes(sessionUser?.role);
+  const isOwner = ["Owner", "Director", "HR Head", "HR Executive", "Department Manager"].includes(sessionUser?.role) || users.length > 1;
 
   const fetchUserCalendarData = async (userId: string) => {
     if (!userId) return;
@@ -1239,9 +1239,7 @@ export function PerformanceCompliance({
 
   useEffect(() => {
     fetchReports();
-    if (isOwner) {
-      fetchFilterMetadata();
-    }
+    fetchFilterMetadata();
   }, [sessionUser]);
 
   useEffect(() => {
@@ -1268,10 +1266,19 @@ export function PerformanceCompliance({
   const fetchReports = async () => {
     try {
       setLoading(true);
-      const res = await fetch("/api/reports/work-report");
-      const data = await res.json();
-      if (data.success) {
-        setReports(data.data || { sod: [], eod: [], tasks: [], fieldVisits: [] });
+      // First load today's reports for speed
+      const resToday = await fetch("/api/reports/work-report?range=today");
+      const dataToday = await resToday.json();
+      if (dataToday.success) {
+        setReports(dataToday.data || { sod: [], eod: [], tasks: [], fieldVisits: [] });
+      }
+      setLoading(false); // Hide loading spinner early!
+
+      // Then load all reports
+      const resAll = await fetch("/api/reports/work-report?range=all");
+      const dataAll = await resAll.json();
+      if (dataAll.success) {
+        setReports(dataAll.data || { sod: [], eod: [], tasks: [], fieldVisits: [] });
       }
     } catch (error) {
       console.error("Error fetching work reports:", error);
@@ -1445,7 +1452,7 @@ export function PerformanceCompliance({
         const empRole = item.employee.role || "Employee";
 
         // 1. If not Manager/Owner, they only see themselves
-        if (!["Owner", "Director", "HR Head", "HR Executive", "Department Manager"].includes(role)) {
+        if (!isOwner) {
           if (empId !== userId) return;
         }
 
@@ -1913,7 +1920,7 @@ export function PerformanceCompliance({
                         value={selectedUser}
                         onChange={(e) => setSelectedUser(e.target.value)}
                       >
-                        {["Owner", "Director", "HR Head", "HR Executive", "Department Manager"].includes(sessionUser?.role) && (
+                        {isOwner && (
                           <option value="">All Employees</option>
                         )}
                         {uniqueUsersFromReports.map((u) => (

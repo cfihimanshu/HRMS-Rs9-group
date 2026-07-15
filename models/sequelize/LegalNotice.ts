@@ -123,6 +123,10 @@ LegalNotice.init(
       allowNull: true,
       defaultValue: 0.0,
     },
+    billingAttachments: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+    },
     handoverTo: {
       type: DataTypes.STRING,
       allowNull: true,

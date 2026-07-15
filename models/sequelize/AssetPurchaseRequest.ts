@@ -39,6 +39,10 @@ AssetPurchaseRequest.init(
       type: DataTypes.STRING,
       allowNull: true,
     },
+    asset_id: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
     status: {
       type: DataTypes.STRING,
       allowNull: false,

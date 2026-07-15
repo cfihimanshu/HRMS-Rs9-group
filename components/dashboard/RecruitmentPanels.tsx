@@ -1775,10 +1775,13 @@ export function VerificationChecklist({
           }
         });
 
-        // Filter: Candidate ID must have 1, 2, and 3 all selected
+        // Filter: Candidate ID must have 1, 2, and 3 all selected OR be directly selected/hired (status === Selected & currentRound === 3)
         const eligibleCandIds = Object.keys(candidateInterviewsMap).filter(cid => {
           const rounds = candidateInterviewsMap[cid];
-          return rounds.has(1) && rounds.has(2) && rounds.has(3);
+          const hasAllThree = rounds.has(1) && rounds.has(2) && rounds.has(3);
+          const cand = dataCand.data.find((c: any) => c && c.id.toString() === cid);
+          const isDirectlyHired = cand && cand.status === "Selected" && cand.currentRound === 3;
+          return hasAllThree || isDirectlyHired;
         });
 
         activeCands = dataCand.data.filter((c: any) => c && c.status !== "inactive" && eligibleCandIds.includes(c.id.toString()));
@@ -3338,7 +3341,13 @@ export function InterviewsQueue({ triggerToast }: { triggerToast: (msg: string) 
                                           onChange={(e) => setRoundStatus(e.target.value)}
                                           className="rounded border border-slate-250 p-2 text-slate-800 focus:ring-[#714B67] focus:border-[#714B67] disabled:bg-slate-50 disabled:text-slate-400 disabled:cursor-not-allowed"
                                         >
-                                          <option value="Selected">Select / Advance Candidate</option>
+                                          {item.round < 3 && (
+                                            <option value="Selected">Select / Advance Candidate (Next Round)</option>
+                                          )}
+                                          {item.round === 3 && (
+                                            <option value="Selected">Select / Advance Candidate</option>
+                                          )}
+                                          <option value="Hired">Direct Select & Hire (Skip remaining rounds)</option>
                                           <option value="Pending">Keep Pending</option>
                                           <option value="Hold">Put on Hold</option>
                                           <option value="Rejected">Reject Profile</option>
@@ -3360,8 +3369,18 @@ export function InterviewsQueue({ triggerToast }: { triggerToast: (msg: string) 
                                       </div>
                                     </div>
 
+                                    {/* Direct Selection Disclaimer */}
+                                    {roundStatus === "Hired" && item.round < 3 && (
+                                      <div className="bg-emerald-50 border border-emerald-250 rounded-lg p-3 text-[10px] text-emerald-700 font-bold flex items-start gap-2 animate-fadeIn">
+                                        <CheckCircle2 className="w-3.5 h-3.5 shrink-0 text-emerald-600 mt-0.5" />
+                                        <div>
+                                          <strong>Direct Select & Hire:</strong> Choosing this option will immediately select this candidate and skip all remaining rounds, marking them fully selected for onboarding!
+                                        </div>
+                                      </div>
+                                    )}
+
                                     {/* Mandatory Round 3 Disclaimer */}
-                                    {item.round === 3 && (
+                                    {item.round === 3 && roundStatus === "Selected" && (
                                       <div className="bg-emerald-50 border border-emerald-250 rounded-lg p-3 text-[10px] text-emerald-700 font-bold flex items-start gap-2">
                                         <CheckCircle2 className="w-3.5 h-3.5 shrink-0 text-emerald-600 mt-0.5" />
                                         <div>

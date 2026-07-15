@@ -174,6 +174,11 @@ TaskLog.init(
     sequelize,
     tableName: "tasklogs",
     timestamps: true,
+    indexes: [
+      { fields: ["employee"] },
+      { fields: ["date"] },
+      { fields: ["forwardedTo"] }
+    ]
   }
 );
 
