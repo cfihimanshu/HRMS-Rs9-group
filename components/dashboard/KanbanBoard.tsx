@@ -871,7 +871,9 @@ export default function KanbanBoard() {
   const uniqueUsers = Array.from(new Set(tasks.map(t => (t.employee as any)?.name).filter(Boolean)));
 
   const filteredTasks = tasks.filter(t => {
-    let matchUser = filterUser === "All" || (t.employee as any)?.name === filterUser;
+    const tEmpName = (t.employee as any)?.name?.trim().toLowerCase() || "";
+    const selUser = filterUser.trim().toLowerCase();
+    let matchUser = filterUser === "All" || tEmpName === selUser;
 
     let matchDate = true;
     if (filterDate) {

@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Search, Filter, PhoneCall, History, Banknote, RefreshCw, Edit2, Trash2, Download, X } from "lucide-react";
+import { Search, Filter, PhoneCall, History, Banknote, RefreshCw, Edit2, Trash2, Download, X, Briefcase, Calendar, FileAudio } from "lucide-react";
 
 export default function CasesMasterView({ 
   cases, 
@@ -25,6 +25,40 @@ export default function CasesMasterView({
   const [branchFilter, setBranchFilter] = useState("");
   const [showFilterOptions, setShowFilterOptions] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
+  
+  const [expandedCaseId, setExpandedCaseId] = useState<number | null>(null);
+  const [localHistory, setLocalHistory] = useState<any[]>([]);
+  const [localWorkLogs, setLocalWorkLogs] = useState<any[]>([]);
+  const [loadingLocalHistory, setLoadingLocalHistory] = useState(false);
+
+  const handleToggleLogs = async (caseId: number) => {
+    if (expandedCaseId === caseId) {
+      setExpandedCaseId(null);
+      return;
+    }
+    setExpandedCaseId(caseId);
+    setLoadingLocalHistory(true);
+    setLocalHistory([]);
+    setLocalWorkLogs([]);
+    try {
+      const [resFollowup, resWorkLogs] = await Promise.all([
+        fetch(`/api/legal-recovery/followup?masterId=${caseId}`),
+        fetch(`/api/legal-recovery/work-log?masterId=${caseId}`)
+      ]);
+      const resultFollowup = await resFollowup.json();
+      const resultWorkLogs = await resWorkLogs.json();
+      if (resultFollowup.success) {
+        setLocalHistory(resultFollowup.data || []);
+      }
+      if (resultWorkLogs.success) {
+        setLocalWorkLogs(resultWorkLogs.data || []);
+      }
+    } catch (error) {
+      console.error("Error loading history:", error);
+    } finally {
+      setLoadingLocalHistory(false);
+    }
+  };
   
   const allColumns = [
     { key: "bankName", label: "Bank Name" },
@@ -221,64 +255,182 @@ export default function CasesMasterView({
             </thead>
             <tbody className="divide-y divide-[#E8E4DF] text-xs">
               {filteredCases.map(c => (
-                <tr key={c.id} className="hover:bg-white transition-colors">
-                  <td className="py-3 px-4">
-                    <div className="font-bold text-[#1C1C1A]">{c.bankName}</div>
-                    <div className="text-[#9C9890]">Branch: {c.branchName || 'N/A'} {c.branchId ? `(${c.branchId})` : ''}</div>
-                  </td>
-                  <td className="py-3 px-4">
-                    <div className="font-semibold text-slate-700">AO: {c.aoName || 'N/A'}</div>
-                    <div className="text-[#9C9890]">Mgr: {c.deptManagerName || 'N/A'}</div>
-                    <div className="text-[#9C9890] flex items-center gap-1 mt-0.5"><PhoneCall className="w-3 h-3"/> {c.contactNumber || 'N/A'}</div>
-                  </td>
-                  <td className="py-3 px-4">
-                    <div className="font-bold text-red-600 flex items-center gap-1">
-                      <Banknote className="w-3.5 h-3.5"/> ₹{c.pendingAmount}
-                    </div>
-                    {c.pendingSince && <div className="text-[#9C9890] mt-0.5">Since: {new Date(c.pendingSince).toLocaleDateString()}</div>}
-                  </td>
-                  <td className="py-3 px-4">
-                    <div className="flex flex-col gap-2">
-                      <div className="flex items-center justify-center gap-2">
-                        <button
-                          onClick={() => setShowFollowUpForm({ show: true, master: c })}
-                          className="px-3 py-1.5 bg-indigo-50 text-indigo-700 border border-indigo-200 hover:bg-indigo-600 hover:text-white rounded text-[10px] font-bold uppercase tracking-wide transition-colors flex items-center gap-1 w-full justify-center"
-                        >
-                          <PhoneCall className="w-3 h-3" /> Log Call
-                        </button>
-                        <button
-                          onClick={() => openHistory(c.id)}
-                          className="p-1.5 text-slate-500 hover:bg-slate-100 rounded transition-colors flex items-center gap-1 text-[10px] font-bold uppercase"
-                          title="View Call History"
-                        >
-                          <History className="w-4 h-4" /> Logs
-                        </button>
+                <React.Fragment key={c.id}>
+                  <tr className="hover:bg-white transition-colors">
+                    <td className="py-3 px-4">
+                      <div className="font-bold text-[#1C1C1A]">{c.bankName}</div>
+                      <div className="text-[#9C9890]">Branch: {c.branchName || 'N/A'} {c.branchId ? `(${c.branchId})` : ''}</div>
+                    </td>
+                    <td className="py-3 px-4">
+                      <div className="font-semibold text-slate-700">AO: {c.aoName || 'N/A'}</div>
+                      <div className="text-[#9C9890]">Mgr: {c.deptManagerName || 'N/A'}</div>
+                      <div className="text-[#9C9890] flex items-center gap-1 mt-0.5"><PhoneCall className="w-3 h-3"/> {c.contactNumber || 'N/A'}</div>
+                    </td>
+                    <td className="py-3 px-4">
+                      <div className="font-bold text-red-600 flex items-center gap-1">
+                        <Banknote className="w-3.5 h-3.5"/> ₹{c.pendingAmount}
                       </div>
-                      <button
-                        onClick={() => setShowPaymentForm({ show: true, master: c })}
-                        className="px-3 py-1.5 bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-600 hover:text-white rounded text-[10px] font-bold uppercase tracking-wide transition-colors flex items-center gap-1 w-full justify-center"
-                      >
-                        <Banknote className="w-3 h-3" /> Log Payment
-                      </button>
-                    </div>
-                    {userRole === "Owner" && (
-                      <div className="flex items-center justify-center gap-2 mt-2 pt-2 border-t border-slate-200">
-                        <button
-                          onClick={() => onEditCase && onEditCase(c)}
-                          className="px-2 py-1 bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-600 hover:text-white rounded text-[10px] font-bold uppercase tracking-wide transition-colors flex items-center gap-1 w-full justify-center"
-                        >
-                          <Edit2 className="w-3 h-3" /> Edit
-                        </button>
-                        <button
-                          onClick={() => onDeleteCase && onDeleteCase(c.id)}
-                          className="px-2 py-1 bg-rose-50 text-rose-700 border border-rose-200 hover:bg-rose-600 hover:text-white rounded text-[10px] font-bold uppercase tracking-wide transition-colors flex items-center gap-1 w-full justify-center"
-                        >
-                          <Trash2 className="w-3 h-3" /> Delete
-                        </button>
+                      {c.pendingSince && <div className="text-[#9C9890] mt-0.5">Since: {new Date(c.pendingSince).toLocaleDateString()}</div>}
+                    </td>
+                    <td className="py-3 px-4">
+                      <div className="flex flex-col gap-1.5 w-full max-w-[220px] sm:max-w-[260px] mx-auto">
+                        {/* Row 1: Primary Action Buttons */}
+                        <div className="grid grid-cols-2 gap-1.5">
+                          <button
+                            onClick={() => setShowFollowUpForm({ show: true, master: c })}
+                            className="px-2 py-2 bg-indigo-50 text-indigo-700 border border-indigo-150 hover:bg-indigo-650 hover:text-white rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-1 shadow-sm active:scale-[0.97]"
+                          >
+                            <PhoneCall className="w-3 h-3" /> Log Call
+                          </button>
+                          <button
+                            onClick={() => setShowPaymentForm({ show: true, master: c })}
+                            className="px-2 py-2 bg-emerald-50 text-emerald-700 border border-emerald-150 hover:bg-emerald-650 hover:text-white rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-1 shadow-sm active:scale-[0.97]"
+                          >
+                            <Banknote className="w-3 h-3" /> Log Payment
+                          </button>
+                        </div>
+
+                        {/* Row 2: Secondary & Admin Buttons */}
+                        <div className="flex items-center gap-1.5">
+                          <button
+                            onClick={() => handleToggleLogs(c.id)}
+                            className={`px-2 py-1.5 flex-1 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-1 border active:scale-[0.97] ${
+                              expandedCaseId === c.id
+                                ? 'bg-indigo-600 text-white border-indigo-600 shadow-md'
+                                : 'bg-slate-50 text-slate-600 border-slate-205 hover:bg-slate-100 hover:text-slate-800 shadow-sm'
+                            }`}
+                            title="View Call & Work Logs History"
+                          >
+                            <History className="w-3 h-3" /> Logs
+                          </button>
+
+                          {userRole === "Owner" && (
+                            <>
+                              <button
+                                onClick={() => onEditCase && onEditCase(c)}
+                                className="px-2 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider bg-amber-50 text-amber-800 border border-amber-200 hover:bg-amber-500 hover:text-white transition-all flex items-center justify-center gap-0.5 shadow-sm active:scale-[0.97]"
+                                title="Edit Case Details"
+                              >
+                                <Edit2 className="w-3 h-3" /> Edit
+                              </button>
+                              <button
+                                onClick={() => onDeleteCase && onDeleteCase(c.id)}
+                                className="px-2 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider bg-rose-50 text-rose-800 border border-rose-200 hover:bg-rose-600 hover:text-white transition-all flex items-center justify-center gap-0.5 shadow-sm active:scale-[0.97]"
+                                title="Delete Case"
+                              >
+                                <Trash2 className="w-3 h-3" /> Delete
+                              </button>
+                            </>
+                          )}
+                        </div>
                       </div>
-                    )}
-                  </td>
-                </tr>
+                    </td>
+                  </tr>
+                  
+                  {expandedCaseId === c.id && (
+                    <tr className="bg-[#FAF9F6] border-b border-[#E8E4DF] hover:bg-[#FAF9F6]">
+                      <td colSpan={4} className="p-4">
+                        <div className="space-y-4 text-xs font-sans text-[#1C1C1A]">
+                          <div className="flex items-center justify-between border-b border-slate-200 pb-2 mb-3">
+                            <span className="text-xs font-bold text-indigo-700 uppercase tracking-wider flex items-center gap-1.5">
+                              <History className="w-4 h-4" /> Call & Work Logs History
+                            </span>
+                            <button
+                              onClick={() => setExpandedCaseId(null)}
+                              className="text-[10px] font-semibold text-slate-400 hover:text-slate-600 flex items-center gap-0.5 hover:underline"
+                            >
+                              <X className="w-3.5 h-3.5" /> Close logs
+                            </button>
+                          </div>
+
+                          {loadingLocalHistory ? (
+                            <div className="flex items-center justify-center py-6 text-slate-400 text-[11px] font-bold">
+                              <RefreshCw className="w-4 h-4 animate-spin mr-1.5" /> Loading history logs...
+                            </div>
+                          ) : (
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                              {/* Follow Up Calls */}
+                              <div className="space-y-3">
+                                <h4 className="text-[10px] font-bold text-[#5D5B57] uppercase tracking-wider flex items-center gap-1">
+                                  <PhoneCall className="w-3.5 h-3.5 text-indigo-500" /> Follow Up Calls
+                                </h4>
+                                {localHistory.length === 0 ? (
+                                  <div className="text-center py-6 text-slate-400 text-[10px] font-bold bg-white rounded-lg border border-slate-200 border-dashed">
+                                    No follow ups recorded.
+                                  </div>
+                                ) : (
+                                  <div className="space-y-2.5 max-h-[300px] overflow-y-auto pr-1">
+                                    {localHistory.map(log => (
+                                      <div key={log.id} className="bg-white p-3 rounded-lg border border-[#E8E4DF] shadow-sm space-y-1.5">
+                                        <div className="flex justify-between items-center text-[10px]">
+                                          <span className="font-bold text-[#1C1C1A]">Called by: {log.callerName || 'Unknown'}</span>
+                                          <span className="font-mono text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded">
+                                            {log.callDate ? new Date(log.callDate).toLocaleDateString() : new Date(log.createdAt).toLocaleDateString()}
+                                          </span>
+                                        </div>
+                                        <div className="flex items-center gap-1.5">
+                                          <span className={`px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-wider ${log.callStatus === 'Connected' ? 'bg-emerald-50 text-emerald-700 border border-emerald-150' : 'bg-rose-50 text-rose-700 border border-rose-150'}`}>
+                                            {log.callStatus}
+                                          </span>
+                                        </div>
+                                        <p className="text-[11px] text-slate-650 whitespace-pre-wrap">{log.conversationDetails}</p>
+
+                                        <div className="flex items-center gap-3 pt-1 text-[9px]">
+                                          {log.callRecordingUrl && (
+                                            <a href={log.callRecordingUrl} target="_blank" rel="noreferrer" className="flex items-center gap-1 font-bold text-indigo-700 hover:text-indigo-900 bg-indigo-50 px-1.5 py-0.5 rounded transition-colors">
+                                              <FileAudio className="w-3 h-3" /> View Attachment
+                                            </a>
+                                          )}
+                                          {log.nextFollowUpDate && (
+                                            <span className="flex items-center gap-1 text-amber-600 font-bold bg-amber-50 px-1.5 py-0.5 rounded">
+                                              <Calendar className="w-3 h-3" /> Next Call: {new Date(log.nextFollowUpDate).toLocaleDateString()}
+                                            </span>
+                                          )}
+                                        </div>
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+
+                              {/* Work Logs */}
+                              <div className="space-y-3">
+                                <h4 className="text-[10px] font-bold text-[#5D5B57] uppercase tracking-wider flex items-center gap-1">
+                                  <Briefcase className="w-3.5 h-3.5 text-blue-500" /> Work Logs
+                                </h4>
+                                {localWorkLogs.length === 0 ? (
+                                  <div className="text-center py-6 text-slate-400 text-[10px] font-bold bg-white rounded-lg border border-[#E8E4DF] border-dashed">
+                                    No work logs recorded.
+                                  </div>
+                                ) : (
+                                  <div className="space-y-2.5 max-h-[300px] overflow-y-auto pr-1">
+                                    {localWorkLogs.map(log => (
+                                      <div key={log.id} className="bg-white p-3 rounded-lg border border-[#E8E4DF] shadow-sm border-l-4 border-l-blue-400 space-y-1">
+                                        <div className="flex justify-between items-center text-[10px]">
+                                          <span className="px-1.5 py-0.5 bg-blue-50 text-blue-700 rounded text-[9px] font-black uppercase tracking-wider border border-blue-100">
+                                            {log.category}
+                                          </span>
+                                          <span className="font-mono text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded">
+                                            {log.workDate ? new Date(log.workDate).toLocaleDateString() : new Date(log.createdAt).toLocaleDateString()}
+                                          </span>
+                                        </div>
+                                        <div className="text-[11px] font-bold text-slate-800">{log.subCategory}</div>
+                                        {log.remarks && <p className="text-[11px] text-slate-650 mt-1 whitespace-pre-wrap">{log.remarks}</p>}
+                                        <div className="text-[9px] text-slate-400 pt-1">
+                                          Logged by: <span className="font-bold text-slate-600">{log.employeeName || 'Unknown'}</span>
+                                        </div>
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                </React.Fragment>
               ))}
               {filteredCases.length === 0 && !loading && (
                 <tr>

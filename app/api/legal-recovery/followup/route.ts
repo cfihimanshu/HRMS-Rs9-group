@@ -15,9 +15,22 @@ export async function POST(request: Request) {
     await TaskLog.sync({ alter: true });
     
     // 1. Create Task in TaskLog (used by Kanban)
-    const taskTitle = `Legal Follow Up - Bank: ${data.bankName || 'Unknown'}`;
+    const branchInfo = [
+      data.branchName,
+      data.branchId ? `(${data.branchId})` : null
+    ].filter(Boolean).join(" ");
+    const taskTitle = `Legal Follow Up - Bank: ${data.bankName || 'Unknown'}${branchInfo ? ` - ${branchInfo}` : ''}`;
     const nextId = await TaskLog.generateNextTaskId(data.callerId);
     
+    // Construct progress notes array JSON
+    const initialNoteObj = {
+      id: Date.now().toString(),
+      note: data.conversationDetails || "Follow up call logged",
+      createdAt: new Date().toISOString(),
+      userName: data.callerName || "System"
+    };
+    const serializedNotes = JSON.stringify([initialNoteObj]);
+
     const newTask = await TaskLog.create({
       id: nextId,
       employee: data.callerId || null,
@@ -29,6 +42,8 @@ export async function POST(request: Request) {
       scheduledAt: data.nextFollowUpDate ? new Date(data.nextFollowUpDate) : null,
       timerState: "Stopped",
       elapsedSeconds: 0,
+      proofAttachment: data.callRecordingUrl || null,
+      progressNotes: serializedNotes
     });
 
     // 2. Create Follow Up entry
