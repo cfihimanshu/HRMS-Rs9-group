@@ -14,6 +14,14 @@ LegalRecoveryPayment.init(
       type: DataTypes.INTEGER, // Link to LegalRecoveryMaster
       allowNull: false,
     },
+    bankName: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    branchName: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
     receivedBy: {
       type: DataTypes.STRING, // Employee ID/Name who logged it
       allowNull: true,

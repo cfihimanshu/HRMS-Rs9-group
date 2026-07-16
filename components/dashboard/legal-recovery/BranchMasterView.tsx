@@ -100,16 +100,16 @@ export default function BranchMasterView({
       </div>
 
       {/* Table */}
-      <div className="bg-[#FCFBF9] border border-[#E8E4DF] rounded-xl overflow-hidden shadow-sm overflow-x-auto">
+      <div className="bg-[#FCFBF9] border border-[#E8E4DF] rounded-xl overflow-hidden shadow-sm overflow-x-auto max-h-[600px] overflow-y-auto">
         <table className="w-full border-collapse text-left min-w-max">
-          <thead>
-            <tr className="border-b border-[#E8E4DF] bg-[#F5F0EA]/40 text-[#5D5B57] text-[10px] uppercase font-bold tracking-wider">
-              <th className="py-3.5 px-4">Bank &amp; Branch</th>
-              <th className="py-3.5 px-4">Manager Details</th>
-              <th className="py-3.5 px-4">Recovery Officers</th>
-              <th className="py-3.5 px-4">RBO Details</th>
-              <th className="py-3.5 px-4 text-right">Created On</th>
-              <th className="py-3.5 px-4 text-center">Actions</th>
+          <thead className="sticky top-0 bg-[#F5F0EA] z-10">
+            <tr className="border-b border-[#E8E4DF] text-[#5D5B57] text-[10px] uppercase font-bold tracking-wider">
+              <th className="py-3.5 px-4 bg-[#F5F0EA]">Bank &amp; Branch</th>
+              <th className="py-3.5 px-4 bg-[#F5F0EA]">Manager Details</th>
+              <th className="py-3.5 px-4 bg-[#F5F0EA]">Recovery Officers</th>
+              <th className="py-3.5 px-4 bg-[#F5F0EA]">RBO Details</th>
+              <th className="py-3.5 px-4 text-right bg-[#F5F0EA]">Created On</th>
+              <th className="py-3.5 px-4 text-center bg-[#F5F0EA]">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-[#E8E4DF] text-xs">

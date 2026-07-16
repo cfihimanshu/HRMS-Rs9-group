@@ -18,12 +18,14 @@ export default function PaymentCollectionsView({
   const uniqueBanks = Array.from(new Set(cases.map(c => c.bankName).filter(Boolean)));
 
   const finalPayments = payments.filter(p => {
-    const caseObj = cases.find(c => c.id === p.masterId);
+    const caseObj = cases.find(c => String(c.id) === String(p.masterId));
+    const bankName = p.bankName || caseObj?.bankName || "";
+    const branchName = p.branchName || caseObj?.branchName || "";
     
     if (searchQuery && !(
       p.transactionId?.toLowerCase().includes(searchQuery.toLowerCase()) || 
-      caseObj?.bankName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      caseObj?.branchName?.toLowerCase().includes(searchQuery.toLowerCase())
+      bankName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      branchName.toLowerCase().includes(searchQuery.toLowerCase())
     )) return false;
     
     if (dateFilter) {
@@ -31,7 +33,7 @@ export default function PaymentCollectionsView({
       if (pDate !== dateFilter) return false;
     }
     
-    if (bankFilter && caseObj?.bankName !== bankFilter) return false;
+    if (bankFilter && bankName !== bankFilter) return false;
 
     return true;
   });
@@ -128,12 +130,14 @@ export default function PaymentCollectionsView({
             </thead>
             <tbody className="divide-y divide-[#E8E4DF] bg-white text-xs">
               {finalPayments.map(p => {
-                const caseObj = cases.find(c => c.id === p.masterId);
+                const caseObj = cases.find(c => String(c.id) === String(p.masterId));
+                const bankName = p.bankName || caseObj?.bankName || "Unknown Bank";
+                const branchName = p.branchName || caseObj?.branchName || "N/A";
                 return (
                   <tr key={p.id} className="hover:bg-slate-50 transition-colors">
                     <td className="p-4">
-                      <div className="font-bold text-slate-800">{caseObj?.bankName || 'Unknown Bank'}</div>
-                      <div className="text-slate-500 mt-1">{caseObj?.branchName || 'N/A'} {caseObj?.branchId ? `(${caseObj.branchId})` : ''}</div>
+                      <div className="font-bold text-slate-800">{bankName}</div>
+                      <div className="text-slate-500 mt-1">{branchName} {caseObj?.branchId ? `(${caseObj.branchId})` : ''}</div>
                     </td>
                     <td className="p-4">
                       <div className="flex items-center gap-2 mb-1">

@@ -280,8 +280,17 @@ export default function DashboardSidebar({
 
       <div className="p-4 border-t border-[#E8E4DF]">
         <div className="flex items-center gap-3 p-2.5 rounded-xl bg-[#FCFBF9] border border-[#E8E4DF] shadow-[0_2px_10px_rgba(0,0,0,0.02)]">
-          <div className="w-8 h-8 rounded-full bg-[#C9A84C] flex items-center justify-center text-white text-xs font-semibold shrink-0 shadow-sm">
-            {user?.name ? user.name[0].toUpperCase() : "U"}
+          <div className="w-8 h-8 rounded-full bg-[#C9A84C] flex items-center justify-center text-white text-xs font-semibold shrink-0 shadow-sm overflow-hidden">
+            {user?.profilePhoto ? (
+              <img
+                src={user.profilePhoto}
+                alt={user?.name || "Profile"}
+                className="w-full h-full object-cover"
+                onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+              />
+            ) : (
+              user?.name ? user.name[0].toUpperCase() : "U"
+            )}
           </div>
           <div className="min-w-0 flex-1 text-left">
             <div className="text-xs font-semibold truncate text-[#1C1C1A]">{user?.name || "System User"}</div>
