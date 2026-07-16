@@ -437,6 +437,7 @@ export default function LegalRecoveryModule({ userRole, triggerToast, sessionUse
         masterId: showFollowUpForm.master.id,
         bankName: showFollowUpForm.master.bankName,
         branchName: showFollowUpForm.master.branchName,
+        branchId: showFollowUpForm.master.branchId || "",
         callerId: sessionUser?.id || "",
         callerName: sessionUser?.name || (sessionUser?.firstName ? `${sessionUser.firstName} ${sessionUser.lastName || ''}`.trim() : "Employee"),
         callStatus: followUpForm.callStatus,

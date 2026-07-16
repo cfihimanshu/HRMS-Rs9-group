@@ -34,6 +34,21 @@ import {
   ChevronUp
 } from "lucide-react";
 
+const formatTimeTo12Hour = (dateInput: any): string => {
+  if (!dateInput) return "—";
+  try {
+    const d = new Date(dateInput);
+    if (isNaN(d.getTime())) return "—";
+    return d.toLocaleTimeString("en-US", {
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: true
+    });
+  } catch (e) {
+    return "—";
+  }
+};
+
 interface OpsProps {
   sessionUser?: any;
   stats: any;
@@ -1056,7 +1071,7 @@ export function PerformanceCompliance({
   const [selectedDetailUser, setSelectedDetailUser] = useState<any>(null);
   const [selectedDetailBranch, setSelectedDetailBranch] = useState<any>(null);
   const [activeDetailsTab, setActiveDetailsTab] = useState<"tasks" | "attendance">("tasks");
-  const [selectedDashboardCategory, setSelectedDashboardCategory] = useState<"staff" | "calls" | "tasks" | "payments" | "pendingTasks" | null>(null);
+  const [selectedDashboardCategory, setSelectedDashboardCategory] = useState<"staff" | "calls" | "tasks" | "payments" | "pendingTasks" | "hrCalls" | null>(null);
   const [loadingExtra, setLoadingExtra] = useState(false);
   const [dateFilterType, setDateFilterType] = useState<"overall" | "current-month" | "custom">("overall");
   const [startDateFilter, setStartDateFilter] = useState("");
@@ -1267,6 +1282,9 @@ export function PerformanceCompliance({
 
   useEffect(() => {
     fetchReports();
+  }, [sessionUser, dateFilterType, startDateFilter, endDateFilter]);
+
+  useEffect(() => {
     fetchFilterMetadata();
   }, [sessionUser]);
 
@@ -1302,8 +1320,16 @@ export function PerformanceCompliance({
       }
       setLoading(false); // Hide loading spinner early!
 
-      // Then load all reports
-      const resAll = await fetch("/api/reports/work-report?range=all");
+      // Determine active query range for reports
+      let queryRange = "all";
+      if (dateFilterType === "current-month") {
+        queryRange = "current-month";
+      } else if (dateFilterType === "custom" && (startDateFilter || endDateFilter)) {
+        queryRange = `custom&startDate=${startDateFilter || ""}&endDate=${endDateFilter || ""}`;
+      }
+
+      // Then load matching reports
+      const resAll = await fetch(`/api/reports/work-report?range=${queryRange}`);
       const dataAll = await resAll.json();
       if (dataAll.success) {
         setReports(dataAll.data || { sod: [], eod: [], tasks: [], fieldVisits: [] });
@@ -1589,11 +1615,11 @@ export function PerformanceCompliance({
       };
 
       const rows = exportList.map((item: any) => {
-        const sodTime = item.sod ? new Date(item.sod.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "-";
+        const sodTime = item.sod ? formatTimeTo12Hour(item.sod.createdAt) : "-";
         const sodTaskType = item.sod?.taskType || "-";
         const sodSummary = item.sod?.taskSummary || "-";
 
-        const eodTime = item.eod ? new Date(item.eod.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "-";
+        const eodTime = item.eod ? formatTimeTo12Hour(item.eod.createdAt) : "-";
         const eodCompleted = item.eod?.completedWork || "-";
         const eodPending = item.eod?.pendingWork || "-";
         const eodIssues = item.eod?.issuesFaced || "-";
@@ -1686,7 +1712,7 @@ export function PerformanceCompliance({
         return `${Math.floor(totalMins / 60)}h ${totalMins % 60}m`;
       };
       const fmtDate = (d: any) => d ? new Date(d).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }) : "—";
-      const fmtTime = (d: any) => d ? new Date(d).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" }) : "—";
+      const fmtTime = (d: any) => d ? formatTimeTo12Hour(d) : "—";
 
       // Neutral light gray default header style with dark text
       const TH = (text: string, bg = "#f1f5f9", color = "#475569") =>
@@ -1899,6 +1925,8 @@ export function PerformanceCompliance({
       role: string;
     }>();
 
+    const empCountedTaskIds = new Map<string, Set<string>>();
+
     users.forEach((u: any) => {
       const empId = u.id?.toString() || "";
       if (selectedCompany && !isUserInCompany(u, selectedCompany)) return;
@@ -1955,6 +1983,16 @@ export function PerformanceCompliance({
 
           if (item.tasks) {
             item.tasks.forEach((t: any) => {
+              const taskId = t.id?.toString();
+              if (taskId) {
+                let uniqueSet = empCountedTaskIds.get(empId);
+                if (!uniqueSet) {
+                  uniqueSet = new Set<string>();
+                  empCountedTaskIds.set(empId, uniqueSet);
+                }
+                if (uniqueSet.has(taskId)) return; // Skip duplicates
+                uniqueSet.add(taskId);
+              }
               const statusClean = (t.status || "").toLowerCase().trim();
               if (statusClean === "done" || statusClean === "completed") {
                 empStats.tasksDone++;
@@ -2097,6 +2135,80 @@ export function PerformanceCompliance({
     let totalTasksDone = 0;
     let totalTasksPending = 0;
 
+    const allCandidateNames = new Set<string>();
+    candidatesList.forEach((c: any) => {
+      if (c.name) allCandidateNames.add(c.name.trim().toLowerCase());
+    });
+    (reports.tasks || []).forEach((t: any) => {
+      if (t.taskType === "CALL" && t.description?.includes("Lead ID:")) {
+        const match = t.description.match(/Candidate Name:\s*([^\n\r]+)/i);
+        if (match && match[1]) {
+          allCandidateNames.add(match[1].trim().toLowerCase());
+        }
+      }
+    });
+
+    const uniqueCalledCandidates = new Set<string>();
+    const statsHrCalls = (reports.tasks || []).filter((t: any) => {
+      if (!matchDateFilter(t.date)) return false;
+      
+      const callerId = (typeof t.employee === "object" ? (t.employee?.id || "") : t.employee)?.toString().trim();
+      if (!callerId) return false;
+      
+      const callerProfile = users.find(u => u.id?.toString() === callerId);
+      if (selectedCompany && (!callerProfile || !isUserInCompany(callerProfile, selectedCompany))) return false;
+      if (selectedDept && (!callerProfile || callerProfile.department !== selectedDept)) return false;
+      if (selectedUser && callerId !== selectedUser.toString()) return false;
+
+      // Direct lead calls
+      if (t.taskType === "CALL" && t.description?.includes("Lead ID:")) {
+        const desc = t.description || "";
+        const nameMatch = desc.match(/Candidate Name:\s*([^\n\r]+)/i);
+        const platMatch = desc.match(/Platform:\s*([^\n\r]+)/i);
+        
+        const candName = nameMatch ? nameMatch[1].trim().toLowerCase() : "";
+        const platform = platMatch ? platMatch[1].trim().toLowerCase() : "general";
+        
+        if (candName) {
+          uniqueCalledCandidates.add(`${candName}_${platform}`);
+        }
+        return true;
+      }
+
+      // SOD / manual tasks
+      const tTitle = (t.taskTitle || "").toLowerCase();
+      const tDesc = (t.description || "").toLowerCase();
+      const hasCallKeyword = /call|interview|intv|telecall|talk|ring|contact|schedule|connect|reach/i.test(tTitle + " " + tDesc);
+      if (!hasCallKeyword) return false;
+
+      let matched = false;
+      for (const name of allCandidateNames) {
+        if (name.length >= 3 && (tTitle.includes(name) || tDesc.includes(name))) {
+          // If this name has been called via direct logs, associate it with that platform
+          let foundPlat = false;
+          (reports.tasks || []).forEach((t2: any) => {
+            if (t2.taskType === "CALL" && t2.description?.includes("Lead ID:")) {
+              const desc2 = t2.description || "";
+              const nameMatch2 = desc2.match(/Candidate Name:\s*([^\n\r]+)/i);
+              const platMatch2 = desc2.match(/Platform:\s*([^\n\r]+)/i);
+              if (nameMatch2 && nameMatch2[1].trim().toLowerCase() === name) {
+                const plat = platMatch2 ? platMatch2[1].trim().toLowerCase() : "general";
+                uniqueCalledCandidates.add(`${name}_${plat}`);
+                foundPlat = true;
+              }
+            }
+          });
+          
+          if (!foundPlat) {
+            uniqueCalledCandidates.add(`${name}_sod`);
+          }
+          matched = true;
+          break;
+        }
+      }
+      return matched;
+    });
+
     if (selectedUser) {
       const empStats = employeeMap.get(selectedUser.toString());
       if (empStats) {
@@ -2120,9 +2232,10 @@ export function PerformanceCompliance({
       totalTasksDone,
       totalTasksPending,
       globalLeadsSelected,
-      globalLeadsRejected
+      globalLeadsRejected,
+      totalHrCalls: statsHrCalls.length
     };
-  }, [users, filteredList, callsHistory, paymentsHistory, candidatesList, selectedCompany, selectedDept, selectedUser, matchDateFilter]);
+  }, [users, filteredList, callsHistory, paymentsHistory, candidatesList, selectedCompany, selectedDept, selectedUser, matchDateFilter, reports]);
 
   return (
     <div className="space-y-6 animate-fadeIn text-slate-800">
@@ -2287,7 +2400,7 @@ export function PerformanceCompliance({
           </div>
 
           {/* Quick Stats Grid */}
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
             <div
               onClick={() => setSelectedDashboardCategory("staff")}
               className="bg-white border border-slate-200 p-4 rounded-xl flex items-center gap-3 shadow-sm cursor-pointer hover:bg-slate-50 transition-all hover:border-indigo-400 active:scale-[0.98]"
@@ -2316,8 +2429,21 @@ export function PerformanceCompliance({
                 <PhoneCall className="w-5 h-5 text-indigo-600" />
               </div>
               <div>
-                <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Total Calls</div>
+                <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Total Bank Calls</div>
                 <div className="text-xl font-bold font-serif text-slate-800">{visualStats.totalCalls}</div>
+              </div>
+            </div>
+
+            <div
+              onClick={() => setSelectedDashboardCategory("hrCalls")}
+              className="bg-white border border-slate-200 p-4 rounded-xl flex items-center gap-3 shadow-sm cursor-pointer hover:bg-slate-50 transition-all hover:border-indigo-400 active:scale-[0.98]"
+            >
+              <div className="p-3 bg-sky-50 rounded-lg text-sky-650">
+                <PhoneCall className="w-5 h-5 text-sky-600" />
+              </div>
+              <div>
+                <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Interview Calls</div>
+                <div className="text-xl font-bold font-serif text-slate-800">{visualStats.totalHrCalls}</div>
               </div>
             </div>
 
@@ -2578,7 +2704,7 @@ export function PerformanceCompliance({
                                                       📅 {new Date(dayItem.date).toLocaleDateString("en-IN", { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' })}
                                                     </span>
                                                     <span className={`px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-wider ${hasSod && hasEod ? "bg-emerald-50 text-emerald-700 border border-emerald-200" :
-                                                        hasSod ? "bg-indigo-50 text-indigo-700 border border-indigo-200" : "bg-rose-50 text-rose-700 border-rose-200"
+                                                      hasSod ? "bg-indigo-50 text-indigo-700 border border-indigo-200" : "bg-rose-50 text-rose-700 border-rose-200"
                                                       }`}>
                                                       {hasSod && hasEod ? "Completed" : hasSod ? "SOD Active" : "Absent"}
                                                     </span>
@@ -2590,7 +2716,7 @@ export function PerformanceCompliance({
                                                       <div className="space-y-2">
                                                         <div className="flex items-center gap-2">
                                                           <strong>SOD Time:</strong>
-                                                          <span className="text-slate-700">{hasSod ? new Date(dayItem.sod.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "—"}</span>
+                                                          <span className="text-slate-700">{hasSod ? formatTimeTo12Hour(dayItem.sod.createdAt) : "—"}</span>
                                                           {dayItem.sod?.selfieUrl && (
                                                             <img
                                                               src={dayItem.sod.selfieUrl}
@@ -2603,7 +2729,7 @@ export function PerformanceCompliance({
                                                         </div>
                                                         <div className="flex items-center gap-2">
                                                           <strong>EOD Time:</strong>
-                                                          <span className="text-slate-700">{hasEod ? new Date(dayItem.eod.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "—"}</span>
+                                                          <span className="text-slate-700">{hasEod ? formatTimeTo12Hour(dayItem.eod.createdAt) : "—"}</span>
                                                           {dayItem.eod?.selfieUrl && (
                                                             <img
                                                               src={dayItem.eod.selfieUrl}
@@ -2672,7 +2798,7 @@ export function PerformanceCompliance({
                                                                 <div className="flex justify-between items-start">
                                                                   <span className="font-bold text-slate-800">{t.taskTitle}</span>
                                                                   <span className={`px-2 py-0.5 rounded text-[8px] font-black tracking-wider uppercase ${t.status === "Completed" || t.status === "Done" ? "bg-emerald-50 text-emerald-700 border border-emerald-150" :
-                                                                      t.status === "In Progress" ? "bg-amber-50 text-amber-700 border border-amber-150" : "bg-slate-100 text-slate-600"
+                                                                    t.status === "In Progress" ? "bg-amber-50 text-amber-700 border border-amber-150" : "bg-slate-100 text-slate-600"
                                                                     }`}>
                                                                     {t.status}
                                                                   </span>
@@ -2826,8 +2952,8 @@ export function PerformanceCompliance({
                                                         {call.callStatus && (
                                                           <div className="pt-0.5">
                                                             <span className={`px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-wider border ${call.callStatus.toLowerCase().includes("success") || call.callStatus.toLowerCase().includes("connected")
-                                                                ? "bg-emerald-50 text-emerald-700 border-emerald-150"
-                                                                : "bg-rose-50 text-rose-700 border-rose-150"
+                                                              ? "bg-emerald-50 text-emerald-700 border-emerald-150"
+                                                              : "bg-rose-50 text-rose-700 border-rose-150"
                                                               }`}>
                                                               {call.callStatus}
                                                             </span>
@@ -2949,7 +3075,7 @@ export function PerformanceCompliance({
                                   📅 {dayItem.date.toLocaleDateString("en-IN", { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' })}
                                 </span>
                                 <span className={`px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-wider ${hasSod && hasEod ? "bg-emerald-50 text-emerald-700 border border-emerald-200" :
-                                    hasSod ? "bg-indigo-50 text-indigo-700 border border-indigo-200" : "bg-rose-50 text-rose-700 border border-rose-200"
+                                  hasSod ? "bg-indigo-50 text-indigo-700 border border-indigo-200" : "bg-rose-50 text-rose-700 border border-rose-200"
                                   }`}>
                                   {hasSod && hasEod ? "Completed" : hasSod ? "SOD Active" : "Absent"}
                                 </span>
@@ -2960,7 +3086,7 @@ export function PerformanceCompliance({
                                 <div className="space-y-2">
                                   <div className="flex items-center gap-2">
                                     <strong>SOD Time:</strong>
-                                    <span>{hasSod ? new Date(dayItem.sod.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "—"}</span>
+                                    <span>{hasSod ? formatTimeTo12Hour(dayItem.sod.createdAt) : "—"}</span>
                                     {dayItem.sod?.selfieUrl && (
                                       <img
                                         src={dayItem.sod.selfieUrl}
@@ -2973,7 +3099,7 @@ export function PerformanceCompliance({
                                   </div>
                                   <div className="flex items-center gap-2">
                                     <strong>EOD Time:</strong>
-                                    <span>{hasEod ? new Date(dayItem.eod.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "—"}</span>
+                                    <span>{hasEod ? formatTimeTo12Hour(dayItem.eod.createdAt) : "—"}</span>
                                     {dayItem.eod?.selfieUrl && (
                                       <img
                                         src={dayItem.eod.selfieUrl}
@@ -3038,7 +3164,7 @@ export function PerformanceCompliance({
                                           <div className="flex justify-between items-start">
                                             <span className="font-bold text-slate-850">{t.taskTitle}</span>
                                             <span className={`px-2 py-0.5 rounded text-[8px] font-black tracking-wider uppercase ${t.status === "Completed" || t.status === "Done" ? "bg-emerald-50 text-emerald-700 border border-emerald-150" :
-                                                t.status === "In Progress" ? "bg-amber-50 text-amber-700 border border-amber-150" : "bg-slate-100 text-slate-600"
+                                              t.status === "In Progress" ? "bg-amber-50 text-amber-700 border border-amber-150" : "bg-slate-100 text-slate-600"
                                               }`}>
                                               {t.status}
                                             </span>
@@ -3387,6 +3513,114 @@ export function PerformanceCompliance({
                       }).length === 0 && (
                           <div className="text-center py-8 text-slate-400">No logged calls found.</div>
                         )}
+                    </div>
+                  )}
+
+                  {/* HR Leads / Interview Calls List */}
+                  {selectedDashboardCategory === "hrCalls" && (
+                    <div className="space-y-2">
+                      {(reports.tasks || [])
+                        .filter(t => {
+                          if (!matchDateFilter(t.date)) return false;
+                          
+                          const callerId = (typeof t.employee === "object" ? (t.employee?.id || "") : t.employee)?.toString().trim();
+                          if (!callerId) return false;
+                          
+                          const callerProfile = users.find(u => u.id?.toString() === callerId);
+                          if (selectedCompany && (!callerProfile || !isUserInCompany(callerProfile, selectedCompany))) return false;
+                          if (selectedDept && (!callerProfile || callerProfile.department !== selectedDept)) return false;
+                          if (selectedUser && callerId !== selectedUser.toString()) return false;
+
+                          // Match Option A: Direct logs from HR Leads Platform
+                          if (t.taskType === "CALL" && t.description?.includes("Lead ID:")) return true;
+
+                          // Match Option B: SOD tasks or manual tasks mentioning a candidate name and a calling keyword
+                          const tTitle = (t.taskTitle || "").toLowerCase();
+                          const tDesc = (t.description || "").toLowerCase();
+                          const hasCallKeyword = /call|interview|intv|telecall|talk|ring|contact|schedule|connect|reach/i.test(tTitle + " " + tDesc);
+                          if (!hasCallKeyword) return false;
+
+                          const mentionsCandidate = candidatesList.some((c: any) => {
+                            if (!c.name) return false;
+                            const cName = c.name.toLowerCase().trim();
+                            if (cName.length < 3) return false;
+                            return tTitle.includes(cName) || tDesc.includes(cName);
+                          });
+
+                          return mentionsCandidate;
+                        })
+                        .map((task, idx) => {
+                          const desc = task.description || "";
+                          const leadNameMatch = desc.match(/Candidate Name:\s*([^\n\r]+)/i);
+                          const platformMatch = desc.match(/Platform:\s*([^\n\r]+)/i);
+                          const actionMatch = desc.match(/Action Status:\s*([^\n\r]+)/i);
+                          const remarksMatch = desc.match(/Remarks\/Notes:\s*([^\n\r]+)/i);
+                          
+                          let candName = leadNameMatch ? leadNameMatch[1].trim() : "";
+                          let platform = platformMatch ? platformMatch[1].trim() : "SOD / Attendance Log";
+                          let action = actionMatch ? actionMatch[1].trim() : (task.status || "Logged");
+                          let remarks = remarksMatch ? remarksMatch[1].trim() : desc;
+
+                          if (!candName) {
+                            // Find candidate name from title or description
+                            const matchedCand = candidatesList.find((c: any) => {
+                              if (!c.name) return false;
+                              const cName = c.name.toLowerCase().trim();
+                              return (task.taskTitle || "").toLowerCase().includes(cName) || desc.toLowerCase().includes(cName);
+                            });
+                            candName = matchedCand ? matchedCand.name : "Candidate";
+                            remarks = task.taskTitle || desc;
+                          }
+                          
+                          const callerId = (typeof task.employee === "object" ? (task.employee?.id || "") : task.employee)?.toString().trim();
+                          const callerProfile = users.find(u => u.id?.toString() === callerId);
+                          
+                          return (
+                            <div key={idx} className="bg-slate-50 border border-slate-150 p-3 rounded-xl space-y-1.5 shadow-sm">
+                              <div className="flex justify-between items-start font-bold">
+                                <span className="text-slate-800">Candidate: {candName}</span>
+                                <span className="text-[10px] text-slate-400 font-mono">{task.date ? new Date(task.date).toLocaleDateString("en-IN") : ""}</span>
+                              </div>
+                              <div className="text-[11px] text-slate-650">Logged By: <span className="font-semibold">{callerProfile?.name || "HR Agent"}</span> ({platform})</div>
+                              <div className="italic text-slate-500 mt-1">"{remarks}"</div>
+                              {action && (
+                                <span className="inline-block mt-1 px-2 py-0.5 rounded bg-sky-50 border border-sky-150 text-[9px] font-black text-sky-700 uppercase tracking-wide">
+                                  {action}
+                                </span>
+                              )}
+                            </div>
+                          );
+                        })}
+                      {(reports.tasks || []).filter(t => {
+                        if (!matchDateFilter(t.date)) return false;
+                        
+                        const callerId = (typeof t.employee === "object" ? (t.employee?.id || "") : t.employee)?.toString().trim();
+                        if (!callerId) return false;
+                        const callerProfile = users.find(u => u.id?.toString() === callerId);
+                        if (selectedCompany && (!callerProfile || !isUserInCompany(callerProfile, selectedCompany))) return false;
+                        if (selectedDept && (!callerProfile || callerProfile.department !== selectedDept)) return false;
+                        if (selectedUser && callerId !== selectedUser.toString()) return false;
+
+                        // Option A
+                        if (t.taskType === "CALL" && t.description?.includes("Lead ID:")) return true;
+                        
+                        // Option B
+                        const tTitle = (t.taskTitle || "").toLowerCase();
+                        const tDesc = (t.description || "").toLowerCase();
+                        const hasCallKeyword = /call|interview|intv|telecall|talk|ring|contact|schedule|connect|reach/i.test(tTitle + " " + tDesc);
+                        if (!hasCallKeyword) return false;
+
+                        const mentionsCandidate = candidatesList.some((c: any) => {
+                          if (!c.name) return false;
+                          const cName = c.name.toLowerCase().trim();
+                          if (cName.length < 3) return false;
+                          return tTitle.includes(cName) || tDesc.includes(cName);
+                        });
+
+                        return mentionsCandidate;
+                      }).length === 0 && (
+                        <div className="text-center py-8 text-slate-400">No interview calls found.</div>
+                      )}
                     </div>
                   )}
 
@@ -3910,7 +4144,7 @@ export function PerformanceCompliance({
                               {item.sod ? (
                                 <div className="flex items-center gap-1.5 text-emerald-600 font-bold">
                                   <Clock className="w-3.5 h-3.5" />
-                                  <span>{new Date(item.sod.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                                  <span>{formatTimeTo12Hour(item.sod.createdAt)}</span>
                                 </div>
                               ) : (
                                 <span className="text-slate-400 font-bold">—</span>
@@ -3920,7 +4154,7 @@ export function PerformanceCompliance({
                               {item.eod ? (
                                 <div className="flex items-center gap-1.5 text-[#714B67] font-bold">
                                   <Clock className="w-3.5 h-3.5" />
-                                  <span>{new Date(item.eod.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                                  <span>{formatTimeTo12Hour(item.eod.createdAt)}</span>
                                 </div>
                               ) : (
                                 <span className="text-slate-400 font-bold">—</span>
@@ -4001,8 +4235,8 @@ export function PerformanceCompliance({
                                               {task.createdAt && (
                                                 <span>
                                                   Logged: {new Date(task.createdAt).toLocaleDateString() !== item.date.toLocaleDateString()
-                                                    ? new Date(task.createdAt).toLocaleString([], { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })
-                                                    : new Date(task.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                                                    ? new Date(task.createdAt).toLocaleString('en-US', { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit", hour12: true })
+                                                    : formatTimeTo12Hour(task.createdAt)}
                                                 </span>
                                               )}
                                             </div>

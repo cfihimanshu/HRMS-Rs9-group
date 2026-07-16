@@ -24,10 +24,6 @@ export async function GET(req: Request) {
     const isManagerial = ["Owner", "Director", "HR Head", "HR Executive", "Department Manager"].includes(role);
 
     await sequelize.authenticate();
-    await SodReport.sync({ alter: true });
-    await EodReport.sync({ alter: true });
-    await TaskLog.sync({ alter: true });
-    await FieldVisit.sync({ alter: true });
 
     const { searchParams } = new URL(req.url);
     const range = searchParams.get("range");
@@ -83,6 +79,41 @@ export async function GET(req: Request) {
       
       const todayStr = new Date().toISOString().split("T")[0];
       fieldVisitFilter.date = todayStr;
+    } else if (range === "current-month") {
+      const start = new Date();
+      start.setDate(1);
+      start.setHours(0, 0, 0, 0);
+      const end = new Date(start);
+      end.setMonth(end.getMonth() + 1);
+
+      filter.date = { [Op.gte]: start, [Op.lt]: end };
+      
+      const startStr = start.toISOString().split("T")[0];
+      const endStr = end.toISOString().split("T")[0];
+      fieldVisitFilter.date = { [Op.gte]: startStr, [Op.lt]: endStr };
+    } else if (range === "custom") {
+      const startParam = searchParams.get("startDate");
+      const endParam = searchParams.get("endDate");
+      if (startParam || endParam) {
+        const dateCond: any = {};
+        const fvCond: any = {};
+        
+        if (startParam) {
+          const start = new Date(startParam);
+          start.setHours(0, 0, 0, 0);
+          dateCond[Op.gte] = start;
+          fvCond[Op.gte] = startParam;
+        }
+        if (endParam) {
+          const end = new Date(endParam);
+          end.setHours(23, 59, 59, 999);
+          dateCond[Op.lte] = end;
+          fvCond[Op.lte] = endParam;
+        }
+        
+        filter.date = dateCond;
+        fieldVisitFilter.date = fvCond;
+      }
     }
 
     const sods = await SodReport.findAll({ 
