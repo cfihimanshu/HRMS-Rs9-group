@@ -140,6 +140,7 @@ export const authOptions: NextAuthOptions = {
           if (profile) {
             if (profile.designation) designation = profile.designation;
             if (profile.employeeId) employeeId = profile.employeeId;
+            if (profile.profilePhoto) (user as any)._profilePhoto = profile.profilePhoto;
             if (deptDoc && deptDoc.name) {
               departmentName = deptDoc.name;
             }
@@ -208,6 +209,7 @@ export const authOptions: NextAuthOptions = {
           designation: designation,
           employeeId: employeeId,
           company: companyName,
+          profilePhoto: (user as any)._profilePhoto || null,
         };
       },
     }),
@@ -221,6 +223,7 @@ export const authOptions: NextAuthOptions = {
         token.designation = (user as any).designation;
         token.employeeId = (user as any).employeeId;
         token.company = (user as any).company;
+        token.profilePhoto = (user as any).profilePhoto || null;
       } else if (token.id) {
         try {
           const dbUser = await User.findByPk(token.id as string, { raw: true });
@@ -261,6 +264,7 @@ export const authOptions: NextAuthOptions = {
           designation: token.designation as string,
           employeeId: token.employeeId as string,
           company: token.company as string,
+          profilePhoto: token.profilePhoto as string | null,
         } as any;
       }
       return session;

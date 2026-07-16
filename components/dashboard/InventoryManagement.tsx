@@ -97,6 +97,7 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
   const [purchaseRequests, setPurchaseRequests] = useState<any[]>([]);
   const [loadingPurchases, setLoadingPurchases] = useState(false);
   const [showPurchaseModal, setShowPurchaseModal] = useState(false);
+  const [previewImageUrl, setPreviewImageUrl] = useState<string | null>(null);
   const [purchaseForm, setPurchaseForm] = useState({
     asset_type: "Laptop",
     asset_detail: "",
@@ -109,6 +110,7 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
   const [submittingPurchase, setSubmittingPurchase] = useState(false);
   const [isCustomPurchaseType, setIsCustomPurchaseType] = useState(false);
   const [ownerRemarksMap, setOwnerRemarksMap] = useState<Record<string, string>>({});
+  const [sourceRequestId, setSourceRequestId] = useState<string | null>(null);
 
   const generateNextAssetId = useCallback((type: string) => {
     const typeClean = (type || "").toLowerCase().trim();
@@ -299,8 +301,27 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
       });
       const result = await res.json();
       if (result.success) {
+        if (sourceRequestId) {
+          try {
+            const dispatchDetails = `[New Purchase] Estimated Cost: ₹${purchaseForm.estimated_cost}. Vendor: ${purchaseForm.vendor_details}. Justification: ${purchaseForm.justification || "None"}`;
+            await fetch("/api/assets/request", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                action: "update-status",
+                requestId: Number(sourceRequestId),
+                status: "Dispatched (New Purchase)",
+                admin_remarks: dispatchDetails
+              })
+            });
+          } catch (err) {
+            console.error("Error updating source asset request status:", err);
+          }
+        }
+
         triggerToast("Purchase request submitted to Owner successfully!");
         setShowPurchaseModal(false);
+        setSourceRequestId(null);
         setIsCustomPurchaseType(false);
         setPurchaseForm({
           asset_type: "Laptop",
@@ -368,6 +389,7 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
       const type = localStorage.getItem("purchase_request_asset_type") || "Laptop";
       const detail = localStorage.getItem("purchase_request_asset_detail") || "";
       const justification = localStorage.getItem("purchase_request_justification") || "";
+      const sourceId = localStorage.getItem("purchase_request_source_id") || "";
 
       setPurchaseForm({
         asset_type: type,
@@ -378,6 +400,7 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
         company_id: "",
         asset_id: ""
       });
+      setSourceRequestId(sourceId || null);
 
       setShowPurchaseModal(true);
       setActiveSubTab("purchases");
@@ -386,6 +409,7 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
       localStorage.removeItem("purchase_request_asset_type");
       localStorage.removeItem("purchase_request_asset_detail");
       localStorage.removeItem("purchase_request_justification");
+      localStorage.removeItem("purchase_request_source_id");
     }
   }, []);
 
@@ -1869,7 +1893,7 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
                       <td className="py-4 px-4">
                         <div className="flex gap-3 items-start">
                           {asset.photoUrl && (
-                            <div className="w-12 h-12 rounded-lg border border-[#E8E4DF] overflow-hidden bg-slate-50 flex-shrink-0 shadow-sm cursor-pointer hover:scale-105 transition-transform" onClick={() => window.open(asset.photoUrl, "_blank")}>
+                            <div className="w-12 h-12 rounded-lg border border-[#E8E4DF] overflow-hidden bg-slate-50 flex-shrink-0 shadow-sm cursor-pointer hover:scale-105 transition-transform" onClick={() => setPreviewImageUrl(asset.photoUrl)}>
                               <img src={asset.photoUrl} alt="Asset photo" className="w-full h-full object-cover" />
                             </div>
                           )}
@@ -2118,7 +2142,10 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
                 <PlusCircle className="w-4 h-4 text-indigo-500" /> New Purchase Request
               </h3>
               <button
-                onClick={() => setShowPurchaseModal(false)}
+                onClick={() => {
+                  setShowPurchaseModal(false);
+                  setSourceRequestId(null);
+                }}
                 className="p-1 rounded hover:bg-slate-100 text-slate-400"
               >
                 <X className="w-5 h-5" />
@@ -2249,7 +2276,10 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
               <div className="pt-3 border-t border-[#E8E4DF] flex justify-end gap-3">
                 <button
                   type="button"
-                  onClick={() => setShowPurchaseModal(false)}
+                  onClick={() => {
+                    setShowPurchaseModal(false);
+                    setSourceRequestId(null);
+                  }}
                   className="px-4 py-2 border border-[#E8E4DF] rounded-lg text-xs font-bold text-slate-500 hover:bg-slate-100 transition-all"
                 >
                   Cancel
@@ -2963,6 +2993,33 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
                 </button>
               </div>
             </form>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {previewImageUrl && typeof document !== "undefined" && ReactDOM.createPortal(
+        <div 
+          className="fixed inset-0 z-[10000] bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 transition-all duration-300"
+          onClick={() => setPreviewImageUrl(null)}
+        >
+          <div 
+            className="relative max-w-4xl max-h-[90vh] bg-white border border-[#E8E4DF] rounded-2xl overflow-hidden shadow-2xl flex flex-col p-2"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Close button */}
+            <button
+              onClick={() => setPreviewImageUrl(null)}
+              className="absolute top-4 right-4 p-2 rounded-full bg-black/40 hover:bg-black/60 text-white/90 hover:text-white transition-all shadow-md z-10"
+              title="Close Preview"
+            >
+              <X className="w-5 h-5" />
+            </button>
+            <img 
+              src={previewImageUrl} 
+              alt="Asset Preview" 
+              className="max-w-full max-h-[80vh] object-contain rounded-lg"
+            />
           </div>
         </div>,
         document.body

@@ -540,36 +540,15 @@ export function AssetRequestLogs({ sessionUser, triggerToast, setActiveTab }: As
                             <Package className="w-3.5 h-3.5" /> Grant from Inventory
                           </button>
                           <button
-                            onClick={async () => {
-                              const remarks = remarksMap[req.id] || "";
-                              const dispatchDetails = `[New Purchase] ${remarks}`;
-                              try {
-                                const reqRes = await fetch("/api/assets/request", {
-                                  method: "POST",
-                                  headers: { "Content-Type": "application/json" },
-                                  body: JSON.stringify({
-                                    action: "update-status",
-                                    requestId: req.id,
-                                    status: "Dispatched (New Purchase)",
-                                    admin_remarks: dispatchDetails
-                                  })
-                                });
-                                const reqData = await reqRes.json();
-                                if (reqData.success) {
-                                  triggerToast("Request marked for New Purchase. Redirecting to Purchase Requisition...");
-                                  localStorage.setItem("open_purchase_request_modal", "true");
-                                  localStorage.setItem("purchase_request_asset_type", req.asset_type || "Laptop");
-                                  localStorage.setItem("purchase_request_asset_detail", req.reason || "");
-                                  localStorage.setItem("purchase_request_justification", `Requested for employee. Request ID: ${req.id}`);
-                                  if (setActiveTab) {
-                                    setActiveTab("inventory-management");
-                                  }
-                                } else {
-                                  triggerToast(reqData.error || "Failed to update status.");
-                                }
-                              } catch (err) {
-                                console.error("Error updating status for new purchase:", err);
-                                triggerToast("An error occurred.");
+                            onClick={() => {
+                              triggerToast("Redirecting to Purchase Requisition...");
+                              localStorage.setItem("open_purchase_request_modal", "true");
+                              localStorage.setItem("purchase_request_source_id", req.id.toString());
+                              localStorage.setItem("purchase_request_asset_type", req.asset_type || "Laptop");
+                              localStorage.setItem("purchase_request_asset_detail", req.reason || "");
+                              localStorage.setItem("purchase_request_justification", `Requested for employee. Request ID: ${req.id}`);
+                              if (setActiveTab) {
+                                setActiveTab("inventory-management");
                               }
                             }}
                             className="bg-amber-50 border border-amber-200 text-amber-600 px-3 py-2 rounded-lg text-[10px] font-black hover:bg-amber-100 transition-all flex items-center justify-center gap-1.5"

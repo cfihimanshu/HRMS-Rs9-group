@@ -9,7 +9,9 @@ import EmployeeProfile from "@/models/sequelize/EmployeeProfile";
 import Leave from "@/models/sequelize/Leave";
 import SodReport from "@/models/sequelize/SodReport";
 import EodReport from "@/models/sequelize/EodReport";
+import Department from "@/models/sequelize/Department";
 import { Op } from "sequelize";
+import "@/models/sequelize/associations";
 
 export async function GET(req: Request) {
   try {
@@ -82,7 +84,14 @@ export async function GET(req: Request) {
       companies = await Company.findAll({ where: { status: "active" } });
       users = await User.findAll({ 
         where: { status: "active" },
-        attributes: ["id", "name", "email", "role", "companies"]
+        attributes: ["id", "name", "email", "role", "companies"],
+        include: [
+          {
+            model: EmployeeProfile,
+            as: "profile",
+            attributes: ["profilePhoto"]
+          }
+        ]
       });
     } else if (loggedInUserRole === "Department Manager" || isReportingManager) {
       // Find managed user IDs
@@ -113,7 +122,14 @@ export async function GET(req: Request) {
 
       users = await User.findAll({
         where: { id: { [Op.in]: managedUserIds }, status: "active" },
-        attributes: ["id", "name", "email", "role", "companies"]
+        attributes: ["id", "name", "email", "role", "companies"],
+        include: [
+          {
+            model: EmployeeProfile,
+            as: "profile",
+            attributes: ["profilePhoto"]
+          }
+        ]
       });
 
       // Find company IDs for these users
@@ -135,7 +151,14 @@ export async function GET(req: Request) {
     } else {
       // Find logged-in user details
       const selfUserObj = await User.findByPk(loggedInUserId, {
-        attributes: ["id", "name", "email", "role", "companies"]
+        attributes: ["id", "name", "email", "role", "companies"],
+        include: [
+          {
+            model: EmployeeProfile,
+            as: "profile",
+            attributes: ["profilePhoto"]
+          }
+        ]
       });
       if (selfUserObj) {
         users = [selfUserObj];
@@ -151,11 +174,45 @@ export async function GET(req: Request) {
       }
     }
 
+    // Map department names onto user list
+    let mappedUsers = [];
+    if (users.length > 0) {
+      const userIds = users.map((u: any) => u.id);
+      
+      const userProfiles = await EmployeeProfile.findAll({
+        where: { user: userIds },
+        attributes: ["user", "department"]
+      });
+
+      const deptIds = Array.from(new Set(userProfiles.map((p: any) => p.department).filter(Boolean)));
+      let deptNameMap: any = {};
+      if (deptIds.length > 0) {
+        const depts = await Department.findAll({
+          where: { id: deptIds },
+          attributes: ["id", "name"]
+        });
+        depts.forEach((d: any) => {
+          deptNameMap[d.id] = d.name;
+        });
+      }
+
+      const userDeptMap: any = {};
+      userProfiles.forEach((p: any) => {
+        userDeptMap[p.user] = deptNameMap[p.department] || "General";
+      });
+
+      mappedUsers = users.map((u: any) => {
+        const json = u.toJSON ? u.toJSON() : u;
+        json.department = userDeptMap[u.id] || "General";
+        return json;
+      });
+    }
+
     return NextResponse.json({
       success: true,
       data: {
         companies,
-        users,
+        users: mappedUsers,
       },
     });
   } catch (error: any) {

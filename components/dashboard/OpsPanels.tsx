@@ -1,4 +1,5 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
+import ReactDOM from "react-dom";
 import {
   CalendarCheck,
   Send,
@@ -15,7 +16,22 @@ import {
   X,
   Download,
   Info,
-  Filter
+  Filter,
+  PhoneCall,
+  CheckCircle,
+  Briefcase,
+  Banknote,
+  Cpu,
+  TrendingUp,
+  Layers,
+  AlertTriangle,
+  Users,
+  Scale,
+  RefreshCw,
+  FileSpreadsheet,
+  Coins,
+  ChevronDown,
+  ChevronUp
 } from "lucide-react";
 
 interface OpsProps {
@@ -1027,10 +1043,21 @@ export function PerformanceCompliance({
   preselectedUserId?: string;
   clearPreselectedUserId?: () => void;
 }) {
+  const isOwnerOrDirector = ["Owner", "Director", "HR Head", "HR Executive", "Department Manager"].includes(sessionUser?.role || "");
   const [loading, setLoading] = useState(true);
   const [reports, setReports] = useState<{ sod: any[]; eod: any[]; tasks?: any[]; fieldVisits?: any[] }>({ sod: [], eod: [], tasks: [], fieldVisits: [] });
-  const [activeSubTab, setActiveSubTab] = useState<"sod" | "eod" | "attendance-calendar">("sod");
+  const [activeSubTab, setActiveSubTab] = useState<"visual-dashboard" | "sod" | "eod" | "attendance-calendar">(
+    isOwnerOrDirector ? "visual-dashboard" : "sod"
+  );
   const [searchTerm, setSearchTerm] = useState("");
+  const [callsHistory, setCallsHistory] = useState<any[]>([]);
+  const [paymentsHistory, setPaymentsHistory] = useState<any[]>([]);
+  const [candidatesList, setCandidatesList] = useState<any[]>([]);
+  const [selectedDetailUser, setSelectedDetailUser] = useState<any>(null);
+  const [selectedDetailBranch, setSelectedDetailBranch] = useState<any>(null);
+  const [activeDetailsTab, setActiveDetailsTab] = useState<"tasks" | "attendance">("tasks");
+  const [selectedDashboardCategory, setSelectedDashboardCategory] = useState<"staff" | "calls" | "tasks" | "payments" | "pendingTasks" | null>(null);
+  const [loadingExtra, setLoadingExtra] = useState(false);
   const [dateFilterType, setDateFilterType] = useState<"overall" | "current-month" | "custom">("overall");
   const [startDateFilter, setStartDateFilter] = useState("");
   const [endDateFilter, setEndDateFilter] = useState("");
@@ -1043,6 +1070,7 @@ export function PerformanceCompliance({
   const [selectedUser, setSelectedUser] = useState("");
   const [selectedDept, setSelectedDept] = useState("");
   const [expandedRows, setExpandedRows] = useState<Record<string, boolean>>({});
+  const [expandedUserRows, setExpandedUserRows] = useState<Record<string, boolean>>({});
   const [showFilters, setShowFilters] = useState(false);
 
   const loggedInDbUser = React.useMemo(() => {
@@ -1280,10 +1308,42 @@ export function PerformanceCompliance({
       if (dataAll.success) {
         setReports(dataAll.data || { sod: [], eod: [], tasks: [], fieldVisits: [] });
       }
+
+      // Fetch extra statistics in background if user is Owner/Director
+      if (isOwnerOrDirector) {
+        setLoadingExtra(true);
+        const [resFollowup, resMarketing, resPayment, resCandidates] = await Promise.all([
+          fetch("/api/legal-recovery/followup"),
+          fetch("/api/legal-recovery/marketing-call"),
+          fetch("/api/legal-recovery/payment"),
+          fetch("/api/candidates")
+        ]);
+        const dataFollowup = await resFollowup.json();
+        const dataMarketing = await resMarketing.json();
+        const dataPayment = await resPayment.json();
+        const dataCandidates = await resCandidates.json();
+
+        let mergedCalls: any[] = [];
+        if (dataFollowup.success && dataFollowup.data) {
+          mergedCalls = [...mergedCalls, ...dataFollowup.data.map((item: any) => ({ ...item, logType: 'Follow-up' }))];
+        }
+        if (dataMarketing.success && dataMarketing.data) {
+          mergedCalls = [...mergedCalls, ...dataMarketing.data.map((item: any) => ({ ...item, logType: 'Business Development' }))];
+        }
+        setCallsHistory(mergedCalls);
+
+        if (dataPayment.success && dataPayment.data) {
+          setPaymentsHistory(dataPayment.data);
+        }
+        if (dataCandidates.success && dataCandidates.data) {
+          setCandidatesList(dataCandidates.data);
+        }
+      }
     } catch (error) {
       console.error("Error fetching work reports:", error);
     } finally {
       setLoading(false);
+      setLoadingExtra(false);
     }
   };
 
@@ -1301,19 +1361,24 @@ export function PerformanceCompliance({
   };
 
   const isUserInCompany = (user: any, companyId: string): boolean => {
-    if (!user || !user.companies || !companyId) return false;
+    if (!user) return false;
+    const targetUser = (user.companies !== undefined)
+      ? user
+      : users.find((u: any) => u.id?.toString() === (user.id || user).toString());
+
+    if (!targetUser || !targetUser.companies || !companyId) return false;
     let comps: any[] = [];
-    if (Array.isArray(user.companies)) {
-      comps = user.companies;
-    } else if (typeof user.companies === "string") {
+    if (Array.isArray(targetUser.companies)) {
+      comps = targetUser.companies;
+    } else if (typeof targetUser.companies === "string") {
       try {
-        const parsed = JSON.parse(user.companies);
+        const parsed = JSON.parse(targetUser.companies);
         comps = Array.isArray(parsed) ? parsed : [parsed];
       } catch (e) {
-        comps = [user.companies];
+        comps = [targetUser.companies];
       }
     } else {
-      comps = [user.companies];
+      comps = [targetUser.companies];
     }
     return comps.some((c: any) => {
       const cid = (c.id || c.id || c || "").toString().trim();
@@ -1361,12 +1426,12 @@ export function PerformanceCompliance({
       }
     });
 
-    // Process Tasks
+    // Process Tasks - group under assignee (task.employee field = the person the task belongs to)
     (reports.tasks || []).forEach((task: any) => {
       const empId = getEmpIdStr(task.employee);
       if (!task.date) return;
 
-      // 1. Group under the original creation date
+      // 1. Group under the original creation date (for the assignee)
       const dObjCreate = new Date(task.date);
       const dateStrCreate = dObjCreate.toDateString();
       const keyCreate = `${empId}_${dateStrCreate}`;
@@ -1395,6 +1460,11 @@ export function PerformanceCompliance({
           }
         }
       }
+
+      // 3. If this task was assigned BY someone else (assignedBy set), also add it
+      //    to the ASSIGNEE's record so they can see it in their daily log
+      //    (already handled above since task.employee IS the assignee)
+      //    Nothing extra needed — task.employee is always the assignee.
     });
 
     // Process Field Visits
@@ -1414,12 +1484,6 @@ export function PerformanceCompliance({
 
     // Sort by date (descending)
     const result = Array.from(map.values()).sort((a, b) => b.date.getTime() - a.date.getTime());
-    if (typeof window !== "undefined") {
-      (window as any).mergedListDebug = result;
-      (window as any).reportsDebug = reports;
-      console.log("DEBUG MERGED LIST:", result);
-      console.log("DEBUG REPORTS:", reports);
-    }
     return result;
   }, [reports]);
 
@@ -1614,46 +1678,195 @@ export function PerformanceCompliance({
     }
   };
 
+  const exportEmployeeWorkSummary = () => {
+    try {
+      const formatWorkHoursRaw = (totalMs: number) => {
+        if (!totalMs || totalMs <= 0) return "0h 0m";
+        const totalMins = Math.floor(totalMs / (1000 * 60));
+        return `${Math.floor(totalMins / 60)}h ${totalMins % 60}m`;
+      };
+      const fmtDate = (d: any) => d ? new Date(d).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }) : "—";
+      const fmtTime = (d: any) => d ? new Date(d).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" }) : "—";
+
+      // Neutral light gray default header style with dark text
+      const TH = (text: string, bg = "#f1f5f9", color = "#475569") =>
+        `<th style="background:${bg};color:${color};font-weight:bold;border:1px solid #cbd5e1;padding:8px 10px;text-align:left;vertical-align:middle;white-space:nowrap;">${text}</th>`;
+      const TD = (val: any, style = "") =>
+        `<td style="border:1px solid #e2e8f0;padding:6px 8px;vertical-align:middle;color:#334155;${style}">${val ?? "—"}</td>`;
+      const BLANK = `<td style="border:none;"></td>`;
+
+      const filteredEmps = visualStats.employeesData.filter((emp: any) => {
+        if (emp.role === "Owner") return false;
+        if (selectedUser && emp.id.toString() !== selectedUser.toString()) return false;
+        return true;
+      });
+
+      const dateLabel = dateFilterType === "custom"
+        ? `${startDateFilter || "Start"} to ${endDateFilter || "End"}`
+        : dateFilterType === "current-month" ? "Current Month" : "All Time";
+
+      let html = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">`;
+      html += `<head><meta charset="utf-8"><!--[if gte mso 9]><xml><x:ExcelWorkbook><x:ExcelWorksheets><x:ExcelWorksheet><x:Name>Work Report</x:Name></x:ExcelWorksheet></x:ExcelWorksheets></x:ExcelWorkbook></xml><![endif]--></head><body>`;
+      html += `<table border="1" style="border-collapse:collapse;font-family:'Segoe UI',Arial,sans-serif;font-size:11px;">`;
+
+      // ── SECTION 1: Summary ────────────────────────────────────────────────────
+      html += `<tr><td colspan="10" style="background:#f8fafc;color:#1e293b;font-size:13px;font-weight:bold;padding:12px 10px;border:1px solid #cbd5e1;text-align:left;">📊 Employee Work Summary — ${dateLabel}</td></tr>`;
+      html += `<tr>${TH("Employee Name")}${TH("Email")}${TH("Department")}${TH("Tasks Assigned")}${TH("Tasks Completed")}${TH("Pending Tasks")}${TH("Completion %")}${TH("Work Hours")}${TH("Productivity %")}${TH("Status")}</tr>`;
+
+      filteredEmps.forEach((emp: any) => {
+        const total = emp.tasksDone + emp.tasksPending;
+        const pct = total > 0 ? (emp.tasksDone / total) * 100 : 0;
+        const statusBg = pct >= 90 ? "#d1fae5" : pct >= 70 ? "#dbeafe" : pct >= 50 ? "#fef3c7" : "#fee2e2";
+        const statusTxt = pct >= 90 ? "Excellent" : pct >= 70 ? "Good" : pct >= 50 ? "Average" : "Poor";
+        html += `<tr>${TD(emp.name, "font-weight:bold;")}${TD(emp.email || "N/A")}${TD(emp.department)}${TD(total, "text-align:center;")}${TD(emp.tasksDone, "text-align:center;color:#059669;font-weight:bold;")}${TD(emp.tasksPending, "text-align:center;color:#dc2626;font-weight:bold;")}${TD(pct.toFixed(1) + "%", "text-align:center;")}${TD(formatWorkHoursRaw(emp.totalWorkMs), "text-align:center;")}${TD(pct.toFixed(1) + "%", "text-align:center;")}${TD(statusTxt, `text-align:center;background:${statusBg};font-weight:bold;`)}</tr>`;
+      });
+
+      // ── SECTION 2: Date-wise Details ─────────────────────────────────────────
+      html += `<tr><td colspan="10" style="height:16px;border:none;"></td></tr>`;
+      html += `<tr><td colspan="10" style="background:#f8fafc;color:#1e293b;font-size:13px;font-weight:bold;padding:10px;border:1px solid #cbd5e1;">📋 Date-wise Work Details — ${dateLabel}</td></tr>`;
+
+      filteredEmps.forEach((emp: any) => {
+        // Soft pink-lavender name header banner
+        html += `<tr><td colspan="10" style="background:#fdf2f8;color:#86198f;font-weight:bold;padding:10px;font-size:12px;border:1px solid #cbd5e1;">👤 ${emp.name} &nbsp;|&nbsp; ${emp.department} &nbsp;|&nbsp; ${emp.email || "—"}</td></tr>`;
+
+        // Tasks - Soft Indigo
+        const empTasks = (reports.tasks || []).filter((t: any) => {
+          const tid = (typeof t.employee === "object" ? (t.employee?.id || "") : t.employee)?.toString();
+          return tid === emp.id.toString() && matchDateFilter(t.date);
+        }).sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+        html += `<tr>${TH("Task Date", "#e0e7ff", "#3730a3")}${TH("Task Title", "#e0e7ff", "#3730a3")}${TH("Task Type", "#e0e7ff", "#3730a3")}${TH("Status", "#e0e7ff", "#3730a3")}${TH("Assigned By", "#e0e7ff", "#3730a3")}${TH("Description / Remarks", "#e0e7ff", "#3730a3")}${BLANK}${BLANK}${BLANK}${BLANK}</tr>`;
+        if (empTasks.length === 0) {
+          html += `<tr><td colspan="6" style="color:#94a3b8;padding:6px 8px;font-style:italic;border:1px solid #e2e8f0;">No tasks found in selected period.</td>${BLANK}${BLANK}${BLANK}${BLANK}</tr>`;
+        } else {
+          empTasks.forEach((t: any) => {
+            const assignerUser = (users as any[]).find((u: any) => u.id?.toString() === t.assignedBy?.toString());
+            const sBg = (t.status === "Completed" || t.status === "Done") ? "background:#d1fae5;color:#065f46;" : t.status === "In Progress" ? "background:#fef3c7;color:#92400e;" : "";
+            html += `<tr>${TD(fmtDate(t.date))}${TD(t.taskTitle || "—", "font-weight:bold;")}${TD(t.taskType || "—")}${TD(t.status || "—", sBg + "text-align:center;font-weight:bold;")}${TD(assignerUser?.name || (t.assignedBy ? "Manager" : "Self"))}${TD(t.description || t.remarks || "—")}${BLANK}${BLANK}${BLANK}${BLANK}</tr>`;
+          });
+        }
+
+        // Calls - Soft Sky Blue
+        const empCalls = callsHistory.filter((c: any) => {
+          const cn = (c.callerName || c.employeeName || "").toLowerCase().trim();
+          return cn === emp.name.toLowerCase().trim() && matchDateFilter(c.callDate);
+        }).sort((a: any, b: any) => new Date(b.callDate).getTime() - new Date(a.callDate).getTime());
+
+        html += `<tr>${TH("Call Date", "#e0f2fe", "#0369a1")}${TH("Bank Name", "#e0f2fe", "#0369a1")}${TH("Branch", "#e0f2fe", "#0369a1")}${TH("Log Type", "#e0f2fe", "#0369a1")}${TH("Call Status", "#e0f2fe", "#0369a1")}${TH("Conversation / Remarks", "#e0f2fe", "#0369a1")}${BLANK}${BLANK}${BLANK}${BLANK}</tr>`;
+        if (empCalls.length === 0) {
+          html += `<tr><td colspan="6" style="color:#94a3b8;padding:6px 8px;font-style:italic;border:1px solid #e2e8f0;">No calls found in selected period.</td>${BLANK}${BLANK}${BLANK}${BLANK}</tr>`;
+        } else {
+          empCalls.forEach((c: any) => {
+            const cBg = (c.callStatus || "").toLowerCase().includes("connect") ? "background:#d1fae5;color:#065f46;" : "";
+            html += `<tr>${TD(fmtDate(c.callDate))}${TD(c.bankName || "—", "font-weight:bold;")}${TD(c.branchName || "General")}${TD(c.logType || "Call Log")}${TD(c.callStatus || "—", cBg + "text-align:center;font-weight:bold;")}${TD(c.conversationDetails || c.remarks || "—")}${BLANK}${BLANK}${BLANK}${BLANK}</tr>`;
+          });
+        }
+
+        // Payments - Soft Emerald Green
+        const empPayments = paymentsHistory.filter((p: any) => {
+          const ln = (p.receivedBy || p.employeeName || p.callerName || "").toLowerCase().trim();
+          return ln === emp.name.toLowerCase().trim() && matchDateFilter(p.paymentDate);
+        }).sort((a: any, b: any) => new Date(b.paymentDate).getTime() - new Date(a.paymentDate).getTime());
+
+        html += `<tr>${TH("Payment Date", "#d1fae5", "#065f46")}${TH("Bank Name", "#d1fae5", "#065f46")}${TH("Branch", "#d1fae5", "#065f46")}${TH("Amount (₹)", "#d1fae5", "#065f46")}${TH("Mode", "#d1fae5", "#065f46")}${TH("Transaction ID", "#d1fae5", "#065f46")}${BLANK}${BLANK}${BLANK}${BLANK}</tr>`;
+        if (empPayments.length === 0) {
+          html += `<tr><td colspan="6" style="color:#94a3b8;padding:6px 8px;font-style:italic;border:1px solid #e2e8f0;">No payments logged in selected period.</td>${BLANK}${BLANK}${BLANK}${BLANK}</tr>`;
+        } else {
+          empPayments.forEach((p: any) => {
+            html += `<tr>${TD(fmtDate(p.paymentDate))}${TD(p.bankName || "—", "font-weight:bold;")}${TD(p.branchName || "General")}${TD("₹" + Number(p.amount || 0).toLocaleString("en-IN"), "color:#059669;font-weight:bold;text-align:right;")}${TD(p.paymentMode || "—")}${TD(p.transactionId || "—")}${BLANK}${BLANK}${BLANK}${BLANK}</tr>`;
+          });
+        }
+
+        // SOD / EOD Attendance - Soft Purple
+        const empSods = (reports.sod || []).filter((s: any) => {
+          const sid = (typeof s.employee === "object" ? (s.employee?.id || "") : s.employee)?.toString();
+          return sid === emp.id.toString() && matchDateFilter(s.date);
+        }).sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+        if (empSods.length > 0) {
+          html += `<tr>${TH("Attendance Date", "#f3e8ff", "#6b21a8")}${TH("SOD Time", "#f3e8ff", "#6b21a8")}${TH("EOD Time", "#f3e8ff", "#6b21a8")}${TH("Planned Task Type", "#f3e8ff", "#6b21a8")}${TH("SOD Summary", "#f3e8ff", "#6b21a8")}${TH("GPS Coordinates", "#f3e8ff", "#6b21a8")}${BLANK}${BLANK}${BLANK}${BLANK}</tr>`;
+          empSods.forEach((s: any) => {
+            const eod = (reports.eod || []).find((e: any) => {
+              const eid = (typeof e.employee === "object" ? (e.employee?.id || "") : e.employee)?.toString();
+              return eid === emp.id.toString() && new Date(e.date).toDateString() === new Date(s.date).toDateString();
+            });
+            const gps = s.latitude && s.longitude ? `${Number(s.latitude).toFixed(4)}, ${Number(s.longitude).toFixed(4)}` : "—";
+            html += `<tr>${TD(fmtDate(s.date))}${TD(fmtTime(s.createdAt), "text-align:center;")}${TD(eod ? fmtTime(eod.createdAt) : "Not Marked", `text-align:center;${!eod ? "color:#dc2626;" : ""}`)}${TD(s.taskType || "—")}${TD(s.taskSummary || "—")}${TD(gps)}${BLANK}${BLANK}${BLANK}${BLANK}</tr>`;
+          });
+        }
+
+        html += `<tr><td colspan="10" style="height:12px;border:none;"></td></tr>`;
+      });
+
+      html += `</table></body></html>`;
+
+      const blob = new Blob([html], { type: "application/vnd.ms-excel;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      const fileDate = dateFilterType === "custom" ? `${startDateFilter || "start"}_to_${endDateFilter || "end"}` : dateFilterType;
+      link.setAttribute("href", url);
+      link.setAttribute("download", `Work_Report_${fileDate}_${new Date().toISOString().split("T")[0]}.xls`);
+      link.style.visibility = "hidden";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (error) {
+      console.error("Failed to export employee work summary:", error);
+    }
+  };
+
   // Filter logic
+
+  const matchDateFilter = useCallback((dateInput: any) => {
+    if (!dateInput) return false;
+    const itemDate = new Date(dateInput);
+    if (dateFilterType === "current-month") {
+      const now = new Date();
+      return itemDate.getFullYear() === now.getFullYear() && itemDate.getMonth() === now.getMonth();
+    } else if (dateFilterType === "custom") {
+      if (!startDateFilter && !endDateFilter) return true;
+      const itemTime = itemDate.getTime();
+      if (startDateFilter) {
+        const start = new Date(startDateFilter);
+        start.setHours(0, 0, 0, 0);
+        if (itemTime < start.getTime()) return false;
+      }
+      if (endDateFilter) {
+        const end = new Date(endDateFilter);
+        end.setHours(23, 59, 59, 999);
+        if (itemTime > end.getTime()) return false;
+      }
+      return true;
+    }
+    return true; // "overall"
+  }, [dateFilterType, startDateFilter, endDateFilter]);
+
   const filteredList = mergedList.filter((item: any) => {
     const empName = item.employee?.name || "";
     const empEmail = item.employee?.email || "";
     const matchSearch = empName.toLowerCase().includes(searchTerm.toLowerCase()) || empEmail.toLowerCase().includes(searchTerm.toLowerCase());
 
-    let matchDate = true;
-    if (dateFilterType === "current-month") {
-      const now = new Date();
-      matchDate = item.date.getFullYear() === now.getFullYear() && item.date.getMonth() === now.getMonth();
-    } else if (dateFilterType === "custom") {
-      const itemTime = item.date.getTime();
-      if (startDateFilter) {
-        const start = new Date(startDateFilter);
-        start.setHours(0, 0, 0, 0);
-        if (itemTime < start.getTime()) matchDate = false;
-      }
-      if (endDateFilter) {
-        const end = new Date(endDateFilter);
-        end.setHours(23, 59, 59, 999);
-        if (itemTime > end.getTime()) matchDate = false;
-      }
-    }
+    const matchDate = matchDateFilter(item.date);
+
+    const empId = item.employee
+      ? (typeof item.employee === "object" ? (item.employee.id || item.employee.id || "") : item.employee).toString().trim()
+      : "";
+    const fullUser = users.find((u: any) => u.id?.toString() === empId);
 
     let matchCompany = true;
     if (isOwner && selectedCompany) {
-      matchCompany = isUserInCompany(item.employee, selectedCompany);
+      matchCompany = isUserInCompany(fullUser || item.employee, selectedCompany);
     }
 
     let matchUser = true;
     if (isOwner && selectedUser) {
-      const itemEmpId = item.employee
-        ? (typeof item.employee === "object" ? (item.employee.id || item.employee.id || "") : item.employee).toString().trim()
-        : "";
-      matchUser = itemEmpId === selectedUser.toString().trim();
+      matchUser = empId === selectedUser.toString().trim();
     }
 
     let matchDept = true;
     if (isOwner && selectedDept) {
-      matchDept = item.employee?.department === selectedDept;
+      const dept = (fullUser?.department || item.employee?.department || "");
+      matchDept = dept === selectedDept;
     }
 
     let matchSubTab = true;
@@ -1668,6 +1881,249 @@ export function PerformanceCompliance({
     return matchSearch && matchDate && matchCompany && matchUser && matchSubTab && matchDept;
   });
 
+  const visualStats = React.useMemo(() => {
+    const employeeMap = new Map<string, {
+      id: string;
+      name: string;
+      email: string;
+      department: string;
+      callsCount: number;
+      tasksDone: number;
+      tasksPending: number;
+      leadsSelected: number;
+      leadsRejected: number;
+      sodCount: number;
+      eodCount: number;
+      totalWorkMs: number;
+      profilePhoto: string;
+      role: string;
+    }>();
+
+    users.forEach((u: any) => {
+      const empId = u.id?.toString() || "";
+      if (selectedCompany && !isUserInCompany(u, selectedCompany)) return;
+      if (selectedDept && u.department !== selectedDept) return;
+
+      employeeMap.set(empId, {
+        id: empId,
+        name: u.name,
+        email: u.email || "",
+        department: u.department || "General",
+        callsCount: 0,
+        tasksDone: 0,
+        tasksPending: 0,
+        leadsSelected: 0,
+        leadsRejected: 0,
+        sodCount: 0,
+        eodCount: 0,
+        totalWorkMs: 0,
+        profilePhoto: u.profile?.profilePhoto || "",
+        role: u.role || ""
+      });
+    });
+
+    // Unfiltered by selectedUser for employee listing details
+    const statsList = mergedList.filter((item: any) => {
+      if (!matchDateFilter(item.date)) return false;
+      const empId = item.employee
+        ? (typeof item.employee === "object" ? (item.employee.id || item.employee.id || "") : item.employee).toString().trim()
+        : "";
+      const fullUser = users.find((u: any) => u.id?.toString() === empId);
+      if (selectedCompany && (!fullUser || !isUserInCompany(fullUser, selectedCompany))) return false;
+      if (selectedDept && (!fullUser || fullUser.department !== selectedDept)) return false;
+      return true;
+    });
+
+    statsList.forEach((item: any) => {
+      const empId = item.employee
+        ? (typeof item.employee === "object" ? (item.employee.id || item.employee.id || "") : item.employee).toString().trim()
+        : "";
+      if (empId) {
+        const empStats = employeeMap.get(empId);
+        if (empStats) {
+          if (item.sod) empStats.sodCount++;
+          if (item.eod) empStats.eodCount++;
+
+          if (item.sod && item.eod) {
+            const sodTime = new Date(item.sod.createdAt).getTime();
+            const eodTime = new Date(item.eod.createdAt).getTime();
+            const diff = eodTime - sodTime;
+            if (diff > 0) {
+              empStats.totalWorkMs += diff;
+            }
+          }
+
+          if (item.tasks) {
+            item.tasks.forEach((t: any) => {
+              const statusClean = (t.status || "").toLowerCase().trim();
+              if (statusClean === "done" || statusClean === "completed") {
+                empStats.tasksDone++;
+              } else {
+                empStats.tasksPending++;
+              }
+            });
+          }
+        }
+      }
+    });
+
+    // For Owner-role employees: count tasks they assigned (with date filter applied)
+    employeeMap.forEach((empStats) => {
+      if (empStats.role === "Owner") {
+        empStats.tasksDone = 0;
+        empStats.tasksPending = 0;
+        (reports.tasks || []).forEach((task: any) => {
+          const assignerId = task.assignedBy?.toString().trim() || "";
+          if (assignerId !== empStats.id) return;
+          if (!matchDateFilter(task.date)) return;
+          const statusClean = (task.status || "").toLowerCase().trim();
+          if (statusClean === "done" || statusClean === "completed") {
+            empStats.tasksDone++;
+          } else {
+            empStats.tasksPending++;
+          }
+        });
+      }
+    });
+
+    const statsCalls = callsHistory.filter((call: any) => {
+      if (!matchDateFilter(call.callDate)) return false;
+      const callerName = (call.callerName || call.employeeName || "").toLowerCase().trim();
+      if (!callerName) return false;
+
+      const callerProfile = users.find(u => u.name.toLowerCase().trim() === callerName);
+      if (selectedCompany && (!callerProfile || !isUserInCompany(callerProfile, selectedCompany))) return false;
+      if (selectedDept && (!callerProfile || callerProfile.department !== selectedDept)) return false;
+      return true;
+    });
+
+    const statsPayments = paymentsHistory.filter((pay: any) => {
+      if (!matchDateFilter(pay.paymentDate)) return false;
+      const callerName = (pay.callerName || pay.employeeName || "").toLowerCase().trim();
+      if (!callerName) return false;
+
+      const callerProfile = users.find(u => u.name.toLowerCase().trim() === callerName);
+      if (selectedCompany && (!callerProfile || !isUserInCompany(callerProfile, selectedCompany))) return false;
+      if (selectedDept && (!callerProfile || callerProfile.department !== selectedDept)) return false;
+      return true;
+    });
+
+    statsCalls.forEach((call: any) => {
+      const callerName = (call.callerName || call.employeeName || "").toLowerCase().trim();
+      for (const empStats of employeeMap.values()) {
+        if (empStats.name.toLowerCase().trim() === callerName) {
+          empStats.callsCount++;
+          break;
+        }
+      }
+    });
+
+    let globalLeadsSelected = 0;
+    let globalLeadsRejected = 0;
+    candidatesList.forEach((c: any) => {
+      const statusClean = (c.status || "").toLowerCase();
+      if (statusClean.includes("selected") || statusClean === "hired") {
+        globalLeadsSelected++;
+      } else if (statusClean.includes("rejected")) {
+        globalLeadsRejected++;
+      }
+    });
+
+    const branchMap = new Map<string, {
+      key: string;
+      bankName: string;
+      branchName: string;
+      callsCount: number;
+      amountRecovered: number;
+    }>();
+
+    // For branches Recovery list, we filter by selectedUser if it is set
+    const filteredCallsForBranches = statsCalls.filter((call: any) => {
+      if (!selectedUser) return true;
+      const callerName = (call.callerName || call.employeeName || "").toLowerCase().trim();
+      const callerProfile = users.find(u => u.name.toLowerCase().trim() === callerName);
+      return callerProfile && callerProfile.id?.toString() === selectedUser.toString();
+    });
+
+    const filteredPaymentsForBranches = statsPayments.filter((pay: any) => {
+      if (!selectedUser) return true;
+      const callerName = (pay.callerName || pay.employeeName || "").toLowerCase().trim();
+      const callerProfile = users.find(u => u.name.toLowerCase().trim() === callerName);
+      return callerProfile && callerProfile.id?.toString() === selectedUser.toString();
+    });
+
+    filteredCallsForBranches.forEach((call: any) => {
+      let bName = call.branchName || "General";
+      let bkName = call.bankName || "Unknown Bank";
+
+      const key = `${bkName}_${bName}`.toLowerCase().trim();
+      if (!branchMap.has(key)) {
+        branchMap.set(key, {
+          key,
+          bankName: bkName,
+          branchName: bName,
+          callsCount: 0,
+          amountRecovered: 0
+        });
+      }
+      branchMap.get(key)!.callsCount++;
+    });
+
+    filteredPaymentsForBranches.forEach((pay: any) => {
+      let bName = pay.branchName || "General";
+      let bkName = pay.bankName || "Unknown Bank";
+
+      const key = `${bkName}_${bName}`.toLowerCase().trim();
+      if (!branchMap.has(key)) {
+        branchMap.set(key, {
+          key,
+          bankName: bkName,
+          branchName: bName,
+          callsCount: 0,
+          amountRecovered: 0
+        });
+      }
+      branchMap.get(key)!.amountRecovered += Number(pay.amount || 0);
+    });
+
+    const employeesData = Array.from(employeeMap.values()).sort((a, b) =>
+      (b.callsCount + b.tasksDone + b.sodCount) - (a.callsCount + a.tasksDone + a.sodCount)
+    );
+    const branchesData = Array.from(branchMap.values()).sort((a, b) => b.amountRecovered - a.amountRecovered);
+
+    // Calculate totals for Count Boxes
+    let totalCalls = 0;
+    let totalPayments = 0;
+    let totalTasksDone = 0;
+    let totalTasksPending = 0;
+
+    if (selectedUser) {
+      const empStats = employeeMap.get(selectedUser.toString());
+      if (empStats) {
+        totalCalls = empStats.callsCount;
+        totalTasksDone = empStats.tasksDone;
+        totalTasksPending = empStats.tasksPending;
+        totalPayments = filteredPaymentsForBranches.reduce((sum, p) => sum + Number(p.amount || 0), 0);
+      }
+    } else {
+      totalCalls = statsCalls.length;
+      totalPayments = statsPayments.reduce((sum, p) => sum + Number(p.amount || 0), 0);
+      totalTasksDone = employeesData.reduce((sum, e) => sum + e.tasksDone, 0);
+      totalTasksPending = employeesData.reduce((sum, e) => sum + e.tasksPending, 0);
+    }
+
+    return {
+      employeesData,
+      branchesData,
+      totalCalls,
+      totalPayments,
+      totalTasksDone,
+      totalTasksPending,
+      globalLeadsSelected,
+      globalLeadsRejected
+    };
+  }, [users, filteredList, callsHistory, paymentsHistory, candidatesList, selectedCompany, selectedDept, selectedUser, matchDateFilter]);
+
   return (
     <div className="space-y-6 animate-fadeIn text-slate-800">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -1679,15 +2135,28 @@ export function PerformanceCompliance({
         </div>
 
         <div className="flex flex-wrap gap-2 items-center self-start md:self-auto">
-          <button
-            onClick={exportConsolidatedExcel}
-            className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-black shadow-md shadow-emerald-600/10 flex items-center gap-1.5 transition-all"
-          >
-            <Download className="w-4 h-4" /> Export
-          </button>
+          {activeSubTab !== "visual-dashboard" && (
+            <button
+              onClick={exportConsolidatedExcel}
+              className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-black shadow-md shadow-emerald-600/10 flex items-center gap-1.5 transition-all"
+            >
+              <Download className="w-4 h-4" /> Export
+            </button>
+          )}
 
           {/* Sub-Tabs */}
           <div className="flex bg-slate-100 p-1 rounded-lg border border-slate-200">
+            {isOwnerOrDirector && (
+              <button
+                onClick={() => setActiveSubTab("visual-dashboard")}
+                className={`px-4 py-2 text-xs font-black rounded-md transition-all ${activeSubTab === "visual-dashboard"
+                  ? "bg-[#714B67] text-white shadow-md"
+                  : "text-slate-655 hover:text-[#714B67]"
+                  }`}
+              >
+                📊 Visual Dashboard
+              </button>
+            )}
             <button
               onClick={() => setActiveSubTab("sod")}
               className={`px-4 py-2 text-xs font-black rounded-md transition-all ${activeSubTab === "sod"
@@ -1719,7 +2188,1367 @@ export function PerformanceCompliance({
         </div>
       </div>
 
-      {activeSubTab === "attendance-calendar" ? (
+      {activeSubTab === "visual-dashboard" ? (
+        <div className="space-y-6 animate-fadeIn">
+          {/* Filters Bar */}
+          <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="flex flex-wrap items-center gap-3">
+              {/* Date Filter Type Selector */}
+              <div>
+                <label className="block text-[9px] uppercase tracking-wider text-slate-400 font-black mb-1 font-mono">Date Range</label>
+                <select
+                  value={dateFilterType}
+                  onChange={(e: any) => setDateFilterType(e.target.value)}
+                  className="bg-slate-50 hover:bg-slate-100 border border-slate-200 focus:border-[#714B67] rounded-lg px-3 py-1.5 text-xs text-slate-800 focus:outline-none font-bold transition-all shadow-sm"
+                >
+                  <option value="overall">All Time</option>
+                  <option value="current-month">Current Month</option>
+                  <option value="custom">Custom Date Range</option>
+                </select>
+              </div>
+
+              {/* Custom Date Inputs */}
+              {dateFilterType === "custom" && (
+                <div className="flex items-center gap-2">
+                  <div>
+                    <label className="block text-[8px] uppercase tracking-wider text-slate-400 font-bold mb-0.5">From</label>
+                    <input
+                      type="date"
+                      value={startDateFilter}
+                      onChange={(e) => setStartDateFilter(e.target.value)}
+                      className="bg-white border border-slate-200 rounded-lg p-1.5 text-[10px] text-slate-800"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[8px] uppercase tracking-wider text-slate-400 font-bold mb-0.5">To</label>
+                    <input
+                      type="date"
+                      value={endDateFilter}
+                      onChange={(e) => setEndDateFilter(e.target.value)}
+                      className="bg-white border border-slate-200 rounded-lg p-1.5 text-[10px] text-slate-800"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Department Dropdown */}
+              <div>
+                <label className="block text-[9px] uppercase tracking-wider text-slate-400 font-black mb-1 font-mono">Department</label>
+                <select
+                  value={selectedDept}
+                  onChange={(e) => {
+                    setSelectedDept(e.target.value);
+                    setSelectedUser("");
+                  }}
+                  className="bg-slate-50 hover:bg-slate-100 border border-slate-200 focus:border-[#714B67] rounded-lg px-3 py-1.5 text-xs text-slate-800 focus:outline-none font-bold transition-all shadow-sm"
+                >
+                  <option value="">All Departments</option>
+                  {departmentsList.map((d: any) => (
+                    <option key={d} value={d}>{d}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* User Dropdown */}
+              <div>
+                <label className="block text-[9px] uppercase tracking-wider text-slate-400 font-black mb-1 font-mono">Employee</label>
+                <select
+                  value={selectedUser}
+                  onChange={(e) => setSelectedUser(e.target.value)}
+                  className="bg-slate-50 hover:bg-slate-100 border border-slate-200 focus:border-[#714B67] rounded-lg px-3 py-1.5 text-xs text-slate-800 focus:outline-none font-bold transition-all shadow-sm"
+                >
+                  <option value="">All Employees</option>
+                  {uniqueUsersFromReports
+                    .map((u: any) => (
+                      <option key={u.id} value={u.id}>{u.name}</option>
+                    ))
+                  }
+                </select>
+              </div>
+            </div>
+
+            {/* Clear Filters Button */}
+            {(searchTerm || selectedCompany || selectedDept || selectedUser || dateFilterType !== "overall") && (
+              <button
+                onClick={() => {
+                  setSearchTerm("");
+                  setSelectedCompany("");
+                  setSelectedDept("");
+                  setSelectedUser("");
+                  setDateFilterType("overall");
+                  setStartDateFilter("");
+                  setEndDateFilter("");
+                }}
+                className="mt-4 md:mt-0 flex items-center gap-1.5 border border-rose-250 hover:bg-rose-50 text-rose-600 px-3 py-1.5 rounded-lg text-xs font-bold transition-all shadow-sm"
+              >
+                <RefreshCw className="w-3.5 h-3.5" /> Clear Filters
+              </button>
+            )}
+          </div>
+
+          {/* Quick Stats Grid */}
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+            <div
+              onClick={() => setSelectedDashboardCategory("staff")}
+              className="bg-white border border-slate-200 p-4 rounded-xl flex items-center gap-3 shadow-sm cursor-pointer hover:bg-slate-50 transition-all hover:border-indigo-400 active:scale-[0.98]"
+            >
+              <div className="p-3 bg-purple-50 rounded-lg text-purple-650">
+                <Users className="w-5 h-5 text-purple-600" />
+              </div>
+              <div>
+                <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">
+                  {selectedUser ? "Active Staff" : "Total Staff"}
+                </div>
+                <div className="text-xs font-bold font-sans text-slate-800 leading-tight">
+                  {selectedUser
+                    ? (users.find(u => u.id?.toString() === selectedUser.toString())?.name || "Selected")
+                    : `${visualStats.employeesData.length} Staff`
+                  }
+                </div>
+              </div>
+            </div>
+
+            <div
+              onClick={() => setSelectedDashboardCategory("calls")}
+              className="bg-white border border-slate-200 p-4 rounded-xl flex items-center gap-3 shadow-sm cursor-pointer hover:bg-slate-50 transition-all hover:border-indigo-400 active:scale-[0.98]"
+            >
+              <div className="p-3 bg-indigo-50 rounded-lg text-indigo-650">
+                <PhoneCall className="w-5 h-5 text-indigo-600" />
+              </div>
+              <div>
+                <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Total Calls</div>
+                <div className="text-xl font-bold font-serif text-slate-800">{visualStats.totalCalls}</div>
+              </div>
+            </div>
+
+            <div
+              onClick={() => setSelectedDashboardCategory("tasks")}
+              className="bg-white border border-slate-200 p-4 rounded-xl flex items-center gap-3 shadow-sm cursor-pointer hover:bg-slate-50 transition-all hover:border-indigo-400 active:scale-[0.98]"
+            >
+              <div className="p-3 bg-emerald-50 rounded-lg text-emerald-650">
+                <CheckCircle className="w-5 h-5 text-emerald-600" />
+              </div>
+              <div>
+                <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Tasks Completed</div>
+                <div className="flex items-baseline gap-1.5">
+                  <span className="text-xl font-bold font-serif text-slate-800">{visualStats.totalTasksDone}</span>
+                  <span className="text-[10px] text-emerald-600 font-bold">
+                    {(() => {
+                      const tot = visualStats.totalTasksDone + visualStats.totalTasksPending;
+                      return tot > 0 ? `${Math.round((visualStats.totalTasksDone / tot) * 100)}%` : "0%";
+                    })()}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div
+              onClick={() => setSelectedDashboardCategory("pendingTasks")}
+              className="bg-white border border-slate-200 p-4 rounded-xl flex items-center gap-3 shadow-sm cursor-pointer hover:bg-slate-50 transition-all hover:border-[#F43F5E] active:scale-[0.98]"
+            >
+              <div className="p-3 bg-rose-50 rounded-lg text-rose-650">
+                <Clock className="w-5 h-5 text-rose-600" />
+              </div>
+              <div>
+                <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Pending Tasks</div>
+                <div className="flex items-baseline gap-1.5">
+                  <span className="text-xl font-bold font-serif text-slate-800">{visualStats.totalTasksPending}</span>
+                  <span className="text-[10px] text-rose-500 font-bold">
+                    {(() => {
+                      const tot = visualStats.totalTasksDone + visualStats.totalTasksPending;
+                      return tot > 0 ? `${Math.round((visualStats.totalTasksPending / tot) * 100)}%` : "0%";
+                    })()}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div
+              onClick={() => setSelectedDashboardCategory("payments")}
+              className="bg-white border border-slate-200 p-4 rounded-xl flex items-center gap-3 shadow-sm cursor-pointer hover:bg-slate-50 transition-all hover:border-indigo-400 active:scale-[0.98]"
+            >
+              <div className="p-3 bg-amber-50 rounded-lg text-amber-650">
+                <Banknote className="w-5 h-5 text-amber-600" />
+              </div>
+              <div>
+                <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Payments Recovered</div>
+                <div className="text-xl font-bold font-serif text-slate-800">Rs. {visualStats.totalPayments.toLocaleString()}</div>
+              </div>
+            </div>
+          </div>
+
+          {/* Employee Work Summary Table */}
+          <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
+            <div className="flex justify-between items-center border-b border-slate-100 pb-3 mb-4">
+              <h3 className="font-serif text-sm font-bold text-slate-800 flex items-center gap-1.5 font-sans">
+                <Briefcase className="w-4 h-4 text-indigo-500" /> Employee Work Summary
+              </h3>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={exportEmployeeWorkSummary}
+                  className="bg-[#714B67] hover:bg-[#5D3E55] text-white text-[10px] uppercase tracking-wider font-mono font-bold px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-colors shadow-sm"
+                  title="Export Employee Work Summary to Excel"
+                >
+                  <FileSpreadsheet className="w-3.5 h-3.5" /> Export Summary
+                </button>
+                <div className="flex items-center gap-2 bg-slate-50 border border-slate-250 rounded-lg px-2.5 py-1 shadow-inner">
+                  <Search className="w-3.5 h-3.5 text-slate-400" />
+                  <input
+                    type="text"
+                    placeholder="Search staff by name or email..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="bg-transparent border-none focus:outline-none text-xs text-slate-800 font-semibold w-48 placeholder:font-normal"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs border-collapse">
+                <thead>
+                  <tr className="border-b border-slate-200 bg-slate-50/50 text-slate-500 font-bold uppercase tracking-wider text-[10px]">
+                    <th className="py-3 px-4">Employee</th>
+                    <th className="py-3 px-4">Department</th>
+                    <th className="py-3 px-4 text-center">Tasks Assigned</th>
+                    <th className="py-3 px-4 text-center">Tasks Completed</th>
+                    <th className="py-3 px-4 text-center">Pending Tasks</th>
+                    <th className="py-3 px-4 text-center">Completion %</th>
+                    <th className="py-3 px-4 text-center">Work Hours</th>
+                    <th className="py-3 px-4 text-center">Productivity</th>
+                    <th className="py-3 px-4 text-center">Status</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 font-medium text-slate-700">
+                  {visualStats.employeesData
+                    .filter((emp) => {
+                      // Hide Owner role from summary table
+                      if (emp.role === "Owner") return false;
+                      if (selectedUser && emp.id.toString() !== selectedUser.toString()) return false;
+                      if (searchTerm) {
+                        const term = searchTerm.toLowerCase().trim();
+                        // Match if any word in the name starts with the search term
+                        const nameWords = (emp.name || "").toLowerCase().split(/\s+/);
+                        const nameMatch = nameWords.some((word: string) => word.startsWith(term));
+                        // Match if email starts with the search term
+                        const emailMatch = (emp.email || "").toLowerCase().startsWith(term);
+
+                        if (!nameMatch && !emailMatch) return false;
+                      }
+                      return true;
+                    })
+                    .map((emp) => {
+                      const totalTasks = emp.tasksDone + emp.tasksPending;
+                      const completionPercent = totalTasks > 0 ? ((emp.tasksDone / totalTasks) * 100) : 0;
+                      const productivity = completionPercent; // Base productivity on completion rate
+
+                      let statusText = "Poor";
+                      let statusClass = "bg-rose-50 text-rose-700 border-rose-200";
+                      if (productivity >= 90) {
+                        statusText = "Excellent";
+                        statusClass = "bg-emerald-50 text-emerald-700 border-emerald-200";
+                      } else if (productivity >= 70) {
+                        statusText = "Good";
+                        statusClass = "bg-blue-50 text-blue-700 border-blue-200";
+                      } else if (productivity >= 50) {
+                        statusText = "Average";
+                        statusClass = "bg-amber-50 text-amber-700 border-amber-200";
+                      }
+
+                      // Format initials for avatar fallback
+                      const initials = emp.name
+                        .split(" ")
+                        .map((n: string) => n[0])
+                        .join("")
+                        .slice(0, 2)
+                        .toUpperCase();
+
+                      const formatWorkHours = (totalMs: number) => {
+                        if (!totalMs || totalMs <= 0) return "0h 0m";
+                        const totalMins = Math.floor(totalMs / (1000 * 60));
+                        const hrs = Math.floor(totalMins / 60);
+                        const mins = totalMins % 60;
+                        return `${hrs}h ${mins}m`;
+                      };
+
+                      return (
+                        <React.Fragment key={emp.id}>
+                          <tr
+                            onClick={() => {
+                              setExpandedUserRows(prev => ({
+                                ...prev,
+                                [emp.id]: !prev[emp.id]
+                              }));
+                            }}
+                            className={`hover:bg-indigo-50/15 cursor-pointer transition-colors ${expandedUserRows[emp.id] ? "bg-indigo-50/10 font-bold" : ""
+                              }`}
+                          >
+                            <td className="py-3.5 px-4 whitespace-nowrap">
+                              <div className="flex items-center gap-3">
+                                <div className="w-8 h-8 rounded-full overflow-hidden border border-indigo-150 flex items-center justify-center bg-indigo-50 text-indigo-700 font-bold text-xs shrink-0 shadow-inner">
+                                  {emp.profilePhoto ? (
+                                    <img
+                                      src={emp.profilePhoto}
+                                      alt={emp.name}
+                                      className="w-full h-full object-cover"
+                                      onError={(e) => {
+                                        (e.target as HTMLElement).style.display = "none";
+                                      }}
+                                    />
+                                  ) : (
+                                    <span>{initials || "?"}</span>
+                                  )}
+                                </div>
+                                <div>
+                                  <span className="font-bold text-slate-800 text-xs block">{emp.name}</span>
+                                  <span className="text-[10px] text-slate-400 font-mono font-medium block mt-0.5">{emp.email}</span>
+                                </div>
+                              </div>
+                            </td>
+                            <td className="py-3.5 px-4 whitespace-nowrap font-semibold text-slate-655">
+                              {emp.department}
+                            </td>
+                            <td className="py-3.5 px-4 text-center font-bold text-slate-800">
+                              {totalTasks}
+                            </td>
+                            <td className="py-3.5 px-4 text-center font-bold text-emerald-600">
+                              {emp.tasksDone}
+                            </td>
+                            <td className="py-3.5 px-4 text-center font-bold text-rose-500">
+                              {emp.tasksPending}
+                            </td>
+                            <td className="py-3.5 px-4 text-center font-bold text-emerald-600">
+                              {completionPercent.toFixed(1)}%
+                            </td>
+                            <td className="py-3.5 px-4 text-center font-bold text-slate-700">
+                              {formatWorkHours(emp.totalWorkMs)}
+                            </td>
+                            <td className="py-3.5 px-4 text-center font-bold text-indigo-655">
+                              {productivity.toFixed(1)}%
+                            </td>
+                            <td className="py-3.5 px-4 text-center">
+                              <span className={`px-2.5 py-0.5 rounded-full text-[9px] font-bold border ${statusClass}`}>
+                                {statusText}
+                              </span>
+                            </td>
+                          </tr>
+
+                          {/* Expanded Row for Tasks Dropdown arranged day-by-day */}
+                          {expandedUserRows[emp.id] && (
+                            <tr className="bg-slate-50/25">
+                              <td colSpan={9} className="p-4 border-b border-slate-200">
+                                {(() => {
+                                  // All employees (including those with assigned tasks) use filteredList
+                                  // Tasks are already merged per employee per day in mergedList
+                                  const empLogs = filteredList.filter(item => {
+                                    const empIdStr = item.employee
+                                      ? (typeof item.employee === "object" ? (item.employee.id || "") : item.employee).toString().trim()
+                                      : "";
+                                    return empIdStr === emp.id.toString();
+                                  });
+                                  const sortedLogs = [...empLogs].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+                                  return (
+                                    <div className="pl-4 pr-4 py-2 animate-fadeIn grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+                                      {/* Left Column: Daily Activity & Check-In Logs */}
+                                      <div className="lg:col-span-7 space-y-4">
+                                        <div className="flex items-center justify-between border-b border-indigo-50 pb-2">
+                                          <h4 className="text-[10px] font-black uppercase text-indigo-700 font-mono tracking-wider flex items-center gap-1.5">
+                                            <Layers className="w-3.5 h-3.5 text-indigo-500" /> Daily Activity & Check-In Logs ({sortedLogs.length})
+                                          </h4>
+                                        </div>
+
+                                        {sortedLogs.length === 0 ? (
+                                          <div className="text-left py-4 text-slate-400 text-xs font-semibold">
+                                            No presence or task entries found for this user in the selected date range.
+                                          </div>
+                                        ) : (
+                                          <div className="space-y-4 max-h-[400px] overflow-y-auto pr-1.5 scrollbar-thin">
+                                            {sortedLogs.map((dayItem: any, dayIdx: number) => {
+                                              const hasSod = !!dayItem.sod;
+                                              const hasEod = !!dayItem.eod;
+                                              const dayTasks = dayItem.tasks || [];
+                                              const dayVisits = dayItem.fieldVisits || [];
+
+                                              return (
+                                                <div key={dayIdx} onClick={(e) => e.stopPropagation()} className="bg-white border border-slate-200 rounded-xl p-4 space-y-3.5 shadow-sm max-w-4xl cursor-default">
+                                                  {/* Date Header */}
+                                                  <div className="flex justify-between items-center border-b border-slate-100 pb-2">
+                                                    <span className="font-bold text-xs text-indigo-900 flex items-center gap-1">
+                                                      📅 {new Date(dayItem.date).toLocaleDateString("en-IN", { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' })}
+                                                    </span>
+                                                    <span className={`px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-wider ${hasSod && hasEod ? "bg-emerald-50 text-emerald-700 border border-emerald-200" :
+                                                        hasSod ? "bg-indigo-50 text-indigo-700 border border-indigo-200" : "bg-rose-50 text-rose-700 border-rose-200"
+                                                      }`}>
+                                                      {hasSod && hasEod ? "Completed" : hasSod ? "SOD Active" : "Absent"}
+                                                    </span>
+                                                  </div>
+
+                                                  {/* SOD/EOD Times & GPS */}
+                                                  {(
+                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs font-medium">
+                                                      <div className="space-y-2">
+                                                        <div className="flex items-center gap-2">
+                                                          <strong>SOD Time:</strong>
+                                                          <span className="text-slate-700">{hasSod ? new Date(dayItem.sod.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "—"}</span>
+                                                          {dayItem.sod?.selfieUrl && (
+                                                            <img
+                                                              src={dayItem.sod.selfieUrl}
+                                                              alt="Check-in Selfie"
+                                                              onClick={() => setSelectedSelfie(dayItem.sod.selfieUrl)}
+                                                              className="w-7 h-7 rounded-full object-cover border border-slate-250 cursor-pointer hover:scale-110 hover:ring-2 hover:ring-indigo-400 active:scale-95 transition-all shadow-sm ml-1"
+                                                              title="Click to view check-in selfie"
+                                                            />
+                                                          )}
+                                                        </div>
+                                                        <div className="flex items-center gap-2">
+                                                          <strong>EOD Time:</strong>
+                                                          <span className="text-slate-700">{hasEod ? new Date(dayItem.eod.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "—"}</span>
+                                                          {dayItem.eod?.selfieUrl && (
+                                                            <img
+                                                              src={dayItem.eod.selfieUrl}
+                                                              alt="Check-out Selfie"
+                                                              onClick={() => setSelectedSelfie(dayItem.eod.selfieUrl)}
+                                                              className="w-7 h-7 rounded-full object-cover border border-slate-250 cursor-pointer hover:scale-110 hover:ring-2 hover:ring-[#714B67] active:scale-95 transition-all shadow-sm ml-1"
+                                                              title="Click to view check-out selfie"
+                                                            />
+                                                          )}
+                                                        </div>
+                                                      </div>
+
+                                                      <div className="space-y-1 flex items-center md:items-start md:justify-end">
+                                                        {dayItem.sod?.latitude && dayItem.sod?.longitude ? (
+                                                          <div className="flex items-center gap-1.5 bg-slate-50 p-2 border border-slate-100 rounded-lg">
+                                                            <strong>GPS:</strong>
+                                                            <a
+                                                              href={`https://www.google.com/maps?q=${dayItem.sod.latitude},${dayItem.sod.longitude}`}
+                                                              target="_blank"
+                                                              rel="noopener noreferrer"
+                                                              className="text-[11px] text-blue-600 hover:underline font-semibold flex items-center gap-0.5"
+                                                            >
+                                                              <MapPin className="w-3.5 h-3.5" />
+                                                              <span>{dayItem.sod.latitude.toFixed(4)}, {dayItem.sod.longitude.toFixed(4)}</span>
+                                                            </a>
+                                                          </div>
+                                                        ) : (
+                                                          <div className="text-slate-400"><strong>GPS:</strong> Not Available</div>
+                                                        )}
+                                                      </div>
+                                                    </div>
+                                                  )}
+
+                                                  {/* Task Summary Details */}
+                                                  {hasSod && (
+                                                    <div className="text-xs bg-slate-50 border border-slate-150 rounded-lg p-2.5 space-y-1">
+                                                      <div><strong>Planned Task Type:</strong> <span className="font-semibold text-slate-800">{dayItem.sod.taskType}</span></div>
+                                                      <div><strong>Summary:</strong> <span className="text-slate-655 italic">"{dayItem.sod.taskSummary || "No summary"}"</span></div>
+                                                    </div>
+                                                  )}
+
+                                                  {/* Dynamic Tasks / Office Work Log */}
+                                                  {dayTasks.length > 0 && (
+                                                    <div className="space-y-2">
+                                                      <div className="text-[9px] font-black uppercase text-slate-455 font-mono tracking-wider">
+                                                        Logged Tasks Details
+                                                      </div>
+                                                      <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+                                                        {dayTasks.map((t: any) => {
+                                                          let proofUrls: string[] = [];
+                                                          if (t.proofAttachment) {
+                                                            if (t.proofAttachment.startsWith('[') && t.proofAttachment.endsWith(']')) {
+                                                              try {
+                                                                proofUrls = JSON.parse(t.proofAttachment);
+                                                              } catch (_) {
+                                                                proofUrls = [t.proofAttachment];
+                                                              }
+                                                            } else {
+                                                              proofUrls = t.proofAttachment.split(',').map((u: any) => u.trim()).filter(Boolean);
+                                                            }
+                                                          }
+
+                                                          return (
+                                                            <div key={t.id} className="bg-slate-50/50 border border-slate-200 p-2.5 rounded-lg text-xs space-y-1 shadow-sm flex flex-col justify-between">
+                                                              <div>
+                                                                <div className="flex justify-between items-start">
+                                                                  <span className="font-bold text-slate-800">{t.taskTitle}</span>
+                                                                  <span className={`px-2 py-0.5 rounded text-[8px] font-black tracking-wider uppercase ${t.status === "Completed" || t.status === "Done" ? "bg-emerald-50 text-emerald-700 border border-emerald-150" :
+                                                                      t.status === "In Progress" ? "bg-amber-50 text-amber-700 border border-amber-150" : "bg-slate-100 text-slate-600"
+                                                                    }`}>
+                                                                    {t.status}
+                                                                  </span>
+                                                                </div>
+                                                                <div className="text-[10px] text-slate-400 mt-0.5">
+                                                                  Type: {t.taskType}
+                                                                  {t.assignedBy && (
+                                                                    <span className="ml-2 pl-2 border-l border-slate-200">
+                                                                      Assigned By: <span className="font-bold text-indigo-700">{users.find((u: any) => u.id?.toString() === t.assignedBy?.toString())?.name || "Manager"}</span>
+                                                                    </span>
+                                                                  )}
+                                                                </div>
+                                                                {t.description && <div className="text-[10px] italic text-slate-500 mt-1 leading-relaxed">"{t.description}"</div>}
+                                                              </div>
+
+                                                              {proofUrls.length > 0 && (
+                                                                <div className="flex flex-wrap gap-1 mt-2 pt-2 border-t border-slate-100">
+                                                                  {proofUrls.map((pUrl, pIdx) => (
+                                                                    <button
+                                                                      key={pIdx}
+                                                                      onClick={() => setSelectedSelfie(pUrl)}
+                                                                      className="bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 text-[8px] font-black uppercase px-2 py-0.5 rounded flex items-center gap-0.5 transition-colors"
+                                                                    >
+                                                                      <Eye className="w-2.5 h-2.5" /> Proof #{pIdx + 1}
+                                                                    </button>
+                                                                  ))}
+                                                                </div>
+                                                              )}
+                                                            </div>
+                                                          );
+                                                        })}
+                                                      </div>
+                                                    </div>
+                                                  )}
+
+                                                  {/* Field Visits Log */}
+                                                  {dayVisits.length > 0 && (
+                                                    <div className="space-y-2">
+                                                      <div className="text-[9px] font-black uppercase text-slate-450 font-mono tracking-wider">Logged Field Visits</div>
+                                                      <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+                                                        {dayVisits.map((v: any) => {
+                                                          let visitProofUrls: string[] = [];
+                                                          if (v.visit_proof) {
+                                                            if (v.visit_proof.startsWith('[') && v.visit_proof.endsWith(']')) {
+                                                              try {
+                                                                visitProofUrls = JSON.parse(v.visit_proof);
+                                                              } catch (_) {
+                                                                visitProofUrls = [v.visit_proof];
+                                                              }
+                                                            } else {
+                                                              visitProofUrls = v.visit_proof.split(',').map((u: any) => u.trim()).filter(Boolean);
+                                                            }
+                                                          }
+
+                                                          return (
+                                                            <div key={v.id} className="bg-slate-50/50 border border-slate-200 p-2.5 rounded-lg text-xs space-y-1 shadow-sm flex flex-col justify-between">
+                                                              <div>
+                                                                <div className="flex justify-between items-start font-bold text-slate-800">
+                                                                  <span>🚗 Client: {v.client_name || "N/A"}</span>
+                                                                  {v.distance_travelled && (
+                                                                    <span className="text-[9px] font-bold text-slate-500">{v.distance_travelled} KM</span>
+                                                                  )}
+                                                                </div>
+                                                                <div className="text-[10px] text-slate-450 mt-0.5">Purpose: {v.purpose || "Field Visit"}</div>
+                                                                {v.visit_notes && <div className="text-[10px] italic text-slate-500 mt-1 leading-relaxed">"{v.visit_notes}"</div>}
+                                                              </div>
+
+                                                              {visitProofUrls.length > 0 && (
+                                                                <div className="flex flex-wrap gap-1 mt-2 pt-2 border-t border-slate-100">
+                                                                  {visitProofUrls.map((pUrl, pIdx) => (
+                                                                    <button
+                                                                      key={pIdx}
+                                                                      onClick={() => setSelectedSelfie(pUrl)}
+                                                                      className="bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 text-[8px] font-black uppercase px-2 py-0.5 rounded flex items-center gap-0.5 transition-colors"
+                                                                    >
+                                                                      <Eye className="w-2.5 h-2.5" /> Proof #{pIdx + 1}
+                                                                    </button>
+                                                                  ))}
+                                                                </div>
+                                                              )}
+                                                            </div>
+                                                          );
+                                                        })}
+                                                      </div>
+                                                    </div>
+                                                  )}
+
+                                                  {/* EOD Work Done Details */}
+                                                  {hasEod && (
+                                                    <div className="text-xs bg-slate-50 border border-slate-150 rounded-lg p-2.5 space-y-1 shadow-sm">
+                                                      <div><strong>EOD Work Done:</strong> <span className="text-slate-655 font-semibold">"{dayItem.eod.completedWork || "None"}"</span></div>
+                                                      {dayItem.eod.pendingWork && <div><strong>Pending / Blockers:</strong> <span className="text-rose-600 font-semibold">"{dayItem.eod.pendingWork}"</span></div>}
+                                                      {dayItem.eod.issuesFaced && <div><strong>Issues Faced:</strong> <span className="text-amber-600 font-semibold">"{dayItem.eod.issuesFaced}"</span></div>}
+                                                    </div>
+                                                  )}
+                                                </div>
+                                              );
+                                            })}
+                                          </div>
+                                        )}
+                                      </div>
+
+                                      {/* Right Column: Calls Made Report & Payments Logged */}
+                                      <div className="lg:col-span-5 space-y-5">
+                                        {(() => {
+                                          const empCalls = callsHistory.filter((c: any) => {
+                                            const callerName = (c.callerName || c.employeeName || "").toLowerCase().trim();
+                                            return callerName === emp.name.toLowerCase().trim() && matchDateFilter(c.callDate);
+                                          });
+
+                                          const sortedCalls = [...empCalls].sort((a, b) => new Date(b.callDate).getTime() - new Date(a.callDate).getTime());
+
+                                          const empPayments = paymentsHistory.filter((p: any) => {
+                                            const loggerName = (p.receivedBy || p.employeeName || p.callerName || "").toLowerCase().trim();
+                                            return loggerName === emp.name.toLowerCase().trim() && matchDateFilter(p.paymentDate);
+                                          });
+
+                                          const sortedPayments = [...empPayments].sort((a, b) => new Date(b.paymentDate).getTime() - new Date(a.paymentDate).getTime());
+
+                                          return (
+                                            <>
+                                              {/* Calls Made Report */}
+                                              <div className="space-y-3.5">
+                                                <div className="flex items-center justify-between border-b border-indigo-50 pb-2">
+                                                  <h4 className="text-[10px] font-black uppercase text-indigo-700 font-mono tracking-wider flex items-center gap-1.5">
+                                                    <PhoneCall className="w-3.5 h-3.5 text-indigo-500" /> Calls Made Report ({sortedCalls.length})
+                                                  </h4>
+                                                </div>
+
+                                                {sortedCalls.length === 0 ? (
+                                                  <div className="text-left py-8 text-slate-400 text-xs font-semibold bg-white border border-slate-200 rounded-xl p-4 text-center">
+                                                    No phone calls recorded by this user in the selected date range.
+                                                  </div>
+                                                ) : (
+                                                  <div className="space-y-3 max-h-[220px] overflow-y-auto pr-1.5 scrollbar-thin">
+                                                    {sortedCalls.map((call: any, callIdx: number) => (
+                                                      <div
+                                                        key={callIdx}
+                                                        onClick={(e) => e.stopPropagation()}
+                                                        className="bg-white border border-slate-200 rounded-xl p-3 space-y-1.5 shadow-sm cursor-default"
+                                                      >
+                                                        <div className="flex justify-between items-start font-bold text-xs">
+                                                          <span className="text-slate-800 leading-snug">{call.bankName || "Unknown Bank"}</span>
+                                                          <span className="text-[9px] text-slate-400 font-mono shrink-0">{call.callDate ? new Date(call.callDate).toLocaleDateString("en-IN") : ""}</span>
+                                                        </div>
+                                                        <div className="text-[9px] text-slate-500 font-semibold uppercase tracking-wider font-mono">Branch: {call.branchName || "General"}</div>
+                                                        <div className="text-[10px] text-slate-600 font-medium">Log Type: <span className="font-bold text-indigo-700">{call.logType || "Call Log"}</span></div>
+                                                        <div className="italic text-slate-550 text-[10px] bg-slate-50/50 p-2 rounded-lg leading-relaxed font-medium">
+                                                          "{call.conversationDetails || call.remarks || "No conversation details"}"
+                                                        </div>
+                                                        {call.callStatus && (
+                                                          <div className="pt-0.5">
+                                                            <span className={`px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-wider border ${call.callStatus.toLowerCase().includes("success") || call.callStatus.toLowerCase().includes("connected")
+                                                                ? "bg-emerald-50 text-emerald-700 border-emerald-150"
+                                                                : "bg-rose-50 text-rose-700 border-rose-150"
+                                                              }`}>
+                                                              {call.callStatus}
+                                                            </span>
+                                                          </div>
+                                                        )}
+                                                      </div>
+                                                    ))}
+                                                  </div>
+                                                )}
+                                              </div>
+
+                                              {/* Legal Recovery Payments Logged */}
+                                              <div className="space-y-3.5 pt-2">
+                                                <div className="flex items-center justify-between border-b border-indigo-50 pb-2">
+                                                  <h4 className="text-[10px] font-black uppercase text-indigo-700 font-mono tracking-wider flex items-center gap-1.5">
+                                                    <Coins className="w-3.5 h-3.5 text-indigo-500" /> Payments Logged ({sortedPayments.length})
+                                                  </h4>
+                                                </div>
+
+                                                {sortedPayments.length === 0 ? (
+                                                  <div className="text-left py-8 text-slate-400 text-xs font-semibold bg-white border border-slate-200 rounded-xl p-4 text-center">
+                                                    No payments logged by this user in the selected date range.
+                                                  </div>
+                                                ) : (
+                                                  <div className="space-y-3 max-h-[220px] overflow-y-auto pr-1.5 scrollbar-thin">
+                                                    {sortedPayments.map((pay: any, payIdx: number) => (
+                                                      <div
+                                                        key={payIdx}
+                                                        onClick={(e) => e.stopPropagation()}
+                                                        className="bg-white border border-slate-200 rounded-xl p-3 space-y-1.5 shadow-sm cursor-default"
+                                                      >
+                                                        <div className="flex justify-between items-start font-bold text-xs">
+                                                          <span className="text-slate-800 leading-snug">{pay.bankName || "Unknown Bank"}</span>
+                                                          <span className="text-[9px] text-slate-400 font-mono shrink-0">{pay.paymentDate ? new Date(pay.paymentDate).toLocaleDateString("en-IN") : ""}</span>
+                                                        </div>
+                                                        <div className="text-[9px] text-slate-500 font-semibold uppercase tracking-wider font-mono">Branch: {pay.branchName || "General"}</div>
+                                                        <div className="text-xs font-black text-emerald-600">Amount: ₹{Number(pay.amount || 0).toLocaleString('en-IN')}</div>
+                                                        {pay.paymentMode && (
+                                                          <div className="text-[9px] text-slate-655 font-medium">Mode: <span className="font-bold text-slate-800">{pay.paymentMode}</span></div>
+                                                        )}
+                                                        {pay.transactionId && (
+                                                          <div className="text-[9px] text-slate-655 font-medium">Transaction ID: <span className="font-mono text-slate-800">{pay.transactionId}</span></div>
+                                                        )}
+                                                        {pay.remarks && (
+                                                          <div className="italic text-slate-550 text-[10px] bg-slate-50/50 p-2 rounded-lg leading-relaxed font-medium">
+                                                            "{pay.remarks}"
+                                                          </div>
+                                                        )}
+                                                      </div>
+                                                    ))}
+                                                  </div>
+                                                )}
+                                              </div>
+                                            </>
+                                          );
+                                        })()}
+                                      </div>
+                                    </div>
+                                  );
+                                })()}
+                              </td>
+                            </tr>
+                          )}
+                        </React.Fragment>
+                      );
+                    })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* Drill-down User Modal */}
+          {selectedDetailUser && typeof document !== "undefined" && ReactDOM.createPortal(
+            <div
+              className="fixed inset-0 z-[10000] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 transition-all duration-300"
+              onClick={() => setSelectedDetailUser(null)}
+            >
+              <div
+                className="bg-white border border-slate-200 rounded-2xl w-full max-w-2xl shadow-2xl overflow-hidden flex flex-col p-5 font-sans max-h-[85vh]"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="flex justify-between items-start border-b border-slate-200 pb-4 mb-4">
+                  <div>
+                    <h3 className="text-sm font-black uppercase tracking-wider text-indigo-700">Employee Activity Logs</h3>
+                    <h2 className="text-base font-serif font-light text-slate-800 mt-1">{selectedDetailUser.name}</h2>
+                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-0.5">Department: {selectedDetailUser.department}</p>
+                  </div>
+                  <button
+                    onClick={() => setSelectedDetailUser(null)}
+                    className="p-1 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-700"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+
+                <div className="space-y-5 overflow-y-auto pr-1 flex-1 text-slate-800">
+                  {/* Presence, Tasks & Field Visits Timeline */}
+                  <div>
+                    <div className="text-[10px] font-black uppercase text-slate-450 border-b border-slate-100 pb-1 mb-3 tracking-wider flex items-center gap-1.5">
+                      <Layers className="w-3.5 h-3.5 text-indigo-500" /> Daily Activity &amp; Check-In Logs ({
+                        filteredList.filter(item => item.employee?.id?.toString() === selectedDetailUser.id.toString()).length
+                      })
+                    </div>
+
+                    <div className="space-y-4 max-h-[350px] overflow-y-auto pr-1">
+                      {filteredList
+                        .filter(item => item.employee?.id?.toString() === selectedDetailUser.id.toString())
+                        .map((dayItem: any, dayIdx: number) => {
+                          const hasSod = !!dayItem.sod;
+                          const hasEod = !!dayItem.eod;
+                          const dayTasks = dayItem.tasks || [];
+                          const dayVisits = dayItem.fieldVisits || [];
+
+                          return (
+                            <div key={dayIdx} className="bg-slate-50 border border-slate-200 rounded-xl p-3.5 space-y-3 shadow-sm">
+                              {/* Date Header */}
+                              <div className="flex justify-between items-center border-b border-slate-200/80 pb-2">
+                                <span className="font-bold text-xs text-indigo-900">
+                                  📅 {dayItem.date.toLocaleDateString("en-IN", { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' })}
+                                </span>
+                                <span className={`px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-wider ${hasSod && hasEod ? "bg-emerald-50 text-emerald-700 border border-emerald-200" :
+                                    hasSod ? "bg-indigo-50 text-indigo-700 border border-indigo-200" : "bg-rose-50 text-rose-700 border border-rose-200"
+                                  }`}>
+                                  {hasSod && hasEod ? "Completed" : hasSod ? "SOD Active" : "Absent"}
+                                </span>
+                              </div>
+
+                              {/* SOD/EOD Times & GPS */}
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs">
+                                <div className="space-y-2">
+                                  <div className="flex items-center gap-2">
+                                    <strong>SOD Time:</strong>
+                                    <span>{hasSod ? new Date(dayItem.sod.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "—"}</span>
+                                    {dayItem.sod?.selfieUrl && (
+                                      <img
+                                        src={dayItem.sod.selfieUrl}
+                                        alt="Check-in Selfie"
+                                        onClick={() => setSelectedSelfie(dayItem.sod.selfieUrl)}
+                                        className="w-7 h-7 rounded-full object-cover border border-slate-250 cursor-pointer hover:scale-110 hover:ring-2 hover:ring-indigo-400 active:scale-95 transition-all shadow-sm ml-1"
+                                        title="Click to view check-in selfie"
+                                      />
+                                    )}
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    <strong>EOD Time:</strong>
+                                    <span>{hasEod ? new Date(dayItem.eod.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "—"}</span>
+                                    {dayItem.eod?.selfieUrl && (
+                                      <img
+                                        src={dayItem.eod.selfieUrl}
+                                        alt="Check-out Selfie"
+                                        onClick={() => setSelectedSelfie(dayItem.eod.selfieUrl)}
+                                        className="w-7 h-7 rounded-full object-cover border border-slate-250 cursor-pointer hover:scale-110 hover:ring-2 hover:ring-[#714B67] active:scale-95 transition-all shadow-sm ml-1"
+                                        title="Click to view check-out selfie"
+                                      />
+                                    )}
+                                  </div>
+                                </div>
+
+                                <div className="space-y-1 flex items-center md:items-start md:justify-end">
+                                  {dayItem.sod?.latitude && dayItem.sod?.longitude ? (
+                                    <div className="flex items-center gap-1.5">
+                                      <strong>GPS:</strong>
+                                      <a
+                                        href={`https://www.google.com/maps?q=${dayItem.sod.latitude},${dayItem.sod.longitude}`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="text-[11px] text-blue-600 hover:underline font-semibold flex items-center gap-0.5"
+                                      >
+                                        <MapPin className="w-3.5 h-3.5" />
+                                        <span>{dayItem.sod.latitude.toFixed(4)}, {dayItem.sod.longitude.toFixed(4)}</span>
+                                      </a>
+                                    </div>
+                                  ) : (
+                                    <div><strong>GPS:</strong> Not Available</div>
+                                  )}
+                                </div>
+                              </div>
+
+                              {/* Task Summary Details */}
+                              {hasSod && (
+                                <div className="text-xs bg-white border border-slate-150 rounded-lg p-2.5 space-y-1 shadow-sm">
+                                  <div><strong>Planned Task Type:</strong> <span className="font-semibold text-slate-800">{dayItem.sod.taskType}</span></div>
+                                  <div><strong>Summary:</strong> <span className="text-slate-600 italic">"{dayItem.sod.taskSummary || "No summary"}"</span></div>
+                                </div>
+                              )}
+
+                              {/* Dynamic Tasks / Office Work Log */}
+                              {dayTasks.length > 0 && (
+                                <div className="space-y-1.5">
+                                  <div className="text-[9px] font-black uppercase text-slate-400 font-mono tracking-wider">Logged Office Work</div>
+                                  <div className="space-y-1.5">
+                                    {dayTasks.map((t: any) => {
+                                      let proofUrls: string[] = [];
+                                      if (t.proofAttachment) {
+                                        if (t.proofAttachment.startsWith('[') && t.proofAttachment.endsWith(']')) {
+                                          try {
+                                            proofUrls = JSON.parse(t.proofAttachment);
+                                          } catch (_) {
+                                            proofUrls = [t.proofAttachment];
+                                          }
+                                        } else {
+                                          proofUrls = t.proofAttachment.split(',').map((u: any) => u.trim()).filter(Boolean);
+                                        }
+                                      }
+
+                                      return (
+                                        <div key={t.id} className="bg-white border border-slate-150 p-2.5 rounded-lg text-xs space-y-1">
+                                          <div className="flex justify-between items-start">
+                                            <span className="font-bold text-slate-850">{t.taskTitle}</span>
+                                            <span className={`px-2 py-0.5 rounded text-[8px] font-black tracking-wider uppercase ${t.status === "Completed" || t.status === "Done" ? "bg-emerald-50 text-emerald-700 border border-emerald-150" :
+                                                t.status === "In Progress" ? "bg-amber-50 text-amber-700 border border-amber-150" : "bg-slate-100 text-slate-600"
+                                              }`}>
+                                              {t.status}
+                                            </span>
+                                          </div>
+                                          <div className="text-[10px] text-slate-400">Type: {t.taskType}</div>
+                                          {t.description && <div className="text-[10px] italic text-slate-500">"{t.description}"</div>}
+
+                                          {proofUrls.length > 0 && (
+                                            <div className="flex flex-wrap gap-1 mt-1">
+                                              {proofUrls.map((pUrl, pIdx) => (
+                                                <button
+                                                  key={pIdx}
+                                                  onClick={() => setSelectedSelfie(pUrl)}
+                                                  className="bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 text-[8px] font-black uppercase px-2 py-0.5 rounded flex items-center gap-0.5 transition-colors"
+                                                >
+                                                  <Eye className="w-2.5 h-2.5" /> Proof #{pIdx + 1}
+                                                </button>
+                                              ))}
+                                            </div>
+                                          )}
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                </div>
+                              )}
+
+                              {/* Field Visits Log */}
+                              {dayVisits.length > 0 && (
+                                <div className="space-y-1.5">
+                                  <div className="text-[9px] font-black uppercase text-slate-450 font-mono tracking-wider">Logged Field Visits</div>
+                                  <div className="space-y-1.5">
+                                    {dayVisits.map((v: any) => {
+                                      let visitProofUrls: string[] = [];
+                                      if (v.visit_proof) {
+                                        if (v.visit_proof.startsWith('[') && v.visit_proof.endsWith(']')) {
+                                          try {
+                                            visitProofUrls = JSON.parse(v.visit_proof);
+                                          } catch (_) {
+                                            visitProofUrls = [v.visit_proof];
+                                          }
+                                        } else {
+                                          visitProofUrls = v.visit_proof.split(',').map((u: any) => u.trim()).filter(Boolean);
+                                        }
+                                      }
+
+                                      return (
+                                        <div key={v.id} className="bg-white border border-slate-150 p-2.5 rounded-lg text-xs space-y-1">
+                                          <div className="flex justify-between items-start font-bold text-slate-850">
+                                            <span>🚗 Client: {v.client_name || "N/A"}</span>
+                                            {v.distance_travelled && (
+                                              <span className="text-[9px] font-bold text-slate-500">{v.distance_travelled} KM</span>
+                                            )}
+                                          </div>
+                                          <div className="text-[10px] text-slate-450">Purpose: {v.purpose || "Field Visit"}</div>
+                                          {v.visit_notes && <div className="text-[10px] italic text-slate-500">"{v.visit_notes}"</div>}
+
+                                          {visitProofUrls.length > 0 && (
+                                            <div className="flex flex-wrap gap-1 mt-1">
+                                              {visitProofUrls.map((pUrl, pIdx) => (
+                                                <button
+                                                  key={pIdx}
+                                                  onClick={() => setSelectedSelfie(pUrl)}
+                                                  className="bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 text-[8px] font-black uppercase px-2 py-0.5 rounded flex items-center gap-0.5 transition-colors"
+                                                >
+                                                  <Eye className="w-2.5 h-2.5" /> Proof #{pIdx + 1}
+                                                </button>
+                                              ))}
+                                            </div>
+                                          )}
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                </div>
+                              )}
+
+                              {/* EOD Work Done Details */}
+                              {hasEod && (
+                                <div className="text-xs bg-white border border-slate-150 rounded-lg p-2.5 space-y-1 shadow-sm">
+                                  <div><strong>EOD Work Done:</strong> <span className="text-slate-655 font-semibold">"{dayItem.eod.completedWork || "None"}"</span></div>
+                                  {dayItem.eod.pendingWork && <div><strong>Pending / Blockers:</strong> <span className="text-rose-600 font-semibold">"{dayItem.eod.pendingWork}"</span></div>}
+                                  {dayItem.eod.issuesFaced && <div><strong>Issues Faced:</strong> <span className="text-amber-600 font-semibold">"{dayItem.eod.issuesFaced}"</span></div>}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      {filteredList.filter(item => item.employee?.id?.toString() === selectedDetailUser.id.toString()).length === 0 && (
+                        <div className="text-center py-10 text-slate-400 text-xs">No check-in or presence entries logged in this date range.</div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Calls History Tab */}
+                  <div>
+                    <div className="text-[10px] font-black uppercase text-slate-450 border-b border-slate-100 pb-1 mb-2 tracking-wider flex items-center gap-1.5">
+                      <PhoneCall className="w-3.5 h-3.5 text-indigo-500" /> Calls Made ({
+                        callsHistory.filter(c =>
+                          (c.callerName || c.employeeName || "").toLowerCase().trim() === selectedDetailUser.name.toLowerCase().trim()
+                          && matchDateFilter(c.callDate)
+                        ).length
+                      })
+                    </div>
+                    <div className="space-y-2 max-h-[220px] overflow-y-auto pr-1">
+                      {callsHistory
+                        .filter(c =>
+                          (c.callerName || c.employeeName || "").toLowerCase().trim() === selectedDetailUser.name.toLowerCase().trim()
+                          && matchDateFilter(c.callDate)
+                        )
+                        .map((call, idx) => (
+                          <div key={idx} className="bg-slate-50 border border-slate-100 p-2.5 rounded-lg text-xs">
+                            <div className="flex justify-between font-bold text-slate-800">
+                              <span>{call.bankName} - {call.branchName}</span>
+                              <span className="text-[10px] text-slate-400 font-mono">{call.callDate ? new Date(call.callDate).toLocaleDateString("en-IN") : ""}</span>
+                            </div>
+                            <div className="text-slate-600 mt-1 font-medium italic">"{call.conversationDetails || call.remarks || "No conversation notes"}"</div>
+                            {call.callStatus && (
+                              <span className="inline-block mt-1.5 px-2 py-0.5 rounded bg-indigo-50 border border-indigo-100 text-[9px] font-black text-indigo-700 uppercase tracking-wide">
+                                {call.callStatus}
+                              </span>
+                            )}
+                          </div>
+                        ))}
+                      {callsHistory.filter(c =>
+                        (c.callerName || c.employeeName || "").toLowerCase().trim() === selectedDetailUser.name.toLowerCase().trim()
+                        && matchDateFilter(c.callDate)
+                      ).length === 0 && (
+                          <div className="text-center py-6 text-slate-400 text-xs">No calls logged by this user.</div>
+                        )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>,
+            document.body
+          )}
+
+          {/* Drill-down Branch Modal */}
+          {selectedDetailBranch && typeof document !== "undefined" && ReactDOM.createPortal(
+            <div
+              className="fixed inset-0 z-[10000] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 transition-all duration-300"
+              onClick={() => setSelectedDetailBranch(null)}
+            >
+              <div
+                className="bg-white border border-slate-200 rounded-2xl w-full max-w-2xl shadow-2xl overflow-hidden flex flex-col p-5 font-sans max-h-[85vh]"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="flex justify-between items-start border-b border-slate-200 pb-4 mb-4">
+                  <div>
+                    <h3 className="text-sm font-black uppercase tracking-wider text-emerald-700">Bank Branch Details</h3>
+                    <h2 className="text-base font-serif font-light text-slate-800 mt-1">{selectedDetailBranch.bankName}</h2>
+                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-0.5">Branch Name: {selectedDetailBranch.branchName}</p>
+                  </div>
+                  <button
+                    onClick={() => setSelectedDetailBranch(null)}
+                    className="p-1 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-700"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+
+                <div className="space-y-5 overflow-y-auto pr-1 flex-1 text-slate-800">
+                  <div>
+                    <div className="text-[10px] font-black uppercase text-slate-400 border-b border-slate-100 pb-1 mb-2 tracking-wider flex items-center gap-1.5">
+                      <PhoneCall className="w-3.5 h-3.5 text-indigo-500" /> Calling History ({callsHistory.filter(c => (c.bankName || "").toLowerCase().trim() === selectedDetailBranch.bankName.toLowerCase().trim() && (c.branchName || "").toLowerCase().trim() === selectedDetailBranch.branchName.toLowerCase().trim() && matchDateFilter(c.callDate)).length})
+                    </div>
+                    <div className="space-y-2 max-h-[220px] overflow-y-auto pr-1">
+                      {callsHistory
+                        .filter(c => (c.bankName || "").toLowerCase().trim() === selectedDetailBranch.bankName.toLowerCase().trim() && (c.branchName || "").toLowerCase().trim() === selectedDetailBranch.branchName.toLowerCase().trim() && matchDateFilter(c.callDate))
+                        .map((call, idx) => (
+                          <div key={idx} className="bg-slate-50 border border-slate-100 p-2.5 rounded-lg text-xs">
+                            <div className="flex justify-between font-bold text-slate-800">
+                              <span>By: {call.callerName || call.employeeName || "System"}</span>
+                              <span className="text-[10px] text-slate-400 font-mono">{call.callDate ? new Date(call.callDate).toLocaleDateString() : ""}</span>
+                            </div>
+                            <div className="text-slate-600 mt-1 font-medium italic">"{call.conversationDetails || call.remarks || "No conversation notes"}"</div>
+                            {call.callStatus && (
+                              <span className="inline-block mt-1.5 px-2 py-0.5 rounded bg-indigo-50 border border-indigo-100 text-[9px] font-black text-indigo-700 uppercase tracking-wide">
+                                {call.callStatus}
+                              </span>
+                            )}
+                          </div>
+                        ))}
+                      {callsHistory.filter(c => (c.bankName || "").toLowerCase().trim() === selectedDetailBranch.bankName.toLowerCase().trim() && (c.branchName || "").toLowerCase().trim() === selectedDetailBranch.branchName.toLowerCase().trim() && matchDateFilter(c.callDate)).length === 0 && (
+                        <div className="text-center py-6 text-slate-400 text-xs">No calls logged for this branch.</div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="text-[10px] font-black uppercase text-slate-400 border-b border-slate-100 pb-1 mb-2 tracking-wider flex items-center gap-1.5">
+                      <Banknote className="w-3.5 h-3.5 text-emerald-500" /> Payments Received (Rs. {
+                        paymentsHistory
+                          .filter(p => (p.bankName || "").toLowerCase().trim() === selectedDetailBranch.bankName.toLowerCase().trim() && (p.branchName || "").toLowerCase().trim() === selectedDetailBranch.branchName.toLowerCase().trim() && matchDateFilter(p.paymentDate))
+                          .reduce((sum, p) => sum + Number(p.amount || 0), 0)
+                          .toLocaleString()
+                      })
+                    </div>
+                    <div className="space-y-2 max-h-[220px] overflow-y-auto pr-1">
+                      {paymentsHistory
+                        .filter(p => (p.bankName || "").toLowerCase().trim() === selectedDetailBranch.bankName.toLowerCase().trim() && (p.branchName || "").toLowerCase().trim() === selectedDetailBranch.branchName.toLowerCase().trim() && matchDateFilter(p.paymentDate))
+                        .map((pay, idx) => (
+                          <div key={idx} className="bg-slate-50 border border-slate-100 p-2.5 rounded-lg text-xs flex justify-between items-center text-slate-800">
+                            <div>
+                              <div className="font-bold text-slate-800">Rs. {Number(pay.amount || 0).toLocaleString()}</div>
+                              <div className="text-[9px] text-slate-400 mt-0.5">Mode: {pay.paymentMode || "Direct"} | Recipient: {pay.receivedBy || "N/A"}</div>
+                            </div>
+                            <div className="text-right">
+                              <div className="text-[10px] text-slate-400 font-mono font-bold">{pay.paymentDate ? new Date(pay.paymentDate).toLocaleDateString() : ""}</div>
+                              {pay.proofUrl && (
+                                <button
+                                  onClick={() => window.open(pay.proofUrl, "_blank")}
+                                  className="text-[9px] uppercase tracking-wider font-extrabold text-emerald-600 hover:underline mt-1 block"
+                                >
+                                  View Proof
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      {paymentsHistory.filter(p => (p.bankName || "").toLowerCase().trim() === selectedDetailBranch.bankName.toLowerCase().trim() && (p.branchName || "").toLowerCase().trim() === selectedDetailBranch.branchName.toLowerCase().trim() && matchDateFilter(p.paymentDate)).length === 0 && (
+                        <div className="text-center py-6 text-slate-400 text-xs">No payments recovered from this branch.</div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>,
+            document.body
+          )}
+
+          {/* Drill-down Quick Stats Category Modals */}
+          {selectedDashboardCategory && typeof document !== "undefined" && ReactDOM.createPortal(
+            <div
+              className="fixed inset-0 z-[10000] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 transition-all duration-300"
+              onClick={() => setSelectedDashboardCategory(null)}
+            >
+              <div
+                className="bg-white border border-slate-200 rounded-2xl w-full max-w-2xl shadow-2xl overflow-hidden flex flex-col p-5 font-sans max-h-[85vh]"
+                onClick={(e) => e.stopPropagation()}
+              >
+                {/* Header */}
+                <div className="flex justify-between items-start border-b border-slate-200 pb-4 mb-4">
+                  <div>
+                    <h3 className="text-sm font-black uppercase tracking-wider text-indigo-700">Consolidated Details</h3>
+                    <h2 className="text-base font-serif font-light text-slate-800 mt-1">
+                      {selectedDashboardCategory === "staff" ? "Total Staff Directory" :
+                        selectedDashboardCategory === "calls" ? "Filtered Calls History" :
+                          selectedDashboardCategory === "tasks" ? "Completed Office Tasks Log" :
+                            selectedDashboardCategory === "pendingTasks" ? "Pending & In-Progress Tasks" : "Payments Recovered Logs"}
+                    </h2>
+                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-0.5">
+                      Filtered by selected company, department &amp; date range
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => setSelectedDashboardCategory(null)}
+                    className="p-1 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-700"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+
+                {/* Content */}
+                <div className="space-y-4 overflow-y-auto pr-1 flex-1 text-slate-800 text-xs">
+                  {/* Staff List */}
+                  {selectedDashboardCategory === "staff" && (
+                    <div className="space-y-3">
+                      <div className="bg-slate-50 border border-slate-150 rounded-xl p-3 font-semibold text-slate-700 grid grid-cols-4 gap-2">
+                        <span>Staff Member</span>
+                        <span>Department</span>
+                        <span className="text-center">Status</span>
+                        <span className="text-right">Action</span>
+                      </div>
+                      <div className="space-y-2">
+                        {visualStats.employeesData.map((emp: any) => {
+                          const isActive = emp.sodCount > 0 || emp.eodCount > 0 || emp.callsCount > 0;
+                          return (
+                            <div key={emp.id} className="bg-white border border-slate-105 rounded-xl p-3 grid grid-cols-4 gap-2 items-center hover:bg-slate-50 transition-colors shadow-sm">
+                              <div>
+                                <div className="font-bold text-slate-800">{emp.name}</div>
+                                <div className="text-[10px] text-slate-405 font-mono">{emp.email}</div>
+                              </div>
+                              <span className="font-medium text-slate-600">{emp.department}</span>
+                              <div className="text-center">
+                                <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider ${isActive ? "bg-emerald-50 text-emerald-700 border border-emerald-200" : "bg-slate-100 text-slate-500 border border-slate-200"
+                                  }`}>
+                                  {isActive ? "Active" : "Inactive"}
+                                </span>
+                              </div>
+                              <div className="text-right">
+                                <button
+                                  onClick={() => {
+                                    setSelectedDetailUser(emp);
+                                    setSelectedDashboardCategory(null);
+                                  }}
+                                  className="px-2.5 py-1 bg-indigo-50 border border-indigo-200 text-indigo-700 text-[10px] font-black rounded-lg hover:bg-indigo-100 uppercase tracking-wider"
+                                >
+                                  View Timeline
+                                </button>
+                              </div>
+                            </div>
+                          );
+                        })}
+                        {visualStats.employeesData.length === 0 && (
+                          <div className="text-center py-8 text-slate-400">No staff members match the current filters.</div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Calls List */}
+                  {selectedDashboardCategory === "calls" && (
+                    <div className="space-y-2">
+                      {callsHistory
+                        .filter(call => {
+                          const callerName = (call.callerName || call.employeeName || "").toLowerCase().trim();
+                          const callerProfile = users.find(u => u.name.toLowerCase().trim() === callerName);
+                          if (selectedCompany && (!callerProfile || !isUserInCompany(callerProfile, selectedCompany))) return false;
+                          if (selectedDept && (!callerProfile || callerProfile.department !== selectedDept)) return false;
+
+                          return matchDateFilter(call.callDate);
+                        })
+                        .map((call, idx) => (
+                          <div key={idx} className="bg-slate-50 border border-slate-150 p-3 rounded-xl space-y-1.5 shadow-sm">
+                            <div className="flex justify-between items-start font-bold">
+                              <span className="text-slate-800">{call.bankName || "Unknown Bank"} - {call.branchName || "General"}</span>
+                              <span className="text-[10px] text-slate-400 font-mono">{call.callDate ? new Date(call.callDate).toLocaleDateString("en-IN") : ""}</span>
+                            </div>
+                            <div className="text-[11px] text-slate-650">Caller: <span className="font-semibold">{call.callerName || call.employeeName || "System"}</span> ({call.logType})</div>
+                            <div className="italic text-slate-500 mt-1">"{call.conversationDetails || call.remarks || "No conversation remarks"}"</div>
+                            {call.callStatus && (
+                              <span className="inline-block mt-1 px-2 py-0.5 rounded bg-indigo-50 border border-indigo-150 text-[9px] font-black text-indigo-700 uppercase tracking-wide">
+                                {call.callStatus}
+                              </span>
+                            )}
+                          </div>
+                        ))}
+                      {callsHistory.filter(call => {
+                        const callerName = (call.callerName || call.employeeName || "").toLowerCase().trim();
+                        const callerProfile = users.find(u => u.name.toLowerCase().trim() === callerName);
+                        if (selectedCompany && (!callerProfile || !isUserInCompany(callerProfile, selectedCompany))) return false;
+                        if (selectedDept && (!callerProfile || callerProfile.department !== selectedDept)) return false;
+                        return matchDateFilter(call.callDate);
+                      }).length === 0 && (
+                          <div className="text-center py-8 text-slate-400">No logged calls found.</div>
+                        )}
+                    </div>
+                  )}
+
+                  {/* Tasks List */}
+                  {selectedDashboardCategory === "tasks" && (
+                    <div className="space-y-2">
+                      {filteredList
+                        .flatMap(dayItem => (dayItem.tasks || []).map((t: any) => ({ ...t, empName: dayItem.employee?.name || "N/A" })))
+                        .filter(t => t.status === "Completed" || t.status === "Done")
+                        .map((task, idx) => {
+                          let proofUrls: string[] = [];
+                          if (task.proofAttachment) {
+                            if (task.proofAttachment.startsWith('[') && task.proofAttachment.endsWith(']')) {
+                              try {
+                                proofUrls = JSON.parse(task.proofAttachment);
+                              } catch (_) {
+                                proofUrls = [task.proofAttachment];
+                              }
+                            } else {
+                              proofUrls = task.proofAttachment.split(',').map((u: any) => u.trim()).filter(Boolean);
+                            }
+                          }
+
+                          return (
+                            <div key={idx} className="bg-slate-50 border border-slate-150 p-3 rounded-xl space-y-1.5 shadow-sm">
+                              <div className="flex justify-between items-center">
+                                <span className="font-bold text-slate-800">{task.taskTitle}</span>
+                                <span className="px-2 py-0.5 rounded text-[8px] font-black tracking-wider uppercase bg-emerald-50 text-emerald-700 border border-emerald-155">
+                                  {task.status}
+                                </span>
+                              </div>
+                              <div className="text-[10px] text-slate-500">
+                                Completed By: <span className="font-semibold text-slate-700">{task.empName}</span> | Type: {task.taskType}
+                              </div>
+                              {task.description && <div className="text-[10px] text-slate-600 italic">"{task.description}"</div>}
+
+                              {proofUrls.length > 0 && (
+                                <div className="flex flex-wrap gap-1 mt-1">
+                                  {proofUrls.map((pUrl, pIdx) => (
+                                    <button
+                                      key={pIdx}
+                                      onClick={() => setSelectedSelfie(pUrl)}
+                                      className="bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-250 text-[8px] font-black uppercase px-2 py-0.5 rounded flex items-center gap-0.5 transition-colors"
+                                    >
+                                      <Eye className="w-2.5 h-2.5" /> View Proof #{pIdx + 1}
+                                    </button>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      {filteredList.flatMap(dayItem => dayItem.tasks || []).filter(t => t.status === "Completed" || t.status === "Done").length === 0 && (
+                        <div className="text-center py-8 text-slate-400">No completed tasks found.</div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Pending Tasks List */}
+                  {selectedDashboardCategory === "pendingTasks" && (
+                    <div className="space-y-2">
+                      {filteredList
+                        .flatMap(dayItem => (dayItem.tasks || []).map((t: any) => ({ ...t, empName: dayItem.employee?.name || "N/A" })))
+                        .filter(t => t.status !== "Completed" && t.status !== "Done")
+                        .map((task, idx) => {
+                          let proofUrls: string[] = [];
+                          if (task.proofAttachment) {
+                            if (task.proofAttachment.startsWith('[') && task.proofAttachment.endsWith(']')) {
+                              try {
+                                proofUrls = JSON.parse(task.proofAttachment);
+                              } catch (_) {
+                                proofUrls = [task.proofAttachment];
+                              }
+                            } else {
+                              proofUrls = task.proofAttachment.split(',').map((u: any) => u.trim()).filter(Boolean);
+                            }
+                          }
+
+                          return (
+                            <div key={idx} className="bg-slate-50 border border-slate-150 p-3 rounded-xl space-y-1.5 shadow-sm">
+                              <div className="flex justify-between items-center">
+                                <span className="font-bold text-slate-800">{task.taskTitle}</span>
+                                <span className="px-2 py-0.5 rounded text-[8px] font-black tracking-wider uppercase bg-amber-50 text-amber-700 border border-amber-150">
+                                  {task.status || "Pending"}
+                                </span>
+                              </div>
+                              <div className="text-[10px] text-slate-500">
+                                Assigned To: <span className="font-semibold text-slate-700">{task.empName}</span> | Type: {task.taskType}
+                              </div>
+                              {task.description && <div className="text-[10px] text-slate-600 italic">"{task.description}"</div>}
+
+                              {proofUrls.length > 0 && (
+                                <div className="flex flex-wrap gap-1 mt-1">
+                                  {proofUrls.map((pUrl, pIdx) => (
+                                    <button
+                                      key={pIdx}
+                                      onClick={() => setSelectedSelfie(pUrl)}
+                                      className="bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-250 text-[8px] font-black uppercase px-2 py-0.5 rounded flex items-center gap-0.5 transition-colors"
+                                    >
+                                      <Eye className="w-2.5 h-2.5" /> View Proof #{pIdx + 1}
+                                    </button>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      {filteredList.flatMap(dayItem => dayItem.tasks || []).filter(t => t.status !== "Completed" && t.status !== "Done").length === 0 && (
+                        <div className="text-center py-8 text-slate-400">No pending or in-progress tasks found.</div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Payments List */}
+                  {selectedDashboardCategory === "payments" && (
+                    <div className="space-y-2">
+                      {paymentsHistory
+                        .filter(p => {
+                          const callerProfile = users.find(u => u.name.toLowerCase().trim() === (p.callerName || p.employeeName || "").toLowerCase().trim());
+                          if (selectedCompany && (!callerProfile || !isUserInCompany(callerProfile, selectedCompany))) return false;
+                          if (selectedDept && (!callerProfile || callerProfile.department !== selectedDept)) return false;
+
+                          return matchDateFilter(p.paymentDate);
+                        })
+                        .map((p, idx) => (
+                          <div key={idx} className="bg-slate-50 border border-slate-150 p-3 rounded-xl space-y-1.5 shadow-sm">
+                            <div className="flex justify-between items-start font-bold">
+                              <span className="text-slate-800">{p.bankName || "Unknown Bank"} - {p.branchName || "General"}</span>
+                              <span className="text-emerald-700 font-serif font-black text-sm">Rs. {p.amountRecovered?.toLocaleString()}</span>
+                            </div>
+                            <div className="text-[10px] text-slate-550">
+                              Recovered By: <span className="font-semibold text-slate-700">{p.callerName || p.employeeName || "System"}</span> | Mode: {p.paymentMode || "Cash"}
+                            </div>
+                            <div className="text-[10px] text-slate-400 font-mono">Date: {p.paymentDate ? new Date(p.paymentDate).toLocaleDateString("en-IN") : ""}</div>
+
+                            {p.proofUrl && (
+                              <button
+                                onClick={() => setSelectedSelfie(p.proofUrl)}
+                                className="mt-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-250 text-[8px] font-black uppercase px-2 py-0.5 rounded flex items-center gap-0.5 transition-colors"
+                              >
+                                <Eye className="w-2.5 h-2.5" /> View Receipt Proof
+                              </button>
+                            )}
+                          </div>
+                        ))}
+                      {paymentsHistory.filter(p => {
+                        const callerProfile = users.find(u => u.name.toLowerCase().trim() === (p.callerName || p.employeeName || "").toLowerCase().trim());
+                        if (selectedCompany && (!callerProfile || !isUserInCompany(callerProfile, selectedCompany))) return false;
+                        if (selectedDept && (!callerProfile || callerProfile.department !== selectedDept)) return false;
+                        return matchDateFilter(p.paymentDate);
+                      }).length === 0 && (
+                          <div className="text-center py-8 text-slate-400">No payment records found.</div>
+                        )}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>,
+            document.body
+          )}
+        </div>
+      ) : activeSubTab === "attendance-calendar" ? (
         <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm flex flex-col text-slate-800">
           {/* Header & Filter */}
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-100 pb-4 mb-4">
@@ -1847,8 +3676,8 @@ export function PerformanceCompliance({
                 type="button"
                 onClick={() => setShowFilters(!showFilters)}
                 className={`flex items-center gap-2 border px-4 py-2 text-xs font-bold transition-all rounded-xl shadow-sm focus:outline-none ${showFilters
-                    ? "bg-[#C9A84C] border-[#C9A84C] text-[#FCFBF9]"
-                    : "bg-[#FCFBF9] hover:bg-[#F5F2EC] border-[#E8E4DF] text-[#1C1C1A]"
+                  ? "bg-[#C9A84C] border-[#C9A84C] text-[#FCFBF9]"
+                  : "bg-[#FCFBF9] hover:bg-[#F5F2EC] border-[#E8E4DF] text-[#1C1C1A]"
                   }`}
               >
                 <Filter className="w-3.5 h-3.5" />
@@ -2336,9 +4165,15 @@ export function PerformanceCompliance({
       )}
 
       {/* File/Selfie Viewer Modal */}
-      {selectedSelfie && (
-        <div className="fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl overflow-hidden shadow-2xl max-w-4xl w-full border border-slate-200 relative animate-scaleIn animate-duration-200 flex flex-col max-h-[90vh]">
+      {selectedSelfie && typeof document !== "undefined" && ReactDOM.createPortal(
+        <div
+          className="fixed inset-0 bg-black/85 backdrop-blur-sm z-[20000] flex items-center justify-center p-4"
+          onClick={() => setSelectedSelfie(null)}
+        >
+          <div
+            className="bg-white rounded-2xl overflow-hidden shadow-2xl max-w-4xl w-full border border-slate-200 relative animate-scaleIn animate-duration-200 flex flex-col max-h-[90vh]"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="p-4 border-b border-slate-200 flex items-center justify-between bg-slate-50">
               <h4 className="text-sm font-black text-[#714B67] uppercase font-mono tracking-wider">Document / Proof Viewer</h4>
               <button
@@ -2400,7 +4235,8 @@ export function PerformanceCompliance({
               })()}
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
@@ -2719,8 +4555,8 @@ export function LeaveRequestTab({ sessionUser }: { sessionUser?: any }) {
                 type="button"
                 onClick={() => setShowFilters(!showFilters)}
                 className={`flex items-center gap-2 border px-4 py-2 text-xs font-bold transition-all rounded-xl shadow-sm focus:outline-none ${showFilters
-                    ? "bg-[#C9A84C] border-[#C9A84C] text-[#FCFBF9]"
-                    : "bg-[#FCFBF9] hover:bg-[#F5F2EC] border-[#E8E4DF] text-[#1C1C1A]"
+                  ? "bg-[#C9A84C] border-[#C9A84C] text-[#FCFBF9]"
+                  : "bg-[#FCFBF9] hover:bg-[#F5F2EC] border-[#E8E4DF] text-[#1C1C1A]"
                   }`}
               >
                 <Filter className="w-3.5 h-3.5" />
