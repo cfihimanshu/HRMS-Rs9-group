@@ -27,6 +27,120 @@ export async function GET(req: Request) {
 
     await sequelize.authenticate();
 
+    if (platformId === "all") {
+      const platforms = await LeadPlatform.findAll({ raw: true });
+      let combinedLeads: any[] = [];
+      let columnsSet = new Set<string>(["id", "status", "createdAt", "updatedAt"]);
+
+      for (const plat of platforms) {
+        try {
+          const tableName = plat.tableName;
+          // Get columns
+          const [columnsResult]: any[] = await sequelize.query(`SHOW COLUMNS FROM ${tableName}`);
+          const cols = columnsResult.map((c: any) => c.Field);
+          cols.forEach((c: any) => columnsSet.add(c));
+
+          // Fetch leads
+          const [leads]: any[] = await sequelize.query(
+            `SELECT * FROM ${tableName}`
+          );
+          // Add platform ID/Name to each lead
+          leads.forEach((l: any) => {
+            l.platform_id = plat.id;
+            l.source_type = plat.name;
+          });
+          combinedLeads = combinedLeads.concat(leads);
+        } catch (e) {
+          console.warn(`Failed to fetch leads for platform ${plat.id}:`, e);
+        }
+      }
+
+      // Add dynamic properties to columns list
+      columnsSet.add("platform_id");
+      columnsSet.add("source_type");
+      const columns = Array.from(columnsSet);
+
+      // Sort by createdAt desc
+      combinedLeads.sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
+
+      // Fetch task logs like standard GET
+      let taskLogs: any[] = [];
+      try {
+        const [results]: any[] = await sequelize.query(
+          `SELECT id, employee, date, taskTitle, description, status, proofAttachment FROM tasklogs WHERE taskType = 'CALL' AND description LIKE '%Lead ID:%'`
+        );
+        taskLogs = results || [];
+      } catch (e) {}
+
+      // Map task logs by Lead ID
+      const taskLogsByLeadId: { [leadId: string]: any[] } = {};
+      for (const log of taskLogs) {
+        const desc = log.description || "";
+        const match = desc.match(/Lead ID:\s*([^\s\n\r]+)/i);
+        if (match && match[1]) {
+          const leadId = match[1].trim();
+          if (!taskLogsByLeadId[leadId]) {
+            taskLogsByLeadId[leadId] = [];
+          }
+          taskLogsByLeadId[leadId].push(log);
+        }
+      }
+
+      // Calculate stats
+      let leadsCalled = 0;
+      let connected = 0;
+      let notConnected = 0;
+      let interviewScheduled = 0;
+      let selected = 0;
+      let rejected = 0;
+      let systemJobLink = 0;
+
+      combinedLeads.forEach((lead: any) => {
+        const status = lead.status || "";
+        if (status && status !== "New") {
+          leadsCalled++;
+        }
+        const statusLower = status.toLowerCase();
+        if (statusLower.includes("connected")) {
+          connected++;
+        }
+        if (statusLower.includes("no answer") || statusLower.includes("busy") || statusLower.includes("not interested") || statusLower.includes("not intrested")) {
+          notConnected++;
+        }
+        if (statusLower.includes("interview")) {
+          interviewScheduled++;
+        }
+        if (statusLower.includes("select")) {
+          selected++;
+        }
+        if (statusLower.includes("reject")) {
+          rejected++;
+        }
+        if (lead.source_type === "System Job Link" || lead.isSystemLink) {
+          systemJobLink++;
+        }
+      });
+
+      return NextResponse.json({
+        success: true,
+        data: {
+          columns,
+          leads: combinedLeads,
+          taskLogsByLeadId,
+          stats: {
+            totalLeads: combinedLeads.length,
+            leadsCalled,
+            connected,
+            notConnected,
+            interviewScheduled,
+            selected,
+            rejected,
+            systemJobLink,
+          }
+        }
+      });
+    }
+
     const platform = await LeadPlatform.findOne({ where: { id: platformId } });
     if (!platform) {
       return NextResponse.json({ success: false, error: "Platform not found." }, { status: 404 });

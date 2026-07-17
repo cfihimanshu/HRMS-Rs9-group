@@ -339,9 +339,9 @@ export async function GET(req: Request) {
 
     const userId = (session.user as any).id;
     const userRole = (session.user as any).role || "Employee";
-    
+
     await sequelize.authenticate();
-    try { await TaskLog.sync({ alter: true }); } catch (_) {}
+    try { await TaskLog.sync({ alter: true }); } catch (_) { }
     const { searchParams } = new URL(req.url);
     const filterDate = searchParams.get("date");
     const range = searchParams.get("range");
@@ -360,7 +360,7 @@ export async function GET(req: Request) {
       nextDay.setDate(nextDay.getDate() + 1);
       query.date = { [Op.gte]: targetDate, [Op.lt]: nextDay };
     }
-    
+
     // Owner sees all tasks.
     // Managers (Department Manager or Reporting Manager) see their own tasks, tasks of their subordinates, and forwarded tasks.
     // Employees see their own tasks and forwarded tasks.
@@ -397,7 +397,7 @@ export async function GET(req: Request) {
       ];
     }
 
-    const records = await TaskLog.findAll({ 
+    const records = await TaskLog.findAll({
       where: query,
       order: [["createdAt", "DESC"]]
     });
@@ -469,7 +469,7 @@ export async function POST(req: Request) {
     }
 
     await sequelize.authenticate();
-    try { await TaskLog.sync({ alter: true }); } catch (_) {}
+    try { await TaskLog.sync({ alter: true }); } catch (_) { }
 
     const { scheduledAt } = body;
 
@@ -621,7 +621,7 @@ export async function PUT(req: Request) {
     }
 
     await sequelize.authenticate();
-    try { await TaskLog.sync({ alter: true }); } catch (_) {}
+    try { await TaskLog.sync({ alter: true }); } catch (_) { }
 
     let query: any = { id: taskId };
     // Only the "Owner" role has full access to edit any task. Other roles can only edit tasks they own or tasks forwarded to them.
@@ -667,7 +667,7 @@ export async function PUT(req: Request) {
     }
     if (forwardedTo !== undefined) task.forwardedTo = forwardedTo || null;
     if (followUpHistory !== undefined) task.followUpHistory = followUpHistory;
-    
+
     // Manual timer updates if sent from client
     if (timerStart !== undefined) task.timerStart = timerStart ? new Date(timerStart) : null;
     if (timerState !== undefined) task.timerState = timerState;
@@ -689,7 +689,7 @@ export async function PUT(req: Request) {
       task.timerState = "Running";
       task.timerStart = new Date(Date.now() - baseSeconds * 1000);
     }
-    
+
     await task.save();
 
     const portalUrl = "https://hrms.cfi247.com/";

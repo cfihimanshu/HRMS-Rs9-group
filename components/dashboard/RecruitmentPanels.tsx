@@ -28,7 +28,8 @@ import {
   Sparkles,
   Video,
   Trash,
-  Paperclip
+  Paperclip,
+  Filter
 } from "lucide-react";
 
 interface RecruitmentProps {
@@ -2424,6 +2425,10 @@ export function InterviewsQueue({ triggerToast }: { triggerToast: (msg: string) 
   const [candidates, setCandidates] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedInt, setSelectedInt] = useState<any>(null);
+  const [statusFilter, setStatusFilter] = useState<string>("All");
+  const [startDateFilter, setStartDateFilter] = useState<string>("");
+  const [endDateFilter, setEndDateFilter] = useState<string>("");
+  const [showDropdown, setShowDropdown] = useState<boolean>(false);
 
   // Schedule Form State
   const [showScheduleForm, setShowScheduleForm] = useState(false);
@@ -2806,6 +2811,47 @@ export function InterviewsQueue({ triggerToast }: { triggerToast: (msg: string) 
     return `${d.toLocaleDateString()} @ ${d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
   };
 
+  const countAll = interviews.length;
+  const countSelected = interviews.filter(item => item && (item.status === "Selected" || item.status === "Hired")).length;
+  const countPending = interviews.filter(item => item && item.status === "Pending").length;
+  const countHold = interviews.filter(item => item && item.status === "Hold").length;
+  const countRejected = interviews.filter(item => item && item.status === "Rejected").length;
+  const countHighRisk = interviews.filter(item => item && item.status === "High Risk").length;
+
+  const filteredInterviews = interviews.filter((item) => {
+    if (!item) return false;
+    
+    // If Custom Date is selected, filter by date range
+    if (statusFilter === "CustomDate") {
+      if (item.scheduleTime) {
+        const scheduleDate = new Date(item.scheduleTime);
+        if (startDateFilter) {
+          const start = new Date(startDateFilter + "T00:00:00");
+          if (scheduleDate < start) return false;
+        }
+        if (endDateFilter) {
+          const end = new Date(endDateFilter + "T23:59:59");
+          if (scheduleDate > end) return false;
+        }
+      } else if (startDateFilter || endDateFilter) {
+        return false;
+      }
+      return true;
+    }
+
+    // Otherwise filter by status
+    const s = item.status || "Pending";
+    if (statusFilter !== "All") {
+      if (statusFilter === "Selected" && s !== "Selected" && s !== "Hired") return false;
+      if (statusFilter === "Rejected" && s !== "Rejected") return false;
+      if (statusFilter === "Pending" && s !== "Pending") return false;
+      if (statusFilter === "Hold" && s !== "Hold") return false;
+      if (statusFilter === "High Risk" && s !== "High Risk") return false;
+    }
+
+    return true;
+  });
+
   return (
     <div className="space-y-8 animate-fadeIn text-slate-800">
 
@@ -2975,7 +3021,107 @@ export function InterviewsQueue({ triggerToast }: { triggerToast: (msg: string) 
         {/* PANEL: LIST OF SCHEDULED INTERVIEWS */}
         <div className="space-y-4">
           <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm space-y-4">
-            <h3 className="text-xs font-black uppercase text-slate-400 tracking-wider font-mono">Scheduled Assessment Feed</h3>
+            <div className="flex flex-col gap-4 pb-2 border-b border-slate-100">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <h3 className="text-xs font-black uppercase text-slate-400 tracking-wider font-mono">Scheduled Assessment Feed</h3>
+                
+                <div className="flex items-center gap-2 flex-wrap">
+                  {/* Reset Filters Action */}
+                  {(statusFilter !== "All" || startDateFilter || endDateFilter) && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setStatusFilter("All");
+                        setStartDateFilter("");
+                        setEndDateFilter("");
+                      }}
+                      className="text-[10.5px] text-[#714B67] hover:text-[#5F3F56] font-black flex items-center gap-1 transition-all active:scale-95 bg-slate-50 border border-slate-200 px-2.5 py-1.5 rounded-lg shadow-sm"
+                    >
+                      <RotateCcw className="w-3.5 h-3.5" /> Reset Filters
+                    </button>
+                  )}
+
+                  {/* Toggle Filter Button with Custom Dropdown */}
+                  <div className="relative">
+                    <button
+                      type="button"
+                      onClick={() => setShowDropdown(!showDropdown)}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-black border transition-all flex items-center gap-1.5 shadow-sm active:scale-95 ${
+                        showDropdown || (statusFilter !== "All")
+                          ? "bg-[#714B67] text-white border-[#714B67]"
+                          : "bg-white text-slate-700 border-slate-250 hover:bg-slate-50"
+                      }`}
+                    >
+                      <Filter className="w-3.5 h-3.5" /> Filter{statusFilter !== "All" ? `: ${statusFilter === "CustomDate" ? "Custom Date" : statusFilter}` : ""}
+                    </button>
+
+                    {showDropdown && (
+                      <>
+                        <div className="fixed inset-0 z-40" onClick={() => setShowDropdown(false)} />
+                        <div className="absolute right-0 mt-1.5 w-48 bg-white border border-slate-200 rounded-xl shadow-lg z-50 py-1.5 text-xs font-semibold text-slate-750 animate-fadeIn">
+                          {[
+                            { label: `All Statuses (${countAll})`, value: "All" },
+                            { label: `Selected (${countSelected})`, value: "Selected" },
+                            { label: `Pending (${countPending})`, value: "Pending" },
+                            { label: `On Hold (${countHold})`, value: "Hold" },
+                            { label: `Rejected (${countRejected})`, value: "Rejected" },
+                            { label: `High Risk (${countHighRisk})`, value: "High Risk" },
+                            { label: "📅 Custom Date Range", value: "CustomDate" }
+                          ].map((opt) => (
+                            <button
+                              key={opt.value}
+                              type="button"
+                              onClick={() => {
+                                setStatusFilter(opt.value);
+                                setShowDropdown(false);
+                                if (opt.value !== "CustomDate") {
+                                  setStartDateFilter("");
+                                  setEndDateFilter("");
+                                }
+                              }}
+                              className={`w-full text-left px-3 py-2 hover:bg-slate-50 transition-colors ${
+                                statusFilter === opt.value ? "text-[#714B67] bg-[#714B67]/5 font-black" : ""
+                              }`}
+                            >
+                              {opt.label}
+                            </button>
+                          ))}
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Conditional Custom Date Grid (Aligned to the Right with Smaller Width) */}
+              {statusFilter === "CustomDate" && (
+                <div className="flex justify-end">
+                  <div className="flex flex-row items-center gap-3 bg-slate-50 border border-slate-150 rounded-xl p-2 px-3 text-xs font-bold text-slate-655 animate-fadeIn">
+                    {/* Start Date filter */}
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-[10px] text-slate-455 uppercase tracking-wider font-mono whitespace-nowrap">From:</span>
+                      <input
+                        type="date"
+                        value={startDateFilter}
+                        onChange={(e) => setStartDateFilter(e.target.value)}
+                        className="rounded-lg border border-slate-200 p-1.5 bg-white text-slate-800 focus:ring-[#714B67] focus:border-[#714B67] text-xs font-semibold shadow-sm transition-all w-[135px]"
+                      />
+                    </div>
+
+                    {/* End Date filter */}
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-[10px] text-slate-455 uppercase tracking-wider font-mono whitespace-nowrap">To:</span>
+                      <input
+                        type="date"
+                        value={endDateFilter}
+                        onChange={(e) => setEndDateFilter(e.target.value)}
+                        className="rounded-lg border border-slate-200 p-1.5 bg-white text-slate-800 focus:ring-[#714B67] focus:border-[#714B67] text-xs font-semibold shadow-sm transition-all w-[135px]"
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
 
             {loading && interviews.length === 0 ? (
               <div className="text-center py-10 font-bold text-slate-400 font-mono text-xs">Loading schedules queue...</div>
@@ -2984,6 +3130,22 @@ export function InterviewsQueue({ triggerToast }: { triggerToast: (msg: string) 
                 <Video className="w-10 h-10 mx-auto text-[#714B67]/30 mb-2" />
                 <p className="text-xs font-bold text-slate-655">No interviews currently queued.</p>
                 <p className="text-[10px] text-slate-400 mt-1">Use the scheduler tool above to create assessment schedules.</p>
+              </div>
+            ) : filteredInterviews.length === 0 ? (
+              <div className="text-center py-12 bg-slate-50 border border-dashed rounded-lg text-slate-455 p-4">
+                <Filter className="w-10 h-10 mx-auto text-slate-300 mb-2" />
+                <p className="text-xs font-bold text-slate-655">No interviews match the selected status or date filters.</p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setStatusFilter("All");
+                    setStartDateFilter("");
+                    setEndDateFilter("");
+                  }}
+                  className="mt-3 bg-[#714B67] hover:bg-[#5F3F56] text-white px-3 py-1.5 rounded text-[10.5px] font-bold transition-all shadow-sm active:scale-95"
+                >
+                  Clear All Filters
+                </button>
               </div>
             ) : (
               <div className="overflow-x-auto">
@@ -3000,7 +3162,7 @@ export function InterviewsQueue({ triggerToast }: { triggerToast: (msg: string) 
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 font-semibold text-slate-700">
-                    {interviews.map((item) => {
+                    {filteredInterviews.map((item) => {
                       if (!item) return null;
                       const cand = item.candidate || {};
                       const isSelected = selectedInt?.id === item.id;
@@ -3062,13 +3224,18 @@ export function InterviewsQueue({ triggerToast }: { triggerToast: (msg: string) 
                               {formatInterviewTime(item.scheduleTime)}
                             </td>
                             <td className="py-3 px-2">
-                              <span className={`text-[9px] font-bold px-2 py-0.5 rounded border ${item.status === "Selected"
-                                ? "bg-emerald-50 border-emerald-250 text-emerald-600 font-bold"
-                                : item.status === "Pending"
-                                  ? "bg-amber-50 border-amber-250 text-amber-600"
-                                  : "bg-rose-100 border-rose-250 text-rose-700"
+                              <span className={`text-[9px] font-bold px-2 py-0.5 rounded border ${
+                                item.status === "Selected" || item.status === "Hired"
+                                  ? "bg-emerald-50 border-emerald-250 text-emerald-600 font-bold"
+                                  : item.status === "Pending"
+                                    ? "bg-amber-50 border-amber-250 text-amber-600"
+                                    : item.status === "Hold"
+                                      ? "bg-indigo-50 border-indigo-250 text-indigo-650 font-bold"
+                                      : item.status === "High Risk"
+                                        ? "bg-red-50 border-red-250 text-red-700 font-bold animate-pulse"
+                                        : "bg-rose-50 border-rose-250 text-rose-700 font-bold"
                                 }`}>
-                                {item.status}
+                                {item.status || "Pending"}
                               </span>
                             </td>
                             <td className="py-3 pl-2 text-right space-x-1.5 whitespace-nowrap">
@@ -3512,22 +3679,37 @@ export function HrLeads({
   candidates = [],
   jobs = [],
   triggerToast,
-  toggleModal
+  toggleModal,
+  initialStatusFilter = "Selected"
 }: {
   candidates: any[];
   jobs: any[];
   triggerToast: (msg: string) => void;
   toggleModal: (modalId: string, open: boolean) => void;
+  initialStatusFilter?: string;
 }) {
   const [selectedLead, setSelectedLead] = useState<any>(null);
   const [selectedJobFilter, setSelectedJobFilter] = useState<string>("all");
+  const [statusFilter, setStatusFilter] = useState<string>(initialStatusFilter);
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [previewFile, setPreviewFile] = useState<{ url: string; title: string } | null>(null);
   const [expandedJobId, setExpandedJobId] = useState<string | null>(null);
 
   const filteredLeads = candidates.filter((cand) => {
-    if (cand.status !== "Selected") {
-      return false;
+    if (statusFilter !== "All") {
+      if (statusFilter === "Selected") {
+        if (cand.status !== "Selected" && cand.status !== "Hired") {
+          return false;
+        }
+      } else if (statusFilter === "Pending") {
+        if (cand.status !== "Pending" && cand.status) {
+          return false;
+        }
+      } else if (statusFilter === "Rejected") {
+        if (cand.status !== "Rejected") {
+          return false;
+        }
+      }
     }
     if (selectedJobFilter !== "all" && cand.job?.id !== selectedJobFilter) {
       return false;
@@ -3592,7 +3774,7 @@ export function HrLeads({
       </div>
 
       <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm flex flex-col md:flex-row gap-4 items-center justify-between">
-        <div className="w-full md:w-1/3">
+        <div className="w-full md:w-1/4">
           <label className="text-[10px] uppercase font-black text-slate-400 font-mono tracking-widest block mb-1">Search Candidates</label>
           <input
             type="text"
@@ -3602,7 +3784,7 @@ export function HrLeads({
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
-        <div className="w-full md:w-1/3">
+        <div className="w-full md:w-1/4">
           <label className="text-[10px] uppercase font-black text-slate-400 font-mono tracking-widest block mb-1">Filter By Job Posting</label>
           <select
             className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-xs focus:outline-none focus:border-[#714B67] text-slate-700"
@@ -3613,6 +3795,19 @@ export function HrLeads({
             {jobs.map((job) => (
               <option key={job.id} value={job.id}>{job.title} ({job.company?.name || "Acolyte"})</option>
             ))}
+          </select>
+        </div>
+        <div className="w-full md:w-1/4">
+          <label className="text-[10px] uppercase font-black text-slate-400 font-mono tracking-widest block mb-1">Filter By Status</label>
+          <select
+            className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-xs focus:outline-none focus:border-[#714B67] text-slate-700"
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+          >
+            <option value="All">All Leads</option>
+            <option value="Selected">Selected Leads</option>
+            <option value="Pending">Pending Leads</option>
+            <option value="Rejected">Rejected Leads</option>
           </select>
         </div>
         <div className="text-right text-xs font-mono font-bold text-slate-450">

@@ -80,11 +80,25 @@ function getIconForAction(action: string): { icon: ReactNode, bg: string, darkBg
   };
 }
 
-export default function ActivityFeed({ dark = false, companyId = "" }: { dark?: boolean; companyId?: string }) {
-  const [logs, setLogs] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+export default function ActivityFeed({ 
+  dark = false, 
+  companyId = "", 
+  logs: propLogs 
+}: { 
+  dark?: boolean; 
+  companyId?: string; 
+  logs?: any[];
+}) {
+  const [logs, setLogs] = useState<any[]>(propLogs || []);
+  const [loading, setLoading] = useState(propLogs === undefined);
 
   useEffect(() => {
+    if (propLogs !== undefined) {
+      setLogs(propLogs);
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
     const fetchLogs = async () => {
       try {
@@ -104,7 +118,7 @@ export default function ActivityFeed({ dark = false, companyId = "" }: { dark?: 
     // Auto-refresh every 30 seconds
     const intervalId = setInterval(fetchLogs, 30000);
     return () => clearInterval(intervalId);
-  }, [companyId]);
+  }, [companyId, propLogs]);
 
   if (loading) {
     return <div className={`text-xs p-4 text-center ${dark ? 'text-gray-400' : 'text-slate-500'}`}>Loading activity feed...</div>;

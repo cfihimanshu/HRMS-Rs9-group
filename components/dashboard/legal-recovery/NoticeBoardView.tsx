@@ -2,6 +2,8 @@ import React, { useState, useEffect, useMemo, useRef } from "react";
 import { createPortal } from "react-dom";
 import { PlusCircle, Search, RefreshCw, FileText, Building, User, Trash2, Edit3, X, Paperclip, CheckCircle, Landmark, Calendar, DollarSign, ArrowRight, Eye, UserCheck, SlidersHorizontal, Download, Filter } from "lucide-react";
 
+
+
 // Custom Autocomplete Component with premium UI suggestions
 function EmployeeAutocomplete({
   label,
@@ -370,12 +372,23 @@ export default function NoticeBoardView({
     amountRcvd: "",
     tdsDeduction: "",
     gstDeduction: "",
-    expenses: ""
+    expenses: "",
+    // Handover fields
+    handoverTo: "",
+    handedOverBy: "",
+    handoverRemarks: "",
+    handoverReceiptUrl: ""
   });
 
   const [documentFile, setDocumentFile] = useState<File | null>(null);
   const [documentUrl, setDocumentUrl] = useState("");
+  const [handoverReceiptFile, setHandoverReceiptFile] = useState<File | null>(null);
   const [submitting, setSubmitting] = useState(false);
+
+  // Searchable Branch Dropdown States
+  const [branchSearch, setBranchSearch] = useState("");
+  const [showBranchDropdown, setShowBranchDropdown] = useState(false);
+  const branchDropdownRef = useRef<HTMLDivElement>(null);
 
   // Fetch Notices list
   const fetchNotices = async () => {
@@ -613,6 +626,9 @@ export default function NoticeBoardView({
       if (columnToggleRef.current && !columnToggleRef.current.contains(event.target as Node)) {
         setShowColumnToggle(false);
       }
+      if (branchDropdownRef.current && !branchDropdownRef.current.contains(event.target as Node)) {
+        setShowBranchDropdown(false);
+      }
     }
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
@@ -649,7 +665,12 @@ export default function NoticeBoardView({
       amountRcvd: notice.amountRcvd && parseFloat(notice.amountRcvd) !== 0 ? parseFloat(notice.amountRcvd).toString() : "",
       tdsDeduction: notice.tdsDeduction && parseFloat(notice.tdsDeduction) !== 0 ? parseFloat(notice.tdsDeduction).toString() : "",
       gstDeduction: notice.gstDeduction && parseFloat(notice.gstDeduction) !== 0 ? parseFloat(notice.gstDeduction).toString() : "",
-      expenses: notice.expenses && parseFloat(notice.expenses) !== 0 ? parseFloat(notice.expenses).toString() : ""
+      expenses: notice.expenses && parseFloat(notice.expenses) !== 0 ? parseFloat(notice.expenses).toString() || "" : "",
+      // Handover fields
+      handoverTo: notice.handoverTo || "",
+      handedOverBy: notice.handedOverBy || "",
+      handoverRemarks: notice.handoverRemarks || "",
+      handoverReceiptUrl: notice.handoverReceiptUrl || ""
     });
     setCustomNoticeType("");
     setDocumentUrl(notice.documentUrl || "");
@@ -876,6 +897,23 @@ export default function NoticeBoardView({
         }
       }
 
+      let uploadedHandoverUrl = form.handoverReceiptUrl;
+      // Handle handover receipt upload if file selected
+      if (handoverReceiptFile) {
+        const formData = new FormData();
+        formData.append("file", handoverReceiptFile);
+        const uploadRes = await fetch("/api/documents/upload", {
+          method: "POST",
+          body: formData
+        });
+        const uploadResult = await uploadRes.json();
+        if (uploadResult.success) {
+          uploadedHandoverUrl = uploadResult.url;
+        } else {
+          triggerToast("Warning: Handover receipt upload failed.");
+        }
+      }
+
       const isCreate = !editingId;
       const payload = {
         ...form,
@@ -898,6 +936,7 @@ export default function NoticeBoardView({
         noOfScan: parseInt(form.noOfScan) || 0,
         noticeTypeId: form.noticeTypeId && form.noticeTypeId !== "add-new" ? parseInt(form.noticeTypeId) : undefined,
         documentUrl: uploadedUrl,
+        handoverReceiptUrl: uploadedHandoverUrl,
         id: editingId || undefined
       };
 
@@ -931,6 +970,7 @@ export default function NoticeBoardView({
     setCustomNoticeType("");
     setDocumentFile(null);
     setDocumentUrl("");
+    setHandoverReceiptFile(null);
     setForm({
       bankId: "",
       branchId: "",
@@ -955,7 +995,11 @@ export default function NoticeBoardView({
       amountRcvd: "",
       tdsDeduction: "",
       gstDeduction: "",
-      expenses: ""
+      expenses: "",
+      handoverTo: "",
+      handedOverBy: "",
+      handoverRemarks: "",
+      handoverReceiptUrl: ""
     });
   };
 
@@ -1143,7 +1187,10 @@ export default function NoticeBoardView({
                   <select
                     required
                     value={form.bankId}
-                    onChange={e => setForm({ ...form, bankId: e.target.value, branchId: "" })}
+                    onChange={e => {
+                      setForm({ ...form, bankId: e.target.value, branchId: "" });
+                      setBranchSearch("");
+                    }}
                     className="w-full bg-white border border-[#E8E4DF] focus:border-indigo-500 rounded-lg px-3 py-2 text-xs focus:outline-none font-semibold text-slate-700"
                   >
                     <option value="">Select Bank...</option>
@@ -1153,20 +1200,70 @@ export default function NoticeBoardView({
                   </select>
                 </div>
 
-                <div>
+                <div ref={branchDropdownRef} className="relative">
                   <label className="block text-[9px] uppercase tracking-wider text-black font-black mb-1">Branch *</label>
-                  <select
-                    required
-                    disabled={!form.bankId}
-                    value={form.branchId}
-                    onChange={e => setForm({ ...form, branchId: e.target.value })}
-                    className="w-full bg-white border border-[#E8E4DF] focus:border-indigo-500 rounded-lg px-3 py-2 text-xs focus:outline-none font-semibold text-slate-700 disabled:opacity-60"
-                  >
-                    <option value="">Select Branch...</option>
-                    {filteredBranches.map(br => (
-                      <option key={br.id} value={br.branchCode}>{br.branchName} ({br.branchCode})</option>
-                    ))}
-                  </select>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      required
+                      disabled={!form.bankId}
+                      placeholder={form.bankId ? "Search & Select Branch..." : "Select Bank First..."}
+                      value={
+                        showBranchDropdown 
+                          ? branchSearch 
+                          : (branchesList.find(br => br.branchCode === form.branchId)?.branchName || "")
+                      }
+                      onFocus={() => {
+                        if (form.bankId) {
+                          setShowBranchDropdown(true);
+                          setBranchSearch("");
+                        }
+                      }}
+                      onChange={e => {
+                        setBranchSearch(e.target.value);
+                        setShowBranchDropdown(true);
+                      }}
+                      className="w-full bg-white border border-[#E8E4DF] focus:border-indigo-500 rounded-lg px-3 py-2 text-xs focus:outline-none font-semibold text-slate-700 disabled:opacity-60 cursor-pointer"
+                    />
+                    <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-slate-400">
+                      <Search className="w-3.5 h-3.5" />
+                    </div>
+                  </div>
+
+                  {showBranchDropdown && form.bankId && (
+                    <div className="absolute left-0 right-0 mt-1 max-h-48 overflow-y-auto bg-white border border-slate-200 rounded-lg shadow-xl z-[9999] text-xs font-semibold text-slate-700 divide-y divide-slate-50">
+                      {(() => {
+                        const searchFiltered = filteredBranches.filter(br => 
+                          !branchSearch.trim() || 
+                          br.branchName.toLowerCase().includes(branchSearch.toLowerCase()) ||
+                          br.branchCode.toLowerCase().includes(branchSearch.toLowerCase())
+                        );
+
+                        if (searchFiltered.length === 0) {
+                          return (
+                            <div className="p-3 text-center text-slate-400 italic">
+                              No matching branches
+                            </div>
+                          );
+                        }
+
+                        return searchFiltered.map(br => (
+                          <div
+                            key={br.id}
+                            onClick={() => {
+                              setForm(prev => ({ ...prev, branchId: br.branchCode }));
+                              setShowBranchDropdown(false);
+                              setBranchSearch("");
+                            }}
+                            className="p-2.5 hover:bg-indigo-50 hover:text-indigo-700 cursor-pointer transition-colors flex justify-between"
+                          >
+                            <span>{br.branchName}</span>
+                            <span className="text-[10px] text-slate-400 font-mono">({br.branchCode})</span>
+                          </div>
+                        ));
+                      })()}
+                    </div>
+                  )}
                 </div>
 
                 <div>
@@ -1175,7 +1272,7 @@ export default function NoticeBoardView({
                     type="date"
                     value={form.noticeOrderDate}
                     onChange={e => setForm({ ...form, noticeOrderDate: e.target.value })}
-                    className="w-full bg-white border border-[#E8E4DF] focus:border-indigo-500 rounded-lg px-3 py-2 text-xs focus:outline-none"
+                    className="w-full bg-white border border-[#E8E4DF] focus:border-indigo-500 rounded-lg px-3 py-2 text-xs focus:outline-none font-semibold text-slate-700"
                   />
                 </div>
 
@@ -1185,7 +1282,7 @@ export default function NoticeBoardView({
                     type="date"
                     value={form.noticeDate}
                     onChange={e => setForm({ ...form, noticeDate: e.target.value })}
-                    className="w-full bg-white border border-[#E8E4DF] focus:border-indigo-500 rounded-lg px-3 py-2 text-xs focus:outline-none"
+                    className="w-full bg-white border border-[#E8E4DF] focus:border-indigo-500 rounded-lg px-3 py-2 text-xs focus:outline-none font-semibold text-slate-700"
                   />
                 </div>
 
@@ -1354,6 +1451,79 @@ export default function NoticeBoardView({
                   onChange={val => setForm({ ...form, dispatchedBy: val })}
                   employees={employees}
                 />
+              </div>
+            </div>
+
+            {/* SECTION 3: HANDOVER DETAILS (OPTIONAL) */}
+            <div className="bg-slate-50/50 p-5 rounded-xl border border-slate-100 space-y-4">
+              <h4 className="text-[10px] uppercase tracking-wider text-slate-500 font-extrabold flex items-center gap-1.5 pb-2 border-b border-slate-100">
+                <FileText className="w-3.5 h-3.5 text-indigo-500" /> 3. HANDOVER DETAILS (OPTIONAL)
+              </h4>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-[9px] uppercase tracking-wider text-black font-black mb-1">Handover To</label>
+                  <input
+                    type="text"
+                    value={form.handoverTo}
+                    onChange={e => setForm({ ...form, handoverTo: e.target.value })}
+                    className="w-full bg-white border border-[#E8E4DF] focus:border-indigo-500 rounded-lg px-3 py-2 text-xs focus:outline-none font-semibold text-slate-700"
+                    placeholder="Enter recipient name"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[9px] uppercase tracking-wider text-black font-black mb-1">Handed Over By</label>
+                  <input
+                    type="text"
+                    value={form.handedOverBy}
+                    onChange={e => setForm({ ...form, handedOverBy: e.target.value })}
+                    className="w-full bg-white border border-[#E8E4DF] focus:border-indigo-500 rounded-lg px-3 py-2 text-xs focus:outline-none font-semibold text-slate-700"
+                    placeholder="Enter dispatch staff name"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[9px] uppercase tracking-wider text-black font-black mb-1">Handover Remarks</label>
+                  <input
+                    type="text"
+                    value={form.handoverRemarks}
+                    onChange={e => setForm({ ...form, handoverRemarks: e.target.value })}
+                    className="w-full bg-white border border-[#E8E4DF] focus:border-indigo-500 rounded-lg px-3 py-2 text-xs focus:outline-none text-slate-750 font-semibold"
+                    placeholder="Enter remarks..."
+                  />
+                </div>
+
+                <div className="md:col-span-3">
+                  <label className="block text-[9px] uppercase tracking-wider text-black font-black mb-1">Upload Handover Receipt Photo (Optional)</label>
+                  <div className="flex items-center gap-3">
+                    {handoverReceiptFile && handoverReceiptFile.type.startsWith("image/") && (
+                      <LocalImagePreview file={handoverReceiptFile} />
+                    )}
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={e => setHandoverReceiptFile(e.target.files?.[0] || null)}
+                      className="w-full bg-white border border-[#E8E4DF] rounded-lg px-3 py-1.5 text-xs focus:outline-none font-semibold text-slate-700"
+                    />
+                    {form.handoverReceiptUrl && (
+                      <div className="flex items-center gap-2 shrink-0">
+                        {/\.(png|jpe?g|webp|gif)$/i.test(form.handoverReceiptUrl) && (
+                          <img
+                            src={form.handoverReceiptUrl}
+                            alt="preview"
+                            className="w-8 h-8 object-cover rounded border border-slate-200 cursor-zoom-in hover:opacity-85 transition-opacity"
+                            onClick={() => window.open(form.handoverReceiptUrl, "_blank")}
+                            title="Click to preview"
+                          />
+                        )}
+                        <span className="text-[10px] bg-slate-100 px-2 py-1.5 rounded text-slate-500 truncate max-w-xs font-mono font-bold">
+                          Exists: {form.handoverReceiptUrl.substring(form.handoverReceiptUrl.lastIndexOf('/') + 1)}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
             </div>
 

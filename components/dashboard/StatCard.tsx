@@ -9,9 +9,10 @@ interface StatCardProps {
   icon: ReactNode;
   dark?: boolean;
   onClick?: () => void;
+  comparisonText?: string;
 }
 
-export default function StatCard({ title, value, trend, trendUp, icon, onClick }: StatCardProps) {
+export default function StatCard({ title, value, trend, trendUp, icon, onClick, comparisonText }: StatCardProps) {
   return (
     <div 
       onClick={onClick}
@@ -37,7 +38,9 @@ export default function StatCard({ title, value, trend, trendUp, icon, onClick }
           {trendUp ? <ArrowUpRight className="w-3 h-3 mr-0.5" /> : <ArrowDownRight className="w-3 h-3 mr-0.5" />}
           {trend}
         </span>
-        <span className="text-[10px] text-[#9C9890] font-medium uppercase tracking-wider">vs last month</span>
+        {comparisonText && (
+          <span className="text-[10px] text-[#9C9890] font-medium uppercase tracking-wider">{comparisonText}</span>
+        )}
       </div>
     </div>
   );

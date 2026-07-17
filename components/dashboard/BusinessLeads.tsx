@@ -20,6 +20,8 @@ import {
   FileText,
   User,
   UserPlus,
+  UserCheck,
+  UserMinus,
   Image as ImageIcon,
   Play,
   CalendarRange as CalendarClock,
@@ -37,14 +39,16 @@ interface Platform {
 
 export default function BusinessLeads({
   triggerToast,
-  toggleModal
+  toggleModal,
+  initialStatusFilter = "All"
 }: {
   triggerToast: (msg: string) => void;
   toggleModal?: (modalId: string, open: boolean) => void;
+  initialStatusFilter?: string;
 }) {
   // App States
   const [platforms, setPlatforms] = useState<Platform[]>([]);
-  const [activePlatformId, setActivePlatformId] = useState<string>("");
+  const [activePlatformId, setActivePlatformId] = useState<string>("all");
   const [leads, setLeads] = useState<any[]>([]);
   const [columns, setColumns] = useState<string[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -61,7 +65,18 @@ export default function BusinessLeads({
     rejected: 0,
     systemJobLink: 0
   });
-  const [activeFilterCard, setActiveFilterCard] = useState<string>("all");
+  const [activeFilterCard, setActiveFilterCard] = useState<string>(
+    initialStatusFilter ? initialStatusFilter.toLowerCase() : "all"
+  );
+  const skipResetRef = useRef(false);
+
+  useEffect(() => {
+    if (initialStatusFilter) {
+      setActiveFilterCard(initialStatusFilter.toLowerCase());
+      skipResetRef.current = true;
+      setActivePlatformId("all");
+    }
+  }, [initialStatusFilter]);
 
   // Modal/Wizard States
   const [isImportModalOpen, setIsImportModalOpen] = useState<boolean>(false);
@@ -382,7 +397,7 @@ export default function BusinessLeads({
 
     try {
       const payload = {
-        platformId: activePlatformId,
+        platformId: activePlatformId === "all" ? selectedLeadForEdit.platform_id : activePlatformId,
         leadId: selectedLeadForEdit.id,
         fields: updateFields
       };
@@ -470,7 +485,11 @@ export default function BusinessLeads({
     if (activePlatformId) {
       loadLeads(activePlatformId);
       setExpandedLeadId(null);
-      setActiveFilterCard("all");
+      if (skipResetRef.current) {
+        skipResetRef.current = false;
+      } else {
+        setActiveFilterCard("all");
+      }
     }
   }, [activePlatformId]);
 
@@ -683,6 +702,7 @@ export default function BusinessLeads({
     let interviewScheduled = 0;
     let selected = 0;
     let rejected = 0;
+    let pending = 0;
     let systemJobLink = 0;
 
     dateFilteredLeads.forEach((lead: any) => {
@@ -691,6 +711,9 @@ export default function BusinessLeads({
         leadsCalled++;
       }
       const statusLower = status.toLowerCase();
+      if (statusLower === "pending" || statusLower === "new" || statusLower === "") {
+        pending++;
+      }
       if (statusLower.includes("connected")) {
         connected++;
       }
@@ -719,6 +742,7 @@ export default function BusinessLeads({
       interviewScheduled,
       selected,
       rejected,
+      pending,
       systemJobLink
     };
   }, [dateFilteredLeads]);
@@ -1033,6 +1057,12 @@ export default function BusinessLeads({
       if (!status.includes("interview") && !status.includes("schedule")) return false;
     } else if (activeFilterCard === "selected_rejected") {
       if (!status.includes("select") && !status.includes("reject")) return false;
+    } else if (activeFilterCard === "selected") {
+      if (!status.includes("select") && !status.includes("hired")) return false;
+    } else if (activeFilterCard === "rejected") {
+      if (!status.includes("reject")) return false;
+    } else if (activeFilterCard === "pending") {
+      if (status !== "pending" && status !== "new" && status !== "") return false;
     } else if (activeFilterCard === "system_link") {
       if (!lead.isSystemLink) return false;
     }
@@ -1234,11 +1264,11 @@ export default function BusinessLeads({
       </div>
 
       {/* Dynamic HR Calling & System Job Link Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-8 gap-4">
         {/* Called by HR */}
         <div
           onClick={() => setActiveFilterCard("called")}
-          className={`bg-white dark:bg-slate-900 border border-slate-100 dark:border-gray-900/60 p-4 rounded-xl shadow-sm flex items-center gap-3.5 cursor-pointer transition-all hover:scale-[1.02] hover:shadow-md ${activeFilterCard === "called" ? "ring-2 ring-indigo-650 bg-indigo-600/5" : ""
+          className={`bg-white dark:bg-slate-900 border border-slate-100 dark:border-gray-900/60 p-4 rounded-xl shadow-sm flex items-center gap-3.5 cursor-pointer transition-all hover:scale-[1.02] hover:shadow-md ${activeFilterCard === "called" ? "ring-2 ring-indigo-650 bg-indigo-605/5" : ""
             }`}
         >
           <div className="w-9 h-9 rounded-lg bg-indigo-500/10 flex items-center justify-center text-indigo-600">
@@ -1295,20 +1325,48 @@ export default function BusinessLeads({
           </div>
         </div>
 
-        {/* Select & Reject */}
+        {/* Selected Leads */}
         <div
-          onClick={() => setActiveFilterCard("selected_rejected")}
-          className={`bg-white dark:bg-slate-900 border border-slate-100 dark:border-gray-900/60 p-4 rounded-xl shadow-sm flex items-center gap-3.5 cursor-pointer transition-all hover:scale-[1.02] hover:shadow-md ${activeFilterCard === "selected_rejected" ? "ring-2 ring-amber-650 bg-amber-650/5" : ""
+          onClick={() => setActiveFilterCard("selected")}
+          className={`bg-white dark:bg-slate-900 border border-slate-100 dark:border-gray-900/60 p-4 rounded-xl shadow-sm flex items-center gap-3.5 cursor-pointer transition-all hover:scale-[1.02] hover:shadow-md ${activeFilterCard === "selected" ? "ring-2 ring-emerald-500 bg-emerald-500/5" : ""
+            }`}
+        >
+          <div className="w-9 h-9 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-600">
+            <UserCheck className="w-4 h-4" />
+          </div>
+          <div>
+            <p className="text-[10px] uppercase font-black tracking-wider text-slate-400">Selected</p>
+            <p className="text-lg font-black text-slate-800 dark:text-gray-150">{computedStats.selected}</p>
+          </div>
+        </div>
+
+        {/* Pending Leads */}
+        <div
+          onClick={() => setActiveFilterCard("pending")}
+          className={`bg-white dark:bg-slate-900 border border-slate-100 dark:border-gray-900/60 p-4 rounded-xl shadow-sm flex items-center gap-3.5 cursor-pointer transition-all hover:scale-[1.02] hover:shadow-md ${activeFilterCard === "pending" ? "ring-2 ring-amber-500 bg-amber-500/5" : ""
             }`}
         >
           <div className="w-9 h-9 rounded-lg bg-amber-500/10 flex items-center justify-center text-amber-600">
-            <User className="w-4 h-4" />
+            <Clock className="w-4 h-4" />
           </div>
           <div>
-            <p className="text-[10px] uppercase font-black tracking-wider text-slate-400">Selected/Rejected</p>
-            <p className="text-xs font-bold text-slate-800 dark:text-gray-150 mt-0.5">
-              🟢 <span className="font-extrabold">{computedStats.selected}</span> &nbsp;&nbsp; 🔴 <span className="font-extrabold">{computedStats.rejected}</span>
-            </p>
+            <p className="text-[10px] uppercase font-black tracking-wider text-slate-400">Pending</p>
+            <p className="text-lg font-black text-slate-800 dark:text-gray-150">{computedStats.pending}</p>
+          </div>
+        </div>
+
+        {/* Rejected Leads */}
+        <div
+          onClick={() => setActiveFilterCard("rejected")}
+          className={`bg-white dark:bg-slate-900 border border-slate-100 dark:border-gray-900/60 p-4 rounded-xl shadow-sm flex items-center gap-3.5 cursor-pointer transition-all hover:scale-[1.02] hover:shadow-md ${activeFilterCard === "rejected" ? "ring-2 ring-rose-500 bg-rose-500/5" : ""
+            }`}
+        >
+          <div className="w-9 h-9 rounded-lg bg-rose-500/10 flex items-center justify-center text-rose-600">
+            <UserMinus className="w-4 h-4" />
+          </div>
+          <div>
+            <p className="text-[10px] uppercase font-black tracking-wider text-slate-400">Rejected</p>
+            <p className="text-lg font-black text-slate-800 dark:text-gray-150">{computedStats.rejected}</p>
           </div>
         </div>
 
@@ -1333,6 +1391,15 @@ export default function BusinessLeads({
 
         {/* Platform Tabs */}
         <div className="flex border-b border-slate-100 dark:border-gray-800/80 overflow-x-auto bg-slate-50/50 dark:bg-slate-950/20">
+          <button
+            onClick={() => setActivePlatformId("all")}
+            className={`px-5 py-3 text-xs font-bold whitespace-nowrap transition-all border-b-2 ${activePlatformId === "all"
+              ? "border-[#714B67] text-[#714B67] bg-white dark:bg-slate-900"
+              : "border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-gray-300"
+              }`}
+          >
+            All Platforms
+          </button>
           {platforms.map((plat) => (
             <button
               key={plat.id}
