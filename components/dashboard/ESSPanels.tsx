@@ -82,32 +82,32 @@ export function ESSDashboard({ user, triggerToast, setActiveTab, toggleModal, st
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatCard
           title="Present Days (This Month)"
-          value={`${dynamicStats.presentDays} / ${dynamicStats.totalWorkingDays}`}
-          trend={`${dynamicStats.attendancePercent}% Attendance`}
-          trendUp={dynamicStats.attendancePercent >= 90}
+          value={`${dynamicStats.presentDays ?? 0} / ${dynamicStats.totalWorkingDays ?? 22}`}
+          trend={`${dynamicStats.attendancePercent ?? 100}% Attendance`}
+          trendUp={(dynamicStats.attendancePercent ?? 100) >= 90}
           icon={<CalendarCheck className="w-5 h-5 text-indigo-500" />}
           dark={isDark}
         />
         <StatCard
           title="Casual Leave (This Month)"
-          value={String(dynamicStats.casualLeaveTaken ?? 0)}
-          trend="Taken in current month"
+          value={`${dynamicStats.casualLeaveTaken ?? 0} / ${dynamicStats.casualLeave ?? 12}`}
+          trend={`${(dynamicStats.casualLeave ?? 12) - (dynamicStats.casualLeaveTaken ?? 0)} days remaining`}
           trendUp={true}
           icon={<FileText className="w-5 h-5 text-rose-500" />}
           dark={isDark}
         />
         <StatCard
           title="Sick Leave (This Month)"
-          value={String(dynamicStats.sickLeaveTaken ?? 0)}
-          trend="Taken in current month"
+          value={`${dynamicStats.sickLeaveTaken ?? 0} / ${dynamicStats.sickLeave ?? 12}`}
+          trend={`${(dynamicStats.sickLeave ?? 12) - (dynamicStats.sickLeaveTaken ?? 0)} days remaining`}
           trendUp={true}
           icon={<FileText className="w-5 h-5 text-emerald-500" />}
           dark={isDark}
         />
         <StatCard
           title="Upcoming Holiday"
-          value={dynamicStats.holidayName}
-          trend={dynamicStats.holidayDate}
+          value={dynamicStats.holidayName || "Diwali"}
+          trend={dynamicStats.holidayDate || "Nov 12, 2026"}
           trendUp={true}
           icon={<AlertCircle className="w-5 h-5 text-amber-500" />}
           dark={isDark}

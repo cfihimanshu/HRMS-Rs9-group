@@ -1,6 +1,6 @@
 import React from "react";
-import { 
-  RotateCw, 
+import {
+  RotateCw,
   AlertTriangle,
   Users,
   UserCheck,
@@ -26,13 +26,16 @@ import {
   ArrowUpRight,
   ArrowDownRight,
   Plus,
-  Download
+  Download,
+  Phone,
+  X
 } from "lucide-react";
 import StatCard from "./StatCard";
 import AttendanceChart from "./AttendanceChart";
 import PerformanceChart from "./PerformanceChart";
 import ActivityFeed from "./ActivityFeed";
 import HiringRequisitionModal from "./HiringRequisitionModal";
+import * as XLSX from "xlsx";
 
 interface OverviewProps {
   sessionUser?: any;
@@ -46,12 +49,12 @@ interface OverviewProps {
   onCompanyChange?: (id: string) => void;
 }
 
-export function OwnerDashboard({ 
+export function OwnerDashboard({
   sessionUser,
-  stats, 
-  riskAlertList, 
-  onResolveAlert, 
-  onNavigateTab, 
+  stats,
+  riskAlertList,
+  onResolveAlert,
+  onNavigateTab,
   triggerToast,
   companies,
   selectedCompanyId,
@@ -59,12 +62,12 @@ export function OwnerDashboard({
 }: OverviewProps) {
   const firstName = sessionUser?.name ? sessionUser.name.split(' ')[0] : 'Admin';
   const [showStaffModal, setShowStaffModal] = React.useState(false);
-  const [staffModalFilter, setStaffModalFilter] = React.useState<"all"|"present"|"absent">("all");
+  const [staffModalFilter, setStaffModalFilter] = React.useState<"all" | "present" | "absent">("all");
   const exportAttendanceReport = () => {
     if (!stats?.staffList) return;
-    
+
     const headers = ["Employee Name", "Email", "Role", "Department", "Company", "Status", "Attendance Today", "SOD Time", "EOD Time"];
-    
+
     const formatTime = (isoString: string | null) => {
       if (!isoString) return "-";
       try {
@@ -119,7 +122,7 @@ export function OwnerDashboard({
 
   return (
     <div className="space-y-8 animate-fade-in text-[#1C1C1A]">
-      
+
       {/* Top Action Header Bar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
@@ -141,13 +144,13 @@ export function OwnerDashboard({
               ))}
             </select>
           )}
-          <button 
+          <button
             className="px-4 py-2 border border-[#E8E4DF] rounded-lg text-xs font-semibold tracking-wider uppercase bg-[#FCFBF9] hover:bg-[#F5F0EA] text-[#5D5B57] transition-all flex items-center gap-2"
             onClick={exportAttendanceReport}
           >
             <Download className="w-3.5 h-3.5" /> Export
           </button>
-          <button 
+          <button
             className="px-4 py-2 bg-[#C9A84C] hover:bg-[#B3923E] text-white rounded-lg text-xs font-semibold tracking-wider uppercase transition-all shadow-[0_2px_15px_rgba(201,168,76,0.15)] flex items-center gap-2"
             onClick={() => triggerToast("Enterprise metrics synchronized successfully")}
           >
@@ -214,14 +217,14 @@ export function OwnerDashboard({
 
       {/* Main Grid: Simplified & Minimal */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        
+
         {/* Left Column: Operations Overview */}
         <div className="space-y-8">
           <div className="bg-[#FCFBF9] border border-[#E8E4DF] rounded-xl p-6 shadow-[0_2px_20px_rgba(0,0,0,0.04)]">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-sm font-medium tracking-wider text-[#1C1C1A] uppercase">Today's Operations</h2>
             </div>
-            
+
             <div className="space-y-6">
               <div>
                 <div className="flex justify-between text-[11px] uppercase tracking-widest font-bold mb-2">
@@ -257,7 +260,7 @@ export function OwnerDashboard({
               <h2 className="text-sm font-medium tracking-wider text-[#1C1C1A] uppercase">HR & Hiring Pipeline</h2>
               <button onClick={() => onNavigateTab("hr-leads")} className="text-[9px] uppercase tracking-wider font-bold text-[#C9A84C] hover:text-[#B3923E]">Manage</button>
             </div>
-            
+
             <div className="grid grid-cols-2 gap-4">
               <div className="p-4 border border-[#E8E4DF] rounded-lg bg-white">
                 <div className="text-xl font-light text-[#1C1C1A]">{stats?.hrStats?.newCandidates || 0}</div>
@@ -281,7 +284,7 @@ export function OwnerDashboard({
 
         {/* Right Column: Quick Actions & Activity Feed */}
         <div className="space-y-8">
-          
+
           <div className="bg-[#FCFBF9] border border-[#E8E4DF] rounded-xl p-6 shadow-[0_2px_20px_rgba(0,0,0,0.04)]">
             <h2 className="text-sm font-medium tracking-wider text-[#1C1C1A] uppercase mb-4">Quick Actions</h2>
             <div className="grid grid-cols-2 gap-3">
@@ -302,9 +305,9 @@ export function OwnerDashboard({
                     triggerToast?.(`Executing: ${action.name}`);
                   }
                 };
-                
+
                 return (
-                  <button 
+                  <button
                     key={i}
                     onClick={handleClick}
                     className="text-[10px] uppercase tracking-wider font-semibold p-3 rounded-lg border border-[#E8E4DF] bg-[#FCFBF9] text-[#5D5B57] hover:bg-[#FAFAF7] hover:border-[#C9A84C] hover:text-[#1C1C1A] transition-all hover:scale-[1.01] active:scale-[0.99] text-center"
@@ -319,8 +322,8 @@ export function OwnerDashboard({
           <div className="bg-[#FCFBF9] border border-[#E8E4DF] rounded-xl p-6 shadow-[0_2px_20px_rgba(0,0,0,0.04)]">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-sm font-medium tracking-wider text-[#1C1C1A] uppercase">Recent Activity</h2>
-              <button 
-                onClick={() => triggerToast?.("Displaying all activities...")} 
+              <button
+                onClick={() => triggerToast?.("Displaying all activities...")}
                 className="text-[9px] uppercase tracking-wider font-bold text-[#C9A84C] hover:text-[#B3923E] transition-colors"
               >
                 View All
@@ -344,7 +347,7 @@ export function OwnerDashboard({
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
               </button>
             </div>
-            
+
             <div className="flex-1 overflow-auto p-0">
               <table className="w-full text-left border-collapse">
                 <thead className="bg-[#FCFBF9] sticky top-0 z-10 shadow-sm">
@@ -363,34 +366,33 @@ export function OwnerDashboard({
                       return true;
                     })
                     .map((staff: any) => (
-                    <tr key={staff.id} className="hover:bg-slate-50 transition-colors">
-                      <td className="px-6 py-4">
-                        <div className="font-semibold text-slate-800">{staff.name}</div>
-                        <div className="text-[10px] text-slate-500 mt-0.5">{staff.email}</div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="text-sm text-slate-800">{staff.role}</div>
-                        <div className="text-[10px] text-[#C9A84C] font-semibold mt-0.5 tracking-wider uppercase">{staff.department}</div>
-                      </td>
-                      <td className="px-6 py-4 text-sm text-slate-600 font-medium">
-                        {staff.companies}
-                      </td>
-                      <td className="px-6 py-4">
-                        <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-widest ${
-                          staff.status === 'active' || staff.status === 'Active' 
-                            ? 'bg-emerald-100 text-emerald-700' 
+                      <tr key={staff.id} className="hover:bg-slate-50 transition-colors">
+                        <td className="px-6 py-4">
+                          <div className="font-semibold text-slate-800">{staff.name}</div>
+                          <div className="text-[10px] text-slate-500 mt-0.5">{staff.email}</div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="text-sm text-slate-800">{staff.role}</div>
+                          <div className="text-[10px] text-[#C9A84C] font-semibold mt-0.5 tracking-wider uppercase">{staff.department}</div>
+                        </td>
+                        <td className="px-6 py-4 text-sm text-slate-600 font-medium">
+                          {staff.companies}
+                        </td>
+                        <td className="px-6 py-4">
+                          <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-widest ${staff.status === 'active' || staff.status === 'Active'
+                            ? 'bg-emerald-100 text-emerald-700'
                             : 'bg-rose-100 text-rose-700'
-                        }`}>
-                          {staff.status}
-                        </span>
-                        {staffModalFilter !== "all" && (
-                          <div className={`text-[9px] mt-1 font-bold uppercase ${staff.isPresent ? 'text-[#6B8F71]' : 'text-rose-500'}`}>
-                            {staff.isPresent ? "Present Today" : "Absent Today"}
-                          </div>
-                        )}
-                      </td>
-                    </tr>
-                  )) : (
+                            }`}>
+                            {staff.status}
+                          </span>
+                          {staffModalFilter !== "all" && (
+                            <div className={`text-[9px] mt-1 font-bold uppercase ${staff.isPresent ? 'text-[#6B8F71]' : 'text-rose-500'}`}>
+                              {staff.isPresent ? "Present Today" : "Absent Today"}
+                            </div>
+                          )}
+                        </td>
+                      </tr>
+                    )) : (
                     <tr>
                       <td colSpan={4} className="px-6 py-12 text-center text-slate-500 font-medium">
                         No staff data available.
@@ -400,9 +402,9 @@ export function OwnerDashboard({
                 </tbody>
               </table>
             </div>
-            
+
             <div className="p-4 border-t border-[#E8E4DF] bg-[#FCFBF9] text-right">
-              <button 
+              <button
                 onClick={() => setShowStaffModal(false)}
                 className="px-6 py-2 bg-slate-800 text-white rounded-lg text-xs font-semibold tracking-wider uppercase hover:bg-slate-900 transition-colors"
               >
@@ -417,19 +419,20 @@ export function OwnerDashboard({
   );
 }
 
-export function HrDashboard({ 
+export function HrDashboard({
   stats,
   candidates = [],
   interviews = [],
-  onNavigateTab 
-}: { 
+  onNavigateTab
+}: {
   stats: any;
   candidates?: any[];
   interviews?: any[];
-  onNavigateTab: (tab: string) => void;
+  onNavigateTab: (tab: string, filter?: string) => void;
 }) {
   const hrStats = stats?.hrStats || {};
   const [isDark, setIsDark] = React.useState(false);
+  const [showHiringModal, setShowHiringModal] = React.useState(false);
 
   const recentInterviews = React.useMemo(() => {
     return [...(interviews || [])]
@@ -437,8 +440,16 @@ export function HrDashboard({
       .slice(0, 5);
   }, [interviews]);
 
+  const dynamicTotalLeadsCount = React.useMemo(() => {
+    return (candidates || []).length;
+  }, [candidates]);
+
   const dynamicHrLeadsCount = React.useMemo(() => {
-    return (candidates || []).filter((c: any) => c.status === "Selected").length;
+    return (candidates || []).filter((c: any) => c.status === "Selected" || c.status === "Hired").length;
+  }, [candidates]);
+
+  const dynamicPendingLeadsCount = React.useMemo(() => {
+    return (candidates || []).filter((c: any) => c.status === "Pending" || !c.status).length;
   }, [candidates]);
 
   const dynamicRejectedCount = React.useMemo(() => {
@@ -452,6 +463,74 @@ export function HrDashboard({
       return new Date(iv.scheduleTime).toDateString() === todayStr;
     }).length;
   }, [interviews]);
+
+  // Use real pipeline trend data from stats API if available, else fallback to computed from candidates
+  const chartData = React.useMemo(() => {
+    if (hrStats?.pipelineTrend && hrStats.pipelineTrend.length > 0) {
+      // Check if there's any real data (non-zero)
+      const hasData = hrStats.pipelineTrend.some((d: any) => d["Total Leads"] > 0);
+      if (hasData) return hrStats.pipelineTrend;
+    }
+
+    // Fallback: compute from candidates
+    const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+    const counts = days.reduce((acc, day) => {
+      acc[day] = { selected: 0, applied: 0 };
+      return acc;
+    }, {} as Record<string, { selected: number; applied: number }>);
+
+    (candidates || []).forEach((c: any) => {
+      const date = new Date(c.createdAt || c.applicationDate || new Date());
+      const dayName = days[date.getDay()];
+      if (counts[dayName]) {
+        counts[dayName].applied += 1;
+        if (c.status === "Selected" || c.status === "Hired") {
+          counts[dayName].selected += 1;
+        }
+      }
+    });
+
+    const order = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+    return order.map(day => ({
+      name: day,
+      "Total Leads": counts[day]?.applied || 0,
+      "Selected for Joining": counts[day]?.selected || 0,
+    }));
+  }, [hrStats, candidates]);
+
+  // Export HR Report as XLSX
+  const exportHrReport = () => {
+    const wb = XLSX.utils.book_new();
+
+    // Summary Sheet
+    const summaryData = [
+      ["HR Operations Report", ""],
+      ["Generated At", new Date().toLocaleString()],
+      ["", ""],
+      ["Metric", "Value"],
+      ["Total HR Leads", hrStats?.hrLeadsCount || 0],
+      ["Selected Leads", hrStats?.selectedLeadsCount || 0],
+      ["Pending Leads", hrStats?.pendingLeadsCount || 0],
+      ["Rejected Leads", hrStats?.rejectedLeadsCount || 0],
+      ["Called by HR", hrStats?.calledLeadsCount || 0],
+      ["Interviews Today", hrStats?.interviewsToday || 0],
+      ["Verification Pending", hrStats?.verificationPending || 0],
+    ];
+    const wsSummary = XLSX.utils.aoa_to_sheet(summaryData);
+    wsSummary["!cols"] = [{ wch: 30 }, { wch: 20 }];
+    XLSX.utils.book_append_sheet(wb, wsSummary, "HR Summary");
+
+    // Pipeline Trend Sheet
+    if (chartData && chartData.length > 0) {
+      const trendHeaders = [["Day", "Total Leads", "Selected for Joining"]];
+      const trendRows = chartData.map((d: any) => [d.name, d["Total Leads"], d["Selected for Joining"]]);
+      const wsTrend = XLSX.utils.aoa_to_sheet([...trendHeaders, ...trendRows]);
+      wsTrend["!cols"] = [{ wch: 12 }, { wch: 16 }, { wch: 22 }];
+      XLSX.utils.book_append_sheet(wb, wsTrend, "Pipeline Trend");
+    }
+
+    XLSX.writeFile(wb, `HR_Operations_Report_${new Date().toISOString().split("T")[0]}.xlsx`);
+  };
 
   React.useEffect(() => {
     setIsDark(document.documentElement.classList.contains("dark"));
@@ -475,51 +554,75 @@ export function HrDashboard({
           </p>
         </div>
         <div className="flex gap-3">
-          <button className={`px-4 py-2 border rounded-lg text-sm font-medium transition-colors shadow-sm ${isDark ? "bg-gray-800 border-gray-700 text-gray-300 hover:bg-gray-700" : "bg-white border-slate-200 text-slate-700 hover:bg-slate-50"}`}>
-            Export HR Report
+          <button
+            onClick={exportHrReport}
+            className={`px-4 py-2 border rounded-lg text-sm font-medium transition-colors shadow-sm flex items-center gap-2 ${isDark ? "bg-gray-800 border-gray-700 text-gray-300 hover:bg-gray-700" : "bg-white border-slate-200 text-slate-700 hover:bg-slate-50"}`}
+          >
+            <Download className="w-4 h-4" /> Export HR Report
           </button>
-          <button className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium transition-colors shadow-sm flex items-center gap-2">
+          <button
+            onClick={() => setShowHiringModal(true)}
+            className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium transition-colors shadow-sm flex items-center gap-2"
+          >
             <UserPlus className="w-4 h-4" /> New Hire
           </button>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <StatCard 
-          title="Today's Interviews" 
-          value={hrStats.interviewsToday?.toString() || "0"} 
-          trend="Scheduled for today" 
-          trendUp={true} 
-          icon={<CalendarClock className="w-5 h-5" />} 
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">
+        <StatCard
+          title="Today's Interviews"
+          value={dynamicInterviewsToday.toString()}
+          trend="Scheduled for today"
+          trendUp={true}
+          icon={<CalendarClock className="w-5 h-5 text-blue-500" />}
           dark={isDark}
           onClick={() => onNavigateTab("interviews")}
         />
-        <StatCard 
-          title="Verification Pending" 
-          value={hrStats.verificationPending?.toString() || "0"} 
-          trend="Requires action" 
-          trendUp={false} 
-          icon={<FileSearch className="w-5 h-5" />} 
+        <StatCard
+          title="Verification Pending"
+          value={hrStats.verificationPending?.toString() || "0"}
+          trend="Requires action"
+          trendUp={false}
+          icon={<FileSearch className="w-5 h-5 text-slate-500" />}
           dark={isDark}
           onClick={() => onNavigateTab("verification")}
         />
-        <StatCard 
-          title="HR Logs" 
-          value={hrStats.hrLeadsCount?.toString() || "0"} 
-          trend="Candidate leads" 
-          trendUp={true} 
-          icon={<Users className="w-5 h-5 text-indigo-500" />} 
+        <StatCard
+          title="HR Leads"
+          value={(hrStats.hrLeadsCount ?? 0).toString()}
+          trend="Total candidate profiles"
+          trendUp={true}
+          icon={<Users className="w-5 h-5 text-indigo-500" />}
           dark={isDark}
-          onClick={() => onNavigateTab("hr-leads")}
+          onClick={() => onNavigateTab("business-leads", "All")}
         />
-        <StatCard 
-          title="Rejected Logs" 
-          value={hrStats.rejectedCount?.toString() || "0"} 
-          trend="Rejected candidates" 
-          trendUp={false} 
-          icon={<ShieldX className="w-5 h-5 text-rose-500" />} 
+        <StatCard
+          title="Selected Leads"
+          value={(hrStats.selectedLeadsCount ?? 0).toString()}
+          trend="Selected profiles"
+          trendUp={true}
+          icon={<CheckCircle className="w-5 h-5 text-emerald-500" />}
           dark={isDark}
-          onClick={() => onNavigateTab("hr-leads")}
+          onClick={() => onNavigateTab("business-leads", "Selected")}
+        />
+        <StatCard
+          title="Pending Leads"
+          value={(hrStats.pendingLeadsCount ?? 0).toString()}
+          trend="Under review leads"
+          trendUp={true}
+          icon={<Clock className="w-5 h-5 text-amber-500" />}
+          dark={isDark}
+          onClick={() => onNavigateTab("business-leads", "Pending")}
+        />
+        <StatCard
+          title="Rejected Leads"
+          value={(hrStats.rejectedLeadsCount ?? 0).toString()}
+          trend="Rejected candidate"
+          trendUp={false}
+          icon={<ShieldX className="w-5 h-5 text-rose-500" />}
+          dark={isDark}
+          onClick={() => onNavigateTab("business-leads", "Rejected")}
         />
       </div>
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -532,7 +635,7 @@ export function HrDashboard({
                 <option>Last Quarter</option>
               </select>
             </div>
-            <AttendanceChart dark={isDark} />
+            <AttendanceChart dark={isDark} data={chartData} />
           </div>
         </div>
 
@@ -542,24 +645,42 @@ export function HrDashboard({
               <h2 className={`text-lg font-bold ${isDark ? "text-white" : "text-slate-800"}`}>Recent HR Activity</h2>
               <button className="text-xs font-semibold text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300">View All</button>
             </div>
-            <ActivityFeed dark={isDark} />
+            <ActivityFeed dark={isDark} logs={stats?.hrActivities} />
           </div>
         </div>
       </div>
+
+      {showHiringModal && (
+        <HiringRequisitionModal
+          onClose={() => setShowHiringModal(false)}
+          triggerToast={(msg) => alert(msg)}
+        />
+      )}
     </div>
   );
 }
 
-export function DepartmentDashboard({ 
+export function DepartmentDashboard({
   stats,
-  onNavigateTab 
-}: { 
+  onNavigateTab,
+  userRole,
+  selectedDeptId = "all",
+  onDeptChange,
+  onNavigateTodayTasks
+}: {
   stats: any;
   onNavigateTab: (tab: string) => void;
+  userRole?: string;
+  selectedDeptId?: string;
+  onDeptChange?: (dept: string) => void;
+  onNavigateTodayTasks?: () => void;
 }) {
   const deptStats = stats?.deptStats || {};
   const [isDark, setIsDark] = React.useState(false);
   const [showHiringModal, setShowHiringModal] = React.useState(false);
+  const [showTeamModal, setShowTeamModal] = React.useState(false);
+  const [showSodEodModal, setShowSodEodModal] = React.useState(false);
+  const [departments, setDepartments] = React.useState<any[]>([]);
 
   React.useEffect(() => {
     setIsDark(document.documentElement.classList.contains("dark"));
@@ -567,8 +688,29 @@ export function DepartmentDashboard({
       setIsDark(document.documentElement.classList.contains("dark"));
     });
     observer.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
+
+    // Fetch active departments
+    const fetchDepts = async () => {
+      try {
+        const res = await fetch("/api/departments");
+        const data = await res.json();
+        if (data.success) {
+          setDepartments(data.data || []);
+        }
+      } catch (err) {
+        console.error("Failed to load departments:", err);
+      }
+    };
+    fetchDepts();
+
     return () => observer.disconnect();
   }, []);
+
+  const isGlobal = ["Director", "HR Head", "HR Executive"].includes(userRole || "");
+  const teamList = deptStats.teamList || [];
+
+  // Deduplicate department names for filter dropdown
+  const uniqueDeptNames = Array.from(new Set(departments.map(d => d.name).filter(Boolean)));
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -582,7 +724,29 @@ export function DepartmentDashboard({
           </p>
         </div>
         <div className="flex items-center gap-3">
-          <button 
+          {isGlobal && (
+            <div className="flex items-center gap-2">
+              <span className={`text-xs font-bold uppercase tracking-wider ${isDark ? "text-gray-400" : "text-slate-550"}`}>
+                Department:
+              </span>
+              <select
+                value={selectedDeptId}
+                onChange={(e) => onDeptChange?.(e.target.value)}
+                className={`text-sm border rounded-lg px-3 py-1.5 outline-none font-semibold transition-all shadow-sm ${isDark
+                    ? "bg-gray-800 border-gray-700 text-gray-200 focus:border-indigo-500"
+                    : "bg-white border-slate-200 text-slate-700 focus:border-indigo-500"
+                  }`}
+              >
+                <option value="all">All Departments</option>
+                {uniqueDeptNames.map((name: string) => (
+                  <option key={name} value={name}>
+                    {name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+          <button
             onClick={() => setShowHiringModal(true)}
             className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors shadow-sm flex items-center gap-2"
           >
@@ -592,43 +756,147 @@ export function DepartmentDashboard({
       </div>
 
       {showHiringModal && (
-        <HiringRequisitionModal 
-          onClose={() => setShowHiringModal(false)} 
-          triggerToast={(msg) => alert(msg)} 
+        <HiringRequisitionModal
+          onClose={() => setShowHiringModal(false)}
+          triggerToast={(msg) => alert(msg)}
         />
       )}
 
+      {/* 1. Team Members Popup Modal */}
+      {showTeamModal && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[9999] flex items-center justify-center p-4">
+          <div className={`w-full max-w-2xl rounded-2xl shadow-xl overflow-hidden border ${isDark ? "bg-gray-900 border-gray-800 text-white" : "bg-white border-slate-200 text-slate-800"}`}>
+            <div className="px-6 py-4 border-b border-slate-200 dark:border-gray-800 flex justify-between items-center">
+              <div>
+                <h3 className="text-lg font-bold">Team Directory</h3>
+                <p className="text-xs text-slate-500 dark:text-gray-400">Total active team members</p>
+              </div>
+              <button
+                onClick={() => setShowTeamModal(false)}
+                className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-gray-800 text-slate-400 hover:text-slate-600"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="p-6 max-h-[60vh] overflow-y-auto space-y-3">
+              {teamList.length === 0 ? (
+                <p className="text-center text-sm text-slate-400 py-4">No team members found.</p>
+              ) : (
+                teamList.map((m: any) => (
+                  <div key={m.id} className={`p-4 rounded-xl border flex items-center justify-between ${isDark ? "bg-gray-800/50 border-gray-700" : "bg-slate-50/50 border-slate-150"}`}>
+                    <div>
+                      <h4 className="text-sm font-bold">{m.name}</h4>
+                      <p className="text-xs text-slate-500 dark:text-gray-400 mt-0.5">
+                        {m.designation || m.role} • {m.department}
+                      </p>
+                    </div>
+                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${m.status === "active" ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-400" : "bg-slate-100 text-slate-600 border-slate-200"}`}>
+                      {m.status === "active" ? "Active" : "Inactive"}
+                    </span>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 2. SOD/EOD Compliance Popup Modal */}
+      {showSodEodModal && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[9999] flex items-center justify-center p-4">
+          <div className={`w-full max-w-3xl rounded-2xl shadow-xl overflow-hidden border ${isDark ? "bg-gray-900 border-gray-800 text-white" : "bg-white border-slate-200 text-slate-800"}`}>
+            <div className="px-6 py-4 border-b border-slate-200 dark:border-gray-800 flex justify-between items-center">
+              <div>
+                <h3 className="text-lg font-bold">Today's Compliance Status</h3>
+                <p className="text-xs text-slate-500 dark:text-gray-400">SOD and EOD submissions check</p>
+              </div>
+              <button
+                onClick={() => setShowSodEodModal(false)}
+                className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-gray-800 text-slate-400 hover:text-slate-600"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="p-6 max-h-[60vh] overflow-y-auto">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="border-b border-slate-200 dark:border-gray-800 text-xs font-bold uppercase tracking-wider text-slate-400">
+                      <th className="pb-3 pl-2">Employee</th>
+                      <th className="pb-3">SOD Status / Time</th>
+                      <th className="pb-3">EOD Status / Time</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 dark:divide-gray-800/60">
+                    {teamList.map((m: any) => {
+                      const sodTimeLabel = m.sodTime
+                        ? new Date(m.sodTime).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })
+                        : null;
+                      const eodTimeLabel = m.eodTime
+                        ? new Date(m.eodTime).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })
+                        : null;
+
+                      return (
+                        <tr key={m.id} className="text-xs font-medium">
+                          <td className="py-3.5 pl-2">
+                            <div className="font-bold">{m.name}</div>
+                            <div className="text-[10px] text-slate-400 mt-0.5">{m.designation || m.role}</div>
+                          </td>
+                          <td className="py-3.5">
+                            <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full font-bold border ${m.sodTime ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/20 dark:text-emerald-400" : "bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/20 dark:text-rose-400"}`}>
+                              {m.sodTime ? `Submitted at ${sodTimeLabel}` : "Pending"}
+                            </span>
+                          </td>
+                          <td className="py-3.5">
+                            <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full font-bold border ${m.eodTime ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/20 dark:text-emerald-400" : "bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/20 dark:text-rose-450"}`}>
+                              {m.eodTime ? `Submitted at ${eodTimeLabel}` : "Pending"}
+                            </span>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <StatCard 
-          title="Team Members" 
-          value={deptStats.teamMembers?.toString() || "0"} 
-          trend="Total active" 
-          trendUp={true} 
-          icon={<Users className="w-5 h-5" />} 
+        <StatCard
+          title="Team Members"
+          value={deptStats.teamMembers?.toString() || "0"}
+          trend="Total active"
+          trendUp={true}
+          icon={<Users className="w-5 h-5" />}
           dark={isDark}
+          onClick={() => setShowTeamModal(true)}
         />
-        <StatCard 
-          title="Today's Tasks" 
-          value={deptStats.tasksToday?.toString() || "0"} 
-          trend="Pending completion" 
-          trendUp={true} 
-          icon={<Briefcase className="w-5 h-5" />} 
+        <StatCard
+          title="Today's Tasks"
+          value={deptStats.tasksToday?.toString() || "0"}
+          trend="Pending completion"
+          trendUp={true}
+          icon={<Briefcase className="w-5 h-5" />}
           dark={isDark}
+          onClick={() => onNavigateTodayTasks?.()}
         />
-        <StatCard 
-          title="SOD / EOD" 
-          value={`${deptStats.sod || 0} / ${deptStats.eod || 0}`} 
-          trend="Team compliance" 
-          trendUp={true} 
-          icon={<Clock className="w-5 h-5" />} 
+        <StatCard
+          title="SOD / EOD"
+          value={`${deptStats.sod || 0} / ${deptStats.eod || 0}`}
+          trend="Team compliance"
+          trendUp={true}
+          icon={<Clock className="w-5 h-5" />}
           dark={isDark}
+          onClick={() => setShowSodEodModal(true)}
         />
-        <StatCard 
-          title="Avg Performance" 
-          value={`${deptStats.performanceAvg || 0}%`} 
-          trend="Current quarter" 
-          trendUp={true} 
-          icon={<TrendingUp className="w-5 h-5" />} 
+        <StatCard
+          title="Avg Performance"
+          value={`${deptStats.performanceAvg || 0}%`}
+          trend="Current quarter"
+          trendUp={true}
+          icon={<TrendingUp className="w-5 h-5" />}
           dark={isDark}
         />
       </div>
@@ -638,8 +906,9 @@ export function DepartmentDashboard({
           <div className={`p-6 rounded-xl border shadow-sm ${isDark ? "bg-gray-900 border-gray-800" : "bg-white border-slate-200"}`}>
             <div className="flex items-center justify-between mb-4">
               <h2 className={`text-lg font-bold ${isDark ? "text-white" : "text-slate-800"}`}>Team Performance Trends</h2>
+              <span className={`text-xs font-medium ${isDark ? "text-gray-400" : "text-slate-500"}`}>SOD Compliance — Last 6 Months</span>
             </div>
-            <PerformanceChart dark={isDark} />
+            <PerformanceChart dark={isDark} data={deptStats.performanceTrend || []} />
           </div>
         </div>
 
@@ -648,7 +917,7 @@ export function DepartmentDashboard({
             <div className="flex items-center justify-between mb-6">
               <h2 className={`text-lg font-bold ${isDark ? "text-white" : "text-slate-800"}`}>Team Activity</h2>
             </div>
-            <ActivityFeed dark={isDark} />
+            <ActivityFeed dark={isDark} logs={deptStats.teamActivities || []} />
           </div>
         </div>
       </div>

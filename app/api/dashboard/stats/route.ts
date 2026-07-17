@@ -68,7 +68,7 @@ export async function GET(req: Request) {
       alertFilter = { triggeredBy: { [Op.in]: userIds } };
       exitFilter = { employee: { [Op.in]: userIds } };
       reportFilter = { employee: { [Op.in]: userIds } };
-      
+
       const jobs = await Job.findAll({ where: { company: companyId }, attributes: ['id'] });
       const jobIds = jobs.map((j: any) => j.id);
       candidateFilter.job = { [Op.in]: jobIds };
@@ -86,11 +86,11 @@ export async function GET(req: Request) {
       if (profile && profile.department) {
         const deptProfiles = await EmployeeProfile.findAll({ where: { department: profile.department }, attributes: ['user'] });
         deptUserIds = deptProfiles.map((p: any) => p.user);
-        
+
         // Add job filter by department
         const jobs = await Job.findAll({ where: { department: profile.department }, attributes: ['id'] });
         const jobIds = jobs.map((j: any) => j.id);
-        
+
         if (candidateFilter.job) {
           candidateFilter.job[Op.in] = jobIds.filter((id: string) => candidateFilter.job[Op.in].includes(id));
         } else {
@@ -129,7 +129,7 @@ export async function GET(req: Request) {
     const totalEmployees = await User.count({ where: userFilter });
     const maleEmployees = await EmployeeProfile.count({ where: { ...profileFilter, gender: "Male" } });
     const femaleEmployees = await EmployeeProfile.count({ where: { ...profileFilter, gender: "Female" } });
-    
+
     // Assuming Associates, Vendors, Franchises are not strictly bound to this company filter in the same way, or maybe we leave them unfiltered for now as they might have a different logic.
     const totalAssociates = await Associate.count({ where: { status: "active" } });
     const totalVendors = await Vendor.count({ where: { status: "active" } });
@@ -151,7 +151,7 @@ export async function GET(req: Request) {
     endOfToday.setUTCHours(23, 59, 59, 999);
     const tomorrow = new Date(today);
     tomorrow.setDate(tomorrow.getDate() + 1);
-    
+
     const sodReportsToday = await SodReport.findAll({
       where: {
         ...reportFilter,
@@ -192,15 +192,17 @@ export async function GET(req: Request) {
     const attendanceEmployeeIds = attendanceRecords.map((r: any) => r.employee?.toString()).filter(Boolean);
     const combinedIds = [...uniqueSodEmployees, ...uniqueEodEmployees, ...attendanceEmployeeIds];
     const finalPresentIds = combinedIds.filter((v: any, i: number, a: any[]) => a.indexOf(v) === i);
-    
+
     const presentCount = finalPresentIds.length;
 
-    const leavesCount = await Leave.count({ where: {
-      ...generalUserFilter,
-      status: "Approved",
-      startDate: { [Op.lte]: endOfToday },
-      endDate: { [Op.gte]: today }
-    } });
+    const leavesCount = await Leave.count({
+      where: {
+        ...generalUserFilter,
+        status: "Approved",
+        startDate: { [Op.lte]: endOfToday },
+        endDate: { [Op.gte]: today }
+      }
+    });
 
     const absentCount = Math.max(0, totalEmployeesCount - finalPresentIds.length - leavesCount);
 
@@ -219,7 +221,7 @@ export async function GET(req: Request) {
     const todayInterviewsList = await Interview.findAll({ where: { scheduleTime: { [Op.gte]: today, [Op.lte]: endOfToday } } });
     const uniqueCandidatesToday = new Set(todayInterviewsList.map((iv: any) => iv.candidate?.toString()).filter(Boolean));
     const todayInterviewsCount = uniqueCandidatesToday.size;
-    
+
     // Vetting registry candidates (passed all 3 rounds) who are not verified
     const interviewsSelected = await Interview.findAll({ where: { status: "Selected" } });
     const candidateInterviewsMap: Record<string, Set<number>> = {};
@@ -236,10 +238,12 @@ export async function GET(req: Request) {
       const rounds = candidateInterviewsMap[cid];
       return rounds.has(1) && rounds.has(2) && rounds.has(3);
     });
-    const verifiedDocs = await Verification.findAll({ where: {
-      candidate: { [Op.in]: eligibleCandIds },
-      status: "Verified"
-    } });
+    const verifiedDocs = await Verification.findAll({
+      where: {
+        candidate: { [Op.in]: eligibleCandIds },
+        status: "Verified"
+      }
+    });
     const verifiedIds = new Set(verifiedDocs.map(v => v.candidate.toString()));
     const pendingVerificationsCount = eligibleCandIds.filter(cid => !verifiedIds.has(cid)).length;
 
@@ -253,7 +257,7 @@ export async function GET(req: Request) {
     }, 0);
 
     // Fetch recent HR activities populated with user info
-    let dbHrActivities = await HRRecentActivity.findAll({ 
+    let dbHrActivities = await HRRecentActivity.findAll({
       where: {},
       order: [['timestamp', 'DESC']],
       limit: 30,
@@ -305,10 +309,10 @@ export async function GET(req: Request) {
             timestamp: new Date(Date.now() - 25 * 60 * 60 * 1000)
           }
         ];
-        
+
         await HRRecentActivity.bulkCreate(initialActivities);
-        
-        dbHrActivities = await HRRecentActivity.findAll({ 
+
+        dbHrActivities = await HRRecentActivity.findAll({
           where: {},
           order: [['timestamp', 'DESC']],
           limit: 30,
@@ -410,7 +414,7 @@ export async function GET(req: Request) {
     ];
 
     const todayDate = new Date();
-    todayDate.setHours(0,0,0,0);
+    todayDate.setHours(0, 0, 0, 0);
     const upcomingHoliday = holidaysList.find(h => h.date >= todayDate) || holidaysList[holidaysList.length - 1];
     const holidayDateStr = upcomingHoliday.date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 
@@ -521,8 +525,8 @@ export async function GET(req: Request) {
       const pendingApprovalsCount = pendingLeavesCount + pendingExpensesCount;
 
       // 5. Avg Performance (compliance rate: % of team members who submitted SOD today)
-      const performanceAvg = teamMembersCount > 0 
-        ? Math.round((deptSodCount / teamMembersCount) * 100) 
+      const performanceAvg = teamMembersCount > 0
+        ? Math.round((deptSodCount / teamMembersCount) * 100)
         : 100;
 
       deptStats = {

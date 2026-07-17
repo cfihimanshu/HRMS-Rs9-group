@@ -219,7 +219,7 @@ export default function KanbanBoard() {
       alert("Category already exists!");
       return;
     }
-    
+
     try {
       const res = await fetch("/api/tasks/call-categories", {
         method: "POST",
@@ -1475,7 +1475,7 @@ export default function KanbanBoard() {
                                     />
                                   </div>
                                 </div>
-                                
+
                                 <div>
                                   <label className="block text-[9px] uppercase tracking-wider text-emerald-700 font-black mb-1">Category *</label>
                                   <div className="flex gap-2">
@@ -1744,7 +1744,7 @@ export default function KanbanBoard() {
                               className = "bg-rose-50 text-rose-700 border-rose-200 animate-pulse font-extrabold";
                             } else {
                               const remainingHours = Math.floor(diffHours);
-                              text = remainingHours === 0 
+                              text = remainingHours === 0
                                 ? `⏰ Due in ${Math.floor(diffMs / (1000 * 60))}m`
                                 : `⏰ Remaining: ${remainingHours}h`;
                               className = remainingHours === 0
@@ -2168,12 +2168,12 @@ export default function KanbanBoard() {
                                     <div className="pr-10">
                                       {(() => {
                                         if (url.includes('application/pdf') || url.includes('.pdf')) {
-                                          return <a href={proofUrl} target="_blank" rel="noopener noreferrer" download={`Task_Document_${idx+1}.pdf`} className="p-2.5 bg-slate-50 hover:bg-slate-100 transition-colors rounded-lg border border-slate-200 text-xs font-bold text-slate-700 flex items-center justify-between gap-2 cursor-pointer"><div className="flex items-center gap-2"><Paperclip className="w-4 h-4" /> PDF Document Uploaded</div> <Download className="w-4 h-4 text-slate-400" /></a>;
+                                          return <a href={proofUrl} target="_blank" rel="noopener noreferrer" download={`Task_Document_${idx + 1}.pdf`} className="p-2.5 bg-slate-50 hover:bg-slate-100 transition-colors rounded-lg border border-slate-200 text-xs font-bold text-slate-700 flex items-center justify-between gap-2 cursor-pointer"><div className="flex items-center gap-2"><Paperclip className="w-4 h-4" /> PDF Document Uploaded</div> <Download className="w-4 h-4 text-slate-400" /></a>;
                                         }
                                         if (url.includes('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet') || url.includes('application/vnd.ms-excel') || url.includes('text/csv') || url.includes('.xls') || url.includes('.xlsx') || url.includes('.csv')) {
-                                          return <a href={proofUrl} target="_blank" rel="noopener noreferrer" download={`Task_Document_${idx+1}.xlsx`} className="p-2.5 bg-slate-50 hover:bg-slate-100 transition-colors rounded-lg border border-slate-200 text-xs font-bold text-slate-700 flex items-center justify-between gap-2 cursor-pointer"><div className="flex items-center gap-2"><Paperclip className="w-4 h-4" /> Excel/CSV Document Uploaded</div> <Download className="w-4 h-4 text-slate-400" /></a>;
+                                          return <a href={proofUrl} target="_blank" rel="noopener noreferrer" download={`Task_Document_${idx + 1}.xlsx`} className="p-2.5 bg-slate-50 hover:bg-slate-100 transition-colors rounded-lg border border-slate-200 text-xs font-bold text-slate-700 flex items-center justify-between gap-2 cursor-pointer"><div className="flex items-center gap-2"><Paperclip className="w-4 h-4" /> Excel/CSV Document Uploaded</div> <Download className="w-4 h-4 text-slate-400" /></a>;
                                         }
-                                        
+
                                         const isAudio = url.includes('audio/') || url.includes('.mp3') || url.includes('.wav') || url.includes('.m4a') || url.includes('.ogg') || url.includes('.aac') || url.includes('.wma') || url.includes('.amr') || url.includes('.opus');
                                         const isVideo = url.includes('video/') || url.includes('.mp4') || url.includes('.mov') || url.includes('.webm') || url.includes('.avi') || url.includes('.mkv');
 
@@ -2192,7 +2192,7 @@ export default function KanbanBoard() {
                                         );
                                       })()}
                                     </div>
-                                    
+
                                     <button
                                       type="button"
                                       onClick={() => handleRemoveProofAt(idx)}
@@ -2207,7 +2207,7 @@ export default function KanbanBoard() {
                             </div>
                           )}
 
-                           {/* Upload Area Dropzone */}
+                          {/* Upload Area Dropzone */}
                           <div className="flex flex-col gap-2">
                             <label className="flex items-center justify-center w-full h-11 border border-dashed border-slate-300 rounded-lg cursor-pointer hover:bg-slate-50 transition-colors bg-white/70">
                               <div className="flex items-center justify-center gap-2 py-1">
