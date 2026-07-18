@@ -3576,7 +3576,7 @@ export function InterviewsQueue({ triggerToast }: { triggerToast: (msg: string) 
 
       {/* Follow Up Modal Popup */}
       {followUpInterview && (
-        <div className="fixed inset-0 z-[9999] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 animate-fadeIn">
+        <div className="fixed inset-0 z-[9999] bg-slate-900/20 backdrop-blur-md flex items-center justify-center p-4 animate-fadeIn">
           <div className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden border border-slate-200">
             {/* Header */}
             <div className="bg-[#714B67] text-white px-5 py-4 flex items-center justify-between">
@@ -4175,7 +4175,7 @@ export function FilePreviewModal({
       : `https://docs.google.com/gview?url=${encodeURIComponent(url)}&embedded=true`;
 
   return (
-    <div className="fixed inset-0 z-[9999] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 animate-fadeIn">
+    <div className="fixed inset-0 z-[9999] bg-slate-900/20 backdrop-blur-md flex items-center justify-center p-4 animate-fadeIn">
       <div className="bg-white rounded-xl shadow-2xl w-full max-w-4xl h-[85vh] flex flex-col overflow-hidden border border-slate-200">
         <div className="bg-[#714B67] text-white px-5 py-4 flex items-center justify-between">
           <span className="text-sm font-black tracking-wide uppercase">{title}</span>

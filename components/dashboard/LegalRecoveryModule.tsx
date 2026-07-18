@@ -1114,6 +1114,7 @@ export default function LegalRecoveryModule({ userRole, triggerToast, sessionUse
             banksList={banksList}
             branchesList={branchesList}
             triggerToast={triggerToast}
+            sessionUser={sessionUser}
           />
         )}
       </div>
@@ -1121,7 +1122,7 @@ export default function LegalRecoveryModule({ userRole, triggerToast, sessionUse
 
       {/* Follow Up Modal */}
       {showFollowUpForm.show && (
-        <div className="fixed inset-0 z-50 overflow-y-auto bg-black/50 backdrop-blur-sm flex justify-center items-start p-4 sm:p-8">
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-black/20 backdrop-blur-md flex justify-center items-start p-4 sm:p-8">
           <div className="bg-white rounded-xl w-full max-w-xl overflow-hidden shadow-2xl animate-scale-in flex flex-col relative mt-4 sm:mt-10 mb-10 max-h-[90vh]">
             <div className="flex justify-between items-center p-4 border-b border-[#E8E4DF] bg-[#FCFBF9] shrink-0">
               <h3 className="font-serif text-lg text-slate-800 flex items-center gap-2">
@@ -1484,7 +1485,7 @@ export default function LegalRecoveryModule({ userRole, triggerToast, sessionUse
 
       {/* History Modal */}
       {showHistoryModal.show && (
-        <div className="fixed inset-0 z-50 overflow-y-auto bg-black/50 backdrop-blur-sm flex justify-center items-start p-4 sm:p-8">
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-black/20 backdrop-blur-md flex justify-center items-start p-4 sm:p-8">
           <div className="bg-white rounded-xl w-full max-w-2xl overflow-hidden shadow-2xl animate-scale-in flex flex-col relative mt-4 sm:mt-10 mb-10 max-h-[85vh]">
             <div className="flex justify-between items-center p-4 border-b border-[#E8E4DF] bg-[#FCFBF9]">
               <h3 className="font-serif text-lg text-slate-800 flex items-center gap-2">
@@ -1578,7 +1579,7 @@ export default function LegalRecoveryModule({ userRole, triggerToast, sessionUse
 
       {/* Payment Form Modal */}
       {showPaymentForm.show && (
-        <div className="fixed inset-0 z-50 overflow-y-auto bg-black/50 backdrop-blur-sm flex justify-center items-start p-4 sm:p-8">
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-black/20 backdrop-blur-md flex justify-center items-start p-4 sm:p-8">
           <div className="bg-white rounded-xl w-full max-w-xl overflow-hidden shadow-2xl animate-scale-in flex flex-col relative mt-4 sm:mt-10 mb-10 max-h-[90vh]">
             <div className="flex justify-between items-center p-4 border-b border-[#E8E4DF] bg-[#FCFBF9] shrink-0">
               <h3 className="font-serif text-lg text-slate-800 flex items-center gap-2">

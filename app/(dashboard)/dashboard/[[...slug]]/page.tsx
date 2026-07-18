@@ -86,6 +86,22 @@ export default function UnifiedEnterpriseDashboard() {
 
   // Active navigation tab matching hr.html panel toggles
   const [activeTab, setActiveTab] = useState<string>("dashboard");
+  const [businessLeadsFilter, setBusinessLeadsFilter] = useState<string>("All");
+  const [kanbanSearchFilter, setKanbanSearchFilter] = useState<string>("");
+
+  const handleNavigateTab = (tab: string, filter?: string) => {
+    setActiveTab(tab);
+    if (tab === "business-leads" && filter) {
+      setBusinessLeadsFilter(filter);
+      setKanbanSearchFilter("");
+    } else if (tab === "tasks" && filter) {
+      setKanbanSearchFilter(filter);
+      setBusinessLeadsFilter("All");
+    } else {
+      setBusinessLeadsFilter("All");
+      setKanbanSearchFilter("");
+    }
+  };
   const [mobileMenuOpen, setMobileMenuOpen] = useState<boolean>(false);
 
   // Dynamic Clock States
@@ -113,6 +129,8 @@ export default function UnifiedEnterpriseDashboard() {
   const [interviews, setInterviews] = useState<any[]>([]);
   const [allCompanies, setAllCompanies] = useState<any[]>([]);
   const [selectedCompanyId, setSelectedCompanyId] = useState<string>("");
+  const [selectedDeptId, setSelectedDeptId] = useState<string>("all");
+  const [taskDateFilter, setTaskDateFilter] = useState<string>("");
   const [jobs, setJobs] = useState<any[]>([]);
   const [probationList, setProbationList] = useState<any[]>([]);
   const [grievanceList, setGrievanceList] = useState<any[]>([]);
@@ -331,11 +349,16 @@ export default function UnifiedEnterpriseDashboard() {
     }
   };
 
-  const loadStats = async (companyId?: string) => {
+  const loadStats = async (companyId?: string, deptId?: string) => {
     try {
-      const url = companyId
-        ? `/api/dashboard/stats?companyId=${companyId}&_=${Date.now()}`
-        : `/api/dashboard/stats?_=${Date.now()}`;
+      const activeCompany = companyId !== undefined ? companyId : selectedCompanyId;
+      const activeDept = deptId !== undefined ? deptId : selectedDeptId;
+
+      let query = `?_=${Date.now()}`;
+      if (activeCompany) query += `&companyId=${activeCompany}`;
+      if (activeDept && activeDept !== "all") query += `&department=${encodeURIComponent(activeDept)}`;
+
+      const url = `/api/dashboard/stats${query}`;
       const res = await fetch(url, { cache: "no-store" });
       const data = await res.json();
       if (data.success) {
@@ -443,6 +466,12 @@ export default function UnifiedEnterpriseDashboard() {
     }
   };
 
+  useEffect(() => {
+    if (activeTab !== "tasks") {
+      setTaskDateFilter("");
+    }
+  }, [activeTab]);
+
   const loadAllData = async () => {
     setLoading(true);
     const role = userRole;
@@ -472,9 +501,9 @@ export default function UnifiedEnterpriseDashboard() {
 
   useEffect(() => {
     if (status === "authenticated" && !loading) {
-      loadStats(selectedCompanyId);
+      loadStats(selectedCompanyId, selectedDeptId);
     }
-  }, [selectedCompanyId]);
+  }, [selectedCompanyId, selectedDeptId]);
 
   useEffect(() => {
     if (status === "authenticated" && !dataLoaded) {
@@ -1042,7 +1071,7 @@ export default function UnifiedEnterpriseDashboard() {
       {/* Sidebar Component */}
       <DashboardSidebar
         activeTab={activeTab}
-        setActiveTab={setActiveTab}
+        setActiveTab={handleNavigateTab}
         stats={stats}
         user={{ ...session?.user, role: userRole, menuAccess: liveMenuAccess }}
         triggerToast={triggerToast}
@@ -1066,8 +1095,8 @@ export default function UnifiedEnterpriseDashboard() {
         <Topbar
           activeTabLabel={activeTab === "business-leads" ? "HR LEADS" : activeTab.replace("-", " ").toUpperCase()}
           activeTab={activeTab}
-          setActiveTab={setActiveTab}
-          user={session?.user}
+          setActiveTab={handleNavigateTab}
+          user={{ ...session?.user, role: userRole }}
           mobileMenuOpen={mobileMenuOpen}
           setMobileMenuOpen={setMobileMenuOpen}
         />
@@ -1081,7 +1110,7 @@ export default function UnifiedEnterpriseDashboard() {
               stats={stats}
               riskAlertList={riskAlertList}
               onResolveAlert={handleAlertResolve}
-              onNavigateTab={setActiveTab}
+              onNavigateTab={handleNavigateTab}
               triggerToast={triggerToast}
               companies={allCompanies}
               selectedCompanyId={selectedCompanyId}
@@ -1094,13 +1123,13 @@ export default function UnifiedEnterpriseDashboard() {
               stats={stats}
               candidates={candidates}
               interviews={interviews}
-              onNavigateTab={setActiveTab}
+              onNavigateTab={handleNavigateTab}
             />
           )}
 
           {/* ESS Panels */}
           {activeTab === "ess-dashboard" && (
-            <ESSDashboard user={session?.user} triggerToast={triggerToast} setActiveTab={setActiveTab} toggleModal={toggleModal} stats={stats} />
+            <ESSDashboard user={session?.user} triggerToast={triggerToast} setActiveTab={handleNavigateTab} toggleModal={toggleModal} stats={stats} />
           )}
           {activeTab === "ess-leaves" && (
             <ESSLeaves user={session?.user} triggerToast={triggerToast} stats={stats} />
@@ -1112,13 +1141,21 @@ export default function UnifiedEnterpriseDashboard() {
             <ESSExpenses user={session?.user} triggerToast={triggerToast} />
           )}
           {activeTab === "asset-request" && (
-            <AssetRequestLogs sessionUser={{ ...session?.user, role: userRole }} triggerToast={triggerToast} setActiveTab={setActiveTab} />
+            <AssetRequestLogs sessionUser={{ ...session?.user, role: userRole }} triggerToast={triggerToast} setActiveTab={handleNavigateTab} />
           )}
 
           {activeTab === "dept-dash" && (
             <DepartmentDashboard
               stats={stats}
-              onNavigateTab={setActiveTab}
+              onNavigateTab={handleNavigateTab}
+              userRole={userRole}
+              selectedDeptId={selectedDeptId}
+              onDeptChange={setSelectedDeptId}
+              onNavigateTodayTasks={() => {
+                const todayStr = new Date().toLocaleDateString("sv-SE"); // Local date YYYY-MM-DD
+                setTaskDateFilter(todayStr);
+                setActiveTab("tasks");
+              }}
             />
           )}
 
@@ -1154,6 +1191,7 @@ export default function UnifiedEnterpriseDashboard() {
             <BusinessLeads
               triggerToast={triggerToast}
               toggleModal={toggleModal}
+              initialStatusFilter={businessLeadsFilter}
             />
           )}
 
@@ -1197,13 +1235,37 @@ export default function UnifiedEnterpriseDashboard() {
             />
           )}
 
-          {activeTab === "legal-recovery" && (
-            <LegalRecovery
-              userRole={userRole}
-              triggerToast={triggerToast}
-              sessionUser={session?.user}
-            />
-          )}
+          {activeTab === "legal-recovery" && (() => {
+            const userDept = (session?.user as any)?.department || "";
+            const isAdministration = userDept.toLowerCase().includes("administration");
+            let allowedPageIds: string[] | null = null;
+            if (Array.isArray(liveMenuAccess)) {
+              allowedPageIds = liveMenuAccess;
+            } else if (typeof liveMenuAccess === "string" && liveMenuAccess) {
+              try {
+                const parsed = JSON.parse(liveMenuAccess);
+                if (Array.isArray(parsed)) allowedPageIds = parsed;
+              } catch {}
+            }
+            const hasExplicitAccess = allowedPageIds && allowedPageIds.includes("legal-recovery");
+            const hasAccess = userRole === "Owner" || isAdministration || hasExplicitAccess;
+
+            if (!hasAccess) {
+              return (
+                <div className="p-8 text-center text-red-500 font-bold bg-white rounded-xl shadow border border-red-100">
+                  Access Denied: You do not have permission to access the Legal Recovery page.
+                </div>
+              );
+            }
+
+            return (
+              <LegalRecovery
+                userRole={userRole}
+                triggerToast={triggerToast}
+                sessionUser={session?.user}
+              />
+            );
+          })()}
 
           {activeTab === "screening" && (
             <AiScreening
@@ -1263,7 +1325,10 @@ export default function UnifiedEnterpriseDashboard() {
           )}
 
           {activeTab === "tasks" && (
-            <KanbanBoard />
+            <KanbanBoard
+              initialDateFilter={taskDateFilter}
+              initialSearchFilter={kanbanSearchFilter}
+            />
           )}
 
           {activeTab === "performance" && (
@@ -1353,7 +1418,7 @@ export default function UnifiedEnterpriseDashboard() {
 
       {/* MODAL 2: POST JOB VACANCY */}
       {modals.job && (
-        <div className="fixed inset-0 bg-[#070810]/40 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+        <div className="fixed inset-0 bg-black/20 z-50 flex items-center justify-center p-4 backdrop-blur-md">
           <div className="bg-white border border-slate-200 w-full max-w-2xl rounded-xl p-6 relative shadow-2xl text-slate-800 max-h-[85vh] overflow-y-auto">
             <button className="absolute top-4 right-4 text-slate-400 hover:text-slate-600" onClick={() => toggleModal("job", false)}><X className="w-5 h-5" /></button>
             <h3 className="text-sm font-black text-[#714B67] uppercase tracking-wider mb-6">MODULE-3: Create Shareable Job Vacancy Link</h3>
@@ -1525,7 +1590,7 @@ export default function UnifiedEnterpriseDashboard() {
 
       {/* MODAL 3: ADD CANDIDATE */}
       {modals.cand && (
-        <div className="fixed inset-0 bg-[#070810]/40 z-50 flex items-center justify-center p-4 backdrop-blur-sm animate-fadeIn">
+        <div className="fixed inset-0 bg-black/20 z-50 flex items-center justify-center p-4 backdrop-blur-md animate-fadeIn">
           <div className="bg-white border border-slate-200 w-full max-w-lg rounded-xl p-6 relative shadow-2xl text-slate-800 max-h-[90vh] overflow-y-auto custom-scrollbar">
             <button className="absolute top-4 right-4 text-slate-400 hover:text-slate-600" onClick={() => toggleModal("cand", false)}><X className="w-5 h-5" /></button>
             <h3 className="text-sm font-black text-[#714B67] uppercase tracking-wider mb-6">Add Candidate Profile</h3>
@@ -1660,7 +1725,7 @@ export default function UnifiedEnterpriseDashboard() {
 
       {/* MODAL 4: SCHEDULE INTERVIEW */}
       {modals.interview && (
-        <div className="fixed inset-0 bg-[#070810]/40 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+        <div className="fixed inset-0 bg-black/20 z-50 flex items-center justify-center p-4 backdrop-blur-md">
           <div className="bg-white border border-slate-200 w-full max-w-lg rounded-xl p-6 relative shadow-2xl text-slate-800 max-h-[90vh] overflow-y-auto custom-scrollbar">
             <button className="absolute top-4 right-4 text-slate-400 hover:text-slate-600" onClick={() => toggleModal("interview", false)}><X className="w-5 h-5" /></button>
             <h3 className="text-sm font-black text-[#714B67] uppercase tracking-wider mb-6">Schedule Vetting Interview</h3>
@@ -1708,7 +1773,7 @@ export default function UnifiedEnterpriseDashboard() {
 
       {/* MODAL 6: FILE CONFIDENTIAL GRIEVANCE */}
       {modals.grievance && (
-        <div className="fixed inset-0 bg-[#070810]/40 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+        <div className="fixed inset-0 bg-black/20 z-50 flex items-center justify-center p-4 backdrop-blur-md">
           <div className="bg-white border border-slate-200 w-full max-w-lg rounded-xl p-6 relative shadow-2xl text-slate-800 max-h-[90vh] overflow-y-auto custom-scrollbar">
             <button className="absolute top-4 right-4 text-slate-400 hover:text-slate-600" onClick={() => toggleModal("grievance", false)}><X className="w-5 h-5" /></button>
             <h3 className="text-sm font-black text-[#714B67] uppercase tracking-wider mb-6">Anonymous Grievance Filing</h3>
@@ -1744,7 +1809,7 @@ export default function UnifiedEnterpriseDashboard() {
 
       {/* MODAL 7: ADD BUSINESS ASSOCIATE */}
       {modals.assoc && (
-        <div className="fixed inset-0 bg-[#070810]/40 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+        <div className="fixed inset-0 bg-black/20 z-50 flex items-center justify-center p-4 backdrop-blur-md">
           <div className="bg-white border border-slate-200 w-full max-w-lg rounded-xl p-6 relative shadow-2xl text-slate-800 max-h-[90vh] overflow-y-auto custom-scrollbar">
             <button className="absolute top-4 right-4 text-slate-400 hover:text-slate-600" onClick={() => toggleModal("assoc", false)}><X className="w-5 h-5" /></button>
             <h3 className="text-sm font-black text-[#714B67] uppercase tracking-wider mb-6">Register Business Associate</h3>
@@ -1779,7 +1844,7 @@ export default function UnifiedEnterpriseDashboard() {
 
       {/* MODAL 8: REGISTER VENDOR CONTRACT */}
       {modals.vendor && (
-        <div className="fixed inset-0 bg-[#070810]/40 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+        <div className="fixed inset-0 bg-black/20 z-50 flex items-center justify-center p-4 backdrop-blur-md">
           <div className="bg-white border border-slate-200 w-full max-w-lg rounded-xl p-6 relative shadow-2xl text-slate-800 max-h-[90vh] overflow-y-auto custom-scrollbar">
             <button className="absolute top-4 right-4 text-slate-400 hover:text-slate-600" onClick={() => toggleModal("vendor", false)}><X className="w-5 h-5" /></button>
             <h3 className="text-sm font-black text-[#714B67] uppercase tracking-wider mb-6">Register Contractor Vendor</h3>
@@ -1818,7 +1883,7 @@ export default function UnifiedEnterpriseDashboard() {
 
       {/* MODAL 9: REGISTER FRANCHISE OWNER */}
       {modals.franchise && (
-        <div className="fixed inset-0 bg-[#070810]/40 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+        <div className="fixed inset-0 bg-black/20 z-50 flex items-center justify-center p-4 backdrop-blur-md">
           <div className="bg-white border border-slate-200 w-full max-w-lg rounded-xl p-6 relative shadow-2xl text-slate-800 max-h-[90vh] overflow-y-auto custom-scrollbar">
             <button className="absolute top-4 right-4 text-slate-400 hover:text-slate-600" onClick={() => toggleModal("franchise", false)}><X className="w-5 h-5" /></button>
             <h3 className="text-sm font-black text-[#714B67] uppercase tracking-wider mb-6">Register Franchise Partner</h3>
@@ -1848,7 +1913,7 @@ export default function UnifiedEnterpriseDashboard() {
       )}
 
       {modals.sodModal && (
-        <div className="fixed inset-0 bg-[#070810]/40 z-[90] flex items-center justify-center p-4 backdrop-blur-sm animate-fadeIn">
+        <div className="fixed inset-0 bg-black/20 z-[90] flex items-center justify-center p-4 backdrop-blur-md animate-fadeIn">
           <div className="bg-[#F4F5F7] w-full max-w-3xl max-h-[90vh] overflow-y-auto custom-scrollbar rounded-2xl shadow-2xl relative border border-slate-200">
             <button className="absolute top-6 right-6 text-slate-500 hover:text-slate-800 bg-white hover:bg-slate-100 rounded-full p-1.5 border shadow-sm z-10 transition-all" onClick={() => toggleModal("sodModal", false)}><X className="w-5 h-5" /></button>
             <div className="p-8">
@@ -1870,7 +1935,7 @@ export default function UnifiedEnterpriseDashboard() {
 
       {/* MODAL 11: EOD MODAL */}
       {modals.eodModal && (
-        <div className="fixed inset-0 bg-[#070810]/40 z-[90] flex items-center justify-center p-4 backdrop-blur-sm animate-fadeIn">
+        <div className="fixed inset-0 bg-black/20 z-[90] flex items-center justify-center p-4 backdrop-blur-md animate-fadeIn">
           <div className="bg-[#F4F5F7] w-full max-w-3xl max-h-[90vh] overflow-y-auto custom-scrollbar rounded-2xl shadow-2xl relative border border-slate-200">
             <button className="absolute top-6 right-6 text-slate-500 hover:text-slate-800 bg-white hover:bg-slate-100 rounded-full p-1.5 border shadow-sm z-10 transition-all" onClick={() => toggleModal("eodModal", false)}><X className="w-5 h-5" /></button>
             <div className="p-8">

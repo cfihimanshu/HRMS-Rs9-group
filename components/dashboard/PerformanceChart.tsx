@@ -3,7 +3,7 @@ import { Line, LineChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YA
 
 interface PerformanceChartProps {
   dark?: boolean;
-  data?: { name: string; score: number }[];
+  data?: any[];
 }
 
 export default function PerformanceChart({ dark = false, data }: PerformanceChartProps) {
@@ -12,14 +12,19 @@ export default function PerformanceChart({ dark = false, data }: PerformanceChar
   const tooltipBg = dark ? "#1f2937" : "#ffffff";
   const tooltipBorder = dark ? "#374151" : "#e2e8f0";
 
-  const chartData = data && data.length > 0 ? data : [
-    { name: "Feb", score: 0 },
-    { name: "Mar", score: 0 },
-    { name: "Apr", score: 0 },
-    { name: "May", score: 0 },
-    { name: "Jun", score: 0 },
-    { name: "Jul", score: 0 },
-  ];
+  const chartData = data && data.length > 0 
+    ? data.map((d: any) => ({
+        name: d.name || d.month || "",
+        score: typeof d.score === 'number' ? d.score : (typeof d.rate === 'number' ? d.rate : 0)
+      }))
+    : [
+        { name: "Feb", score: 0 },
+        { name: "Mar", score: 0 },
+        { name: "Apr", score: 0 },
+        { name: "May", score: 0 },
+        { name: "Jun", score: 0 },
+        { name: "Jul", score: 0 },
+      ];
 
   return (
     <div className="h-[300px] w-full mt-4">

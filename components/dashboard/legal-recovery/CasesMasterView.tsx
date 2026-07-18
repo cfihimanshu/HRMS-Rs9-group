@@ -187,7 +187,7 @@ export default function CasesMasterView({
 
       {/* Export Modal */}
       {showExportModal && (
-        <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in">
+        <div className="fixed inset-0 z-50 bg-slate-900/20 backdrop-blur-md flex items-center justify-center p-4 animate-fade-in">
           <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl overflow-hidden animate-slide-up">
             <div className="px-6 py-4 border-b border-[#E8E4DF] flex justify-between items-center">
               <h2 className="text-sm font-black text-emerald-900 uppercase tracking-wider flex items-center gap-2">

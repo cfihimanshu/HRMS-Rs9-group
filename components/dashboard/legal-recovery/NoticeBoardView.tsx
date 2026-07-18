@@ -4,6 +4,238 @@ import { PlusCircle, Search, RefreshCw, FileText, Building, User, Trash2, Edit3,
 
 
 
+// Date utility functions to support DD/MM/YYYY formatting
+const parseInputDate = (value: string): string => {
+  return value.replace(/[^0-9/]/g, "").slice(0, 10);
+};
+
+const toDisplayDate = (dbDate: string): string => {
+  if (!dbDate) return "";
+  const cleanDate = dbDate.split("T")[0];
+  const parts = cleanDate.split("-");
+  if (parts.length === 3) {
+    return `${parts[2]}/${parts[1]}/${parts[0]}`;
+  }
+  return dbDate;
+};
+
+const toDbDate = (displayDate: string): string => {
+  if (!displayDate) return "";
+  const parts = displayDate.split("/");
+  if (parts.length === 3) {
+    let day = parts[0].padStart(2, "0");
+    let month = parts[1].padStart(2, "0");
+    let year = parts[2];
+    if (year.length === 2) {
+      year = "20" + year; // Convert YY to 20YY
+    }
+    return `${year}-${month}-${day}`;
+  }
+  return displayDate;
+};
+
+// Premium Custom DatePicker component with year and month dropdown selectors
+function CalendarDatePicker({
+  label,
+  value,
+  onChange,
+  disabled = false,
+  required = false
+}: {
+  label: string;
+  value: string;
+  onChange: (val: string) => void;
+  disabled?: boolean;
+  required?: boolean;
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [inputText, setInputText] = useState("");
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    setInputText(toDisplayDate(value));
+  }, [value]);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const [activeDate, setActiveDate] = useState(() => {
+    if (value && value.includes("-")) {
+      const d = new Date(value);
+      if (!isNaN(d.getTime())) return d;
+    }
+    return new Date();
+  });
+
+  useEffect(() => {
+    if (value && value.includes("-")) {
+      const d = new Date(value);
+      if (!isNaN(d.getTime())) {
+        setActiveDate(d);
+      }
+    }
+  }, [value]);
+
+  const activeYear = activeDate.getFullYear();
+  const activeMonth = activeDate.getMonth();
+
+  const handlePrevMonth = () => {
+    setActiveDate(new Date(activeYear, activeMonth - 1, 1));
+  };
+
+  const handleNextMonth = () => {
+    setActiveDate(new Date(activeYear, activeMonth + 1, 1));
+  };
+
+  const handleSelectDay = (day: number) => {
+    const formattedDay = String(day).padStart(2, "0");
+    const formattedMonth = String(activeMonth + 1).padStart(2, "0");
+    const formattedDateStr = `${activeYear}-${formattedMonth}-${formattedDay}`;
+    onChange(formattedDateStr);
+    setIsOpen(false);
+  };
+
+  const daysInMonth = new Date(activeYear, activeMonth + 1, 0).getDate();
+  const startDayOfWeek = new Date(activeYear, activeMonth, 1).getDay();
+
+  const monthNames = [
+    "January", "February", "March", "April", "May", "June",
+    "July", "August", "September", "October", "November", "December"
+  ];
+
+  const handleInputChange = (val: string) => {
+    let cleaned = parseInputDate(val);
+    setInputText(cleaned);
+
+    if (cleaned.length === 10) {
+      const dbDate = toDbDate(cleaned);
+      const check = new Date(dbDate);
+      if (!isNaN(check.getTime())) {
+        onChange(dbDate);
+      }
+    }
+  };
+
+  const daysGrid = [];
+  const offset = startDayOfWeek === 0 ? 6 : startDayOfWeek - 1;
+  for (let i = 0; i < offset; i++) {
+    daysGrid.push(null);
+  }
+  for (let d = 1; d <= daysInMonth; d++) {
+    daysGrid.push(d);
+  }
+
+  let selDay = 0;
+  let selMonth = -1;
+  let selYear = 0;
+  if (value && value.includes("-")) {
+    const parts = value.split("-");
+    if (parts.length === 3) {
+      selYear = parseInt(parts[0]);
+      selMonth = parseInt(parts[1]) - 1;
+      selDay = parseInt(parts[2]);
+    }
+  }
+
+  const currentSystemYear = new Date().getFullYear();
+  const yearChoices = [];
+  for (let y = currentSystemYear - 10; y <= currentSystemYear + 5; y++) {
+    yearChoices.push(y);
+  }
+
+  return (
+    <div ref={containerRef} className="relative w-full">
+      <label className="block text-[9px] uppercase tracking-wider text-black font-black mb-1">{label}</label>
+      <div className="relative">
+        <input
+          type="text"
+          placeholder="DD/MM/YYYY"
+          value={inputText}
+          disabled={disabled}
+          required={required}
+          onChange={e => handleInputChange(e.target.value)}
+          onFocus={() => !disabled && setIsOpen(true)}
+          className="w-full bg-white border border-[#E8E4DF] focus:border-indigo-500 rounded-lg px-3 py-2 text-xs focus:outline-none font-semibold text-slate-700 disabled:opacity-60 cursor-pointer"
+        />
+        <button
+          type="button"
+          disabled={disabled}
+          onClick={() => !disabled && setIsOpen(!isOpen)}
+          className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-indigo-650 transition-colors"
+        >
+          <Calendar className="w-4 h-4" />
+        </button>
+      </div>
+
+      {isOpen && (
+        <div className="absolute left-0 mt-1.5 w-64 bg-white border border-slate-200 rounded-xl shadow-2xl z-[99999] p-3 text-slate-800 font-sans">
+          <div className="flex justify-between items-center mb-3">
+            <button type="button" onClick={handlePrevMonth} className="p-1 hover:bg-slate-100 rounded text-slate-500">&lt;</button>
+            <div className="flex items-center gap-1">
+              <select
+                value={activeMonth}
+                onChange={e => setActiveDate(new Date(activeYear, parseInt(e.target.value), 1))}
+                className="text-xs font-bold border-none outline-none bg-transparent cursor-pointer text-slate-700 focus:ring-0"
+              >
+                {monthNames.map((name, idx) => (
+                  <option key={name} value={idx}>{name}</option>
+                ))}
+              </select>
+              <select
+                value={activeYear}
+                onChange={e => setActiveDate(new Date(parseInt(e.target.value), activeMonth, 1))}
+                className="text-xs font-bold border-none outline-none bg-transparent cursor-pointer text-slate-700 focus:ring-0"
+              >
+                {yearChoices.map(yr => (
+                  <option key={yr} value={yr}>{yr}</option>
+                ))}
+              </select>
+            </div>
+            <button type="button" onClick={handleNextMonth} className="p-1 hover:bg-slate-100 rounded text-slate-500">&gt;</button>
+          </div>
+
+          <div className="grid grid-cols-7 text-center text-[10px] font-black uppercase text-slate-400 mb-2">
+            <span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span><span>S</span>
+          </div>
+
+          <div className="grid grid-cols-7 gap-1 text-center text-xs">
+            {daysGrid.map((day, idx) => {
+              if (day === null) return <div key={`empty-${idx}`} />;
+              
+              const isSelected = selDay === day && selMonth === activeMonth && selYear === activeYear;
+              const isToday = new Date().getDate() === day && new Date().getMonth() === activeMonth && new Date().getFullYear() === activeYear;
+
+              return (
+                <button
+                  key={`day-${day}`}
+                  type="button"
+                  onClick={() => handleSelectDay(day)}
+                  className={`py-1.5 rounded-lg font-bold transition-all ${
+                    isSelected
+                      ? "bg-indigo-600 text-white shadow-sm shadow-indigo-600/20"
+                      : isToday
+                      ? "bg-indigo-50 text-indigo-700 border border-indigo-200"
+                      : "hover:bg-slate-100 text-slate-600"
+                  }`}
+                >
+                  {day}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // Custom Autocomplete Component with premium UI suggestions
 function EmployeeAutocomplete({
   label,
@@ -210,11 +442,13 @@ function LocalImagePreview({ file }: { file: File }) {
 export default function NoticeBoardView({
   banksList = [],
   branchesList = [],
-  triggerToast = (msg: string) => alert(msg)
+  triggerToast = (msg: string) => alert(msg),
+  sessionUser
 }: {
   banksList: any[];
   branchesList: any[];
   triggerToast?: (msg: string) => void;
+  sessionUser?: any;
 }) {
   const [notices, setNotices] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
@@ -1265,24 +1499,19 @@ export default function NoticeBoardView({
                     </div>
                   )}
                 </div>
-
                 <div>
-                  <label className="block text-[9px] uppercase tracking-wider text-black font-black mb-1">Notice Order Date</label>
-                  <input
-                    type="date"
+                  <CalendarDatePicker
+                    label="Notice Order Date"
                     value={form.noticeOrderDate}
-                    onChange={e => setForm({ ...form, noticeOrderDate: e.target.value })}
-                    className="w-full bg-white border border-[#E8E4DF] focus:border-indigo-500 rounded-lg px-3 py-2 text-xs focus:outline-none font-semibold text-slate-700"
+                    onChange={val => setForm({ ...form, noticeOrderDate: val })}
                   />
                 </div>
 
                 <div>
-                  <label className="block text-[9px] uppercase tracking-wider text-black font-black mb-1">Notice Date</label>
-                  <input
-                    type="date"
+                  <CalendarDatePicker
+                    label="Notice Date"
                     value={form.noticeDate}
-                    onChange={e => setForm({ ...form, noticeDate: e.target.value })}
-                    className="w-full bg-white border border-[#E8E4DF] focus:border-indigo-500 rounded-lg px-3 py-2 text-xs focus:outline-none font-semibold text-slate-700"
+                    onChange={val => setForm({ ...form, noticeDate: val })}
                   />
                 </div>
 
@@ -1411,13 +1640,6 @@ export default function NoticeBoardView({
                   />
                 </div>
 
-                <EmployeeAutocomplete
-                  label="Printed By"
-                  value={form.printedBy}
-                  onChange={val => setForm({ ...form, printedBy: val })}
-                  employees={employees}
-                />
-
                 <div>
                   <label className="block text-[9px] uppercase tracking-wider text-black font-black mb-1">No. of Scan</label>
                   <input
@@ -1430,6 +1652,13 @@ export default function NoticeBoardView({
                     className="w-full bg-white border border-[#E8E4DF] focus:border-indigo-500 rounded-lg px-3 py-2 text-xs focus:outline-none font-mono font-semibold"
                   />
                 </div>
+
+                <EmployeeAutocomplete
+                  label="Printed By"
+                  value={form.printedBy}
+                  onChange={val => setForm({ ...form, printedBy: val })}
+                  employees={employees}
+                />
 
                 <EmployeeAutocomplete
                   label="Scanned By"
@@ -1461,27 +1690,21 @@ export default function NoticeBoardView({
               </h4>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-[9px] uppercase tracking-wider text-black font-black mb-1">Handover To</label>
-                  <input
-                    type="text"
-                    value={form.handoverTo}
-                    onChange={e => setForm({ ...form, handoverTo: e.target.value })}
-                    className="w-full bg-white border border-[#E8E4DF] focus:border-indigo-500 rounded-lg px-3 py-2 text-xs focus:outline-none font-semibold text-slate-700"
-                    placeholder="Enter recipient name"
-                  />
-                </div>
+                <EmployeeAutocomplete
+                  label="Handover To"
+                  value={form.handoverTo}
+                  onChange={val => setForm({ ...form, handoverTo: val })}
+                  employees={employees}
+                  placeholder="Enter recipient name"
+                />
 
-                <div>
-                  <label className="block text-[9px] uppercase tracking-wider text-black font-black mb-1">Handed Over By</label>
-                  <input
-                    type="text"
-                    value={form.handedOverBy}
-                    onChange={e => setForm({ ...form, handedOverBy: e.target.value })}
-                    className="w-full bg-white border border-[#E8E4DF] focus:border-indigo-500 rounded-lg px-3 py-2 text-xs focus:outline-none font-semibold text-slate-700"
-                    placeholder="Enter dispatch staff name"
-                  />
-                </div>
+                <EmployeeAutocomplete
+                  label="Handed Over By"
+                  value={form.handedOverBy}
+                  onChange={val => setForm({ ...form, handedOverBy: val })}
+                  employees={employees}
+                  placeholder="Enter dispatch staff name"
+                />
 
                 <div>
                   <label className="block text-[9px] uppercase tracking-wider text-black font-black mb-1">Handover Remarks</label>
@@ -1660,7 +1883,7 @@ export default function NoticeBoardView({
           </div>
 
           {/* Notices Table */}
-          <div className="overflow-x-auto" style={{ minHeight: "450px" }}>
+          <div className="overflow-x-auto custom-scrollbar w-full shadow-sm border border-[#E8E4DF] rounded-2xl bg-white">
             {loading ? (
               <div className="text-center py-16 text-slate-400 text-xs flex flex-col items-center gap-2">
                 <RefreshCw className="w-6 h-6 animate-spin text-indigo-600" /> LOADING NOTICES...
@@ -1668,6 +1891,21 @@ export default function NoticeBoardView({
             ) : (
               <>
                 <style>{`
+                  .custom-scrollbar::-webkit-scrollbar {
+                    height: 8px !important;
+                    width: 8px !important;
+                  }
+                  .custom-scrollbar::-webkit-scrollbar-track {
+                    background: #f8fafc !important;
+                    border-radius: 4px !important;
+                  }
+                  .custom-scrollbar::-webkit-scrollbar-thumb {
+                    background: #cbd5e1 !important;
+                    border-radius: 4px !important;
+                  }
+                  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+                    background: #94a3b8 !important;
+                  }
                   .notice-tracking-table th,
                   .notice-tracking-table td {
                     padding-left: 10px !important;
@@ -2642,7 +2880,7 @@ export default function NoticeBoardView({
         const deductions = (parseFloat(viewingNotice.tdsDeduction) || 0) + (parseFloat(viewingNotice.gstDeduction) || 0) + (parseFloat(viewingNotice.expenses) || 0);
         const grossProfit = billAmt - deductions;
         return (
-          <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[9999] overflow-y-auto">
+          <div className="fixed inset-0 bg-slate-900/20 backdrop-blur-md z-[9999] overflow-y-auto">
             <div className="flex min-h-screen items-center justify-center p-4 text-center">
               <div className="bg-white border border-[#E8E4DF] rounded-2xl max-w-4xl w-full shadow-2xl overflow-hidden text-left align-middle my-8 relative z-50 animate-scale-in">
                 {/* Header */}
@@ -2855,7 +3093,7 @@ export default function NoticeBoardView({
 
       {/* 4. Update Notice Handover Modal */}
       {handoverNotice && mounted && createPortal(
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[9999] overflow-y-auto">
+        <div className="fixed inset-0 bg-slate-900/20 backdrop-blur-md z-[9999] overflow-y-auto">
           <div className="flex min-h-screen items-center justify-center p-4 text-center">
             <div className="bg-white border border-[#E8E4DF] rounded-2xl max-w-md w-full shadow-2xl overflow-hidden text-left align-middle my-8 relative z-50 animate-scale-in">
               {/* Header */}
@@ -2875,29 +3113,21 @@ export default function NoticeBoardView({
               {/* Form */}
               <form onSubmit={handleSaveHandover}>
                 <div className="p-6 space-y-4 text-left">
-                  <div>
-                    <label className="block text-[9px] uppercase tracking-wider text-black font-black mb-1">Handover To *</label>
-                    <input
-                      type="text"
-                      required
-                      value={handoverForm.handoverTo}
-                      onChange={e => setHandoverForm({ ...handoverForm, handoverTo: e.target.value })}
-                      className="w-full bg-white border border-[#E8E4DF] focus:border-indigo-500 rounded-lg px-3 py-2 text-xs focus:outline-none font-semibold text-slate-700"
-                      placeholder="Enter recipient name"
-                    />
-                  </div>
+                  <EmployeeAutocomplete
+                    label="Handover To *"
+                    value={handoverForm.handoverTo}
+                    onChange={val => setHandoverForm({ ...handoverForm, handoverTo: val })}
+                    employees={employees}
+                    placeholder="Enter recipient name"
+                  />
 
-                  <div>
-                    <label className="block text-[9px] uppercase tracking-wider text-black font-black mb-1">Handed Over By *</label>
-                    <input
-                      type="text"
-                      required
-                      value={handoverForm.handedOverBy}
-                      onChange={e => setHandoverForm({ ...handoverForm, handedOverBy: e.target.value })}
-                      className="w-full bg-white border border-[#E8E4DF] focus:border-indigo-500 rounded-lg px-3 py-2 text-xs focus:outline-none font-semibold text-slate-700"
-                      placeholder="Enter dispatch staff name"
-                    />
-                  </div>
+                  <EmployeeAutocomplete
+                    label="Handed Over By *"
+                    value={handoverForm.handedOverBy}
+                    onChange={val => setHandoverForm({ ...handoverForm, handedOverBy: val })}
+                    employees={employees}
+                    placeholder="Enter dispatch staff name"
+                  />
 
                   <div>
                     <label className="block text-[9px] uppercase tracking-wider text-black font-black mb-1">Remarks</label>
@@ -2948,7 +3178,7 @@ export default function NoticeBoardView({
 
       {/* 5. Update Notice Billing Modal */}
       {billingNotice && mounted && createPortal(
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[9999] overflow-y-auto">
+        <div className="fixed inset-0 bg-slate-900/20 backdrop-blur-md z-[9999] overflow-y-auto">
           <div className="flex min-h-screen items-center justify-center p-4 text-center">
             <div className="bg-white border border-[#E8E4DF] rounded-2xl max-w-lg w-full shadow-2xl overflow-hidden text-left align-middle my-8 relative z-50 animate-scale-in">
               {/* Header */}
@@ -2975,15 +3205,12 @@ export default function NoticeBoardView({
                     <div><strong>Branch:</strong> {branchesList.find(br => br.branchCode === billingNotice.branchId?.toString())?.branchName || "Unknown Branch"} ({billingNotice.branchId})</div>
                     <div><strong>Notice Type:</strong> {noticeTypes.find(t => t.id?.toString() === billingNotice.noticeTypeId?.toString())?.name || billingNotice.noticeType || "-"}</div>
                   </div>
-
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-[9px] uppercase tracking-wider text-black font-black mb-1">Bill Date</label>
-                      <input
-                        type="date"
+                      <CalendarDatePicker
+                        label="Bill Date"
                         value={billingForm.billDate}
-                        onChange={e => setBillingForm({ ...billingForm, billDate: e.target.value })}
-                        className="w-full bg-white border border-[#E8E4DF] focus:border-indigo-500 rounded-lg px-3 py-2 text-xs focus:outline-none text-slate-700"
+                        onChange={val => setBillingForm({ ...billingForm, billDate: val })}
                       />
                     </div>
 
@@ -3028,12 +3255,10 @@ export default function NoticeBoardView({
 
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-[9px] uppercase tracking-wider text-black font-black mb-1">Payment Rcvd Date</label>
-                      <input
-                        type="date"
+                      <CalendarDatePicker
+                        label="Payment Rcvd Date"
                         value={billingForm.paymentRcvdDate}
-                        onChange={e => setBillingForm({ ...billingForm, paymentRcvdDate: e.target.value })}
-                        className="w-full bg-white border border-[#E8E4DF] focus:border-indigo-500 rounded-lg px-3 py-2 text-xs focus:outline-none text-slate-700"
+                        onChange={val => setBillingForm({ ...billingForm, paymentRcvdDate: val })}
                       />
                     </div>
 

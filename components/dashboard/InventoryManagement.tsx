@@ -3000,7 +3000,7 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
 
       {previewImageUrl && typeof document !== "undefined" && ReactDOM.createPortal(
         <div 
-          className="fixed inset-0 z-[10000] bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 transition-all duration-300"
+          className="fixed inset-0 z-[10000] bg-black/20 backdrop-blur-md flex items-center justify-center p-4 transition-all duration-300"
           onClick={() => setPreviewImageUrl(null)}
         >
           <div 

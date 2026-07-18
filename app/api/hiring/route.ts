@@ -9,6 +9,57 @@ import Company from "@/models/sequelize/Company";
 import Department from "@/models/sequelize/Department";
 import User from "@/models/sequelize/User";
 import { sendRequestNotification } from "@/lib/notificationHelper";
+import { sendEmail } from "@/lib/email";
+
+function getRequisitionStatusEmailHtml(params: {
+  applicantName: string;
+  role: string;
+  department: string;
+  status: string;
+  isApproved: boolean;
+  remarks: string;
+}) {
+  return `<!DOCTYPE html>
+<html><head><meta charset="utf-8">
+<style>
+  body{font-family:'Segoe UI',system-ui,sans-serif;background:#f1f5f9;margin:0;padding:0;color:#1e293b}
+  .wrap{max-width:580px;margin:32px auto;background:#fff;border-radius:16px;overflow:hidden;border:1px solid #e2e8f0;box-shadow:0 4px 20px rgba(0,0,0,.06)}
+  .header-approved{background:linear-gradient(135deg,#7c3aed 0%,#4f46e5 100%);padding:28px 24px;color:#fff;text-align:center}
+  .header-rejected{background:linear-gradient(135deg,#ef4444 0%,#dc2626 100%);padding:28px 24px;color:#fff;text-align:center}
+  .header h1{margin:0;font-size:20px;font-weight:700}
+  .body{padding:28px 24px}
+  .field-table{width:100%;border-collapse:collapse;margin:16px 0}
+  .field-table td{padding:10px 12px;border-bottom:1px solid #f1f5f9;font-size:13px}
+  .field-table td.label{font-weight:700;color:#64748b;width:130px}
+  .remarks-box{background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:16px;margin:16px 0;font-size:13px;color:#475569;line-height:1.6}
+  .footer{background:#f8fafc;padding:16px 24px;text-align:center;font-size:11px;color:#94a3b8;border-top:1px solid #e2e8f0}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="header ${params.isApproved ? 'header-approved' : 'header-rejected'}">
+    <h1>${params.isApproved ? '🎉 Requisition Approved' : '❌ Requisition Status Update'}</h1>
+  </div>
+  <div class="body">
+    <p>Hello <strong>${params.applicantName}</strong>,</p>
+    <p>Your hiring requisition status has been updated:</p>
+    <table class="field-table">
+      <tr><td class="label">Role / Position</td><td><strong>${params.role}</strong></td></tr>
+      <tr><td class="label">Department</td><td>${params.department}</td></tr>
+      <tr><td class="label">Status</td><td>
+        <span style="background:${params.isApproved ? '#e0e7ff;color:#4338ca' : '#fee2e2;color:#991b1b'};padding:2px 8px;border-radius:999px;font-size:11px;font-weight:700">${params.status}</span>
+      </td></tr>
+    </table>
+    <div style="font-size:12px;font-weight:700;color:#64748b;margin-top:16px">Remarks:</div>
+    <div class="remarks-box">"${params.remarks}"</div>
+    <p style="text-align:center;margin-top:24px">
+      <a href="https://hrms.cfi247.com/" style="background:#4f46e5;color:#fff;padding:12px 28px;border-radius:8px;text-decoration:none;font-weight:700;font-size:13px;display:inline-block">Open Portal →</a>
+    </p>
+  </div>
+  <div class="footer">RS9 Group HRMS • This is an automated notification</div>
+</div>
+</body></html>`;
+}
 
 // GET: List all requisitions
 export async function GET() {
@@ -304,8 +355,33 @@ export async function PUT(req: Request) {
         details: `Hiring requisition for ${requisition.role} status is now: ${requisition.status}. Remarks: ${remarks || "None"}.`,
         fallbackDepartment: requisition.department,
       });
+      // Send email to creator on status updates
+      if (requisition.createdBy) {
+        const creatorUser = await User.findOne({ where: { name: requisition.createdBy } });
+        if (creatorUser && creatorUser.email) {
+          const isApproved = status === "Approved — Pending HR Post" || status === "Job Posted";
+          const isRejected = status === "Rejected";
+          const isHold = status === "Hold";
+
+          if (isApproved || isRejected || isHold) {
+            const emailHtml = getRequisitionStatusEmailHtml({
+              applicantName: creatorUser.name || "Employee",
+              role: requisition.role,
+              department: requisition.department,
+              status: requisition.status,
+              isApproved,
+              remarks: remarks || "None",
+            });
+            await sendEmail({
+              to: creatorUser.email,
+              subject: `📋 Hiring Requisition Update: ${requisition.role} – ${requisition.status}`,
+              html: emailHtml,
+            });
+          }
+        }
+      }
     } catch (notifErr) {
-      console.error("Error creating hiring status update notification:", notifErr);
+      console.error("Error creating hiring status update notification/email:", notifErr);
     }
 
     return NextResponse.json({ success: true, data: requisition });

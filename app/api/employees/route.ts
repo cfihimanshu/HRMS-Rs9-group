@@ -64,7 +64,17 @@ export async function GET(req: Request) {
       }
     }
 
-    if (!isOwnerOrDirector && !isHR && !isAdministration) {
+    let isLegalRecoveryUser = false;
+    if (dbUser && dbUser.menuAccess) {
+      try {
+        const parsed = typeof dbUser.menuAccess === "string" ? JSON.parse(dbUser.menuAccess) : dbUser.menuAccess;
+        if (Array.isArray(parsed) && parsed.includes("legal-recovery")) {
+          isLegalRecoveryUser = true;
+        }
+      } catch (e) {}
+    }
+
+    if (!isOwnerOrDirector && !isHR && !isAdministration && !isLegalRecoveryUser) {
       return NextResponse.json({ success: false, error: "Unauthorized access" }, { status: 401 });
     }
 
@@ -120,7 +130,7 @@ export async function GET(req: Request) {
     });
 
     let filteredMergedData = mergedData;
-    if (isAdministration && !isOwnerOrDirector && !isHR) {
+    if (!isOwnerOrDirector && !isHR) {
       filteredMergedData = mergedData.filter((emp: any) => {
         let empComps: any[] = [];
         if (Array.isArray(emp.companies)) {

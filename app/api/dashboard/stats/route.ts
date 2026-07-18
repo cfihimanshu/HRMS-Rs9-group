@@ -9,6 +9,7 @@ import Interview from "@/models/sequelize/Interview";
 import User from "@/models/sequelize/User";
 import EmployeeProfile from "@/models/sequelize/EmployeeProfile";
 import Associate from "@/models/sequelize/Associate";
+import LeadPlatform from "@/models/sequelize/LeadPlatform";
 import { Op } from "sequelize";
 import Vendor from "@/models/sequelize/Vendor";
 import Franchise from "@/models/sequelize/Franchise";
@@ -24,6 +25,7 @@ import ExitRecord from "@/models/sequelize/ExitRecord";
 import Leave from "@/models/sequelize/Leave";
 import HRRecentActivity from "@/models/sequelize/HRRecentActivity";
 import Expense from "@/models/sequelize/Expense";
+import TaskLog from "@/models/sequelize/TaskLog";
 
 export async function GET(req: Request) {
   try {
@@ -122,6 +124,33 @@ export async function GET(req: Request) {
     const selectedCandidates = await Candidate.count({ where: { ...candidateFilter, status: "Selected" } });
     const highRiskCandidates = await Candidate.count({ where: { ...candidateFilter, status: "High Risk" } });
 
+    // 1b. Business Leads Stats
+    let totalLeadsCount = 0;
+    let selectedLeadsCount = 0;
+    let pendingLeadsCount = 0;
+    let rejectedLeadsCount = 0;
+
+    try {
+      const platforms = await LeadPlatform.findAll({ raw: true });
+      for (const plat of platforms) {
+        const tableName = plat.tableName;
+        const [rows]: any[] = await sequelize.query(`SELECT status FROM ${tableName}`);
+        totalLeadsCount += rows.length;
+        rows.forEach((row: any) => {
+          const status = (row.status || "").toLowerCase();
+          if (status === "pending" || status === "new" || status === "") {
+            pendingLeadsCount++;
+          } else if (status.includes("select")) {
+            selectedLeadsCount++;
+          } else if (status.includes("reject")) {
+            rejectedLeadsCount++;
+          }
+        });
+      }
+    } catch (e) {
+      console.error("Failed to query business leads stats:", e);
+    }
+
     // 2. Interview Stats
     const pendingInterviews = await Interview.count({ where: { ...interviewFilter, status: "Pending" } });
 
@@ -175,6 +204,26 @@ export async function GET(req: Request) {
     });
     const eodEmployeeIds = eodReportsToday.map((r: any) => r.employee?.toString()).filter(Boolean);
     const uniqueEodEmployees = eodEmployeeIds.filter((v: any, i: number, a: any[]) => a.indexOf(v) === i);
+
+    const sodMap: Record<string, string> = {};
+    sodReportsToday.forEach((r: any) => {
+      if (r.employee) {
+        const timeVal = r.createdAt || r.timestamp || r.date;
+        if (timeVal) {
+          sodMap[r.employee.toString()] = new Date(timeVal).toISOString();
+        }
+      }
+    });
+
+    const eodMap: Record<string, string> = {};
+    eodReportsToday.forEach((r: any) => {
+      if (r.employee) {
+        const timeVal = r.createdAt || r.timestamp || r.date;
+        if (timeVal) {
+          eodMap[r.employee.toString()] = new Date(timeVal).toISOString();
+        }
+      }
+    });
 
     // Ensure we use the proper dynamic user filter (dept or company)
     const totalEmployeesCount = await User.count({ where: userFilter });
@@ -234,10 +283,17 @@ export async function GET(req: Request) {
         candidateInterviewsMap[cid].add(iv.round);
       }
     });
-    const eligibleCandIds = Object.keys(candidateInterviewsMap).filter(cid => {
-      const rounds = candidateInterviewsMap[cid];
-      return rounds.has(1) && rounds.has(2) && rounds.has(3);
+    const allCands = await Candidate.findAll({
+      where: { ...candidateFilter, status: { [Op.ne]: "inactive" } }
     });
+
+    const eligibleCandIds = allCands.filter((cand: any) => {
+      const cid = cand.id.toString();
+      const rounds = candidateInterviewsMap[cid] || new Set();
+      const hasAllThree = rounds.has(1) && rounds.has(2) && rounds.has(3);
+      const isDirectlyHired = cand.status === "Selected" && cand.currentRound === 3;
+      return hasAllThree || isDirectlyHired;
+    }).map((c: any) => c.id.toString());
     const verifiedDocs = await Verification.findAll({
       where: {
         candidate: { [Op.in]: eligibleCandIds },
@@ -247,7 +303,7 @@ export async function GET(req: Request) {
     const verifiedIds = new Set(verifiedDocs.map(v => v.candidate.toString()));
     const pendingVerificationsCount = eligibleCandIds.filter(cid => !verifiedIds.has(cid)).length;
 
-    const rejectedCandidatesCount = await Candidate.count({ where: { status: "Rejected" } });
+    const rejectedCandidatesCount = await Candidate.count({ where: { ...candidateFilter, status: "Rejected" } });
     const activeExits = await ExitRecord.count({ where: { status: "active" } });
 
     // 8. Department Dashboard metrics
@@ -450,22 +506,46 @@ export async function GET(req: Request) {
     if (userRole === "Department Manager" || userRole === "Owner" || userRole === "Director" || userRole === "HR Head" || userRole === "HR Executive") {
       let deptUserIds: any[] = [];
       let managerProfile = null;
+      const deptFilterParam = searchParams.get("department");
 
       if (userRole === "Department Manager") {
         managerProfile = await EmployeeProfile.findOne({ where: { user: userId } });
-      }
+        
+        let deptProfiles: any[] = [];
+        if (managerProfile && managerProfile.department) {
+          deptProfiles = await EmployeeProfile.findAll({
+            where: { department: managerProfile.department },
+            attributes: ["user"]
+          });
+        }
 
-      if (managerProfile && managerProfile.department) {
-        // Fetch all profiles in this department
-        const profilesInDept = await EmployeeProfile.findAll({
-          where: { department: managerProfile.department },
+        let reportProfiles: any[] = [];
+        if (dbUser && dbUser.name) {
+          reportProfiles = await EmployeeProfile.findAll({
+            where: { reportingManager: dbUser.name },
+            attributes: ["user"]
+          });
+        }
+
+        deptUserIds = [...new Set([
+          ...deptProfiles.map((p: any) => p.user),
+          ...reportProfiles.map((p: any) => p.user)
+        ])].filter(Boolean);
+      } else if (deptFilterParam && deptFilterParam !== "all") {
+        // Global viewer has selected a specific department
+        const deptProfiles = await EmployeeProfile.findAll({
+          where: { department: deptFilterParam },
           attributes: ["user"]
         });
-        deptUserIds = profilesInDept.map((p: any) => p.user).filter(Boolean);
+        deptUserIds = deptProfiles.map((p: any) => p.user).filter(Boolean);
       } else {
-        // For Owner/Director/Global Admin without a specific department, show company wide or all active users
+        // Global admin with "all" departments selected, show all active users in company
+        let activeUsersQuery: any = { status: "active" };
+        if (companyId) {
+          activeUsersQuery.companies = { [Op.like]: `%${companyId}%` };
+        }
         const activeUsers = await User.findAll({
-          where: { status: "active" },
+          where: activeUsersQuery,
           attributes: ["id"]
         });
         deptUserIds = activeUsers.map((u: any) => u.id);
@@ -502,10 +582,19 @@ export async function GET(req: Request) {
       });
       const deptEodCount = new Set(deptEodsToday.map((r: any) => r.employee?.toString()).filter(Boolean)).size;
 
-      // 3. Tasks planned for today in department
-      const deptTasksToday = deptSodsToday.reduce((acc: number, curr: any) => {
-        return acc + (curr.callsPlanned || 0) + (curr.meetings || 0) + (curr.fieldVisits || 0);
-      }, 0);
+      // 3. Tasks planned/created for today in department
+      const deptTasksToday = await TaskLog.count({
+        where: {
+          [Op.or]: [
+            { employee: { [Op.in]: deptUserIds } },
+            { forwardedTo: { [Op.in]: deptUserIds } }
+          ],
+          date: {
+            [Op.gte]: today,
+            [Op.lt]: tomorrow
+          }
+        }
+      });
 
       // 4. Pending manager approvals (leaves and expense claims) for department members
       const pendingLeavesCount = await Leave.count({
@@ -524,10 +613,146 @@ export async function GET(req: Request) {
 
       const pendingApprovalsCount = pendingLeavesCount + pendingExpensesCount;
 
-      // 5. Avg Performance (compliance rate: % of team members who submitted SOD today)
-      const performanceAvg = teamMembersCount > 0
-        ? Math.round((deptSodCount / teamMembersCount) * 100)
-        : 100;
+      // 5. Avg Performance (compliance rate: % of completed tasks today out of all tasks today)
+      const deptCompletedTasksCount = await TaskLog.count({
+        where: {
+          [Op.or]: [
+            { employee: { [Op.in]: deptUserIds } },
+            { forwardedTo: { [Op.in]: deptUserIds } }
+          ],
+          status: "Completed",
+          date: {
+            [Op.gte]: today,
+            [Op.lt]: tomorrow
+          }
+        }
+      });
+
+      const performanceAvg = deptTasksToday > 0
+        ? Math.round((deptCompletedTasksCount / deptTasksToday) * 100)
+        : 100; // Default to 100% compliance if no tasks exist
+
+      // Fetch details of all team members in deptUserIds for compliance list
+      const teamUsers = await User.findAll({
+        where: { id: { [Op.in]: deptUserIds } },
+        attributes: ["id", "name", "role", "status"]
+      });
+
+      const teamProfiles = await EmployeeProfile.findAll({
+        where: { user: { [Op.in]: deptUserIds } }
+      });
+
+      const teamProfilesMap: Record<string, any> = {};
+      teamProfiles.forEach((p: any) => {
+        teamProfilesMap[p.user] = {
+          department: p.department || "N/A",
+          designation: p.designation || "N/A"
+        };
+      });
+
+      const deptTeamList = teamUsers.map((u: any) => ({
+        id: u.id,
+        name: u.name || "Unnamed",
+        role: u.role || "Employee",
+        status: u.status || "active",
+        department: teamProfilesMap[u.id]?.department || "N/A",
+        designation: teamProfilesMap[u.id]?.designation || "N/A",
+        sodTime: sodMap[u.id.toString()] || null,
+        eodTime: eodMap[u.id.toString()] || null
+      }));
+
+      // Get team activities
+      let dbTeamActivities = await HRRecentActivity.findAll({
+        where: { user: { [Op.in]: deptUserIds } },
+        order: [['timestamp', 'DESC']],
+        limit: 15,
+        raw: true
+      });
+
+      const teamActorIds = [...new Set(dbTeamActivities.map((a: any) => a.user).filter(Boolean))];
+      let teamActorMap: any = {};
+      if (teamActorIds.length > 0) {
+        const users = await User.findAll({ where: { id: { [Op.in]: teamActorIds } }, raw: true });
+        users.forEach((u: any) => { teamActorMap[u.id] = { name: u.name, role: u.role }; });
+      }
+
+      const teamActivities = dbTeamActivities
+        .map((log: any) => {
+          const actorInfo = teamActorMap[log.user] || { name: 'Unknown', role: 'Staff' };
+          let title = "HR Activity";
+          const action = log.action;
+          if (action === "CREATE_EMPLOYEE") title = "New Employee Onboarded";
+          else if (action === "SCHEDULE_INTERVIEW") title = "Interview Scheduled";
+          else if (action === "SUBMIT_INTERVIEW_EVALUATION") title = "Interview Evaluated";
+          else if (action === "SUBMIT_VERIFICATION") title = "Document Verified";
+          else if (action === "APPROVED_LEAVE") title = "Leave Request Approved";
+          else if (action === "REJECTED_LEAVE") title = "Leave Request Rejected";
+          else if (action === "CREATE_JOB") title = "Job Vacancy Posted";
+          else if (action === "UPDATE_TRAINING_LOG") title = "Training Record Updated";
+          else if (action === "SUBMIT_PROBATION_EVALUATION") title = "Probation Evaluated";
+
+          return {
+            id: (log.id || "").toString(),
+            title,
+            description: log.details,
+            timestamp: log.timestamp ? new Date(log.timestamp).toISOString() : new Date().toISOString(),
+            action,
+            actor: actorInfo.name,
+            actorRole: actorInfo.role
+          };
+        });
+
+      // Get compliance trend for last 6 months
+      const performanceTrend = [];
+      const monthNamesAbbr = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+      for (let i = 5; i >= 0; i--) {
+        const d = new Date();
+        d.setMonth(d.getMonth() - i);
+        const mIndex = d.getMonth();
+        const yVal = d.getFullYear();
+
+        const mStart = new Date(Date.UTC(yVal, mIndex, 1, 0, 0, 0, 0));
+        const mEnd = new Date(Date.UTC(yVal, mIndex + 1, 0, 23, 59, 59, 999));
+
+        const sodsInMonth = await SodReport.findAll({
+          where: {
+            employee: { [Op.in]: deptUserIds },
+            date: {
+              [Op.gte]: mStart,
+              [Op.lte]: mEnd
+            }
+          },
+          attributes: ["employee", "date"]
+        });
+
+        const uniqueSubmissions = new Set(
+          sodsInMonth.map((r: any) => {
+            const dateStr = new Date(r.date).toISOString().split("T")[0];
+            return `${r.employee}-${dateStr}`;
+          })
+        ).size;
+
+        let workDays = 0;
+        const limitDay = (mIndex === now.getMonth() && yVal === now.getFullYear())
+          ? now.getDate()
+          : mEnd.getDate();
+
+        for (let day = 1; day <= limitDay; day++) {
+          const checkDate = new Date(yVal, mIndex, day);
+          if (checkDate.getDay() !== 0) {
+            workDays++;
+          }
+        }
+
+        const totalExpected = (teamMembersCount * workDays) || 1;
+        const rate = Math.min(100, Math.round((uniqueSubmissions / totalExpected) * 100));
+
+        performanceTrend.push({
+          month: monthNamesAbbr[mIndex],
+          rate: rate || 0
+        });
+      }
 
       deptStats = {
         teamMembers: teamMembersCount,
@@ -535,7 +760,10 @@ export async function GET(req: Request) {
         sod: deptSodCount,
         eod: deptEodCount,
         performanceAvg: Math.min(100, performanceAvg),
-        pendingApprovals: pendingApprovalsCount
+        pendingApprovals: pendingApprovalsCount,
+        teamList: deptTeamList,
+        teamActivities,
+        performanceTrend
       };
     } else {
       // Fallback for non-managers
@@ -564,25 +792,7 @@ export async function GET(req: Request) {
       };
     });
 
-    const sodMap: Record<string, string> = {};
-    sodReportsToday.forEach((r: any) => {
-      if (r.employee) {
-        const timeVal = r.createdAt || r.timestamp || r.date;
-        if (timeVal) {
-          sodMap[r.employee.toString()] = new Date(timeVal).toISOString();
-        }
-      }
-    });
 
-    const eodMap: Record<string, string> = {};
-    eodReportsToday.forEach((r: any) => {
-      if (r.employee) {
-        const timeVal = r.createdAt || r.timestamp || r.date;
-        if (timeVal) {
-          eodMap[r.employee.toString()] = new Date(timeVal).toISOString();
-        }
-      }
-    });
 
     const staffList = staffUsers.map((u: any) => ({
       id: u.id,
@@ -657,8 +867,10 @@ export async function GET(req: Request) {
           newCandidates: pendingCandidates,
           trainingStatus: trainingPending,
           probationStatus: activeProbations,
-          hrLeadsCount: selectedCandidates,
-          rejectedCount: rejectedCandidatesCount,
+          hrLeadsCount: totalLeadsCount,
+          selectedLeadsCount: selectedLeadsCount,
+          pendingLeadsCount: pendingLeadsCount,
+          rejectedLeadsCount: rejectedLeadsCount,
         },
         deptStats
       },

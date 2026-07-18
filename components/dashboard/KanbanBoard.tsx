@@ -33,7 +33,8 @@ import {
   Download,
   List,
   Paperclip,
-  Image as ImageIcon
+  Image as ImageIcon,
+  Search
 } from "lucide-react";
 
 interface Task {
@@ -72,7 +73,13 @@ const TYPE_COLORS: Record<string, string> = {
   Other: "bg-slate-100 text-slate-600 border-slate-200",
 };
 
-export default function KanbanBoard() {
+export default function KanbanBoard({ 
+  initialDateFilter, 
+  initialSearchFilter 
+}: { 
+  initialDateFilter?: string; 
+  initialSearchFilter?: string; 
+}) {
   const { data: session, status } = useSession();
   const sessionUser = session?.user;
 
@@ -866,7 +873,16 @@ export default function KanbanBoard() {
   };
 
   const [filterUser, setFilterUser] = useState("All");
-  const [filterDate, setFilterDate] = useState("");
+  const [filterDate, setFilterDate] = useState(initialDateFilter || "");
+  const [searchQuery, setSearchQuery] = useState(initialSearchFilter || "");
+
+  useEffect(() => {
+    setFilterDate(initialDateFilter || "");
+  }, [initialDateFilter]);
+
+  useEffect(() => {
+    setSearchQuery(initialSearchFilter || "");
+  }, [initialSearchFilter]);
 
   const uniqueUsers = Array.from(new Set(tasks.map(t => (t.employee as any)?.name).filter(Boolean)));
 
@@ -888,7 +904,15 @@ export default function KanbanBoard() {
       }
     }
 
-    return matchUser && matchDate;
+    let matchQuery = true;
+    if (searchQuery) {
+      const query = searchQuery.trim().toLowerCase();
+      const title = (t.taskTitle || "").toLowerCase();
+      const description = (t.description || "").toLowerCase();
+      matchQuery = title.includes(query) || description.includes(query) || query.includes(title);
+    }
+
+    return matchUser && matchDate && matchQuery;
   });
 
   const handleExportTasks = () => {
@@ -1225,6 +1249,26 @@ export default function KanbanBoard() {
           <p className="text-xs text-slate-500 mt-1">Manage your daily workload — view as Kanban or list, filter by dates.</p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
+          <div className="relative flex items-center">
+            <input
+              type="text"
+              placeholder="Search tasks..."
+              className="bg-white border border-slate-200 text-slate-700 text-[10px] font-bold rounded-lg pl-8 pr-7 py-2 focus:outline-none focus:border-[#714B67] shadow-sm w-44"
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+            />
+            <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 pointer-events-none" />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery("")}
+                className="text-slate-400 hover:text-slate-600 absolute right-2.5 focus:outline-none text-[11px]"
+                title="Clear Search"
+              >
+                ✕
+              </button>
+            )}
+          </div>
+
           {uniqueUsers.length > 1 && (
             <select
               className="bg-white border border-slate-200 text-slate-700 text-[10px] font-black uppercase tracking-wider rounded-lg px-3 py-2 focus:outline-none focus:border-[#714B67] shadow-sm cursor-pointer"
@@ -1811,7 +1855,7 @@ export default function KanbanBoard() {
       {/* ===================== TASK DETAIL MODAL ===================== */}
       {selectedTask && (
         <div
-          className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+          className="fixed inset-0 bg-slate-900/20 backdrop-blur-md z-50 flex items-center justify-center p-4"
           onClick={() => {
             setSelectedTask(null);
             setIsEditingTask(false);
