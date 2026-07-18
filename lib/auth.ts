@@ -226,32 +226,41 @@ export const authOptions: NextAuthOptions = {
         token.employeeId = (user as any).employeeId;
         token.company = (user as any).company;
         token.profilePhoto = (user as any).profilePhoto || null;
+        token.lastRefreshed = Date.now();
       } else if (token.id) {
-        try {
-          const dbUser = await User.findByPk(token.id as string, { raw: true });
-          if (dbUser) {
-            const SYSTEM_ROLES = [
-              "Owner",
-              "Director",
-              "HR Head",
-              "HR Executive",
-              "Department Manager",
-              "Employee",
-              "Accounts",
-              "Trainer",
-              "IT Admin",
-              "DSM",
-              "RIBP / Risk Officer",
-              "Business Associate",
-              "Vendor",
-              "Franchisee",
-              "Territory Partner"
-            ];
-            const systemRole = SYSTEM_ROLES.find(r => r.toLowerCase() === dbUser.role?.toLowerCase()) || "Employee";
-            token.role = systemRole;
+        // Only refresh the live role from the DB if 5 minutes have passed since the last query
+        const now = Date.now();
+        const lastRefreshed = (token.lastRefreshed as number) || 0;
+        const fiveMinutes = 5 * 60 * 1000;
+
+        if (now - lastRefreshed > fiveMinutes) {
+          try {
+            const dbUser = await User.findByPk(token.id as string, { raw: true });
+            if (dbUser) {
+              const SYSTEM_ROLES = [
+                "Owner",
+                "Director",
+                "HR Head",
+                "HR Executive",
+                "Department Manager",
+                "Employee",
+                "Accounts",
+                "Trainer",
+                "IT Admin",
+                "DSM",
+                "RIBP / Risk Officer",
+                "Business Associate",
+                "Vendor",
+                "Franchisee",
+                "Territory Partner"
+              ];
+              const systemRole = SYSTEM_ROLES.find(r => r.toLowerCase() === dbUser.role?.toLowerCase()) || "Employee";
+              token.role = systemRole;
+              token.lastRefreshed = now;
+            }
+          } catch (err) {
+            console.error("Error fetching live user role in jwt callback:", err);
           }
-        } catch (err) {
-          console.error("Error fetching live user role in jwt callback:", err);
         }
       }
       return token;

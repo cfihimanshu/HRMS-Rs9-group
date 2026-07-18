@@ -16,7 +16,6 @@ export async function GET(req: Request) {
     const userId = (session.user as any).id;
 
     await sequelize.authenticate();
-    await Notification.sync({ alter: true });
 
     const records = await Notification.findAll({
       where: { recipient: userId },

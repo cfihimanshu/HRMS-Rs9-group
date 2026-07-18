@@ -140,7 +140,6 @@ export async function GET(req: Request) {
 
     const userId = (session.user as any).id;
     await sequelize.authenticate();
-    await DisciplinaryWarning.sync({ alter: true });
 
     const dbUser = await User.findByPk(userId, { raw: true });
     if (!dbUser) {
