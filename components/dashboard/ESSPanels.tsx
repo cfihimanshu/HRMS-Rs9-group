@@ -90,7 +90,7 @@ export function ESSDashboard({ user, triggerToast, setActiveTab, toggleModal, st
         />
         <StatCard
           title="Casual Leave (This Month)"
-          value={`${dynamicStats.casualLeaveTaken ?? 0} / ${dynamicStats.casualLeave ?? 12}`}
+          value={`${dynamicStats.casualLeaveTaken ?? 0}`}
           trend={`${(dynamicStats.casualLeave ?? 12) - (dynamicStats.casualLeaveTaken ?? 0)} days remaining`}
           trendUp={true}
           icon={<FileText className="w-5 h-5 text-rose-500" />}
@@ -98,7 +98,7 @@ export function ESSDashboard({ user, triggerToast, setActiveTab, toggleModal, st
         />
         <StatCard
           title="Sick Leave (This Month)"
-          value={`${dynamicStats.sickLeaveTaken ?? 0} / ${dynamicStats.sickLeave ?? 12}`}
+          value={`${dynamicStats.sickLeaveTaken ?? 0}`}
           trend={`${(dynamicStats.sickLeave ?? 12) - (dynamicStats.sickLeaveTaken ?? 0)} days remaining`}
           trendUp={true}
           icon={<FileText className="w-5 h-5 text-emerald-500" />}

@@ -571,7 +571,7 @@ export function AssetRequestLogs({ sessionUser, triggerToast, setActiveTab }: As
 
       {/* Inventory selection modal */}
       {showInventoryModal && (
-        <div className="fixed inset-0 bg-black/55 backdrop-blur-sm z-[9999] flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-black/20 backdrop-blur-md z-[9999] flex items-center justify-center p-4">
           <div className={`w-full max-w-2xl rounded-2xl shadow-xl border overflow-hidden flex flex-col max-h-[85vh] ${
             isDark ? "bg-gray-900 border-gray-800 text-white" : "bg-white border-slate-200 text-slate-800"
           }`}>

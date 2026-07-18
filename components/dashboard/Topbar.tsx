@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useRef } from "react";
 import ReactDOM from "react-dom";
 import { Bell, Menu, LogOut, Sun, Moon, BellOff } from "lucide-react";
 import { signOut } from "next-auth/react";
@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils";
 interface TopbarProps {
   activeTabLabel: string;
   activeTab: string;
-  setActiveTab?: (tab: string) => void;
+  setActiveTab?: (tab: string, filter?: string) => void;
   user?: any;
   mobileMenuOpen?: boolean;
   setMobileMenuOpen?: (open: boolean) => void;
@@ -18,6 +18,8 @@ export default function Topbar({
   activeTabLabel,
   mobileMenuOpen,
   setMobileMenuOpen,
+  user,
+  setActiveTab
 }: TopbarProps) {
   const [isDark, setIsDark] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
@@ -64,6 +66,18 @@ export default function Topbar({
   const [showNotifications, setShowNotifications] = useState(false);
   const [latestToast, setLatestToast] = useState<any>(null);
 
+  const notifRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleOutsideClick = (e: MouseEvent) => {
+      if (showNotifications && notifRef.current && !notifRef.current.contains(e.target as Node)) {
+        setShowNotifications(false);
+      }
+    };
+    document.addEventListener("mousedown", handleOutsideClick);
+    return () => document.removeEventListener("mousedown", handleOutsideClick);
+  }, [showNotifications]);
+
   const fetchNotifications = useCallback(async () => {
     try {
       const res = await fetch("/api/notifications");
@@ -105,6 +119,74 @@ export default function Topbar({
     }
   };
 
+  const handleNotificationClick = async (notif: any) => {
+    // 1. Mark as read
+    if (!notif.read) {
+      try {
+        await fetch("/api/notifications", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id: notif.id })
+        });
+        setNotifications(prev => prev.map(n => n.id === notif.id ? { ...n, read: true } : n));
+        setUnreadCount(prev => Math.max(0, prev - 1));
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    // 2. Determine target tab based on notification title/content
+    if (setActiveTab) {
+      const title = (notif.title || "").toLowerCase();
+      let targetTab = "";
+
+      const userRole = (user?.role || "").toLowerCase();
+      const isEmployee = userRole === "employee" || (!["owner", "director", "hr head", "hr-head", "hr executive", "hr-executive", "department manager", "department-manager"].includes(userRole));
+
+      if (title.includes("leave")) {
+        targetTab = isEmployee ? "ess-leaves" : "leave-request";
+      } else if (title.includes("hiring") || title.includes("requisition")) {
+        targetTab = "hiring";
+      } else if (title.includes("interview")) {
+        targetTab = "interviews";
+      } else if (title.includes("verification") || title.includes("vetting") || title.includes("verified")) {
+        targetTab = "verification";
+      } else if (title.includes("job") || title.includes("vacancy")) {
+        targetTab = "jobs";
+      } else if (title.includes("training")) {
+        targetTab = "training";
+      } else if (title.includes("probation")) {
+        targetTab = "probation";
+      } else if (title.includes("sod") || title.includes("eod") || title.includes("attendance")) {
+        targetTab = "attendance";
+      } else if (title.includes("task")) {
+        targetTab = "tasks";
+      } else if (title.includes("grievance")) {
+        targetTab = "grievance";
+      } else if (title.includes("asset")) {
+        targetTab = isEmployee ? "asset-request" : "assets-registry";
+      } else if (title.includes("risk") || title.includes("warning")) {
+        targetTab = "risks";
+      }
+
+      if (targetTab) {
+        if (targetTab === "tasks") {
+          const isGeneral = notif.title === "Pending Tasks" || 
+            (notif.message || "").toLowerCase().includes("pending task(s)") ||
+            (notif.message || "").toLowerCase().startsWith("welcome back");
+          if (isGeneral) {
+            setActiveTab(targetTab);
+          } else {
+            setActiveTab(targetTab, notif.message);
+          }
+        } else {
+          setActiveTab(targetTab);
+        }
+        setShowNotifications(false);
+      }
+    }
+  };
+
   return (
     <>
       <header className="h-14 border-b px-6 lg:px-8 flex items-center justify-between shrink-0 bg-[#FCFBF9] border-[#E8E4DF] relative z-20">
@@ -127,7 +209,7 @@ export default function Topbar({
         {/* Right side actions */}
         <div className="flex items-center gap-2 relative">
           {/* Notifications */}
-          <div className="relative">
+          <div className="relative" ref={notifRef}>
             <button
               onClick={() => setShowNotifications(!showNotifications)}
               className="p-2 rounded-full text-[#9C9890] hover:text-[#1C1C1A] hover:bg-[#F0EAE4]/60 transition-all relative focus:outline-none"
@@ -140,38 +222,58 @@ export default function Topbar({
             </button>
 
             {showNotifications && (
-              <div className="absolute top-full right-0 mt-2 w-80 bg-white border border-[#E8E4DF] shadow-xl rounded-xl overflow-hidden z-50">
-                <div className="p-3 bg-slate-50 border-b border-[#E8E4DF] flex justify-between items-center">
-                  <h4 className="text-xs font-black text-slate-800 uppercase tracking-widest">Alerts <span className="text-[10px] text-slate-500 font-bold normal-case ml-1">({notifications.length})</span></h4>
+              <div className="absolute top-full right-0 mt-2 w-80 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border border-[#E8E4DF] dark:border-gray-800 shadow-2xl rounded-2xl overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 duration-200">
+                <div className="p-4 bg-slate-50/50 dark:bg-slate-900/50 border-b border-[#E8E4DF] dark:border-gray-800 flex justify-between items-center">
+                  <h4 className="text-xs font-bold text-slate-800 dark:text-gray-200 uppercase tracking-wider flex items-center gap-1.5">
+                    <Bell className="w-3.5 h-3.5 text-indigo-500" />
+                    Alerts <span className="text-[10px] text-slate-500 font-bold normal-case ml-0.5">({notifications.length})</span>
+                  </h4>
                   {unreadCount > 0 && (
                     <button
                       onClick={handleMarkAsRead}
-                      className="text-[10px] font-bold text-indigo-600 hover:text-indigo-800 hover:underline bg-indigo-50 px-2 py-1 rounded"
+                      className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 hover:dark:text-indigo-300 hover:underline bg-indigo-50 dark:bg-indigo-950/30 px-2 py-1 rounded-lg transition-all"
                     >
                       Mark all read
                     </button>
                   )}
                 </div>
-                <div className="max-h-80 overflow-y-auto">
+                <div className="max-h-80 overflow-y-auto custom-scrollbar divide-y divide-[#E8E4DF] dark:divide-gray-800">
                   {notifications.length === 0 ? (
-                    <div className="p-6 text-center text-xs text-slate-500">No new alerts.</div>
+                    <div className="p-8 text-center text-xs text-slate-450 dark:text-gray-500 flex flex-col items-center justify-center gap-2">
+                      <BellOff className="w-8 h-8 text-slate-300 dark:text-gray-700" />
+                      <span>No new alerts.</span>
+                    </div>
                   ) : (
-                    <div className="divide-y divide-[#E8E4DF]">
-                      {notifications.map((notif: any) => (
-                        <div key={notif.id} className={`p-3 ${notif.read ? 'bg-white' : 'bg-[#F0EAE4]/30'} hover:bg-slate-50 transition-colors`}>
-                          <div className="flex justify-between items-start mb-1">
-                            <h5 className="text-xs font-bold text-[#1C1C1A]">{notif.title}</h5>
-                            <span className="text-[9px] font-mono text-[#9C9890] shrink-0 ml-2">
+                    notifications.map((notif: any) => (
+                      <div
+                        key={notif.id}
+                        onClick={() => handleNotificationClick(notif)}
+                        className={`p-4 transition-all hover:bg-slate-50/50 hover:dark:bg-slate-800/30 flex gap-3 cursor-pointer ${notif.read ? 'bg-transparent' : 'bg-indigo-50/20 dark:bg-indigo-900/10'}`}
+                      >
+                        <div className="flex-1 min-w-0 text-left">
+                          <div className="flex justify-between items-start mb-1 gap-2">
+                            <h5 className={`text-xs font-bold truncate ${notif.read ? 'text-[#1C1C1A] dark:text-gray-300' : 'text-indigo-600 dark:text-indigo-400'}`}>
+                              {notif.title}
+                            </h5>
+                            {!notif.read && (
+                              <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 shrink-0 mt-1.5" />
+                            )}
+                          </div>
+                          <p className={`text-[10px] leading-relaxed mb-1.5 ${notif.read ? 'text-slate-500 dark:text-gray-400' : 'text-slate-700 dark:text-gray-300 font-medium'}`}>
+                            {notif.message}
+                          </p>
+                          <div className="flex items-center gap-2 text-[9px] font-medium text-slate-400 dark:text-slate-500">
+                            <span>
+                              {new Date(notif.createdAt).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}
+                            </span>
+                            <span>•</span>
+                            <span>
                               {new Date(notif.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                             </span>
                           </div>
-                          <p className="text-[10px] text-[#9C9890] leading-relaxed mb-1">{notif.message}</p>
-                          <p className="text-[9px] font-medium text-indigo-500/80">
-                            {new Date(notif.createdAt).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}
-                          </p>
                         </div>
-                      ))}
-                    </div>
+                      </div>
+                    ))
                   )}
                 </div>
               </div>

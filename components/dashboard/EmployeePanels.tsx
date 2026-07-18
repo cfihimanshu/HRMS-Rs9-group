@@ -1728,7 +1728,7 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
 
       {/* TERMINATION MODAL */}
       {deleteTarget && (
-        <div className="fixed inset-0 bg-[#070810]/40 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+        <div className="fixed inset-0 bg-black/20 z-50 flex items-center justify-center p-4 backdrop-blur-md">
           <div className={`border w-full max-w-sm rounded-xl p-6 relative shadow-2xl animate-fade-in ${isDark ? "bg-gray-900 border-gray-800 text-white" : "bg-white border-slate-200 text-slate-800"}`}>
             <div className="flex items-center gap-3 text-rose-600 mb-4">
               <ShieldAlert className="w-6 h-6 shrink-0" />
@@ -1759,7 +1759,7 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
 
       {/* EDIT EMPLOYEE MODAL */}
       {showEditModal && (
-        <div className="fixed inset-0 bg-[#070810]/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm overflow-y-auto">
+        <div className="fixed inset-0 bg-black/20 z-50 flex items-center justify-center p-4 backdrop-blur-md overflow-y-auto">
           <div className={`border w-full max-w-2xl rounded-2xl p-6 relative shadow-2xl animate-fade-in ${isDark ? "bg-gray-900 border-gray-800 text-white" : "bg-white border-slate-200 text-slate-800"}`}>
             <button
               onClick={() => setShowEditModal(false)}
@@ -2033,6 +2033,20 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
                       {editDeptEmployees.map((emp: any) => (
                         <option key={emp.id} value={emp.name}>{emp.name} ({emp.role})</option>
                       ))}
+                    </select>
+                  </div>
+
+                  {/* Employee Status */}
+                  <div>
+                    <label className="block text-xs font-bold mb-1.5 text-slate-700 dark:text-gray-300">Employee Status *</label>
+                    <select
+                      value={editForm.status}
+                      onChange={(e) => setEditForm(prev => ({ ...prev, status: e.target.value }))}
+                      required
+                      className={`w-full p-2.5 rounded-lg border text-sm focus:border-indigo-500 focus:outline-none ${isDark ? "bg-gray-800 border-gray-700 text-white" : "bg-slate-50 border-slate-200 font-semibold"}`}
+                    >
+                      <option value="active">Active</option>
+                      <option value="inactive">Inactive</option>
                     </select>
                   </div>
                 </div>

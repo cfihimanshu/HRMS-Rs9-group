@@ -123,6 +123,10 @@ export default function DashboardSidebar({
   }
 
   const menuItems = allMenuItems.filter(item => {
+    if (item.id === "legal-recovery") {
+      const hasExplicitAccess = allowedPageIds && allowedPageIds.includes("legal-recovery");
+      return userRole === "Owner" || isAdministration || !!hasExplicitAccess;
+    }
     if (!isOwnerOrDirector && allowedPageIds && allowedPageIds.length > 0) {
       const hasPageLevelPermissions = allowedPageIds.some(p => 
         !["Core Workspace", "Employee Self Service", "AI & Vetting Hub", "Training & Probation", "Daily Operations", "Network Partners", "Compliance & Exit"].includes(p)

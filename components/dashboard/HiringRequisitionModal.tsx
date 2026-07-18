@@ -202,7 +202,7 @@ export default function HiringRequisitionModal({ onClose, triggerToast, userComp
   };
 
   return (
-    <div className="fixed inset-0 z-[100] p-4 sm:p-6 backdrop-blur-md bg-black/40 overflow-y-auto">
+    <div className="fixed inset-0 z-[100] p-4 sm:p-6 backdrop-blur-md bg-black/20 overflow-y-auto">
       <div className={`w-full max-w-5xl mx-auto my-8 rounded-2xl shadow-2xl relative animate-scaleUp ${isDark ? "bg-gray-900 border border-gray-800 text-white" : "bg-white border border-slate-200 text-slate-800"}`}>
 
         <div className={`sticky top-0 z-50 flex items-center justify-between p-6 border-b ${isDark ? "bg-gray-900/95 border-gray-800" : "bg-white/95 border-slate-100"} backdrop-blur`}>

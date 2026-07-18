@@ -3028,7 +3028,7 @@ export function PerformanceCompliance({
           {/* Drill-down User Modal */}
           {selectedDetailUser && typeof document !== "undefined" && ReactDOM.createPortal(
             <div
-              className="fixed inset-0 z-[10000] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 transition-all duration-300"
+              className="fixed inset-0 z-[10000] bg-black/20 backdrop-blur-md flex items-center justify-center p-4 transition-all duration-300"
               onClick={() => setSelectedDetailUser(null)}
             >
               <div
@@ -3306,7 +3306,7 @@ export function PerformanceCompliance({
           {/* Drill-down Branch Modal */}
           {selectedDetailBranch && typeof document !== "undefined" && ReactDOM.createPortal(
             <div
-              className="fixed inset-0 z-[10000] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 transition-all duration-300"
+              className="fixed inset-0 z-[10000] bg-black/20 backdrop-blur-md flex items-center justify-center p-4 transition-all duration-300"
               onClick={() => setSelectedDetailBranch(null)}
             >
               <div
@@ -3400,7 +3400,7 @@ export function PerformanceCompliance({
           {/* Drill-down Quick Stats Category Modals */}
           {selectedDashboardCategory && typeof document !== "undefined" && ReactDOM.createPortal(
             <div
-              className="fixed inset-0 z-[10000] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 transition-all duration-300"
+              className="fixed inset-0 z-[10000] bg-black/20 backdrop-blur-md flex items-center justify-center p-4 transition-all duration-300"
               onClick={() => setSelectedDashboardCategory(null)}
             >
               <div
@@ -4401,7 +4401,7 @@ export function PerformanceCompliance({
       {/* File/Selfie Viewer Modal */}
       {selectedSelfie && typeof document !== "undefined" && ReactDOM.createPortal(
         <div
-          className="fixed inset-0 bg-black/85 backdrop-blur-sm z-[20000] flex items-center justify-center p-4"
+          className="fixed inset-0 bg-black/30 backdrop-blur-md z-[20000] flex items-center justify-center p-4"
           onClick={() => setSelectedSelfie(null)}
         >
           <div

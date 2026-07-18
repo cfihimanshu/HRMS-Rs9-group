@@ -115,13 +115,15 @@ export const authOptions: NextAuthOptions = {
             }
           });
 
-          await Notification.create({
-            id: Date.now().toString() + Math.random().toString(36).substring(2, 8),
-            recipient: userIdStr,
-            title: "Pending Tasks",
-            message: `Welcome back! You have ${pendingTasksCount} pending task(s) to address.`,
-            read: false
-          });
+          if (pendingTasksCount > 0) {
+            await Notification.create({
+              id: Date.now().toString() + Math.random().toString(36).substring(2, 8),
+              recipient: userIdStr,
+              title: "Pending Tasks",
+              message: `Welcome back! You have ${pendingTasksCount} pending task(s) to address.`,
+              read: false
+            });
+          }
         } catch (err) {
           console.error("Error creating login task notification:", err);
         }

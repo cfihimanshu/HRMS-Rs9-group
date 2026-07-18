@@ -1736,7 +1736,7 @@ export default function BusinessLeads({
 
       {/* IMPORT MULTI-STEP WIZARD MODAL */}
       {isImportModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/20 backdrop-blur-md p-4">
           <div className="bg-white dark:bg-slate-900 w-full max-w-2xl rounded-2xl shadow-xl border border-slate-100 dark:border-gray-800/80 overflow-hidden flex flex-col max-h-[85vh] animate-scaleIn">
 
             {/* Modal Header */}
@@ -2125,7 +2125,7 @@ export default function BusinessLeads({
 
       {/* LEAD CALL DETAILS / INTERVIEW WIZARD MODAL */}
       {selectedLeadForEdit && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4 animate-fadeIn">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/20 backdrop-blur-md p-4 animate-fadeIn">
           <div className="bg-white dark:bg-slate-900 w-full max-w-3xl rounded-2xl shadow-xl border border-slate-100 dark:border-gray-850 overflow-hidden flex flex-col max-h-[85vh] animate-scaleIn">
 
             <div className="px-6 py-4 border-b border-slate-100 dark:border-gray-850 flex items-center justify-between">

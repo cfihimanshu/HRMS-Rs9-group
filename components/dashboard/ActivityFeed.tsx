@@ -83,11 +83,13 @@ function getIconForAction(action: string): { icon: ReactNode, bg: string, darkBg
 export default function ActivityFeed({ 
   dark = false, 
   companyId = "", 
-  logs: propLogs 
+  logs: propLogs,
+  maxHeight = "max-h-[600px]"
 }: { 
   dark?: boolean; 
   companyId?: string; 
   logs?: any[];
+  maxHeight?: string;
 }) {
   const [logs, setLogs] = useState<any[]>(propLogs || []);
   const [loading, setLoading] = useState(propLogs === undefined);
@@ -129,7 +131,7 @@ export default function ActivityFeed({
   }
 
   return (
-    <div className="space-y-6 max-h-[600px] overflow-y-auto pr-2 custom-scrollbar">
+    <div className={`space-y-6 ${maxHeight} overflow-y-auto pr-2 custom-scrollbar`}>
       {logs.map((log, idx) => {
         const style = getIconForAction(log.action);
         return (
@@ -148,14 +150,14 @@ export default function ActivityFeed({
                 {log.action.replace(/_/g, " ")}
               </h4>
               <p className={`text-xs mt-1 leading-relaxed ${dark ? "text-gray-400" : "text-slate-500"}`}>
-                {log.details}
+                {log.details || log.description}
               </p>
               <div className="flex items-center justify-between mt-1.5">
                 <span className={`text-[10px] font-medium block ${dark ? "text-gray-500" : "text-slate-400"}`}>
                   {timeAgo(log.timestamp)}
                 </span>
                 <span className={`text-[10px] font-bold block truncate max-w-[150px] ${dark ? "text-indigo-400" : "text-indigo-600"}`}>
-                  By {log.user?.name || "System"}
+                  By {log.user?.name || log.actor || "System"}
                 </span>
               </div>
 

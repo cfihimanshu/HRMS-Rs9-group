@@ -113,6 +113,54 @@ function getAssetRequestEmailHtml(params: {
 </body></html>`;
 }
 
+function getAssetRequestStatusEmailHtml(params: {
+  applicantName: string;
+  assetType: string;
+  status: string;
+  isApproved: boolean;
+  remarks: string;
+}) {
+  return `<!DOCTYPE html>
+<html><head><meta charset="utf-8">
+<style>
+  body{font-family:'Segoe UI',system-ui,sans-serif;background:#f1f5f9;margin:0;padding:0;color:#1e293b}
+  .wrap{max-width:580px;margin:32px auto;background:#fff;border-radius:16px;overflow:hidden;border:1px solid #e2e8f0;box-shadow:0 4px 20px rgba(0,0,0,.06)}
+  .header-approved{background:linear-gradient(135deg,#10b981 0%,#059669 100%);padding:28px 24px;color:#fff;text-align:center}
+  .header-rejected{background:linear-gradient(135deg,#ef4444 0%,#dc2626 100%);padding:28px 24px;color:#fff;text-align:center}
+  .header h1{margin:0;font-size:20px;font-weight:700}
+  .body{padding:28px 24px}
+  .field-table{width:100%;border-collapse:collapse;margin:16px 0}
+  .field-table td{padding:10px 12px;border-bottom:1px solid #f1f5f9;font-size:13px}
+  .field-table td.label{font-weight:700;color:#64748b;width:130px}
+  .remarks-box{background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:16px;margin:16px 0;font-size:13px;color:#475569;line-height:1.6}
+  .footer{background:#f8fafc;padding:16px 24px;text-align:center;font-size:11px;color:#94a3b8;border-top:1px solid #e2e8f0}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="header ${params.isApproved ? 'header-approved' : 'header-rejected'}">
+    <h1>${params.isApproved ? '🎉 Asset Request Approved' : '❌ Asset Request Update'}</h1>
+  </div>
+  <div class="body">
+    <p>Hello <strong>${params.applicantName}</strong>,</p>
+    <p>Your asset request status has been processed and updated:</p>
+    <table class="field-table">
+      <tr><td class="label">Asset Type</td><td><span style="background:#ccfbf1;color:#0f766e;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:700">${params.assetType}</span></td></tr>
+      <tr><td class="label">Status</td><td>
+        <span style="background:${params.isApproved ? '#d1fae5;color:#065f46' : '#fee2e2;color:#991b1b'};padding:2px 8px;border-radius:999px;font-size:11px;font-weight:700">${params.status}</span>
+      </td></tr>
+    </table>
+    <div style="font-size:12px;font-weight:700;color:#64748b;margin-top:16px">Remarks:</div>
+    <div class="remarks-box">"${params.remarks}"</div>
+    <p style="text-align:center;margin-top:24px">
+      <a href="https://hrms.cfi247.com/" style="background:#0f766e;color:#fff;padding:12px 28px;border-radius:8px;text-decoration:none;font-weight:700;font-size:13px;display:inline-block">Open Portal →</a>
+    </p>
+  </div>
+  <div class="footer">RS9 Group HRMS • This is an automated notification</div>
+</div>
+</body></html>`;
+}
+
 
 export async function GET(req: Request) {
   try {
@@ -443,6 +491,26 @@ export async function POST(req: Request) {
           console.error("Error creating purchase request notification:", err);
         }
 
+        try {
+          const requester = await User.findByPk(purchaseRequest.requested_by, { raw: true }) as any;
+          if (requester && requester.email) {
+            const emailHtml = getAssetRequestStatusEmailHtml({
+              applicantName: requester.name || "Employee",
+              assetType: purchaseRequest.asset_type,
+              status: targetStatus,
+              isApproved: targetStatus === "Approved",
+              remarks: admin_remarks || "None",
+            });
+            await sendEmail({
+              to: requester.email,
+              subject: `💻 Asset Purchase Request ${targetStatus === "Approved" ? "Approved" : "Rejected"} – ${purchaseRequest.asset_type}`,
+              html: emailHtml,
+            });
+          }
+        } catch (emailErr) {
+          console.error("Asset purchase request email dispatch error:", emailErr);
+        }
+
         return NextResponse.json({
           success: true,
           message: `Purchase request status updated to ${targetStatus}.`,
@@ -500,8 +568,29 @@ export async function POST(req: Request) {
           action: actionVal,
           details: `Request for ${request.asset_type} status is now: ${nextStatus}. Remarks: ${admin_remarks || 'None'}`
         });
+
+        const isApproved = nextStatus === "Approved" || nextStatus.startsWith("Dispatched");
+        const isRejected = nextStatus === "Rejected";
+
+        if (isApproved || isRejected) {
+          const requester = await User.findByPk(request.employee_id, { raw: true }) as any;
+          if (requester && requester.email) {
+            const emailHtml = getAssetRequestStatusEmailHtml({
+              applicantName: requester.name || "Employee",
+              assetType: request.asset_type,
+              status: nextStatus,
+              isApproved,
+              remarks: admin_remarks || "None",
+            });
+            await sendEmail({
+              to: requester.email,
+              subject: `💻 Asset Request Status Update: ${nextStatus} – ${request.asset_type}`,
+              html: emailHtml,
+            });
+          }
+        }
       } catch (err) {
-        console.error("Error creating request status update notification:", err);
+        console.error("Error creating request status update notification/email:", err);
       }
 
       return NextResponse.json({

@@ -337,7 +337,7 @@ export function OwnerDashboard({
       </div>
 
       {showStaffModal && (
-        <div className="fixed inset-0 bg-black/60 z-50 flex justify-center items-center backdrop-blur-sm p-4 sm:p-6" onClick={() => setShowStaffModal(false)}>
+        <div className="fixed inset-0 bg-black/20 z-50 flex justify-center items-center backdrop-blur-md p-4 sm:p-6" onClick={() => setShowStaffModal(false)}>
           <div className="bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[85vh] flex flex-col overflow-hidden animate-slideUp" onClick={e => e.stopPropagation()}>
             <div className="flex justify-between items-center p-6 border-b border-gray-100 bg-[#FCFBF9]">
               <h2 className="text-xl font-serif text-[#1C1C1A]">
@@ -498,38 +498,9 @@ export function HrDashboard({
     }));
   }, [hrStats, candidates]);
 
-  // Export HR Report as XLSX
+  // Export HR Report as XLSX (Server-side generated)
   const exportHrReport = () => {
-    const wb = XLSX.utils.book_new();
-
-    // Summary Sheet
-    const summaryData = [
-      ["HR Operations Report", ""],
-      ["Generated At", new Date().toLocaleString()],
-      ["", ""],
-      ["Metric", "Value"],
-      ["Total HR Leads", hrStats?.hrLeadsCount || 0],
-      ["Selected Leads", hrStats?.selectedLeadsCount || 0],
-      ["Pending Leads", hrStats?.pendingLeadsCount || 0],
-      ["Rejected Leads", hrStats?.rejectedLeadsCount || 0],
-      ["Called by HR", hrStats?.calledLeadsCount || 0],
-      ["Interviews Today", hrStats?.interviewsToday || 0],
-      ["Verification Pending", hrStats?.verificationPending || 0],
-    ];
-    const wsSummary = XLSX.utils.aoa_to_sheet(summaryData);
-    wsSummary["!cols"] = [{ wch: 30 }, { wch: 20 }];
-    XLSX.utils.book_append_sheet(wb, wsSummary, "HR Summary");
-
-    // Pipeline Trend Sheet
-    if (chartData && chartData.length > 0) {
-      const trendHeaders = [["Day", "Total Leads", "Selected for Joining"]];
-      const trendRows = chartData.map((d: any) => [d.name, d["Total Leads"], d["Selected for Joining"]]);
-      const wsTrend = XLSX.utils.aoa_to_sheet([...trendHeaders, ...trendRows]);
-      wsTrend["!cols"] = [{ wch: 12 }, { wch: 16 }, { wch: 22 }];
-      XLSX.utils.book_append_sheet(wb, wsTrend, "Pipeline Trend");
-    }
-
-    XLSX.writeFile(wb, `HR_Operations_Report_${new Date().toISOString().split("T")[0]}.xlsx`);
+    window.location.href = "/api/dashboard/export-hr-report";
   };
 
   React.useEffect(() => {
@@ -549,9 +520,6 @@ export function HrDashboard({
           <h1 className={`text-2xl font-black tracking-tight ${isDark ? "text-white" : "text-slate-800"}`}>
             HR Operations Dashboard
           </h1>
-          <p className={`text-xs mt-1 font-medium ${isDark ? "text-gray-400" : "text-slate-505"}`}>
-            HR Head view — daily commitments, verification pipeline, and separation cases
-          </p>
         </div>
         <div className="flex gap-3">
           <button
@@ -733,8 +701,8 @@ export function DepartmentDashboard({
                 value={selectedDeptId}
                 onChange={(e) => onDeptChange?.(e.target.value)}
                 className={`text-sm border rounded-lg px-3 py-1.5 outline-none font-semibold transition-all shadow-sm ${isDark
-                    ? "bg-gray-800 border-gray-700 text-gray-200 focus:border-indigo-500"
-                    : "bg-white border-slate-200 text-slate-700 focus:border-indigo-500"
+                  ? "bg-gray-800 border-gray-700 text-gray-200 focus:border-indigo-500"
+                  : "bg-white border-slate-200 text-slate-700 focus:border-indigo-500"
                   }`}
               >
                 <option value="all">All Departments</option>
@@ -764,7 +732,7 @@ export function DepartmentDashboard({
 
       {/* 1. Team Members Popup Modal */}
       {showTeamModal && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[9999] flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-black/20 backdrop-blur-md z-[9999] flex items-center justify-center p-4">
           <div className={`w-full max-w-2xl rounded-2xl shadow-xl overflow-hidden border ${isDark ? "bg-gray-900 border-gray-800 text-white" : "bg-white border-slate-200 text-slate-800"}`}>
             <div className="px-6 py-4 border-b border-slate-200 dark:border-gray-800 flex justify-between items-center">
               <div>
@@ -803,7 +771,7 @@ export function DepartmentDashboard({
 
       {/* 2. SOD/EOD Compliance Popup Modal */}
       {showSodEodModal && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[9999] flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-black/20 backdrop-blur-md z-[9999] flex items-center justify-center p-4">
           <div className={`w-full max-w-3xl rounded-2xl shadow-xl overflow-hidden border ${isDark ? "bg-gray-900 border-gray-800 text-white" : "bg-white border-slate-200 text-slate-800"}`}>
             <div className="px-6 py-4 border-b border-slate-200 dark:border-gray-800 flex justify-between items-center">
               <div>
@@ -844,12 +812,12 @@ export function DepartmentDashboard({
                           </td>
                           <td className="py-3.5">
                             <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full font-bold border ${m.sodTime ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/20 dark:text-emerald-400" : "bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/20 dark:text-rose-400"}`}>
-                              {m.sodTime ? `Submitted at ${sodTimeLabel}` : "Pending"}
+                              {m.sodTime ? sodTimeLabel : "Pending"}
                             </span>
                           </td>
                           <td className="py-3.5">
                             <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full font-bold border ${m.eodTime ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/20 dark:text-emerald-400" : "bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/20 dark:text-rose-450"}`}>
-                              {m.eodTime ? `Submitted at ${eodTimeLabel}` : "Pending"}
+                              {m.eodTime ? eodTimeLabel : "Pending"}
                             </span>
                           </td>
                         </tr>
@@ -917,7 +885,7 @@ export function DepartmentDashboard({
             <div className="flex items-center justify-between mb-6">
               <h2 className={`text-lg font-bold ${isDark ? "text-white" : "text-slate-800"}`}>Team Activity</h2>
             </div>
-            <ActivityFeed dark={isDark} logs={deptStats.teamActivities || []} />
+            <ActivityFeed dark={isDark} logs={deptStats.teamActivities || []} maxHeight="max-h-[390px]" />
           </div>
         </div>
       </div>

@@ -1028,7 +1028,7 @@ export function ExitSeparation({ sessionUser, triggerToast }: { sessionUser?: an
 
       {/* FORM-13 Exit Form Modal */}
       {showForm13 && (
-        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-slate-900/20 backdrop-blur-md z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
             <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-rose-50/50 rounded-t-2xl">
               <div>
