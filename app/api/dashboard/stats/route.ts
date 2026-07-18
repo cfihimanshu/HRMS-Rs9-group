@@ -26,6 +26,7 @@ import Leave from "@/models/sequelize/Leave";
 import HRRecentActivity from "@/models/sequelize/HRRecentActivity";
 import Expense from "@/models/sequelize/Expense";
 import TaskLog from "@/models/sequelize/TaskLog";
+import DisciplinaryWarning from "@/models/sequelize/DisciplinaryWarning";
 
 export async function GET(req: Request) {
   try {
@@ -172,6 +173,20 @@ export async function GET(req: Request) {
     // 5. Alert counts
     const criticalRiskAlerts = await RiskAlert.count({ where: { ...alertFilter, status: "Open", level: "Critical" } });
     const totalRiskAlerts = await RiskAlert.count({ where: { ...alertFilter, status: "Open" } });
+
+    // 5b. Disciplinary Warning badge counts
+    const sessionUserId = (session.user as any).id;
+    // For employees: count of their own active warnings (not resolved/rejected)
+    const myActiveWarnings = await DisciplinaryWarning.count({
+      where: {
+        employeeId: sessionUserId,
+        status: { [Op.notIn]: ["Resolved", "Rejected"] }
+      }
+    });
+    // For Owner/HR: count of pending approval requests
+    const pendingWarningApprovals = isGlobalViewer ? await DisciplinaryWarning.count({
+      where: { status: "Pending Approval" }
+    }) : 0;
 
     // 6. Attendance, SOD/EOD compliances (today's counts)
     const today = new Date();
@@ -502,13 +517,18 @@ export async function GET(req: Request) {
     // Calculate deptStats dynamically for Managers/Owners
     let deptStats: any = null;
     const userRole = (session.user as any).role;
+    const isManager = (role: string) => {
+      const r = (role || "").toLowerCase();
+      return r === "department manager" || r.includes("manager") || r === "dsm" || r === "owner" || r === "director" || r === "hr head" || r === "hr executive";
+    };
 
-    if (userRole === "Department Manager" || userRole === "Owner" || userRole === "Director" || userRole === "HR Head" || userRole === "HR Executive") {
+    if (isManager(userRole)) {
       let deptUserIds: any[] = [];
       let managerProfile = null;
       const deptFilterParam = searchParams.get("department");
 
-      if (userRole === "Department Manager") {
+      const isSpecificManager = !["Owner", "Director", "HR Head", "HR Executive"].includes(userRole);
+      if (isSpecificManager) {
         managerProfile = await EmployeeProfile.findOne({ where: { user: userId } });
         
         let deptProfiles: any[] = [];
@@ -844,6 +864,10 @@ export async function GET(req: Request) {
           trainingPending,
           probationCases: activeProbations,
           grievanceCases: activeGrievances,
+          disciplinaryWarnings: {
+            myActive: myActiveWarnings,
+            pendingApprovals: pendingWarningApprovals,
+          }
         },
         alerts: {
           criticalRisk: criticalRiskAlerts,

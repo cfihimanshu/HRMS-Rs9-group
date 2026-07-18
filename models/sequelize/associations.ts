@@ -33,4 +33,9 @@ User.hasMany(Attendance, { foreignKey: "employee", as: "attendances", constraint
 AuditLog.belongsTo(User, { foreignKey: "user", targetKey: "id", as: "userDetails", constraints: false });
 User.hasMany(AuditLog, { foreignKey: "user", as: "auditLogs", constraints: false });
 
+// Disciplinary Warnings
+import DisciplinaryWarning from "./DisciplinaryWarning";
+DisciplinaryWarning.belongsTo(User, { foreignKey: "employeeId", targetKey: "id", as: "employeeDetails", constraints: false });
+User.hasMany(DisciplinaryWarning, { foreignKey: "employeeId", as: "warnings", constraints: false });
+
 console.log("Sequelize Soft Associations initialized safely.");

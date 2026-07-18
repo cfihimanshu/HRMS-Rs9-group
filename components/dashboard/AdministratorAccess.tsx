@@ -97,6 +97,7 @@ export default function AdministratorAccess({ userRole, triggerToast, sessionUse
       category: "Compliance & Exit",
       pages: [
         { id: "grievance", label: "Anonymous Grievance" },
+        { id: "disciplinary-warnings", label: "Disciplinary Warnings" },
         { id: "risks", label: "Critical Risk Warnings" },
         { id: "exit", label: "Exit Separation Clearance" }
       ]

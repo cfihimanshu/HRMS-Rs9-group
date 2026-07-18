@@ -4,7 +4,7 @@ import ReactDOM from "react-dom";
 import {
   LayoutDashboard, UserSquare2, FileEdit, Briefcase, Users2, ScanLine,
   Video, ShieldCheck, FileText, FileSpreadsheet, GraduationCap, Clock, CalendarCheck,
-  TrendingUp, BriefcaseIcon, Building2, Coins, HelpCircle, AlertTriangle,
+  TrendingUp, BriefcaseIcon, Building2, Coins, HelpCircle, AlertTriangle, ShieldAlert,
   LogOut, ChevronDown, ChevronRight, MapPin, Cpu, Package, Key, Scale
 } from "lucide-react";
 import { signOut } from "next-auth/react";
@@ -104,6 +104,7 @@ export default function DashboardSidebar({
     { id: "franchise", label: "Franchise Brand Audits", icon: Coins, category: "Network Partners", roles: ["Owner", "Director", "HR Head", "Accounts", "Franchisee", "Territory Partner"] },
 
     { id: "grievance", label: "Anonymous Grievance", icon: HelpCircle, category: "Compliance & Exit", badge: stats?.operations?.grievanceCases, roles: ["Owner", "Director", "HR Head", "HR Executive", "Department Manager", "Accounts", "Trainer", "Business Associate", "Vendor", "Franchisee", "Territory Partner"] },
+    { id: "disciplinary-warnings", label: "Disciplinary Warnings", icon: ShieldAlert, category: "Compliance & Exit", badge: (["Owner", "Director", "HR Head", "HR Executive"].includes(userRole) ? (stats?.operations?.disciplinaryWarnings?.pendingApprovals || 0) : (stats?.operations?.disciplinaryWarnings?.myActive || 0)), urgent: (stats?.operations?.disciplinaryWarnings?.myActive > 0 && !["Owner", "Director", "HR Head", "HR Executive"].includes(userRole)), roles: ["Owner", "Director", "HR Head", "HR Executive", "Department Manager", "IT MANAGER", "DSM", "Employee", "Accounts", "Trainer", "IT Admin", "RIBP / Risk Officer", "Business Associate", "Vendor", "Franchisee", "Territory Partner"] },
     { id: "risks", label: "Critical Risk Warnings", icon: AlertTriangle, category: "Compliance & Exit", badge: stats?.alerts?.criticalRisk, urgent: true, roles: ["Owner", "Director", "HR Head", "RIBP / Risk Officer"] },
     { id: "exit", label: "Exit Separation Clearance", icon: LogOut, category: "Compliance & Exit", roles: ["Owner", "Director", "HR Head", "Employee"] }
   ];
@@ -123,6 +124,9 @@ export default function DashboardSidebar({
   }
 
   const menuItems = allMenuItems.filter(item => {
+    if (item.id === "disciplinary-warnings") {
+      return item.roles.map(r => r.toLowerCase()).includes(userRole.toLowerCase());
+    }
     if (item.id === "legal-recovery") {
       const hasExplicitAccess = allowedPageIds && allowedPageIds.includes("legal-recovery");
       return userRole === "Owner" || isAdministration || !!hasExplicitAccess;

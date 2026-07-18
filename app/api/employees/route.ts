@@ -56,11 +56,15 @@ export async function GET(req: Request) {
     const isHR = ["hr head", "hr-head", "hr executive", "hr-executive"].includes(userRole);
 
     let isAdministration = false;
+    let designation = "";
     const userProfile = await EmployeeProfile.findOne({ where: { user: userId }, raw: true });
-    if (userProfile && userProfile.department) {
-      const dept = await Department.findByPk(userProfile.department, { raw: true });
-      if (dept && dept.name) {
-        isAdministration = dept.name.toLowerCase().includes("administration");
+    if (userProfile) {
+      designation = (userProfile.designation || "").toLowerCase();
+      if (userProfile.department) {
+        const dept = await Department.findByPk(userProfile.department, { raw: true });
+        if (dept && dept.name) {
+          isAdministration = dept.name.toLowerCase().includes("administration");
+        }
       }
     }
 
@@ -74,7 +78,10 @@ export async function GET(req: Request) {
       } catch (e) {}
     }
 
-    if (!isOwnerOrDirector && !isHR && !isAdministration && !isLegalRecoveryUser) {
+    const isManager = userRole === "department manager" || userRole.includes("manager") || userRole === "dsm" ||
+                      designation === "department manager" || designation.includes("manager") || designation === "dsm";
+
+    if (!isOwnerOrDirector && !isHR && !isAdministration && !isLegalRecoveryUser && !isManager) {
       return NextResponse.json({ success: false, error: "Unauthorized access" }, { status: 401 });
     }
 
@@ -234,7 +241,7 @@ export async function POST(req: Request) {
       password: await bcrypt.hash(password, 10),
       role,
       mobile: mobile || null,
-      status: "active",
+      status: userStatus,
       companies: userCompanies,
       loginHistory: [],
     });

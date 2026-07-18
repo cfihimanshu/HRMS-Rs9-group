@@ -350,6 +350,7 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
         baseSalary: 0
       } : {
         ...formData,
+        role: isDeptManager ? "Department Manager" : formData.role,
         baseSalary: Number(formData.baseSalary)
       };
 
@@ -723,7 +724,7 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
 
     setEditForm({
       employeeId: profile.employeeId || "",
-      companyId: profile.companyId || "",
+      companyId: (emp.companies && emp.companies[0]) ? (typeof emp.companies[0] === 'object' ? emp.companies[0].id : emp.companies[0]) : "",
       name: emp.name || "",
       email: emp.email || "",
       mobile: emp.mobile || "",
