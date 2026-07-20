@@ -7,7 +7,8 @@ import {
   X,
   Loader2,
   Clock,
-  Calendar
+  Calendar,
+  ShieldAlert
 } from "lucide-react";
 
 // Import modular panels
@@ -53,6 +54,7 @@ import AssetsRegistry from "@/components/dashboard/AssetsRegistry";
 import InventoryManagement from "@/components/dashboard/InventoryManagement";
 import AdministratorAccess from "@/components/dashboard/AdministratorAccess";
 import LegalRecovery from "@/components/dashboard/LegalRecoveryModule";
+import DisciplinaryActions from "@/components/dashboard/DisciplinaryActions"; // disciplinary warnings view
 import KanbanBoard from "@/components/dashboard/KanbanBoard";
 import { AssetRequestLogs } from "@/components/dashboard/AssetRequestPanels";
 import LiveTrackingMap from "@/components/dashboard/LiveTrackingMap";
@@ -306,6 +308,7 @@ export default function UnifiedEnterpriseDashboard() {
 
 
   const [dataLoaded, setDataLoaded] = useState(false);
+  const [activeWarningPopup, setActiveWarningPopup] = useState<any>(null);
 
   // Check login and update URL based on user info
   useEffect(() => {
@@ -325,6 +328,30 @@ export default function UnifiedEnterpriseDashboard() {
       }
     }
   }, [status, session, router]);
+
+  // Fetch warnings on mount to show popup if active warning exists for current employee
+  useEffect(() => {
+    if (session?.user && status === "authenticated") {
+      fetch("/api/warnings")
+        .then(res => res.json())
+        .then(data => {
+          if (data.success && data.data) {
+            const loggedInUserId = (session.user as any).id;
+            const activeWarn = data.data.find((w: any) => 
+              w.employeeId === loggedInUserId && 
+              ["Active Warning", "Final Warning", "Termination Review"].includes(w.status)
+            );
+            if (activeWarn) {
+              const dismissed = sessionStorage.getItem(`warning_popup_dismissed_${activeWarn.id}`);
+              if (!dismissed) {
+                setActiveWarningPopup(activeWarn);
+              }
+            }
+          }
+        })
+        .catch(err => console.error("Error fetching warnings:", err));
+    }
+  }, [session, status]);
 
   // Tick clock (IST)
   useEffect(() => {
@@ -1379,6 +1406,13 @@ export default function UnifiedEnterpriseDashboard() {
             />
           )}
 
+          {activeTab === "disciplinary-warnings" && (
+            <DisciplinaryActions
+              sessionUser={session?.user}
+              triggerToast={triggerToast}
+            />
+          )}
+
           {activeTab === "risks" && (
             <SystemRiskAlerts
               riskAlertList={riskAlertList}
@@ -1946,11 +1980,138 @@ export default function UnifiedEnterpriseDashboard() {
                 formMode="eod"
                 handleSodSubmit={handleSodSubmit}
                 handleEodSubmit={async (payload) => {
-                  const success = await handleEodSubmit(payload);
+                  const success = await handleSodSubmit(payload);
                   if (success) toggleModal("eodModal", false);
                 }}
               />
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* DISCIPLINARY WARNING LOGIN POPUP */}
+      {activeWarningPopup && (
+        <div className="fixed inset-0 z-[10000] overflow-y-auto bg-black/55 backdrop-blur-sm flex justify-center items-center p-4">
+          <div className="bg-white rounded-2xl w-full max-w-2xl overflow-hidden shadow-2xl animate-scale-in flex flex-col relative border border-[#E8E4DF] text-black max-h-[90vh]">
+            
+            {/* Modal Header */}
+            <div className="px-6 py-4 border-b border-[#E8E4DF] flex justify-between items-center bg-[#FCFBF9] shrink-0">
+              <h3 className="font-serif text-sm text-slate-800 flex items-center gap-2 font-semibold">
+                <ShieldAlert className="w-5 h-5 text-rose-600 animate-pulse" />
+                OFFICIAL DISCIPLINARY NOTICE
+              </h3>
+              <button 
+                onClick={() => {
+                  sessionStorage.setItem(`warning_popup_dismissed_${activeWarningPopup.id}`, "true");
+                  setActiveWarningPopup(null);
+                }}
+                className="p-1.5 text-slate-450 hover:text-rose-600 rounded-lg transition-colors border border-transparent hover:border-rose-100"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Modal Body: Memo Document */}
+            <div className="p-8 overflow-y-auto flex-1 bg-white select-text">
+              <div className="bg-white p-6 font-sans leading-relaxed text-black border border-slate-200 rounded-xl">
+                
+                {/* Memo Header */}
+                <div className="text-center border-b-2 border-black pb-4 mb-6">
+                  <h2 className="text-xl font-extrabold tracking-widest text-black">RS9 GROUP</h2>
+                  <p className="text-[8px] font-bold tracking-widest uppercase text-slate-600">HUMAN RESOURCES & DISCIPLINARY COMPLIANCE BOARD</p>
+                </div>
+
+                <div className="space-y-6 text-xs text-black">
+                  
+                  {/* Memo Details */}
+                  <div className="grid grid-cols-2 gap-4 text-xs font-sans text-black pb-4 border-b border-slate-200">
+                    <div className="space-y-1.5 text-left font-sans">
+                      <p><strong>DATE:</strong> {new Date(activeWarningPopup.createdAt).toLocaleDateString()}</p>
+                      <p><strong>TO:</strong> {activeWarningPopup.employeeDetails?.name || (session?.user as any)?.name} <span className="text-slate-500">({activeWarningPopup.employeeDetails?.role || "Employee"})</span></p>
+                      <p><strong>DEPARTMENT:</strong> {activeWarningPopup.employeeDetails?.department || "N/A"}</p>
+                    </div>
+                    <div className="text-right space-y-1.5 font-sans">
+                      <p><strong>MEMO REF:</strong> {activeWarningPopup.id}</p>
+                      <p><strong>FROM:</strong> {activeWarningPopup.issuedByDetails?.name || "Authorized Manager"} <span className="text-slate-500">({activeWarningPopup.issuedByDetails?.role || "Authorized Manager"})</span></p>
+                      <p><strong>COMPANY:</strong> RS9 GROUP</p>
+                    </div>
+                  </div>
+
+                  {/* Subject */}
+                  <div className="border-t border-b border-black py-2.5 my-4 text-center">
+                    <h3 className="font-extrabold uppercase text-xs tracking-wider text-black">
+                      SUBJECT: OFFICIAL DISCIPLINARY DIRECTIVE — WARNING {activeWarningPopup.warningLevel}
+                    </h3>
+                  </div>
+
+                  {/* Salutation */}
+                  <p className="font-bold pt-2 text-left">Dear {activeWarningPopup.employeeDetails?.name || (session?.user as any)?.name},</p>
+
+                  {/* Letter Body */}
+                  <p className="text-left">
+                    This memorandum serves as an official notice of disciplinary action directive issued in accordance with Company Professional Policies. A formal complaint and subsequent administrative review have recorded a misconduct violation of category <strong>"{activeWarningPopup.reason}"</strong>.
+                  </p>
+
+                  <p className="text-left">
+                    The specific incident rationale and details filed by the complainant are documented below:
+                  </p>
+
+                  <div className="my-4 pl-6 border-l-2 border-black italic text-black whitespace-pre-wrap leading-relaxed text-left">
+                    "{activeWarningPopup.description}"
+                  </div>
+
+                  {activeWarningPopup.warningLevel === 2 && (
+                    <div className="my-5 p-5 border border-slate-355 rounded-xl bg-slate-50/50 space-y-3 font-sans text-left">
+                      <h5 className="font-bold uppercase text-[10px] tracking-wider text-black">Warning 2 Final Warning Holds & PIP Activated:</h5>
+                      <ul className="list-disc pl-5 space-y-1 text-slate-800 font-sans">
+                        {activeWarningPopup.salaryHold && Number(activeWarningPopup.salaryHold) > 0 && <li><strong>Salary increment hold:</strong> Active ({activeWarningPopup.salaryHold} Months)</li>}
+                        {activeWarningPopup.promotionHold && <li><strong>Promotion eligibility hold:</strong> Active (3 to 6 Months)</li>}
+                        {activeWarningPopup.bonusHold && <li><strong>Performance bonus payout hold:</strong> Active (3 to 6 Months)</li>}
+                      </ul>
+                      <div className="mt-4 pt-3 border-t border-slate-200">
+                        <p className="font-bold text-[9px] uppercase tracking-wider text-black">Performance Improvement Plan Targets:</p>
+                        <p className="mt-1 text-slate-700 italic">"{activeWarningPopup.pipPlan || "No target targets entered."}"</p>
+                      </div>
+                    </div>
+                  )}
+
+                  <p className="text-left">
+                    Please be advised that failure to show required improvements, or any subsequent recurrence of company policy violations, will result in immediate escalation to the next disciplinary severity tier, <strong>up to and including service contract termination</strong>.
+                  </p>
+
+                  {/* Signature Block */}
+                  <div className="grid grid-cols-2 gap-8 pt-10 border-t border-slate-100 font-sans">
+                    <div className="space-y-1 text-left font-sans">
+                      <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Issued By Authority:</p>
+                      <p className="font-extrabold text-black pt-1">{activeWarningPopup.issuedByDetails?.name || "Authorized Manager"}</p>
+                      <p className="text-slate-600 font-semibold">{activeWarningPopup.issuedByDetails?.role || "Authorized Manager"}</p>
+                      <p className="text-[10px] text-slate-400 font-mono">RS9 Group Corporate Division</p>
+                    </div>
+                    <div className="text-right space-y-1 font-sans">
+                      <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Target Recipient:</p>
+                      <p className="font-extrabold text-black pt-1">{activeWarningPopup.employeeDetails?.name || (session?.user as any)?.name}</p>
+                      <p className="text-slate-600 font-semibold">{activeWarningPopup.employeeDetails?.role || "Employee"}</p>
+                      <p className="text-[10px] text-slate-400 font-mono">RS9 Group Operations Division</p>
+                    </div>
+                  </div>
+
+                </div>
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="px-6 py-4 border-t border-[#E8E4DF] bg-[#FCFBF9] flex justify-end shrink-0">
+              <button
+                onClick={() => {
+                  sessionStorage.setItem(`warning_popup_dismissed_${activeWarningPopup.id}`, "true");
+                  setActiveWarningPopup(null);
+                }}
+                className="px-5 py-2 bg-slate-800 hover:bg-slate-900 text-white rounded-lg text-xs font-bold transition-all shadow"
+              >
+                Close Notice
+              </button>
+            </div>
+
           </div>
         </div>
       )}
