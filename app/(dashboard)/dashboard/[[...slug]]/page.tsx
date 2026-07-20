@@ -58,6 +58,7 @@ import DisciplinaryActions from "@/components/dashboard/DisciplinaryActions"; //
 import KanbanBoard from "@/components/dashboard/KanbanBoard";
 import { AssetRequestLogs } from "@/components/dashboard/AssetRequestPanels";
 import LiveTrackingMap from "@/components/dashboard/LiveTrackingMap";
+import AssignedTaskPopup from "@/components/dashboard/AssignedTaskPopup";
 import BusinessLeads from "@/components/dashboard/BusinessLeads";
 
 export default function UnifiedEnterpriseDashboard() {
@@ -2115,6 +2116,9 @@ export default function UnifiedEnterpriseDashboard() {
           </div>
         </div>
       )}
+
+      {/* Owner Assigned Task Login Popup */}
+      <AssignedTaskPopup />
 
     </div>
   );

@@ -46,17 +46,24 @@ export async function POST(request: Request) {
     const taskTitle = `Business Development - Branch: ${data.branchName || 'Unknown'}`;
     const nextId = await TaskLog.generateNextTaskId(data.callerId);
 
+    const docUrl = data.callRecordingUrl || data.documentUrl || data.attachmentUrl || null;
+    let finalDesc = data.conversationDetails || "";
+    if (docUrl) {
+      finalDesc = `${finalDesc}\n\n📄 Attached Document: ${docUrl}`.trim();
+    }
+
     const newTask = await TaskLog.create({
       id: nextId,
       employee: data.callerId || null,
       date: new Date(),
       taskTitle: taskTitle,
       taskType: "CALL",
-      description: data.conversationDetails,
+      description: finalDesc,
       status: "Pending",
       scheduledAt: data.nextFollowUpDate ? new Date(data.nextFollowUpDate) : null,
       timerState: "Stopped",
       elapsedSeconds: 0,
+      proofAttachment: docUrl,
     });
 
     data.taskId = newTask.id;

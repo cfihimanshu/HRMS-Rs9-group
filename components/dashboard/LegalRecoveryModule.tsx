@@ -3,7 +3,7 @@ import React, { useState, useEffect } from "react";
 import {
   Search, PlusCircle, PhoneCall, RefreshCw, X, Building, Banknote,
   FileAudio, History, Calendar, CheckCircle, ArrowLeft, LayoutGrid, FileText,
-  Landmark, Network, Filter, Briefcase
+  Landmark, Network, Filter, Briefcase, Building2, ShieldCheck
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import BankMasterView from "./legal-recovery/BankMasterView";
@@ -13,6 +13,9 @@ import DailyCallReportsView from "./legal-recovery/DailyCallReportsView";
 import PaymentCollectionsView from "./legal-recovery/PaymentCollectionsView";
 import LegalWorkLogsView from "./legal-recovery/LegalWorkLogsView";
 import NoticeBoardView from "./legal-recovery/NoticeBoardView";
+import NbfcMasterView from "./legal-recovery/NbfcMasterView";
+import NbfcBranchMasterView from "./legal-recovery/NbfcBranchMasterView";
+import SecurityMasterView from "./legal-recovery/SecurityMasterView";
 
 interface LegalRecoveryModuleProps {
   userRole?: string;
@@ -60,18 +63,25 @@ const WORK_CATEGORIES: Record<string, string[]> = {
 };
 
 export default function LegalRecoveryModule({ userRole, triggerToast, sessionUser }: LegalRecoveryModuleProps) {
-  const [activeSubModule, setActiveSubModule] = useState<"launcher" | "follow-up" | "masters" | "history" | "banks" | "branches" | "collections" | "work-logs" | "notices">("launcher");
+  const [activeSubModule, setActiveSubModule] = useState<"launcher" | "follow-up" | "masters" | "history" | "banks" | "branches" | "collections" | "work-logs" | "notices" | "nbfcs" | "nbfc-branches" | "security">("launcher");
 
   const [cases, setCases] = useState<any[]>([]);
   const [banksList, setBanksList] = useState<any[]>([]);
   const [branchesList, setBranchesList] = useState<any[]>([]);
+  const [nbfcsList, setNbfcsList] = useState<any[]>([]);
+  const [nbfcBranchesList, setNbfcBranchesList] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Modals state
   const [showAddCaseForm, setShowAddCaseForm] = useState(false);
   const [showAddBankForm, setShowAddBankForm] = useState(false);
   const [showAddBranchForm, setShowAddBranchForm] = useState(false);
+  const [showAddNbfcForm, setShowAddNbfcForm] = useState(false);
+  const [showAddNbfcBranchForm, setShowAddNbfcBranchForm] = useState(false);
   const [editBranchId, setEditBranchId] = useState<number | null>(null);
+  const [editNbfcBranchId, setEditNbfcBranchId] = useState<number | null>(null);
+
+  // Modals & Data States
   const [showFollowUpForm, setShowFollowUpForm] = useState<{ show: boolean, master: any | null }>({ show: false, master: null });
   const [showWorkLogForm, setShowWorkLogForm] = useState<{ show: boolean, master: any | null }>({ show: false, master: null });
   const [showMarketingForm, setShowMarketingForm] = useState<{ show: boolean, branch: any | null }>({ show: false, branch: null });
@@ -90,6 +100,8 @@ export default function LegalRecoveryModule({ userRole, triggerToast, sessionUse
   const [submittingCase, setSubmittingCase] = useState(false);
   const [submittingBank, setSubmittingBank] = useState(false);
   const [submittingBranch, setSubmittingBranch] = useState(false);
+  const [submittingNbfc, setSubmittingNbfc] = useState(false);
+  const [submittingNbfcBranch, setSubmittingNbfcBranch] = useState(false);
   const [submittingFollowUp, setSubmittingFollowUp] = useState(false);
   const [submittingWorkLog, setSubmittingWorkLog] = useState(false);
   const [submittingMarketing, setSubmittingMarketing] = useState(false);
@@ -98,7 +110,9 @@ export default function LegalRecoveryModule({ userRole, triggerToast, sessionUse
 
   // Forms
   const [bankForm, setBankForm] = useState({ bankName: "", bankCode: "" });
+  const [nbfcForm, setNbfcForm] = useState({ nbfcName: "", nbfcCode: "" });
   const [branchForm, setBranchForm] = useState({ bankId: "", branchName: "", branchCode: "", branchEmail: "", branchManager: "", branchManagerContact: "", aoName: "", foName: "", foContact: "", rbo: "" });
+  const [nbfcBranchForm, setNbfcBranchForm] = useState({ nbfcId: "", branchName: "", branchCode: "", branchEmail: "", branchManager: "", branchManagerContact: "", aoName: "", foName: "", foContact: "", rbo: "" });
   const [caseForm, setCaseForm] = useState({
     bankName: "", branchName: "", branchId: "", aoName: "",
     deptManagerName: "", contactNumber: "", pendingAmount: "", pendingSince: ""
@@ -164,14 +178,47 @@ export default function LegalRecoveryModule({ userRole, triggerToast, sessionUse
     }
   };
 
+  const fetchNbfcs = async () => {
+    try {
+      const res = await fetch("/api/legal-recovery/nbfc");
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setNbfcsList(data.data || []);
+      }
+    } catch (error) {
+      console.error("Error fetching nbfcs:", error);
+    }
+  };
+
+  const fetchNbfcBranches = async () => {
+    try {
+      const res = await fetch("/api/legal-recovery/nbfc-branches");
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setNbfcBranchesList(data.data || []);
+      }
+    } catch (error) {
+      console.error("Error fetching nbfc branches:", error);
+    }
+  };
+
   useEffect(() => {
     fetchBanks();
     fetchBranches();
+    fetchNbfcs();
+    fetchNbfcBranches();
   }, []);
 
   useEffect(() => {
-    if (activeSubModule !== "launcher" && activeSubModule !== "banks" && activeSubModule !== "branches" && activeSubModule !== "collections" && activeSubModule !== "work-logs") {
+    if (activeSubModule !== "launcher" && activeSubModule !== "banks" && activeSubModule !== "branches" && activeSubModule !== "collections" && activeSubModule !== "work-logs" && activeSubModule !== "nbfcs" && activeSubModule !== "nbfc-branches") {
       fetchCases();
+    }
+    if (activeSubModule === "nbfcs") {
+      fetchNbfcs();
+    }
+    if (activeSubModule === "nbfc-branches") {
+      fetchNbfcs();
+      fetchNbfcBranches();
     }
     if (activeSubModule === "history") {
       fetchGlobalHistory();
@@ -184,6 +231,93 @@ export default function LegalRecoveryModule({ userRole, triggerToast, sessionUse
       fetchCases();
     }
   }, [activeSubModule]);
+
+  const handleAddNbfcSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      setSubmittingNbfc(true);
+      const res = await fetch("/api/legal-recovery/nbfc", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(nbfcForm)
+      });
+      const data = await res.json();
+      if (data.success) {
+        triggerToast("NBFC Master registered successfully!");
+        setNbfcForm({ nbfcName: "", nbfcCode: "" });
+        setShowAddNbfcForm(false);
+        fetchNbfcs();
+      } else {
+        triggerToast(data.error || "Failed to add NBFC");
+      }
+    } catch (_) {
+      triggerToast("Error adding NBFC");
+    } finally {
+      setSubmittingNbfc(false);
+    }
+  };
+
+  const handleDeleteNbfc = async (id: number) => {
+    if (!confirm("Are you sure you want to delete this NBFC Master?")) return;
+    try {
+      const res = await fetch(`/api/legal-recovery/nbfc?id=${id}`, { method: "DELETE" });
+      const data = await res.json();
+      if (data.success) {
+        triggerToast("NBFC Master deleted successfully!");
+        fetchNbfcs();
+      } else {
+        triggerToast(data.error || "Failed to delete NBFC");
+      }
+    } catch (_) {
+      triggerToast("Error deleting NBFC");
+    }
+  };
+
+  const handleAddNbfcBranchSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      setSubmittingNbfcBranch(true);
+      const url = "/api/legal-recovery/nbfc-branches";
+      const method = editNbfcBranchId ? "PUT" : "POST";
+      const payload = editNbfcBranchId ? { id: editNbfcBranchId, ...nbfcBranchForm } : nbfcBranchForm;
+
+      const res = await fetch(url, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+      if (data.success) {
+        triggerToast(editNbfcBranchId ? "NBFC Branch updated successfully!" : "NBFC Branch registered successfully!");
+        setNbfcBranchForm({ nbfcId: "", branchName: "", branchCode: "", branchEmail: "", branchManager: "", branchManagerContact: "", aoName: "", foName: "", foContact: "", rbo: "" });
+        setEditNbfcBranchId(null);
+        setShowAddNbfcBranchForm(false);
+        fetchNbfcBranches();
+      } else {
+        triggerToast(data.error || "Failed to save NBFC Branch");
+      }
+    } catch (_) {
+      triggerToast("Error saving NBFC Branch");
+    } finally {
+      setSubmittingNbfcBranch(false);
+    }
+  };
+
+  const handleDeleteNbfcBranch = async (id: number) => {
+    if (!confirm("Are you sure you want to delete this NBFC Branch?")) return;
+    try {
+      const res = await fetch(`/api/legal-recovery/nbfc-branches?id=${id}`, { method: "DELETE" });
+      const data = await res.json();
+      if (data.success) {
+        triggerToast("NBFC Branch deleted successfully!");
+        fetchNbfcBranches();
+      } else {
+        triggerToast(data.error || "Failed to delete NBFC Branch");
+      }
+    } catch (_) {
+      triggerToast("Error deleting NBFC Branch");
+    }
+  };
 
   const fetchGlobalHistory = async () => {
     try {
@@ -743,7 +877,43 @@ export default function LegalRecoveryModule({ userRole, triggerToast, sessionUse
               <FileText size={28} strokeWidth={2} />
             </div>
             <span className="font-bold text-sm text-slate-800">Notice Board</span>
-            <span className="text-[10px] text-slate-500 mt-1 uppercase tracking-wider font-semibold">Track & Manage Notices</span>
+            <span className="text-[10px] text-slate-500 mt-1 uppercase tracking-wider font-semibold">Track &amp; Manage Notices</span>
+          </button>
+
+          {/* Module 9: NBFC Master */}
+          <button
+            onClick={() => setActiveSubModule("nbfcs")}
+            className="group flex flex-col items-center justify-center p-6 bg-white border border-[#E8E4DF] rounded-2xl hover:shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:border-indigo-200 transition-all duration-300"
+          >
+            <div className="w-16 h-16 bg-gradient-to-br from-indigo-50 to-indigo-100 text-indigo-600 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform shadow-sm">
+              <Building2 size={28} strokeWidth={2} />
+            </div>
+            <span className="font-bold text-sm text-slate-800">NBFC Master</span>
+            <span className="text-[10px] text-slate-500 mt-1 uppercase tracking-wider font-semibold">Add NBFC</span>
+          </button>
+
+          {/* Module 10: NBFC Branch Master */}
+          <button
+            onClick={() => setActiveSubModule("nbfc-branches")}
+            className="group flex flex-col items-center justify-center p-6 bg-white border border-[#E8E4DF] rounded-2xl hover:shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:border-violet-200 transition-all duration-300"
+          >
+            <div className="w-16 h-16 bg-gradient-to-br from-violet-50 to-violet-100 text-violet-600 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform shadow-sm">
+              <Network size={28} strokeWidth={2} />
+            </div>
+            <span className="font-bold text-sm text-slate-800">NBFC Branch Master</span>
+            <span className="text-[10px] text-slate-500 mt-1 uppercase tracking-wider font-semibold">Add NBFC Branches</span>
+          </button>
+
+          {/* Module 11: Security */}
+          <button
+            onClick={() => setActiveSubModule("security")}
+            className="group flex flex-col items-center justify-center p-6 bg-white border border-[#E8E4DF] rounded-2xl hover:shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:border-emerald-200 transition-all duration-300"
+          >
+            <div className="w-16 h-16 bg-gradient-to-br from-emerald-50 to-emerald-100 text-emerald-600 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform shadow-sm">
+              <ShieldCheck size={28} strokeWidth={2} />
+            </div>
+            <span className="font-bold text-sm text-slate-800">Security</span>
+            <span className="text-[10px] text-slate-500 mt-1 uppercase tracking-wider font-semibold">Security Deposits &amp; Bills</span>
           </button>
 
         </div>
@@ -779,7 +949,9 @@ export default function LegalRecoveryModule({ userRole, triggerToast, sessionUse
               onClick={() => {
                 fetchBanks();
                 fetchBranches();
-                if (activeSubModule !== "banks" && activeSubModule !== "branches") fetchCases();
+                fetchNbfcs();
+                fetchNbfcBranches();
+                if (activeSubModule !== "banks" && activeSubModule !== "branches" && activeSubModule !== "nbfcs" && activeSubModule !== "nbfc-branches") fetchCases();
               }}
               className="px-3 py-1.5 bg-[#FCFBF9] border border-[#E8E4DF] hover:bg-[#F5F0EA] text-[#5D5B57] hover:text-[#1C1C1A] rounded-lg text-[10px] font-semibold tracking-wider uppercase transition-all flex items-center gap-1.5"
             >
@@ -811,6 +983,34 @@ export default function LegalRecoveryModule({ userRole, triggerToast, sessionUse
               >
                 <PlusCircle className="w-3.5 h-3.5" />
                 {showAddBranchForm ? "Close Form" : "Add Branch Master"}
+              </button>
+            )}
+
+            {activeSubModule === "nbfcs" && (
+              <button
+                onClick={() => setShowAddNbfcForm(!showAddNbfcForm)}
+                className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-[10px] font-semibold tracking-wider uppercase transition-all flex items-center gap-1.5 shadow-sm"
+              >
+                <PlusCircle className="w-3.5 h-3.5" />
+                {showAddNbfcForm ? "Close Form" : "Add NBFC Master"}
+              </button>
+            )}
+
+            {activeSubModule === "nbfc-branches" && (
+              <button
+                onClick={() => {
+                  if (showAddNbfcBranchForm) {
+                    setShowAddNbfcBranchForm(false);
+                    setEditNbfcBranchId(null);
+                    setNbfcBranchForm({ nbfcId: "", branchName: "", branchCode: "", branchEmail: "", branchManager: "", branchManagerContact: "", aoName: "", foName: "", foContact: "", rbo: "" });
+                  } else {
+                    setShowAddNbfcBranchForm(true);
+                  }
+                }}
+                className="px-3 py-1.5 bg-violet-600 hover:bg-violet-700 text-white rounded-lg text-[10px] font-semibold tracking-wider uppercase transition-all flex items-center gap-1.5 shadow-sm"
+              >
+                <PlusCircle className="w-3.5 h-3.5" />
+                {showAddNbfcBranchForm ? "Close Form" : "Add NBFC Branch Master"}
               </button>
             )}
 
@@ -1055,6 +1255,139 @@ export default function LegalRecoveryModule({ userRole, triggerToast, sessionUse
           </div>
         )}
 
+        {/* Add New NBFC Form */}
+        {showAddNbfcForm && activeSubModule === "nbfcs" && (
+          <div className="bg-white border border-[#E8E4DF] rounded-xl p-5 shadow-sm animate-slide-down">
+            <div className="flex justify-between items-center border-b border-[#E8E4DF] pb-3 mb-4">
+              <h3 className="text-sm font-bold text-slate-800 flex items-center gap-1.5">
+                <Building2 className="w-4 h-4 text-indigo-600" /> Register New NBFC Master
+              </h3>
+              <button onClick={() => setShowAddNbfcForm(false)} className="text-slate-400 hover:text-slate-600">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <form onSubmit={handleAddNbfcSubmit} className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">NBFC Name *</label>
+                  <input required type="text" placeholder="e.g. Bajaj Finance Limited" value={nbfcForm.nbfcName}
+                    onChange={e => {
+                      const val = e.target.value;
+                      const words = val.split(/\s+/).filter(w => !['of', 'and', 'the', 'in', 'limited', 'ltd'].includes(w.toLowerCase()));
+                      let autoCode = "";
+                      if (words.length === 1) {
+                        autoCode = words[0].substring(0, 3).toUpperCase();
+                      } else if (words.length > 1) {
+                        autoCode = words.map(w => w[0]).join('').substring(0, 4).toUpperCase();
+                      }
+                      setNbfcForm({ ...nbfcForm, nbfcName: val, nbfcCode: autoCode });
+                    }}
+                    className="w-full bg-white border border-[#E8E4DF] focus:border-indigo-500 rounded-lg px-3 py-2 text-xs focus:outline-none font-semibold"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">NBFC Code (Auto / Editable) *</label>
+                  <input required type="text" placeholder="e.g. BFL" value={nbfcForm.nbfcCode}
+                    onChange={e => setNbfcForm({ ...nbfcForm, nbfcCode: e.target.value.toUpperCase() })}
+                    className="w-full bg-white border border-[#E8E4DF] focus:border-indigo-500 rounded-lg px-3 py-2 text-xs focus:outline-none font-mono font-bold text-indigo-700"
+                  />
+                </div>
+              </div>
+              <div className="flex justify-end">
+                <button disabled={submittingNbfc} type="submit" className="px-4 py-2 bg-indigo-600 text-white rounded-lg text-xs font-semibold uppercase tracking-wider hover:bg-indigo-700 disabled:opacity-50">
+                  {submittingNbfc ? "Saving..." : "Save NBFC Master"}
+                </button>
+              </div>
+            </form>
+          </div>
+        )}
+
+        {/* Add / Edit NBFC Branch Form */}
+        {showAddNbfcBranchForm && activeSubModule === "nbfc-branches" && (
+          <div className="bg-white border border-[#E8E4DF] rounded-xl p-5 shadow-sm animate-slide-down">
+            <div className="flex justify-between items-center border-b border-[#E8E4DF] pb-3 mb-4">
+              <h3 className="text-sm font-bold text-slate-800 flex items-center gap-1.5">
+                <Network className="w-4 h-4 text-violet-600" /> {editNbfcBranchId ? "✏️ Edit NBFC Branch Details" : "Register New NBFC Branch"}
+              </h3>
+              <button onClick={() => { setShowAddNbfcBranchForm(false); setEditNbfcBranchId(null); setNbfcBranchForm({ nbfcId: "", branchName: "", branchCode: "", branchEmail: "", branchManager: "", branchManagerContact: "", aoName: "", foName: "", foContact: "", rbo: "" }); }} className="text-slate-400 hover:text-slate-600">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <form onSubmit={handleAddNbfcBranchSubmit} className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Select NBFC *</label>
+                  <select
+                    required
+                    value={nbfcBranchForm.nbfcId}
+                    onChange={e => setNbfcBranchForm({ ...nbfcBranchForm, nbfcId: e.target.value })}
+                    className="w-full bg-white border border-[#E8E4DF] focus:border-violet-500 rounded-lg px-3 py-2 text-xs focus:outline-none font-semibold text-slate-700"
+                  >
+                    <option value="">-- Choose an NBFC --</option>
+                    {nbfcsList.map(n => (
+                      <option key={n.id} value={n.id}>{n.nbfcName} ({n.nbfcCode})</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Branch Name / Area *</label>
+                  <input required type="text" placeholder="e.g. Malviya Nagar" value={nbfcBranchForm.branchName}
+                    onChange={e => setNbfcBranchForm({ ...nbfcBranchForm, branchName: e.target.value })}
+                    className="w-full bg-white border border-[#E8E4DF] focus:border-violet-500 rounded-lg px-3 py-2 text-xs focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Branch Code (Manual / Numeric) *</label>
+                  <input required type="text" placeholder="e.g. NBF-501" value={nbfcBranchForm.branchCode}
+                    onChange={e => setNbfcBranchForm({ ...nbfcBranchForm, branchCode: e.target.value })}
+                    className="w-full bg-white border border-[#E8E4DF] focus:border-violet-500 rounded-lg px-3 py-2 text-xs focus:outline-none font-mono font-bold"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div>
+                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Branch Email</label>
+                  <input type="email" placeholder="Email" value={nbfcBranchForm.branchEmail} onChange={e => setNbfcBranchForm({ ...nbfcBranchForm, branchEmail: e.target.value })} className="w-full bg-white border border-[#E8E4DF] focus:border-violet-500 rounded-lg px-3 py-2 text-xs focus:outline-none" />
+                </div>
+                <div>
+                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Branch Manager</label>
+                  <input type="text" placeholder="Manager Name" value={nbfcBranchForm.branchManager} onChange={e => setNbfcBranchForm({ ...nbfcBranchForm, branchManager: e.target.value })} className="w-full bg-white border border-[#E8E4DF] focus:border-violet-500 rounded-lg px-3 py-2 text-xs focus:outline-none" />
+                </div>
+                <div>
+                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Manager Contact</label>
+                  <input type="text" placeholder="Mobile Number" value={nbfcBranchForm.branchManagerContact} onChange={e => setNbfcBranchForm({ ...nbfcBranchForm, branchManagerContact: e.target.value })} className="w-full bg-white border border-[#E8E4DF] focus:border-violet-500 rounded-lg px-3 py-2 text-xs focus:outline-none" />
+                </div>
+                <div>
+                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">AO Name</label>
+                  <input type="text" placeholder="Account Officer" value={nbfcBranchForm.aoName} onChange={e => setNbfcBranchForm({ ...nbfcBranchForm, aoName: e.target.value })} className="w-full bg-white border border-[#E8E4DF] focus:border-violet-500 rounded-lg px-3 py-2 text-xs focus:outline-none" />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">FO Name</label>
+                  <input type="text" placeholder="Field Officer Name" value={nbfcBranchForm.foName} onChange={e => setNbfcBranchForm({ ...nbfcBranchForm, foName: e.target.value })} className="w-full bg-white border border-[#E8E4DF] focus:border-violet-500 rounded-lg px-3 py-2 text-xs focus:outline-none" />
+                </div>
+                <div>
+                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">FO Contact Number</label>
+                  <input type="text" placeholder="Phone Number" value={nbfcBranchForm.foContact} onChange={e => setNbfcBranchForm({ ...nbfcBranchForm, foContact: e.target.value })} className="w-full bg-white border border-[#E8E4DF] focus:border-violet-500 rounded-lg px-3 py-2 text-xs focus:outline-none" />
+                </div>
+                <div>
+                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">RBO</label>
+                  <input type="text" placeholder="Regional Business Office" value={nbfcBranchForm.rbo} onChange={e => setNbfcBranchForm({ ...nbfcBranchForm, rbo: e.target.value })} className="w-full bg-white border border-[#E8E4DF] focus:border-violet-500 rounded-lg px-3 py-2 text-xs focus:outline-none" />
+                </div>
+              </div>
+
+              <div className="flex justify-end">
+                <button disabled={submittingNbfcBranch} type="submit" className="px-4 py-2 bg-violet-600 text-white rounded-lg text-xs font-semibold uppercase tracking-wider hover:bg-violet-700 disabled:opacity-50">
+                  {submittingNbfcBranch ? "Saving..." : (editNbfcBranchId ? "Update Branch" : "Save Branch")}
+                </button>
+              </div>
+            </form>
+          </div>
+        )}
+
         {/* Render Subcomponents based on activeSubModule */}
         {activeSubModule === "banks" && (
           <BankMasterView banksList={banksList} branchesList={branchesList} loading={loading} />
@@ -1087,7 +1420,50 @@ export default function LegalRecoveryModule({ userRole, triggerToast, sessionUse
           />
         )}
 
-        {activeSubModule !== "banks" && activeSubModule !== "branches" && activeSubModule !== "history" && activeSubModule !== "collections" && activeSubModule !== "work-logs" && activeSubModule !== "notices" && (
+        {activeSubModule === "nbfcs" && (
+          <NbfcMasterView
+            nbfcsList={nbfcsList}
+            nbfcBranchesList={nbfcBranchesList}
+            loading={loading}
+            onDeleteNbfc={handleDeleteNbfc}
+          />
+        )}
+
+        {activeSubModule === "nbfc-branches" && (
+          <NbfcBranchMasterView
+            nbfcBranchesList={nbfcBranchesList}
+            nbfcsList={nbfcsList}
+            loading={loading}
+            onEditBranch={(br: any) => {
+              setNbfcBranchForm({
+                nbfcId: br.nbfcId?.toString() || "",
+                branchName: br.branchName || "",
+                branchCode: br.branchCode || "",
+                branchEmail: br.branchEmail || "",
+                branchManager: br.branchManager || "",
+                branchManagerContact: br.branchManagerContact || "",
+                aoName: br.aoName || "",
+                foName: br.foName || "",
+                foContact: br.foContact || "",
+                rbo: br.rbo || ""
+              });
+              setEditNbfcBranchId(br.id);
+              setShowAddNbfcBranchForm(true);
+              window.scrollTo({ top: 0, behavior: "smooth" });
+            }}
+            onDeleteBranch={handleDeleteNbfcBranch}
+          />
+        )}
+
+        {activeSubModule === "security" && (
+          <SecurityMasterView
+            nbfcsList={nbfcsList}
+            nbfcBranchesList={nbfcBranchesList}
+            triggerToast={triggerToast}
+          />
+        )}
+
+        {activeSubModule !== "banks" && activeSubModule !== "branches" && activeSubModule !== "nbfcs" && activeSubModule !== "nbfc-branches" && activeSubModule !== "security" && activeSubModule !== "history" && activeSubModule !== "collections" && activeSubModule !== "work-logs" && activeSubModule !== "notices" && (
           <CasesMasterView cases={cases} loading={loading} setShowFollowUpForm={setShowFollowUpForm} setShowPaymentForm={setShowPaymentForm} openHistory={openHistory} userRole={userRole} onEditCase={handleEditCase} onDeleteCase={handleDeleteCase} />
         )}
 

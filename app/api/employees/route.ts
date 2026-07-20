@@ -136,8 +136,11 @@ export async function GET(req: Request) {
       };
     });
 
+    const { searchParams } = new URL(req.url);
+    const showAllCompanies = searchParams.get("all") === "true" || searchParams.get("all") === "1" || searchParams.get("allCompanies") === "true";
+
     let filteredMergedData = mergedData;
-    if (!isOwnerOrDirector && !isHR) {
+    if (!isOwnerOrDirector && !isHR && !showAllCompanies) {
       filteredMergedData = mergedData.filter((emp: any) => {
         let empComps: any[] = [];
         if (Array.isArray(emp.companies)) {

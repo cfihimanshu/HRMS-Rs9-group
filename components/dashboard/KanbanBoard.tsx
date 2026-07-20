@@ -73,12 +73,12 @@ const TYPE_COLORS: Record<string, string> = {
   Other: "bg-slate-100 text-slate-600 border-slate-200",
 };
 
-export default function KanbanBoard({ 
-  initialDateFilter, 
-  initialSearchFilter 
-}: { 
-  initialDateFilter?: string; 
-  initialSearchFilter?: string; 
+export default function KanbanBoard({
+  initialDateFilter,
+  initialSearchFilter
+}: {
+  initialDateFilter?: string;
+  initialSearchFilter?: string;
 }) {
   const { data: session, status } = useSession();
   const sessionUser = session?.user;
@@ -118,10 +118,22 @@ export default function KanbanBoard({
   const [bankCategory, setBankCategory] = useState("Operations");
   const [bankCategoryOther, setBankCategoryOther] = useState("");
 
-  // Dynamic Bank Category List
+  // Dynamic Task Category Master List (General, Legal, IT, Bank, Interview, Others, etc.)
   const [bankCategories, setBankCategories] = useState<string[]>([]);
+  const [selectedTaskCategory, setSelectedTaskCategory] = useState<string>("General");
   const [showAddCategoryInput, setShowAddCategoryInput] = useState(false);
   const [newCategoryText, setNewCategoryText] = useState("");
+
+  // Dynamic Task Modes List (Call, Meeting, Email, WhatsApp, SMS, Field Visit, Social Media, etc.)
+  const [taskModes, setTaskModes] = useState<{ id: number; name: string }[]>([]);
+  const [showAddModeInput, setShowAddModeInput] = useState(false);
+  const [newModeText, setNewModeText] = useState("");
+
+  // Dynamic Project Masters List (HRMS, RRR, etc.)
+  const [projectList, setProjectList] = useState<{ id: number | string; name: string }[]>([]);
+  const [selectedProjectName, setSelectedProjectName] = useState("");
+  const [showAddProjectInput, setShowAddProjectInput] = useState(false);
+  const [newProjectText, setNewProjectText] = useState("");
 
   // Dynamic Custom Fields
   const [customCallFields, setCustomCallFields] = useState<{ key: string; value: string }[]>([]);
@@ -150,6 +162,10 @@ export default function KanbanBoard({
   const [selectedForwardTo, setSelectedForwardTo] = useState("");
   const [savingForward, setSavingForward] = useState(false);
 
+  // Forward Task Date (Postpone to future date)
+  const [forwardDateInput, setForwardDateInput] = useState("");
+  const [forwardingDate, setForwardingDate] = useState(false);
+
   // Owner task assignment and deadline states
   const [assigneeId, setAssigneeId] = useState("");
   const [deadlineDate, setDeadlineDate] = useState("");
@@ -158,7 +174,7 @@ export default function KanbanBoard({
   // Task Editing & Deletion
   const [isEditingTask, setIsEditingTask] = useState(false);
   const [editTitle, setEditTitle] = useState("");
-  const [editType, setEditType] = useState("Meeting");
+  const [editType, setEditType] = useState("Call");
   const [editDesc, setEditDesc] = useState("");
   const [savingEdit, setSavingEdit] = useState(false);
 
@@ -189,8 +205,54 @@ export default function KanbanBoard({
       fetchTasks();
       fetchBanks();
       fetchCategories();
+      fetchModes();
+      fetchProjects();
     }
   }, [session, status]);
+
+  const fetchProjects = async () => {
+    try {
+      const res = await fetch("/api/tasks/projects");
+      const data = await res.json();
+      if (data.success && Array.isArray(data.data)) {
+        setProjectList(data.data);
+      }
+    } catch (err) {
+      console.error("Failed to load project masters:", err);
+    }
+  };
+
+  const handleAddProject = async () => {
+    const trimmed = newProjectText.trim();
+    if (!trimmed) return;
+    if (projectList.map(p => p.name.toLowerCase()).includes(trimmed.toLowerCase())) {
+      alert("Project already exists in master database!");
+      setSelectedProjectName(trimmed);
+      setNewProjectText("");
+      setShowAddProjectInput(false);
+      return;
+    }
+
+    try {
+      const res = await fetch("/api/tasks/projects", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: trimmed }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setProjectList(prev => [...prev.filter(p => p.id !== data.data.id), data.data]);
+        setSelectedProjectName(data.data.name);
+        setNewProjectText("");
+        setShowAddProjectInput(false);
+      } else {
+        alert(data.error || "Failed to save project master to DB.");
+      }
+    } catch (err) {
+      console.error("Failed to save project master:", err);
+      alert("Failed to save project master.");
+    }
+  };
 
   useEffect(() => {
     if (showAdd && (sessionUser as any)?.role === "Owner") {
@@ -207,15 +269,70 @@ export default function KanbanBoard({
     }
   }, [showAdd, sessionUser]);
 
+  const sortCategoriesList = (cats: string[]): string[] => {
+    const list = [...cats];
+    list.sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
+    const idx = list.findIndex(c => c.trim().toLowerCase() === "others");
+    if (idx !== -1) {
+      const [others] = list.splice(idx, 1);
+      list.push(others);
+    }
+    return list;
+  };
+
   const fetchCategories = async () => {
     try {
       const res = await fetch("/api/tasks/call-categories");
       const data = await res.json();
       if (data.success) {
-        setBankCategories(data.data || []);
+        setBankCategories(sortCategoriesList(data.data || []));
       }
     } catch (err) {
       console.error("Failed to load call categories:", err);
+    }
+  };
+
+  const fetchModes = async () => {
+    try {
+      const res = await fetch("/api/tasks/modes");
+      const data = await res.json();
+      if (data.success) {
+        setTaskModes(data.data || []);
+      }
+    } catch (err) {
+      console.error("Failed to load task modes:", err);
+    }
+  };
+
+  const handleAddMode = async () => {
+    const trimmed = newModeText.trim();
+    if (!trimmed) return;
+    if (taskModes.map(m => m.name.toLowerCase()).includes(trimmed.toLowerCase())) {
+      alert("Task mode already exists in database!");
+      setType(trimmed);
+      setNewModeText("");
+      setShowAddModeInput(false);
+      return;
+    }
+
+    try {
+      const res = await fetch("/api/tasks/modes", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: trimmed }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setTaskModes(prev => [...prev, data.data]);
+        setType(data.data.name);
+        setNewModeText("");
+        setShowAddModeInput(false);
+      } else {
+        alert(data.error || "Failed to save task mode to DB.");
+      }
+    } catch (err) {
+      console.error("Failed to save task mode to DB:", err);
+      alert("Failed to save task mode to DB.");
     }
   };
 
@@ -223,7 +340,11 @@ export default function KanbanBoard({
     const trimmed = newCategoryText.trim();
     if (!trimmed) return;
     if (bankCategories.map(c => c.toLowerCase()).includes(trimmed.toLowerCase())) {
-      alert("Category already exists!");
+      alert("Category already exists in master database!");
+      setSelectedTaskCategory(trimmed);
+      if (!title || bankCategories.includes(title)) setTitle(trimmed);
+      setNewCategoryText("");
+      setShowAddCategoryInput(false);
       return;
     }
 
@@ -235,9 +356,13 @@ export default function KanbanBoard({
       });
       const data = await res.json();
       if (data.success) {
-        const updated = [...bankCategories, data.data];
+        const updated = sortCategoriesList([...bankCategories, data.data]);
         setBankCategories(updated);
-        setBankCategory(data.data);
+        setSelectedTaskCategory(data.data);
+        if (!title || bankCategories.includes(title)) setTitle(data.data);
+        setType("Call");
+        setCallCategory("Others");
+        setOtherCategoryDesc(data.data);
         setNewCategoryText("");
         setShowAddCategoryInput(false);
       } else {
@@ -301,7 +426,8 @@ export default function KanbanBoard({
 
   const handleAddTask = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!title.trim()) return;
+    const effectiveTitle = selectedTaskCategory.trim() || title.trim();
+    if (!effectiveTitle) return;
     setSubmitting(true);
 
     if ((sessionUser as any)?.role === "Owner") {
@@ -319,14 +445,14 @@ export default function KanbanBoard({
 
     // Build structured description for Call tasks
     let finalDesc = desc;
-    if (type === "Call" && callCategory === "Bank") {
+    if (type === "Call" && (callCategory === "Bank" || selectedTaskCategory === "Bank" || selectedTaskCategory === "Notice")) {
       const cat = bankCategory === "Other" ? (bankCategoryOther.trim() || "Other") : bankCategory;
       const customLines = customCallFields
         .filter(f => f.key.trim() && f.value.trim())
         .map(f => `${f.key.trim()}: ${f.value.trim()}`);
 
       finalDesc = [
-        `Call Category: Bank`,
+        `Call Category: ${selectedTaskCategory === "Notice" ? "Notice" : "Bank"}`,
         bankName ? `Bank: ${bankName}` : "",
         branchName ? `Branch: ${branchName}` : "",
         officerName ? `Officer Name: ${officerName}` : "",
@@ -343,6 +469,8 @@ export default function KanbanBoard({
         otherCategoryDesc ? `Describe: ${otherCategoryDesc}` : "",
         desc ? `Remark: ${desc}` : "",
       ].filter(Boolean).join("\n");
+    } else if ((selectedTaskCategory === "IT" || type === "Development") && selectedProjectName) {
+      finalDesc = [`[Project: ${selectedProjectName}]`, desc].filter(Boolean).join(" ");
     }
 
     let deadlineAt: string | null = null;
@@ -356,7 +484,7 @@ export default function KanbanBoard({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          taskTitle: title,
+          taskTitle: effectiveTitle,
           taskType: type,
           description: finalDesc,
           status: "Pending",
@@ -367,9 +495,11 @@ export default function KanbanBoard({
       const data = await res.json();
       if (data.success) {
         setTitle("");
+        setSelectedTaskCategory("General");
         setDesc("");
         setCallCategory("");
         setOtherCategoryDesc("");
+        setSelectedProjectName("");
         setBankName("");
         setBranchName("");
         setSelectedBankId("");
@@ -455,14 +585,15 @@ export default function KanbanBoard({
   };
 
   const getLiveElapsed = (task: Task): number => {
-    if (task.status === "Completed") {
+    if (task.status === "Completed" || task.scheduledAt || task.timerState === "Stopped" || task.timerState === "Paused") {
       return task.elapsedSeconds || 0;
     }
-    const start = task.timerStart || task.createdAt || task.date;
-    if (!start) return 0;
-    const startTime = new Date(start).getTime();
+    if (task.timerState !== "Running" || !task.timerStart) {
+      return task.elapsedSeconds || 0;
+    }
+    const startTime = new Date(task.timerStart).getTime();
     const elapsed = Math.floor((Date.now() - startTime) / 1000);
-    return Math.max(0, elapsed);
+    return Math.max(0, (task.elapsedSeconds || 0) + elapsed);
   };
 
   const timerAction = async (task: Task, action: "start" | "pause" | "stop") => {
@@ -806,12 +937,12 @@ export default function KanbanBoard({
       const res = await fetch("/api/tasks", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ taskId: selectedTask.id, scheduledAt, followUpHistory: serializedHistory }),
+        body: JSON.stringify({ taskId: selectedTask.id, scheduledAt, followUpHistory: serializedHistory, timerState: "Stopped", timerStart: null }),
       });
       const data = await res.json();
       if (data.success) {
-        setTasks(prev => prev.map(t => t.id === selectedTask.id ? { ...t, scheduledAt, followUpHistory: serializedHistory } : t));
-        setSelectedTask(prev => prev ? { ...prev, scheduledAt, followUpHistory: serializedHistory } : null);
+        setTasks(prev => prev.map(t => t.id === selectedTask.id ? { ...t, scheduledAt, followUpHistory: serializedHistory, timerState: "Stopped", timerStart: null } : t));
+        setSelectedTask(prev => prev ? { ...prev, scheduledAt, followUpHistory: serializedHistory, timerState: "Stopped", timerStart: null } : null);
         setEditScheduleDate("");
         setEditScheduleTime("");
       }
@@ -829,17 +960,54 @@ export default function KanbanBoard({
       const res = await fetch("/api/tasks", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ taskId: selectedTask.id, forwardedTo: selectedForwardTo || null }),
+        body: JSON.stringify({
+          taskId: selectedTask.id,
+          forwardedTo: selectedForwardTo || null,
+          timerState: "Stopped",
+          timerStart: null
+        }),
       });
       const data = await res.json();
       if (data.success) {
-        setTasks(prev => prev.map(t => t.id === selectedTask.id ? { ...t, forwardedTo: selectedForwardTo || null } : t));
-        setSelectedTask(prev => prev ? { ...prev, forwardedTo: selectedForwardTo || null } : null);
+        setTasks(prev => prev.map(t => t.id === selectedTask.id ? { ...t, forwardedTo: selectedForwardTo || null, timerState: "Stopped", timerStart: null } : t));
+        setSelectedTask(prev => prev ? { ...prev, forwardedTo: selectedForwardTo || null, timerState: "Stopped", timerStart: null } : null);
       }
     } catch (err) {
       console.error(err);
     } finally {
       setSavingForward(false);
+    }
+  };
+
+  const handleForwardTaskDate = async (targetDateStr: string) => {
+    if (!selectedTask || !targetDateStr) return;
+    setForwardingDate(true);
+    try {
+      const res = await fetch("/api/tasks", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          taskId: selectedTask.id,
+          targetDate: targetDateStr,
+          timerState: "Stopped",
+          timerStart: null
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        const formattedDate = new Date(targetDateStr).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+        alert(`This task is forwarded to ${formattedDate}!`);
+        setTasks(prev => prev.map(t => t.id === selectedTask.id ? { ...t, scheduledAt: targetDateStr, timerState: "Stopped", timerStart: null } : t));
+        setSelectedTask(prev => prev ? { ...prev, scheduledAt: targetDateStr, timerState: "Stopped", timerStart: null } : null);
+        setForwardDateInput("");
+      } else {
+        alert(data.error || "Failed to forward task date.");
+      }
+    } catch (err) {
+      console.error("Failed to forward task date:", err);
+      alert("Error forwarding task date.");
+    } finally {
+      setForwardingDate(false);
     }
   };
 
@@ -1037,7 +1205,7 @@ export default function KanbanBoard({
     const creatorName = (task.employee as any)?.name || "Unknown User";
 
     let deadlineBadge = null;
-    if (task.deadlineAt) {
+    if (task.deadlineAt && !task.scheduledAt) {
       const deadline = new Date(task.deadlineAt);
       const now = new Date();
       const diffMs = deadline.getTime() - now.getTime();
@@ -1131,11 +1299,11 @@ export default function KanbanBoard({
           </div>
         )}
 
-        {/* Scheduled / Follow-up badge */}
+        {/* Scheduled / Forwarded Date badge */}
         {task.scheduledAt && (
-          <div className="mt-2 flex items-center gap-1 text-[9px] text-violet-600 font-bold bg-violet-50 rounded-lg px-2 py-1 border border-violet-200">
-            <CalendarClock className="w-3 h-3" />
-            <span>Follow-up: {new Date(task.scheduledAt).toLocaleDateString("en-IN", { day: "2-digit", month: "short" })} {new Date(task.scheduledAt).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}</span>
+          <div className="mt-2 flex items-center gap-1.5 text-[9.5px] font-black text-sky-800 bg-sky-50 rounded-lg px-2.5 py-1 border border-sky-300 shadow-xs animate-fade-in">
+            <CalendarClock className="w-3.5 h-3.5 text-sky-600 shrink-0" />
+            <span>This task is forwarded to {new Date(task.scheduledAt).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}</span>
           </div>
         )}
 
@@ -1176,9 +1344,15 @@ export default function KanbanBoard({
             </div>
 
             {/* Timer Next to Date/Time */}
-            {task.status !== "Completed" && (
+            {task.status !== "Completed" && !task.scheduledAt && task.timerState === "Running" && (
               <span className="flex items-center gap-1 text-[10px] font-mono font-black px-2 py-1 rounded-lg border bg-green-50 text-green-700 border-green-200">
                 <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse inline-block" />
+                {formatTimer(getLiveElapsed(task))}
+              </span>
+            )}
+            {task.status !== "Completed" && (task.scheduledAt || task.timerState !== "Running") && getLiveElapsed(task) > 0 && (
+              <span className="flex items-center gap-1 text-[10px] font-mono font-black px-2 py-1 rounded-lg border bg-slate-50 text-slate-500 border-slate-200">
+                <span className="w-1.5 h-1.5 rounded-full bg-slate-400 inline-block" />
                 {formatTimer(getLiveElapsed(task))}
               </span>
             )}
@@ -1371,91 +1545,229 @@ export default function KanbanBoard({
                             <X className="w-3.5 h-3.5" />
                           </button>
                         </div>
-                        <input
-                          className="w-full border border-slate-200 rounded-lg px-3 py-2 text-xs font-bold focus:outline-none focus:border-[#714B67] placeholder-slate-400 text-slate-800"
-                          placeholder="Task Title *"
-                          value={title}
-                          onChange={e => setTitle(e.target.value)}
-                          required
-                          autoFocus
-                        />
-                        <select
-                          className="w-full border border-slate-200 rounded-lg px-3 py-2 text-xs font-bold focus:outline-none focus:border-[#714B67] text-slate-700 bg-white"
-                          value={type}
-                          onChange={e => { setType(e.target.value); setCallCategory(""); setOtherCategoryDesc(""); }}
-                        >
-                          <option value="Meeting">Meeting</option>
-                          <option value="Call">Call</option>
-                          <option value="Development">Development</option>
-                          <option value="Marketing">Marketing</option>
-                          <option value="Field Visit">Field Visit</option>
-                          <option value="Operations">Operations</option>
-                          <option value="Support">Support</option>
-                          <option value="Other">Other</option>
-                        </select>
+                        {/* Task Title Master Category Dropdown */}
+                        <div>
+                          <label className="block text-[9px] uppercase tracking-wider text-[#714B67] font-black mb-1">
+                            Task Title *
+                          </label>
+                          <select
+                            className="w-full border border-slate-200 rounded-lg px-3 py-2 text-xs font-bold focus:outline-none focus:border-[#714B67] text-slate-800 bg-white"
+                            value={selectedTaskCategory}
+                            onChange={e => {
+                              const val = e.target.value;
+                              if (val === "ADD_NEW") {
+                                setShowAddCategoryInput(true);
+                              } else {
+                                setShowAddCategoryInput(false);
+                                setSelectedTaskCategory(val);
+                                setTitle(val);
+                                if (val === "Bank" || val === "Notice") {
+                                  setType("Call");
+                                  setCallCategory("Bank");
+                                } else if (val === "Interview") {
+                                  setType("Call");
+                                  setCallCategory("Interview");
+                                } else {
+                                  setType("Call");
+                                  setCallCategory("Others");
+                                }
+                              }
+                            }}
+                            required
+                          >
+                            <option value="">-- Select Task Title --</option>
+                            {sortCategoriesList(bankCategories).map(cat => (
+                              <option key={cat} value={cat}>{cat}</option>
+                            ))}
+                            <option value="ADD_NEW" className="font-bold text-[#714B67] bg-purple-50">
+                              ➕ Add New Master Option...
+                            </option>
+                          </select>
 
-                        {/* ── Call Sub-Fields ── */}
-                        {type === "Call" && (
-                          <div className="space-y-2 bg-emerald-50 border border-emerald-200 rounded-xl p-3 animate-fade-in text-[#1C1C1A]">
-                            {/* Call Category */}
+                          {/* Render Describe Category ONLY when 'Others' is selected in Task Title */}
+                          {selectedTaskCategory === "Others" && (
+                            <div className="mt-2 animate-fade-in">
+                              <label className="block text-[9px] uppercase tracking-wider text-[#714B67] font-black mb-1">
+                                Describe Category *
+                              </label>
+                              <input
+                                type="text"
+                                required
+                                className="w-full border border-slate-200 rounded-lg px-3 py-2 text-xs font-bold focus:outline-none focus:border-[#714B67] placeholder-slate-400 text-slate-800 bg-white"
+                                placeholder="Describe the category details..."
+                                value={otherCategoryDesc}
+                                onChange={e => setOtherCategoryDesc(e.target.value)}
+                              />
+                            </div>
+                          )}
+
+                          {/* Inline Add New Category input */}
+                          {showAddCategoryInput && (
+                            <div className="mt-2 p-2.5 bg-purple-50 border border-purple-200 rounded-lg space-y-2 animate-fade-in">
+                              <label className="block text-[9px] uppercase tracking-wider text-purple-700 font-black">
+                                Add New Category / Title (Stored in DB) *
+                              </label>
+                              <div className="flex gap-1.5">
+                                <input
+                                  type="text"
+                                  placeholder="e.g. Legal, General, IT, Bank..."
+                                  value={newCategoryText}
+                                  onChange={e => setNewCategoryText(e.target.value)}
+                                  className="flex-1 border border-purple-300 rounded-md px-2.5 py-1.5 text-xs font-bold focus:outline-none text-slate-800 bg-white"
+                                  autoFocus
+                                />
+                                <button
+                                  type="button"
+                                  onClick={handleAddCategory}
+                                  className="bg-[#714B67] text-white px-3 py-1.5 rounded-md text-xs font-black uppercase tracking-wider hover:bg-[#5F3F56]"
+                                >
+                                  Save to DB
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => { setShowAddCategoryInput(false); setNewCategoryText(""); }}
+                                  className="bg-slate-200 text-slate-600 px-2 py-1.5 rounded-md text-xs font-bold"
+                                >
+                                  Cancel
+                                </button>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Dynamic Task Mode Selector (Call, Meeting, Email, WhatsApp, SMS, Field Visit, Social Media, etc.) */}
+                        <div>
+                          <label className="block text-[9px] uppercase tracking-wider text-slate-500 font-black mb-1">
+                            Task Mode *
+                          </label>
+                          <select
+                            className="w-full border border-slate-200 rounded-lg px-3 py-2 text-xs font-bold focus:outline-none focus:border-[#714B67] text-slate-700 bg-white"
+                            value={type}
+                            onChange={e => {
+                              const val = e.target.value;
+                              if (val === "ADD_NEW_MODE") {
+                                setShowAddModeInput(true);
+                              } else {
+                                setShowAddModeInput(false);
+                                setType(val);
+                              }
+                            }}
+                            required
+                          >
+                            {taskModes.map(modeObj => (
+                              <option key={modeObj.id} value={modeObj.name}>{modeObj.name}</option>
+                            ))}
+                            <option value="ADD_NEW_MODE" className="font-bold text-[#714B67] bg-purple-50">
+                              ➕ Add New Task Mode...
+                            </option>
+                          </select>
+
+                          {/* Inline Add New Mode input */}
+                          {showAddModeInput && (
+                            <div className="mt-2 p-2.5 bg-purple-50 border border-purple-200 rounded-lg space-y-2 animate-fade-in">
+                              <label className="block text-[9px] uppercase tracking-wider text-purple-700 font-black">
+                                Add New Task Mode (Stored in DB) *
+                              </label>
+                              <div className="flex gap-1.5">
+                                <input
+                                  type="text"
+                                  placeholder="e.g. Video Call, Postal Letter..."
+                                  value={newModeText}
+                                  onChange={e => setNewModeText(e.target.value)}
+                                  className="flex-1 border border-purple-300 rounded-md px-2.5 py-1.5 text-xs font-bold focus:outline-none text-slate-800 bg-white"
+                                  autoFocus
+                                />
+                                <button
+                                  type="button"
+                                  onClick={handleAddMode}
+                                  className="bg-[#714B67] text-white px-3 py-1.5 rounded-md text-xs font-black uppercase tracking-wider hover:bg-[#5F3F56]"
+                                >
+                                  Save to DB
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => { setShowAddModeInput(false); setNewModeText(""); }}
+                                  className="bg-slate-200 text-slate-600 px-2 py-1.5 rounded-md text-xs font-bold"
+                                >
+                                  Cancel
+                                </button>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Dynamic Project Name Selector (when Task Title is IT or Task Mode is Development) */}
+                        {(selectedTaskCategory === "IT" || type === "Development") && (
+                          <div className="space-y-2 bg-indigo-50/60 border border-indigo-200 rounded-xl p-3 animate-fade-in text-slate-800">
                             <div>
-                              <label className="block text-[9px] uppercase tracking-wider text-emerald-700 font-black mb-1">Call Category *</label>
+                              <label className="block text-[9px] uppercase tracking-wider text-indigo-700 font-black mb-1">
+                                Project Name *
+                              </label>
                               <select
                                 required
-                                value={callCategory}
-                                onChange={e => setCallCategory(e.target.value as "Interview" | "Bank" | "Others" | "")}
-                                className="w-full border border-emerald-200 rounded-lg px-3 py-2 text-xs font-bold focus:outline-none focus:border-emerald-500 text-slate-700 bg-white"
+                                className="w-full border border-indigo-200 rounded-lg px-3 py-2 text-xs font-bold focus:outline-none focus:border-indigo-500 text-slate-800 bg-white"
+                                value={selectedProjectName}
+                                onChange={e => {
+                                  const val = e.target.value;
+                                  if (val === "ADD_NEW_PROJECT") {
+                                    setShowAddProjectInput(true);
+                                  } else {
+                                    setShowAddProjectInput(false);
+                                    setSelectedProjectName(val);
+                                  }
+                                }}
                               >
-                                <option value="">-- Select Category --</option>
-                                <option value="Interview">Interview</option>
-                                <option value="Bank">Bank</option>
-                                <option value="Others">Others</option>
+                                <option value="">-- Select Project Name --</option>
+                                {projectList.map(proj => (
+                                  <option key={proj.id} value={proj.name}>{proj.name}</option>
+                                ))}
+                                <option value="ADD_NEW_PROJECT" className="font-bold text-indigo-700 bg-indigo-50">
+                                  ➕ Add New Project...
+                                </option>
                               </select>
+
+                              {/* Inline Add New Project input */}
+                              {showAddProjectInput && (
+                                <div className="mt-2 p-2.5 bg-indigo-100/70 border border-indigo-300 rounded-lg space-y-2 animate-fade-in">
+                                  <label className="block text-[9px] uppercase tracking-wider text-indigo-800 font-black">
+                                    Add New Project (Stored in DB) *
+                                  </label>
+                                  <div className="flex gap-1.5">
+                                    <input
+                                      type="text"
+                                      placeholder="e.g. HRMS, RRR, ERP..."
+                                      value={newProjectText}
+                                      onChange={e => setNewProjectText(e.target.value)}
+                                      className="flex-1 border border-indigo-300 rounded-md px-2.5 py-1.5 text-xs font-bold focus:outline-none text-slate-800 bg-white"
+                                      autoFocus
+                                    />
+                                    <button
+                                      type="button"
+                                      onClick={handleAddProject}
+                                      className="bg-indigo-700 text-white px-3 py-1.5 rounded-md text-xs font-black uppercase tracking-wider hover:bg-indigo-800"
+                                    >
+                                      Save to DB
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => { setShowAddProjectInput(false); setNewProjectText(""); }}
+                                      className="bg-slate-200 text-slate-600 px-2 py-1.5 rounded-md text-xs font-bold"
+                                    >
+                                      Cancel
+                                    </button>
+                                  </div>
+                                </div>
+                              )}
                             </div>
+                          </div>
+                        )}
 
-                            {/* Interview — just remark */}
-                            {callCategory === "Interview" && (
-                              <div className="animate-fade-in">
-                                <label className="block text-[9px] uppercase tracking-wider text-emerald-700 font-black mb-1">Remark</label>
-                                <textarea
-                                  className="w-full border border-emerald-200 rounded-lg px-3 py-2 text-xs font-bold focus:outline-none focus:border-emerald-500 placeholder-slate-400 text-slate-800 bg-white"
-                                  placeholder="Add remark..."
-                                  rows={2}
-                                  value={desc}
-                                  onChange={e => setDesc(e.target.value)}
-                                />
-                              </div>
-                            )}
+                        {/* ── Sub-Fields (For Bank, Notice or Interview) ── */}
+                        {(selectedTaskCategory === "Bank" || selectedTaskCategory === "Notice" || selectedTaskCategory === "Interview") && (
+                          <div className="space-y-2 bg-emerald-50 border border-emerald-200 rounded-xl p-3 animate-fade-in text-[#1C1C1A]">
 
-                            {/* Others — describe input box and remark */}
-                            {callCategory === "Others" && (
-                              <div className="space-y-2 animate-fade-in">
-                                <div>
-                                  <label className="block text-[9px] uppercase tracking-wider text-emerald-700 font-black mb-1">Describe Category *</label>
-                                  <input
-                                    type="text"
-                                    required
-                                    className="w-full border border-emerald-200 rounded-lg px-3 py-2 text-xs font-bold focus:outline-none focus:border-emerald-500 placeholder-slate-400 text-slate-800 bg-white"
-                                    placeholder="Describe the category..."
-                                    value={otherCategoryDesc}
-                                    onChange={e => setOtherCategoryDesc(e.target.value)}
-                                  />
-                                </div>
-                                <div>
-                                  <label className="block text-[9px] uppercase tracking-wider text-emerald-700 font-black mb-1">Remark</label>
-                                  <textarea
-                                    className="w-full border border-emerald-200 rounded-lg px-3 py-2 text-xs font-bold focus:outline-none focus:border-emerald-500 placeholder-slate-400 text-slate-800 bg-white"
-                                    placeholder="Add remark..."
-                                    rows={2}
-                                    value={desc}
-                                    onChange={e => setDesc(e.target.value)}
-                                  />
-                                </div>
-                              </div>
-                            )}
-
-                            {/* Bank — full fields */}
-                            {callCategory === "Bank" && (
+                            {/* Bank & Notice — Bank & Branch selection */}
+                            {(selectedTaskCategory === "Bank" || selectedTaskCategory === "Notice" || callCategory === "Bank") && (
                               <div className="space-y-2 animate-fade-in">
                                 <div className="grid grid-cols-2 gap-2">
                                   <div>
@@ -1495,132 +1807,65 @@ export default function KanbanBoard({
                                     </select>
                                   </div>
                                 </div>
-                                <div className="grid grid-cols-2 gap-2">
-                                  <div>
-                                    <label className="block text-[9px] uppercase tracking-wider text-emerald-700 font-black mb-1">Officer Name *</label>
-                                    <input
-                                      type="text"
-                                      required
-                                      placeholder="e.g. Ramesh Sharma"
-                                      value={officerName}
-                                      onChange={e => setOfficerName(e.target.value)}
-                                      className="w-full border border-emerald-200 rounded-lg px-2 py-2 text-xs font-bold focus:outline-none focus:border-emerald-500 placeholder-slate-400 text-slate-800 bg-white"
-                                    />
-                                  </div>
-                                  <div>
-                                    <label className="block text-[9px] uppercase tracking-wider text-emerald-700 font-black mb-1">Officer Phone *</label>
-                                    <input
-                                      type="tel"
-                                      required
-                                      placeholder="e.g. 9876543210"
-                                      value={officerPhone}
-                                      onChange={e => setOfficerPhone(e.target.value)}
-                                      className="w-full border border-emerald-200 rounded-lg px-2 py-2 text-xs font-bold focus:outline-none focus:border-emerald-500 placeholder-slate-400 text-slate-800 bg-white"
-                                    />
-                                  </div>
-                                </div>
 
-                                <div>
-                                  <label className="block text-[9px] uppercase tracking-wider text-emerald-700 font-black mb-1">Category *</label>
-                                  <div className="flex gap-2">
-                                    <select
-                                      required
-                                      value={bankCategory}
-                                      onChange={e => {
-                                        const val = e.target.value;
-                                        if (val === "__ADD_NEW__") {
-                                          setShowAddCategoryInput(true);
-                                          setBankCategory("");
-                                        } else {
-                                          setBankCategory(val);
-                                          setShowAddCategoryInput(false);
-                                        }
-                                      }}
-                                      className="flex-1 border border-emerald-200 rounded-lg px-2 py-2 text-xs font-bold focus:outline-none focus:border-emerald-500 text-slate-700 bg-white"
-                                    >
-                                      <option value="">-- Select Category --</option>
-                                      {bankCategories.map(cat => (
-                                        <option key={cat} value={cat}>{cat}</option>
-                                      ))}
-                                      <option value="Other">Other</option>
-                                      <option value="__ADD_NEW__" className="text-indigo-600 font-bold">+ Add New Category</option>
-                                    </select>
-                                    {showAddCategoryInput && (
-                                      <button
-                                        type="button"
-                                        onClick={() => {
-                                          setShowAddCategoryInput(false);
-                                          setBankCategory("Operations");
-                                        }}
-                                        className="px-2 py-1 text-[10px] bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold rounded-lg border border-slate-250 animate-fade-in"
-                                      >
-                                        Cancel
-                                      </button>
-                                    )}
-                                  </div>
-                                </div>
-
-                                {showAddCategoryInput && (
-                                  <div className="bg-indigo-50 border border-indigo-150 rounded-lg p-2.5 space-y-2 animate-fade-in">
-                                    <label className="block text-[9px] uppercase tracking-wider text-indigo-700 font-black">New Category Name</label>
-                                    <div className="flex gap-2">
+                                {/* Officer Name & Phone ONLY for Bank (NOT for Notice) */}
+                                {selectedTaskCategory === "Bank" && (
+                                  <div className="grid grid-cols-2 gap-2 animate-fade-in">
+                                    <div>
+                                      <label className="block text-[9px] uppercase tracking-wider text-emerald-700 font-black mb-1">Officer Name *</label>
                                       <input
                                         type="text"
-                                        placeholder="e.g. Sales, Auditing"
-                                        value={newCategoryText}
-                                        onChange={e => setNewCategoryText(e.target.value)}
-                                        className="flex-1 bg-white border border-indigo-200 rounded-lg px-3 py-1.5 text-xs text-[#1C1C1A] focus:outline-none font-semibold focus:border-indigo-500"
+                                        required
+                                        placeholder="e.g. Ramesh Sharma"
+                                        value={officerName}
+                                        onChange={e => setOfficerName(e.target.value)}
+                                        className="w-full border border-emerald-200 rounded-lg px-2 py-2 text-xs font-bold focus:outline-none focus:border-emerald-500 placeholder-slate-400 text-slate-800 bg-white"
                                       />
-                                      <button
-                                        type="button"
-                                        onClick={handleAddCategory}
-                                        className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-bold transition-all"
-                                      >
-                                        Add
-                                      </button>
+                                    </div>
+                                    <div>
+                                      <label className="block text-[9px] uppercase tracking-wider text-emerald-700 font-black mb-1">Officer Phone *</label>
+                                      <input
+                                        type="tel"
+                                        required
+                                        placeholder="e.g. 9876543210"
+                                        value={officerPhone}
+                                        onChange={e => setOfficerPhone(e.target.value)}
+                                        className="w-full border border-emerald-200 rounded-lg px-2 py-2 text-xs font-bold focus:outline-none focus:border-emerald-500 placeholder-slate-400 text-slate-800 bg-white"
+                                      />
                                     </div>
                                   </div>
                                 )}
-
-                                {bankCategory === "Other" && (
-                                  <div className="animate-fade-in">
-                                    <label className="block text-[9px] uppercase tracking-wider text-emerald-700 font-black mb-1">Specify Category</label>
-                                    <input
-                                      type="text"
-                                      placeholder="Enter custom category"
-                                      value={bankCategoryOther}
-                                      onChange={e => setBankCategoryOther(e.target.value)}
-                                      className="w-full border border-emerald-200 rounded-lg px-2 py-2 text-xs font-bold focus:outline-none focus:border-emerald-500 placeholder-slate-400 text-slate-800 bg-white"
-                                    />
-                                  </div>
-                                )}
-
-
-
-                                <div>
-                                  <label className="block text-[9px] uppercase tracking-wider text-emerald-700 font-black mb-1">Remark</label>
-                                  <textarea
-                                    className="w-full border border-emerald-200 rounded-lg px-2 py-2 text-xs font-bold focus:outline-none focus:border-emerald-500 placeholder-slate-400 text-slate-800 bg-white"
-                                    placeholder="Add remark..."
-                                    rows={2}
-                                    value={desc}
-                                    onChange={e => setDesc(e.target.value)}
-                                  />
-                                </div>
                               </div>
                             )}
+
+                            {/* Remark / Task Details */}
+                            <div className="animate-fade-in">
+                              <label className="block text-[9px] uppercase tracking-wider text-emerald-700 font-black mb-1">Remark / Task Details</label>
+                              <textarea
+                                className="w-full border border-emerald-200 rounded-lg px-3 py-2 text-xs font-bold focus:outline-none focus:border-emerald-500 placeholder-slate-400 text-slate-800 bg-white"
+                                placeholder="Enter task instructions or details..."
+                                rows={2}
+                                value={desc}
+                                onChange={e => setDesc(e.target.value)}
+                              />
+                            </div>
                           </div>
                         )}
 
-                        {/* Non-Call description */}
-                        {type !== "Call" && (
-                          <textarea
-                            className="w-full border border-slate-200 rounded-lg px-3 py-2 text-xs font-bold focus:outline-none focus:border-[#714B67] placeholder-slate-400 text-slate-800"
-                            placeholder="Task Description"
-                            rows={3}
-                            value={desc}
-                            onChange={e => setDesc(e.target.value)}
-                          />
+                        {/* Remark / Task Details for all other task titles (General, IT, Legal, Others etc.) */}
+                        {selectedTaskCategory !== "Bank" && selectedTaskCategory !== "Notice" && selectedTaskCategory !== "Interview" && (
+                          <div className="animate-fade-in">
+                            <label className="block text-[9px] uppercase tracking-wider text-slate-500 font-black mb-1">
+                              Remark / Task Details
+                            </label>
+                            <textarea
+                              className="w-full border border-slate-200 rounded-lg px-3 py-2 text-xs font-bold focus:outline-none focus:border-[#714B67] placeholder-slate-400 text-slate-800 bg-white"
+                              placeholder="Enter task instructions or details..."
+                              rows={2}
+                              value={desc}
+                              onChange={e => setDesc(e.target.value)}
+                            />
+                          </div>
                         )}
                         {/* Owner Task Assignment and Deadline Fields */}
                         {(sessionUser as any)?.role === "Owner" && (
@@ -1758,7 +2003,7 @@ export default function KanbanBoard({
                         <div className="font-bold text-slate-800 text-sm mb-1">{t.taskTitle}</div>
                         <div className="flex flex-wrap items-center gap-2 mb-2">
                           <div className="text-[10px] font-black uppercase tracking-wider text-[#714B67] bg-[#714B67]/10 inline-block px-2 py-0.5 rounded-md">{t.taskType}</div>
-                          {t.deadlineAt && (() => {
+                          {t.deadlineAt && !t.scheduledAt && (() => {
                             const deadline = new Date(t.deadlineAt);
                             const now = new Date();
                             const diffMs = deadline.getTime() - now.getTime();
@@ -1947,6 +2192,12 @@ export default function KanbanBoard({
                     <h2 className="text-base font-black text-slate-800 leading-tight">{selectedTask.taskTitle}</h2>
                     {selectedTask.description && cleanDescription(selectedTask.description) && (
                       <p className="text-xs text-slate-500 mt-1 font-medium whitespace-pre-line">{cleanDescription(selectedTask.description)}</p>
+                    )}
+                    {selectedTask.scheduledAt && (
+                      <div className="mt-2.5 flex items-center gap-1.5 text-xs font-black text-sky-800 bg-sky-50 rounded-xl px-3 py-1.5 border border-sky-300">
+                        <CalendarClock className="w-4 h-4 text-sky-600 shrink-0" />
+                        <span>This task is forwarded to {new Date(selectedTask.scheduledAt).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}</span>
+                      </div>
                     )}
                   </div>
 
@@ -2161,6 +2412,67 @@ export default function KanbanBoard({
                   {companyUsers.length === 0 && (
                     <p className="text-[9px] text-slate-400 mt-2 font-medium">No other users in your company found.</p>
                   )}
+                </div>
+
+                {/* Forward Task Date (Move Task to Future Date) Section */}
+                <div className="px-6 py-4 border-b border-slate-100 bg-sky-50/30">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Calendar className="w-4 h-4 text-sky-600" />
+                    <p className="text-[10px] uppercase font-black text-sky-800 tracking-wider">
+                      Forward Task Date (Move to Future Date)
+                    </p>
+                  </div>
+
+                  {/* Quick Preset Buttons */}
+                  <div className="flex gap-2 mb-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const tomorrow = new Date();
+                        tomorrow.setDate(tomorrow.getDate() + 1);
+                        handleForwardTaskDate(tomorrow.toISOString().slice(0, 10));
+                      }}
+                      disabled={forwardingDate}
+                      className="bg-sky-100 hover:bg-sky-200 text-sky-800 px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all border border-sky-300 flex items-center gap-1"
+                    >
+                      📅 Forward to Tomorrow
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const dayAfter = new Date();
+                        dayAfter.setDate(dayAfter.getDate() + 2);
+                        handleForwardTaskDate(dayAfter.toISOString().slice(0, 10));
+                      }}
+                      disabled={forwardingDate}
+                      className="bg-indigo-100 hover:bg-indigo-200 text-indigo-800 px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all border border-indigo-300 flex items-center gap-1"
+                    >
+                      📅 Day After Tomorrow
+                    </button>
+                  </div>
+
+                  {/* Custom Date Picker */}
+                  <div className="flex gap-2">
+                    <input
+                      type="date"
+                      className="flex-1 border border-slate-200 rounded-lg px-3 py-2 text-xs font-medium focus:outline-none focus:border-sky-400 focus:ring-2 focus:ring-sky-100 text-slate-700 bg-white"
+                      value={forwardDateInput}
+                      onChange={e => setForwardDateInput(e.target.value)}
+                      min={new Date().toISOString().slice(0, 10)}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => handleForwardTaskDate(forwardDateInput)}
+                      disabled={forwardingDate || !forwardDateInput}
+                      className="flex items-center gap-1.5 bg-sky-600 hover:bg-sky-700 disabled:opacity-40 disabled:cursor-not-allowed text-white px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all"
+                    >
+                      {forwardingDate ? <Loader2 className="w-3 h-3 animate-spin" /> : <Calendar className="w-3 h-3" />}
+                      {forwardingDate ? "Forwarding..." : "Forward Date"}
+                    </button>
+                  </div>
+                  <p className="text-[9px] text-sky-600 mt-1.5 font-medium">
+                    * Postponing this task moves it off today's list and starts its timer on that future date.
+                  </p>
                 </div>
 
                 {/* Timer Display (read-only — auto-starts on create, stops on complete) */}

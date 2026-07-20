@@ -6,6 +6,7 @@ import {
   Camera,
   MapPin,
   Loader2,
+  Plus,
   User,
   Hash,
   Search,
@@ -31,7 +32,8 @@ import {
   FileSpreadsheet,
   Coins,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  CalendarClock
 } from "lucide-react";
 
 const formatTimeTo12Hour = (dateInput: any): string => {
@@ -80,6 +82,173 @@ export function DailyCommitments({
   const [submittingSOD, setSubmittingSOD] = useState(false);
   const [locationStatus, setLocationStatus] = useState("Awaiting GPS...");
   const [cameraError, setCameraError] = useState("");
+  // SOD Task Title Master & Task Mode Master States
+  const [sodCategories, setSodCategories] = useState<string[]>(["General", "Legal", "Bank", "Interview", "IT", "Notice", "Others"]);
+  const [sodTaskTitle, setSodTaskTitle] = useState<string>("General");
+  const [showAddSodTitleInput, setShowAddSodTitleInput] = useState(false);
+  const [newSodTitleText, setNewSodTitleText] = useState("");
+
+  const [sodTaskModes, setSodTaskModes] = useState<string[]>(["Call", "Meeting", "Development", "Marketing", "Field Visit", "Operations", "Support", "Email", "WhatsApp"]);
+  const [showAddSodModeInput, setShowAddSodModeInput] = useState(false);
+  const [newSodModeText, setNewSodModeText] = useState("");
+
+  // Bank / Branch / Officer subfields for Bank & Notice Task Titles
+  const [banksList, setBanksList] = useState<{ id: string | number; bankName: string }[]>([]);
+  const [branchesList, setBranchesList] = useState<{ id: string | number; branchName: string; nbfcId?: any }[]>([]);
+  const [selectedBankId, setSelectedBankId] = useState("");
+  const [sodBankName, setSodBankName] = useState("");
+  const [sodBranchName, setSodBranchName] = useState("");
+  const [sodOfficerName, setSodOfficerName] = useState("");
+  const [sodOfficerPhone, setSodOfficerPhone] = useState("");
+  const [sodTaskDetails, setSodTaskDetails] = useState("");
+
+  const fetchBanksAndBranches = async () => {
+    try {
+      const [bankRes, branchRes] = await Promise.all([
+        fetch("/api/legal-recovery/banks"),
+        fetch("/api/legal-recovery/nbfc-branches")
+      ]);
+      const bankData = await bankRes.json();
+      const branchData = await branchRes.json();
+      if (bankData.success) setBanksList(bankData.data || []);
+      if (branchData.success) setBranchesList(branchData.data || []);
+    } catch (err) {
+      console.error("Failed to load banks/branches for SOD:", err);
+    }
+  };
+
+  useEffect(() => {
+    fetchBanksAndBranches();
+  }, []);
+
+  const [sodProjects, setSodProjects] = useState<string[]>(["HRMS", "RRR"]);
+  const [showAddProjectInput, setShowAddProjectInput] = useState(false);
+  const [newProjectText, setNewProjectText] = useState("");
+
+  const fetchSodTaskOptions = async () => {
+    try {
+      const [catRes, modeRes, projRes] = await Promise.all([
+        fetch("/api/tasks/call-categories"),
+        fetch("/api/tasks/modes"),
+        fetch("/api/tasks/projects")
+      ]);
+      const catData = await catRes.json();
+      const modeData = await modeRes.json();
+      const projData = await projRes.json();
+
+      if (catData.success && Array.isArray(catData.data)) {
+        setSodCategories(catData.data);
+        if (catData.data.length > 0 && !sodTaskTitle) {
+          setSodTaskTitle(catData.data[0]);
+        }
+      }
+
+      if (modeData.success && Array.isArray(modeData.data)) {
+        const modeNames = modeData.data.map((m: any) => m.name || m);
+        setSodTaskModes((prev) => Array.from(new Set([...prev, ...modeNames])));
+      }
+
+      if (projData.success && Array.isArray(projData.data)) {
+        const pNames = projData.data.map((p: any) => p.name || p);
+        setSodProjects((prev) => Array.from(new Set([...prev, ...pNames])));
+      }
+    } catch (err) {
+      console.error("Failed to load SOD task options:", err);
+    }
+  };
+
+  const handleAddSodProject = async () => {
+    const trimmed = newProjectText.trim();
+    if (!trimmed) return;
+    if (sodProjects.map(p => p.toLowerCase()).includes(trimmed.toLowerCase())) {
+      setProjectName(trimmed);
+      setNewProjectText("");
+      setShowAddProjectInput(false);
+      return;
+    }
+    try {
+      const res = await fetch("/api/tasks/projects", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: trimmed }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        const addedName = data.data?.name || trimmed;
+        setSodProjects(prev => Array.from(new Set([...prev, addedName])));
+        setProjectName(addedName);
+        setNewProjectText("");
+        setShowAddProjectInput(false);
+      } else {
+        alert(data.error || "Failed to save project to DB.");
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  useEffect(() => {
+    fetchSodTaskOptions();
+  }, []);
+
+  const handleAddSodTitle = async () => {
+    const trimmed = newSodTitleText.trim();
+    if (!trimmed) return;
+    if (sodCategories.map(c => c.toLowerCase()).includes(trimmed.toLowerCase())) {
+      setSodTaskTitle(trimmed);
+      setNewSodTitleText("");
+      setShowAddSodTitleInput(false);
+      return;
+    }
+    try {
+      const res = await fetch("/api/tasks/call-categories", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: trimmed }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setSodCategories(prev => Array.from(new Set([...prev, data.data || trimmed])));
+        setSodTaskTitle(data.data || trimmed);
+        setNewSodTitleText("");
+        setShowAddSodTitleInput(false);
+      } else {
+        alert(data.error || "Failed to save category to DB.");
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleAddSodMode = async () => {
+    const trimmed = newSodModeText.trim();
+    if (!trimmed) return;
+    if (sodTaskModes.map(m => m.toLowerCase()).includes(trimmed.toLowerCase())) {
+      setTaskType(trimmed);
+      setNewSodModeText("");
+      setShowAddSodModeInput(false);
+      return;
+    }
+    try {
+      const res = await fetch("/api/tasks/modes", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: trimmed }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        const addedName = data.data?.name || trimmed;
+        setSodTaskModes(prev => Array.from(new Set([...prev, addedName])));
+        setTaskType(addedName);
+        setNewSodModeText("");
+        setShowAddSodModeInput(false);
+      } else {
+        alert(data.error || "Failed to save task mode to DB.");
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -107,6 +276,7 @@ export function DailyCommitments({
   const [selectedUser, setSelectedUser] = useState("");
   const [calendarAttendance, setCalendarAttendance] = useState<any[]>([]);
   const [calendarLeaves, setCalendarLeaves] = useState<any[]>([]);
+  const [calendarFines, setCalendarFines] = useState<any[]>([]);
   const [calendarYear, setCalendarYear] = useState(new Date().getFullYear());
   const [calendarMonth, setCalendarMonth] = useState(new Date().getMonth()); // 0-11
   const [loadingCalendar, setLoadingCalendar] = useState(false);
@@ -142,11 +312,18 @@ export function DailyCommitments({
     if (!userId) return;
     setLoadingCalendar(true);
     try {
-      const res = await fetch(`/api/attendance/calendar-data?userId=${userId}`);
-      const data = await res.json();
+      const [calRes, fineRes] = await Promise.all([
+        fetch(`/api/attendance/calendar-data?userId=${userId}`),
+        fetch(`/api/fines?employeeId=${userId}`),
+      ]);
+      const data = await calRes.json();
+      const fineData = await fineRes.json();
       if (data.success) {
         setCalendarAttendance(data.data.attendance || []);
         setCalendarLeaves(data.data.leaves || []);
+      }
+      if (fineData.success) {
+        setCalendarFines(fineData.data || []);
       }
     } catch (err) {
       console.error("Error loading user calendar data:", err);
@@ -325,6 +502,17 @@ export function DailyCommitments({
         statusColor = "bg-rose-100 text-rose-800 border-rose-200 font-bold";
       }
 
+      const dateStr = dateObj.getFullYear() + "-" + String(dateObj.getMonth() + 1).padStart(2, '0') + "-" + String(dateObj.getDate()).padStart(2, '0');
+      const fineRec = calendarFines.find((f: any) => {
+        const fDateStr = f.date ? f.date.split("T")[0] : "";
+        return fDateStr === dateStr;
+      });
+
+      if (fineRec) {
+        statusLabel = `Absent Fine ₹${fineRec.amount}`;
+        statusColor = "bg-rose-600 text-white border-rose-700 font-black shadow-md";
+      }
+
       days.push(
         <div
           key={`day-${d}`}
@@ -374,8 +562,14 @@ export function DailyCommitments({
   };
 
   const captureSodPhotoAndSubmit = async () => {
-    if (!taskSummary) {
-      alert("Please fill in Task Summary before capturing verification.");
+    if (sodTaskTitle === "Bank" && (!selectedBankId || !sodBranchName || !sodOfficerName.trim() || !sodOfficerPhone.trim())) {
+      alert("Please select Bank, Branch, Officer Name and Officer Phone for Bank task.");
+      setShowCamera(false);
+      return;
+    }
+
+    if (sodTaskTitle === "Notice" && (!selectedBankId || !sodBranchName)) {
+      alert("Please select Bank and Branch for Notice task.");
       setShowCamera(false);
       return;
     }
@@ -463,11 +657,20 @@ export function DailyCommitments({
 
     setLocationStatus("Syncing with RS9 ERP System...");
     try {
+      let finalTaskSummary = "";
+      if (sodTaskTitle === "Bank") {
+        finalTaskSummary = `[Bank: ${sodBankName || "Bank"}] Branch: ${sodBranchName || "—"} | Officer: ${sodOfficerName || "—"} (${sodOfficerPhone || "—"})${remarks ? ` — ${remarks}` : ""}`;
+      } else if (sodTaskTitle === "Notice") {
+        finalTaskSummary = `[Notice] Bank: ${sodBankName || "Bank"}, Branch: ${sodBranchName || "—"}${remarks ? ` — ${remarks}` : ""}`;
+      } else {
+        finalTaskSummary = sodTaskTitle ? `[${sodTaskTitle}] ${remarks || sodTaskTitle}` : (remarks || "General Task");
+      }
+
       const success = await handleSodSubmit({
-        taskSummary,
+        taskSummary: finalTaskSummary,
         taskType: taskType === "Other" ? (customTaskType.trim() || "Other") : taskType,
-        projectName: taskType === "Development" ? (projectName.trim() || "") : undefined,
-        remarks,
+        projectName: (sodTaskTitle === "IT" || taskType === "Development") ? (projectName.trim() || "") : undefined,
+        remarks: remarks,
         selfieUrl,
         location
       });
@@ -475,8 +678,13 @@ export function DailyCommitments({
       if (success) {
         setSodAlreadySubmitted(true);
         setShowCamera(false);
-        setTaskSummary("");
         setRemarks("");
+        setSodTaskDetails("");
+        setSodBankName("");
+        setSodBranchName("");
+        setSelectedBankId("");
+        setSodOfficerName("");
+        setSodOfficerPhone("");
         setCustomTaskType("");
         setProjectName("");
       }
@@ -679,33 +887,288 @@ export function DailyCommitments({
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
+                  {/* Task Title (Master Category Dropdown synced with Tasks) */}
                   <div className="md:col-span-2">
-                    <label className="text-[10px] uppercase font-black text-slate-500 font-mono tracking-wider">Task Summary *</label>
-                    <input className="w-full bg-white border border-slate-300 rounded p-2 text-xs font-bold text-slate-900 mt-1.5 focus:outline-none focus:border-[#714B67]" placeholder="Briefly describe today's main agenda..." value={taskSummary} onChange={e => setTaskSummary(e.target.value)} required />
-                  </div>
-                  <div className="md:col-span-2">
-                    <label className="text-[10px] uppercase font-black text-slate-500 font-mono tracking-wider">Task Type *</label>
-                    <select className="w-full bg-white border border-slate-300 rounded p-2 text-xs font-bold text-slate-900 mt-1.5 focus:outline-none focus:border-[#714B67]" value={taskType} onChange={e => setTaskType(e.target.value)}>
-                      <option>Call</option>
-                      <option>Meeting</option>
-                      <option>Development</option>
-                      <option>Marketing</option>
-                      <option>Field Visit</option>
-                      <option>Operations</option>
-                      <option>Support</option>
-                      <option>Other</option>
+                    <div className="flex justify-between items-center mb-1">
+                      <label className="text-[10px] uppercase font-black text-slate-700 font-mono tracking-wider">
+                        Task Title / Category *
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => setShowAddSodTitleInput(!showAddSodTitleInput)}
+                        className="text-[10px] font-bold text-indigo-600 hover:underline flex items-center gap-0.5"
+                      >
+                        <Plus className="w-3 h-3" /> Add Master Title
+                      </button>
+                    </div>
+                    <select
+                      className="w-full bg-white border border-slate-300 rounded p-2 text-xs font-bold text-slate-900 focus:outline-none focus:border-[#714B67]"
+                      value={sodTaskTitle}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        if (val === "ADD_NEW_TITLE") {
+                          setShowAddSodTitleInput(true);
+                        } else {
+                          setShowAddSodTitleInput(false);
+                          setSodTaskTitle(val);
+                        }
+                      }}
+                      required
+                    >
+                      <option value="">-- Select Task Title --</option>
+                      {sodCategories.map((cat) => (
+                        <option key={cat} value={cat}>
+                          {cat}
+                        </option>
+                      ))}
+                      <option value="ADD_NEW_TITLE" className="font-bold text-[#714B67] bg-purple-50">
+                        ➕ Add New Master Option...
+                      </option>
                     </select>
+
+                    {showAddSodTitleInput && (
+                      <div className="mt-2 p-2.5 bg-purple-50 border border-purple-200 rounded-lg space-y-2 animate-fade-in">
+                        <label className="block text-[9px] uppercase tracking-wider text-purple-700 font-black">
+                          Add New Category / Title (Stored in Master DB) *
+                        </label>
+                        <div className="flex gap-1.5">
+                          <input
+                            type="text"
+                            className="flex-1 bg-white border border-purple-300 rounded p-2 text-xs font-bold text-slate-900 focus:outline-none focus:border-[#714B67]"
+                            placeholder="Enter new task title/category..."
+                            value={newSodTitleText}
+                            onChange={(e) => setNewSodTitleText(e.target.value)}
+                          />
+                          <button
+                            type="button"
+                            onClick={handleAddSodTitle}
+                            className="bg-[#714B67] hover:bg-[#5F3F56] text-white px-3 py-1.5 rounded text-xs font-bold transition-all"
+                          >
+                            Save Title
+                          </button>
+                        </div>
+                      </div>
+                    )}
                   </div>
+
+
+
+                  {/* Task Type / Mode (Master Mode Dropdown synced with Tasks) */}
+                  <div className="md:col-span-2">
+                    <div className="flex justify-between items-center mb-1">
+                      <label className="text-[10px] uppercase font-black text-slate-700 font-mono tracking-wider">
+                        Task Type / Mode *
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => setShowAddSodModeInput(!showAddSodModeInput)}
+                        className="text-[10px] font-bold text-indigo-600 hover:underline flex items-center gap-0.5"
+                      >
+                        <Plus className="w-3 h-3" /> Add Master Mode
+                      </button>
+                    </div>
+                    <select
+                      className="w-full bg-white border border-slate-300 rounded p-2 text-xs font-bold text-slate-900 focus:outline-none focus:border-[#714B67]"
+                      value={taskType}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        if (val === "ADD_NEW_MODE") {
+                          setShowAddSodModeInput(true);
+                        } else {
+                          setShowAddSodModeInput(false);
+                          setTaskType(val);
+                        }
+                      }}
+                      required
+                    >
+                      <option value="">-- Select Task Mode --</option>
+                      {sodTaskModes.map((mode) => (
+                        <option key={mode} value={mode}>
+                          {mode}
+                        </option>
+                      ))}
+                      <option value="ADD_NEW_MODE" className="font-bold text-[#714B67] bg-purple-50">
+                        ➕ Add New Mode Option...
+                      </option>
+                    </select>
+
+                    {showAddSodModeInput && (
+                      <div className="mt-2 p-2.5 bg-purple-50 border border-purple-200 rounded-lg space-y-2 animate-fade-in">
+                        <label className="block text-[9px] uppercase tracking-wider text-purple-700 font-black">
+                          Add New Task Mode (Stored in Master DB) *
+                        </label>
+                        <div className="flex gap-1.5">
+                          <input
+                            type="text"
+                            className="flex-1 bg-white border border-purple-300 rounded p-2 text-xs font-bold text-slate-900 focus:outline-none focus:border-[#714B67]"
+                            placeholder="Enter new task mode (e.g. Field Visit)..."
+                            value={newSodModeText}
+                            onChange={(e) => setNewSodModeText(e.target.value)}
+                          />
+                          <button
+                            type="button"
+                            onClick={handleAddSodMode}
+                            className="bg-[#714B67] hover:bg-[#5F3F56] text-white px-3 py-1.5 rounded text-xs font-bold transition-all"
+                          >
+                            Save Mode
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Sub-Fields (For Bank or Notice) */}
+                  {(sodTaskTitle === "Bank" || sodTaskTitle === "Notice") && (
+                    <div className="md:col-span-2 space-y-3 bg-emerald-50/80 border border-emerald-200 rounded-xl p-3 text-slate-800 animate-fade-in">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        {/* Select Bank */}
+                        <div>
+                          <label className="block text-[9px] uppercase tracking-wider text-emerald-800 font-black mb-1">
+                            Select Bank *
+                          </label>
+                          <select
+                            required
+                            value={selectedBankId}
+                            onChange={(e) => {
+                              const bid = e.target.value;
+                              const bObj = banksList.find((b) => String(b.id) === bid);
+                              setSelectedBankId(bid);
+                              setSodBankName(bObj?.bankName || "");
+                              setSodBranchName("");
+                            }}
+                            className="w-full border border-emerald-200 rounded-lg p-2 text-xs font-bold focus:outline-none focus:border-emerald-500 text-slate-800 bg-white"
+                          >
+                            <option value="">-- Select Bank --</option>
+                            {banksList.map((b) => (
+                              <option key={String(b.id)} value={String(b.id)}>
+                                {b.bankName}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+
+                        {/* Select Branch */}
+                        <div>
+                          <label className="block text-[9px] uppercase tracking-wider text-emerald-800 font-black mb-1">
+                            Select Branch *
+                          </label>
+                          <select
+                            required
+                            value={sodBranchName}
+                            onChange={(e) => setSodBranchName(e.target.value)}
+                            disabled={!selectedBankId}
+                            className="w-full border border-emerald-200 rounded-lg p-2 text-xs font-bold focus:outline-none focus:border-emerald-500 text-slate-800 bg-white disabled:opacity-50"
+                          >
+                            <option value="">{selectedBankId ? "-- Select Branch --" : "Select a bank first"}</option>
+                            {branchesList
+                              .filter((br: any) => !br.nbfcId || String(br.nbfcId) === String(selectedBankId))
+                              .map((br: any) => (
+                                <option key={String(br.id)} value={br.branchName}>
+                                  {br.branchName}
+                                </option>
+                              ))}
+                          </select>
+                        </div>
+                      </div>
+
+                      {/* Officer Name & Phone ONLY for Bank */}
+                      {sodTaskTitle === "Bank" && (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 animate-fade-in">
+                          <div>
+                            <label className="block text-[9px] uppercase tracking-wider text-emerald-800 font-black mb-1">
+                              Officer Name *
+                            </label>
+                            <input
+                              type="text"
+                              required
+                              placeholder="e.g. Ramesh Sharma"
+                              value={sodOfficerName}
+                              onChange={(e) => setSodOfficerName(e.target.value)}
+                              className="w-full border border-emerald-200 rounded-lg p-2 text-xs font-bold focus:outline-none focus:border-emerald-500 placeholder-slate-400 text-slate-800 bg-white"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-[9px] uppercase tracking-wider text-emerald-800 font-black mb-1">
+                              Officer Phone *
+                            </label>
+                            <input
+                              type="tel"
+                              required
+                              placeholder="e.g. 9876543210"
+                              value={sodOfficerPhone}
+                              onChange={(e) => setSodOfficerPhone(e.target.value)}
+                              className="w-full border border-emerald-200 rounded-lg p-2 text-xs font-bold focus:outline-none focus:border-emerald-500 placeholder-slate-400 text-slate-800 bg-white"
+                            />
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
                   {taskType === "Other" && (
                     <div className="md:col-span-2">
                       <label className="text-[10px] uppercase font-black text-slate-500 font-mono tracking-wider">Specify Task Type *</label>
                       <input className="w-full bg-white border border-slate-300 rounded p-2 text-xs font-bold text-slate-900 mt-1.5 focus:outline-none focus:border-[#714B67]" placeholder="Please specify task type..." value={customTaskType} onChange={e => setCustomTaskType(e.target.value)} required />
                     </div>
                   )}
-                  {taskType === "Development" && (
-                    <div className="md:col-span-2">
-                      <label className="text-[10px] uppercase font-black text-slate-500 font-mono tracking-wider">Project Name *</label>
-                      <input className="w-full bg-white border border-slate-300 rounded p-2 text-xs font-bold text-slate-900 mt-1.5 focus:outline-none focus:border-[#714B67]" placeholder="Please enter project name..." value={projectName} onChange={e => setProjectName(e.target.value)} required />
+                  {(sodTaskTitle === "IT" || taskType === "Development") && (
+                    <div className="md:col-span-2 space-y-1.5">
+                      <div className="flex justify-between items-center">
+                        <label className="text-[10px] uppercase font-black text-slate-700 font-mono tracking-wider">Project Name *</label>
+                        <button
+                          type="button"
+                          onClick={() => setShowAddProjectInput(!showAddProjectInput)}
+                          className="text-[10px] font-bold text-indigo-600 hover:underline flex items-center gap-0.5"
+                        >
+                          <Plus className="w-3 h-3" /> Add Master Project
+                        </button>
+                      </div>
+                      <select
+                        required
+                        className="w-full bg-white border border-slate-300 rounded p-2 text-xs font-bold text-slate-900 focus:outline-none focus:border-[#714B67]"
+                        value={projectName}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          if (val === "ADD_NEW_PROJECT") {
+                            setShowAddProjectInput(true);
+                          } else {
+                            setShowAddProjectInput(false);
+                            setProjectName(val);
+                          }
+                        }}
+                      >
+                        <option value="">-- Select Project Name --</option>
+                        {sodProjects.map((p) => (
+                          <option key={p} value={p}>{p}</option>
+                        ))}
+                        <option value="ADD_NEW_PROJECT" className="font-bold text-indigo-700 bg-indigo-50">
+                          ➕ Add New Project...
+                        </option>
+                      </select>
+
+                      {showAddProjectInput && (
+                        <div className="p-2.5 bg-indigo-50 border border-indigo-200 rounded-lg space-y-2 animate-fade-in mt-2">
+                          <label className="block text-[9px] uppercase tracking-wider text-indigo-700 font-black">
+                            Add New Project (Stored in Master DB) *
+                          </label>
+                          <div className="flex gap-2">
+                            <input
+                              type="text"
+                              className="flex-1 bg-white border border-indigo-300 rounded p-2 text-xs font-bold text-slate-900 focus:outline-none focus:border-indigo-600"
+                              placeholder="Enter new project name (e.g. HRMS, RRR)..."
+                              value={newProjectText}
+                              onChange={(e) => setNewProjectText(e.target.value)}
+                            />
+                            <button
+                              type="button"
+                              onClick={handleAddSodProject}
+                              className="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 rounded text-xs font-bold transition-all"
+                            >
+                              Save Project
+                            </button>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   )}
                   <div className="md:col-span-2">
@@ -1032,6 +1495,10 @@ export function DailyCommitments({
                   <span>Weekly Off (Sunday)</span>
                 </div>
                 <div className="flex items-center gap-1.5">
+                  <span className="w-3 h-3 rounded-full bg-rose-600 border border-rose-700 block"></span>
+                  <span>Absent Fine (Imposed)</span>
+                </div>
+                <div className="flex items-center gap-1.5">
                   <span className="w-3 h-3 rounded-full bg-indigo-50 border border-indigo-300 block"></span>
                   <span>Pending (Today)</span>
                 </div>
@@ -1134,6 +1601,7 @@ export function PerformanceCompliance({
   // Calendar states
   const [calendarAttendance, setCalendarAttendance] = useState<any[]>([]);
   const [calendarLeaves, setCalendarLeaves] = useState<any[]>([]);
+  const [calendarFines, setCalendarFines] = useState<any[]>([]);
   const [calendarYear, setCalendarYear] = useState(new Date().getFullYear());
   const [calendarMonth, setCalendarMonth] = useState(new Date().getMonth()); // 0-11
   const [loadingCalendar, setLoadingCalendar] = useState(false);
@@ -1144,11 +1612,18 @@ export function PerformanceCompliance({
     if (!userId) return;
     setLoadingCalendar(true);
     try {
-      const res = await fetch(`/api/attendance/calendar-data?userId=${userId}`);
-      const data = await res.json();
+      const [calRes, fineRes] = await Promise.all([
+        fetch(`/api/attendance/calendar-data?userId=${userId}`),
+        fetch(`/api/fines?employeeId=${userId}`),
+      ]);
+      const data = await calRes.json();
+      const fineData = await fineRes.json();
       if (data.success) {
         setCalendarAttendance(data.data.attendance || []);
         setCalendarLeaves(data.data.leaves || []);
+      }
+      if (fineData.success) {
+        setCalendarFines(fineData.data || []);
       }
     } catch (err) {
       console.error("Error loading user calendar data:", err);
@@ -1253,6 +1728,17 @@ export function PerformanceCompliance({
       } else {
         statusLabel = "Absent";
         statusColor = "bg-rose-100 text-rose-800 border-rose-200 font-bold";
+      }
+
+      const dateStr = dateObj.getFullYear() + "-" + String(dateObj.getMonth() + 1).padStart(2, '0') + "-" + String(dateObj.getDate()).padStart(2, '0');
+      const fineRec = calendarFines.find((f: any) => {
+        const fDateStr = f.date ? f.date.split("T")[0] : "";
+        return fDateStr === dateStr;
+      });
+
+      if (fineRec) {
+        statusLabel = `Absent Fine ₹${fineRec.amount}`;
+        statusColor = "bg-rose-600 text-white border-rose-700 font-black shadow-md";
       }
 
       days.push(
@@ -1457,9 +1943,29 @@ export function PerformanceCompliance({
       const empId = getEmpIdStr(task.employee);
       if (!task.date) return;
 
-      // 1. Group under the original creation date (for the assignee)
       const dObjCreate = new Date(task.date);
       const dateStrCreate = dObjCreate.toDateString();
+
+      // If task is forwarded/scheduled to a different date (scheduledAt), show it ONLY on that target date's work report!
+      if (task.scheduledAt) {
+        const dObjSched = new Date(task.scheduledAt);
+        const dateStrSched = dObjSched.toDateString();
+
+        if (dateStrSched !== dateStrCreate) {
+          const keySched = `${empId}_${dateStrSched}`;
+          const existingSched = map.get(keySched);
+          if (existingSched) {
+            if (!existingSched.tasks.some((t: any) => t.id === task.id)) {
+              existingSched.tasks.push(task);
+            }
+          } else {
+            map.set(keySched, { sod: null, eod: null, tasks: [task], fieldVisits: [], date: dObjSched, dateStr: dateStrSched, employee: task.employee });
+          }
+          return; // Skip adding to original date work report
+        }
+      }
+
+      // Group under the original creation date (for the assignee)
       const keyCreate = `${empId}_${dateStrCreate}`;
       const existingCreate = map.get(keyCreate);
       if (existingCreate) {
@@ -1469,28 +1975,6 @@ export function PerformanceCompliance({
       } else {
         map.set(keyCreate, { sod: null, eod: null, tasks: [task], fieldVisits: [], date: dObjCreate, dateStr: dateStrCreate, employee: task.employee });
       }
-
-      // 2. Group under the last update date (updatedAt) if it falls on a different day
-      if (task.updatedAt) {
-        const dObjUpdate = new Date(task.updatedAt);
-        const dateStrUpdate = dObjUpdate.toDateString();
-        if (dateStrUpdate !== dateStrCreate) {
-          const keyUpdate = `${empId}_${dateStrUpdate}`;
-          const existingUpdate = map.get(keyUpdate);
-          if (existingUpdate) {
-            if (!existingUpdate.tasks.some((t: any) => t.id === task.id)) {
-              existingUpdate.tasks.push(task);
-            }
-          } else {
-            map.set(keyUpdate, { sod: null, eod: null, tasks: [task], fieldVisits: [], date: dObjUpdate, dateStr: dateStrUpdate, employee: task.employee });
-          }
-        }
-      }
-
-      // 3. If this task was assigned BY someone else (assignedBy set), also add it
-      //    to the ASSIGNEE's record so they can see it in their daily log
-      //    (already handled above since task.employee IS the assignee)
-      //    Nothing extra needed — task.employee is always the assignee.
     });
 
     // Process Field Visits
@@ -2719,9 +3203,10 @@ export function PerformanceCompliance({
                                                           <span className="text-slate-700">{hasSod ? formatTimeTo12Hour(dayItem.sod.createdAt) : "—"}</span>
                                                           {dayItem.sod?.selfieUrl && (
                                                             <img
-                                                              src={dayItem.sod.selfieUrl}
+                                                              src={dayItem.sod.selfieUrl.startsWith("http://localhost/") ? dayItem.sod.selfieUrl.replace("http://localhost/", "http://localhost:3000/") : dayItem.sod.selfieUrl}
                                                               alt="Check-in Selfie"
                                                               onClick={() => setSelectedSelfie(dayItem.sod.selfieUrl)}
+                                                              onError={(e) => { (e.currentTarget as HTMLElement).style.display = 'none'; }}
                                                               className="w-7 h-7 rounded-full object-cover border border-slate-250 cursor-pointer hover:scale-110 hover:ring-2 hover:ring-indigo-400 active:scale-95 transition-all shadow-sm ml-1"
                                                               title="Click to view check-in selfie"
                                                             />
@@ -2732,9 +3217,10 @@ export function PerformanceCompliance({
                                                           <span className="text-slate-700">{hasEod ? formatTimeTo12Hour(dayItem.eod.createdAt) : "—"}</span>
                                                           {dayItem.eod?.selfieUrl && (
                                                             <img
-                                                              src={dayItem.eod.selfieUrl}
+                                                              src={dayItem.eod.selfieUrl.startsWith("http://localhost/") ? dayItem.eod.selfieUrl.replace("http://localhost/", "http://localhost:3000/") : dayItem.eod.selfieUrl}
                                                               alt="Check-out Selfie"
                                                               onClick={() => setSelectedSelfie(dayItem.eod.selfieUrl)}
+                                                              onError={(e) => { (e.currentTarget as HTMLElement).style.display = 'none'; }}
                                                               className="w-7 h-7 rounded-full object-cover border border-slate-250 cursor-pointer hover:scale-110 hover:ring-2 hover:ring-[#714B67] active:scale-95 transition-all shadow-sm ml-1"
                                                               title="Click to view check-out selfie"
                                                             />
@@ -3089,9 +3575,10 @@ export function PerformanceCompliance({
                                     <span>{hasSod ? formatTimeTo12Hour(dayItem.sod.createdAt) : "—"}</span>
                                     {dayItem.sod?.selfieUrl && (
                                       <img
-                                        src={dayItem.sod.selfieUrl}
+                                        src={dayItem.sod.selfieUrl.startsWith("http://localhost/") ? dayItem.sod.selfieUrl.replace("http://localhost/", "http://localhost:3000/") : dayItem.sod.selfieUrl}
                                         alt="Check-in Selfie"
                                         onClick={() => setSelectedSelfie(dayItem.sod.selfieUrl)}
+                                        onError={(e) => { (e.currentTarget as HTMLElement).style.display = 'none'; }}
                                         className="w-7 h-7 rounded-full object-cover border border-slate-250 cursor-pointer hover:scale-110 hover:ring-2 hover:ring-indigo-400 active:scale-95 transition-all shadow-sm ml-1"
                                         title="Click to view check-in selfie"
                                       />
@@ -3102,9 +3589,10 @@ export function PerformanceCompliance({
                                     <span>{hasEod ? formatTimeTo12Hour(dayItem.eod.createdAt) : "—"}</span>
                                     {dayItem.eod?.selfieUrl && (
                                       <img
-                                        src={dayItem.eod.selfieUrl}
+                                        src={dayItem.eod.selfieUrl.startsWith("http://localhost/") ? dayItem.eod.selfieUrl.replace("http://localhost/", "http://localhost:3000/") : dayItem.eod.selfieUrl}
                                         alt="Check-out Selfie"
                                         onClick={() => setSelectedSelfie(dayItem.eod.selfieUrl)}
+                                        onError={(e) => { (e.currentTarget as HTMLElement).style.display = 'none'; }}
                                         className="w-7 h-7 rounded-full object-cover border border-slate-250 cursor-pointer hover:scale-110 hover:ring-2 hover:ring-[#714B67] active:scale-95 transition-all shadow-sm ml-1"
                                         title="Click to view check-out selfie"
                                       />
@@ -3888,6 +4376,10 @@ export function PerformanceCompliance({
                 <span>Holiday (Sunday)</span>
               </div>
               <div className="flex items-center gap-1.5">
+                <span className="w-3 h-3 rounded-full bg-rose-600 border border-rose-700 block"></span>
+                <span>Absent Fine (Imposed)</span>
+              </div>
+              <div className="flex items-center gap-1.5">
                 <span className="w-3 h-3 rounded-full bg-indigo-55 border border-indigo-300 block"></span>
                 <span>Pending (Today)</span>
               </div>
@@ -4280,14 +4772,12 @@ export function PerformanceCompliance({
                                                 </div>
                                               );
                                             })()}
-                                            {task.updatedAt &&
-                                              new Date(task.updatedAt).toDateString() !== item.date.toDateString() &&
-                                              item.date.toDateString() === new Date(task.date).toDateString() && (
-                                                <div className="mt-1 bg-indigo-50 border border-indigo-100 text-[10px] font-semibold text-indigo-650 px-2 py-1.5 rounded-lg flex items-center gap-1.5">
-                                                  <Info className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
-                                                  <span>This task is shifted for working on {new Date(task.updatedAt).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}</span>
-                                                </div>
-                                              )}
+                                            {task.scheduledAt && new Date(task.scheduledAt).toDateString() !== item.date.toDateString() ? (
+                                               <div className="mt-1.5 bg-sky-50 border border-sky-300 text-[10.5px] font-black text-sky-900 px-2.5 py-1.5 rounded-lg flex items-center gap-1.5 shadow-sm">
+                                                 <CalendarClock className="w-4 h-4 text-sky-600 shrink-0" />
+                                                 <span>➡️ Forwarded to {new Date(task.scheduledAt).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}</span>
+                                               </div>
+                                             ) : null}
                                           </div>
                                         ))}
                                       </div>
@@ -4458,12 +4948,14 @@ export function PerformanceCompliance({
                   );
                 }
 
+                const selfieSrc = selectedSelfie.startsWith("http://localhost/") ? selectedSelfie.replace("http://localhost/", "http://localhost:3000/") : selectedSelfie;
                 // Default to Image
                 return (
                   <img
-                    src={selectedSelfie}
+                    src={selfieSrc}
                     alt="Document/Selfie"
                     className="max-w-full max-h-[75vh] object-contain rounded"
+                    onError={(e) => { (e.currentTarget as HTMLElement).style.display = 'none'; }}
                   />
                 );
               })()}
@@ -4498,7 +4990,8 @@ export function LeaveRequestTab({ sessionUser }: { sessionUser?: any }) {
   }, [leavesList, sessionUser]);
 
   const canApprove = isOwnerOrDirector || isHR || isManager || hasDirectReports;
-  const canApply = userRole === "Employee" || isManager || !canApprove || hasDirectReports;
+  const canApply = !isOwnerOrDirector && (userRole === "Employee" || isManager || !canApprove || hasDirectReports);
+  const canImposeFine = isOwnerOrDirector || isHR || isManager;
 
   // Filter states
   const [filterUser, setFilterUser] = useState("");
@@ -4508,6 +5001,62 @@ export function LeaveRequestTab({ sessionUser }: { sessionUser?: any }) {
 
   // Action state
   const [actionRemarks, setActionRemarks] = useState<{ [key: string]: string }>({});
+
+  // Fine modal state
+  const [showFineModal, setShowFineModal] = useState(false);
+  const [fineEmployee, setFineEmployee] = useState<{ id: string; name: string } | null>(null);
+  const [fineDate, setFineDate] = useState("");
+  const [fineAmount, setFineAmount] = useState(500);
+  const [fineReason, setFineReason] = useState("Absent without prior notification");
+  const [imposingFine, setImposingFine] = useState(false);
+  const [allEmployeesList, setAllEmployeesList] = useState<any[]>([]);
+
+  const fetchEmployees = async () => {
+    try {
+      const res = await fetch("/api/employees");
+      const data = await res.json();
+      if (data.success && Array.isArray(data.data)) {
+        setAllEmployeesList(data.data);
+      }
+    } catch (err) {
+      console.error("Error fetching all employees for fine modal:", err);
+    }
+  };
+
+  const handleImposeFine = async () => {
+    if (!fineEmployee || !fineDate) {
+      alert("Please select employee and date");
+      return;
+    }
+    setImposingFine(true);
+    try {
+      const res = await fetch("/api/fines", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          employeeId: fineEmployee.id,
+          date: fineDate,
+          amount: fineAmount,
+          reason: fineReason,
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        alert(`✅ ₹${fineAmount} fine imposed on ${fineEmployee.name} for ${fineDate}. Email notification sent!`);
+        setShowFineModal(false);
+        setFineEmployee(null);
+        setFineDate("");
+        setFineAmount(500);
+        setFineReason("Absent without prior notification");
+      } else {
+        alert(data.error || "Failed to impose fine");
+      }
+    } catch (err) {
+      alert("Failed to impose fine");
+    } finally {
+      setImposingFine(false);
+    }
+  };
 
   const fetchLeaves = async () => {
     setLoadingList(true);
@@ -4526,7 +5075,42 @@ export function LeaveRequestTab({ sessionUser }: { sessionUser?: any }) {
 
   useEffect(() => {
     fetchLeaves();
+    fetchEmployees();
   }, []);
+
+  const allSelectableEmployees = React.useMemo(() => {
+    const map = new Map<string, { id: string; name: string; role?: string; email?: string }>();
+
+    // 1. Add employees from /api/employees
+    (allEmployeesList || []).forEach((emp: any) => {
+      const empId = String(emp.id || emp._id || "");
+      if (empId) {
+        map.set(empId, {
+          id: empId,
+          name: emp.name || emp.employeeName || "Employee",
+          role: emp.role || emp.designation || "",
+          email: emp.email || ""
+        });
+      }
+    });
+
+    // 2. Add employees from leavesList
+    (leavesList || []).forEach((l: any) => {
+      if (l.employee && l.employee.id) {
+        const empId = String(l.employee.id);
+        if (empId && !map.has(empId)) {
+          map.set(empId, {
+            id: empId,
+            name: l.employee.name || "Employee",
+            role: l.employee.role || "",
+            email: l.employee.email || ""
+          });
+        }
+      }
+    });
+
+    return Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name));
+  }, [allEmployeesList, leavesList]);
 
   const uniqueUsers = React.useMemo(() => {
     const role = sessionUser?.role || "Employee";
@@ -4684,14 +5268,25 @@ export function LeaveRequestTab({ sessionUser }: { sessionUser?: any }) {
   };
 
   return (
-    <div className="space-y-8 animate-fadeIn text-slate-800">
-      <div>
-        <h1 className="text-xl font-black text-slate-850">Leave Management Hub</h1>
-        <p className="text-xs text-slate-500 mt-1">
-          {canApprove
-            ? "Review, approve, and track department-level or company-level leave applications."
-            : "Submit casual, sick, or unpaid leave requests and track approval history"}
-        </p>
+    <>
+      <div className="space-y-8 animate-fadeIn text-slate-800">
+      <div className="flex flex-col md:flex-row md:items-start justify-between gap-3">
+        <div>
+          <h1 className="text-xl font-black text-slate-850">Leave Management Hub</h1>
+          <p className="text-xs text-slate-500 mt-1">
+            {canApprove
+              ? "Review, approve, and track department-level or company-level leave applications."
+              : "Submit casual, sick, or unpaid leave requests and track approval history"}
+          </p>
+        </div>
+        {canImposeFine && (
+          <button
+            onClick={() => setShowFineModal(true)}
+            className="flex items-center gap-2 bg-rose-600 hover:bg-rose-700 text-white text-xs font-black px-4 py-2 rounded-lg shadow transition-all whitespace-nowrap"
+          >
+            ⚠️ Impose Absent Fine
+          </button>
+        )}
       </div>
 
       <div className="grid grid-cols-1 gap-8">
@@ -5020,5 +5615,150 @@ export function LeaveRequestTab({ sessionUser }: { sessionUser?: any }) {
 
       </div>
     </div>
+
+      {/* ── Impose Absent Fine Modal ── */}
+      {showFineModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: "rgba(0,0,0,0.5)" }}>
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md border border-rose-100">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-rose-50 rounded-t-2xl">
+              <div>
+                <h2 className="text-base font-black text-rose-700">⚠️ Impose Absent Fine</h2>
+                <p className="text-[11px] text-rose-500 mt-0.5">Fine for unauthorized absence without leave notification</p>
+              </div>
+              <button
+                onClick={() => setShowFineModal(false)}
+                className="text-slate-400 hover:text-slate-700 text-xl font-bold p-1"
+              >✕</button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="px-6 py-5 space-y-4">
+
+              {/* Employee Select */}
+              <div>
+                <label className="block text-[10px] uppercase font-black text-slate-500 tracking-wider mb-1.5">
+                  Select Employee * ({allSelectableEmployees.length} total)
+                </label>
+                <select
+                  className="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-xs font-bold text-slate-900 focus:outline-none focus:border-rose-500"
+                  value={fineEmployee?.id || ""}
+                  onChange={(e) => {
+                    const empId = e.target.value;
+                    const selected = allSelectableEmployees.find((emp) => emp.id === empId);
+                    if (selected) {
+                      setFineEmployee({ id: selected.id, name: selected.name });
+                    } else {
+                      setFineEmployee(null);
+                    }
+                  }}
+                >
+                  <option value="">-- Select Employee --</option>
+                  {allSelectableEmployees.map((emp: any) => (
+                    <option key={emp.id} value={emp.id}>
+                      {emp.name} {emp.role ? `(${emp.role})` : emp.email ? `(${emp.email})` : ""}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Date */}
+              <div>
+                <label className="block text-[10px] uppercase font-black text-slate-500 tracking-wider mb-1.5">Date of Absence *</label>
+                <input
+                  type="date"
+                  className="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-xs font-bold text-slate-900 focus:outline-none focus:border-rose-500"
+                  value={fineDate}
+                  max={new Date().toISOString().split("T")[0]}
+                  onChange={(e) => setFineDate(e.target.value)}
+                />
+              </div>
+
+              {/* Fine Amount */}
+              <div>
+                <label className="block text-[10px] uppercase font-black text-slate-500 tracking-wider mb-1.5">Fine Amount (₹)</label>
+                <div className="flex items-center gap-2">
+                  {[250, 500, 1000, 2000].map((amt) => (
+                    <button
+                      key={amt}
+                      type="button"
+                      onClick={() => setFineAmount(amt)}
+                      className={`flex-1 py-2 rounded-lg text-xs font-black border transition-all ${fineAmount === amt ? "bg-rose-600 text-white border-rose-600" : "bg-white text-slate-600 border-slate-300 hover:border-rose-400"}`}
+                    >
+                      ₹{amt}
+                    </button>
+                  ))}
+                  <input
+                    type="number"
+                    min={1}
+                    className="w-24 bg-white border border-slate-300 rounded-lg px-3 py-2 text-xs font-bold text-slate-900 focus:outline-none focus:border-rose-500"
+                    value={fineAmount}
+                    onChange={(e) => setFineAmount(Number(e.target.value))}
+                    placeholder="Custom"
+                  />
+                </div>
+              </div>
+
+              {/* Reason */}
+              <div>
+                <label className="block text-[10px] uppercase font-black text-slate-500 tracking-wider mb-1.5">Reason for Fine *</label>
+                <div className="flex flex-wrap gap-1.5 mb-2">
+                  {[
+                    "Absent without prior notification",
+                    "Uninformed leave / No SOD",
+                    "Non-submission of Work Report",
+                    "Late Arrival & Unexplained Absence"
+                  ].map((preset) => (
+                    <button
+                      key={preset}
+                      type="button"
+                      onClick={() => setFineReason(preset)}
+                      className={`text-[10px] font-bold px-2 py-0.5 rounded-full border transition-all ${fineReason === preset ? "bg-rose-100 text-rose-700 border-rose-300" : "bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100"}`}
+                    >
+                      {preset}
+                    </button>
+                  ))}
+                </div>
+                <textarea
+                  className="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-xs font-bold text-slate-900 focus:outline-none focus:border-rose-500 resize-none"
+                  rows={2}
+                  value={fineReason}
+                  onChange={(e) => setFineReason(e.target.value)}
+                  placeholder="Type any custom reason for fine here..."
+                />
+              </div>
+
+              {/* Fine Summary */}
+              {fineEmployee && fineDate && (
+                <div className="bg-rose-50 border border-rose-200 rounded-xl p-3">
+                  <p className="text-xs font-black text-rose-800">Fine Summary</p>
+                  <p className="text-[11px] text-rose-600 mt-1">
+                    ₹<span className="font-black">{fineAmount}</span> will be imposed on <span className="font-black">{fineEmployee.name}</span> for absent on <span className="font-black">{fineDate}</span>.
+                    This will appear as <span className="font-black">Absent Fine</span> on their attendance calendar.
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="px-6 pb-5 flex gap-3">
+              <button
+                onClick={() => setShowFineModal(false)}
+                className="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-black transition-all"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleImposeFine}
+                disabled={imposingFine || !fineEmployee || !fineDate}
+                className="flex-1 py-2.5 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-black transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow"
+              >
+                {imposingFine ? "Imposing..." : `⚠️ Impose ₹${fineAmount} Fine`}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 }

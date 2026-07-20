@@ -14,9 +14,6 @@ export async function logHRActivity({
   action,
   details
 }: HRActivityParams) {
-  if (userRole !== "HR Head" && userRole !== "HR Executive") {
-    return; // Only log activities performed by HR Head or HR Executive
-  }
   try {
     await sequelize.authenticate();
     await HRRecentActivity.create({
@@ -29,3 +26,4 @@ export async function logHRActivity({
     console.error("Failed to write HR recent activity:", error);
   }
 }
+

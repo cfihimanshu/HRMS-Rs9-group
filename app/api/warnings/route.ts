@@ -140,6 +140,7 @@ export async function GET(req: Request) {
 
     const userId = (session.user as any).id;
     await sequelize.authenticate();
+    try { await DisciplinaryWarning.sync({ alter: true }); } catch (_) {}
 
     const dbUser = await User.findByPk(userId, { raw: true });
     if (!dbUser) {
@@ -254,13 +255,11 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json();
-    const { employeeId, reason, description, improvementPeriodDays = 7, pipPlan, salaryHold, promotionHold, bonusHold } = body;
+    const { employeeId, reason, description, incidentDate, improvementPeriodDays = 7, pipPlan, salaryHold, promotionHold, bonusHold } = body;
 
     if (!employeeId || !reason || !description) {
       return NextResponse.json({ success: false, error: "Missing required fields" }, { status: 400 });
     }
-
-
 
     const targetUser = await User.findByPk(employeeId, { raw: true });
     if (!targetUser) {
@@ -300,6 +299,7 @@ export async function POST(req: Request) {
       warningLevel,
       reason,
       description,
+      incidentDate: incidentDate ? new Date(incidentDate) : new Date(),
       status,
       issuedBy: userId,
       improvementPeriodDays: impDays,
@@ -807,10 +807,8 @@ export async function DELETE(req: Request) {
       return NextResponse.json({ success: false, error: "User not found" }, { status: 404 });
     }
 
-    const role = dbUser.role || "Employee";
-    if (role !== "Owner" && role !== "Director") {
-      return NextResponse.json({ success: false, error: "Forbidden: Only Owner or Director can remove warnings manually" }, { status: 403 });
-    }
+    const roleLower = (dbUser.role || "").toLowerCase();
+    const isGlobal = ["owner", "director", "hr head", "hr executive"].includes(roleLower);
 
     const { searchParams } = new URL(req.url);
     const warningId = searchParams.get("id");
@@ -823,15 +821,19 @@ export async function DELETE(req: Request) {
       return NextResponse.json({ success: false, error: "Warning not found" }, { status: 404 });
     }
 
-    warning.status = "Resolved";
-    await warning.save();
+    const isIssuer = warning.issuedBy?.toString() === userId?.toString();
+    if (!isGlobal && !isIssuer) {
+      return NextResponse.json({ success: false, error: "Forbidden: You can only delete warnings issued by you or if you are an Administrator" }, { status: 403 });
+    }
+
+    await warning.destroy();
 
     await logAudit({
       userId,
       action: "WARNING_DELETED",
       entity: "DisciplinaryWarning",
       entityId: warningId,
-      details: `Warning WRN-${warningId} manually resolved/removed by Owner/Director ${dbUser.name}.`,
+      details: `Warning WRN-${warningId} deleted by ${dbUser.name}.`,
     });
 
     return NextResponse.json({ success: true, message: "Warning removed successfully" });
