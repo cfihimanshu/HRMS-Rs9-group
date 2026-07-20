@@ -311,32 +311,12 @@ export default function UnifiedEnterpriseDashboard() {
   const [dataLoaded, setDataLoaded] = useState(false);
   const [activeWarningPopup, setActiveWarningPopup] = useState<any>(null);
 
-  // Check login and update URL based on user info
+  // Check login authentication
   useEffect(() => {
     if (status === "unauthenticated") {
       router.push("/login");
-    } else if (status === "authenticated" && session?.user) {
-      const u = session.user as any;
-      const sanitizeSlug = (str: string) => {
-        if (!str) return "N-A";
-        return str
-          .replace(/[()]/g, '')
-          .replace(/[^a-zA-Z0-9\-_]/g, '-')
-          .replace(/-+/g, '-')
-          .replace(/^-|-$/g, '');
-      };
-
-      const comp = sanitizeSlug(u.company || "Company");
-      const dept = sanitizeSlug(u.department || "Department");
-      const role = sanitizeSlug(u.role || "Role");
-      const empId = sanitizeSlug(u.employeeId || u.id || "EMP");
-      const expectedPath = `/dashboard/${comp}/${dept}/${role}/${empId}`;
-
-      if (window.location.pathname !== expectedPath && window.location.pathname.startsWith('/dashboard')) {
-        window.history.replaceState(null, '', expectedPath + window.location.search);
-      }
     }
-  }, [status, session, router]);
+  }, [status, router]);
 
   // Fetch warnings on mount to show popup if active warning exists for current employee
   useEffect(() => {
