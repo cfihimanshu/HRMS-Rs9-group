@@ -95,7 +95,6 @@ export const authOptions: NextAuthOptions = {
         // Clear previous Pending Tasks notifications and add a fresh one with current count
         try {
           const userIdStr = user.id?.toString() || user.id.toString();
-          await Notification.sync({ alter: true });
           await Notification.destroy({
             where: {
               recipient: userIdStr,
