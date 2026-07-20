@@ -26,6 +26,10 @@ DisciplinaryWarning.init(
       type: DataTypes.TEXT,
       allowNull: true,
     },
+    incidentDate: {
+      type: DataTypes.DATE,
+      allowNull: true,
+    },
     status: {
       type: DataTypes.STRING,
       allowNull: false,

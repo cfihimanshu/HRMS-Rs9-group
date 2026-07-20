@@ -8,7 +8,9 @@ import {
   Clock,
   TrendingUp,
   AlertCircle,
-  Trash2
+  Trash2,
+  ListTodo,
+  ExternalLink
 } from "lucide-react";
 import StatCard from "./StatCard";
 
@@ -22,6 +24,8 @@ interface ESSProps {
 
 export function ESSDashboard({ user, triggerToast, setActiveTab, toggleModal, stats }: ESSProps) {
   const [isDark, setIsDark] = React.useState(false);
+  const [tasks, setTasks] = React.useState<any[]>([]);
+  const [loadingTasks, setLoadingTasks] = React.useState(true);
 
   React.useEffect(() => {
     setIsDark(document.documentElement.classList.contains("dark"));
@@ -32,6 +36,54 @@ export function ESSDashboard({ user, triggerToast, setActiveTab, toggleModal, st
     return () => observer.disconnect();
   }, []);
 
+  React.useEffect(() => {
+    const fetchTasks = async () => {
+      try {
+        setLoadingTasks(true);
+        const res = await fetch("/api/tasks");
+        const data = await res.json();
+        if (data.success && Array.isArray(data.data)) {
+          setTasks(data.data);
+        }
+      } catch (err) {
+        console.error("Error fetching tasks for ESS dashboard:", err);
+      } finally {
+        setLoadingTasks(false);
+      }
+    };
+    fetchTasks();
+  }, []);
+
+  const currentUserId = user?.id;
+
+  const pendingTasks = React.useMemo(() => {
+    return tasks.filter((t: any) => {
+      const empId = typeof t.employee === "object" ? t.employee?.id : t.employee;
+      const isMyTask = !currentUserId || String(empId) === String(currentUserId) || String(t.forwardedTo) === String(currentUserId);
+      const isPending = t.status !== "Completed";
+      return isMyTask && isPending;
+    });
+  }, [tasks, currentUserId]);
+
+  const assignedOwnerTasks = React.useMemo(() => {
+    return tasks.filter((t: any) => {
+      const assignerId = t.assignedBy || t.assignedByUser?.id;
+      const assignerRole = (t.assignedByUser?.role || t.assignedByRole || "").toLowerCase();
+      const assignerName = (t.assignedByUser?.name || t.assignedByName || "").toLowerCase();
+
+      return (
+        (assignerId && String(assignerId) !== String(currentUserId)) ||
+        Boolean(t.forwardedTo) ||
+        Boolean(t.isAssignedByOwner) ||
+        assignerRole.includes("owner") ||
+        assignerRole.includes("director") ||
+        assignerRole.includes("manager") ||
+        assignerName.includes("owner") ||
+        assignerName.includes("director")
+      );
+    });
+  }, [tasks, currentUserId]);
+
   const dynamicStats = stats?.currentUserStats || {
     presentDays: 0,
     totalWorkingDays: 22,
@@ -39,19 +91,19 @@ export function ESSDashboard({ user, triggerToast, setActiveTab, toggleModal, st
     casualLeave: 12,
     sickLeave: 12,
     earnedLeave: 0,
-    holidayName: "Diwali",
-    holidayDate: "Nov 12, 2026"
   };
+
+  const pendingCountDisplay = stats?.currentUserStats?.pendingTasksCount ?? pendingTasks.length;
 
   return (
     <div className="space-y-6 animate-fade-in">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className={`text-2xl font-bold tracking-tight ${isDark ? "text-white" : "text-slate-800"}`}>
-            Employee Self-Service (ESS) Dashboard
+            Employee Dashboard
           </h1>
           <p className={`text-sm mt-1 ${isDark ? "text-gray-400" : "text-slate-500"}`}>
-            Welcome back, {user?.name}. Here is your quick overview.
+            Welcome {user?.name}
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -105,11 +157,11 @@ export function ESSDashboard({ user, triggerToast, setActiveTab, toggleModal, st
           dark={isDark}
         />
         <StatCard
-          title="Upcoming Holiday"
-          value={dynamicStats.holidayName || "Diwali"}
-          trend={dynamicStats.holidayDate || "Nov 12, 2026"}
-          trendUp={true}
-          icon={<AlertCircle className="w-5 h-5 text-amber-500" />}
+          title="Pending Tasks"
+          value={`${pendingCountDisplay}`}
+          trend={pendingCountDisplay > 0 ? `${pendingCountDisplay} tasks requiring action` : "All tasks completed"}
+          trendUp={pendingCountDisplay === 0}
+          icon={<ListTodo className="w-5 h-5 text-amber-500" />}
           dark={isDark}
         />
       </div>
@@ -134,6 +186,182 @@ export function ESSDashboard({ user, triggerToast, setActiveTab, toggleModal, st
             <span className={`text-xs font-bold text-indigo-700 dark:text-indigo-300`}>Fill SOD / EOD</span>
           </button>
         </div>
+      </div>
+
+      {/* Grid Split Section: My Pending Tasks (50%) | Owner / Manager Assigned Tasks (50%) */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+        {/* Left Half (50%): My Pending Tasks */}
+        <div className={`p-5 rounded-xl border shadow-sm flex flex-col justify-start ${isDark ? "bg-gray-900 border-gray-800" : "bg-white border-slate-200"}`}>
+          <div className="flex items-center justify-between gap-3 mb-4 pb-3 border-b border-slate-100 dark:border-gray-800">
+            <div className="flex items-center gap-2">
+              <h2 className={`text-base font-bold ${isDark ? "text-white" : "text-slate-800"}`}>
+                My Pending Tasks
+              </h2>
+              <span className="bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300 px-2 py-0.5 rounded-full text-[10px] font-black">
+                {pendingTasks.length} Pending
+              </span>
+            </div>
+            {setActiveTab && (
+              <button
+                onClick={() => setActiveTab("tasks")}
+                className="text-xs font-bold text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 flex items-center gap-1"
+              >
+                Kanban <ExternalLink className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
+
+          {loadingTasks ? (
+            <div className="py-12 text-center text-slate-400 text-xs italic">Loading pending tasks...</div>
+          ) : pendingTasks.length === 0 ? (
+            <div className="py-12 text-center text-slate-400 text-xs italic bg-slate-50 dark:bg-gray-800/40 rounded-xl border border-dashed border-slate-200 dark:border-gray-700">
+              🎉 You have no pending tasks right now.
+            </div>
+          ) : (
+            <div className="overflow-x-auto overflow-y-auto max-h-[340px] pr-1 custom-scrollbar">
+              <table className="w-full text-left text-xs border-collapse">
+                <thead className="sticky top-0 z-10">
+                  <tr className={`border-b text-slate-800 dark:text-slate-200 font-black uppercase font-mono tracking-wider text-[10px] ${isDark ? "bg-gray-900 border-gray-800" : "bg-white border-slate-200"}`}>
+                    <th className="py-2 px-2">Task ID</th>
+                    <th className="py-2 px-2">Task Title & Details</th>
+                    <th className="py-2 px-2">Type</th>
+                    <th className="py-2 px-2">Status</th>
+                    <th className="py-2 px-2 text-right">Action</th>
+                  </tr>
+                </thead>
+                <tbody className={`divide-y font-semibold ${isDark ? "divide-gray-800/60 text-gray-300" : "divide-slate-100 text-slate-700"}`}>
+                  {pendingTasks.map((task: any) => (
+                    <tr key={task.id} className={`hover:bg-slate-50/80 dark:hover:bg-gray-800/40 transition-colors ${isDark ? "border-b border-gray-800/50" : "border-b border-slate-100"}`}>
+                      <td className="py-2.5 px-2 whitespace-nowrap">
+                        <span className="font-mono font-black text-[10px] text-indigo-700 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/50 px-1.5 py-0.5 rounded border border-indigo-100 dark:border-indigo-900/50">
+                          {task.id}
+                        </span>
+                      </td>
+                      <td className="py-2.5 px-2 max-w-[170px]">
+                        <div className="font-bold text-slate-900 dark:text-slate-100 truncate text-xs">{task.taskTitle}</div>
+                        {task.description && (
+                          <div className="text-[10px] text-slate-500 dark:text-gray-400 truncate mt-0.5 font-normal">
+                            {task.description}
+                          </div>
+                        )}
+                      </td>
+                      <td className="py-2.5 px-2 whitespace-nowrap">
+                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 dark:bg-gray-800 text-slate-700 dark:text-gray-300 border border-slate-200 dark:border-gray-700">
+                          {task.taskType || "General"}
+                        </span>
+                      </td>
+                      <td className="py-2.5 px-2 whitespace-nowrap">
+                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-black border ${task.status === "In Progress"
+                          ? "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-800"
+                          : task.status === "Pending Approval"
+                            ? "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-800"
+                            : "bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-900/30 dark:text-rose-300 dark:border-rose-800"
+                          }`}>
+                          {task.status || "Pending"}
+                        </span>
+                      </td>
+                      <td className="py-2.5 px-2 text-right whitespace-nowrap">
+                        {setActiveTab && (
+                          <button
+                            onClick={() => setActiveTab("tasks")}
+                            className="px-2 py-1 text-[10px] font-bold bg-indigo-50 hover:bg-indigo-100 text-indigo-700 dark:bg-indigo-900/40 dark:hover:bg-indigo-900/60 dark:text-indigo-300 rounded border border-indigo-200 dark:border-indigo-800 transition-all shadow-xs inline-flex items-center gap-0.5 hover:scale-105"
+                          >
+                            Kanban <ExternalLink className="w-3 h-3" />
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+
+        {/* Right Half (50%): Tasks Assigned By Owner / Manager */}
+        <div className={`p-5 rounded-xl border shadow-sm flex flex-col justify-start ${isDark ? "bg-gray-900 border-gray-800" : "bg-white border-slate-200"}`}>
+          <div className="flex items-center justify-between gap-3 mb-4 pb-3 border-b border-slate-100 dark:border-gray-800">
+            <div className="flex items-center gap-2">
+              <h2 className={`text-base font-bold ${isDark ? "text-white" : "text-slate-800"}`}>
+                Tasks Assigned by Owner / Manager
+              </h2>
+              <span className="bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-300 px-2 py-0.5 rounded-full text-[10px] font-black">
+                {assignedOwnerTasks.length} Assigned
+              </span>
+            </div>
+            {setActiveTab && (
+              <button
+                onClick={() => setActiveTab("tasks")}
+                className="text-xs font-bold text-purple-600 hover:text-purple-700 dark:text-purple-400 flex items-center gap-1"
+              >
+                View All <ExternalLink className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
+
+          {loadingTasks ? (
+            <div className="py-12 text-center text-slate-400 text-xs italic">Loading assigned tasks...</div>
+          ) : assignedOwnerTasks.length === 0 ? (
+            <div className="py-12 text-center text-slate-400 text-xs italic bg-slate-50 dark:bg-gray-800/40 rounded-xl border border-dashed border-slate-200 dark:border-gray-700">
+              📌 No tasks assigned by Owner / Manager right now.
+            </div>
+          ) : (
+            <div className="overflow-x-auto overflow-y-auto max-h-[340px] pr-1 custom-scrollbar">
+              <table className="w-full text-left text-xs border-collapse">
+                <thead className="sticky top-0 z-10">
+                  <tr className={`border-b text-slate-800 dark:text-slate-200 font-black uppercase font-mono tracking-wider text-[10px] ${isDark ? "bg-gray-900 border-gray-800" : "bg-white border-slate-200"}`}>
+                    <th className="py-2 px-2">Task ID</th>
+                    <th className="py-2 px-2">Assigned By</th>
+                    <th className="py-2 px-2">Task Title</th>
+                    <th className="py-2 px-2">Status</th>
+                    <th className="py-2 px-2 text-right">Action</th>
+                  </tr>
+                </thead>
+                <tbody className={`divide-y font-semibold ${isDark ? "divide-gray-800/60 text-gray-300" : "divide-slate-100 text-slate-700"}`}>
+                  {assignedOwnerTasks.map((task: any) => (
+                    <tr key={task.id} className={`hover:bg-slate-50/80 dark:hover:bg-gray-800/40 transition-colors ${isDark ? "border-b border-gray-800/50" : "border-b border-slate-100"}`}>
+                      <td className="py-2.5 px-2 whitespace-nowrap">
+                        <span className="font-mono font-black text-[10px] text-purple-700 dark:text-purple-400 bg-purple-50 dark:bg-purple-950/50 px-1.5 py-0.5 rounded border border-purple-100 dark:border-purple-900/50">
+                          {task.id}
+                        </span>
+                      </td>
+                      <td className="py-2.5 px-2 whitespace-nowrap">
+                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-50 text-amber-800 border border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800 flex items-center gap-1 w-max">
+                          👑 {task.assignedByUser?.name || task.assignedByName || "Owner"}
+                        </span>
+                      </td>
+                      <td className="py-2.5 px-2 max-w-[150px]">
+                        <div className="font-bold text-slate-900 dark:text-slate-100 truncate text-xs">{task.taskTitle}</div>
+                      </td>
+                      <td className="py-2.5 px-2 whitespace-nowrap">
+                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-black border ${task.status === "In Progress"
+                          ? "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-800"
+                          : task.status === "Completed"
+                            ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300 dark:border-emerald-800"
+                            : "bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-900/30 dark:text-rose-300 dark:border-rose-800"
+                          }`}>
+                          {task.status || "Pending"}
+                        </span>
+                      </td>
+                      <td className="py-2.5 px-2 text-right whitespace-nowrap">
+                        {setActiveTab && (
+                          <button
+                            onClick={() => setActiveTab("tasks")}
+                            className="px-2 py-1 text-[10px] font-bold bg-purple-50 hover:bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:hover:bg-purple-900/60 dark:text-purple-300 rounded border border-purple-200 dark:border-purple-800 transition-all shadow-xs inline-flex items-center gap-0.5 hover:scale-105"
+                          >
+                            View <ExternalLink className="w-3 h-3" />
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+
       </div>
     </div>
   );

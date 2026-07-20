@@ -614,7 +614,7 @@ export async function PUT(req: Request) {
     const userRole = (session.user as any).role || "Employee";
     const userName = session.user.name || "Employee";
     const body = await req.json();
-    const { taskId, status, progressNotes, taskTitle, taskType, description, scheduledAt, forwardedTo, timerStart, timerState, elapsedSeconds, followUpHistory, proofAttachment } = body;
+    const { taskId, status, progressNotes, taskTitle, taskType, description, scheduledAt, forwardedTo, timerStart, timerState, elapsedSeconds, followUpHistory, proofAttachment, targetDate } = body;
 
     if (!taskId) {
       return NextResponse.json({ success: false, error: "Missing required field: taskId" }, { status: 400 });
@@ -635,6 +635,15 @@ export async function PUT(req: Request) {
     const task = await TaskLog.findOne({ where: query });
     if (!task) {
       return NextResponse.json({ success: false, error: "Task not found" }, { status: 404 });
+    }
+
+    // Forward task date to a future date (preserves original date so task remains visible in today's list)
+    if (targetDate) {
+      const newD = new Date(targetDate);
+      task.scheduledAt = newD;
+      task.reminderSent = false;
+      task.timerState = "Stopped";
+      task.timerStart = null;
     }
 
     // Validation: To complete a task, progressNotes and proofAttachment must be filled
@@ -663,6 +672,10 @@ export async function PUT(req: Request) {
     if (proofAttachment !== undefined) task.proofAttachment = proofAttachment;
     if (scheduledAt !== undefined) {
       task.scheduledAt = scheduledAt ? new Date(scheduledAt) : null;
+      if (scheduledAt) {
+        task.timerState = "Stopped";
+        task.timerStart = null;
+      }
       if (scheduledAt !== prevScheduledAt) task.reminderSent = false;
     }
     if (forwardedTo !== undefined) task.forwardedTo = forwardedTo || null;

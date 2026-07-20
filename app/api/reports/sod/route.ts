@@ -8,6 +8,7 @@ import EodReport from "@/models/sequelize/EodReport";
 import Attendance from "@/models/sequelize/Attendance";
 import TaskLog from "@/models/sequelize/TaskLog";
 import { logAudit } from "@/lib/audit";
+import { logHRActivity } from "@/lib/hrAudit";
 import { Op } from "sequelize";
 
 // GET: Fetch today's SOD for the logged-in user
@@ -37,6 +38,30 @@ export async function GET(req: Request) {
       }
     });
 
+    // Check if there is an assigned task from Owner for today
+    let assignedTaskData = null;
+    try {
+      const assignedTask = await TaskLog.findOne({
+        where: {
+          employee: userId,
+          assignedBy: { [Op.ne]: null },
+          date: {
+            [Op.gte]: today,
+            [Op.lt]: tomorrow
+          }
+        },
+        order: [["createdAt", "DESC"]]
+      });
+      if (assignedTask) {
+        assignedTaskData = {
+          id: assignedTask.id,
+          taskTitle: assignedTask.taskTitle,
+          taskType: assignedTask.taskType,
+          description: assignedTask.description
+        };
+      }
+    } catch (_) {}
+
     if (!record) {
       // Fetch the last submitted EOD to get the tomorrowPlan
       const lastEod = await EodReport.findOne({
@@ -46,11 +71,12 @@ export async function GET(req: Request) {
       return NextResponse.json({
         success: true,
         data: null,
-        lastEodPlan: lastEod ? (lastEod as any).tomorrowPlan : null
+        lastEodPlan: lastEod ? (lastEod as any).tomorrowPlan : null,
+        assignedTask: assignedTaskData
       });
     }
 
-    return NextResponse.json({ success: true, data: record });
+    return NextResponse.json({ success: true, data: record, assignedTask: assignedTaskData });
   } catch (error: any) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
@@ -157,6 +183,14 @@ export async function POST(req: Request) {
       entity: "SodReport",
       entityId: (record as any).id.toString(),
       details: `${userName} declared Start of Day (SOD) targets.`,
+    });
+
+    // Log to HR activity feed so it shows on HR Dashboard
+    await logHRActivity({
+      userId,
+      userRole: (session.user as any).role || "Employee",
+      action: "SOD_DECLARED",
+      details: `${userName} declared Start of Day (SOD). Task: ${taskSummary}${remarks ? ` — Remarks: ${remarks}` : ''}.`,
     });
 
     return NextResponse.json({ success: true, data: record });

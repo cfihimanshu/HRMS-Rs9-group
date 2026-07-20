@@ -433,6 +433,7 @@ export function HrDashboard({
   const hrStats = stats?.hrStats || {};
   const [isDark, setIsDark] = React.useState(false);
   const [showHiringModal, setShowHiringModal] = React.useState(false);
+  const [showAllActivities, setShowAllActivities] = React.useState(false);
 
   const recentInterviews = React.useMemo(() => {
     return [...(interviews || [])]
@@ -611,12 +612,103 @@ export function HrDashboard({
           <div className={`p-6 rounded-xl border shadow-sm ${isDark ? "bg-gray-900 border-gray-800" : "bg-white border-slate-200"}`}>
             <div className="flex items-center justify-between mb-6">
               <h2 className={`text-lg font-bold ${isDark ? "text-white" : "text-slate-800"}`}>Recent HR Activity</h2>
-              <button className="text-xs font-semibold text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300">View All</button>
+              <button
+                onClick={() => setShowAllActivities(true)}
+                className="text-xs font-semibold text-indigo-600 hover:text-indigo-700 hover:underline transition-colors dark:text-indigo-400 dark:hover:text-indigo-300"
+              >
+                View All
+              </button>
             </div>
-            <ActivityFeed dark={isDark} logs={stats?.hrActivities} />
+            <ActivityFeed dark={isDark} logs={stats?.hrActivities?.slice(0, 8)} />
           </div>
         </div>
       </div>
+
+      {/* View All Activities Modal */}
+      {showAllActivities && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: "rgba(0,0,0,0.5)" }}>
+          <div className={`relative w-full max-w-2xl max-h-[85vh] rounded-2xl shadow-2xl flex flex-col ${isDark ? "bg-gray-900 border border-gray-700" : "bg-white border border-slate-200"}`}>
+            {/* Modal Header */}
+            <div className={`flex items-center justify-between px-6 py-4 border-b ${isDark ? "border-gray-700" : "border-slate-100"}`}>
+              <div>
+                <h2 className={`text-lg font-bold ${isDark ? "text-white" : "text-slate-800"}`}>All HR Activities</h2>
+                <p className={`text-xs mt-0.5 ${isDark ? "text-gray-400" : "text-slate-500"}`}>
+                  {(stats?.hrActivities || []).length} total activities recorded
+                </p>
+              </div>
+              <button
+                onClick={() => setShowAllActivities(false)}
+                className={`p-2 rounded-lg hover:bg-slate-100 transition-colors ${isDark ? "hover:bg-gray-800 text-gray-300" : "text-slate-600"}`}
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Activity List - Scrollable */}
+            <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
+              {(stats?.hrActivities || []).length === 0 ? (
+                <p className={`text-sm text-center py-8 ${isDark ? "text-gray-400" : "text-slate-500"}`}>No activities found.</p>
+              ) : (
+                (stats?.hrActivities || []).map((log: any, idx: number) => {
+                  const actionLabel = log.title || (log.action ? log.action.replace(/_/g, " ") : "Activity");
+                  const actionUpper = (log.action || "").toUpperCase();
+                  let badgeColor = "bg-purple-100 text-purple-700";
+                  if (actionUpper.includes("CREATE") || actionUpper.includes("ADD") || actionUpper.includes("SOD")) badgeColor = "bg-emerald-100 text-emerald-700";
+                  else if (actionUpper.includes("APPROVE") || actionUpper.includes("SELECT")) badgeColor = "bg-green-100 text-green-700";
+                  else if (actionUpper.includes("REJECT") || actionUpper.includes("DELETE")) badgeColor = "bg-rose-100 text-rose-700";
+                  else if (actionUpper.includes("INTERVIEW") || actionUpper.includes("SCHEDULE")) badgeColor = "bg-amber-100 text-amber-700";
+                  else if (actionUpper.includes("UPDATE") || actionUpper.includes("EDIT")) badgeColor = "bg-blue-100 text-blue-700";
+
+                  return (
+                    <div key={log.id || idx} className={`rounded-xl border p-4 transition-all hover:shadow-sm ${isDark ? "bg-gray-800 border-gray-700" : "bg-slate-50 border-slate-100"}`}>
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap mb-2">
+                            <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-full ${badgeColor}`}>
+                              {actionLabel}
+                            </span>
+                            <span className={`text-[10px] ${isDark ? "text-gray-500" : "text-slate-400"}`}>
+                              {log.timestamp ? new Date(log.timestamp).toLocaleString("en-IN", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }) : ""}
+                            </span>
+                          </div>
+                          <p className={`text-sm leading-relaxed ${isDark ? "text-gray-200" : "text-slate-700"}`}>
+                            {log.description || log.details || "No details available."}
+                          </p>
+                        </div>
+                      </div>
+                      <div className={`mt-3 pt-2 border-t flex items-center gap-2 ${isDark ? "border-gray-700" : "border-slate-200"}`}>
+                        <div className="w-6 h-6 rounded-full bg-indigo-100 flex items-center justify-center">
+                          <span className="text-[9px] font-bold text-indigo-700">
+                            {(log.actor || log.user?.name || "S").charAt(0).toUpperCase()}
+                          </span>
+                        </div>
+                        <span className={`text-xs font-semibold ${isDark ? "text-indigo-400" : "text-indigo-600"}`}>
+                          {log.actor || log.user?.name || "System"}
+                        </span>
+                        {log.actorRole && (
+                          <span className={`text-[10px] ${isDark ? "text-gray-500" : "text-slate-400"}`}>
+                            • {log.actorRole}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+
+            {/* Modal Footer */}
+            <div className={`px-6 py-4 border-t ${isDark ? "border-gray-700" : "border-slate-100"}`}>
+              <button
+                onClick={() => setShowAllActivities(false)}
+                className="w-full py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-sm font-semibold transition-colors"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {showHiringModal && (
         <HiringRequisitionModal

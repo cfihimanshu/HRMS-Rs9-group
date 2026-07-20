@@ -27,6 +27,7 @@ import HRRecentActivity from "@/models/sequelize/HRRecentActivity";
 import Expense from "@/models/sequelize/Expense";
 import TaskLog from "@/models/sequelize/TaskLog";
 import DisciplinaryWarning from "@/models/sequelize/DisciplinaryWarning";
+import AbsentFine from "@/models/sequelize/AbsentFine";
 
 export async function GET(req: Request) {
   try {
@@ -327,108 +328,148 @@ export async function GET(req: Request) {
       return acc + (curr.callsPlanned || 0) + (curr.meetings || 0) + (curr.fieldVisits || 0);
     }, 0);
 
+    // Clean up static dummy seeded initial activities if any
+    try {
+      await HRRecentActivity.destroy({
+        where: {
+          details: {
+            [Op.or]: [
+              { [Op.like]: "%Sarah Jenkins%" },
+              { [Op.like]: "%David Lee%" },
+              { [Op.like]: "%John Doe%" }
+            ]
+          }
+        }
+      });
+    } catch (e) {}
+
     // Fetch recent HR activities populated with user info
     let dbHrActivities = await HRRecentActivity.findAll({
       where: {},
       order: [['timestamp', 'DESC']],
-      limit: 30,
+      limit: 50,
       raw: true
     });
 
-    const actorIds = [...new Set(dbHrActivities.map((a: any) => a.user).filter(Boolean))];
-    let actorMap: any = {};
-    if (actorIds.length > 0) {
-      const users = await User.findAll({ where: { id: { [Op.in]: actorIds } }, raw: true });
-      users.forEach((u: any) => { actorMap[u.id] = { name: u.name, role: u.role }; });
+    // Query live SOD, EOD, and Fines tables so any SOD/EOD submitted directly is included
+    const [recentSods, recentEods, recentFinesList] = await Promise.all([
+      SodReport.findAll({ order: [['createdAt', 'DESC']], limit: 25, raw: true }).catch(() => []),
+      EodReport.findAll({ order: [['createdAt', 'DESC']], limit: 25, raw: true }).catch(() => []),
+      AbsentFine.findAll({ order: [['createdAt', 'DESC']], limit: 25, raw: true }).catch(() => [])
+    ]);
+
+    const allActorIds = [...new Set([
+      ...dbHrActivities.map((a: any) => a.user),
+      ...recentSods.map((s: any) => s.employee),
+      ...recentEods.map((e: any) => e.employee),
+      ...recentFinesList.map((f: any) => f.employee),
+      ...recentFinesList.map((f: any) => f.imposedBy),
+    ].filter(Boolean))];
+
+    let userMap: Record<string, { name: string; role: string }> = {};
+    if (allActorIds.length > 0) {
+      const users = await User.findAll({ where: { id: { [Op.in]: allActorIds } }, raw: true });
+      users.forEach((u: any) => { userMap[u.id.toString()] = { name: u.name, role: u.role }; });
     }
 
-    dbHrActivities = dbHrActivities.map((a: any) => ({
-      ...a,
-      user: actorMap[a.user] || { name: 'Unknown', role: 'Staff' }
-    }));
+    const actList: any[] = dbHrActivities.map((a: any) => {
+      let title = a.action ? a.action.replace(/_/g, " ") : "HR Activity";
+      const action = a.action;
+      if (action === "CREATE_EMPLOYEE") title = "New Employee Onboarded";
+      else if (action === "SCHEDULE_INTERVIEW") title = "Interview Scheduled";
+      else if (action === "SUBMIT_INTERVIEW_EVALUATION") title = "Interview Evaluated";
+      else if (action === "SUBMIT_VERIFICATION") title = "Document Verified";
+      else if (action === "APPROVED_LEAVE") title = "Leave Approved";
+      else if (action === "REJECTED_LEAVE") title = "Leave Rejected";
+      else if (action === "CREATE_JOB") title = "Job Vacancy Posted";
+      else if (action === "UPDATE_TRAINING_LOG") title = "Training Record Updated";
+      else if (action === "SUBMIT_PROBATION_EVALUATION") title = "Probation Evaluated";
+      else if (action === "SOD_DECLARED") title = "SOD Declared";
+      else if (action === "EOD_DECLARED") title = "EOD Declared";
+      else if (action === "TASK_CREATED") title = "Task Created";
+      else if (action === "TASK_COMPLETED") title = "Task Completed";
+      else if (action === "TASK_FORWARDED") title = "Task Forwarded";
+      else if (action === "TASK_STATUS_CHANGED") title = "Task Status Updated";
+      else if (action === "HIRING_APPROVED") title = "Hiring Approved";
+      else if (action === "HIRING_REJECTED") title = "Hiring Rejected";
+      else if (action === "EMPLOYEE_UPDATED") title = "Employee Profile Updated";
+      else if (action === "FINE_IMPOSED") title = "Absent Fine Imposed";
 
-    if (dbHrActivities.length === 0) {
-      const hrUser = await User.findOne({ where: { role: "HR Head" } });
-      if (hrUser) {
-        const initialActivities = [
-          {
-            id: Date.now().toString() + "_1",
-            user: hrUser.id,
-            action: "CREATE_EMPLOYEE",
-            details: "Created new employee profile: Sarah Jenkins (sarah.j@example.com) as Senior Frontend Developer in Engineering.",
-            timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000)
-          },
-          {
-            id: Date.now().toString() + "_2",
-            user: hrUser.id,
-            action: "APPROVED_LEAVE",
-            details: "Leave request for Casual Leave (3 days) has been approved by HR / Supervisor.",
-            timestamp: new Date(Date.now() - 4 * 60 * 60 * 1000)
-          },
-          {
-            id: Date.now().toString() + "_3",
-            user: hrUser.id,
-            action: "SCHEDULE_INTERVIEW",
-            details: "Scheduled Round 1 Interview for candidate: David Lee.",
-            timestamp: new Date(Date.now() - 24 * 60 * 60 * 1000)
-          },
-          {
-            id: Date.now().toString() + "_4",
-            user: hrUser.id,
-            action: "SUBMIT_VERIFICATION",
-            details: "Background verification completed for candidate: John Doe. Overall status: Verified.",
-            timestamp: new Date(Date.now() - 25 * 60 * 60 * 1000)
-          }
-        ];
+      const userInfo = userMap[a.user?.toString()] || (typeof a.user === "object" ? a.user : { name: "System", role: "Staff" });
 
-        await HRRecentActivity.bulkCreate(initialActivities);
+      return {
+        id: (a.id || "").toString(),
+        title,
+        description: a.details,
+        timestamp: a.timestamp ? new Date(a.timestamp).toISOString() : new Date().toISOString(),
+        action: a.action || "HR_ACTIVITY",
+        actor: userInfo.name || "System",
+        actorRole: userInfo.role || ""
+      };
+    });
 
-        dbHrActivities = await HRRecentActivity.findAll({
-          where: {},
-          order: [['timestamp', 'DESC']],
-          limit: 30,
-          raw: true
-        });
+    // Convert SodReports
+    recentSods.forEach((sod: any) => {
+      const empId = (sod.employee || "").toString();
+      const userInfo = userMap[empId] || { name: "Employee", role: "Staff" };
+      const ts = sod.createdAt ? new Date(sod.createdAt).toISOString() : (sod.date ? new Date(sod.date).toISOString() : new Date().toISOString());
+      actList.push({
+        id: "sod_" + (sod.id || Date.now()),
+        title: "SOD Declared",
+        description: `${userInfo.name} declared Start of Day (SOD). Task: ${sod.taskSummary || ""}${sod.remarks ? ` — Remarks: ${sod.remarks}` : ""}`,
+        timestamp: ts,
+        action: "SOD_DECLARED",
+        actor: userInfo.name,
+        actorRole: userInfo.role || ""
+      });
+    });
 
-        const newActorIds = [...new Set(dbHrActivities.map((a: any) => a.user).filter(Boolean))];
-        let newActorMap: any = {};
-        if (newActorIds.length > 0) {
-          const users = await User.findAll({ where: { id: { [Op.in]: newActorIds } }, raw: true });
-          users.forEach((u: any) => { newActorMap[u.id] = { name: u.name, role: u.role }; });
-        }
+    // Convert EodReports
+    recentEods.forEach((eod: any) => {
+      const empId = (eod.employee || "").toString();
+      const userInfo = userMap[empId] || { name: "Employee", role: "Staff" };
+      const ts = eod.createdAt ? new Date(eod.createdAt).toISOString() : (eod.date ? new Date(eod.date).toISOString() : new Date().toISOString());
+      actList.push({
+        id: "eod_" + (eod.id || Date.now()),
+        title: "EOD Declared",
+        description: `${userInfo.name} submitted End of Day (EOD) report. Completed: ${eod.completedWork || ""}`,
+        timestamp: ts,
+        action: "EOD_DECLARED",
+        actor: userInfo.name,
+        actorRole: userInfo.role || ""
+      });
+    });
 
-        dbHrActivities = dbHrActivities.map((a: any) => ({
-          ...a,
-          user: newActorMap[a.user] || { name: 'Unknown', role: 'Staff' }
-        }));
+    // Convert AbsentFines
+    (recentFinesList || []).forEach((fine: any) => {
+      const empInfo = userMap[(fine.employee || "").toString()] || { name: "Employee", role: "" };
+      const impInfo = userMap[(fine.imposedBy || "").toString()] || { name: "Management", role: "" };
+      const ts = fine.createdAt ? new Date(fine.createdAt).toISOString() : new Date().toISOString();
+      actList.push({
+        id: "fine_" + (fine.id || Date.now()),
+        title: "Absent Fine Imposed",
+        description: `Fine of ₹${fine.amount} imposed on ${empInfo.name} for date ${fine.date}. Reason: ${fine.reason || "Uninformed Absence"}`,
+        timestamp: ts,
+        action: "FINE_IMPOSED",
+        actor: impInfo.name,
+        actorRole: impInfo.role || ""
+      });
+    });
+
+    // Sort all by timestamp DESC and deduplicate by action + actor + timestamp_date
+    actList.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+
+    const hrActivities: any[] = [];
+    const seenSet = new Set<string>();
+
+    for (const item of actList) {
+      const dateDay = item.timestamp.substring(0, 10);
+      const dedupeKey = `${item.action}_${item.actor}_${dateDay}_${(item.description || "").substring(0, 20)}`;
+      if (!seenSet.has(dedupeKey)) {
+        seenSet.add(dedupeKey);
+        hrActivities.push(item);
       }
     }
-
-    const hrActivities = dbHrActivities
-      .filter((log: any) => log.user)
-      .map((log: any) => {
-        let title = "HR Activity";
-        const action = log.action;
-        if (action === "CREATE_EMPLOYEE") title = "New Employee Onboarded";
-        else if (action === "SCHEDULE_INTERVIEW") title = "Interview Scheduled";
-        else if (action === "SUBMIT_INTERVIEW_EVALUATION") title = "Interview Evaluated";
-        else if (action === "SUBMIT_VERIFICATION") title = "Document Verified";
-        else if (action === "APPROVED_LEAVE") title = "Leave Request Approved";
-        else if (action === "REJECTED_LEAVE") title = "Leave Request Rejected";
-        else if (action === "CREATE_JOB") title = "Job Vacancy Posted";
-        else if (action === "UPDATE_TRAINING_LOG") title = "Training Record Updated";
-        else if (action === "SUBMIT_PROBATION_EVALUATION") title = "Probation Evaluated";
-
-        return {
-          id: (log.id || log.id || "").toString(),
-          title,
-          description: log.details,
-          timestamp: log.timestamp ? new Date(log.timestamp).toISOString() : new Date().toISOString(),
-          action,
-          actor: log.user.name,
-          actorRole: log.user.role
-        };
-      });
 
     // --- Current User Dynamic Stats (ESS) ---
     const userId = (session.user as any).id;
@@ -828,6 +869,16 @@ export async function GET(req: Request) {
       eodTime: eodMap[u.id.toString()] || null
     }));
 
+    const userPendingTasksCount = await TaskLog.count({
+      where: {
+        [Op.or]: [
+          { employee: sessionUser.id },
+          { forwardedTo: sessionUser.id }
+        ],
+        status: { [Op.ne]: "Completed" }
+      }
+    });
+
     return NextResponse.json({
       success: true,
       stats: {
@@ -841,6 +892,7 @@ export async function GET(req: Request) {
           earnedLeave,
           casualLeaveTaken,
           sickLeaveTaken,
+          pendingTasksCount: userPendingTasksCount,
           holidayName: upcomingHoliday.name,
           holidayDate: holidayDateStr
         },

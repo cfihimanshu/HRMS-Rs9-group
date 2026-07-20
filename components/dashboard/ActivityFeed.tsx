@@ -147,17 +147,21 @@ export default function ActivityFeed({
             
             <div className="flex-1 min-w-0 pb-2">
               <h4 className={`text-sm font-bold truncate ${dark ? "text-gray-200" : "text-slate-800"}`} title={log.action}>
-                {log.action.replace(/_/g, " ")}
+                {log.title || (log.action ? log.action.replace(/_/g, " ") : "HR Activity")}
               </h4>
-              <p className={`text-xs mt-1 leading-relaxed ${dark ? "text-gray-400" : "text-slate-500"}`}>
-                {log.details || log.description}
+              <p 
+                className={`text-xs mt-1 leading-relaxed line-clamp-2 ${dark ? "text-gray-400" : "text-slate-500"}`}
+                style={{ display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}
+                title={log.details || log.description}
+              >
+                {log.details || log.description || "—"}
               </p>
               <div className="flex items-center justify-between mt-1.5">
                 <span className={`text-[10px] font-medium block ${dark ? "text-gray-500" : "text-slate-400"}`}>
                   {timeAgo(log.timestamp)}
                 </span>
                 <span className={`text-[10px] font-bold block truncate max-w-[150px] ${dark ? "text-indigo-400" : "text-indigo-600"}`}>
-                  By {log.user?.name || log.actor || "System"}
+                  By {log.actor || log.user?.name || "System"}
                 </span>
               </div>
 

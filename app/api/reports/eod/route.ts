@@ -5,6 +5,7 @@ import { authOptions } from "@/lib/auth";
 import sequelize from "@/lib/sequelize";
 import EodReport from "@/models/sequelize/EodReport";
 import { logAudit } from "@/lib/audit";
+import { logHRActivity } from "@/lib/hrAudit";
 
 // GET: Fetch today's EOD for the logged-in user
 export async function GET(req: Request) {
@@ -80,6 +81,13 @@ export async function POST(req: Request) {
       entity: "EodReport",
       entityId: (record as any).id.toString(),
       details: `${userName} submitted End of Day (EOD) outcomes.`,
+    });
+
+    await logHRActivity({
+      userId,
+      userRole: (session.user as any).role || "Employee",
+      action: "EOD_DECLARED",
+      details: `${userName} submitted End of Day (EOD) report. Completed: ${completedWork}.`,
     });
 
     return NextResponse.json({ success: true, data: record });

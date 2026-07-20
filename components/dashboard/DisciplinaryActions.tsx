@@ -1,9 +1,9 @@
 "use client";
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import {
   Plus, Search, RefreshCw, X, ShieldAlert, CheckCircle, AlertTriangle,
   Eye, EyeOff, User, Download, Calendar, Mail, FileText, HelpCircle,
-  AlertOctagon, BadgeAlert, Building
+  AlertOctagon, BadgeAlert, Building, Trash2
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -41,6 +41,7 @@ export default function DisciplinaryActions({ sessionUser, triggerToast }: Disci
   const [targetEmployeeId, setTargetEmployeeId] = useState("");
   const [reason, setReason] = useState(REASONS[0]);
   const [description, setDescription] = useState("");
+  const [incidentDate, setIncidentDate] = useState(new Date().toISOString().split("T")[0]);
   const [improvementPeriodDays, setImprovementPeriodDays] = useState(15);
   const [pipPlan, setPipPlan] = useState("");
   const [salaryHold, setSalaryHold] = useState<number>(0);
@@ -51,6 +52,7 @@ export default function DisciplinaryActions({ sessionUser, triggerToast }: Disci
   // Filter employee search for issue warning form
   const [empSearch, setEmpSearch] = useState("");
   const [empDropdownOpen, setEmpDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   const loggedInUserId = sessionUser?.id;
   const loggedInRole = sessionUser?.role;
@@ -64,6 +66,43 @@ export default function DisciplinaryActions({ sessionUser, triggerToast }: Disci
     const r = (roleStr || "").toLowerCase();
     return r === "department manager" || r.includes("manager") || r === "dsm" || r === "owner" || r === "director" || r === "hr head" || r === "hr executive";
   }
+
+  const resetForm = () => {
+    setTargetEmployeeId("");
+    setEmpSearch("");
+    setEmpDropdownOpen(false);
+    setDescription("");
+    setIncidentDate(new Date().toISOString().split("T")[0]);
+    setReason(REASONS[0]);
+    setCustomReason("");
+    setImprovementPeriodDays(15);
+    setPipPlan("");
+    setSalaryHold(0);
+    setPromotionHold(false);
+    setBonusHold(false);
+  };
+
+  const handleCloseModal = () => {
+    setShowIssueModal(false);
+    resetForm();
+  };
+
+  const handleOpenModal = () => {
+    resetForm();
+    setShowIssueModal(true);
+  };
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setEmpDropdownOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
 
   const loadWarnings = async () => {
     try {
@@ -91,7 +130,7 @@ export default function DisciplinaryActions({ sessionUser, triggerToast }: Disci
 
   const loadEmployees = async () => {
     try {
-      const res = await fetch("/api/employees");
+      const res = await fetch("/api/employees?all=true");
       const data = await res.json();
       if (data.success) {
         setEmployees(data.data || []);
@@ -144,6 +183,7 @@ export default function DisciplinaryActions({ sessionUser, triggerToast }: Disci
           employeeId: targetEmployeeId,
           reason: reason === "Others" ? customReason : reason,
           description,
+          incidentDate,
           improvementPeriodDays: null,
           pipPlan: previewWarningLevel === 2 ? pipPlan : null,
           salaryHold: previewWarningLevel === 2 ? Number(salaryHold) : 0,
@@ -159,18 +199,7 @@ export default function DisciplinaryActions({ sessionUser, triggerToast }: Disci
             ? "Warning issued and active successfully!" 
             : "Warning request submitted and sent to Owner for approval!"
         );
-        setShowIssueModal(false);
-        // Reset form
-        setTargetEmployeeId("");
-        setEmpSearch("");
-        setDescription("");
-        setReason(REASONS[0]);
-        setCustomReason("");
-        setImprovementPeriodDays(15);
-        setPipPlan("");
-        setSalaryHold(0);
-        setPromotionHold(false);
-        setBonusHold(false);
+        handleCloseModal();
         loadWarnings();
       } else {
         triggerToast("Failed to issue warning: " + data.error);
@@ -344,7 +373,7 @@ export default function DisciplinaryActions({ sessionUser, triggerToast }: Disci
         {isManager && (
           <div className="flex gap-2">
             <button 
-              onClick={() => setShowIssueModal(true)}
+              onClick={handleOpenModal}
               className="bg-rose-600 hover:bg-rose-700 px-4 py-2.5 rounded-xl text-xs font-black text-white transition-all shadow flex items-center gap-1.5 uppercase tracking-wider"
             >
               <Plus className="w-4 h-4" /> Issue Warning
@@ -446,8 +475,8 @@ export default function DisciplinaryActions({ sessionUser, triggerToast }: Disci
                   <div className="text-slate-500 text-[10px] mt-1.5 flex flex-wrap gap-x-4 gap-y-1">
                     <span>Target Employee: <strong className="text-slate-800">{selectedWarning.employeeDetails?.name || "N/A"}</strong></span>
                     <span>Department: <strong className="text-slate-800">{selectedWarning.employeeDetails?.department || "N/A"}</strong></span>
-                    <span>Issued By: <strong className="text-slate-750">{selectedWarning.issuedByDetails?.name || "N/A"} (${selectedWarning.issuedByDetails?.role || "Manager"})</strong></span>
-                    <span>Date: <strong className="text-slate-750">{new Date(selectedWarning.createdAt).toLocaleString()}</strong></span>
+                    <span>Issued By: <strong className="text-slate-750">{selectedWarning.issuedByDetails?.name || "N/A"} ({selectedWarning.issuedByDetails?.role || "Manager"})</strong></span>
+                    <span>Incident Date: <strong className="text-slate-750">{selectedWarning.incidentDate ? new Date(selectedWarning.incidentDate).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }) : new Date(selectedWarning.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}</strong></span>
                   </div>
                 </div>
                 
@@ -732,14 +761,14 @@ export default function DisciplinaryActions({ sessionUser, triggerToast }: Disci
                   </div>
                 )}
 
-              {/* Manual removal option for Owner */}
-                {selectedWarning.status !== "Pending Approval" && selectedWarning.status !== "Resolved" && selectedWarning.status !== "Terminated" && isOwner && (
+              {/* Deletion option for Issuer, Global Admin, or Owner */}
+                {(isOwner || isGlobalViewer || (selectedWarning?.issuedBy?.toString() === loggedInUserId?.toString())) && selectedWarning.status !== "Terminated" && (
                   <button
                     disabled={submitting}
                     onClick={() => handleRemoveWarning(selectedWarning.id)}
                     className="w-full bg-rose-600 hover:bg-rose-700 text-white py-3.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all shadow flex items-center justify-center gap-1.5"
                   >
-                    <X className="w-4 h-4" /> Remove Disciplinary Warning
+                    <Trash2 className="w-4 h-4" /> Delete Disciplinary Warning
                   </button>
                 )}
 
@@ -802,7 +831,12 @@ export default function DisciplinaryActions({ sessionUser, triggerToast }: Disci
 
       {/* 3. Issue Warning Modal Popup */}
       {showIssueModal && (
-        <div className="fixed inset-0 z-[9999] overflow-y-auto bg-black/40 backdrop-blur-sm flex justify-center items-center p-4">
+        <div 
+          onClick={(e) => {
+            if (e.target === e.currentTarget) handleCloseModal();
+          }}
+          className="fixed inset-0 z-[9999] overflow-y-auto bg-black/40 backdrop-blur-sm flex justify-center items-center p-4"
+        >
           <div className="bg-white rounded-2xl w-full max-w-xl overflow-hidden shadow-2xl animate-scale-in flex flex-col relative max-h-[90vh] border border-[#E8E4DF]">
             
             {/* Modal Header */}
@@ -812,7 +846,8 @@ export default function DisciplinaryActions({ sessionUser, triggerToast }: Disci
                 ISSUE DISCIPLINARY WARNING
               </h3>
               <button 
-                onClick={() => setShowIssueModal(false)}
+                type="button"
+                onClick={handleCloseModal}
                 className="p-1.5 text-slate-450 hover:text-rose-600 rounded-lg transition-colors border border-transparent hover:border-rose-100"
               >
                 <X className="w-5 h-5" />
@@ -823,20 +858,36 @@ export default function DisciplinaryActions({ sessionUser, triggerToast }: Disci
             <form onSubmit={handleSubmitWarning} className="p-6 overflow-y-auto flex-1 space-y-6">
               
               {/* Employee selector autocomplete style */}
-              <div className="relative">
+              <div className="relative" ref={dropdownRef}>
                 <label className="block text-[9px] uppercase tracking-wider text-black font-black mb-1">Select Employee *</label>
-                <input
-                  type="text"
-                  placeholder="Type name or email to search employee..."
-                  value={empSearch}
-                  onFocus={() => setEmpDropdownOpen(true)}
-                  onChange={e => {
-                    setEmpSearch(e.target.value);
-                    setEmpDropdownOpen(true);
-                  }}
-                  className="w-full bg-white border border-[#E8E4DF] focus:border-rose-450 rounded-lg px-3 py-2 text-xs focus:outline-none font-semibold text-slate-700"
-                  required={!targetEmployeeId}
-                />
+                <div className="relative">
+                  <input
+                    type="text"
+                    placeholder="Type name or email to search employee..."
+                    value={empSearch}
+                    onFocus={() => setEmpDropdownOpen(true)}
+                    onChange={e => {
+                      setEmpSearch(e.target.value);
+                      setEmpDropdownOpen(true);
+                      if (targetEmployeeId) setTargetEmployeeId("");
+                    }}
+                    className="w-full bg-white border border-[#E8E4DF] focus:border-rose-450 rounded-lg pl-3 pr-8 py-2 text-xs focus:outline-none font-semibold text-slate-700"
+                    required={!targetEmployeeId}
+                  />
+                  {empSearch && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEmpSearch("");
+                        setTargetEmployeeId("");
+                        setEmpDropdownOpen(false);
+                      }}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-rose-600 p-0.5"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
                 
                 {empDropdownOpen && filteredEmployees.length > 0 && (
                   <div className="absolute left-0 right-0 z-[10000] mt-1 bg-white border border-[#E8E4DF] rounded-xl shadow-xl max-h-48 overflow-y-auto divide-y divide-[#E8E4DF] font-sans">
@@ -849,14 +900,26 @@ export default function DisciplinaryActions({ sessionUser, triggerToast }: Disci
                           setEmpSearch(emp.name || "");
                           setEmpDropdownOpen(false);
                         }}
-                        className="w-full text-left px-4 py-2.5 text-xs hover:bg-slate-50 transition-colors flex justify-between items-center"
+                        className={`w-full text-left px-4 py-2.5 text-xs hover:bg-slate-50 transition-colors flex justify-between items-center ${targetEmployeeId === emp.id ? "bg-rose-50/50 font-bold" : ""}`}
                       >
                         <span className="font-bold text-slate-750">{emp.name}</span>
-                        <span className="text-[9px] font-mono text-slate-450 font-semibold">{emp.email} (${emp.role})</span>
+                        <span className="text-[9px] font-mono text-slate-450 font-semibold">{emp.email} ({emp.role || "Employee"})</span>
                       </button>
                     ))}
                   </div>
                 )}
+              </div>
+
+              {/* Incident / Warning Date picker */}
+              <div>
+                <label className="block text-[9px] uppercase tracking-wider text-black font-black mb-1">Incident / Warning Date *</label>
+                <input
+                  type="date"
+                  value={incidentDate}
+                  onChange={e => setIncidentDate(e.target.value)}
+                  required
+                  className="w-full bg-white border border-[#E8E4DF] focus:border-rose-450 rounded-lg px-3 py-2 text-xs focus:outline-none font-bold text-slate-700"
+                />
               </div>
 
               {/* Misconduct Reason dropdown */}
@@ -993,7 +1056,7 @@ export default function DisciplinaryActions({ sessionUser, triggerToast }: Disci
               <div className="flex gap-3 pt-4 border-t border-[#E8E4DF] mt-6">
                 <button
                   type="button"
-                  onClick={() => setShowIssueModal(false)}
+                  onClick={handleCloseModal}
                   className="flex-1 px-4 py-2.5 rounded-xl border border-[#E8E4DF] text-xs font-black uppercase tracking-wider text-slate-500 hover:bg-[#F5F0EA] transition-colors"
                 >
                   Cancel
