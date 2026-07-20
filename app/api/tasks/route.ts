@@ -25,9 +25,8 @@ if (!daemonStarted && !isServerless) {
 
   setInterval(async () => {
     try {
-      // Authenticate and sync model
+      // Authenticate
       await sequelize.authenticate();
-      await TaskLog.sync({ alter: true });
 
       const now = new Date();
       // Look for tasks where scheduledAt is in the past and reminder not yet sent
@@ -341,7 +340,6 @@ export async function GET(req: Request) {
     const userRole = (session.user as any).role || "Employee";
 
     await sequelize.authenticate();
-    try { await TaskLog.sync({ alter: true }); } catch (_) { }
     const { searchParams } = new URL(req.url);
     const filterDate = searchParams.get("date");
     const range = searchParams.get("range");
@@ -469,8 +467,6 @@ export async function POST(req: Request) {
     }
 
     await sequelize.authenticate();
-    try { await TaskLog.sync({ alter: true }); } catch (_) { }
-
     const { scheduledAt } = body;
 
     const now = new Date();
@@ -505,9 +501,9 @@ export async function POST(req: Request) {
       description: description || "",
       status: status || "Pending",
       scheduledAt: scheduledAt ? new Date(scheduledAt) : null,
-      // Auto-start timer when task is created
-      timerState: "Running",
-      timerStart: now,
+      // Auto-start timer when task is created unless scheduled for future
+      timerState: scheduledAt ? "Stopped" : "Running",
+      timerStart: scheduledAt ? null : now,
       elapsedSeconds: 0,
     });
 
@@ -621,7 +617,6 @@ export async function PUT(req: Request) {
     }
 
     await sequelize.authenticate();
-    try { await TaskLog.sync({ alter: true }); } catch (_) { }
 
     let query: any = { id: taskId };
     // Only the "Owner" role has full access to edit any task. Other roles can only edit tasks they own or tasks forwarded to them.

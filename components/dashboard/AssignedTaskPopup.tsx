@@ -13,9 +13,13 @@ export default function AssignedTaskPopup() {
     const user = session.user as any;
     const userId = user?.id;
 
+    let isFetching = false;
+
     const checkAssignedTasks = async () => {
+      if (isFetching) return;
+      isFetching = true;
       try {
-        const res = await fetch("/api/tasks?range=all");
+        const res = await fetch("/api/tasks?range=today");
         const data = await res.json();
         if (data.success && Array.isArray(data.data)) {
           // Find tasks assigned to this user by an Owner/Manager or forwarded to this user that have not been acknowledged
@@ -38,12 +42,21 @@ export default function AssignedTaskPopup() {
         }
       } catch (err) {
         console.error("Failed to fetch assigned task notifications:", err);
+      } finally {
+        isFetching = false;
       }
     };
 
     checkAssignedTasks();
-    const intervalId = setInterval(checkAssignedTasks, 3000); // Auto-check every 3s for instant popup delivery
-    return () => clearInterval(intervalId);
+    const intervalId = setInterval(checkAssignedTasks, 25000); // 25s polling interval to prevent server choke / 504 timeout
+
+    const handleFocus = () => checkAssignedTasks();
+    window.addEventListener("focus", handleFocus);
+
+    return () => {
+      clearInterval(intervalId);
+      window.removeEventListener("focus", handleFocus);
+    };
   }, [session]);
 
   const handleAcknowledge = () => {

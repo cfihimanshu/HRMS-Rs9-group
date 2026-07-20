@@ -6,6 +6,7 @@ import sequelize from "@/lib/sequelize";
 import EodReport from "@/models/sequelize/EodReport";
 import { logAudit } from "@/lib/audit";
 import { logHRActivity } from "@/lib/hrAudit";
+import { Op } from "sequelize";
 
 // GET: Fetch today's EOD for the logged-in user
 export async function GET(req: Request) {
@@ -21,8 +22,18 @@ export async function GET(req: Request) {
 
     const today = new Date();
     today.setUTCHours(0, 0, 0, 0);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
 
-    const record = await EodReport.findOne({ where: { employee: userId, date: today } });
+    const record = await EodReport.findOne({
+      where: {
+        employee: userId,
+        date: {
+          [Op.gte]: today,
+          [Op.lt]: tomorrow
+        }
+      }
+    });
     return NextResponse.json({ success: true, data: record });
   } catch (error: any) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
@@ -55,9 +66,19 @@ export async function POST(req: Request) {
 
     const today = new Date();
     today.setUTCHours(0, 0, 0, 0);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
 
     // Prevent duplicates
-    const exists = await EodReport.findOne({ where: { employee: userId, date: today } });
+    const exists = await EodReport.findOne({
+      where: {
+        employee: userId,
+        date: {
+          [Op.gte]: today,
+          [Op.lt]: tomorrow
+        }
+      }
+    });
     if (exists) {
       return NextResponse.json({ success: false, error: "EOD already submitted for today" }, { status: 400 });
     }

@@ -317,12 +317,20 @@ export default function UnifiedEnterpriseDashboard() {
       router.push("/login");
     } else if (status === "authenticated" && session?.user) {
       const u = session.user as any;
-      const comp = u.company ? u.company.replace(/\\s+/g, '-') : "Company";
-      const dept = u.department ? u.department.replace(/\\s+/g, '-') : "Department";
-      const role = u.role ? u.role.replace(/\\s+/g, '-') : "Role";
-      const empId = u.employeeId || u.id || "EMP";
-      const expectedPath = `/dashboard/${encodeURIComponent(comp)}/${encodeURIComponent(dept)}/${encodeURIComponent(role)}/${encodeURIComponent(empId)}`;
+      const sanitizeSlug = (str: string) => {
+        if (!str) return "N-A";
+        return str
+          .replace(/[()]/g, '')
+          .replace(/[^a-zA-Z0-9\-_]/g, '-')
+          .replace(/-+/g, '-')
+          .replace(/^-|-$/g, '');
+      };
 
+      const comp = sanitizeSlug(u.company || "Company");
+      const dept = sanitizeSlug(u.department || "Department");
+      const role = sanitizeSlug(u.role || "Role");
+      const empId = sanitizeSlug(u.employeeId || u.id || "EMP");
+      const expectedPath = `/dashboard/${comp}/${dept}/${role}/${empId}`;
 
       if (window.location.pathname !== expectedPath && window.location.pathname.startsWith('/dashboard')) {
         window.history.replaceState(null, '', expectedPath + window.location.search);
