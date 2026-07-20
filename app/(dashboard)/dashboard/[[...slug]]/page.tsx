@@ -1989,7 +1989,7 @@ export default function UnifiedEnterpriseDashboard() {
                 formMode="eod"
                 handleSodSubmit={handleSodSubmit}
                 handleEodSubmit={async (payload) => {
-                  const success = await handleSodSubmit(payload);
+                  const success = await handleEodSubmit(payload);
                   if (success) toggleModal("eodModal", false);
                 }}
               />
