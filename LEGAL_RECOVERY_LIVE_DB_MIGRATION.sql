@@ -61,7 +61,20 @@ CREATE TABLE IF NOT EXISTS `legal_securities` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 
--- 3. Safely Add Missing Columns to 'legal_securities' (Run these lines in Workbench)
+-- 3. Safely Add Missing Columns to 'legal_securities' (Solves Unknown column 'siteType' error)
+ALTER TABLE `legal_securities` ADD COLUMN `siteType` VARCHAR(255) DEFAULT NULL;
+ALTER TABLE `legal_securities` ADD COLUMN `offerRef` VARCHAR(255) DEFAULT NULL;
+ALTER TABLE `legal_securities` ADD COLUMN `coverageHours` INT DEFAULT 24;
+ALTER TABLE `legal_securities` ADD COLUMN `shiftHours` INT DEFAULT 8;
+ALTER TABLE `legal_securities` ADD COLUMN `guardsPerShift` INT DEFAULT 1;
+ALTER TABLE `legal_securities` ADD COLUMN `totalDailyGuards` INT DEFAULT 3;
+ALTER TABLE `legal_securities` ADD COLUMN `shiftRate` DECIMAL(12,2) DEFAULT 0.00;
+ALTER TABLE `legal_securities` ADD COLUMN `allowancePerShift` DECIMAL(12,2) DEFAULT 0.00;
+ALTER TABLE `legal_securities` ADD COLUMN `durationDays` INT DEFAULT 1;
+ALTER TABLE `legal_securities` ADD COLUMN `totalGuardCost` DECIMAL(12,2) DEFAULT 0.00;
+ALTER TABLE `legal_securities` ADD COLUMN `totalAllowanceCost` DECIMAL(12,2) DEFAULT 0.00;
+ALTER TABLE `legal_securities` ADD COLUMN `guardName` VARCHAR(255) DEFAULT NULL;
+ALTER TABLE `legal_securities` ADD COLUMN `guardPhone` VARCHAR(50) DEFAULT NULL;
 ALTER TABLE `legal_securities` ADD COLUMN `guardDetailsJson` LONGTEXT DEFAULT NULL;
 ALTER TABLE `legal_securities` ADD COLUMN `guardPhotoUrl` LONGTEXT DEFAULT NULL;
 ALTER TABLE `legal_securities` ADD COLUMN `billInvoiceUrl` LONGTEXT DEFAULT NULL;
@@ -69,7 +82,6 @@ ALTER TABLE `legal_securities` ADD COLUMN `billInvoiceUrl` LONGTEXT DEFAULT NULL
 -- 4. If Columns Already Exist, Modify Them to LONGTEXT
 ALTER TABLE `legal_securities` MODIFY COLUMN `guardDetailsJson` LONGTEXT DEFAULT NULL;
 ALTER TABLE `legal_securities` MODIFY COLUMN `guardPhotoUrl` LONGTEXT DEFAULT NULL;
-ALTER TABLE `legal_securities` MODIFY COLUMN `billInvoiceUrl` LONGTEXT DEFAULT NULL;
 
 
 -- 5. Ensure 'legal_companies' Master Table Exists

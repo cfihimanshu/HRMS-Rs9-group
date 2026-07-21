@@ -8,25 +8,51 @@ import LegalSecurity from "@/models/sequelize/LegalSecurity";
 async function syncSecurityTableSchema() {
   try {
     await sequelize.authenticate();
-    await LegalSecurity.sync();
-
-    // Safely add guardDetailsJson column if missing, or modify to LONGTEXT if existing
     try {
-      await sequelize.query("ALTER TABLE legal_securities ADD COLUMN guardDetailsJson LONGTEXT DEFAULT NULL;");
-    } catch (e) {
-      try {
-        await sequelize.query("ALTER TABLE legal_securities MODIFY COLUMN guardDetailsJson LONGTEXT DEFAULT NULL;");
-      } catch (e2) {}
+      await LegalSecurity.sync({ alter: true });
+    } catch (syncErr: any) {
+      await LegalSecurity.sync();
     }
 
-    // Safely add guardPhotoUrl column if missing, or modify to LONGTEXT if existing
-    try {
-      await sequelize.query("ALTER TABLE legal_securities ADD COLUMN guardPhotoUrl LONGTEXT DEFAULT NULL;");
-    } catch (e) {
+    // Safely ensure all missing columns are added to live MySQL DB
+    const colsToEnsure = [
+      "ALTER TABLE legal_securities ADD COLUMN siteType VARCHAR(255) DEFAULT NULL;",
+      "ALTER TABLE legal_securities ADD COLUMN offerRef VARCHAR(255) DEFAULT NULL;",
+      "ALTER TABLE legal_securities ADD COLUMN coverageHours INT DEFAULT 24;",
+      "ALTER TABLE legal_securities ADD COLUMN shiftHours INT DEFAULT 8;",
+      "ALTER TABLE legal_securities ADD COLUMN guardsPerShift INT DEFAULT 1;",
+      "ALTER TABLE legal_securities ADD COLUMN totalDailyGuards INT DEFAULT 3;",
+      "ALTER TABLE legal_securities ADD COLUMN shiftRate DECIMAL(12,2) DEFAULT 0.00;",
+      "ALTER TABLE legal_securities ADD COLUMN allowancePerShift DECIMAL(12,2) DEFAULT 0.00;",
+      "ALTER TABLE legal_securities ADD COLUMN durationDays INT DEFAULT 1;",
+      "ALTER TABLE legal_securities ADD COLUMN totalGuardCost DECIMAL(12,2) DEFAULT 0.00;",
+      "ALTER TABLE legal_securities ADD COLUMN totalAllowanceCost DECIMAL(12,2) DEFAULT 0.00;",
+      "ALTER TABLE legal_securities ADD COLUMN guardName VARCHAR(255) DEFAULT NULL;",
+      "ALTER TABLE legal_securities ADD COLUMN guardPhone VARCHAR(50) DEFAULT NULL;",
+      "ALTER TABLE legal_securities ADD COLUMN guardDetailsJson LONGTEXT DEFAULT NULL;",
+      "ALTER TABLE legal_securities ADD COLUMN guardPhotoUrl LONGTEXT DEFAULT NULL;",
+      "ALTER TABLE legal_securities ADD COLUMN billInvoiceUrl LONGTEXT DEFAULT NULL;",
+      "ALTER TABLE legal_securities ADD COLUMN paymentMethod VARCHAR(100) DEFAULT NULL;",
+      "ALTER TABLE legal_securities ADD COLUMN paymentDays VARCHAR(50) DEFAULT NULL;",
+      "ALTER TABLE legal_securities ADD COLUMN paymentStatus VARCHAR(50) DEFAULT 'Due';",
+      "ALTER TABLE legal_securities ADD COLUMN source VARCHAR(100) DEFAULT NULL;",
+      "ALTER TABLE legal_securities ADD COLUMN receivedAmount DECIMAL(12,2) DEFAULT 0.00;",
+      "ALTER TABLE legal_securities ADD COLUMN receivedDate DATE DEFAULT NULL;",
+      "ALTER TABLE legal_securities ADD COLUMN remarks TEXT DEFAULT NULL;",
+      "ALTER TABLE legal_securities ADD COLUMN createdBy VARCHAR(100) DEFAULT NULL;",
+    ];
+
+    for (const query of colsToEnsure) {
       try {
-        await sequelize.query("ALTER TABLE legal_securities MODIFY COLUMN guardPhotoUrl LONGTEXT DEFAULT NULL;");
-      } catch (e2) {}
+        await sequelize.query(query);
+      } catch (e) {}
     }
+
+    // Ensure LONGTEXT column types for image & roster JSON
+    try {
+      await sequelize.query("ALTER TABLE legal_securities MODIFY COLUMN guardDetailsJson LONGTEXT DEFAULT NULL;");
+      await sequelize.query("ALTER TABLE legal_securities MODIFY COLUMN guardPhotoUrl LONGTEXT DEFAULT NULL;");
+    } catch (e) {}
   } catch (err: any) {
     console.warn("LegalSecurity sync warning:", err.message);
   }
