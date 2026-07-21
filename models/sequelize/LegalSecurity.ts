@@ -47,6 +47,83 @@ LegalSecurity.init(
       type: DataTypes.STRING,
       allowNull: true,
     },
+    siteType: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    offerRef: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    coverageHours: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+      defaultValue: 24,
+    },
+    shiftHours: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+      defaultValue: 8,
+    },
+    guardsPerShift: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+      defaultValue: 1,
+    },
+    totalDailyGuards: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+      defaultValue: 3,
+    },
+    shiftRate: {
+      type: DataTypes.DECIMAL(12, 2),
+      allowNull: true,
+      defaultValue: 0,
+    },
+    allowancePerShift: {
+      type: DataTypes.DECIMAL(12, 2),
+      allowNull: true,
+      defaultValue: 0,
+    },
+    durationDays: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+      defaultValue: 1,
+    },
+    totalGuardCost: {
+      type: DataTypes.DECIMAL(12, 2),
+      allowNull: true,
+      defaultValue: 0,
+    },
+    totalAllowanceCost: {
+      type: DataTypes.DECIMAL(12, 2),
+      allowNull: true,
+      defaultValue: 0,
+    },
+    guardName: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    guardPhone: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    guardDetailsJson: {
+      type: DataTypes.TEXT("long"),
+      allowNull: true,
+    },
+    guardPhotoUrl: {
+      type: DataTypes.TEXT("long"),
+      allowNull: true,
+    },
+    billInvoiceUrl: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    paymentMethod: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
     paymentDays: {
       type: DataTypes.STRING,
       allowNull: true,

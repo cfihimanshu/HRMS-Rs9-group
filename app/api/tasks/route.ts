@@ -567,7 +567,7 @@ export async function POST(req: Request) {
         }
 
         // Send In-App Notification
-        await Notification.sync({ alter: true });
+        await Notification.sync();
         await Notification.create({
           id: Date.now().toString() + Math.random().toString(36).substring(2, 8),
           recipient: employeeId,
@@ -735,7 +735,7 @@ export async function PUT(req: Request) {
     // In-app notifications
     if (isNewForward) {
       try {
-        await Notification.sync({ alter: true });
+        await Notification.sync();
         await Notification.create({
           id: Date.now().toString() + Math.random().toString(36).substring(2, 8),
           recipient: forwardedTo,
@@ -755,7 +755,7 @@ export async function PUT(req: Request) {
         const isManager = ["Department Manager", "department manager", "department-manager"].includes(creatorRole) || creatorRole.toLowerCase().includes("manager");
 
         if (!isManager) {
-          await Notification.sync({ alter: true });
+          await Notification.sync();
           await Notification.create({
             id: Date.now().toString() + Math.random().toString(36).substring(2, 8),
             recipient: task.employee,

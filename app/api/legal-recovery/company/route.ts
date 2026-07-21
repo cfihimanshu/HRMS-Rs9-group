@@ -13,26 +13,39 @@ export async function GET(req: Request) {
       return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
     }
 
-    await sequelize.authenticate();
-    await LegalCompany.sync({ alter: true });
+    try {
+      await sequelize.authenticate();
+      await LegalCompany.sync();
+    } catch (syncErr: any) {
+      console.warn("LegalCompany sync warning:", syncErr.message);
+    }
 
-    let companies = await LegalCompany.findAll({
-      order: [["companyName", "ASC"]],
-      raw: true,
-    });
-
-    if (companies.length === 0) {
-      await LegalCompany.bulkCreate([
-        { companyName: "Force009", createdBy: "System" },
-        { companyName: "ATPL (Acolyte Technologies Private Limited)", createdBy: "System" },
-      ]);
+    let companies: any[] = [];
+    try {
       companies = await LegalCompany.findAll({
         order: [["companyName", "ASC"]],
         raw: true,
       });
+    } catch (dbErr: any) {
+      console.warn("LegalCompany findAll error:", dbErr.message);
     }
 
-    return NextResponse.json({ success: true, data: companies });
+    if (!companies || companies.length === 0) {
+      try {
+        await LegalCompany.bulkCreate([
+          { companyName: "Force009", createdBy: "System" },
+          { companyName: "ATPL (Acolyte Technologies Private Limited)", createdBy: "System" },
+        ], { ignoreDuplicates: true });
+        companies = await LegalCompany.findAll({
+          order: [["companyName", "ASC"]],
+          raw: true,
+        });
+      } catch (e: any) {
+        console.warn("Company bulk create warning:", e.message);
+      }
+    }
+
+    return NextResponse.json({ success: true, data: companies || [] });
   } catch (error: any) {
     console.error("[/api/legal-recovery/company GET]", error.message);
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
@@ -49,8 +62,12 @@ export async function POST(req: Request) {
 
     const createdBy = (session.user as any).id || session.user.name;
 
-    await sequelize.authenticate();
-    await LegalCompany.sync({ alter: true });
+    try {
+      await sequelize.authenticate();
+      await LegalCompany.sync();
+    } catch (syncErr: any) {
+      console.warn("LegalCompany sync warning:", syncErr.message);
+    }
 
     const body = await req.json();
     const { companyName } = body;
