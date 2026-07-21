@@ -15,19 +15,30 @@ export async function GET(req: Request) {
 
     const userId = (session.user as any).id;
 
-    await sequelize.authenticate();
+    try {
+      await sequelize.authenticate();
+      await Notification.sync();
+    } catch (syncErr: any) {
+      console.warn("Notification sync warning:", syncErr.message);
+    }
 
-    const records = await Notification.findAll({
-      where: { recipient: userId },
-      order: [["createdAt", "DESC"]],
-      limit: 50,
-    });
+    let records: any[] = [];
+    let unreadCount = 0;
+    try {
+      records = await Notification.findAll({
+        where: { recipient: userId },
+        order: [["createdAt", "DESC"]],
+        limit: 50,
+      });
 
-    const unreadCount = await Notification.count({
-      where: { recipient: userId, read: false }
-    });
+      unreadCount = await Notification.count({
+        where: { recipient: userId, read: false }
+      });
+    } catch (dbErr: any) {
+      console.warn("Notification query error:", dbErr.message);
+    }
 
-    return NextResponse.json({ success: true, data: records, unreadCount });
+    return NextResponse.json({ success: true, data: records || [], unreadCount });
   } catch (error: any) {
     console.error("[/api/notifications GET] Error:", error.message);
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });

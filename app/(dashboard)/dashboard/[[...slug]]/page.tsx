@@ -1423,7 +1423,7 @@ export default function UnifiedEnterpriseDashboard() {
 
       {/* Floating Toast Notification */}
       {toastShow && (
-        <div className="fixed bottom-6 right-6 z-[50000] bg-[#714B67] text-white px-5 py-3.5 rounded-lg shadow-2xl flex items-center justify-between gap-4 animate-slideIn">
+        <div className="fixed bottom-6 right-6 z-[9999999] bg-[#714B67] text-white px-5 py-3.5 rounded-lg shadow-2xl flex items-center justify-between gap-4 animate-slideIn">
           <span className="text-xs font-bold font-mono tracking-wide">{toastMsg}</span>
           <button onClick={() => setToastShow(false)} className="text-slate-200 hover:text-white"><X className="w-4 h-4" /></button>
         </div>

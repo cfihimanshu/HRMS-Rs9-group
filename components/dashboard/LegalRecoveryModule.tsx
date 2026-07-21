@@ -64,7 +64,6 @@ const WORK_CATEGORIES: Record<string, string[]> = {
 
 export default function LegalRecoveryModule({ userRole, triggerToast, sessionUser }: LegalRecoveryModuleProps) {
   const [activeSubModule, setActiveSubModule] = useState<"launcher" | "follow-up" | "masters" | "history" | "banks" | "branches" | "collections" | "work-logs" | "notices" | "nbfcs" | "nbfc-branches" | "security">("launcher");
-
   const [cases, setCases] = useState<any[]>([]);
   const [banksList, setBanksList] = useState<any[]>([]);
   const [branchesList, setBranchesList] = useState<any[]>([]);
@@ -79,6 +78,7 @@ export default function LegalRecoveryModule({ userRole, triggerToast, sessionUse
   const [showAddNbfcForm, setShowAddNbfcForm] = useState(false);
   const [showAddNbfcBranchForm, setShowAddNbfcBranchForm] = useState(false);
   const [editBranchId, setEditBranchId] = useState<number | null>(null);
+  const [editNbfcId, setEditNbfcId] = useState<number | null>(null);
   const [editNbfcBranchId, setEditNbfcBranchId] = useState<number | null>(null);
 
   // Modals & Data States
@@ -1426,6 +1426,7 @@ export default function LegalRecoveryModule({ userRole, triggerToast, sessionUse
             nbfcBranchesList={nbfcBranchesList}
             loading={loading}
             onDeleteNbfc={handleDeleteNbfc}
+            triggerToast={triggerToast}
           />
         )}
 
