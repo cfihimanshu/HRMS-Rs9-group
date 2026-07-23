@@ -412,7 +412,10 @@ export async function GET(req: Request) {
     }
 
     const limitParam = searchParams.get("limit");
-    const fetchLimit = limitParam === "all" ? undefined : (parseInt(limitParam || "300", 10) || 300);
+    // Return all tasks with NO limit unless a specific numeric limit parameter is passed
+    const fetchLimit = (limitParam && limitParam !== "all" && !isNaN(Number(limitParam)))
+      ? parseInt(limitParam, 10)
+      : undefined;
 
     const records = await TaskLog.findAll({
       where: query,
