@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import ReactDOM from "react-dom";
 import {
   Search, RefreshCw, Briefcase, Paperclip, Calendar, User, FileText,
-  Layers, ExternalLink, Download, FileSpreadsheet, Eye, X, CheckCircle2, Building2, Building
+  Layers, ExternalLink, Download, FileSpreadsheet, Eye, X, CheckCircle2, Building2, Building, Edit, Save, Clock
 } from "lucide-react";
 import * as XLSX from "xlsx";
 
@@ -11,9 +11,17 @@ export default function WorkHistoryView() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("");
+  const [startDateFilter, setStartDateFilter] = useState("");
+  const [endDateFilter, setEndDateFilter] = useState("");
   
   // Detail Modal State
   const [selectedLogModal, setSelectedLogModal] = useState<any | null>(null);
+  
+  // Edit Modal State
+  const [editLogModal, setEditLogModal] = useState<any | null>(null);
+  const [editStatus, setEditStatus] = useState<string>("Pending");
+  const [editRemarks, setEditRemarks] = useState<string>("");
+  const [savingEdit, setSavingEdit] = useState<boolean>(false);
 
   const fetchHistory = async () => {
     setLoading(true);
@@ -36,6 +44,13 @@ export default function WorkHistoryView() {
 
   const filteredLogs = historyLogs.filter((log) => {
     if (categoryFilter && log.category !== categoryFilter) return false;
+
+    const rawDate = log.workDate || log.createdAt;
+    if (rawDate) {
+      const logDateStr = new Date(rawDate).toISOString().split("T")[0];
+      if (startDateFilter && logDateStr < startDateFilter) return false;
+      if (endDateFilter && logDateStr > endDateFilter) return false;
+    }
 
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
@@ -69,6 +84,7 @@ export default function WorkHistoryView() {
       "Details / Entity": log.subCategory || "",
       "Bank Name": log.bankName || "",
       "Branch Name": log.branchName || "",
+      "Work Status": log.status || "Pending",
       "Submitted By": log.employeeName || "System",
       "Attachment Link": log.attachmentUrl || "None",
       "Remarks / Notes": log.remarks || "",
@@ -79,6 +95,34 @@ export default function WorkHistoryView() {
     XLSX.utils.book_append_sheet(workbook, worksheet, "Work History");
     const dateStr = new Date().toISOString().split("T")[0];
     XLSX.writeFile(workbook, `Legal_Work_History_${dateStr}.xlsx`);
+  };
+
+
+  const handleSaveStatus = async () => {
+    if (!editLogModal) return;
+    setSavingEdit(true);
+    try {
+      const res = await fetch("/api/legal-recovery/work-history", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: editLogModal.id,
+          status: editStatus,
+          remarks: editRemarks,
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setEditLogModal(null);
+        fetchHistory();
+      } else {
+        alert("Failed to update status: " + (data.error || "Unknown error"));
+      }
+    } catch (err: any) {
+      alert("Error updating status: " + err.message);
+    } finally {
+      setSavingEdit(false);
+    }
   };
 
   const isImageFile = (url: string) => {
@@ -152,7 +196,42 @@ export default function WorkHistoryView() {
           />
         </div>
 
-        <div className="flex items-center gap-2.5 w-full sm:w-auto">
+        <div className="flex flex-wrap items-center gap-2.5 w-full sm:w-auto">
+          {/* From Date */}
+          <div className="flex items-center gap-1.5 bg-[#FCFBF9] border border-[#E8E4DF] px-3 py-2 rounded-xl">
+            <span className="text-[10px] font-black uppercase text-slate-400">From:</span>
+            <input
+              type="date"
+              value={startDateFilter}
+              onChange={(e) => setStartDateFilter(e.target.value)}
+              className="bg-transparent text-xs font-bold text-slate-700 focus:outline-none"
+            />
+          </div>
+
+          {/* To Date */}
+          <div className="flex items-center gap-1.5 bg-[#FCFBF9] border border-[#E8E4DF] px-3 py-2 rounded-xl">
+            <span className="text-[10px] font-black uppercase text-slate-400">To:</span>
+            <input
+              type="date"
+              value={endDateFilter}
+              onChange={(e) => setEndDateFilter(e.target.value)}
+              className="bg-transparent text-xs font-bold text-slate-700 focus:outline-none"
+            />
+          </div>
+
+          {(startDateFilter || endDateFilter) && (
+            <button
+              onClick={() => {
+                setStartDateFilter("");
+                setEndDateFilter("");
+              }}
+              className="text-[11px] font-bold text-rose-600 hover:text-rose-800 bg-rose-50 px-2.5 py-2 rounded-xl border border-rose-200 transition-all"
+              title="Clear Date Filters"
+            >
+              Clear Date
+            </button>
+          )}
+
           <select
             value={categoryFilter}
             onChange={(e) => setCategoryFilter(e.target.value)}
@@ -191,6 +270,7 @@ export default function WorkHistoryView() {
               <th className="py-3.5 px-4">Date &amp; Time</th>
               <th className="py-3.5 px-4">Work Category</th>
               <th className="py-3.5 px-4">Details / Entity</th>
+              <th className="py-3.5 px-4">Status</th>
               <th className="py-3.5 px-4">Submitted By</th>
               <th className="py-3.5 px-4">Attachment</th>
               <th className="py-3.5 px-4">Remarks</th>
@@ -231,6 +311,27 @@ export default function WorkHistoryView() {
                     )}
                   </td>
 
+                  {/* Status Column */}
+                  <td className="py-3.5 px-4">
+                    {(() => {
+                      const st = log.status || "Pending";
+                      let badgeStyle = "bg-amber-50 text-amber-700 border-amber-200";
+                      let icon = "⏳";
+                      if (st === "In Progress") {
+                        badgeStyle = "bg-blue-50 text-blue-700 border-blue-200";
+                        icon = "🔄";
+                      } else if (st === "Completed") {
+                        badgeStyle = "bg-emerald-50 text-emerald-700 border-emerald-200";
+                        icon = "✅";
+                      }
+                      return (
+                        <span className={`px-2.5 py-1 rounded-lg border text-[10px] font-black tracking-wide inline-flex items-center gap-1 ${badgeStyle}`}>
+                          <span>{icon}</span> {st}
+                        </span>
+                      );
+                    })()}
+                  </td>
+
                   <td className="py-3.5 px-4 text-slate-700 font-semibold">
                     <div className="flex items-center gap-1.5">
                       <User className="w-3.5 h-3.5 text-slate-400" />
@@ -262,13 +363,26 @@ export default function WorkHistoryView() {
                   </td>
 
                   <td className="py-3.5 px-4 text-center">
-                    <button
-                      onClick={() => setSelectedLogModal(log)}
-                      className="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-colors inline-flex items-center gap-1"
-                      title="View Full Entry Details"
-                    >
-                      <Eye className="w-3 h-3 text-slate-600" /> View
-                    </button>
+                    <div className="flex items-center justify-center gap-1.5">
+                      <button
+                        onClick={() => setSelectedLogModal(log)}
+                        className="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-colors inline-flex items-center gap-1"
+                        title="View Full Entry Details"
+                      >
+                        <Eye className="w-3 h-3 text-slate-600" /> View
+                      </button>
+                      <button
+                        onClick={() => {
+                          setEditLogModal(log);
+                          setEditStatus(log.status || "Pending");
+                          setEditRemarks(log.remarks || "");
+                        }}
+                        className="px-2.5 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-colors inline-flex items-center gap-1"
+                        title="Edit Work Status & Remarks"
+                      >
+                        <Edit className="w-3 h-3 text-indigo-600" /> Edit
+                      </button>
+                    </div>
                   </td>
                 </tr>
               );
@@ -276,7 +390,7 @@ export default function WorkHistoryView() {
 
             {filteredLogs.length === 0 && !loading && (
               <tr>
-                <td colSpan={7} className="text-center py-12 text-slate-400 text-xs font-bold uppercase tracking-wider">
+                <td colSpan={8} className="text-center py-12 text-slate-400 text-xs font-bold uppercase tracking-wider">
                   No Work History Entries Found.
                 </td>
               </tr>
@@ -414,6 +528,91 @@ export default function WorkHistoryView() {
               >
                 Close
               </button>
+            </div>
+
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* EDIT WORK STATUS MODAL */}
+      {editLogModal && typeof window !== "undefined" && ReactDOM.createPortal(
+        <div className="fixed inset-0 bg-slate-950/75 backdrop-blur-md z-[9999] flex items-center justify-center p-4 overflow-y-auto animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl border border-slate-200 shadow-2xl w-full max-w-md overflow-hidden my-auto transform transition-all">
+            
+            {/* Modal Header */}
+            <div className="p-5 bg-gradient-to-r from-indigo-900 via-slate-800 to-slate-900 text-white flex items-center justify-between border-b border-indigo-800">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-2xl bg-indigo-500/20 border border-indigo-400/30 text-indigo-400 flex items-center justify-center">
+                  <Edit className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold tracking-wide">Edit Work Status</h3>
+                  <p className="text-[11px] text-slate-300 font-medium truncate max-w-[240px]">
+                    {editLogModal.subCategory}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setEditLogModal(null)}
+                className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-slate-300 hover:text-white flex items-center justify-center transition-all"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Modal Form */}
+            <div className="p-6 space-y-4">
+              {/* Work Status Selection */}
+              <div>
+                <label className="text-xs font-black text-slate-700 uppercase tracking-wider block mb-1.5">
+                  Work Status <span className="text-rose-500">*</span>
+                </label>
+                <select
+                  value={editStatus}
+                  onChange={(e) => setEditStatus(e.target.value)}
+                  className="w-full text-xs p-3 border-2 border-slate-200 focus:border-indigo-500 rounded-xl bg-slate-50 focus:bg-white font-bold text-slate-800 focus:outline-none transition-all"
+                >
+                  <option value="Pending">⏳ Pending</option>
+                  <option value="In Progress">🔄 In Progress</option>
+                  <option value="Completed">✅ Completed</option>
+                </select>
+              </div>
+
+              {/* Remarks Input */}
+              <div>
+                <label className="text-xs font-black text-slate-700 uppercase tracking-wider block mb-1.5">
+                  Update Remarks / Notes
+                </label>
+                <textarea
+                  rows={3}
+                  value={editRemarks}
+                  onChange={(e) => setEditRemarks(e.target.value)}
+                  placeholder="Add any updated remarks or notes..."
+                  className="w-full text-xs p-3 border-2 border-slate-200 focus:border-indigo-500 rounded-xl bg-slate-50 focus:bg-white font-semibold text-slate-800 focus:outline-none transition-all resize-none"
+                />
+              </div>
+
+              {/* Modal Actions */}
+              <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => setEditLogModal(null)}
+                  className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition-all"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  disabled={savingEdit}
+                  onClick={handleSaveStatus}
+                  className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-black rounded-xl shadow-md transition-all flex items-center gap-1.5"
+                >
+                  <Save className="w-3.5 h-3.5" />
+                  {savingEdit ? "Saving..." : "Save Changes"}
+                </button>
+              </div>
             </div>
 
           </div>
