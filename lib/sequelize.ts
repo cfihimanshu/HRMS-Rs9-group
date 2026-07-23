@@ -11,13 +11,17 @@ const sequelize = new Sequelize(
     dialect: "mysql",
     dialectModule: mysql2,
     logging: false,
-  pool: {
-    max: 5,
-    min: 0,
-    acquire: 30000,
-    idle: 10000
+    dialectOptions: {
+      connectTimeout: 5000,
+    },
+    pool: {
+      max: 10,
+      min: 0,
+      acquire: 5000,
+      idle: 10000
+    }
   }
-});
+);
 
 // Test the connection
 export async function connectSequelize() {

@@ -434,7 +434,7 @@ export async function GET(req: Request) {
 
     const hydratedRecords = records.map((r: any) => {
       const plain = r.toJSON();
-      plain.id = plain.id.toString();
+      plain.id = plain.id ? String(plain.id) : "";
       if (plain.employee) {
         const empDetail = empMap.get(plain.employee);
         plain.employee = empDetail ? { ...empDetail, id: empDetail.id } : { id: plain.employee, name: "Unknown", role: "Employee" };
@@ -462,6 +462,9 @@ export async function GET(req: Request) {
     return NextResponse.json({ success: true, data: hydratedRecords });
   } catch (error: any) {
     console.error("[/api/tasks GET] Error:", error?.message, error?.stack);
+    if (error?.message?.includes("ETIMEDOUT") || error?.message?.includes("connect") || error?.code === "ETIMEDOUT") {
+      return NextResponse.json({ success: true, data: [], error: "Database connection timeout" });
+    }
     return NextResponse.json({ success: false, error: error.message, detail: error?.original?.message || error?.stack?.split('\n')[0] || "" }, { status: 500 });
   }
 }

@@ -17,26 +17,36 @@ export async function GET(req: Request) {
       await TaskMode.sync({ alter: true });
     } catch (_) {}
 
-    let records = await TaskMode.findAll({ order: [["id", "ASC"]] });
+    let records: any[] = [];
+    try {
+      records = await TaskMode.findAll({ order: [["id", "ASC"]] });
+    } catch (_) {
+      records = [];
+    }
 
     // Seed default modes if missing
     const defaults = ["Call", "Meeting", "Email", "WhatsApp", "SMS", "Field Visit", "Social Media"];
     for (const name of defaults) {
-      const exists = records.find((r: any) => r.name.toLowerCase() === name.toLowerCase());
+      const exists = records.find((r: any) => r.name && r.name.toLowerCase() === name.toLowerCase());
       if (!exists) {
         try {
-          await TaskMode.create({ name });
+          const created = await TaskMode.create({ name });
+          records.push(created);
         } catch (e) {
           console.error(`Failed to seed default task mode ${name}:`, e);
         }
       }
     }
-    records = await TaskMode.findAll({ order: [["id", "ASC"]] });
 
-    return NextResponse.json({ success: true, data: records.map(r => ({ id: r.id, name: r.name })) });
+    const result = records.length > 0 
+      ? records.map(r => ({ id: r.id, name: r.name })) 
+      : defaults.map((d, i) => ({ id: i + 1, name: d }));
+
+    return NextResponse.json({ success: true, data: result });
   } catch (error: any) {
     console.error("[/api/tasks/modes GET]", error.message);
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    const fallbackDefaults = ["Call", "Meeting", "Email", "WhatsApp", "SMS", "Field Visit", "Social Media"].map((d, i) => ({ id: i + 1, name: d }));
+    return NextResponse.json({ success: true, data: fallbackDefaults });
   }
 }
 
