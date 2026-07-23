@@ -5,7 +5,7 @@ import {
   Plus, Search, RefreshCw, ShieldCheck, DollarSign, CheckCircle2,
   Clock, Edit, Trash2, Download, Filter, SlidersHorizontal, Tag, Calendar,
   Building2, MapPin, Banknote, Receipt, FileText, Upload, PhoneCall, Zap, UserPlus,
-  Camera, User, Image as ImageIcon
+  Camera, User, Image as ImageIcon, ChevronDown, ChevronRight
 } from "lucide-react";
 
 const STANDARD_SHIFTS = [
@@ -339,6 +339,7 @@ export default function SecurityMasterView({
     item: null,
   });
   const [rosterModalFilterDate, setRosterModalFilterDate] = useState<string>("ALL");
+  const [collapsedModalDates, setCollapsedModalDates] = useState<Record<string, boolean>>({});
 
   // Dedicated Add Billing Details Modal State
   const [showAddBillingModal, setShowAddBillingModal] = useState(false);
@@ -599,9 +600,6 @@ export default function SecurityMasterView({
   const [activeFilterKey, setActiveFilterKey] = useState<string | null>(null);
   const [columnFilters, setColumnFilters] = useState<Record<string, string[]>>({
     company: [],
-    billNo: [],
-    billDate: [],
-    billAmount: [],
     nbfcName: [],
     branchName: [],
     location: [],
@@ -609,11 +607,14 @@ export default function SecurityMasterView({
     deploymentInfo: [],
     shiftsInfo: [],
     guardContact: [],
-    paymentDays: [],
+    billNo: [],
+    billDate: [],
+    billAmount: [],
     paymentStatus: [],
-    source: [],
+    paymentDays: [],
     receivedAmount: [],
     receivedDate: [],
+    source: [],
     remarks: [],
   });
 
@@ -621,9 +622,6 @@ export default function SecurityMasterView({
   const [showColumnToggle, setShowColumnToggle] = useState(false);
   const [visibleColumns, setVisibleColumns] = useState({
     company: true,
-    billNo: true,
-    billDate: true,
-    billAmount: true,
     nbfcName: true,
     branchName: true,
     location: true,
@@ -631,11 +629,14 @@ export default function SecurityMasterView({
     deploymentInfo: true,
     shiftsInfo: true,
     guardContact: true,
-    paymentDays: true,
+    billNo: true,
+    billDate: true,
+    billAmount: true,
     paymentStatus: true,
-    source: true,
+    paymentDays: true,
     receivedAmount: true,
     receivedDate: true,
+    source: true,
     remarks: true,
     actions: true,
   });
@@ -1258,7 +1259,7 @@ export default function SecurityMasterView({
                   photoUrl: r.guardPhotoUrl || "",
                 }),
               });
-            } catch (e) {}
+            } catch (e) { }
           }
         }
         await fetchDbGuards();
@@ -1711,7 +1712,6 @@ export default function SecurityMasterView({
             </div>
             <div>
               <h1 className="text-xl font-black text-slate-900">Security Management</h1>
-              <p className="text-xs text-slate-500 mt-0.5">Manage Company Security Deposits, Bill Details &amp; Received Payments</p>
             </div>
           </div>
         </div>
@@ -1851,9 +1851,6 @@ export default function SecurityMasterView({
                 <div className="space-y-1.5 max-h-64 overflow-y-auto">
                   {Object.entries({
                     company: "Company",
-                    billNo: "Bill No.",
-                    billDate: "Bill Date",
-                    billAmount: "Bill Amount",
                     nbfcName: "Bank / NBFC Name",
                     branchName: "Branch",
                     location: "Site Area",
@@ -1861,11 +1858,14 @@ export default function SecurityMasterView({
                     deploymentInfo: "Guards / Deployment",
                     shiftsInfo: "Shifts",
                     guardContact: "Guard Contact",
-                    paymentDays: "Payment Timeline",
+                    billNo: "Bill No.",
+                    billDate: "Bill Date",
+                    billAmount: "Bill Amount",
                     paymentStatus: "Payment Status",
-                    source: "Source",
+                    paymentDays: "Payment Timeline",
                     receivedAmount: "Received Amount",
                     receivedDate: "Received Date",
+                    source: "Source",
                     remarks: "Remarks",
                     actions: "Actions",
                   }).map(([key, label]) => (
@@ -1901,15 +1901,15 @@ export default function SecurityMasterView({
             <span className="text-xs font-bold">No security entries found.</span>
           </div>
         ) : (
-          <div className="overflow-x-auto min-h-[380px] pb-32">
-            <table className="min-w-[1700px] w-full text-left text-xs border-collapse">
-              <thead>
-                <tr className="bg-slate-100/80 text-black font-black uppercase font-mono tracking-wider border-b border-slate-300 text-[11px]">
-                  <th className="py-3.5 px-3 text-center min-w-[40px]">#</th>
+          <div className="overflow-auto max-h-[calc(100vh-280px)] min-h-[380px] rounded-b-xl border-t border-slate-200/80">
+            <table className="min-w-[1950px] w-full text-left text-xs border-collapse">
+              <thead className="sticky top-0 z-20 bg-slate-100 shadow-2xs">
+                <tr className="bg-slate-100 text-black font-black uppercase font-mono tracking-wider border-b border-slate-300 text-[11px]">
+                  <th className="py-3.5 px-3 text-center min-w-[45px]">#</th>
 
-                  {/* Company */}
+                  {/* 1. Company */}
                   {visibleColumns.company && (
-                    <th className="py-3.5 px-3.5 min-w-[220px] relative">
+                    <th className="py-3.5 px-3.5 min-w-[200px] relative">
                       <div className="flex items-center gap-1.5 cursor-pointer select-none" onClick={() => setActiveFilterKey(activeFilterKey === "company" ? null : "company")}>
                         <span>Company</span>
                         <Filter className={`w-3 h-3 ${columnFilters.company?.length ? "text-indigo-600 font-bold" : "text-slate-400"}`} />
@@ -1926,64 +1926,7 @@ export default function SecurityMasterView({
                     </th>
                   )}
 
-                  {/* Bill No. */}
-                  {visibleColumns.billNo && (
-                    <th className="py-3.5 px-3.5 min-w-[120px] relative">
-                      <div className="flex items-center gap-1.5 cursor-pointer select-none" onClick={() => setActiveFilterKey(activeFilterKey === "billNo" ? null : "billNo")}>
-                        <span>Bill No.</span>
-                        <Filter className={`w-3 h-3 ${columnFilters.billNo?.length ? "text-indigo-600 font-bold" : "text-slate-400"}`} />
-                      </div>
-                      {activeFilterKey === "billNo" && (
-                        <HeaderFilter
-                          filterKey="Bill No."
-                          options={getUniqueOptions("billNo")}
-                          selectedValues={columnFilters.billNo}
-                          onChange={(vals) => setColumnFilters({ ...columnFilters, billNo: vals })}
-                          onClose={() => setActiveFilterKey(null)}
-                        />
-                      )}
-                    </th>
-                  )}
-
-                  {/* Bill Date */}
-                  {visibleColumns.billDate && (
-                    <th className="py-3.5 px-3.5 min-w-[110px] relative">
-                      <div className="flex items-center gap-1.5 cursor-pointer select-none" onClick={() => setActiveFilterKey(activeFilterKey === "billDate" ? null : "billDate")}>
-                        <span>Bill Date</span>
-                        <Filter className={`w-3 h-3 ${columnFilters.billDate?.length ? "text-indigo-600 font-bold" : "text-slate-400"}`} />
-                      </div>
-                      {activeFilterKey === "billDate" && (
-                        <HeaderFilter
-                          filterKey="Bill Date"
-                          options={getUniqueOptions("billDate")}
-                          selectedValues={columnFilters.billDate}
-                          onChange={(vals) => setColumnFilters({ ...columnFilters, billDate: vals })}
-                          onClose={() => setActiveFilterKey(null)}
-                        />
-                      )}
-                    </th>
-                  )}
-
-                  {/* Bill Amount */}
-                  {visibleColumns.billAmount && (
-                    <th className="py-3.5 px-3.5 min-w-[130px] text-right relative">
-                      <div className="flex items-center justify-end gap-1.5 cursor-pointer select-none" onClick={() => setActiveFilterKey(activeFilterKey === "billAmount" ? null : "billAmount")}>
-                        <span>Bill Amount</span>
-                        <Filter className={`w-3 h-3 ${columnFilters.billAmount?.length ? "text-indigo-600 font-bold" : "text-slate-400"}`} />
-                      </div>
-                      {activeFilterKey === "billAmount" && (
-                        <HeaderFilter
-                          filterKey="Bill Amount"
-                          options={getUniqueOptions("billAmount")}
-                          selectedValues={columnFilters.billAmount}
-                          onChange={(vals) => setColumnFilters({ ...columnFilters, billAmount: vals })}
-                          onClose={() => setActiveFilterKey(null)}
-                        />
-                      )}
-                    </th>
-                  )}
-
-                  {/* Bank / NBFC Name */}
+                  {/* 2. Bank / NBFC Name */}
                   {visibleColumns.nbfcName && (
                     <th className="py-3.5 px-3.5 min-w-[180px] relative">
                       <div className="flex items-center gap-1.5 cursor-pointer select-none" onClick={() => setActiveFilterKey(activeFilterKey === "nbfcName" ? null : "nbfcName")}>
@@ -2002,9 +1945,9 @@ export default function SecurityMasterView({
                     </th>
                   )}
 
-                  {/* Branch */}
+                  {/* 3. Branch */}
                   {visibleColumns.branchName && (
-                    <th className="py-3.5 px-3.5 min-w-[120px] relative">
+                    <th className="py-3.5 px-3.5 min-w-[130px] relative">
                       <div className="flex items-center gap-1.5 cursor-pointer select-none" onClick={() => setActiveFilterKey(activeFilterKey === "branchName" ? null : "branchName")}>
                         <span>Branch</span>
                         <Filter className={`w-3 h-3 ${columnFilters.branchName?.length ? "text-indigo-600 font-bold" : "text-slate-400"}`} />
@@ -2021,9 +1964,9 @@ export default function SecurityMasterView({
                     </th>
                   )}
 
-                  {/* Site (Formerly Location) */}
+                  {/* 4. Site (Formerly Location) */}
                   {visibleColumns.location && (
-                    <th className="py-3.5 px-3.5 min-w-[120px] relative">
+                    <th className="py-3.5 px-3.5 min-w-[150px] relative">
                       <div className="flex items-center gap-1.5 cursor-pointer select-none" onClick={() => setActiveFilterKey(activeFilterKey === "location" ? null : "location")}>
                         <span>Site Area</span>
                         <Filter className={`w-3 h-3 ${columnFilters.location?.length ? "text-indigo-600 font-bold" : "text-slate-400"}`} />
@@ -2040,9 +1983,9 @@ export default function SecurityMasterView({
                     </th>
                   )}
 
-                  {/* Site Type */}
+                  {/* 5. Site Type */}
                   {visibleColumns.siteType && (
-                    <th className="py-3.5 px-3.5 min-w-[110px] relative">
+                    <th className="py-3.5 px-3.5 min-w-[120px] relative">
                       <div className="flex items-center gap-1.5 cursor-pointer select-none" onClick={() => setActiveFilterKey(activeFilterKey === "siteType" ? null : "siteType")}>
                         <span>Site Type</span>
                         <Filter className={`w-3 h-3 ${columnFilters.siteType?.length ? "text-indigo-600 font-bold" : "text-slate-400"}`} />
@@ -2059,7 +2002,7 @@ export default function SecurityMasterView({
                     </th>
                   )}
 
-                  {/* Deployment / Guards */}
+                  {/* 6. Deployment / Guards */}
                   {visibleColumns.deploymentInfo && (
                     <th className="py-3.5 px-3.5 min-w-[150px] relative">
                       <div className="flex items-center gap-1.5 cursor-pointer select-none" onClick={() => setActiveFilterKey(activeFilterKey === "deploymentInfo" ? null : "deploymentInfo")}>
@@ -2078,7 +2021,7 @@ export default function SecurityMasterView({
                     </th>
                   )}
 
-                  {/* Shifts */}
+                  {/* 7. Shifts */}
                   {visibleColumns.shiftsInfo && (
                     <th className="py-3.5 px-3.5 min-w-[160px] relative">
                       <div className="flex items-center gap-1.5 cursor-pointer select-none" onClick={() => setActiveFilterKey(activeFilterKey === "shiftsInfo" ? null : "shiftsInfo")}>
@@ -2097,9 +2040,9 @@ export default function SecurityMasterView({
                     </th>
                   )}
 
-                  {/* Guard Contact */}
+                  {/* 8. Guard Contact */}
                   {visibleColumns.guardContact && (
-                    <th className="py-3.5 px-3.5 min-w-[150px] relative">
+                    <th className="py-3.5 px-3.5 min-w-[210px] relative">
                       <div className="flex items-center gap-1.5 cursor-pointer select-none" onClick={() => setActiveFilterKey(activeFilterKey === "guardContact" ? null : "guardContact")}>
                         <span>Guard Contact</span>
                         <Filter className={`w-3 h-3 ${columnFilters.guardContact?.length ? "text-indigo-600 font-bold" : "text-slate-400"}`} />
@@ -2116,7 +2059,83 @@ export default function SecurityMasterView({
                     </th>
                   )}
 
-                  {/* Payment Timeline */}
+                  {/* 9. Bill No. */}
+                  {visibleColumns.billNo && (
+                    <th className="py-3.5 px-3.5 min-w-[130px] relative">
+                      <div className="flex items-center gap-1.5 cursor-pointer select-none" onClick={() => setActiveFilterKey(activeFilterKey === "billNo" ? null : "billNo")}>
+                        <span>Bill No.</span>
+                        <Filter className={`w-3 h-3 ${columnFilters.billNo?.length ? "text-indigo-600 font-bold" : "text-slate-400"}`} />
+                      </div>
+                      {activeFilterKey === "billNo" && (
+                        <HeaderFilter
+                          filterKey="Bill No."
+                          options={getUniqueOptions("billNo")}
+                          selectedValues={columnFilters.billNo}
+                          onChange={(vals) => setColumnFilters({ ...columnFilters, billNo: vals })}
+                          onClose={() => setActiveFilterKey(null)}
+                        />
+                      )}
+                    </th>
+                  )}
+
+                  {/* 10. Bill Date */}
+                  {visibleColumns.billDate && (
+                    <th className="py-3.5 px-3.5 min-w-[110px] relative">
+                      <div className="flex items-center gap-1.5 cursor-pointer select-none" onClick={() => setActiveFilterKey(activeFilterKey === "billDate" ? null : "billDate")}>
+                        <span>Bill Date</span>
+                        <Filter className={`w-3 h-3 ${columnFilters.billDate?.length ? "text-indigo-600 font-bold" : "text-slate-400"}`} />
+                      </div>
+                      {activeFilterKey === "billDate" && (
+                        <HeaderFilter
+                          filterKey="Bill Date"
+                          options={getUniqueOptions("billDate")}
+                          selectedValues={columnFilters.billDate}
+                          onChange={(vals) => setColumnFilters({ ...columnFilters, billDate: vals })}
+                          onClose={() => setActiveFilterKey(null)}
+                        />
+                      )}
+                    </th>
+                  )}
+
+                  {/* 11. Bill Amount */}
+                  {visibleColumns.billAmount && (
+                    <th className="py-3.5 px-3.5 min-w-[130px] text-right relative">
+                      <div className="flex items-center justify-end gap-1.5 cursor-pointer select-none" onClick={() => setActiveFilterKey(activeFilterKey === "billAmount" ? null : "billAmount")}>
+                        <span>Bill Amount</span>
+                        <Filter className={`w-3 h-3 ${columnFilters.billAmount?.length ? "text-indigo-600 font-bold" : "text-slate-400"}`} />
+                      </div>
+                      {activeFilterKey === "billAmount" && (
+                        <HeaderFilter
+                          filterKey="Bill Amount"
+                          options={getUniqueOptions("billAmount")}
+                          selectedValues={columnFilters.billAmount}
+                          onChange={(vals) => setColumnFilters({ ...columnFilters, billAmount: vals })}
+                          onClose={() => setActiveFilterKey(null)}
+                        />
+                      )}
+                    </th>
+                  )}
+
+                  {/* 12. Payment Status */}
+                  {visibleColumns.paymentStatus && (
+                    <th className="py-3.5 px-3.5 min-w-[130px] text-center relative">
+                      <div className="flex items-center justify-center gap-1.5 cursor-pointer select-none" onClick={() => setActiveFilterKey(activeFilterKey === "paymentStatus" ? null : "paymentStatus")}>
+                        <span>Payment Status</span>
+                        <Filter className={`w-3 h-3 ${columnFilters.paymentStatus?.length ? "text-indigo-600 font-bold" : "text-slate-400"}`} />
+                      </div>
+                      {activeFilterKey === "paymentStatus" && (
+                        <HeaderFilter
+                          filterKey="Status"
+                          options={["Due", "Payment Done"]}
+                          selectedValues={columnFilters.paymentStatus}
+                          onChange={(vals) => setColumnFilters({ ...columnFilters, paymentStatus: vals })}
+                          onClose={() => setActiveFilterKey(null)}
+                        />
+                      )}
+                    </th>
+                  )}
+
+                  {/* 13. Payment Timeline */}
                   {visibleColumns.paymentDays && (
                     <th className="py-3.5 px-3.5 min-w-[130px] text-center relative">
                       <div className="flex items-center justify-center gap-1.5 cursor-pointer select-none" onClick={() => setActiveFilterKey(activeFilterKey === "paymentDays" ? null : "paymentDays")}>
@@ -2136,45 +2155,7 @@ export default function SecurityMasterView({
                     </th>
                   )}
 
-                  {/* Payment Status */}
-                  {visibleColumns.paymentStatus && (
-                    <th className="py-3.5 px-3.5 min-w-[130px] text-center relative">
-                      <div className="flex items-center justify-center gap-1.5 cursor-pointer select-none" onClick={() => setActiveFilterKey(activeFilterKey === "paymentStatus" ? null : "paymentStatus")}>
-                        <span>Payment Status</span>
-                        <Filter className={`w-3 h-3 ${columnFilters.paymentStatus?.length ? "text-indigo-600 font-bold" : "text-slate-400"}`} />
-                      </div>
-                      {activeFilterKey === "paymentStatus" && (
-                        <HeaderFilter
-                          filterKey="Status"
-                          options={["Due", "Payment Done"]}
-                          selectedValues={columnFilters.paymentStatus}
-                          onChange={(vals) => setColumnFilters({ ...columnFilters, paymentStatus: vals })}
-                          onClose={() => setActiveFilterKey(null)}
-                        />
-                      )}
-                    </th>
-                  )}
-
-                  {/* Source */}
-                  {visibleColumns.source && (
-                    <th className="py-3.5 px-3.5 min-w-[100px] relative">
-                      <div className="flex items-center gap-1.5 cursor-pointer select-none" onClick={() => setActiveFilterKey(activeFilterKey === "source" ? null : "source")}>
-                        <span>Source</span>
-                        <Filter className={`w-3 h-3 ${columnFilters.source?.length ? "text-indigo-600 font-bold" : "text-slate-400"}`} />
-                      </div>
-                      {activeFilterKey === "source" && (
-                        <HeaderFilter
-                          filterKey="Source"
-                          options={getUniqueOptions("source")}
-                          selectedValues={columnFilters.source}
-                          onChange={(vals) => setColumnFilters({ ...columnFilters, source: vals })}
-                          onClose={() => setActiveFilterKey(null)}
-                        />
-                      )}
-                    </th>
-                  )}
-
-                  {/* Received Amount */}
+                  {/* 14. Received Amount */}
                   {visibleColumns.receivedAmount && (
                     <th className="py-3.5 px-3.5 min-w-[140px] text-right relative">
                       <div className="flex items-center justify-end gap-1.5 cursor-pointer select-none" onClick={() => setActiveFilterKey(activeFilterKey === "receivedAmount" ? null : "receivedAmount")}>
@@ -2194,10 +2175,10 @@ export default function SecurityMasterView({
                     </th>
                   )}
 
-                  {/* Received Date */}
+                  {/* 15. Received Date */}
                   {visibleColumns.receivedDate && (
-                    <th className="py-3.5 px-3.5 min-w-[110px] relative">
-                      <div className="flex items-center gap-1.5 cursor-pointer select-none" onClick={() => setActiveFilterKey(activeFilterKey === "receivedDate" ? null : "receivedDate")}>
+                    <th className="py-3.5 px-3.5 min-w-[110px] text-center relative">
+                      <div className="flex items-center justify-center gap-1.5 cursor-pointer select-none" onClick={() => setActiveFilterKey(activeFilterKey === "receivedDate" ? null : "receivedDate")}>
                         <span>Received Date</span>
                         <Filter className={`w-3 h-3 ${columnFilters.receivedDate?.length ? "text-indigo-600 font-bold" : "text-slate-400"}`} />
                       </div>
@@ -2214,9 +2195,28 @@ export default function SecurityMasterView({
                     </th>
                   )}
 
-                  {/* Remarks */}
+                  {/* 16. Source */}
+                  {visibleColumns.source && (
+                    <th className="py-3.5 px-3.5 min-w-[100px] text-center relative">
+                      <div className="flex items-center justify-center gap-1.5 cursor-pointer select-none" onClick={() => setActiveFilterKey(activeFilterKey === "source" ? null : "source")}>
+                        <span>Source</span>
+                        <Filter className={`w-3 h-3 ${columnFilters.source?.length ? "text-indigo-600 font-bold" : "text-slate-400"}`} />
+                      </div>
+                      {activeFilterKey === "source" && (
+                        <HeaderFilter
+                          filterKey="Source"
+                          options={getUniqueOptions("source")}
+                          selectedValues={columnFilters.source}
+                          onChange={(vals) => setColumnFilters({ ...columnFilters, source: vals })}
+                          onClose={() => setActiveFilterKey(null)}
+                        />
+                      )}
+                    </th>
+                  )}
+
+                  {/* 17. Remarks */}
                   {visibleColumns.remarks && (
-                    <th className="py-3.5 px-3.5 min-w-[160px] relative">
+                    <th className="py-3.5 px-3.5 min-w-[180px] relative">
                       <div className="flex items-center gap-1.5 cursor-pointer select-none" onClick={() => setActiveFilterKey(activeFilterKey === "remarks" ? null : "remarks")}>
                         <span>Remarks</span>
                         <Filter className={`w-3 h-3 ${columnFilters.remarks?.length ? "text-indigo-600 font-bold" : "text-slate-400"}`} />
@@ -2234,46 +2234,28 @@ export default function SecurityMasterView({
                     </th>
                   )}
 
-                  {/* Actions */}
-                  {visibleColumns.actions && <th className="py-3.5 px-3.5 min-w-[110px] text-center">Actions</th>}
+                  {/* 18. Actions */}
+                  {visibleColumns.actions && <th className="py-3.5 px-3.5 min-w-[140px] text-center">Actions</th>}
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 font-semibold text-slate-700">
                 {filteredEntries.map((item, index) => (
                   <tr key={item.id} className="hover:bg-slate-50/70 transition-colors">
                     <td className="py-3.5 px-3 text-center text-slate-400 font-mono">{index + 1}</td>
+
+                    {/* 1. Company */}
                     {visibleColumns.company && <td className="py-3.5 px-3.5 font-bold text-slate-900 leading-snug">{item.company}</td>}
-                    {visibleColumns.billNo && (
-                      <td className="py-3.5 px-3.5 font-bold text-indigo-700 font-mono whitespace-nowrap">
-                        <div className="flex items-center gap-1.5">
-                          <span>{item.billNo || "—"}</span>
-                          {item.billInvoiceUrl && (
-                            <a
-                              href={item.billInvoiceUrl}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="text-[10px] bg-indigo-50 text-indigo-700 border border-indigo-200 px-1.5 py-0.2 rounded hover:underline flex items-center gap-0.5"
-                              title="View Bill Copy"
-                            >
-                              <Receipt className="w-3 h-3" /> Bill
-                            </a>
-                          )}
-                        </div>
-                      </td>
-                    )}
-                    {visibleColumns.billDate && (
-                      <td className="py-3.5 px-3.5 text-slate-600 font-mono whitespace-nowrap">
-                        {item.billDate ? item.billDate.split("-").reverse().join("/") : "—"}
-                      </td>
-                    )}
-                    {visibleColumns.billAmount && (
-                      <td className="py-3.5 px-3.5 text-right font-black text-slate-900 whitespace-nowrap">
-                        ₹{Number(item.billAmount || 0).toLocaleString("en-IN")}
-                      </td>
-                    )}
+
+                    {/* 2. Bank / NBFC Name */}
                     {visibleColumns.nbfcName && <td className="py-3.5 px-3.5 font-bold text-slate-850 leading-snug">{item.nbfcName || "—"}</td>}
+
+                    {/* 3. Branch */}
                     {visibleColumns.branchName && <td className="py-3.5 px-3.5 text-slate-600 whitespace-nowrap">{item.branchName || "—"}</td>}
+
+                    {/* 4. Site Area */}
                     {visibleColumns.location && <td className="py-3.5 px-3.5 text-slate-700 font-bold whitespace-nowrap">{item.location || "—"}</td>}
+
+                    {/* 5. Site Type */}
                     {visibleColumns.siteType && (
                       <td className="py-3.5 px-3.5 whitespace-nowrap">
                         <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-100">
@@ -2281,6 +2263,8 @@ export default function SecurityMasterView({
                         </span>
                       </td>
                     )}
+
+                    {/* 6. Guards / Deployment */}
                     {visibleColumns.deploymentInfo && (
                       <td className="py-3.5 px-3.5 text-xs whitespace-nowrap">
                         {(() => {
@@ -2325,6 +2309,8 @@ export default function SecurityMasterView({
                         })()}
                       </td>
                     )}
+
+                    {/* 7. Shifts */}
                     {visibleColumns.shiftsInfo && (
                       <td className="py-3.5 px-3.5 text-xs whitespace-nowrap">
                         {item.shiftHours && item.coverageHours ? (
@@ -2341,6 +2327,8 @@ export default function SecurityMasterView({
                         )}
                       </td>
                     )}
+
+                    {/* 8. Guard Contact */}
                     {visibleColumns.guardContact && (
                       <td className="py-2.5 px-3 text-xs whitespace-nowrap">
                         {(() => {
@@ -2402,11 +2390,42 @@ export default function SecurityMasterView({
                         })()}
                       </td>
                     )}
-                    {visibleColumns.paymentDays && (
-                      <td className="py-3.5 px-3.5 text-center font-mono font-bold text-slate-700 whitespace-nowrap">
-                        {item.paymentDays || "—"}
+
+                    {/* 9. Bill No. */}
+                    {visibleColumns.billNo && (
+                      <td className="py-3.5 px-3.5 font-bold text-indigo-700 font-mono whitespace-nowrap">
+                        <div className="flex items-center gap-1.5">
+                          <span>{item.billNo || "—"}</span>
+                          {item.billInvoiceUrl && (
+                            <a
+                              href={item.billInvoiceUrl}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="text-[10px] bg-indigo-50 text-indigo-700 border border-indigo-200 px-1.5 py-0.2 rounded hover:underline flex items-center gap-0.5"
+                              title="View Bill Copy"
+                            >
+                              <Receipt className="w-3 h-3" /> Bill
+                            </a>
+                          )}
+                        </div>
                       </td>
                     )}
+
+                    {/* 10. Bill Date */}
+                    {visibleColumns.billDate && (
+                      <td className="py-3.5 px-3.5 text-slate-600 font-mono whitespace-nowrap">
+                        {item.billDate ? item.billDate.split("-").reverse().join("/") : "—"}
+                      </td>
+                    )}
+
+                    {/* 11. Bill Amount */}
+                    {visibleColumns.billAmount && (
+                      <td className="py-3.5 px-3.5 text-right font-black text-slate-900 whitespace-nowrap">
+                        ₹{Number(item.billAmount || 0).toLocaleString("en-IN")}
+                      </td>
+                    )}
+
+                    {/* 12. Payment Status */}
                     {visibleColumns.paymentStatus && (
                       <td className="py-3.5 px-3.5 text-center whitespace-nowrap">
                         <div className="flex flex-col items-center gap-0.5">
@@ -2426,13 +2445,15 @@ export default function SecurityMasterView({
                         </div>
                       </td>
                     )}
-                    {visibleColumns.source && (
-                      <td className="py-3.5 px-3.5 text-center whitespace-nowrap">
-                        <span className="bg-slate-100 text-slate-700 px-2 py-0.5 rounded text-[10px] font-bold">
-                          {item.source || "—"}
-                        </span>
+
+                    {/* 13. Payment Timeline */}
+                    {visibleColumns.paymentDays && (
+                      <td className="py-3.5 px-3.5 text-center font-mono font-bold text-slate-700 whitespace-nowrap">
+                        {item.paymentDays || "—"}
                       </td>
                     )}
+
+                    {/* 14. Received Amount */}
                     {visibleColumns.receivedAmount && (
                       <td className="py-3.5 px-3.5 text-right font-black text-emerald-700 whitespace-nowrap">
                         {Number(item.receivedAmount || 0) > 0 ? (
@@ -2442,51 +2463,68 @@ export default function SecurityMasterView({
                         )}
                       </td>
                     )}
+
+                    {/* 15. Received Date */}
                     {visibleColumns.receivedDate && (
-                      <td className="py-3.5 px-3.5 text-slate-500 font-mono whitespace-nowrap">
+                      <td className="py-3.5 px-3.5 text-center text-slate-500 font-mono whitespace-nowrap">
                         {item.receivedDate ? item.receivedDate.split("-").reverse().join("/") : "—"}
                       </td>
                     )}
+
+                    {/* 16. Source */}
+                    {visibleColumns.source && (
+                      <td className="py-3.5 px-3.5 text-center whitespace-nowrap">
+                        <span className="bg-slate-100 text-slate-700 px-2 py-0.5 rounded text-[10px] font-bold">
+                          {item.source || "—"}
+                        </span>
+                      </td>
+                    )}
+
+                    {/* 17. Remarks */}
                     {visibleColumns.remarks && <td className="py-3.5 px-3.5 text-slate-600 max-w-[200px] truncate">{item.remarks || "—"}</td>}
+
+                    {/* 18. Actions */}
                     {visibleColumns.actions && (
                       <td className="py-2.5 px-3 text-center whitespace-nowrap">
                         <div className="flex items-center justify-center gap-1.5">
                           {/* Edit Record */}
                           <button
+                            type="button"
                             onClick={() => handleOpenEditModal(item)}
-                            className="p-1.5 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all border border-transparent hover:border-indigo-200"
+                            className="p-2 text-indigo-600 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 rounded-lg transition-all shadow-2xs"
                             title="Edit Record & Guard Details"
                           >
-                            <Edit className="w-4 h-4" />
+                            <Edit className="w-3.5 h-3.5" />
                           </button>
 
                           {/* Log Payment Follow-Up Call */}
                           <button
+                            type="button"
                             onClick={() => handleOpenFollowUpModal(item)}
-                            className="px-2.5 py-1 text-[11px] font-bold text-purple-700 bg-purple-50 hover:bg-purple-100 border border-purple-200 rounded-lg flex items-center gap-1 transition-all shadow-2xs"
-                            title="Log Payment Follow-Up Call & Create Auto-Task"
+                            className="p-2 text-purple-600 bg-purple-50 hover:bg-purple-100 border border-purple-200 rounded-lg transition-all shadow-2xs"
+                            title="Log Payment Follow-Up Call"
                           >
-                            <PhoneCall className="w-3.5 h-3.5 text-purple-600" />
-                            <span>Log Follow Up</span>
+                            <PhoneCall className="w-3.5 h-3.5" />
                           </button>
 
                           {/* Log Received Payment */}
                           <button
+                            type="button"
                             onClick={() => handleOpenReceiveModal(item)}
-                            className="px-2.5 py-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-lg flex items-center gap-1 transition-all shadow-2xs"
-                            title="Log Received Payment Amount & Method"
+                            className="p-2 text-emerald-600 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-lg transition-all shadow-2xs"
+                            title="Log Received Payment"
                           >
-                            <Banknote className="w-3.5 h-3.5 text-emerald-600" />
-                            <span>Log Payment</span>
+                            <Banknote className="w-3.5 h-3.5" />
                           </button>
 
                           {/* Delete Record */}
                           <button
+                            type="button"
                             onClick={() => handleDelete(item.id)}
-                            className="p-1.5 text-rose-600 hover:bg-rose-50 rounded-lg transition-colors border border-transparent hover:border-rose-200"
+                            className="p-2 text-rose-600 bg-rose-50 hover:bg-rose-100 border border-rose-200 rounded-lg transition-all shadow-2xs"
                             title="Delete Record"
                           >
-                            <Trash2 className="w-4 h-4" />
+                            <Trash2 className="w-3.5 h-3.5" />
                           </button>
                         </div>
                       </td>
@@ -2514,7 +2552,6 @@ export default function SecurityMasterView({
                   <h2 className="text-base font-black text-slate-900">
                     {editingId ? "Edit Security Record" : "Add Security Entry"}
                   </h2>
-                  <p className="text-[11px] text-slate-500 font-medium">Enter bill, security deposit, and site details</p>
                 </div>
               </div>
               <button
@@ -2696,13 +2733,13 @@ export default function SecurityMasterView({
                   <div className="flex items-center gap-2">
                     <Clock className="w-4 h-4 text-indigo-600" />
                     <h3 className="text-xs font-black uppercase tracking-wider font-mono">
-                      3. TOTAL CALCULATED BILL SUMMARY &amp; GUARD LOGS
+                      3. BILL SUMMARY &amp; GUARD LOGS
                     </h3>
                   </div>
                   <div className="flex items-center gap-2">
                     {dailyRosterList.length > 0 && (
                       <div className="flex items-center gap-1">
-                        <span className="text-[10px] font-bold text-slate-500 font-mono">Filter/Edit Date:</span>
+                        <span className="text-[10px] font-bold text-slate-500 font-mono">Filter</span>
                         <select
                           className="bg-white border border-indigo-200 rounded-lg px-2.5 py-1 text-xs font-bold text-slate-800 focus:outline-none shadow-2xs cursor-pointer"
                           value={selectedRosterFilterDate}
@@ -2750,7 +2787,7 @@ export default function SecurityMasterView({
                   <div className="space-y-3 pt-2 border-t border-indigo-100">
                     <div className="flex items-center justify-between">
                       <span className="text-[11px] font-black uppercase text-indigo-900 font-mono flex items-center gap-1.5">
-                        <Calendar className="w-3.5 h-3.5 text-indigo-700" /> Day-Wise Deployment &amp; Shift Payment Records ({dailyRosterList.length})
+                        <Calendar className="w-3.5 h-3.5 text-indigo-700" /> Day-Wise Shift Payment Records ({dailyRosterList.length})
                       </span>
                       <div className="flex items-center gap-2">
                         {selectedRosterFilterDate !== "ALL" && selectedRosterFilterDate !== "NONE" && (
@@ -3047,8 +3084,8 @@ export default function SecurityMasterView({
                                       !item.shiftTiming
                                         ? ""
                                         : STANDARD_TIMINGS.includes(item.shiftTiming)
-                                        ? item.shiftTiming
-                                        : "__CUSTOM_TIMING__"
+                                          ? item.shiftTiming
+                                          : "__CUSTOM_TIMING__"
                                     }
                                     onChange={(e) => {
                                       const val = e.target.value;
@@ -4320,7 +4357,7 @@ export default function SecurityMasterView({
                 </div>
                 <div>
                   <h3 className="font-black text-slate-900 text-base">Add New Billing Entry</h3>
-                  <p className="text-xs text-slate-500">Enter initial work order, bill details, site location &amp; payment timeline</p>
+
                 </div>
               </div>
               <button
@@ -4439,7 +4476,7 @@ export default function SecurityMasterView({
                 <div className="flex items-center gap-2 pb-2 border-b border-slate-100 text-[#714B67] mb-3">
                   <MapPin className="w-4 h-4 text-indigo-600" />
                   <h4 className="text-xs font-black uppercase tracking-wider font-mono">
-                    2. SITE &amp; WORK ORDER / BILLING DETAILS
+                    2. SITE &amp; WORK ORDER DETAILS
                   </h4>
                 </div>
 
@@ -4447,7 +4484,7 @@ export default function SecurityMasterView({
                   {/* Site Address */}
                   <div className="md:col-span-2">
                     <label className="block text-[10px] uppercase font-black text-slate-500 tracking-wider mb-1">
-                      Site Name / Area / Jagah Address *
+                      Site Name / Area Address *
                     </label>
                     <input
                       type="text"
@@ -4644,7 +4681,7 @@ export default function SecurityMasterView({
                 </div>
                 <div>
                   <h2 className="text-base font-black text-slate-900 leading-tight">
-                    Day-Wise Guard Deployment &amp; Payment Roster
+                    Day-Wise Guard Details
                   </h2>
                   <p className="text-xs text-slate-500 font-medium">
                     {showRosterDetailsModal.item.company} | {showRosterDetailsModal.item.location} ({showRosterDetailsModal.item.siteType || "Building"})
@@ -4714,7 +4751,7 @@ export default function SecurityMasterView({
                   );
                 }
 
-                const availableDates = Array.from(new Set(rosterList.map((r) => r.date).filter(Boolean)));
+                const availableDates = Array.from(new Set(rosterList.map((r) => r.date).filter(Boolean))).sort().reverse();
                 const filteredRoster = rosterList.filter(
                   (r) => rosterModalFilterDate === "ALL" || r.date === rosterModalFilterDate
                 );
@@ -4733,13 +4770,38 @@ export default function SecurityMasterView({
                   if (r.date) uniqueDates.add(r.date);
                 });
 
+                const allDatesCollapsed = availableDates.length > 0 && availableDates.every((d) => collapsedModalDates[d] !== false);
+
                 return (
                   <div className="space-y-3">
                     <div className="border border-slate-200 rounded-xl overflow-hidden shadow-2xs">
                       <div className="bg-slate-50 px-4 py-2.5 border-b border-slate-200 flex flex-wrap justify-between items-center gap-2">
-                        <span className="text-xs font-black uppercase tracking-wider text-slate-800 font-mono flex items-center gap-1.5">
-                          📅 Date-Wise Guards &amp; Shift Payment Details
-                        </span>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-black uppercase tracking-wider text-slate-800 font-mono flex items-center gap-1.5">
+                            📅 Date-Wise Guards Shift Details
+                          </span>
+                          {availableDates.length > 1 && rosterModalFilterDate === "ALL" && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (allDatesCollapsed) {
+                                  // Expand all
+                                  const expMap: Record<string, boolean> = {};
+                                  availableDates.forEach((d) => { expMap[d] = false; });
+                                  setCollapsedModalDates(expMap);
+                                } else {
+                                  // Collapse all
+                                  setCollapsedModalDates({});
+                                }
+                              }}
+                              className="text-[10px] font-bold bg-white hover:bg-slate-100 text-indigo-700 border border-indigo-200 px-2 py-0.5 rounded-lg transition-all shadow-2xs flex items-center gap-1 font-mono"
+                              title="Toggle Expand / Collapse for all date headers"
+                            >
+                              {allDatesCollapsed ? "📂 Expand All Dates" : "📁 Collapse All Dates"}
+                            </button>
+                          )}
+                        </div>
+
                         <div className="flex items-center gap-2">
                           {availableDates.length > 0 && (
                             <div className="flex items-center gap-1.5">
@@ -4749,12 +4811,15 @@ export default function SecurityMasterView({
                                 value={rosterModalFilterDate}
                                 onChange={(e) => setRosterModalFilterDate(e.target.value)}
                               >
-                                <option value="ALL">Show All Dates ({rosterList.length} Entries)</option>
-                                {availableDates.map((dVal: any) => (
-                                  <option key={dVal} value={dVal}>
-                                    📅 {dVal}
-                                  </option>
-                                ))}
+                                <option value="ALL">Show All Dates ({rosterList.length} Total)</option>
+                                {availableDates.map((dVal: any) => {
+                                  const dateEntriesCount = rosterList.filter((r) => r.date === dVal).length;
+                                  return (
+                                    <option key={dVal} value={dVal}>
+                                      📅 {dVal} ({dateEntriesCount} {dateEntriesCount === 1 ? "Entry" : "Entries"})
+                                    </option>
+                                  );
+                                })}
                               </select>
                             </div>
                           )}
@@ -4763,9 +4828,11 @@ export default function SecurityMasterView({
                           </span>
                         </div>
                       </div>
-                      <div className="overflow-x-auto">
-                        <table className="w-full text-left text-xs">
-                          <thead className="bg-slate-100 text-[10px] uppercase font-black text-slate-600 border-b border-slate-200">
+
+                      {/* Scrollable Container with Max Height */}
+                      <div className="overflow-x-auto max-h-[350px] overflow-y-auto">
+                        <table className="w-full text-left text-xs border-collapse">
+                          <thead className="bg-slate-100 text-[10px] uppercase font-black text-slate-600 border-b border-slate-200 sticky top-0 z-10 shadow-2xs">
                             <tr>
                               <th className="py-2.5 px-3">Date</th>
                               <th className="py-2.5 px-3">Guard Name</th>
@@ -4778,37 +4845,107 @@ export default function SecurityMasterView({
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-slate-100 font-bold text-slate-800">
-                            {filteredRoster.map((r, i) => {
-                              const count = Math.max(1, Number(r.guardsCount) || 1);
-                              const rate = Number(r.shiftRate) || 0;
-                              const allowance = Number(r.allowancePerShift) || 0;
-                              const daySubtotal = (rate + allowance) * count;
+                            {(() => {
+                              let lastRenderedDate = "";
+                              return filteredRoster.map((r, i) => {
+                                const count = Math.max(1, Number(r.guardsCount) || 1);
+                                const rate = Number(r.shiftRate) || 0;
+                                const allowance = Number(r.allowancePerShift) || 0;
+                                const daySubtotal = (rate + allowance) * count;
+                                const currentDate = r.date || showRosterDetailsModal.item.billDate || "—";
+                                const isNewDateGroup = rosterModalFilterDate === "ALL" && currentDate !== lastRenderedDate;
+                                if (isNewDateGroup) {
+                                  lastRenderedDate = currentDate;
+                                }
 
-                              return (
-                                <tr key={`rost-modal-${i}`} className="hover:bg-slate-50">
-                                  <td className="py-2.5 px-3 font-mono text-indigo-700 whitespace-nowrap">
-                                    {r.date || showRosterDetailsModal.item.billDate || "—"}
-                                  </td>
-                                  <td className="py-2.5 px-3 whitespace-nowrap">{r.guardName || r.name || "—"}</td>
-                                  <td className="py-2.5 px-3 whitespace-nowrap text-slate-500 font-mono">{r.guardPhone || r.phone || "—"}</td>
-                                  <td className="py-2.5 px-3 whitespace-nowrap">
-                                    <div className="text-slate-800 font-bold">{r.shiftType || "—"}</div>
-                                    {r.shiftTiming && (
-                                      <div className="text-[10px] font-semibold text-indigo-600 font-mono flex items-center gap-1 mt-0.5">
-                                        <Clock className="w-3 h-3 text-indigo-400 shrink-0" />
-                                        <span>{r.shiftTiming}</span>
-                                      </div>
+                                // Default to collapsed (true) unless explicitly set to false (expanded)
+                                const isCurrentDateCollapsed = Boolean(
+                                  rosterModalFilterDate === "ALL" && collapsedModalDates[currentDate] !== false
+                                );
+
+                                return (
+                                  <React.Fragment key={`rost-modal-${i}`}>
+                                    {/* Collapsible Date Header Row */}
+                                    {isNewDateGroup && (() => {
+                                      const isCollapsed = collapsedModalDates[currentDate] !== false;
+                                      const dateGroupEntries = rosterList.filter(
+                                        (item) => (item.date || showRosterDetailsModal.item.billDate || "—") === currentDate
+                                      );
+                                      let dateGroupTotal = 0;
+                                      dateGroupEntries.forEach((item) => {
+                                        const c = Math.max(1, Number(item.guardsCount) || 1);
+                                        const rt = Number(item.shiftRate) || 0;
+                                        const al = Number(item.allowancePerShift) || 0;
+                                        dateGroupTotal += (rt + al) * c;
+                                      });
+
+                                      return (
+                                        <tr
+                                          onClick={() =>
+                                            setCollapsedModalDates((prev) => ({
+                                              ...prev,
+                                              [currentDate]: prev[currentDate] === false ? true : false,
+                                            }))
+                                          }
+                                          className="bg-indigo-50/90 hover:bg-indigo-100/90 cursor-pointer select-none border-y border-indigo-200/80 transition-all font-mono group"
+                                          title={isCollapsed ? "Click to Expand Guard Details" : "Click to Collapse Guard Details"}
+                                        >
+                                          <td colSpan={8} className="py-2 px-3">
+                                            <div className="flex items-center justify-between">
+                                              <div className="flex items-center gap-2">
+                                                <span className="p-1 rounded bg-white text-indigo-700 border border-indigo-200 shadow-2xs group-hover:scale-105 transition-transform">
+                                                  {isCollapsed ? (
+                                                    <ChevronRight className="w-3.5 h-3.5" />
+                                                  ) : (
+                                                    <ChevronDown className="w-3.5 h-3.5" />
+                                                  )}
+                                                </span>
+                                                <span className="text-xs font-black text-indigo-950 uppercase tracking-wider">
+                                                  📅 Date: {currentDate}
+                                                </span>
+                                                <span className="text-[10px] font-bold bg-indigo-100 text-indigo-800 px-2 py-0.5 rounded-full border border-indigo-200">
+                                                  {dateGroupEntries.length} {dateGroupEntries.length === 1 ? "Guard Shift" : "Guard Shifts"}
+                                                </span>
+                                              </div>
+
+                                              <div className="text-[11px] font-bold text-indigo-900 font-mono">
+                                                <span>Day Subtotal: <strong className="text-emerald-700 font-mono font-black text-xs">₹{dateGroupTotal.toLocaleString("en-IN")}</strong></span>
+                                              </div>
+                                            </div>
+                                          </td>
+                                        </tr>
+                                      );
+                                    })()}
+
+                                    {/* Guard Detail Row (Hidden when Date is Collapsed) */}
+                                    {!isCurrentDateCollapsed && (
+                                      <tr className="hover:bg-slate-50 transition-colors">
+                                        <td className="py-2.5 px-3 font-mono text-indigo-700 whitespace-nowrap">
+                                          {currentDate}
+                                        </td>
+                                        <td className="py-2.5 px-3 whitespace-nowrap">{r.guardName || r.name || "—"}</td>
+                                        <td className="py-2.5 px-3 whitespace-nowrap text-slate-500 font-mono">{r.guardPhone || r.phone || "—"}</td>
+                                        <td className="py-2.5 px-3 whitespace-nowrap">
+                                          <div className="text-slate-800 font-bold">{r.shiftType || "—"}</div>
+                                          {r.shiftTiming && (
+                                            <div className="text-[10px] font-semibold text-indigo-600 font-mono flex items-center gap-1 mt-0.5">
+                                              <Clock className="w-3 h-3 text-indigo-400 shrink-0" />
+                                              <span>{r.shiftTiming}</span>
+                                            </div>
+                                          )}
+                                        </td>
+                                        <td className="py-2.5 px-3 text-center font-mono">{count}</td>
+                                        <td className="py-2.5 px-3 text-right font-mono">₹{rate.toLocaleString("en-IN")}</td>
+                                        <td className="py-2.5 px-3 text-right font-mono text-slate-500">₹{allowance.toLocaleString("en-IN")}</td>
+                                        <td className="py-2.5 px-3 text-right font-mono font-black text-emerald-700">
+                                          ₹{daySubtotal.toLocaleString("en-IN")}
+                                        </td>
+                                      </tr>
                                     )}
-                                  </td>
-                                  <td className="py-2.5 px-3 text-center font-mono">{count}</td>
-                                  <td className="py-2.5 px-3 text-right font-mono">₹{rate.toLocaleString("en-IN")}</td>
-                                  <td className="py-2.5 px-3 text-right font-mono text-slate-500">₹{allowance.toLocaleString("en-IN")}</td>
-                                  <td className="py-2.5 px-3 text-right font-mono font-black text-emerald-700">
-                                    ₹{daySubtotal.toLocaleString("en-IN")}
-                                  </td>
-                                </tr>
-                              );
-                            })}
+                                  </React.Fragment>
+                                );
+                              });
+                            })()}
                           </tbody>
                         </table>
                       </div>

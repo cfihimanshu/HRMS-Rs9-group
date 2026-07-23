@@ -365,29 +365,45 @@ export async function GET(req: Request) {
     if (userRole !== "Owner") {
       const managedUserIds = [userId];
       const loggedInProfile = await EmployeeProfile.findOne({ where: { user: userId } });
-      if (userRole === "Department Manager" && loggedInProfile?.department) {
-        const deptProfiles = await EmployeeProfile.findAll({
-          where: { department: loggedInProfile.department },
-          attributes: ["user"]
-        });
-        deptProfiles.forEach((p: any) => {
-          if (p.user && !managedUserIds.includes(p.user)) {
-            managedUserIds.push(p.user);
-          }
-        });
-      }
       const userName = session.user.name;
-      if (userName) {
-        const reportProfiles = await EmployeeProfile.findAll({
-          where: { reportingManager: userName },
-          attributes: ["user"]
-        });
-        reportProfiles.forEach((p: any) => {
-          if (p.user && !managedUserIds.includes(p.user)) {
-            managedUserIds.push(p.user);
-          }
-        });
+
+      const promises: Promise<any>[] = [];
+      if (userRole === "Department Manager" && loggedInProfile?.department) {
+        promises.push(
+          EmployeeProfile.findAll({
+            where: { department: loggedInProfile.department },
+            attributes: ["user"],
+            raw: true
+          })
+        );
+      } else {
+        promises.push(Promise.resolve([]));
       }
+
+      if (userName) {
+        promises.push(
+          EmployeeProfile.findAll({
+            where: { reportingManager: userName },
+            attributes: ["user"],
+            raw: true
+          })
+        );
+      } else {
+        promises.push(Promise.resolve([]));
+      }
+
+      const [deptProfiles, reportProfiles] = await Promise.all(promises);
+
+      deptProfiles.forEach((p: any) => {
+        if (p.user && !managedUserIds.includes(p.user)) {
+          managedUserIds.push(p.user);
+        }
+      });
+      reportProfiles.forEach((p: any) => {
+        if (p.user && !managedUserIds.includes(p.user)) {
+          managedUserIds.push(p.user);
+        }
+      });
 
       query[Op.or] = [
         { employee: { [Op.in]: managedUserIds } },
@@ -395,9 +411,13 @@ export async function GET(req: Request) {
       ];
     }
 
+    const limitParam = searchParams.get("limit");
+    const fetchLimit = limitParam === "all" ? undefined : (parseInt(limitParam || "300", 10) || 300);
+
     const records = await TaskLog.findAll({
       where: query,
-      order: [["createdAt", "DESC"]]
+      order: [["createdAt", "DESC"]],
+      limit: fetchLimit
     });
 
     const empIds = records.map((r: any) => r.employee).filter(Boolean);

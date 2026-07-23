@@ -59,6 +59,7 @@ import KanbanBoard from "@/components/dashboard/KanbanBoard";
 import { AssetRequestLogs } from "@/components/dashboard/AssetRequestPanels";
 import LiveTrackingMap from "@/components/dashboard/LiveTrackingMap";
 import AssignedTaskPopup from "@/components/dashboard/AssignedTaskPopup";
+import PendingTasksModal from "@/components/dashboard/PendingTasksModal";
 import BusinessLeads from "@/components/dashboard/BusinessLeads";
 
 export default function UnifiedEnterpriseDashboard() {
@@ -91,6 +92,7 @@ export default function UnifiedEnterpriseDashboard() {
   const [activeTab, setActiveTab] = useState<string>("dashboard");
   const [businessLeadsFilter, setBusinessLeadsFilter] = useState<string>("All");
   const [kanbanSearchFilter, setKanbanSearchFilter] = useState<string>("");
+  const [performanceSubTab, setPerformanceSubTab] = useState<string>("visual-dashboard");
 
   const handleNavigateTab = (tab: string, filter?: string) => {
     setActiveTab(tab);
@@ -100,6 +102,8 @@ export default function UnifiedEnterpriseDashboard() {
     } else if (tab === "tasks" && filter) {
       setKanbanSearchFilter(filter);
       setBusinessLeadsFilter("All");
+    } else if (tab === "performance" && filter) {
+      setPerformanceSubTab(filter);
     } else {
       setBusinessLeadsFilter("All");
       setKanbanSearchFilter("");
@@ -146,6 +150,7 @@ export default function UnifiedEnterpriseDashboard() {
   // Selected Candidate for detailed view
   const [selectedCandidate, setSelectedCandidate] = useState<any>(null);
   const [preselectedWorkReportUserId, setPreselectedWorkReportUserId] = useState<string>("");
+  const [showPendingTasksModal, setShowPendingTasksModal] = useState<boolean>(false);
 
   // Modal Open/Close States
   const [modals, setModals] = useState<{ [key: string]: boolean }>({
@@ -380,10 +385,21 @@ export default function UnifiedEnterpriseDashboard() {
       if (data.success) {
         setStats(data.stats);
 
-        if (userRole === "Employee" && data.stats?.currentUserCompliance && !data.stats.currentUserCompliance.hasSod) {
-          setActiveTab("ess-dashboard");
-          toggleModal("sodModal", true);
-          triggerToast("⚠️ Please submit your Start of Day (SOD) declaration first.");
+        if (data.stats?.currentUserCompliance) {
+          if (!data.stats.currentUserCompliance.hasSod) {
+            if (userRole === "Employee") {
+              setActiveTab("ess-dashboard");
+              toggleModal("sodModal", true);
+              triggerToast("⚠️ Please submit your Start of Day (SOD) declaration first.");
+            }
+          } else {
+            const todayKey = new Date().toISOString().slice(0, 10);
+            const shownKey = `pending_tasks_popup_shown_${todayKey}`;
+            if (typeof window !== "undefined" && !sessionStorage.getItem(shownKey)) {
+              sessionStorage.setItem(shownKey, "true");
+              setShowPendingTasksModal(true);
+            }
+          }
         }
       }
       if (data.success) {
@@ -590,6 +606,7 @@ export default function UnifiedEnterpriseDashboard() {
       if (data.success) {
         triggerToast("SOD commitments saved successfully!");
         await loadStats();
+        setShowPendingTasksModal(true);
         return true;
       } else {
         triggerToast("Submission failed: " + data.error);
@@ -1352,6 +1369,7 @@ export default function UnifiedEnterpriseDashboard() {
               sessionUser={session?.user}
               preselectedUserId={preselectedWorkReportUserId}
               clearPreselectedUserId={() => setPreselectedWorkReportUserId("")}
+              initialSubTab={performanceSubTab as any}
             />
           )}
 
@@ -2107,6 +2125,16 @@ export default function UnifiedEnterpriseDashboard() {
 
       {/* Owner Assigned Task Login Popup */}
       <AssignedTaskPopup />
+
+      {/* Post-SOD Pending Tasks Popup */}
+      <PendingTasksModal
+        isOpen={showPendingTasksModal}
+        onClose={() => setShowPendingTasksModal(false)}
+        onSelectTask={() => {
+          handleNavigateTab("tasks");
+        }}
+        sessionUser={session?.user}
+      />
 
     </div>
   );

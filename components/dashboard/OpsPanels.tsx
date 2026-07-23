@@ -1519,18 +1519,26 @@ export function DailyCommitments({
 export function PerformanceCompliance({
   sessionUser,
   preselectedUserId,
-  clearPreselectedUserId
+  clearPreselectedUserId,
+  initialSubTab
 }: {
   sessionUser?: any;
   preselectedUserId?: string;
   clearPreselectedUserId?: () => void;
+  initialSubTab?: "visual-dashboard" | "sod" | "eod" | "attendance-calendar";
 }) {
   const isOwnerOrDirector = ["Owner", "Director", "HR Head", "HR Executive", "Department Manager"].includes(sessionUser?.role || "");
   const [loading, setLoading] = useState(true);
   const [reports, setReports] = useState<{ sod: any[]; eod: any[]; tasks?: any[]; fieldVisits?: any[] }>({ sod: [], eod: [], tasks: [], fieldVisits: [] });
   const [activeSubTab, setActiveSubTab] = useState<"visual-dashboard" | "sod" | "eod" | "attendance-calendar">(
-    isOwnerOrDirector ? "visual-dashboard" : "sod"
+    initialSubTab || (isOwnerOrDirector ? "visual-dashboard" : "sod")
   );
+
+  useEffect(() => {
+    if (initialSubTab) {
+      setActiveSubTab(initialSubTab);
+    }
+  }, [initialSubTab]);
   const [searchTerm, setSearchTerm] = useState("");
   const [callsHistory, setCallsHistory] = useState<any[]>([]);
   const [paymentsHistory, setPaymentsHistory] = useState<any[]>([]);
@@ -2635,10 +2643,10 @@ export function PerformanceCompliance({
     const uniqueCalledCandidates = new Set<string>();
     const statsHrCalls = (reports.tasks || []).filter((t: any) => {
       if (!matchDateFilter(t.date)) return false;
-      
+
       const callerId = (typeof t.employee === "object" ? (t.employee?.id || "") : t.employee)?.toString().trim();
       if (!callerId) return false;
-      
+
       const callerProfile = users.find(u => u.id?.toString() === callerId);
       if (selectedCompany && (!callerProfile || !isUserInCompany(callerProfile, selectedCompany))) return false;
       if (selectedDept && (!callerProfile || callerProfile.department !== selectedDept)) return false;
@@ -2649,10 +2657,10 @@ export function PerformanceCompliance({
         const desc = t.description || "";
         const nameMatch = desc.match(/Candidate Name:\s*([^\n\r]+)/i);
         const platMatch = desc.match(/Platform:\s*([^\n\r]+)/i);
-        
+
         const candName = nameMatch ? nameMatch[1].trim().toLowerCase() : "";
         const platform = platMatch ? platMatch[1].trim().toLowerCase() : "general";
-        
+
         if (candName) {
           uniqueCalledCandidates.add(`${candName}_${platform}`);
         }
@@ -2682,7 +2690,7 @@ export function PerformanceCompliance({
               }
             }
           });
-          
+
           if (!foundPlat) {
             uniqueCalledCandidates.add(`${name}_sod`);
           }
@@ -4010,10 +4018,10 @@ export function PerformanceCompliance({
                       {(reports.tasks || [])
                         .filter(t => {
                           if (!matchDateFilter(t.date)) return false;
-                          
+
                           const callerId = (typeof t.employee === "object" ? (t.employee?.id || "") : t.employee)?.toString().trim();
                           if (!callerId) return false;
-                          
+
                           const callerProfile = users.find(u => u.id?.toString() === callerId);
                           if (selectedCompany && (!callerProfile || !isUserInCompany(callerProfile, selectedCompany))) return false;
                           if (selectedDept && (!callerProfile || callerProfile.department !== selectedDept)) return false;
@@ -4043,7 +4051,7 @@ export function PerformanceCompliance({
                           const platformMatch = desc.match(/Platform:\s*([^\n\r]+)/i);
                           const actionMatch = desc.match(/Action Status:\s*([^\n\r]+)/i);
                           const remarksMatch = desc.match(/Remarks\/Notes:\s*([^\n\r]+)/i);
-                          
+
                           let candName = leadNameMatch ? leadNameMatch[1].trim() : "";
                           let platform = platformMatch ? platformMatch[1].trim() : "SOD / Attendance Log";
                           let action = actionMatch ? actionMatch[1].trim() : (task.status || "Logged");
@@ -4059,10 +4067,10 @@ export function PerformanceCompliance({
                             candName = matchedCand ? matchedCand.name : "Candidate";
                             remarks = task.taskTitle || desc;
                           }
-                          
+
                           const callerId = (typeof task.employee === "object" ? (task.employee?.id || "") : task.employee)?.toString().trim();
                           const callerProfile = users.find(u => u.id?.toString() === callerId);
-                          
+
                           return (
                             <div key={idx} className="bg-slate-50 border border-slate-150 p-3 rounded-xl space-y-1.5 shadow-sm">
                               <div className="flex justify-between items-start font-bold">
@@ -4081,7 +4089,7 @@ export function PerformanceCompliance({
                         })}
                       {(reports.tasks || []).filter(t => {
                         if (!matchDateFilter(t.date)) return false;
-                        
+
                         const callerId = (typeof t.employee === "object" ? (t.employee?.id || "") : t.employee)?.toString().trim();
                         if (!callerId) return false;
                         const callerProfile = users.find(u => u.id?.toString() === callerId);
@@ -4091,7 +4099,7 @@ export function PerformanceCompliance({
 
                         // Option A
                         if (t.taskType === "CALL" && t.description?.includes("Lead ID:")) return true;
-                        
+
                         // Option B
                         const tTitle = (t.taskTitle || "").toLowerCase();
                         const tDesc = (t.description || "").toLowerCase();
@@ -4107,8 +4115,8 @@ export function PerformanceCompliance({
 
                         return mentionsCandidate;
                       }).length === 0 && (
-                        <div className="text-center py-8 text-slate-400">No interview calls found.</div>
-                      )}
+                          <div className="text-center py-8 text-slate-400">No interview calls found.</div>
+                        )}
                     </div>
                   )}
 
@@ -4773,11 +4781,11 @@ export function PerformanceCompliance({
                                               );
                                             })()}
                                             {task.scheduledAt && new Date(task.scheduledAt).toDateString() !== item.date.toDateString() ? (
-                                               <div className="mt-1.5 bg-sky-50 border border-sky-300 text-[10.5px] font-black text-sky-900 px-2.5 py-1.5 rounded-lg flex items-center gap-1.5 shadow-sm">
-                                                 <CalendarClock className="w-4 h-4 text-sky-600 shrink-0" />
-                                                 <span>➡️ Forwarded to {new Date(task.scheduledAt).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}</span>
-                                               </div>
-                                             ) : null}
+                                              <div className="mt-1.5 bg-sky-50 border border-sky-300 text-[10.5px] font-black text-sky-900 px-2.5 py-1.5 rounded-lg flex items-center gap-1.5 shadow-sm">
+                                                <CalendarClock className="w-4 h-4 text-sky-600 shrink-0" />
+                                                <span>➡️ Forwarded to {new Date(task.scheduledAt).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}</span>
+                                              </div>
+                                            ) : null}
                                           </div>
                                         ))}
                                       </div>
@@ -5270,351 +5278,351 @@ export function LeaveRequestTab({ sessionUser }: { sessionUser?: any }) {
   return (
     <>
       <div className="space-y-8 animate-fadeIn text-slate-800">
-      <div className="flex flex-col md:flex-row md:items-start justify-between gap-3">
-        <div>
-          <h1 className="text-xl font-black text-slate-850">Leave Management Hub</h1>
-          <p className="text-xs text-slate-500 mt-1">
-            {canApprove
-              ? "Review, approve, and track department-level or company-level leave applications."
-              : "Submit casual, sick, or unpaid leave requests and track approval history"}
-          </p>
-        </div>
-        {canImposeFine && (
-          <button
-            onClick={() => setShowFineModal(true)}
-            className="flex items-center gap-2 bg-rose-600 hover:bg-rose-700 text-white text-xs font-black px-4 py-2 rounded-lg shadow transition-all whitespace-nowrap"
-          >
-            ⚠️ Impose Absent Fine
-          </button>
-        )}
-      </div>
-
-      <div className="grid grid-cols-1 gap-8">
-
-        {/* Form View for Applicants */}
-        {canApply && (
-          <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm max-w-xl">
-            <h3 className="text-xs font-black tracking-widest text-[#714B67] uppercase font-mono pb-2 border-b border-slate-100 mb-4 flex items-center justify-between">
-              <span>📋 Apply for Leave Request</span>
-            </h3>
-
-            <form onSubmit={handleApplyLeave} className="space-y-4 font-semibold text-slate-650">
-              <div className="bg-slate-50 border border-slate-100 rounded-lg p-3 flex justify-between items-center">
-                <div className="flex items-center gap-2">
-                  <User className="w-4 h-4 text-indigo-500" />
-                  <span className="text-xs font-black text-slate-850 uppercase tracking-wide">
-                    Applicant Name: {sessionUser?.name || "Employee"}
-                  </span>
-                </div>
-                <div className="bg-indigo-50 border border-indigo-150 px-2 py-0.5 rounded text-[10px] text-indigo-700 font-mono font-bold">
-                  {sessionUser?.role || "Staff"}
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="text-[10px] uppercase font-black text-slate-500 font-mono tracking-wider">Leave Type *</label>
-                  <select
-                    className="w-full bg-white border border-slate-300 rounded p-2 text-xs font-bold text-slate-900 mt-1.5 focus:outline-none focus:border-[#714B67]"
-                    value={leaveType}
-                    onChange={(e) => setLeaveType(e.target.value)}
-                  >
-                    <option value="Casual Leave">Casual Leave</option>
-                    <option value="Sick Leave">Sick Leave</option>
-                    <option value="Earned Leave">Earned Leave</option>
-                    <option value="Unpaid Leave">Unpaid Leave</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="text-[10px] uppercase font-black text-slate-500 font-mono tracking-wider">Reason for Leave *</label>
-                  <input
-                    className="w-full bg-white border border-slate-300 rounded p-2 text-xs font-bold text-slate-900 mt-1.5 focus:outline-none focus:border-[#714B67]"
-                    placeholder="Short description..."
-                    value={reason}
-                    onChange={(e) => setReason(e.target.value)}
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label className="text-[10px] uppercase font-black text-slate-500 font-mono tracking-wider">Start Date *</label>
-                  <input
-                    type="date"
-                    className="w-full bg-white border border-slate-300 rounded p-2 text-xs font-bold text-slate-900 mt-1.5 focus:outline-none focus:border-[#714B67]"
-                    value={startDate}
-                    onChange={(e) => setStartDate(e.target.value)}
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label className="text-[10px] uppercase font-black text-slate-500 font-mono tracking-wider">End Date *</label>
-                  <input
-                    type="date"
-                    className="w-full bg-white border border-slate-300 rounded p-2 text-xs font-bold text-slate-900 mt-1.5 focus:outline-none focus:border-[#714B67]"
-                    value={endDate}
-                    onChange={(e) => setEndDate(e.target.value)}
-                    required
-                  />
-                </div>
-              </div>
-
-              <div className="pt-4 border-t border-slate-100 flex justify-end">
-                <button
-                  type="submit"
-                  disabled={submitting}
-                  className="bg-[#714B67] hover:bg-[#5F3F56] w-full px-4 py-3 rounded-lg text-xs font-black text-white transition-all flex items-center justify-center gap-2 shadow-lg disabled:opacity-50"
-                >
-                  {submitting ? "Submitting Leave..." : "Apply Leave"}
-                </button>
-              </div>
-            </form>
+        <div className="flex flex-col md:flex-row md:items-start justify-between gap-3">
+          <div>
+            <h1 className="text-xl font-black text-slate-850">Leave Management Hub</h1>
+            <p className="text-xs text-slate-500 mt-1">
+              {canApprove
+                ? "Review, approve, and track department-level or company-level leave applications."
+                : "Submit casual, sick, or unpaid leave requests and track approval history"}
+            </p>
           </div>
-        )}
-
-        {/* List of Leave Requests */}
-        <div className="bg-white border border-[#E8E4DF] rounded-xl p-6 shadow-sm">
-          <h3 className="text-xs font-black tracking-widest text-[#1C1C1A] uppercase font-mono pb-2 border-b border-[#E8E4DF] mb-4 flex items-center justify-between relative">
-            <span style={{ fontFamily: "'Playfair Display', serif" }} className="font-serif text-sm font-bold lowercase first-letter:uppercase text-[#1C1C1A]">
-              📋 {canApprove ? "Leave requests registry" : "Your leave request history"}
-            </span>
-            <div className="relative">
-              <button
-                type="button"
-                onClick={() => setShowFilters(!showFilters)}
-                className={`flex items-center gap-2 border px-4 py-2 text-xs font-bold transition-all rounded-xl shadow-sm focus:outline-none ${showFilters
-                  ? "bg-[#C9A84C] border-[#C9A84C] text-[#FCFBF9]"
-                  : "bg-[#FCFBF9] hover:bg-[#F5F2EC] border-[#E8E4DF] text-[#1C1C1A]"
-                  }`}
-              >
-                <Filter className="w-3.5 h-3.5" />
-                <span>Filter Leaves</span>
-                {(filterUser || filterDate || filterStatus !== "All") && (
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#C9A84C] animate-pulse" />
-                )}
-              </button>
-
-              {/* Floating Filter Popover */}
-              {showFilters && (
-                <div className="absolute right-0 mt-3 z-50 bg-[#FCFBF9] border border-[#E8E4DF] shadow-[0_25px_60px_-15px_rgba(0,0,0,0.15)] rounded-2xl p-5 w-[300px] space-y-4 text-left normal-case font-sans">
-                  <div className="flex justify-between items-center border-b border-[#E8E4DF] pb-2">
-                    <span className="text-xs font-bold text-[#1C1C1A] tracking-wider uppercase font-mono">Filter Registry</span>
-                    <button
-                      type="button"
-                      onClick={() => setShowFilters(false)}
-                      className="text-[#9C9890] hover:text-[#1C1C1A] transition-colors"
-                    >
-                      <X className="w-4 h-4" />
-                    </button>
-                  </div>
-
-                  <div className="space-y-4 text-xs">
-                    <div>
-                      <label className="text-[9px] uppercase font-bold text-[#9C9890] font-mono tracking-widest block mb-1">Select Employee</label>
-                      <select
-                        className="w-full bg-white border border-[#E8E4DF] rounded-xl p-2.5 text-xs font-bold text-[#1C1C1A] focus:outline-none focus:border-[#C9A84C] focus:ring-1 focus:ring-[#C9A84C]"
-                        value={filterUser}
-                        onChange={(e) => setFilterUser(e.target.value)}
-                      >
-                        <option value="">All Employees</option>
-                        {uniqueUsers.map((u) => (
-                          <option key={u.id} value={u.id}>
-                            {u.name}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="text-[9px] uppercase font-bold text-[#9C9890] font-mono tracking-widest block mb-1">Filter by Date</label>
-                      <input
-                        type="date"
-                        className="w-full bg-white border border-[#E8E4DF] rounded-xl p-2.5 text-xs font-bold text-[#1C1C1A] focus:outline-none focus:border-[#C9A84C] focus:ring-1 focus:ring-[#C9A84C]"
-                        value={filterDate}
-                        onChange={(e) => setFilterDate(e.target.value)}
-                      />
-                    </div>
-
-                    <div>
-                      <label className="text-[9px] uppercase font-bold text-[#9C9890] font-mono tracking-widest block mb-1">Status</label>
-                      <select
-                        className="w-full bg-white border border-[#E8E4DF] rounded-xl p-2.5 text-xs font-bold text-[#1C1C1A] focus:outline-none focus:border-[#C9A84C] focus:ring-1 focus:ring-[#C9A84C]"
-                        value={filterStatus}
-                        onChange={(e) => setFilterStatus(e.target.value)}
-                      >
-                        <option value="All">All Statuses</option>
-                        <option value="Pending">Pending</option>
-                        <option value="Approved">Approved</option>
-                        <option value="Rejected">Rejected</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  <div className="pt-2 flex gap-3">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setFilterUser("");
-                        setFilterDate("");
-                        setFilterStatus("All");
-                        setShowFilters(false);
-                      }}
-                      className="flex-1 bg-[#FCFBF9] hover:bg-[#F5F2EC] text-[#6B665E] py-2.5 rounded-xl text-[10px] font-bold transition-all border border-[#E8E4DF]"
-                    >
-                      Clear All
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setShowFilters(false)}
-                      className="flex-1 bg-[#C9A84C] hover:bg-[#B5963D] text-[#FCFBF9] py-2.5 rounded-xl text-[10px] font-bold transition-all shadow-md"
-                    >
-                      Apply Filters
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
-          </h3>
-
-          {loadingList ? (
-            <div className="h-48 flex flex-col items-center justify-center">
-              <Loader2 className="w-8 h-8 text-[#714B67] animate-spin mb-2" />
-              <span className="text-xs font-semibold text-slate-500">Loading leave requests...</span>
-            </div>
-          ) : (
-            <>
-
-              {filteredLeaves.length === 0 ? (
-                <div className="h-48 flex flex-col items-center justify-center text-slate-400">
-                  <Calendar className="w-8 h-8 mb-2" />
-                  <span className="text-xs font-semibold">No matching leave requests found.</span>
-                </div>
-              ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left text-xs border-collapse">
-                    <thead>
-                      <tr className="border-b border-slate-200 bg-slate-50 text-slate-450 font-black uppercase font-mono tracking-wider">
-                        {canApprove && <th className="py-3.5 px-4 text-left">Employee</th>}
-                        <th className="py-3.5 px-4 text-left">Type</th>
-                        <th className="py-3.5 px-4 text-left">Duration</th>
-                        <th className="py-3.5 px-4 text-center">Days</th>
-                        <th className="py-3.5 px-4 text-left">Reason</th>
-                        <th className="py-3.5 px-4 text-center">Status</th>
-                        {canApprove && <th className="py-3.5 px-4 text-left">Remarks & Actions</th>}
-                        {!canApprove && <th className="py-3.5 px-4 text-left">Processed By & Remarks</th>}
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100 font-semibold text-slate-650">
-                      {filteredLeaves.map((leave: any) => {
-                        const start = new Date(leave.startDate);
-                        const end = new Date(leave.endDate);
-
-                        const isDirectReportManager = leave.employee && String(leave.employee.id) !== String(sessionUser?.id);
-                        // Show actions if the current user is authorized to approve this specific status level
-                        const showActions =
-                          ((isManager || isDirectReportManager) && (leave.status === "Pending Manager Approval" || leave.status === "Pending")) ||
-                          ((isHR || isOwnerOrDirector) && (leave.status === "Pending HR Approval" || leave.status === "Pending Manager Approval" || leave.status === "Pending"));
-
-                        return (
-                          <tr key={leave.id} className="hover:bg-slate-50/50">
-                            {canApprove && (
-                              <td className="py-3.5 px-4">
-                                <div className="flex flex-col">
-                                  <span className="font-black text-slate-800">{leave.employee?.name || "Unknown"}</span>
-                                  <span className="text-[10px] text-slate-400 font-mono font-bold">{leave.employee?.email || ""}</span>
-                                </div>
-                              </td>
-                            )}
-                            <td className="py-3.5 px-4 whitespace-nowrap">
-                              <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-50 text-indigo-600 border border-indigo-100">
-                                {leave.type}
-                              </span>
-                            </td>
-                            <td className="py-3.5 px-4 whitespace-nowrap text-slate-700">
-                              {start.toLocaleDateString()} to {end.toLocaleDateString()}
-                            </td>
-                            <td className="py-3.5 px-4 text-center text-slate-700 font-mono">
-                              {leave.days}
-                            </td>
-                            <td className="py-3.5 px-4 max-w-xs truncate text-slate-600" title={leave.reason}>
-                              {leave.reason}
-                            </td>
-                            <td className="py-3.5 px-4 text-center whitespace-nowrap">
-                              <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${leave.status === "Approved"
-                                ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
-                                : leave.status === "Rejected"
-                                  ? "bg-rose-50 text-rose-700 border border-rose-200"
-                                  : leave.status === "Pending HR Approval"
-                                    ? "bg-blue-50 text-blue-700 border border-blue-200"
-                                    : "bg-amber-50 text-amber-700 border border-amber-200"
-                                }`}>
-                                {leave.status}
-                              </span>
-                            </td>
-
-                            {/* Actions for Managers/HR/Owners */}
-                            {canApprove && (
-                              <td className="py-3.5 px-4 whitespace-nowrap">
-                                {showActions ? (
-                                  <div className="flex items-center gap-2">
-                                    <input
-                                      className="bg-white border border-slate-300 rounded px-2 py-1 text-xs font-bold text-slate-900 focus:outline-none focus:border-[#714B67]"
-                                      placeholder="remarks..."
-                                      value={actionRemarks[leave.id] || ""}
-                                      onChange={(e) => setActionRemarks({ ...actionRemarks, [leave.id]: e.target.value })}
-                                    />
-                                    <button
-                                      onClick={() => handleUpdateStatus(leave.id, "Approved")}
-                                      className="bg-emerald-600 hover:bg-emerald-700 text-white px-2.5 py-1 rounded text-[10px] font-bold transition-all shadow"
-                                    >
-                                      {isManager ? "Approve & Forward" : "Final Approve"}
-                                    </button>
-                                    <button
-                                      onClick={() => handleUpdateStatus(leave.id, "Rejected")}
-                                      className="bg-rose-600 hover:bg-rose-700 text-white px-2.5 py-1 rounded text-[10px] font-bold transition-all shadow"
-                                    >
-                                      Reject
-                                    </button>
-                                  </div>
-                                ) : (
-                                  <span className="text-slate-450 text-[11px] italic">
-                                    {leave.status === "Pending HR Approval"
-                                      ? "Forwarded to HR - Awaiting HR Review"
-                                      : leave.remarks ? `Remarks: ${leave.remarks}` : "Awaiting Manager Review"}
-                                  </span>
-                                )}
-                              </td>
-                            )}
-
-                            {/* processed info for Employees */}
-                            {!canApprove && (
-                              <td className="py-3.5 px-4 text-slate-500 text-[11px] italic max-w-xs truncate">
-                                {leave.status !== "Pending" && leave.status !== "Pending Manager Approval" && leave.status !== "Pending HR Approval" ? (
-                                  <span>
-                                    By: {leave.approvedBy?.name || "HR/Manager"}
-                                    {leave.remarks ? ` (${leave.remarks})` : ""}
-                                  </span>
-                                ) : (
-                                  <span>
-                                    {leave.status === "Pending Manager Approval" ? "Awaiting Manager Review" : "Awaiting HR Review"}
-                                  </span>
-                                )}
-                              </td>
-                            )}
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </>
+          {canImposeFine && (
+            <button
+              onClick={() => setShowFineModal(true)}
+              className="flex items-center gap-2 bg-rose-600 hover:bg-rose-700 text-white text-xs font-black px-4 py-2 rounded-lg shadow transition-all whitespace-nowrap"
+            >
+              ⚠️ Impose Absent Fine
+            </button>
           )}
         </div>
 
+        <div className="grid grid-cols-1 gap-8">
+
+          {/* Form View for Applicants */}
+          {canApply && (
+            <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm max-w-xl">
+              <h3 className="text-xs font-black tracking-widest text-[#714B67] uppercase font-mono pb-2 border-b border-slate-100 mb-4 flex items-center justify-between">
+                <span>📋 Apply for Leave Request</span>
+              </h3>
+
+              <form onSubmit={handleApplyLeave} className="space-y-4 font-semibold text-slate-650">
+                <div className="bg-slate-50 border border-slate-100 rounded-lg p-3 flex justify-between items-center">
+                  <div className="flex items-center gap-2">
+                    <User className="w-4 h-4 text-indigo-500" />
+                    <span className="text-xs font-black text-slate-850 uppercase tracking-wide">
+                      Applicant Name: {sessionUser?.name || "Employee"}
+                    </span>
+                  </div>
+                  <div className="bg-indigo-50 border border-indigo-150 px-2 py-0.5 rounded text-[10px] text-indigo-700 font-mono font-bold">
+                    {sessionUser?.role || "Staff"}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-[10px] uppercase font-black text-slate-500 font-mono tracking-wider">Leave Type *</label>
+                    <select
+                      className="w-full bg-white border border-slate-300 rounded p-2 text-xs font-bold text-slate-900 mt-1.5 focus:outline-none focus:border-[#714B67]"
+                      value={leaveType}
+                      onChange={(e) => setLeaveType(e.target.value)}
+                    >
+                      <option value="Casual Leave">Casual Leave</option>
+                      <option value="Sick Leave">Sick Leave</option>
+                      <option value="Earned Leave">Earned Leave</option>
+                      <option value="Unpaid Leave">Unpaid Leave</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="text-[10px] uppercase font-black text-slate-500 font-mono tracking-wider">Reason for Leave *</label>
+                    <input
+                      className="w-full bg-white border border-slate-300 rounded p-2 text-xs font-bold text-slate-900 mt-1.5 focus:outline-none focus:border-[#714B67]"
+                      placeholder="Short description..."
+                      value={reason}
+                      onChange={(e) => setReason(e.target.value)}
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-[10px] uppercase font-black text-slate-500 font-mono tracking-wider">Start Date *</label>
+                    <input
+                      type="date"
+                      className="w-full bg-white border border-slate-300 rounded p-2 text-xs font-bold text-slate-900 mt-1.5 focus:outline-none focus:border-[#714B67]"
+                      value={startDate}
+                      onChange={(e) => setStartDate(e.target.value)}
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-[10px] uppercase font-black text-slate-500 font-mono tracking-wider">End Date *</label>
+                    <input
+                      type="date"
+                      className="w-full bg-white border border-slate-300 rounded p-2 text-xs font-bold text-slate-900 mt-1.5 focus:outline-none focus:border-[#714B67]"
+                      value={endDate}
+                      onChange={(e) => setEndDate(e.target.value)}
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div className="pt-4 border-t border-slate-100 flex justify-end">
+                  <button
+                    type="submit"
+                    disabled={submitting}
+                    className="bg-[#714B67] hover:bg-[#5F3F56] w-full px-4 py-3 rounded-lg text-xs font-black text-white transition-all flex items-center justify-center gap-2 shadow-lg disabled:opacity-50"
+                  >
+                    {submitting ? "Submitting Leave..." : "Apply Leave"}
+                  </button>
+                </div>
+              </form>
+            </div>
+          )}
+
+          {/* List of Leave Requests */}
+          <div className="bg-white border border-[#E8E4DF] rounded-xl p-6 shadow-sm">
+            <h3 className="text-xs font-black tracking-widest text-[#1C1C1A] uppercase font-mono pb-2 border-b border-[#E8E4DF] mb-4 flex items-center justify-between relative">
+              <span style={{ fontFamily: "'Playfair Display', serif" }} className="font-serif text-sm font-bold lowercase first-letter:uppercase text-[#1C1C1A]">
+                📋 {canApprove ? "Leave requests registry" : "Your leave request history"}
+              </span>
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setShowFilters(!showFilters)}
+                  className={`flex items-center gap-2 border px-4 py-2 text-xs font-bold transition-all rounded-xl shadow-sm focus:outline-none ${showFilters
+                    ? "bg-[#C9A84C] border-[#C9A84C] text-[#FCFBF9]"
+                    : "bg-[#FCFBF9] hover:bg-[#F5F2EC] border-[#E8E4DF] text-[#1C1C1A]"
+                    }`}
+                >
+                  <Filter className="w-3.5 h-3.5" />
+                  <span>Filter Leaves</span>
+                  {(filterUser || filterDate || filterStatus !== "All") && (
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#C9A84C] animate-pulse" />
+                  )}
+                </button>
+
+                {/* Floating Filter Popover */}
+                {showFilters && (
+                  <div className="absolute right-0 mt-3 z-50 bg-[#FCFBF9] border border-[#E8E4DF] shadow-[0_25px_60px_-15px_rgba(0,0,0,0.15)] rounded-2xl p-5 w-[300px] space-y-4 text-left normal-case font-sans">
+                    <div className="flex justify-between items-center border-b border-[#E8E4DF] pb-2">
+                      <span className="text-xs font-bold text-[#1C1C1A] tracking-wider uppercase font-mono">Filter Registry</span>
+                      <button
+                        type="button"
+                        onClick={() => setShowFilters(false)}
+                        className="text-[#9C9890] hover:text-[#1C1C1A] transition-colors"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+
+                    <div className="space-y-4 text-xs">
+                      <div>
+                        <label className="text-[9px] uppercase font-bold text-[#9C9890] font-mono tracking-widest block mb-1">Select Employee</label>
+                        <select
+                          className="w-full bg-white border border-[#E8E4DF] rounded-xl p-2.5 text-xs font-bold text-[#1C1C1A] focus:outline-none focus:border-[#C9A84C] focus:ring-1 focus:ring-[#C9A84C]"
+                          value={filterUser}
+                          onChange={(e) => setFilterUser(e.target.value)}
+                        >
+                          <option value="">All Employees</option>
+                          {uniqueUsers.map((u) => (
+                            <option key={u.id} value={u.id}>
+                              {u.name}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="text-[9px] uppercase font-bold text-[#9C9890] font-mono tracking-widest block mb-1">Filter by Date</label>
+                        <input
+                          type="date"
+                          className="w-full bg-white border border-[#E8E4DF] rounded-xl p-2.5 text-xs font-bold text-[#1C1C1A] focus:outline-none focus:border-[#C9A84C] focus:ring-1 focus:ring-[#C9A84C]"
+                          value={filterDate}
+                          onChange={(e) => setFilterDate(e.target.value)}
+                        />
+                      </div>
+
+                      <div>
+                        <label className="text-[9px] uppercase font-bold text-[#9C9890] font-mono tracking-widest block mb-1">Status</label>
+                        <select
+                          className="w-full bg-white border border-[#E8E4DF] rounded-xl p-2.5 text-xs font-bold text-[#1C1C1A] focus:outline-none focus:border-[#C9A84C] focus:ring-1 focus:ring-[#C9A84C]"
+                          value={filterStatus}
+                          onChange={(e) => setFilterStatus(e.target.value)}
+                        >
+                          <option value="All">All Statuses</option>
+                          <option value="Pending">Pending</option>
+                          <option value="Approved">Approved</option>
+                          <option value="Rejected">Rejected</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <div className="pt-2 flex gap-3">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setFilterUser("");
+                          setFilterDate("");
+                          setFilterStatus("All");
+                          setShowFilters(false);
+                        }}
+                        className="flex-1 bg-[#FCFBF9] hover:bg-[#F5F2EC] text-[#6B665E] py-2.5 rounded-xl text-[10px] font-bold transition-all border border-[#E8E4DF]"
+                      >
+                        Clear All
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setShowFilters(false)}
+                        className="flex-1 bg-[#C9A84C] hover:bg-[#B5963D] text-[#FCFBF9] py-2.5 rounded-xl text-[10px] font-bold transition-all shadow-md"
+                      >
+                        Apply Filters
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </h3>
+
+            {loadingList ? (
+              <div className="h-48 flex flex-col items-center justify-center">
+                <Loader2 className="w-8 h-8 text-[#714B67] animate-spin mb-2" />
+                <span className="text-xs font-semibold text-slate-500">Loading leave requests...</span>
+              </div>
+            ) : (
+              <>
+
+                {filteredLeaves.length === 0 ? (
+                  <div className="h-48 flex flex-col items-center justify-center text-slate-400">
+                    <Calendar className="w-8 h-8 mb-2" />
+                    <span className="text-xs font-semibold">No matching leave requests found.</span>
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left text-xs border-collapse">
+                      <thead>
+                        <tr className="border-b border-slate-200 bg-slate-50 text-slate-450 font-black uppercase font-mono tracking-wider">
+                          {canApprove && <th className="py-3.5 px-4 text-left">Employee</th>}
+                          <th className="py-3.5 px-4 text-left">Type</th>
+                          <th className="py-3.5 px-4 text-left">Duration</th>
+                          <th className="py-3.5 px-4 text-center">Days</th>
+                          <th className="py-3.5 px-4 text-left">Reason</th>
+                          <th className="py-3.5 px-4 text-center">Status</th>
+                          {canApprove && <th className="py-3.5 px-4 text-left">Remarks & Actions</th>}
+                          {!canApprove && <th className="py-3.5 px-4 text-left">Processed By & Remarks</th>}
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100 font-semibold text-slate-650">
+                        {filteredLeaves.map((leave: any) => {
+                          const start = new Date(leave.startDate);
+                          const end = new Date(leave.endDate);
+
+                          const isDirectReportManager = leave.employee && String(leave.employee.id) !== String(sessionUser?.id);
+                          // Show actions if the current user is authorized to approve this specific status level
+                          const showActions =
+                            ((isManager || isDirectReportManager) && (leave.status === "Pending Manager Approval" || leave.status === "Pending")) ||
+                            ((isHR || isOwnerOrDirector) && (leave.status === "Pending HR Approval" || leave.status === "Pending Manager Approval" || leave.status === "Pending"));
+
+                          return (
+                            <tr key={leave.id} className="hover:bg-slate-50/50">
+                              {canApprove && (
+                                <td className="py-3.5 px-4">
+                                  <div className="flex flex-col">
+                                    <span className="font-black text-slate-800">{leave.employee?.name || "Unknown"}</span>
+                                    <span className="text-[10px] text-slate-400 font-mono font-bold">{leave.employee?.email || ""}</span>
+                                  </div>
+                                </td>
+                              )}
+                              <td className="py-3.5 px-4 whitespace-nowrap">
+                                <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-50 text-indigo-600 border border-indigo-100">
+                                  {leave.type}
+                                </span>
+                              </td>
+                              <td className="py-3.5 px-4 whitespace-nowrap text-slate-700">
+                                {start.toLocaleDateString()} to {end.toLocaleDateString()}
+                              </td>
+                              <td className="py-3.5 px-4 text-center text-slate-700 font-mono">
+                                {leave.days}
+                              </td>
+                              <td className="py-3.5 px-4 max-w-xs truncate text-slate-600" title={leave.reason}>
+                                {leave.reason}
+                              </td>
+                              <td className="py-3.5 px-4 text-center whitespace-nowrap">
+                                <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${leave.status === "Approved"
+                                  ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                                  : leave.status === "Rejected"
+                                    ? "bg-rose-50 text-rose-700 border border-rose-200"
+                                    : leave.status === "Pending HR Approval"
+                                      ? "bg-blue-50 text-blue-700 border border-blue-200"
+                                      : "bg-amber-50 text-amber-700 border border-amber-200"
+                                  }`}>
+                                  {leave.status}
+                                </span>
+                              </td>
+
+                              {/* Actions for Managers/HR/Owners */}
+                              {canApprove && (
+                                <td className="py-3.5 px-4 whitespace-nowrap">
+                                  {showActions ? (
+                                    <div className="flex items-center gap-2">
+                                      <input
+                                        className="bg-white border border-slate-300 rounded px-2 py-1 text-xs font-bold text-slate-900 focus:outline-none focus:border-[#714B67]"
+                                        placeholder="remarks..."
+                                        value={actionRemarks[leave.id] || ""}
+                                        onChange={(e) => setActionRemarks({ ...actionRemarks, [leave.id]: e.target.value })}
+                                      />
+                                      <button
+                                        onClick={() => handleUpdateStatus(leave.id, "Approved")}
+                                        className="bg-emerald-600 hover:bg-emerald-700 text-white px-2.5 py-1 rounded text-[10px] font-bold transition-all shadow"
+                                      >
+                                        {isManager ? "Approve & Forward" : "Final Approve"}
+                                      </button>
+                                      <button
+                                        onClick={() => handleUpdateStatus(leave.id, "Rejected")}
+                                        className="bg-rose-600 hover:bg-rose-700 text-white px-2.5 py-1 rounded text-[10px] font-bold transition-all shadow"
+                                      >
+                                        Reject
+                                      </button>
+                                    </div>
+                                  ) : (
+                                    <span className="text-slate-450 text-[11px] italic">
+                                      {leave.status === "Pending HR Approval"
+                                        ? "Forwarded to HR - Awaiting HR Review"
+                                        : leave.remarks ? `Remarks: ${leave.remarks}` : "Awaiting Manager Review"}
+                                    </span>
+                                  )}
+                                </td>
+                              )}
+
+                              {/* processed info for Employees */}
+                              {!canApprove && (
+                                <td className="py-3.5 px-4 text-slate-500 text-[11px] italic max-w-xs truncate">
+                                  {leave.status !== "Pending" && leave.status !== "Pending Manager Approval" && leave.status !== "Pending HR Approval" ? (
+                                    <span>
+                                      By: {leave.approvedBy?.name || "HR/Manager"}
+                                      {leave.remarks ? ` (${leave.remarks})` : ""}
+                                    </span>
+                                  ) : (
+                                    <span>
+                                      {leave.status === "Pending Manager Approval" ? "Awaiting Manager Review" : "Awaiting HR Review"}
+                                    </span>
+                                  )}
+                                </td>
+                              )}
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+
+        </div>
       </div>
-    </div>
 
       {/* ── Impose Absent Fine Modal ── */}
       {showFineModal && (

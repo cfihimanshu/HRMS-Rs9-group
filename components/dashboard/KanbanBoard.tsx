@@ -577,6 +577,15 @@ export default function KanbanBoard({
   };
 
   // ── Timer helpers ──────────────────────────────────────────────────────────
+  const [, setTimerTick] = useState<number>(0);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setTimerTick(prev => prev + 1);
+    }, 1000);
+    return () => clearInterval(interval);
+  }, []);
+
   const formatTimer = (totalSeconds: number) => {
     const h = Math.floor(totalSeconds / 3600);
     const m = Math.floor((totalSeconds % 3600) / 60);
@@ -585,15 +594,18 @@ export default function KanbanBoard({
   };
 
   const getLiveElapsed = (task: Task): number => {
-    if (task.status === "Completed" || task.scheduledAt || task.timerState === "Stopped" || task.timerState === "Paused") {
+    if (task.status === "Completed" || task.timerState === "Stopped" || task.timerState === "Paused") {
       return task.elapsedSeconds || 0;
     }
-    if (task.timerState !== "Running" || !task.timerStart) {
-      return task.elapsedSeconds || 0;
+    const startISO = task.timerStart || task.createdAt || task.date;
+    if ((task.timerState === "Running" || !task.timerState) && startISO) {
+      const startTime = new Date(startISO).getTime();
+      if (!isNaN(startTime)) {
+        const elapsed = Math.floor((Date.now() - startTime) / 1000);
+        return Math.max(0, (task.elapsedSeconds || 0) + elapsed);
+      }
     }
-    const startTime = new Date(task.timerStart).getTime();
-    const elapsed = Math.floor((Date.now() - startTime) / 1000);
-    return Math.max(0, (task.elapsedSeconds || 0) + elapsed);
+    return task.elapsedSeconds || 0;
   };
 
   const timerAction = async (task: Task, action: "start" | "pause" | "stop") => {
@@ -1299,13 +1311,7 @@ export default function KanbanBoard({
           </div>
         )}
 
-        {/* Scheduled / Forwarded Date badge */}
-        {task.scheduledAt && (
-          <div className="mt-2 flex items-center gap-1.5 text-[9.5px] font-black text-sky-800 bg-sky-50 rounded-lg px-2.5 py-1 border border-sky-300 shadow-xs animate-fade-in">
-            <CalendarClock className="w-3.5 h-3.5 text-sky-600 shrink-0" />
-            <span>This task is forwarded to {new Date(task.scheduledAt).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}</span>
-          </div>
-        )}
+
 
         {/* Forwarded badge */}
         {task.forwardedTo && (
@@ -2107,7 +2113,7 @@ export default function KanbanBoard({
           }}
         >
           <div
-            className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto"
+            className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto overflow-x-hidden"
             onClick={e => e.stopPropagation()}
           >
             {isEditingTask ? (
@@ -2184,21 +2190,16 @@ export default function KanbanBoard({
             ) : (
               <>
                 {/* Modal header */}
-                <div className="flex items-start justify-between p-6 border-b border-slate-100">
-                  <div className="flex-1 pr-4">
+                <div className="flex items-start justify-between p-6 border-b border-slate-100 min-w-0">
+                  <div className="flex-1 pr-4 min-w-0">
                     <span className={`inline-block text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full border mb-2 ${TYPE_COLORS[selectedTask.taskType] || TYPE_COLORS.Other}`}>
                       {selectedTask.taskType}
                     </span>
-                    <h2 className="text-base font-black text-slate-800 leading-tight">{selectedTask.taskTitle}</h2>
+                    <h2 className="text-base font-black text-slate-800 leading-tight break-words">{selectedTask.taskTitle}</h2>
                     {selectedTask.description && cleanDescription(selectedTask.description) && (
-                      <p className="text-xs text-slate-500 mt-1 font-medium whitespace-pre-line">{cleanDescription(selectedTask.description)}</p>
+                      <p className="text-xs text-slate-500 mt-1 font-medium whitespace-pre-line break-all">{cleanDescription(selectedTask.description)}</p>
                     )}
-                    {selectedTask.scheduledAt && (
-                      <div className="mt-2.5 flex items-center gap-1.5 text-xs font-black text-sky-800 bg-sky-50 rounded-xl px-3 py-1.5 border border-sky-300">
-                        <CalendarClock className="w-4 h-4 text-sky-600 shrink-0" />
-                        <span>This task is forwarded to {new Date(selectedTask.scheduledAt).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}</span>
-                      </div>
-                    )}
+
                   </div>
 
                   {/* Action buttons: Edit, Delete, Close */}
@@ -2414,66 +2415,6 @@ export default function KanbanBoard({
                   )}
                 </div>
 
-                {/* Forward Task Date (Move Task to Future Date) Section */}
-                <div className="px-6 py-4 border-b border-slate-100 bg-sky-50/30">
-                  <div className="flex items-center gap-2 mb-3">
-                    <Calendar className="w-4 h-4 text-sky-600" />
-                    <p className="text-[10px] uppercase font-black text-sky-800 tracking-wider">
-                      Forward Task Date (Move to Future Date)
-                    </p>
-                  </div>
-
-                  {/* Quick Preset Buttons */}
-                  <div className="flex gap-2 mb-2">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const tomorrow = new Date();
-                        tomorrow.setDate(tomorrow.getDate() + 1);
-                        handleForwardTaskDate(tomorrow.toISOString().slice(0, 10));
-                      }}
-                      disabled={forwardingDate}
-                      className="bg-sky-100 hover:bg-sky-200 text-sky-800 px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all border border-sky-300 flex items-center gap-1"
-                    >
-                      📅 Forward to Tomorrow
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const dayAfter = new Date();
-                        dayAfter.setDate(dayAfter.getDate() + 2);
-                        handleForwardTaskDate(dayAfter.toISOString().slice(0, 10));
-                      }}
-                      disabled={forwardingDate}
-                      className="bg-indigo-100 hover:bg-indigo-200 text-indigo-800 px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all border border-indigo-300 flex items-center gap-1"
-                    >
-                      📅 Day After Tomorrow
-                    </button>
-                  </div>
-
-                  {/* Custom Date Picker */}
-                  <div className="flex gap-2">
-                    <input
-                      type="date"
-                      className="flex-1 border border-slate-200 rounded-lg px-3 py-2 text-xs font-medium focus:outline-none focus:border-sky-400 focus:ring-2 focus:ring-sky-100 text-slate-700 bg-white"
-                      value={forwardDateInput}
-                      onChange={e => setForwardDateInput(e.target.value)}
-                      min={new Date().toISOString().slice(0, 10)}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => handleForwardTaskDate(forwardDateInput)}
-                      disabled={forwardingDate || !forwardDateInput}
-                      className="flex items-center gap-1.5 bg-sky-600 hover:bg-sky-700 disabled:opacity-40 disabled:cursor-not-allowed text-white px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all"
-                    >
-                      {forwardingDate ? <Loader2 className="w-3 h-3 animate-spin" /> : <Calendar className="w-3 h-3" />}
-                      {forwardingDate ? "Forwarding..." : "Forward Date"}
-                    </button>
-                  </div>
-                  <p className="text-[9px] text-sky-600 mt-1.5 font-medium">
-                    * Postponing this task moves it off today's list and starts its timer on that future date.
-                  </p>
-                </div>
 
                 {/* Timer Display (read-only — auto-starts on create, stops on complete) */}
                 <div className="px-6 py-3 border-b border-slate-100 bg-slate-50/50">
