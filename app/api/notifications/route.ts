@@ -95,3 +95,33 @@ export async function PUT(req: Request) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
 }
+
+// DELETE /api/notifications - Clear single or all notifications
+export async function DELETE(req: Request) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session || !session.user) {
+      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
+    }
+
+    const userId = (session.user as any).id;
+    let id = null;
+    try {
+      const body = await req.json();
+      id = body?.id;
+    } catch (_) {}
+
+    await sequelize.authenticate();
+
+    if (id) {
+      await Notification.destroy({ where: { id, recipient: userId } });
+      return NextResponse.json({ success: true, message: "Notification cleared" });
+    } else {
+      await Notification.destroy({ where: { recipient: userId } });
+      return NextResponse.json({ success: true, message: "All notifications cleared" });
+    }
+  } catch (error: any) {
+    console.error("[/api/notifications DELETE] Error:", error.message);
+    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+  }
+}

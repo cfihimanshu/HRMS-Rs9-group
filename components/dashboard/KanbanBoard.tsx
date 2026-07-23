@@ -406,7 +406,7 @@ export default function KanbanBoard({
       setLoading(false); // Hide loading spinner early!
 
       // Then load all tasks
-      const resAll = await fetch("/api/tasks?range=all");
+      const resAll = await fetch("/api/tasks?range=all&limit=all");
       const dataAll = await resAll.json();
       if (dataAll.success) {
         setTasks(dataAll.data);
