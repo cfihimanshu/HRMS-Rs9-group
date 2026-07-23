@@ -526,6 +526,7 @@ export async function POST(req: Request) {
       taskType,
       description: description || "",
       status: status || "Pending",
+      proofAttachment: body.proofAttachment || body.attachmentUrl || null,
       scheduledAt: scheduledAt ? new Date(scheduledAt) : null,
       // Auto-start timer when task is created unless scheduled for future
       timerState: scheduledAt ? "Stopped" : "Running",

@@ -196,8 +196,8 @@ export function OwnerDashboard({
           </div>
           <div
             className="pl-3 md:pl-5 cursor-pointer hover:bg-[#FAF9F5] transition-all p-2 rounded-lg group"
-            onClick={() => onNavigateTab("attendance")}
-            title="Click to view Attendance & SOD Logs"
+            onClick={() => onNavigateTab("performance", "sod")}
+            title="Click to view Work Report (SOD)"
           >
             <div className="text-2xl font-light text-emerald-800 font-serif" style={{ fontFamily: "'Playfair Display', serif" }}>
               {stats?.todayCompliance?.attendance || 0}

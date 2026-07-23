@@ -1,0 +1,425 @@
+import React, { useState, useEffect } from "react";
+import ReactDOM from "react-dom";
+import {
+  Search, RefreshCw, Briefcase, Paperclip, Calendar, User, FileText,
+  Layers, ExternalLink, Download, FileSpreadsheet, Eye, X, CheckCircle2, Building2, Building
+} from "lucide-react";
+import * as XLSX from "xlsx";
+
+export default function WorkHistoryView() {
+  const [historyLogs, setHistoryLogs] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState("");
+  
+  // Detail Modal State
+  const [selectedLogModal, setSelectedLogModal] = useState<any | null>(null);
+
+  const fetchHistory = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch("/api/legal-recovery/work-history");
+      const data = await res.json();
+      if (data.success) {
+        setHistoryLogs(data.data || []);
+      }
+    } catch (err) {
+      console.error("Failed to fetch work history:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchHistory();
+  }, []);
+
+  const filteredLogs = historyLogs.filter((log) => {
+    if (categoryFilter && log.category !== categoryFilter) return false;
+
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      return (
+        log.category?.toLowerCase().includes(q) ||
+        log.subCategory?.toLowerCase().includes(q) ||
+        log.bankName?.toLowerCase().includes(q) ||
+        log.branchName?.toLowerCase().includes(q) ||
+        log.employeeName?.toLowerCase().includes(q) ||
+        log.remarks?.toLowerCase().includes(q)
+      );
+    }
+    return true;
+  });
+
+  const totalBankWorks = historyLogs.filter((l) => l.category === "Bank").length;
+  const totalOfficeWorks = historyLogs.filter((l) => l.category === "Office work").length;
+  const totalOtherWorks = historyLogs.filter((l) => l.category === "Other").length;
+
+  const handleExportExcel = () => {
+    if (filteredLogs.length === 0) {
+      alert("No work history entries available to export.");
+      return;
+    }
+
+    const exportData = filteredLogs.map((log, index) => ({
+      "S.No": index + 1,
+      "Work Date": new Date(log.workDate || log.createdAt).toLocaleDateString("en-IN"),
+      "Work Time": new Date(log.workDate || log.createdAt).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" }),
+      "Work Category": log.category || "",
+      "Details / Entity": log.subCategory || "",
+      "Bank Name": log.bankName || "",
+      "Branch Name": log.branchName || "",
+      "Submitted By": log.employeeName || "System",
+      "Attachment Link": log.attachmentUrl || "None",
+      "Remarks / Notes": log.remarks || "",
+    }));
+
+    const worksheet = XLSX.utils.json_to_sheet(exportData);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Work History");
+    const dateStr = new Date().toISOString().split("T")[0];
+    XLSX.writeFile(workbook, `Legal_Work_History_${dateStr}.xlsx`);
+  };
+
+  const isImageFile = (url: string) => {
+    if (!url) return false;
+    const cleanUrl = url.toLowerCase().split("?")[0];
+    return (
+      cleanUrl.endsWith(".png") ||
+      cleanUrl.endsWith(".jpg") ||
+      cleanUrl.endsWith(".jpeg") ||
+      cleanUrl.endsWith(".webp") ||
+      cleanUrl.endsWith(".gif") ||
+      cleanUrl.includes("/doc_")
+    );
+  };
+
+  return (
+    <div className="space-y-6 animate-fade-in text-[#1C1C1A]">
+      {/* Header & Stats Bar */}
+      <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+        <div className="bg-[#FCFBF9] border border-[#E8E4DF] p-4 rounded-2xl shadow-sm flex items-center justify-between">
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-wider text-slate-400">Total Entries</p>
+            <h3 className="text-xl font-serif font-light text-slate-800 mt-0.5">{historyLogs.length}</h3>
+          </div>
+          <div className="w-9 h-9 rounded-xl bg-slate-100 text-slate-700 flex items-center justify-center">
+            <Briefcase className="w-5 h-5" />
+          </div>
+        </div>
+
+        <div className="bg-[#FCFBF9] border border-[#E8E4DF] p-4 rounded-2xl shadow-sm flex items-center justify-between">
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-wider text-emerald-600">Bank Works</p>
+            <h3 className="text-xl font-serif font-light text-emerald-950 mt-0.5">{totalBankWorks}</h3>
+          </div>
+          <div className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
+            <Layers className="w-5 h-5" />
+          </div>
+        </div>
+
+        <div className="bg-[#FCFBF9] border border-[#E8E4DF] p-4 rounded-2xl shadow-sm flex items-center justify-between">
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-wider text-indigo-600">Office Works</p>
+            <h3 className="text-xl font-serif font-light text-indigo-950 mt-0.5">{totalOfficeWorks}</h3>
+          </div>
+          <div className="w-9 h-9 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center">
+            <FileText className="w-5 h-5" />
+          </div>
+        </div>
+
+        <div className="bg-[#FCFBF9] border border-[#E8E4DF] p-4 rounded-2xl shadow-sm flex items-center justify-between">
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-wider text-amber-600">Other Works</p>
+            <h3 className="text-xl font-serif font-light text-amber-950 mt-0.5">{totalOtherWorks}</h3>
+          </div>
+          <div className="w-9 h-9 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center">
+            <Briefcase className="w-5 h-5" />
+          </div>
+        </div>
+      </div>
+
+      {/* Filter & Search Bar */}
+      <div className="flex flex-col sm:flex-row gap-3 items-center justify-between">
+        <div className="bg-[#FCFBF9] border border-[#E8E4DF] p-3.5 rounded-xl flex-1 flex items-center gap-3 w-full">
+          <Search className="w-4 h-4 text-[#9C9890]" />
+          <input
+            type="text"
+            className="bg-transparent border-none focus:outline-none text-xs w-full font-semibold text-slate-700 placeholder:text-[#9C9890]"
+            placeholder="Search work history by Category, Bank, Branch, Employee, Remarks..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+        </div>
+
+        <div className="flex items-center gap-2.5 w-full sm:w-auto">
+          <select
+            value={categoryFilter}
+            onChange={(e) => setCategoryFilter(e.target.value)}
+            className="text-xs p-3.5 border border-[#E8E4DF] rounded-xl bg-[#FCFBF9] font-bold text-slate-700 focus:outline-none"
+          >
+            <option value="">All Work Categories</option>
+            <option value="Bank">Bank Work</option>
+            <option value="Office work">Office Work</option>
+            <option value="Other">Other</option>
+          </select>
+
+          {/* EXPORT EXCEL BUTTON */}
+          <button
+            onClick={handleExportExcel}
+            className="px-4 py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold uppercase tracking-wider transition-all flex items-center gap-2 shadow-sm hover:shadow"
+            title="Export Work History to Excel"
+          >
+            <FileSpreadsheet className="w-4 h-4" /> Export Excel
+          </button>
+
+          <button
+            onClick={fetchHistory}
+            className="p-3.5 bg-[#FCFBF9] border border-[#E8E4DF] hover:bg-[#F5F0EA] rounded-xl text-slate-700 transition-all"
+            title="Refresh History"
+          >
+            <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
+          </button>
+        </div>
+      </div>
+
+      {/* Data Table */}
+      <div className="bg-[#FCFBF9] border border-[#E8E4DF] rounded-2xl overflow-hidden shadow-sm overflow-x-auto">
+        <table className="w-full border-collapse text-left min-w-max">
+          <thead className="bg-[#F5F0EA] border-b border-[#E8E4DF]">
+            <tr className="text-[#5D5B57] text-[10px] uppercase font-bold tracking-wider">
+              <th className="py-3.5 px-4">Date &amp; Time</th>
+              <th className="py-3.5 px-4">Work Category</th>
+              <th className="py-3.5 px-4">Details / Entity</th>
+              <th className="py-3.5 px-4">Submitted By</th>
+              <th className="py-3.5 px-4">Attachment</th>
+              <th className="py-3.5 px-4">Remarks</th>
+              <th className="py-3.5 px-4 text-center">Action</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-[#E8E4DF] text-xs">
+            {filteredLogs.map((log) => {
+              let categoryBadge = "bg-slate-100 text-slate-700 border-slate-200";
+              if (log.category === "Bank") categoryBadge = "bg-emerald-50 text-emerald-700 border-emerald-200";
+              else if (log.category === "Office work") categoryBadge = "bg-indigo-50 text-indigo-700 border-indigo-200";
+              else if (log.category === "Other") categoryBadge = "bg-amber-50 text-amber-700 border-amber-200";
+
+              return (
+                <tr key={log.id} className="hover:bg-white transition-colors">
+                  <td className="py-3.5 px-4 text-slate-600 font-medium">
+                    <div className="flex items-center gap-1.5">
+                      <Calendar className="w-3.5 h-3.5 text-slate-400" />
+                      <span>{new Date(log.workDate || log.createdAt).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}</span>
+                    </div>
+                    <span className="text-[10px] text-slate-400 ml-5">
+                      {new Date(log.workDate || log.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                    </span>
+                  </td>
+
+                  <td className="py-3.5 px-4">
+                    <span className={`px-2.5 py-1 rounded-lg border text-[10px] font-black uppercase tracking-wide inline-block ${categoryBadge}`}>
+                      {log.category}
+                    </span>
+                  </td>
+
+                  <td className="py-3.5 px-4">
+                    <div className="font-bold text-slate-800">{log.subCategory}</div>
+                    {log.bankName && (
+                      <div className="text-[10px] text-slate-500 font-medium">
+                        Bank: {log.bankName} {log.branchName ? `• ${log.branchName}` : ""}
+                      </div>
+                    )}
+                  </td>
+
+                  <td className="py-3.5 px-4 text-slate-700 font-semibold">
+                    <div className="flex items-center gap-1.5">
+                      <User className="w-3.5 h-3.5 text-slate-400" />
+                      <span>{log.employeeName || "System"}</span>
+                    </div>
+                  </td>
+
+                  <td className="py-3.5 px-4">
+                    {log.attachmentUrl ? (
+                      <a
+                        href={log.attachmentUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-1 text-[11px] font-bold text-indigo-600 hover:text-indigo-800 bg-indigo-50 hover:bg-indigo-100 px-2.5 py-1 rounded-lg border border-indigo-200 transition-all"
+                      >
+                        <Paperclip className="w-3 h-3" /> View Doc <ExternalLink className="w-2.5 h-2.5" />
+                      </a>
+                    ) : (
+                      <span className="text-[10px] text-slate-400 italic">No File</span>
+                    )}
+                  </td>
+
+                  <td
+                    onClick={() => setSelectedLogModal(log)}
+                    className="py-3.5 px-4 text-slate-600 font-medium max-w-xs truncate cursor-pointer hover:text-indigo-600 hover:underline"
+                    title="Click to view full remarks and record details"
+                  >
+                    {log.remarks || <span className="text-slate-400 italic">N/A</span>}
+                  </td>
+
+                  <td className="py-3.5 px-4 text-center">
+                    <button
+                      onClick={() => setSelectedLogModal(log)}
+                      className="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-colors inline-flex items-center gap-1"
+                      title="View Full Entry Details"
+                    >
+                      <Eye className="w-3 h-3 text-slate-600" /> View
+                    </button>
+                  </td>
+                </tr>
+              );
+            })}
+
+            {filteredLogs.length === 0 && !loading && (
+              <tr>
+                <td colSpan={7} className="text-center py-12 text-slate-400 text-xs font-bold uppercase tracking-wider">
+                  No Work History Entries Found.
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      {/* DETAILED VIEW MODAL */}
+      {selectedLogModal && typeof window !== "undefined" && ReactDOM.createPortal(
+        <div className="fixed inset-0 bg-slate-950/75 backdrop-blur-md z-[9999] flex items-center justify-center p-4 overflow-y-auto animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl border border-slate-200 shadow-2xl w-full max-w-lg overflow-hidden my-auto transform transition-all">
+            
+            {/* Modal Header */}
+            <div className="p-5 bg-gradient-to-r from-slate-900 via-slate-800 to-indigo-950 text-white flex items-center justify-between border-b border-slate-800">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-2xl bg-indigo-500/20 border border-indigo-400/30 text-indigo-400 flex items-center justify-center">
+                  <Briefcase className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold tracking-wide">Work History Record Details</h3>
+                  <p className="text-[11px] text-slate-300 font-medium">
+                    {new Date(selectedLogModal.workDate || selectedLogModal.createdAt).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })} at {new Date(selectedLogModal.workDate || selectedLogModal.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSelectedLogModal(null)}
+                className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-slate-300 hover:text-white flex items-center justify-center transition-all"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-6 space-y-4 max-h-[75vh] overflow-y-auto">
+              
+              {/* Category Badge & Details */}
+              <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Work Category</span>
+                  <span className="px-2.5 py-1 bg-indigo-50 border border-indigo-200 text-indigo-700 text-[10px] font-black uppercase rounded-lg">
+                    {selectedLogModal.category}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Details / Work Entity</span>
+                  <h4 className="text-sm font-bold text-slate-800 mt-0.5">{selectedLogModal.subCategory}</h4>
+                </div>
+
+                {selectedLogModal.bankName && (
+                  <div className="pt-2 border-t border-slate-200/60 grid grid-cols-2 gap-2 text-xs">
+                    <div>
+                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Bank</span>
+                      <span className="font-semibold text-slate-700">{selectedLogModal.bankName}</span>
+                    </div>
+                    <div>
+                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Branch</span>
+                      <span className="font-semibold text-slate-700">{selectedLogModal.branchName || "N/A"}</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Submitted By */}
+              <div className="flex items-center justify-between p-3.5 bg-slate-50 rounded-xl border border-slate-200 text-xs">
+                <span className="font-bold text-slate-500 uppercase text-[10px] tracking-wider">Submitted By</span>
+                <span className="font-bold text-slate-800 flex items-center gap-1.5">
+                  <User className="w-3.5 h-3.5 text-slate-500" />
+                  {selectedLogModal.employeeName || "System"}
+                </span>
+              </div>
+
+              {/* Attachment Preview Section */}
+              {selectedLogModal.attachmentUrl && (
+                <div>
+                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1.5">
+                    Attached Image / Document
+                  </label>
+                  
+                  {isImageFile(selectedLogModal.attachmentUrl) ? (
+                    <div className="space-y-2">
+                      <div className="rounded-2xl border border-slate-200 overflow-hidden bg-slate-900 max-h-60 flex items-center justify-center p-2">
+                        <img
+                          src={selectedLogModal.attachmentUrl}
+                          alt="Work Attachment"
+                          className="max-h-56 max-w-full object-contain rounded-xl"
+                        />
+                      </div>
+                      <a
+                        href={selectedLogModal.attachmentUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center justify-center gap-1.5 w-full py-2 bg-indigo-50 text-indigo-700 rounded-xl border border-indigo-200 text-xs font-bold hover:bg-indigo-100 transition-colors"
+                      >
+                        <Paperclip className="w-3.5 h-3.5" /> Open Full Attachment <ExternalLink className="w-3 h-3" />
+                      </a>
+                    </div>
+                  ) : (
+                    <a
+                      href={selectedLogModal.attachmentUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="flex items-center justify-between p-3.5 bg-indigo-50 text-indigo-900 rounded-2xl border border-indigo-200 text-xs font-bold hover:bg-indigo-100 transition-colors"
+                    >
+                      <div className="flex items-center gap-2 min-w-0">
+                        <Paperclip className="w-4 h-4 text-indigo-600 shrink-0" />
+                        <span className="truncate">{selectedLogModal.attachmentUrl.split("/").pop()}</span>
+                      </div>
+                      <ExternalLink className="w-4 h-4 text-indigo-600 shrink-0" />
+                    </a>
+                  )}
+                </div>
+              )}
+
+              {/* Full Remarks / Notes */}
+              <div>
+                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1.5">
+                  Full Remarks / Notes
+                </label>
+                <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 text-xs text-slate-800 whitespace-pre-wrap leading-relaxed max-h-48 overflow-y-auto custom-scrollbar font-medium">
+                  {selectedLogModal.remarks || <span className="text-slate-400 italic">No remarks provided.</span>}
+                </div>
+              </div>
+
+            </div>
+
+            {/* Modal Footer */}
+            <div className="p-4 bg-slate-50 border-t border-slate-100 flex justify-end">
+              <button
+                type="button"
+                onClick={() => setSelectedLogModal(null)}
+                className="px-5 py-2 bg-slate-800 hover:bg-slate-900 text-white rounded-xl text-xs font-bold uppercase tracking-wider transition-colors"
+              >
+                Close
+              </button>
+            </div>
+
+          </div>
+        </div>,
+        document.body
+      )}
+    </div>
+  );
+}
