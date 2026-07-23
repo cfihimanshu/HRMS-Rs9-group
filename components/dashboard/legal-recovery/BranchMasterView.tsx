@@ -31,6 +31,7 @@ export default function BranchMasterView({
   const [uploadedFileUrl, setUploadedFileUrl] = useState<string>("");
   const [uploadingFile, setUploadingFile] = useState<boolean>(false);
   const [remarks, setRemarks] = useState<string>("");
+  const [workStatus, setWorkStatus] = useState<string>("Pending");
   const [submittingWork, setSubmittingWork] = useState<boolean>(false);
 
   const uniqueBanks = Array.from(new Set(banksList.map((b) => b.bankName).filter(Boolean)));
@@ -54,7 +55,7 @@ export default function BranchMasterView({
 
   const handleOpenWorkModal = (br: any) => {
     setSelectedBranch(br);
-    setWorkType("");
+    setWorkType("Bank");
     setWorkDateStr(new Date().toISOString().split("T")[0]);
     setSelectedBankId(br.bankId?.toString() || "");
     setSelectedBranchId(br.id?.toString() || "");
@@ -62,6 +63,7 @@ export default function BranchMasterView({
     setOtherWorkDetail("");
     setUploadedFileUrl("");
     setRemarks("");
+    setWorkStatus("Pending");
     setShowWorkModal(true);
   };
 
@@ -176,7 +178,7 @@ export default function BranchMasterView({
           description: taskDesc,
           proofAttachment: uploadedFileUrl || null,
           attachmentUrl: uploadedFileUrl || null,
-          status: "Pending",
+          status: workStatus || "Pending",
           priority: "Medium",
           dueDate: selectedWorkDate,
         }),
@@ -194,6 +196,7 @@ export default function BranchMasterView({
           branchName: selectedBranch?.branchName || "",
           attachmentUrl: uploadedFileUrl || "",
           remarks: remarks || "",
+          status: workStatus || "Pending",
           workDate: selectedWorkDate,
         }),
       });
@@ -401,8 +404,8 @@ export default function BranchMasterView({
             {/* Modal Body / Form */}
             <form onSubmit={handleSubmitWork} className="p-6 space-y-5 max-h-[80vh] overflow-y-auto custom-scrollbar">
               
-              {/* Work Type & Work Date Grid */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+              {/* Work Type, Work Date & Work Status Grid */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 {/* Work Type Selection */}
                 <div>
                   <label className="text-xs font-black text-slate-800 uppercase tracking-wider block mb-2 flex items-center gap-1.5">
@@ -441,6 +444,24 @@ export default function BranchMasterView({
                     onChange={(e) => setWorkDateStr(e.target.value)}
                     className="w-full text-xs p-3.5 border-2 border-slate-200 hover:border-slate-300 rounded-2xl bg-slate-50/70 focus:bg-white focus:outline-none focus:border-emerald-500 font-bold text-slate-800 transition-all shadow-sm"
                   />
+                </div>
+
+                {/* Work Status Selection */}
+                <div>
+                  <label className="text-xs font-black text-slate-800 uppercase tracking-wider block mb-2 flex items-center gap-1.5">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                    Work Status <span className="text-rose-500">*</span>
+                  </label>
+                  <select
+                    required
+                    value={workStatus}
+                    onChange={(e) => setWorkStatus(e.target.value)}
+                    className="w-full text-xs p-3.5 border-2 border-slate-200 hover:border-slate-300 rounded-2xl bg-slate-50/70 focus:bg-white focus:outline-none focus:border-emerald-500 font-bold text-slate-800 transition-all shadow-sm"
+                  >
+                    <option value="Pending">⏳ Pending</option>
+                    <option value="In Progress">🔄 In Progress</option>
+                    <option value="Completed">✅ Completed</option>
+                  </select>
                 </div>
               </div>
 

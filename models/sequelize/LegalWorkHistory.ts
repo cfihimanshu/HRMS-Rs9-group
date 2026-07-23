@@ -46,6 +46,11 @@ LegalWorkHistory.init(
       type: DataTypes.TEXT,
       allowNull: true,
     },
+    status: {
+      type: DataTypes.STRING,
+      allowNull: true,
+      defaultValue: "Pending",
+    },
     workDate: {
       type: DataTypes.DATE,
       allowNull: true,

@@ -46,11 +46,46 @@ export async function POST(request: Request) {
           : "Employee");
     }
 
+    if (!data.status) {
+      data.status = "Pending";
+    }
+
     const newHistoryEntry = await LegalWorkHistory.create(data);
 
     return NextResponse.json({ success: true, data: newHistoryEntry });
   } catch (error: any) {
     console.error("[/api/legal-recovery/work-history POST] Error:", error.message);
+    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+  }
+}
+
+export async function PUT(request: Request) {
+  try {
+    const data = await request.json();
+    const { id, status, remarks, category, subCategory, workDate } = data;
+    if (!id) {
+      return NextResponse.json({ success: false, error: "Missing entry ID" }, { status: 400 });
+    }
+
+    await sequelize.authenticate();
+    await LegalWorkHistory.sync({ alter: true });
+
+    const entry = await LegalWorkHistory.findByPk(id);
+    if (!entry) {
+      return NextResponse.json({ success: false, error: "Entry not found" }, { status: 404 });
+    }
+
+    if (status !== undefined) entry.status = status;
+    if (remarks !== undefined) entry.remarks = remarks;
+    if (category !== undefined) entry.category = category;
+    if (subCategory !== undefined) entry.subCategory = subCategory;
+    if (workDate !== undefined) entry.workDate = workDate;
+
+    await entry.save();
+
+    return NextResponse.json({ success: true, data: entry });
+  } catch (error: any) {
+    console.error("[/api/legal-recovery/work-history PUT] Error:", error.message);
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
 }
