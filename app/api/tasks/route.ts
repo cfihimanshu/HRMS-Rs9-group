@@ -365,29 +365,45 @@ export async function GET(req: Request) {
     if (userRole !== "Owner") {
       const managedUserIds = [userId];
       const loggedInProfile = await EmployeeProfile.findOne({ where: { user: userId } });
-      if (userRole === "Department Manager" && loggedInProfile?.department) {
-        const deptProfiles = await EmployeeProfile.findAll({
-          where: { department: loggedInProfile.department },
-          attributes: ["user"]
-        });
-        deptProfiles.forEach((p: any) => {
-          if (p.user && !managedUserIds.includes(p.user)) {
-            managedUserIds.push(p.user);
-          }
-        });
-      }
       const userName = session.user.name;
-      if (userName) {
-        const reportProfiles = await EmployeeProfile.findAll({
-          where: { reportingManager: userName },
-          attributes: ["user"]
-        });
-        reportProfiles.forEach((p: any) => {
-          if (p.user && !managedUserIds.includes(p.user)) {
-            managedUserIds.push(p.user);
-          }
-        });
+
+      const promises: Promise<any>[] = [];
+      if (userRole === "Department Manager" && loggedInProfile?.department) {
+        promises.push(
+          EmployeeProfile.findAll({
+            where: { department: loggedInProfile.department },
+            attributes: ["user"],
+            raw: true
+          })
+        );
+      } else {
+        promises.push(Promise.resolve([]));
       }
+
+      if (userName) {
+        promises.push(
+          EmployeeProfile.findAll({
+            where: { reportingManager: userName },
+            attributes: ["user"],
+            raw: true
+          })
+        );
+      } else {
+        promises.push(Promise.resolve([]));
+      }
+
+      const [deptProfiles, reportProfiles] = await Promise.all(promises);
+
+      deptProfiles.forEach((p: any) => {
+        if (p.user && !managedUserIds.includes(p.user)) {
+          managedUserIds.push(p.user);
+        }
+      });
+      reportProfiles.forEach((p: any) => {
+        if (p.user && !managedUserIds.includes(p.user)) {
+          managedUserIds.push(p.user);
+        }
+      });
 
       query[Op.or] = [
         { employee: { [Op.in]: managedUserIds } },
@@ -395,9 +411,13 @@ export async function GET(req: Request) {
       ];
     }
 
+    const limitParam = searchParams.get("limit");
+    const fetchLimit = limitParam === "all" ? undefined : (parseInt(limitParam || "300", 10) || 300);
+
     const records = await TaskLog.findAll({
       where: query,
-      order: [["createdAt", "DESC"]]
+      order: [["createdAt", "DESC"]],
+      limit: fetchLimit
     });
 
     const empIds = records.map((r: any) => r.employee).filter(Boolean);
@@ -414,7 +434,7 @@ export async function GET(req: Request) {
 
     const hydratedRecords = records.map((r: any) => {
       const plain = r.toJSON();
-      plain.id = plain.id.toString();
+      plain.id = plain.id ? String(plain.id) : "";
       if (plain.employee) {
         const empDetail = empMap.get(plain.employee);
         plain.employee = empDetail ? { ...empDetail, id: empDetail.id } : { id: plain.employee, name: "Unknown", role: "Employee" };
@@ -442,6 +462,9 @@ export async function GET(req: Request) {
     return NextResponse.json({ success: true, data: hydratedRecords });
   } catch (error: any) {
     console.error("[/api/tasks GET] Error:", error?.message, error?.stack);
+    if (error?.message?.includes("ETIMEDOUT") || error?.message?.includes("connect") || error?.code === "ETIMEDOUT") {
+      return NextResponse.json({ success: true, data: [], error: "Database connection timeout" });
+    }
     return NextResponse.json({ success: false, error: error.message, detail: error?.original?.message || error?.stack?.split('\n')[0] || "" }, { status: 500 });
   }
 }

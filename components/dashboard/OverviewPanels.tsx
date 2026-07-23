@@ -18,6 +18,8 @@ import {
   Clock,
   CheckCircle,
   FileCheck,
+  FileText,
+  ShieldCheck,
   CalendarClock,
   FileSearch,
   LogOut,
@@ -42,7 +44,7 @@ interface OverviewProps {
   stats: any;
   riskAlertList: any[];
   onResolveAlert: (id: string) => void;
-  onNavigateTab: (tab: string) => void;
+  onNavigateTab: (tab: string, filter?: string) => void;
   triggerToast: (msg: string) => void;
   companies?: any[];
   selectedCompanyId?: string;
@@ -126,7 +128,7 @@ export function OwnerDashboard({
       {/* Top Action Header Bar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <span className="text-[9px] uppercase tracking-widest text-[#C9A84C] font-bold">Command Center</span>
+          <span className="text-[9px] uppercase tracking-widest text-indigo-600 font-bold">Command Center</span>
           <h1 className="text-xl font-light text-[#1C1C1A] tracking-wide font-serif" style={{ fontFamily: "'Playfair Display', serif" }}>
             Enterprise Workspace
           </h1>
@@ -136,7 +138,7 @@ export function OwnerDashboard({
             <select
               value={selectedCompanyId || ""}
               onChange={(e) => onCompanyChange?.(e.target.value)}
-              className="text-[10px] uppercase tracking-wider font-semibold px-3 py-2 bg-[#FCFBF9] border border-[#E8E4DF] rounded-lg focus:outline-none focus:border-[#C9A84C] transition-colors shadow-sm text-[#1C1C1A]"
+              className="text-[10px] uppercase tracking-wider font-semibold px-3 py-2 bg-[#FCFBF9] border border-[#E8E4DF] rounded-lg focus:outline-none focus:border-indigo-500 transition-colors shadow-2xs text-[#1C1C1A]"
             >
               <option value="">All Companies</option>
               {companies.map((c) => (
@@ -151,7 +153,7 @@ export function OwnerDashboard({
             <Download className="w-3.5 h-3.5" /> Export
           </button>
           <button
-            className="px-4 py-2 bg-[#C9A84C] hover:bg-[#B3923E] text-white rounded-lg text-xs font-semibold tracking-wider uppercase transition-all shadow-[0_2px_15px_rgba(201,168,76,0.15)] flex items-center gap-2"
+            className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold tracking-wider uppercase transition-all shadow-sm flex items-center gap-2"
             onClick={() => triggerToast("Enterprise metrics synchronized successfully")}
           >
             <RotateCw className="w-3.5 h-3.5" /> Sync
@@ -160,8 +162,8 @@ export function OwnerDashboard({
       </div>
 
       {/* Hero Greeting Card */}
-      <div className="bg-[#FCFBF9] border border-[#E8E4DF] rounded-xl p-8 shadow-[0_2px_20px_rgba(0,0,0,0.04)] relative overflow-hidden flex flex-col md:flex-row md:items-center justify-between gap-8">
-        <div className="absolute right-0 bottom-0 pointer-events-none opacity-[0.03] text-[#1C1C1A]">
+      <div className="bg-[#FCFBF9] border border-[#E8E4DF] rounded-xl p-6 md:p-7 shadow-[0_2px_12px_rgba(0,0,0,0.03)] relative overflow-hidden flex flex-col md:flex-row md:items-center justify-between gap-6">
+        <div className="absolute right-0 bottom-0 pointer-events-none opacity-[0.025] text-[#1C1C1A]">
           <svg className="w-64 h-64" viewBox="0 0 100 100" fill="none" stroke="currentColor" strokeWidth="0.5">
             <circle cx="90" cy="90" r="80" />
             <circle cx="90" cy="90" r="60" />
@@ -170,170 +172,292 @@ export function OwnerDashboard({
         </div>
 
         <div className="relative z-10 w-full md:w-1/3">
-          <h1 className="text-3xl font-light tracking-wide text-[#1C1C1A] font-serif" style={{ fontFamily: "'Playfair Display', serif" }}>
+          <h1 className="text-2xl md:text-3xl font-light tracking-wide text-[#1C1C1A] font-serif" style={{ fontFamily: "'Playfair Display', serif" }}>
             Good morning, {firstName}.
           </h1>
-          <div className="h-0.5 w-16 bg-[#C9A84C] mt-2.5" />
-          <p className="text-[9px] text-[#9C9890] uppercase tracking-widest mt-3.5 font-bold">
+          <div className="h-0.5 w-12 bg-indigo-600 mt-2" />
+          <p className="text-[9px] text-[#8C8880] uppercase tracking-widest mt-3 font-bold">
             {new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
           </p>
         </div>
 
-        <div className="relative z-10 w-full md:w-2/3 grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-8 divide-x divide-[#E8E4DF]">
-          <div className="pl-4 md:pl-6 first:pl-0 cursor-pointer hover:bg-slate-50 transition-colors p-2 rounded-lg -ml-2" onClick={() => { setStaffModalFilter("all"); setShowStaffModal(true); }}>
-            <div className="text-2xl font-light text-[#1C1C1A] font-serif" style={{ fontFamily: "'Playfair Display', serif" }}>
+        <div className="relative z-10 w-full md:w-2/3 grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 divide-x divide-[#E8E4DF]">
+          <div
+            className="pl-3 md:pl-5 first:pl-0 cursor-pointer hover:bg-[#FAF9F5] transition-all p-2 rounded-lg -ml-1 group"
+            onClick={() => onNavigateTab("employees")}
+            title="Click to view Employees Directory"
+          >
+            <div className="text-2xl font-light text-indigo-950 font-serif" style={{ fontFamily: "'Playfair Display', serif" }}>
               {stats?.roles?.employees || 0}
             </div>
-            <div className="text-[9px] uppercase tracking-wider text-[#9C9890] mt-1 font-semibold flex items-center gap-1 hover:text-[#C9A84C]">
-              <Users className="w-3 h-3" /> Total Staff <ArrowUpRight className="w-3 h-3" />
+            <div className="text-[9px] uppercase tracking-wider text-[#8C8880] mt-1 font-semibold flex items-center gap-1 group-hover:text-indigo-600 transition-colors">
+              <Users className="w-3 h-3 text-indigo-500 group-hover:text-indigo-700" /> Total Staff <ArrowUpRight className="w-3 h-3 text-[#8C8880] group-hover:text-indigo-600" />
             </div>
           </div>
-          <div className="pl-4 md:pl-6 cursor-pointer hover:bg-slate-50 transition-colors p-2 rounded-lg" onClick={() => { setStaffModalFilter("present"); setShowStaffModal(true); }}>
-            <div className="text-2xl font-light text-[#6B8F71] font-serif" style={{ fontFamily: "'Playfair Display', serif" }}>
+          <div
+            className="pl-3 md:pl-5 cursor-pointer hover:bg-[#FAF9F5] transition-all p-2 rounded-lg group"
+            onClick={() => onNavigateTab("attendance")}
+            title="Click to view Attendance & SOD Logs"
+          >
+            <div className="text-2xl font-light text-emerald-800 font-serif" style={{ fontFamily: "'Playfair Display', serif" }}>
               {stats?.todayCompliance?.attendance || 0}
             </div>
-            <div className="text-[9px] uppercase tracking-wider text-[#9C9890] mt-1 font-semibold flex items-center gap-1 hover:text-[#C9A84C]">
-              <UserCheck className="w-3 h-3" /> Present Today <ArrowUpRight className="w-3 h-3" />
+            <div className="text-[9px] uppercase tracking-wider text-[#8C8880] mt-1 font-semibold flex items-center gap-1 group-hover:text-emerald-700 transition-colors">
+              <UserCheck className="w-3 h-3 text-emerald-600" /> Present Today <ArrowUpRight className="w-3 h-3 text-[#8C8880] group-hover:text-emerald-700" />
             </div>
           </div>
-          <div className="pl-4 md:pl-6 cursor-pointer hover:bg-slate-50 transition-colors p-2 rounded-lg" onClick={() => { setStaffModalFilter("absent"); setShowStaffModal(true); }}>
-            <div className="text-2xl font-light text-rose-500 font-serif" style={{ fontFamily: "'Playfair Display', serif" }}>
-              {stats?.todayCompliance?.absent || 0}
+
+          <div
+            className="pl-3 md:pl-5 cursor-pointer hover:bg-[#FAF9F5] transition-all p-2 rounded-lg group"
+            onClick={() => onNavigateTab("tasks")}
+            title="Click to view Pending Tasks"
+          >
+            <div className="text-2xl font-light text-amber-700 font-serif" style={{ fontFamily: "'Playfair Display', serif" }}>
+              {stats?.pendingApprovals?.pendingTasks ?? stats?.currentUserStats?.pendingTasksCount ?? 0}
             </div>
-            <div className="text-[9px] uppercase tracking-wider text-[#9C9890] mt-1 font-semibold flex items-center gap-1 hover:text-[#C9A84C]">
-              <UserMinus className="w-3 h-3" /> Absent Today <ArrowUpRight className="w-3 h-3" />
+            <div className="text-[9px] uppercase tracking-wider text-[#8C8880] mt-1 font-semibold flex items-center gap-1 group-hover:text-amber-600 transition-colors">
+              <Clock className="w-3 h-3 text-amber-500" /> Pending Tasks <ArrowUpRight className="w-3 h-3 text-[#8C8880] group-hover:text-amber-600" />
             </div>
           </div>
-          <div className="pl-4 md:pl-6">
-            <div className="text-2xl font-light text-[#C9A84C] font-serif" style={{ fontFamily: "'Playfair Display', serif" }}>
-              {stats?.todayCompliance?.leaves || 0}
+
+          <div
+            className="pl-3 md:pl-5 cursor-pointer hover:bg-[#FAF9F5] transition-all p-2 rounded-lg group"
+            onClick={() => onNavigateTab("ess-leaves")}
+            title="Click to view Pending Requests (Leaves & Assets)"
+          >
+            <div className="text-2xl font-light text-purple-900 font-serif" style={{ fontFamily: "'Playfair Display', serif" }}>
+              {stats?.pendingApprovals?.pendingRequestsTotal ?? 0}
             </div>
-            <div className="text-[9px] uppercase tracking-wider text-[#9C9890] mt-1 font-semibold flex items-center gap-1">
-              <AlertTriangle className="w-3 h-3" /> On Leave
+            <div className="text-[9px] uppercase tracking-wider text-[#8C8880] mt-1 font-semibold flex items-center gap-1 group-hover:text-purple-600 transition-colors">
+              <FileCheck className="w-3 h-3 text-purple-500" /> Pending Requests <ArrowUpRight className="w-3 h-3 text-[#8C8880] group-hover:text-purple-600" />
             </div>
           </div>
         </div>
       </div>
 
       {/* Main Grid: Simplified & Minimal */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-7">
 
-        {/* Left Column: Operations Overview */}
-        <div className="space-y-8">
-          <div className="bg-[#FCFBF9] border border-[#E8E4DF] rounded-xl p-6 shadow-[0_2px_20px_rgba(0,0,0,0.04)]">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-sm font-medium tracking-wider text-[#1C1C1A] uppercase">Today's Operations</h2>
+        {/* Left Column: Operations Overview & HR Pipeline */}
+        <div className="space-y-7">
+          <div className="bg-[#FCFBF9] border border-[#E8E4DF] rounded-xl p-6 shadow-[0_2px_12px_rgba(0,0,0,0.03)]">
+            <div className="flex items-center justify-between mb-5">
+              <h2 className="text-xs font-semibold tracking-widest text-[#1C1C1A] uppercase">Today's Operations</h2>
+              <button
+                onClick={() => onNavigateTab("performance", "visual-dashboard")}
+                className="text-[9px] uppercase tracking-wider font-bold text-indigo-600 hover:text-indigo-800 transition-colors flex items-center gap-1"
+              >
+                View Operations <ArrowUpRight className="w-3 h-3" />
+              </button>
             </div>
-
-            <div className="space-y-6">
-              <div>
-                <div className="flex justify-between text-[11px] uppercase tracking-widest font-bold mb-2">
-                  <span className="text-[#5D5B57]">SOD Declared</span>
-                  <span className="text-[#1C1C1A]">{stats?.todayCompliance?.sod || 0} / {stats?.roles?.employees || 0}</span>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              {/* SOD Declared Card */}
+              <div
+                className="p-3.5 border border-[#E8E4DF] rounded-lg bg-white cursor-pointer hover:border-indigo-400 hover:bg-[#FAF9F5] transition-all group flex flex-col justify-between"
+                onClick={() => onNavigateTab("performance", "sod")}
+                title="Click to view SOD Work Reports"
+              >
+                <div>
+                  <div className="text-[9px] uppercase tracking-wider text-[#8C8880] font-bold flex items-center justify-between">
+                    <span>SOD Declared</span>
+                    <ArrowUpRight className="w-3 h-3 text-[#9C9890] group-hover:text-indigo-600" />
+                  </div>
+                  <div className="text-lg font-light text-[#1C1C1A] font-serif mt-1 font-mono">
+                    {stats?.todayCompliance?.sod || 0} <span className="text-xs text-[#8C8880] font-sans">/ {stats?.roles?.employees || 0}</span>
+                  </div>
                 </div>
-                <div className="w-full bg-[#E8E4DF] rounded-full h-1.5 overflow-hidden">
-                  <div className="bg-[#6B8F71] h-1.5 rounded-full" style={{ width: `${stats?.roles?.employees ? Math.min(100, Math.round(((stats.todayCompliance?.sod || 0) / stats.roles.employees) * 100)) : 0}%` }}></div>
+                <div className="w-full bg-[#E8E4DF] rounded-full h-1 mt-2.5 overflow-hidden">
+                  <div className="bg-indigo-600 h-1 rounded-full" style={{ width: `${stats?.roles?.employees ? Math.min(100, Math.round(((stats.todayCompliance?.sod || 0) / stats.roles.employees) * 100)) : 0}%` }}></div>
                 </div>
               </div>
 
-              <div>
-                <div className="flex justify-between text-[11px] uppercase tracking-widest font-bold mb-2">
-                  <span className="text-[#5D5B57]">EOD Logs Submitted</span>
-                  <span className="text-[#1C1C1A]">{stats?.todayCompliance?.eod || 0} / {stats?.roles?.employees || 0}</span>
+              {/* EOD Logs Submitted Card */}
+              <div
+                className="p-3.5 border border-[#E8E4DF] rounded-lg bg-white cursor-pointer hover:border-blue-400 hover:bg-[#FAF9F5] transition-all group flex flex-col justify-between"
+                onClick={() => onNavigateTab("performance", "eod")}
+                title="Click to view EOD Work Reports"
+              >
+                <div>
+                  <div className="text-[9px] uppercase tracking-wider text-[#8C8880] font-bold flex items-center justify-between">
+                    <span>EOD Logs</span>
+                    <ArrowUpRight className="w-3 h-3 text-[#9C9890] group-hover:text-blue-600" />
+                  </div>
+                  <div className="text-lg font-light text-[#1C1C1A] font-serif mt-1 font-mono">
+                    {stats?.todayCompliance?.eod || 0} <span className="text-xs text-[#8C8880] font-sans">/ {stats?.roles?.employees || 0}</span>
+                  </div>
                 </div>
-                <div className="w-full bg-[#E8E4DF] rounded-full h-1.5 overflow-hidden">
-                  <div className="bg-[#C9A84C] h-1.5 rounded-full" style={{ width: `${stats?.roles?.employees ? Math.min(100, Math.round(((stats.todayCompliance?.eod || 0) / stats.roles.employees) * 100)) : 0}%` }}></div>
+                <div className="w-full bg-[#E8E4DF] rounded-full h-1 mt-2.5 overflow-hidden">
+                  <div className="bg-blue-600 h-1 rounded-full" style={{ width: `${stats?.roles?.employees ? Math.min(100, Math.round(((stats.todayCompliance?.eod || 0) / stats.roles.employees) * 100)) : 0}%` }}></div>
                 </div>
               </div>
 
-              <div>
-                <div className="flex justify-between text-[11px] uppercase tracking-widest font-bold mb-2">
-                  <span className="text-[#5D5B57]">Late Check-ins</span>
-                  <span className="text-rose-500">{stats?.todayCompliance?.lateCheckins || 0}</span>
+              {/* Late Check-ins Card */}
+              <div
+                className="p-3.5 border border-[#E8E4DF] rounded-lg bg-white cursor-pointer hover:border-rose-300 hover:bg-[#FAF9F5] transition-all group flex flex-col justify-between"
+                onClick={() => onNavigateTab("performance", "sod")}
+                title="Click to view Late Check-ins & SOD Reports"
+              >
+                <div>
+                  <div className="text-[9px] uppercase tracking-wider text-[#8C8880] font-bold flex items-center justify-between">
+                    <span>Late Check-ins</span>
+                    <ArrowUpRight className="w-3 h-3 text-[#9C9890] group-hover:text-rose-600" />
+                  </div>
+                  <div className="text-lg font-light text-[#1C1C1A] font-serif mt-1 font-mono">
+                    {stats?.todayCompliance?.lateCheckins || 0}
+                  </div>
+                </div>
+                <div className="text-[9px] font-medium mt-2 text-rose-600">
+                  {stats?.todayCompliance?.lateCheckins > 0 ? "Requires review" : "On schedule"}
                 </div>
               </div>
             </div>
           </div>
 
-          <div className="bg-[#FCFBF9] border border-[#E8E4DF] rounded-xl p-6 shadow-[0_2px_20px_rgba(0,0,0,0.04)]">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-sm font-medium tracking-wider text-[#1C1C1A] uppercase">HR & Hiring Pipeline</h2>
-              <button onClick={() => onNavigateTab("hr-leads")} className="text-[9px] uppercase tracking-wider font-bold text-[#C9A84C] hover:text-[#B3923E]">Manage</button>
+          <div className="bg-[#FCFBF9] border border-[#E8E4DF] rounded-xl p-6 shadow-[0_2px_12px_rgba(0,0,0,0.03)]">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xs font-semibold tracking-widest text-[#1C1C1A] uppercase">HR & Hiring Pipeline</h2>
+              <button onClick={() => onNavigateTab("business-leads", "All")} className="text-[9px] uppercase tracking-wider font-bold text-indigo-600 hover:text-indigo-800 transition-colors flex items-center gap-1">Manage Leads <ArrowUpRight className="w-3 h-3" /></button>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className="p-4 border border-[#E8E4DF] rounded-lg bg-white">
-                <div className="text-xl font-light text-[#1C1C1A]">{stats?.hrStats?.newCandidates || 0}</div>
-                <div className="text-[9px] uppercase tracking-wider text-[#9C9890] mt-1 font-bold">New Leads</div>
+            {/* 6 Uniform Core Metric Cards */}
+            <div className="grid grid-cols-2 gap-3">
+              <div
+                className="p-3.5 border border-[#E8E4DF] rounded-lg bg-white cursor-pointer hover:border-indigo-400 hover:bg-[#FAF9F5] transition-all group"
+                onClick={() => onNavigateTab("business-leads", "All")}
+                title="Click to view Total HR Leads"
+              >
+                <div className="text-xl font-light text-indigo-950 font-serif" style={{ fontFamily: "'Playfair Display', serif" }}>
+                  {stats?.hrStats?.hrLeadsCount || stats?.candidates?.total || 0}
+                </div>
+                <div className="text-[9px] uppercase tracking-wider text-[#8C8880] mt-1 font-bold flex items-center justify-between">
+                  <span>Total Leads</span>
+                  <ArrowUpRight className="w-3 h-3 text-[#9C9890] group-hover:text-indigo-600" />
+                </div>
               </div>
-              <div className="p-4 border border-[#E8E4DF] rounded-lg bg-white">
-                <div className="text-xl font-light text-[#C9A84C]">{stats?.hrStats?.interviewsToday || 0}</div>
-                <div className="text-[9px] uppercase tracking-wider text-[#9C9890] mt-1 font-bold">Interviews Today</div>
+
+              <div
+                className="p-3.5 border border-[#E8E4DF] rounded-lg bg-white cursor-pointer hover:border-amber-400 hover:bg-[#FAF9F5] transition-all group"
+                onClick={() => onNavigateTab("business-leads", "Pending")}
+                title="Click to view Pending Leads"
+              >
+                <div className="text-xl font-light text-amber-800 font-serif" style={{ fontFamily: "'Playfair Display', serif" }}>
+                  {stats?.hrStats?.pendingLeadsCount || stats?.candidates?.pending || 0}
+                </div>
+                <div className="text-[9px] uppercase tracking-wider text-[#8C8880] mt-1 font-bold flex items-center justify-between">
+                  <span>Pending Leads</span>
+                  <ArrowUpRight className="w-3 h-3 text-[#9C9890] group-hover:text-amber-600" />
+                </div>
               </div>
-              <div className="p-4 border border-[#E8E4DF] rounded-lg bg-white">
-                <div className="text-xl font-light text-rose-500">{stats?.hrStats?.verificationPending || 0}</div>
-                <div className="text-[9px] uppercase tracking-wider text-[#9C9890] mt-1 font-bold">Pending Verification</div>
+
+              <div
+                className="p-3.5 border border-[#E8E4DF] rounded-lg bg-white cursor-pointer hover:border-emerald-400 hover:bg-[#FAF9F5] transition-all group"
+                onClick={() => onNavigateTab("business-leads", "Selected")}
+                title="Click to view Selected Leads"
+              >
+                <div className="text-xl font-light text-emerald-800 font-serif" style={{ fontFamily: "'Playfair Display', serif" }}>
+                  {stats?.hrStats?.selectedLeadsCount !== undefined ? stats.hrStats.selectedLeadsCount : (stats?.candidates?.selected || 0)}
+                </div>
+                <div className="text-[9px] uppercase tracking-wider text-[#8C8880] mt-1 font-bold flex items-center justify-between">
+                  <span>Selected Leads</span>
+                  <ArrowUpRight className="w-3 h-3 text-[#9C9890] group-hover:text-emerald-600" />
+                </div>
               </div>
-              <div className="p-4 border border-[#E8E4DF] rounded-lg bg-white">
-                <div className="text-xl font-light text-[#6B8F71]">{stats?.hrStats?.hrLeadsCount || 0}</div>
-                <div className="text-[9px] uppercase tracking-wider text-[#9C9890] mt-1 font-bold">Selected Candidates</div>
+
+              <div
+                className="p-3.5 border border-[#E8E4DF] rounded-lg bg-white cursor-pointer hover:border-rose-400 hover:bg-[#FAF9F5] transition-all group"
+                onClick={() => onNavigateTab("business-leads", "Rejected")}
+                title="Click to view Rejected Leads"
+              >
+                <div className="text-xl font-light text-rose-700 font-serif" style={{ fontFamily: "'Playfair Display', serif" }}>
+                  {stats?.hrStats?.rejectedLeadsCount !== undefined ? stats.hrStats.rejectedLeadsCount : 0}
+                </div>
+                <div className="text-[9px] uppercase tracking-wider text-[#8C8880] mt-1 font-bold flex items-center justify-between">
+                  <span>Rejected Leads</span>
+                  <ArrowUpRight className="w-3 h-3 text-[#9C9890] group-hover:text-rose-600" />
+                </div>
+              </div>
+
+              <div
+                className="p-3.5 border border-[#E8E4DF] rounded-lg bg-white cursor-pointer hover:border-blue-400 hover:bg-[#FAF9F5] transition-all group"
+                onClick={() => onNavigateTab("interviews")}
+                title="Click to view Interviews Queue"
+              >
+                <div className="text-xl font-light text-blue-900 font-serif" style={{ fontFamily: "'Playfair Display', serif" }}>
+                  {stats?.hrStats?.interviewsToday || 0}
+                </div>
+                <div className="text-[9px] uppercase tracking-wider text-[#8C8880] mt-1 font-bold flex items-center justify-between">
+                  <span>Interviews Today</span>
+                  <ArrowUpRight className="w-3 h-3 text-[#9C9890] group-hover:text-blue-600" />
+                </div>
+              </div>
+
+              <div
+                className="p-3.5 border border-[#E8E4DF] rounded-lg bg-white cursor-pointer hover:border-purple-400 hover:bg-[#FAF9F5] transition-all group"
+                onClick={() => onNavigateTab("verification")}
+                title="Click to view Vetting Checks Registry"
+              >
+                <div className="text-xl font-light text-purple-900 font-serif" style={{ fontFamily: "'Playfair Display', serif" }}>
+                  {stats?.hrStats?.verificationPending || 0}
+                </div>
+                <div className="text-[9px] uppercase tracking-wider text-[#8C8880] mt-1 font-bold flex items-center justify-between">
+                  <span>Pending Verify</span>
+                  <ArrowUpRight className="w-3 h-3 text-[#9C9890] group-hover:text-purple-600" />
+                </div>
               </div>
             </div>
           </div>
         </div>
 
         {/* Right Column: Quick Actions & Activity Feed */}
-        <div className="space-y-8">
+        <div className="space-y-7">
 
-          <div className="bg-[#FCFBF9] border border-[#E8E4DF] rounded-xl p-6 shadow-[0_2px_20px_rgba(0,0,0,0.04)]">
-            <h2 className="text-sm font-medium tracking-wider text-[#1C1C1A] uppercase mb-4">Quick Actions</h2>
-            <div className="grid grid-cols-2 gap-3">
+          <div className="bg-[#FCFBF9] border border-[#E8E4DF] rounded-xl p-6 shadow-[0_2px_12px_rgba(0,0,0,0.03)]">
+            <h2 className="text-xs font-semibold tracking-widest text-[#1C1C1A] uppercase mb-4">Quick Actions</h2>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               {[
-                { name: "Add Employee", tab: "employees" },
-                { name: "Approve Leaves", tab: "ess-leaves" },
-                { name: "Process Payroll", tab: "ess-payroll" },
-                { name: "Post Job", tab: "jobs" },
-                { name: "Appraisal Logs", tab: "performance" },
-                { name: "Risk Assessment", tab: "risks" },
-                { name: "Verify Registry", tab: "verification" },
-                { name: "Work Report", tab: "performance" } // changed tab to performance for Work Report
+                { name: "Add Employee", tab: "employees", icon: UserPlus },
+                { name: "Approve Leaves", tab: "ess-leaves", icon: CalendarClock },
+                { name: "Process Payroll", tab: "ess-payroll", icon: FileText },
+                { name: "Post Job", tab: "jobs", icon: Briefcase },
+                { name: "Appraisal Logs", tab: "performance", icon: TrendingUp },
+                { name: "Risk Assessment", tab: "risks", icon: ShieldAlert },
+                { name: "Verify Registry", tab: "verification", icon: ShieldCheck },
+                { name: "Work Report", tab: "performance", icon: FileSearch }
               ].map((action, i) => {
-                const handleClick = () => {
-                  if (["employees", "ess-leaves", "ess-payroll", "jobs", "performance", "risks", "verification"].includes(action.tab)) {
-                    onNavigateTab(action.tab);
-                  } else {
-                    triggerToast?.(`Executing: ${action.name}`);
-                  }
-                };
-
+                const IconComponent = action.icon;
                 return (
                   <button
                     key={i}
-                    onClick={handleClick}
-                    className="text-[10px] uppercase tracking-wider font-semibold p-3 rounded-lg border border-[#E8E4DF] bg-[#FCFBF9] text-[#5D5B57] hover:bg-[#FAFAF7] hover:border-[#C9A84C] hover:text-[#1C1C1A] transition-all hover:scale-[1.01] active:scale-[0.99] text-center"
+                    onClick={() => onNavigateTab(action.tab)}
+                    className="text-[9px] uppercase tracking-wider font-bold p-3 rounded-xl border border-[#E8E4DF] bg-white text-[#4A4844] hover:bg-[#FAF9F5] hover:border-indigo-400 hover:shadow-2xs transition-all text-left cursor-pointer flex flex-col justify-between h-20 group"
+                    title={`Navigate to ${action.name}`}
                   >
-                    {action.name}
+                    <div className="w-full flex items-center justify-between">
+                      <div className="p-1.5 rounded-lg bg-indigo-50/80 border border-indigo-100/80 text-indigo-600 group-hover:bg-indigo-600 group-hover:text-white group-hover:border-indigo-600 transition-all shadow-2xs">
+                        <IconComponent className="w-3.5 h-3.5" />
+                      </div>
+                      <ArrowUpRight className="w-3 h-3 text-[#9C9890] group-hover:text-indigo-600 transition-colors" />
+                    </div>
+                    <span className="font-semibold text-[#1C1C1A] text-[9.5px] leading-snug group-hover:text-indigo-600 transition-colors">{action.name}</span>
                   </button>
                 );
               })}
             </div>
           </div>
 
-          <div className="bg-[#FCFBF9] border border-[#E8E4DF] rounded-xl p-6 shadow-[0_2px_20px_rgba(0,0,0,0.04)]">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-sm font-medium tracking-wider text-[#1C1C1A] uppercase">Recent Activity</h2>
+          <div className="bg-[#FCFBF9] border border-[#E8E4DF] rounded-xl p-6 shadow-[0_2px_12px_rgba(0,0,0,0.03)]">
+            <div className="flex items-center justify-between mb-5">
+              <h2 className="text-xs font-semibold tracking-widest text-[#1C1C1A] uppercase">Recent Activity</h2>
               <button
-                onClick={() => triggerToast?.("Displaying all activities...")}
-                className="text-[9px] uppercase tracking-wider font-bold text-[#C9A84C] hover:text-[#B3923E] transition-colors"
+                onClick={() => onNavigateTab("tasks")}
+                className="text-[9px] uppercase tracking-wider font-bold text-indigo-600 hover:text-indigo-800 transition-colors flex items-center gap-1"
               >
-                View All
+                View All <ArrowUpRight className="w-3 h-3" />
               </button>
             </div>
-            <ActivityFeed dark={false} companyId={selectedCompanyId} />
+            <ActivityFeed dark={false} companyId={selectedCompanyId} logs={stats?.hrActivities} maxHeight="max-h-[310px]" />
           </div>
-
         </div>
-
       </div>
 
       {showStaffModal && (
@@ -343,9 +467,17 @@ export function OwnerDashboard({
               <h2 className="text-xl font-serif text-[#1C1C1A]">
                 Team Roster {staffModalFilter === "present" ? "(Present)" : staffModalFilter === "absent" ? "(Absent)" : ""}
               </h2>
-              <button onClick={() => setShowStaffModal(false)} className="text-gray-400 hover:text-gray-800 transition-colors">
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-              </button>
+              <div className="flex items-center gap-4">
+                <button
+                  onClick={() => { setShowStaffModal(false); onNavigateTab("employees"); }}
+                  className="text-xs font-bold text-[#C9A84C] hover:text-[#B3923E] flex items-center gap-1 uppercase tracking-wider transition-colors"
+                >
+                  Open Employees Directory <ArrowUpRight className="w-3.5 h-3.5" />
+                </button>
+                <button onClick={() => setShowStaffModal(false)} className="text-gray-400 hover:text-gray-800 transition-colors">
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                </button>
+              </div>
             </div>
 
             <div className="flex-1 overflow-auto p-0">
@@ -923,7 +1055,7 @@ export function DepartmentDashboard({
         </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
         <StatCard
           title="Team Members"
           value={deptStats.teamMembers?.toString() || "0"}
@@ -950,6 +1082,15 @@ export function DepartmentDashboard({
           icon={<Clock className="w-5 h-5" />}
           dark={isDark}
           onClick={() => setShowSodEodModal(true)}
+        />
+        <StatCard
+          title="Pending Approvals"
+          value={(deptStats.pendingApprovals !== undefined ? deptStats.pendingApprovals : (stats?.pendingApprovals?.pendingRequestsTotal || 0)).toString()}
+          trend="Requires Manager action"
+          trendUp={false}
+          icon={<ShieldCheck className="w-5 h-5 text-indigo-500" />}
+          dark={isDark}
+          onClick={() => onNavigateTab("ess-leaves")}
         />
         <StatCard
           title="Avg Performance"

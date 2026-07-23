@@ -96,21 +96,20 @@ export function ESSDashboard({ user, triggerToast, setActiveTab, toggleModal, st
   const pendingCountDisplay = stats?.currentUserStats?.pendingTasksCount ?? pendingTasks.length;
 
   return (
-    <div className="space-y-6 animate-fade-in">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <div className="space-y-7 animate-fade-in text-[#1C1C1A]">
+      {/* Top Action Header Bar */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className={`text-2xl font-bold tracking-tight ${isDark ? "text-white" : "text-slate-800"}`}>
-            Employee Dashboard
+          <span className="text-[9px] uppercase tracking-widest text-indigo-600 font-bold">Employee Self Service</span>
+          <h1 className="text-2xl font-light text-[#1C1C1A] tracking-wide font-serif" style={{ fontFamily: "'Playfair Display', serif" }}>
+            Welcome, {user?.name || "Employee"}
           </h1>
-          <p className={`text-sm mt-1 ${isDark ? "text-gray-400" : "text-slate-500"}`}>
-            Welcome {user?.name}
-          </p>
         </div>
         <div className="flex items-center gap-3">
           {(!stats?.currentUserCompliance?.hasSod) && (
             <button
               onClick={() => toggleModal ? toggleModal("sodModal", true) : setActiveTab?.("attendance")}
-              className="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-lg text-xs font-black shadow-lg shadow-indigo-600/20 flex items-center gap-2 transition-all"
+              className="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-lg text-xs font-bold tracking-wider uppercase transition-all shadow-sm flex items-center gap-2"
             >
               <Clock className="w-4 h-4" /> Declare SOD
             </button>
@@ -118,72 +117,132 @@ export function ESSDashboard({ user, triggerToast, setActiveTab, toggleModal, st
           {(stats?.currentUserCompliance?.hasSod && !stats?.currentUserCompliance?.hasEod) && (
             <button
               onClick={() => toggleModal ? toggleModal("eodModal", true) : setActiveTab?.("attendance")}
-              className="bg-[#714B67] hover:bg-[#5F3F56] text-white px-5 py-2.5 rounded-lg text-xs font-black shadow-lg shadow-[#714B67]/20 flex items-center gap-2 transition-all"
+              className="bg-[#714B67] hover:bg-[#5F3F56] text-white px-5 py-2.5 rounded-lg text-xs font-bold tracking-wider uppercase transition-all shadow-sm flex items-center gap-2"
             >
               <CalendarCheck className="w-4 h-4" /> Submit EOD
             </button>
           )}
           {(stats?.currentUserCompliance?.hasEod) && (
-            <span className="text-xs font-bold text-emerald-600 bg-emerald-50 px-4 py-2 rounded-lg border border-emerald-200 flex items-center gap-2">
-              <CalendarCheck className="w-4 h-4" /> Day Completed
+            <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-4 py-2 rounded-lg border border-emerald-200/80 flex items-center gap-2 shadow-2xs">
+              <CalendarCheck className="w-4 h-4 text-emerald-600" /> Day Completed
             </span>
           )}
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <StatCard
-          title="Present Days (This Month)"
-          value={`${dynamicStats.presentDays ?? 0} / ${dynamicStats.totalWorkingDays ?? 22}`}
-          trend={`${dynamicStats.attendancePercent ?? 100}% Attendance`}
-          trendUp={(dynamicStats.attendancePercent ?? 100) >= 90}
-          icon={<CalendarCheck className="w-5 h-5 text-indigo-500" />}
-          dark={isDark}
-        />
-        <StatCard
-          title="Casual Leave (This Month)"
-          value={`${dynamicStats.casualLeaveTaken ?? 0}`}
-          trend={`${(dynamicStats.casualLeave ?? 12) - (dynamicStats.casualLeaveTaken ?? 0)} days remaining`}
-          trendUp={true}
-          icon={<FileText className="w-5 h-5 text-rose-500" />}
-          dark={isDark}
-        />
-        <StatCard
-          title="Sick Leave (This Month)"
-          value={`${dynamicStats.sickLeaveTaken ?? 0}`}
-          trend={`${(dynamicStats.sickLeave ?? 12) - (dynamicStats.sickLeaveTaken ?? 0)} days remaining`}
-          trendUp={true}
-          icon={<FileText className="w-5 h-5 text-emerald-500" />}
-          dark={isDark}
-        />
-        <StatCard
-          title="Pending Tasks"
-          value={`${pendingCountDisplay}`}
-          trend={pendingCountDisplay > 0 ? `${pendingCountDisplay} tasks requiring action` : "All tasks completed"}
-          trendUp={pendingCountDisplay === 0}
-          icon={<ListTodo className="w-5 h-5 text-amber-500" />}
-          dark={isDark}
-        />
+      {/* 4 Core ESS Metric Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="p-4 border border-[#E8E4DF] rounded-xl bg-[#FCFBF9] shadow-[0_2px_12px_rgba(0,0,0,0.03)] flex flex-col justify-between">
+          <div>
+            <div className="text-[9px] uppercase tracking-wider text-[#8C8880] font-bold flex items-center justify-between">
+              <span>Present Days (This Month)</span>
+              <CalendarCheck className="w-4 h-4 text-indigo-500" />
+            </div>
+            <div className="text-2xl font-light text-[#1C1C1A] font-serif mt-1 font-mono" style={{ fontFamily: "'Playfair Display', serif" }}>
+              {dynamicStats.presentDays ?? 0} <span className="text-xs text-[#8C8880] font-sans">/ {dynamicStats.totalWorkingDays ?? 22}</span>
+            </div>
+          </div>
+          <div className="mt-3 pt-2.5 border-t border-[#E8E4DF]/70 flex items-center justify-between">
+            <span className="text-[9px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-100">
+              {dynamicStats.attendancePercent ?? 100}% Attendance
+            </span>
+          </div>
+        </div>
+
+        <div className="p-4 border border-[#E8E4DF] rounded-xl bg-[#FCFBF9] shadow-[0_2px_12px_rgba(0,0,0,0.03)] flex flex-col justify-between">
+          <div>
+            <div className="text-[9px] uppercase tracking-wider text-[#8C8880] font-bold flex items-center justify-between">
+              <span>Casual Leave Taken</span>
+              <FileText className="w-4 h-4 text-rose-500" />
+            </div>
+            <div className="text-2xl font-light text-rose-800 font-serif mt-1 font-mono" style={{ fontFamily: "'Playfair Display', serif" }}>
+              {dynamicStats.casualLeaveTaken ?? 0}
+            </div>
+          </div>
+          <div className="mt-3 pt-2.5 border-t border-[#E8E4DF]/70 flex items-center justify-between">
+            <span className="text-[9px] font-semibold text-[#5D5B57]">
+              {(dynamicStats.casualLeave ?? 12) - (dynamicStats.casualLeaveTaken ?? 0)} days remaining
+            </span>
+          </div>
+        </div>
+
+        <div className="p-4 border border-[#E8E4DF] rounded-xl bg-[#FCFBF9] shadow-[0_2px_12px_rgba(0,0,0,0.03)] flex flex-col justify-between">
+          <div>
+            <div className="text-[9px] uppercase tracking-wider text-[#8C8880] font-bold flex items-center justify-between">
+              <span>Sick Leave Taken</span>
+              <FileText className="w-4 h-4 text-emerald-500" />
+            </div>
+            <div className="text-2xl font-light text-emerald-800 font-serif mt-1 font-mono" style={{ fontFamily: "'Playfair Display', serif" }}>
+              {dynamicStats.sickLeaveTaken ?? 0}
+            </div>
+          </div>
+          <div className="mt-3 pt-2.5 border-t border-[#E8E4DF]/70 flex items-center justify-between">
+            <span className="text-[9px] font-semibold text-[#5D5B57]">
+              {(dynamicStats.sickLeave ?? 12) - (dynamicStats.sickLeaveTaken ?? 0)} days remaining
+            </span>
+          </div>
+        </div>
+
+        <div className="p-4 border border-[#E8E4DF] rounded-xl bg-[#FCFBF9] shadow-[0_2px_12px_rgba(0,0,0,0.03)] flex flex-col justify-between">
+          <div>
+            <div className="text-[9px] uppercase tracking-wider text-[#8C8880] font-bold flex items-center justify-between">
+              <span>Pending Tasks</span>
+              <ListTodo className="w-4 h-4 text-amber-500" />
+            </div>
+            <div className="text-2xl font-light text-amber-800 font-serif mt-1 font-mono" style={{ fontFamily: "'Playfair Display', serif" }}>
+              {pendingCountDisplay}
+            </div>
+          </div>
+          <div className="mt-3 pt-2.5 border-t border-[#E8E4DF]/70 flex items-center justify-between">
+            <span className={`text-[9px] font-semibold ${pendingCountDisplay > 0 ? "text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-100" : "text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-100"}`}>
+              {pendingCountDisplay > 0 ? `${pendingCountDisplay} tasks requiring action` : "All tasks completed"}
+            </span>
+          </div>
+        </div>
       </div>
 
-      <div className={`p-6 rounded-xl border shadow-sm ${isDark ? "bg-gray-900 border-gray-800" : "bg-white border-slate-200"}`}>
-        <h2 className={`text-lg font-bold mb-4 ${isDark ? "text-white" : "text-slate-800"}`}>Quick Actions</h2>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <button onClick={() => setActiveTab && setActiveTab("ess-leaves")} className={`flex flex-col items-center justify-center p-4 border rounded-xl transition-all shadow-sm ${isDark ? "bg-gray-800 border-gray-700 hover:bg-gray-700" : "bg-slate-50 hover:bg-slate-100 border-slate-200"}`}>
-            <CalendarCheck className="w-6 h-6 text-indigo-600 dark:text-indigo-400 mb-2" />
-            <span className={`text-xs font-bold ${isDark ? "text-gray-300" : "text-slate-700"}`}>Apply Leave</span>
+      {/* Quick Actions Panel */}
+      <div className="bg-[#FCFBF9] border border-[#E8E4DF] rounded-xl p-6 shadow-[0_2px_12px_rgba(0,0,0,0.03)]">
+        <h2 className="text-xs font-semibold tracking-widest text-[#1C1C1A] uppercase mb-4">Quick Actions</h2>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <button
+            onClick={() => setActiveTab && setActiveTab("ess-leaves")}
+            className="p-4 border border-[#E8E4DF] bg-white rounded-xl hover:bg-[#FAF9F5] hover:border-indigo-400 transition-all text-left cursor-pointer flex items-center gap-3.5 group shadow-2xs"
+          >
+            <div className="p-2 rounded-lg bg-indigo-50 text-indigo-600 group-hover:bg-indigo-600 group-hover:text-white transition-all">
+              <CalendarCheck className="w-5 h-5" />
+            </div>
+            <span className="font-semibold text-[#1C1C1A] text-xs group-hover:text-indigo-600 transition-colors">Apply Leave</span>
           </button>
-          <button onClick={() => setActiveTab && setActiveTab("ess-payroll")} className={`flex flex-col items-center justify-center p-4 border rounded-xl transition-all shadow-sm ${isDark ? "bg-gray-800 border-gray-700 hover:bg-gray-700" : "bg-slate-50 hover:bg-slate-100 border-slate-200"}`}>
-            <FileText className="w-6 h-6 text-emerald-600 dark:text-emerald-400 mb-2" />
-            <span className={`text-xs font-bold ${isDark ? "text-gray-300" : "text-slate-700"}`}>View Payslip</span>
+
+          <button
+            onClick={() => setActiveTab && setActiveTab("ess-payroll")}
+            className="p-4 border border-[#E8E4DF] bg-white rounded-xl hover:bg-[#FAF9F5] hover:border-emerald-400 transition-all text-left cursor-pointer flex items-center gap-3.5 group shadow-2xs"
+          >
+            <div className="p-2 rounded-lg bg-emerald-50 text-emerald-600 group-hover:bg-emerald-600 group-hover:text-white transition-all">
+              <FileText className="w-5 h-5" />
+            </div>
+            <span className="font-semibold text-[#1C1C1A] text-xs group-hover:text-emerald-600 transition-colors">View Payslip</span>
           </button>
-          <button onClick={() => setActiveTab && setActiveTab("ess-expenses")} className={`flex flex-col items-center justify-center p-4 border rounded-xl transition-all shadow-sm ${isDark ? "bg-gray-800 border-gray-700 hover:bg-gray-700" : "bg-slate-50 hover:bg-slate-100 border-slate-200"}`}>
-            <Coins className="w-6 h-6 text-amber-600 dark:text-amber-400 mb-2" />
-            <span className={`text-xs font-bold ${isDark ? "text-gray-300" : "text-slate-700"}`}>Claim Expense</span>
+
+          <button
+            onClick={() => setActiveTab && setActiveTab("ess-expenses")}
+            className="p-4 border border-[#E8E4DF] bg-white rounded-xl hover:bg-[#FAF9F5] hover:border-amber-400 transition-all text-left cursor-pointer flex items-center gap-3.5 group shadow-2xs"
+          >
+            <div className="p-2 rounded-lg bg-amber-50 text-amber-600 group-hover:bg-amber-600 group-hover:text-white transition-all">
+              <Coins className="w-5 h-5" />
+            </div>
+            <span className="font-semibold text-[#1C1C1A] text-xs group-hover:text-amber-600 transition-colors">Claim Expense</span>
           </button>
-          <button onClick={() => toggleModal ? toggleModal(!stats?.currentUserCompliance?.hasSod ? "sodModal" : "eodModal", true) : setActiveTab?.("attendance")} className={`flex flex-col items-center justify-center p-4 border rounded-xl transition-all shadow-sm border-indigo-200 bg-indigo-50 hover:bg-indigo-100 dark:border-indigo-900/50 dark:bg-indigo-900/20 dark:hover:bg-indigo-900/40`}>
-            <Clock className="w-6 h-6 text-indigo-600 dark:text-indigo-400 mb-2" />
-            <span className={`text-xs font-bold text-indigo-700 dark:text-indigo-300`}>Fill SOD / EOD</span>
+
+          <button
+            onClick={() => toggleModal ? toggleModal(!stats?.currentUserCompliance?.hasSod ? "sodModal" : "eodModal", true) : setActiveTab?.("attendance")}
+            className="p-4 border border-indigo-200/80 bg-indigo-50/60 rounded-xl hover:bg-indigo-100/70 transition-all text-left cursor-pointer flex items-center gap-3.5 group shadow-2xs"
+          >
+            <div className="p-2 rounded-lg bg-indigo-600 text-white transition-all">
+              <Clock className="w-5 h-5" />
+            </div>
+            <span className="font-bold text-indigo-900 text-xs">Fill SOD / EOD</span>
           </button>
         </div>
       </div>

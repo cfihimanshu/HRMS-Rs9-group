@@ -28,6 +28,7 @@ import Expense from "@/models/sequelize/Expense";
 import TaskLog from "@/models/sequelize/TaskLog";
 import DisciplinaryWarning from "@/models/sequelize/DisciplinaryWarning";
 import AbsentFine from "@/models/sequelize/AbsentFine";
+import AssetRequest from "@/models/sequelize/AssetRequest";
 
 export async function GET(req: Request) {
   try {
@@ -722,46 +723,110 @@ export async function GET(req: Request) {
         eodTime: eodMap[u.id.toString()] || null
       }));
 
-      // Get team activities
-      let dbTeamActivities = await HRRecentActivity.findAll({
-        where: { user: { [Op.in]: deptUserIds } },
-        order: [['timestamp', 'DESC']],
-        limit: 15,
-        raw: true
-      });
+      // Get team activities (HRRecentActivity + SodReports + EodReports for department members)
+      const [dbTeamActivities, teamSods, teamEods] = await Promise.all([
+        HRRecentActivity.findAll({
+          where: { user: { [Op.in]: deptUserIds } },
+          order: [['timestamp', 'DESC']],
+          limit: 15,
+          raw: true
+        }),
+        SodReport.findAll({
+          where: { employee: { [Op.in]: deptUserIds } },
+          order: [['createdAt', 'DESC']],
+          limit: 15,
+          raw: true
+        }),
+        EodReport.findAll({
+          where: { employee: { [Op.in]: deptUserIds } },
+          order: [['createdAt', 'DESC']],
+          limit: 15,
+          raw: true
+        })
+      ]);
 
-      const teamActorIds = [...new Set(dbTeamActivities.map((a: any) => a.user).filter(Boolean))];
+      const teamActorIds = [...new Set([
+        ...dbTeamActivities.map((a: any) => a.user),
+        ...teamSods.map((s: any) => s.employee),
+        ...teamEods.map((e: any) => e.employee)
+      ].filter(Boolean))];
+
       let teamActorMap: any = {};
       if (teamActorIds.length > 0) {
         const users = await User.findAll({ where: { id: { [Op.in]: teamActorIds } }, raw: true });
         users.forEach((u: any) => { teamActorMap[u.id] = { name: u.name, role: u.role }; });
       }
 
-      const teamActivities = dbTeamActivities
-        .map((log: any) => {
-          const actorInfo = teamActorMap[log.user] || { name: 'Unknown', role: 'Staff' };
-          let title = "HR Activity";
-          const action = log.action;
-          if (action === "CREATE_EMPLOYEE") title = "New Employee Onboarded";
-          else if (action === "SCHEDULE_INTERVIEW") title = "Interview Scheduled";
-          else if (action === "SUBMIT_INTERVIEW_EVALUATION") title = "Interview Evaluated";
-          else if (action === "SUBMIT_VERIFICATION") title = "Document Verified";
-          else if (action === "APPROVED_LEAVE") title = "Leave Request Approved";
-          else if (action === "REJECTED_LEAVE") title = "Leave Request Rejected";
-          else if (action === "CREATE_JOB") title = "Job Vacancy Posted";
-          else if (action === "UPDATE_TRAINING_LOG") title = "Training Record Updated";
-          else if (action === "SUBMIT_PROBATION_EVALUATION") title = "Probation Evaluated";
+      const teamActList: any[] = [];
 
-          return {
-            id: (log.id || "").toString(),
-            title,
-            description: log.details,
-            timestamp: log.timestamp ? new Date(log.timestamp).toISOString() : new Date().toISOString(),
-            action,
-            actor: actorInfo.name,
-            actorRole: actorInfo.role
-          };
+      dbTeamActivities.forEach((log: any) => {
+        const actorInfo = teamActorMap[log.user] || { name: 'Unknown', role: 'Staff' };
+        let title = "HR Activity";
+        const action = log.action;
+        if (action === "CREATE_EMPLOYEE") title = "New Employee Onboarded";
+        else if (action === "SCHEDULE_INTERVIEW") title = "Interview Scheduled";
+        else if (action === "SUBMIT_INTERVIEW_EVALUATION") title = "Interview Evaluated";
+        else if (action === "SUBMIT_VERIFICATION") title = "Document Verified";
+        else if (action === "APPROVED_LEAVE") title = "Leave Request Approved";
+        else if (action === "REJECTED_LEAVE") title = "Leave Request Rejected";
+        else if (action === "CREATE_JOB") title = "Job Vacancy Posted";
+        else if (action === "UPDATE_TRAINING_LOG") title = "Training Record Updated";
+        else if (action === "SUBMIT_PROBATION_EVALUATION") title = "Probation Evaluated";
+
+        teamActList.push({
+          id: (log.id || "").toString(),
+          title,
+          description: log.details,
+          timestamp: log.timestamp ? new Date(log.timestamp).toISOString() : new Date().toISOString(),
+          action: action || "HR_ACTIVITY",
+          actor: actorInfo.name,
+          actorRole: actorInfo.role
         });
+      });
+
+      teamSods.forEach((sod: any) => {
+        const empId = (sod.employee || "").toString();
+        const actorInfo = teamActorMap[empId] || { name: "Team Member", role: "Staff" };
+        const ts = sod.createdAt ? new Date(sod.createdAt).toISOString() : (sod.date ? new Date(sod.date).toISOString() : new Date().toISOString());
+        teamActList.push({
+          id: "dept_sod_" + (sod.id || Date.now()),
+          title: "SOD Declared",
+          description: `${actorInfo.name} declared Start of Day (SOD). Task: ${sod.taskSummary || ""}${sod.remarks ? ` — Remarks: ${sod.remarks}` : ""}`,
+          timestamp: ts,
+          action: "SOD_DECLARED",
+          actor: actorInfo.name,
+          actorRole: actorInfo.role || ""
+        });
+      });
+
+      teamEods.forEach((eod: any) => {
+        const empId = (eod.employee || "").toString();
+        const actorInfo = teamActorMap[empId] || { name: "Team Member", role: "Staff" };
+        const ts = eod.createdAt ? new Date(eod.createdAt).toISOString() : (eod.date ? new Date(eod.date).toISOString() : new Date().toISOString());
+        teamActList.push({
+          id: "dept_eod_" + (eod.id || Date.now()),
+          title: "EOD Declared",
+          description: `${actorInfo.name} submitted End of Day (EOD) report. Completed: ${eod.completedWork || ""}`,
+          timestamp: ts,
+          action: "EOD_DECLARED",
+          actor: actorInfo.name,
+          actorRole: actorInfo.role || ""
+        });
+      });
+
+      teamActList.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+
+      const teamActivities: any[] = [];
+      const teamSeenSet = new Set<string>();
+
+      for (const item of teamActList) {
+        const dateDay = item.timestamp.substring(0, 10);
+        const dedupeKey = `${item.action}_${item.actor}_${dateDay}_${(item.description || "").substring(0, 20)}`;
+        if (!teamSeenSet.has(dedupeKey)) {
+          teamSeenSet.add(dedupeKey);
+          teamActivities.push(item);
+        }
+      }
 
       // Get compliance trend for last 6 months
       const performanceTrend = [];
@@ -879,9 +944,20 @@ export async function GET(req: Request) {
       }
     });
 
+    const [pendingLeavesCount, pendingAssetRequestsCount] = await Promise.all([
+      Leave.count({ where: { status: "Pending" } }),
+      AssetRequest.count({ where: { status: "Pending" } })
+    ]);
+
     return NextResponse.json({
       success: true,
       stats: {
+        pendingApprovals: {
+          pendingTasks: userPendingTasksCount,
+          pendingLeaves: pendingLeavesCount,
+          pendingAssets: pendingAssetRequestsCount,
+          pendingRequestsTotal: pendingLeavesCount + pendingAssetRequestsCount,
+        },
         staffList,
         currentUserStats: {
           presentDays: presentDaysCount,

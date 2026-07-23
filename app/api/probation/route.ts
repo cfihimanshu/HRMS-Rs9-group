@@ -19,7 +19,7 @@ export async function GET(req: Request) {
     const role = (session.user as any).role;
     const permitted = ["Owner", "Director", "IT Admin", "HR Head", "HR Executive"];
     if (!permitted.includes(role)) {
-      return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 });
+      return NextResponse.json({ success: true, data: [] });
     }
 
     await sequelize.authenticate();

@@ -63,7 +63,7 @@ export async function GET(req: Request) {
       limit: 100
     });
 
-    // Create workbook
+    // Create workbook 
     const wb = XLSX.utils.book_new();
 
     // Fetch columns for each platform dynamically to export full lead details
@@ -72,11 +72,11 @@ export async function GET(req: Request) {
       try {
         const [columnsResult]: any[] = await sequelize.query(`SHOW COLUMNS FROM ${plat.tableName}`);
         columnsResult.forEach((c: any) => columnsSet.add(c.Field));
-      } catch (e) {}
+      } catch (e) { }
     }
     columnsSet.delete("platform_id");
     columnsSet.delete("source_type");
-    
+
     const leadColumns = Array.from(columnsSet);
     const leadHeaders = [leadColumns.map(col => col.charAt(0).toUpperCase() + col.slice(1))];
     leadHeaders[0].push("Platform Source");
@@ -193,7 +193,6 @@ export async function GET(req: Request) {
     XLSX.utils.book_append_sheet(wb, wsRejected, "Rejected Leads");
 
     // E. Verification Pending Candidates Sheet (Recruitment Candidate Vetting matching dashboard count)
-
     const verHeaders = [[
       "Candidate Name", "Email", "Phone", "Position",
       "Aadhaar Check", "PAN Check", "Address Check", "Employer Check",
@@ -236,10 +235,10 @@ export async function GET(req: Request) {
       "Interviewer", "Status", "Remarks/Feedback"
     ]];
     const interviewTodayRows = interviewsToday.map((iv: any) => {
-      const timeFormatted = iv.scheduleTime 
-        ? new Date(iv.scheduleTime).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" }) 
+      const timeFormatted = iv.scheduleTime
+        ? new Date(iv.scheduleTime).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })
         : "N/A";
-      
+
       return [
         iv.candidateName || iv.candidate || "N/A",
         iv.vacancyName || "General Application",
@@ -263,10 +262,10 @@ export async function GET(req: Request) {
       "Interviewer", "Status", "Remarks/Feedback"
     ]];
     const interviewRows = interviews.map((iv: any) => {
-      const timeFormatted = iv.scheduleTime 
-        ? new Date(iv.scheduleTime).toLocaleString("en-IN", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }) 
+      const timeFormatted = iv.scheduleTime
+        ? new Date(iv.scheduleTime).toLocaleString("en-IN", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })
         : "N/A";
-      
+
       return [
         iv.candidateName || iv.candidate || "N/A",
         iv.vacancyName || "General Application",

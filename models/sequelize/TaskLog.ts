@@ -50,7 +50,11 @@ class TaskLog extends Model<any, any> {
       }
     }
 
-    const tasks = await TaskLog.findAll({ attributes: ["id"] });
+    const tasks = await TaskLog.findAll({
+      attributes: ["id"],
+      order: [["createdAt", "DESC"]],
+      limit: 50
+    });
     let maxNum = 0;
     tasks.forEach(t => {
       if (t.id) {
