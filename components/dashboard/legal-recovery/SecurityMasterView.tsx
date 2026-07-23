@@ -30,6 +30,33 @@ const STANDARD_TIMINGS = [
   "24 Hours Full Day",
 ];
 
+// Helper to format YYYY-MM to Month Name Year, or date range
+const formatMonthStr = (monthStr?: string, endDate?: string) => {
+  if (!monthStr) return "";
+  // Check if it is YYYY-MM-DD format
+  if (monthStr.length > 7 && monthStr.includes("-")) {
+    const formatSingleDate = (dStr: string) => {
+      const parts = dStr.split("-");
+      if (parts.length === 3) return `${parts[2]}/${parts[1]}/${parts[0]}`;
+      return dStr;
+    };
+    if (endDate) {
+      return `${formatSingleDate(monthStr)} to ${formatSingleDate(endDate)}`;
+    }
+    return formatSingleDate(monthStr);
+  }
+  const parts = monthStr.split("-");
+  if (parts.length >= 2) {
+    const y = Number(parts[0]);
+    const m = Number(parts[1]);
+    if (!isNaN(y) && !isNaN(m) && m >= 1 && m <= 12) {
+      const dateObj = new Date(y, m - 1, 1);
+      return dateObj.toLocaleDateString("en-US", { month: "long", year: "numeric" });
+    }
+  }
+  return monthStr;
+};
+
 interface SecurityMasterViewProps {
   nbfcsList: any[];
   nbfcBranchesList: any[];
@@ -280,6 +307,22 @@ export default function SecurityMasterView({
   nbfcBranchesList = [],
   triggerToast,
 }: SecurityMasterViewProps) {
+  useEffect(() => {
+    const handleWheel = (e: WheelEvent) => {
+      if (
+        document.activeElement &&
+        document.activeElement.tagName === "INPUT" &&
+        (document.activeElement as HTMLInputElement).type === "number"
+      ) {
+        (document.activeElement as HTMLInputElement).blur();
+      }
+    };
+    document.addEventListener("wheel", handleWheel, { passive: true });
+    return () => {
+      document.removeEventListener("wheel", handleWheel);
+    };
+  }, []);
+
   const [entries, setEntries] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
@@ -697,6 +740,8 @@ export default function SecurityMasterView({
   const [dailyRosterList, setDailyRosterList] = useState<{
     dayNo: number;
     date?: string;
+    startDate?: string;
+    endDate?: string;
     shiftType: string;
     shiftTiming: string;
     guardName: string;
@@ -705,40 +750,21 @@ export default function SecurityMasterView({
     shiftRate: string;
     allowancePerShift: string;
     guardsCount: string;
+    isSaved?: boolean;
   }[]>([]);
 
   const [selectedRosterFilterDate, setSelectedRosterFilterDate] = useState<string>("");
 
-  // Helper to add a date-wise guard shift entry
+  // Helper to add a monthly/date-wise guard shift entry with date range
   const handleAddRosterRow = (overrideDate?: string) => {
-    let defaultDate = overrideDate;
-    if (!defaultDate) {
-      if (dailyRosterList.length > 0 && dailyRosterList[dailyRosterList.length - 1].date) {
-        const lastDateStr = dailyRosterList[dailyRosterList.length - 1].date;
-        try {
-          const parts = lastDateStr!.split("-");
-          if (parts.length === 3) {
-            const d = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
-            d.setDate(d.getDate() + 1);
-            const yyyy = d.getFullYear();
-            const mm = String(d.getMonth() + 1).padStart(2, "0");
-            const dd = String(d.getDate()).padStart(2, "0");
-            defaultDate = `${yyyy}-${mm}-${dd}`;
-          } else {
-            defaultDate = new Date().toISOString().split("T")[0];
-          }
-        } catch (e) {
-          defaultDate = new Date().toISOString().split("T")[0];
-        }
-      } else {
-        defaultDate = new Date().toISOString().split("T")[0];
-      }
-    }
+    const currentMonth = new Date().toISOString().substring(0, 7);
     setDailyRosterList((prev) => [
       ...prev,
       {
         dayNo: prev.length + 1,
-        date: defaultDate,
+        date: currentMonth,
+        startDate: undefined,
+        endDate: undefined,
         shiftType: "12 Hours Day Shift",
         shiftTiming: "08:00 AM - 08:00 PM",
         guardName: "",
@@ -746,9 +772,10 @@ export default function SecurityMasterView({
         shiftRate: "",
         allowancePerShift: "",
         guardsCount: "1",
+        isSaved: false,
       },
     ]);
-    setSelectedRosterFilterDate(defaultDate!);
+    setSelectedRosterFilterDate(currentMonth);
   };
 
   // Shift & Rate Live Calculation Engine
@@ -762,6 +789,7 @@ export default function SecurityMasterView({
       const uniqueDates = new Set();
 
       dailyRosterList.forEach((row) => {
+        if (row.isSaved === false) return;
         const count = Math.max(1, Number(row.guardsCount) || 1);
         const rate = Math.max(0, Number(row.shiftRate) || 0);
         const allowance = Math.max(0, Number(row.allowancePerShift) || 0);
@@ -1083,7 +1111,7 @@ export default function SecurityMasterView({
       remarks: item.remarks || "",
     });
     setGuardList(parsedGuardsList);
-    setDailyRosterList(parsedRoster);
+    setDailyRosterList(parsedRoster.map(r => ({ ...r, isSaved: true })));
     setSelectedRosterFilterDate("");
     setPrimaryGuardFile(null);
 
@@ -1132,6 +1160,11 @@ export default function SecurityMasterView({
     e.preventDefault();
     if (!form.company) {
       triggerToast("Please select Company");
+      return;
+    }
+    const unsaved = dailyRosterList.filter(r => r.isSaved === false);
+    if (unsaved.length > 0) {
+      triggerToast(`⚠️ Please save Month #${unsaved.map(u => u.dayNo).join(", ")} Guard Log before submitting!`);
       return;
     }
     setSubmitting(true);
@@ -2733,7 +2766,7 @@ export default function SecurityMasterView({
                   <div className="flex items-center gap-2">
                     <Clock className="w-4 h-4 text-indigo-600" />
                     <h3 className="text-xs font-black uppercase tracking-wider font-mono">
-                      3. BILL SUMMARY &amp; GUARD LOGS
+                      3. BILL SUMMARY &amp; MONTHLY GUARD LOGS
                     </h3>
                   </div>
                   <div className="flex items-center gap-2">
@@ -2745,10 +2778,10 @@ export default function SecurityMasterView({
                           value={selectedRosterFilterDate}
                           onChange={(e) => setSelectedRosterFilterDate(e.target.value)}
                         >
-                          <option value="ALL">Show All Dates</option>
+                          <option value="ALL">Show All Months</option>
                           {Array.from(new Set(dailyRosterList.map((r) => r.date).filter(Boolean))).map((dateVal) => (
                             <option key={dateVal} value={dateVal}>
-                              📅 {dateVal} Log
+                              📅 {formatMonthStr(dateVal, dailyRosterList.find((r) => r.date === dateVal)?.endDate)} Log
                             </option>
                           ))}
                           <option value="NONE">🙈 Hide All Shift</option>
@@ -2760,7 +2793,7 @@ export default function SecurityMasterView({
                       onClick={() => handleAddRosterRow()}
                       className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-black flex items-center gap-1.5 shadow transition-all"
                     >
-                      <Plus className="w-4 h-4" /> Add Guard Shift
+                      <Plus className="w-4 h-4" /> Add Monthly Guard Shift
                     </button>
                   </div>
                 </div>
@@ -2770,8 +2803,8 @@ export default function SecurityMasterView({
                   {/* KPI Summary Cards */}
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                     <div className="bg-white border border-slate-200 p-3 rounded-lg shadow-2xs">
-                      <span className="text-[10px] text-slate-500 uppercase font-black block tracking-wider">Active Dates Recorded</span>
-                      <span className="text-sm font-bold text-slate-900 mt-0.5 block">{computedShiftDetails.days} {computedShiftDetails.days === 1 ? "Date" : "Dates"}</span>
+                      <span className="text-[10px] text-slate-500 uppercase font-black block tracking-wider">Active Months Recorded</span>
+                      <span className="text-sm font-bold text-slate-900 mt-0.5 block">{computedShiftDetails.days} {computedShiftDetails.days === 1 ? "Month" : "Months"}</span>
                     </div>
                     <div className="bg-white border border-slate-200 p-3 rounded-lg shadow-2xs">
                       <span className="text-[10px] text-slate-500 uppercase font-black block tracking-wider">Total Guard Shifts</span>
@@ -2787,7 +2820,7 @@ export default function SecurityMasterView({
                   <div className="space-y-3 pt-2 border-t border-indigo-100">
                     <div className="flex items-center justify-between">
                       <span className="text-[11px] font-black uppercase text-indigo-900 font-mono flex items-center gap-1.5">
-                        <Calendar className="w-3.5 h-3.5 text-indigo-700" /> Day-Wise Shift Payment Records ({dailyRosterList.length})
+                        <Calendar className="w-3.5 h-3.5 text-indigo-700" /> Monthly Guard &amp; Shift Records ({dailyRosterList.length})
                       </span>
                       <div className="flex items-center gap-2">
                         {selectedRosterFilterDate !== "ALL" && selectedRosterFilterDate !== "NONE" && (
@@ -2796,7 +2829,7 @@ export default function SecurityMasterView({
                             onClick={() => setSelectedRosterFilterDate("ALL")}
                             className="text-[10px] font-bold text-indigo-600 hover:underline font-mono"
                           >
-                            Show All Dates
+                            Show All Months
                           </button>
                         )}
                         <button
@@ -2813,15 +2846,15 @@ export default function SecurityMasterView({
                       <div className="bg-white border-2 border-dashed border-slate-200 rounded-xl p-6 text-center space-y-3">
                         <Clock className="w-8 h-8 text-indigo-400 mx-auto opacity-60" />
                         <div>
-                          <p className="text-xs font-bold text-slate-700">No Guard Shift Logs Added Yet</p>
-                          <p className="text-[11px] text-slate-500 mt-0.5">Click '+ Add Guard Shift Log' above to record daily guard deployments and calculate total bill.</p>
+                          <p className="text-xs font-bold text-slate-700">No Monthly Guard Shift Logs Added Yet</p>
+                          <p className="text-[11px] text-slate-500 mt-0.5">Click '+ Add Monthly Guard Shift' above to record monthly guard deployments and calculate total bill.</p>
                         </div>
                         <button
                           type="button"
                           onClick={() => handleAddRosterRow()}
                           className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black rounded-xl shadow transition-all flex items-center gap-1.5 mx-auto"
                         >
-                          <Plus className="w-4 h-4" /> Add Guard Shift Log
+                          <Plus className="w-4 h-4" /> Add Monthly Guard Shift Log
                         </button>
                       </div>
                     ) : selectedRosterFilterDate === "NONE" ? (
@@ -2839,19 +2872,53 @@ export default function SecurityMasterView({
                       </div>
                     ) : (
                       dailyRosterList
-                        .filter((r) => selectedRosterFilterDate === "ALL" || r.date === selectedRosterFilterDate)
+                        .filter((r) => selectedRosterFilterDate === "ALL" || r.date === selectedRosterFilterDate || r.isSaved === false)
                         .map((item) => {
                           const idx = dailyRosterList.indexOf(item);
+                          if (item.isSaved) {
+                            return (
+                              <div key={`roster-row-${idx}`} className="bg-indigo-50/40 border border-slate-200 rounded-xl p-3 flex flex-wrap items-center justify-between gap-2 shadow-2xs">
+                                <div className="flex items-center gap-2">
+                                  <span className="px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded font-mono uppercase text-[9px] font-black">
+                                    Month #{item.dayNo || idx + 1}
+                                  </span>
+                                  <span className="text-xs font-bold text-slate-700">
+                                    {formatMonthStr(item.date, item.endDate)}: <span className="text-indigo-700">{item.guardName || "No Guard"}</span> - ₹{((Number(item.shiftRate) || 0) + (Number(item.allowancePerShift) || 0)).toLocaleString("en-IN")}
+                                  </span>
+                                </div>
+                                <div className="flex items-center gap-3">
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      const updated = [...dailyRosterList];
+                                      updated[idx].isSaved = false;
+                                      setDailyRosterList(updated);
+                                    }}
+                                    className="text-xs font-black text-indigo-600 hover:text-indigo-800 hover:underline"
+                                  >
+                                    ✏️ Edit
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => setDailyRosterList(dailyRosterList.filter((_, i) => i !== idx))}
+                                    className="text-xs font-bold text-rose-500 hover:text-rose-700"
+                                  >
+                                    ✕ Remove
+                                  </button>
+                                </div>
+                              </div>
+                            );
+                          }
                           return (
                             <div key={`roster-row-${idx}`} className="bg-white border border-slate-200 rounded-xl p-3.5 space-y-3 shadow-2xs hover:border-indigo-200 transition-all">
                               <div className="flex items-center justify-between pb-2 border-b border-slate-100">
                                 <div className="flex items-center gap-2">
                                   <span className="px-2.5 py-1 bg-indigo-50 text-indigo-700 font-black text-[10px] rounded-lg font-mono uppercase">
-                                    Day #{item.dayNo || idx + 1}
+                                    Month #{item.dayNo || idx + 1}
                                   </span>
                                   {item.date && (
                                     <span className="text-xs font-bold text-slate-600 font-mono">
-                                      Date: {item.date}
+                                      Range: {formatMonthStr(item.date, item.endDate)}
                                     </span>
                                   )}
                                 </div>
@@ -2859,36 +2926,109 @@ export default function SecurityMasterView({
                                   type="button"
                                   onClick={() => setDailyRosterList(dailyRosterList.filter((_, i) => i !== idx))}
                                   className="p-1 text-rose-500 hover:bg-rose-50 rounded font-bold text-xs"
-                                  title="Remove Day Record"
+                                  title="Remove Month Record"
                                 >
                                   ✕ Remove
                                 </button>
                               </div>
 
                               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                                {/* Date */}
-                                <div>
-                                  <label className="block text-[10px] uppercase font-black text-slate-500 tracking-wider mb-1">
-                                    Date *
-                                  </label>
-                                  <input
-                                    type="date"
-                                    className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 text-xs font-bold text-slate-900 focus:outline-none"
-                                    value={item.date || ""}
-                                    onChange={(e) => {
-                                      const newDate = e.target.value;
-                                      if (item.guardName && item.shiftType) {
-                                        const isDup = dailyRosterList.some((r, i) => i !== idx && r.date === newDate && r.shiftType === item.shiftType && r.guardName?.trim().toLowerCase() === item.guardName?.trim().toLowerCase());
-                                        if (isDup) {
-                                          triggerToast(`⚠️ Guard "${item.guardName}" is already assigned to ${newDate} for ${item.shiftType}!`);
-                                          return;
+                                {/* Date / Month Picker */}
+                                <div className="space-y-2">
+                                  {!(item.startDate && item.endDate) ? (
+                                    <div>
+                                      <label className="block text-[10px] uppercase font-black text-slate-500 tracking-wider mb-1">
+                                        Month *
+                                      </label>
+                                      <input
+                                        type="month"
+                                        className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 text-xs font-bold text-slate-900 focus:outline-none"
+                                        value={item.date || ""}
+                                        onChange={(e) => {
+                                          const newDate = e.target.value;
+                                          const updated = [...dailyRosterList];
+                                          updated[idx].date = newDate;
+                                          updated[idx].isSaved = false;
+                                          setDailyRosterList(updated);
+                                          setSelectedRosterFilterDate(newDate);
+                                        }}
+                                      />
+                                    </div>
+                                  ) : (
+                                    <div className="grid grid-cols-2 gap-2">
+                                      <div>
+                                        <label className="block text-[10px] uppercase font-black text-slate-500 tracking-wider mb-1">
+                                          From *
+                                        </label>
+                                        <input
+                                          type="date"
+                                          className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 text-xs font-bold text-slate-900 focus:outline-none"
+                                          value={item.startDate || item.date || ""}
+                                          onChange={(e) => {
+                                            const newStart = e.target.value;
+                                            const updated = [...dailyRosterList];
+                                            updated[idx].date = newStart;
+                                            updated[idx].startDate = newStart;
+                                            updated[idx].isSaved = false;
+                                            setDailyRosterList(updated);
+                                            setSelectedRosterFilterDate(newStart);
+                                          }}
+                                        />
+                                      </div>
+                                      <div>
+                                        <label className="block text-[10px] uppercase font-black text-slate-500 tracking-wider mb-1">
+                                          To *
+                                        </label>
+                                        <input
+                                          type="date"
+                                          className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 text-xs font-bold text-slate-900 focus:outline-none"
+                                          value={item.endDate || ""}
+                                          onChange={(e) => {
+                                            const newEnd = e.target.value;
+                                            const updated = [...dailyRosterList];
+                                            updated[idx].endDate = newEnd;
+                                            updated[idx].isSaved = false;
+                                            setDailyRosterList(updated);
+                                            if (item.startDate) {
+                                              setSelectedRosterFilterDate(item.startDate);
+                                            }
+                                          }}
+                                        />
+                                      </div>
+                                    </div>
+                                  )}
+
+                                  <div className="flex items-center gap-1.5 pt-1">
+                                    <input
+                                      type="checkbox"
+                                      id={`custom-range-toggle-${idx}`}
+                                      className="rounded text-indigo-600 focus:ring-indigo-500 cursor-pointer w-3.5 h-3.5"
+                                      checked={!!(item.startDate && item.endDate)}
+                                      onChange={(e) => {
+                                        const isChecked = e.target.checked;
+                                        const updated = [...dailyRosterList];
+                                        if (isChecked) {
+                                          const today = new Date().toISOString().split("T")[0];
+                                          updated[idx].startDate = today;
+                                          updated[idx].endDate = today;
+                                          updated[idx].date = today;
+                                        } else {
+                                          const currentMonth = new Date().toISOString().substring(0, 7);
+                                          updated[idx].date = currentMonth;
+                                          updated[idx].startDate = undefined;
+                                          updated[idx].endDate = undefined;
                                         }
-                                      }
-                                      const updated = [...dailyRosterList];
-                                      updated[idx].date = newDate;
-                                      setDailyRosterList(updated);
-                                    }}
-                                  />
+                                        updated[idx].isSaved = false;
+                                        setDailyRosterList(updated);
+                                      }}
+                                    />
+                                    <label
+                                      htmlFor={`custom-range-toggle-${idx}`}
+                                      className="text-[10px] font-bold text-slate-500 uppercase cursor-pointer tracking-wide select-none"
+                                    >
+                                      📆 Select Custom Date Range
+                                    </label>
+                                  </div>
                                 </div>
 
                                 {/* Guard Name & Photo Upload */}
@@ -2991,7 +3131,7 @@ export default function SecurityMasterView({
                                         if (val && item.date && item.shiftType) {
                                           const isDup = dailyRosterList.some((r, i) => i !== idx && r.date === item.date && r.shiftType === item.shiftType && r.guardName?.trim().toLowerCase() === val.trim().toLowerCase());
                                           if (isDup) {
-                                            triggerToast(`⚠️ Guard "${val}" is already assigned to ${item.date} for ${item.shiftType}! Duplicate not allowed.`);
+                                            triggerToast(`⚠️ Guard "${val}" is already assigned to ${formatMonthStr(item.date)} for ${item.shiftType}! Duplicate not allowed.`);
                                             return;
                                           }
                                         }
@@ -3040,7 +3180,7 @@ export default function SecurityMasterView({
                                         if (item.guardName && item.date) {
                                           const isDup = dailyRosterList.some((r, i) => i !== idx && r.date === item.date && r.shiftType === val && r.guardName?.trim().toLowerCase() === item.guardName?.trim().toLowerCase());
                                           if (isDup) {
-                                            triggerToast(`⚠️ Guard "${item.guardName}" is already assigned to ${item.date} for ${val}!`);
+                                            triggerToast(`⚠️ Guard "${item.guardName}" is already assigned to ${formatMonthStr(item.date)} for ${val}!`);
                                             return;
                                           }
                                         }
@@ -3130,13 +3270,13 @@ export default function SecurityMasterView({
                                 {/* Rate per Shift */}
                                 <div>
                                   <label className="block text-[10px] uppercase font-black text-slate-500 tracking-wider mb-1">
-                                    Rate / Guard (₹)
+                                    Rate / Guard / Month (₹)
                                   </label>
                                   <input
                                     type="number"
                                     min="0"
                                     step="any"
-                                    placeholder="e.g. 700"
+                                    placeholder="e.g. 15000"
                                     className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 text-xs font-bold text-slate-900 focus:outline-none"
                                     value={item.shiftRate === "" || item.shiftRate === undefined ? "" : item.shiftRate}
                                     onChange={(e) => {
@@ -3153,13 +3293,13 @@ export default function SecurityMasterView({
                                 {/* Allowance per Shift */}
                                 <div>
                                   <label className="block text-[10px] uppercase font-black text-slate-500 tracking-wider mb-1">
-                                    Allowance / Shift (₹)
+                                    Allowance / Month (₹)
                                   </label>
                                   <input
                                     type="number"
                                     min="0"
                                     step="any"
-                                    placeholder="e.g. 100"
+                                    placeholder="e.g. 1000"
                                     className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 text-xs font-bold text-slate-900 focus:outline-none"
                                     value={item.allowancePerShift === "" || item.allowancePerShift === undefined ? "" : item.allowancePerShift}
                                     onChange={(e) => {
@@ -3172,15 +3312,15 @@ export default function SecurityMasterView({
 
                                 {/* Daily Subtotal */}
                                 <div className="md:col-span-2 flex items-center justify-between md:justify-end gap-2 bg-emerald-50/60 p-2.5 rounded-lg border border-emerald-100 self-center">
-                                  <span className="text-[10px] font-black uppercase text-emerald-800">Shift Total:</span>
+                                  <span className="text-[10px] font-black uppercase text-emerald-800">Month Total:</span>
                                   <span className="text-sm font-black font-mono text-emerald-700">
                                     ₹{(((Number(item.shiftRate) || 0) + (Number(item.allowancePerShift) || 0)) * Math.max(1, Number(item.guardsCount) || 1)).toLocaleString("en-IN")}
                                   </span>
                                 </div>
                               </div>
 
-                              {/* Add Another Guard for This Date */}
-                              <div className="pt-2 border-t border-slate-100">
+                              {/* Bottom Controls: Add Another & Save buttons inline */}
+                              <div className="pt-2 border-t border-slate-100 flex flex-wrap items-center gap-3">
                                 <button
                                   type="button"
                                   onClick={() => {
@@ -3190,6 +3330,8 @@ export default function SecurityMasterView({
                                       {
                                         dayNo: prev.length + 1,
                                         date: sameDate,
+                                        startDate: item.startDate,
+                                        endDate: item.endDate,
                                         shiftType: "12 Hours Day Shift",
                                         shiftTiming: "08:00 AM - 08:00 PM",
                                         guardName: "",
@@ -3197,14 +3339,36 @@ export default function SecurityMasterView({
                                         shiftRate: item.shiftRate || "",
                                         allowancePerShift: item.allowancePerShift || "",
                                         guardsCount: "1",
+                                        isSaved: false,
                                       },
                                     ]);
                                     if (sameDate) setSelectedRosterFilterDate(sameDate);
                                   }}
-                                  className="w-full flex items-center justify-center gap-1.5 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-dashed border-indigo-300 rounded-lg text-[11px] font-bold transition-all"
+                                  className="flex items-center justify-center gap-1 px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-dashed border-indigo-300 rounded-lg text-[11px] font-bold transition-all"
                                 >
-                                  <Plus className="w-3 h-3" />
-                                  + Add Another Guard for {item.date || "This Date"}
+                                  <Plus className="w-3.5 h-3.5" />
+                                  <span>+ Add Another Guard</span>
+                                </button>
+
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    if (!item.guardName) {
+                                      triggerToast("⚠️ Please select Guard Deployed!");
+                                      return;
+                                    }
+                                    if (!item.shiftRate) {
+                                      triggerToast("⚠️ Please enter Rate / Guard / Month!");
+                                      return;
+                                    }
+                                    const updated = [...dailyRosterList];
+                                    updated[idx].isSaved = true;
+                                    setDailyRosterList(updated);
+                                    triggerToast("✓ Guard details saved successfully!");
+                                  }}
+                                  className="flex items-center justify-center gap-1 px-4 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[11px] font-black shadow transition-all"
+                                >
+                                  <span>✓ Save Guard Log</span>
                                 </button>
                               </div>
                             </div>
