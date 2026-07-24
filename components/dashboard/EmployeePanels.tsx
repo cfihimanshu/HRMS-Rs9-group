@@ -307,7 +307,8 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
       // Only update role, NOT designation (designation is independent)
       setFormData(prev => ({
         ...prev,
-        role: defaultRole
+        role: defaultRole,
+        jobTitle: defaultRole
       }));
     }
   }, [formData.department, dbRoles]);
@@ -480,7 +481,8 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
 
         setFormData(prev => ({
           ...prev,
-          role: customRoleName.trim()
+          role: customRoleName.trim(),
+          jobTitle: customRoleName.trim()
         }));
         setTopRole(customRoleName.trim());
       } else {

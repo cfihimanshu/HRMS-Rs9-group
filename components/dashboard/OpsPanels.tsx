@@ -2758,17 +2758,15 @@ export function PerformanceCompliance({
 
           {/* Sub-Tabs */}
           <div className="flex bg-slate-100 p-1 rounded-lg border border-slate-200">
-            {isOwnerOrDirector && (
-              <button
-                onClick={() => setActiveSubTab("visual-dashboard")}
-                className={`px-4 py-2 text-xs font-black rounded-md transition-all ${activeSubTab === "visual-dashboard"
-                  ? "bg-[#714B67] text-white shadow-md"
-                  : "text-slate-655 hover:text-[#714B67]"
-                  }`}
-              >
-                📊 Visual Dashboard
-              </button>
-            )}
+            <button
+              onClick={() => setActiveSubTab("visual-dashboard")}
+              className={`px-4 py-2 text-xs font-black rounded-md transition-all ${activeSubTab === "visual-dashboard"
+                ? "bg-[#714B67] text-white shadow-md"
+                : "text-slate-655 hover:text-[#714B67]"
+                }`}
+            >
+              📊 Visual Dashboard
+            </button>
             <button
               onClick={() => setActiveSubTab("sod")}
               className={`px-4 py-2 text-xs font-black rounded-md transition-all ${activeSubTab === "sod"
@@ -4983,6 +4981,109 @@ export function PerformanceCompliance({
   );
 }
 
+function FineEmployeeSearchCombobox({
+  employees,
+  selectedEmployee,
+  onSelectEmployee
+}: {
+  employees: any[];
+  selectedEmployee: { id: string; name: string } | null;
+  onSelectEmployee: (emp: { id: string; name: string } | null) => void;
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  const filtered = React.useMemo(() => {
+    if (!query.trim()) return employees;
+    const q = query.toLowerCase();
+    return employees.filter(emp =>
+      (emp.name || "").toLowerCase().includes(q) ||
+      (emp.role || "").toLowerCase().includes(q) ||
+      (emp.email || "").toLowerCase().includes(q)
+    );
+  }, [employees, query]);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const selectedEmpObject = employees.find(e => String(e.id) === String(selectedEmployee?.id));
+
+  return (
+    <div ref={containerRef} className="relative w-full">
+      <div className="relative">
+        <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+        <input
+          type="text"
+          value={isOpen ? query : (selectedEmpObject ? `${selectedEmpObject.name} ${selectedEmpObject.role ? `(${selectedEmpObject.role})` : ''}` : "")}
+          onFocus={() => {
+            setQuery("");
+            setIsOpen(true);
+          }}
+          onChange={(e) => {
+            setQuery(e.target.value);
+            setIsOpen(true);
+          }}
+          placeholder="🔍 Type to search employee by name/role..."
+          className="w-full bg-white border border-slate-300 rounded-xl pl-8 pr-7 py-2.5 text-xs font-bold text-slate-900 focus:outline-none focus:border-rose-500 shadow-2xs"
+        />
+        {selectedEmployee && !isOpen && (
+          <button
+            type="button"
+            onClick={() => {
+              onSelectEmployee(null);
+              setQuery("");
+            }}
+            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs font-bold"
+          >
+            ✕
+          </button>
+        )}
+      </div>
+
+      {isOpen && (
+        <div className="absolute z-[99999] left-0 top-full mt-1 w-full bg-white border border-slate-200 rounded-xl shadow-2xl max-h-48 overflow-y-auto custom-scrollbar p-1 animate-in fade-in duration-150">
+          {filtered.map((emp) => {
+            const isSelected = String(emp.id) === String(selectedEmployee?.id);
+            return (
+              <button
+                key={emp.id}
+                type="button"
+                onClick={() => {
+                  onSelectEmployee({ id: emp.id, name: emp.name });
+                  setQuery("");
+                  setIsOpen(false);
+                }}
+                className={`w-full text-left p-2.5 hover:bg-rose-50 rounded-lg transition-colors flex items-center justify-between gap-2 text-xs ${isSelected ? 'bg-rose-50 text-rose-900 font-black' : ''}`}
+              >
+                <div className="truncate">
+                  <span className="font-bold text-slate-800 block truncate">{emp.name || "Employee"}</span>
+                  <span className="text-[10px] text-slate-400 font-medium truncate block">{emp.role || "User"} {emp.email ? `• ${emp.email}` : ""}</span>
+                </div>
+                {isSelected && (
+                  <span className="text-[10px] font-bold text-rose-600 bg-rose-100 px-2 py-0.5 rounded shrink-0">Selected</span>
+                )}
+              </button>
+            );
+          })}
+          {filtered.length === 0 && (
+            <div className="p-3 text-center text-xs text-slate-400 font-medium">
+              No matching employees found
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function LeaveRequestTab({ sessionUser }: { sessionUser?: any }) {
   const userRole = sessionUser?.role;
   const isManager = userRole === "Department Manager";
@@ -5006,7 +5107,7 @@ export function LeaveRequestTab({ sessionUser }: { sessionUser?: any }) {
 
   const canApprove = isOwnerOrDirector || isHR || isManager || hasDirectReports;
   const canApply = !isOwnerOrDirector && (userRole === "Employee" || isManager || !canApprove || hasDirectReports);
-  const canImposeFine = isOwnerOrDirector || isHR || isManager;
+  const canImposeFine = isOwnerOrDirector || isManager;
 
   // Filter states
   const [filterUser, setFilterUser] = useState("");
@@ -5017,14 +5118,154 @@ export function LeaveRequestTab({ sessionUser }: { sessionUser?: any }) {
   // Action state
   const [actionRemarks, setActionRemarks] = useState<{ [key: string]: string }>({});
 
-  // Fine modal state
+  // Fine modal & history state
+  const [myFines, setMyFines] = useState<any[]>([]);
+  const [loadingFines, setLoadingFines] = useState(false);
+
+  // Fine history employee filter
+  const [fineEmployeeFilter, setFineEmployeeFilter] = useState("All");
+
+  const fineEmployeeOptions = React.useMemo(() => {
+    if (!Array.isArray(myFines) || myFines.length === 0) return ["All"];
+    const names = new Set<string>();
+    myFines.forEach(f => {
+      const name = f.employeeInfo?.name || f.employeeName || "";
+      if (name) names.add(name);
+    });
+    return ["All", ...Array.from(names).sort()];
+  }, [myFines]);
+
+  const filteredMyFines = React.useMemo(() => {
+    if (fineEmployeeFilter === "All") return myFines;
+    return myFines.filter(f => (f.employeeInfo?.name || f.employeeName || "") === fineEmployeeFilter);
+  }, [myFines, fineEmployeeFilter]);
+
+  const displayFines = React.useMemo(() => {
+    if (!Array.isArray(filteredMyFines) || filteredMyFines.length === 0) return [];
+
+    // Sort raw fines by employeeId, then date ascending
+    const sorted = [...filteredMyFines].sort((a, b) => {
+      const empA = String(a.employee || a.employeeId || "");
+      const empB = String(b.employee || b.employeeId || "");
+      if (empA !== empB) return empA.localeCompare(empB);
+      const dateA = new Date(a.date).getTime();
+      const dateB = new Date(b.date).getTime();
+      return dateA - dateB;
+    });
+
+    const grouped: any[] = [];
+    let currentGroup: any = null;
+
+    for (const item of sorted) {
+      const itemEmpId = String(item.employee || item.employeeId || "");
+      const itemReason = item.reason || "";
+      const itemAmount = Number(item.amount) || 0;
+      const itemImposedBy = String(item.imposedBy || "");
+
+      if (!currentGroup) {
+        currentGroup = {
+          id: item.id,
+          employee: itemEmpId,
+          employeeInfo: item.employeeInfo,
+          fromDate: item.date,
+          toDate: item.date,
+          perDayAmount: itemAmount,
+          totalAmount: itemAmount,
+          daysCount: 1,
+          reason: itemReason,
+          imposedBy: itemImposedBy,
+          imposedByInfo: item.imposedByInfo,
+          createdAt: item.createdAt || item.imposedAt
+        };
+      } else {
+        const dPrev = new Date(currentGroup.toDate);
+        const dCurr = new Date(item.date);
+        const utcPrev = Date.UTC(dPrev.getFullYear(), dPrev.getMonth(), dPrev.getDate());
+        const utcCurr = Date.UTC(dCurr.getFullYear(), dCurr.getMonth(), dCurr.getDate());
+        const dayDiff = Math.round((utcCurr - utcPrev) / (1000 * 60 * 60 * 24));
+
+        const isSameGroup =
+          currentGroup.employee === itemEmpId &&
+          currentGroup.reason === itemReason &&
+          currentGroup.perDayAmount === itemAmount &&
+          currentGroup.imposedBy === itemImposedBy &&
+          (dayDiff === 1 || dayDiff === 0);
+
+        if (isSameGroup) {
+          currentGroup.toDate = item.date;
+          currentGroup.totalAmount += itemAmount;
+          currentGroup.daysCount += 1;
+        } else {
+          grouped.push(currentGroup);
+          currentGroup = {
+            id: item.id,
+            employee: itemEmpId,
+            employeeInfo: item.employeeInfo,
+            fromDate: item.date,
+            toDate: item.date,
+            perDayAmount: itemAmount,
+            totalAmount: itemAmount,
+            daysCount: 1,
+            reason: itemReason,
+            imposedBy: itemImposedBy,
+            imposedByInfo: item.imposedByInfo,
+            createdAt: item.createdAt || item.imposedAt
+          };
+        }
+      }
+    }
+
+    if (currentGroup) {
+      grouped.push(currentGroup);
+    }
+
+    // Sort grouped list by created/date descending (newest first)
+    return grouped.sort((a, b) => new Date(b.fromDate).getTime() - new Date(a.fromDate).getTime());
+  }, [filteredMyFines]);
+
   const [showFineModal, setShowFineModal] = useState(false);
   const [fineEmployee, setFineEmployee] = useState<{ id: string; name: string } | null>(null);
-  const [fineDate, setFineDate] = useState("");
+  const [fineFromDate, setFineFromDate] = useState("");
+  const [fineToDate, setFineToDate] = useState("");
   const [fineAmount, setFineAmount] = useState(500);
   const [fineReason, setFineReason] = useState("Absent without prior notification");
   const [imposingFine, setImposingFine] = useState(false);
   const [allEmployeesList, setAllEmployeesList] = useState<any[]>([]);
+
+  const fetchMyFines = async () => {
+    setLoadingFines(true);
+    try {
+      const res = await fetch("/api/fines");
+      const data = await res.json();
+      if (data.success && Array.isArray(data.data)) {
+        setMyFines(data.data);
+      }
+    } catch (err) {
+      console.error("Error fetching my fines:", err);
+    } finally {
+      setLoadingFines(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchLeaves();
+    if (canApprove || canImposeFine) {
+      fetchEmployees();
+    }
+    fetchMyFines();
+  }, [canApprove, canImposeFine]);
+
+  const fineTotalDays = React.useMemo(() => {
+    if (!fineFromDate) return 0;
+    const endStr = fineToDate || fineFromDate;
+    const start = new Date(fineFromDate);
+    const end = new Date(endStr);
+    if (end < start) return 0;
+    const diffTime = end.getTime() - start.getTime();
+    return Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1;
+  }, [fineFromDate, fineToDate]);
+
+  const totalFineCalculated = (fineAmount || 0) * fineTotalDays;
 
   const fetchEmployees = async () => {
     try {
@@ -5039,8 +5280,8 @@ export function LeaveRequestTab({ sessionUser }: { sessionUser?: any }) {
   };
 
   const handleImposeFine = async () => {
-    if (!fineEmployee || !fineDate) {
-      alert("Please select employee and date");
+    if (!fineEmployee || !fineFromDate) {
+      alert("Please select employee and date range");
       return;
     }
     setImposingFine(true);
@@ -5050,19 +5291,22 @@ export function LeaveRequestTab({ sessionUser }: { sessionUser?: any }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           employeeId: fineEmployee.id,
-          date: fineDate,
+          fromDate: fineFromDate,
+          toDate: fineToDate || fineFromDate,
           amount: fineAmount,
           reason: fineReason,
         }),
       });
       const data = await res.json();
       if (data.success) {
-        alert(`✅ ₹${fineAmount} fine imposed on ${fineEmployee.name} for ${fineDate}. Email notification sent!`);
+        alert(`✅ Total ₹${totalFineCalculated.toLocaleString('en-IN')} fine imposed on ${fineEmployee.name} (${fineTotalDays} Day(s))! Email notification sent.`);
         setShowFineModal(false);
         setFineEmployee(null);
-        setFineDate("");
+        setFineFromDate("");
+        setFineToDate("");
         setFineAmount(500);
         setFineReason("Absent without prior notification");
+        fetchMyFines();
       } else {
         alert(data.error || "Failed to impose fine");
       }
@@ -5088,10 +5332,7 @@ export function LeaveRequestTab({ sessionUser }: { sessionUser?: any }) {
     }
   };
 
-  useEffect(() => {
-    fetchLeaves();
-    fetchEmployees();
-  }, []);
+
 
   const allSelectableEmployees = React.useMemo(() => {
     const map = new Map<string, { id: string; name: string; role?: string; email?: string }>();
@@ -5304,96 +5545,193 @@ export function LeaveRequestTab({ sessionUser }: { sessionUser?: any }) {
           )}
         </div>
 
-        <div className="grid grid-cols-1 gap-8">
+        {/* ── Top Row 2-Column Grid: Apply Leave Form (Left) & Absent Fines History (Right) ── */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
 
           {/* Form View for Applicants */}
           {canApply && (
-            <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm max-w-xl">
-              <h3 className="text-xs font-black tracking-widest text-[#714B67] uppercase font-mono pb-2 border-b border-slate-100 mb-4 flex items-center justify-between">
-                <span>📋 Apply for Leave Request</span>
-              </h3>
+            <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm flex flex-col justify-between">
+              <div>
+                <h3 className="text-xs font-black tracking-widest text-[#714B67] uppercase font-mono pb-2 border-b border-slate-100 mb-4 flex items-center justify-between">
+                  <span>📋 Apply for Leave Request</span>
+                </h3>
 
-              <form onSubmit={handleApplyLeave} className="space-y-4 font-semibold text-slate-650">
-                <div className="bg-slate-50 border border-slate-100 rounded-lg p-3 flex justify-between items-center">
-                  <div className="flex items-center gap-2">
-                    <User className="w-4 h-4 text-indigo-500" />
-                    <span className="text-xs font-black text-slate-850 uppercase tracking-wide">
-                      Applicant Name: {sessionUser?.name || "Employee"}
-                    </span>
+                <form onSubmit={handleApplyLeave} className="space-y-4 font-semibold text-slate-650">
+                  <div className="bg-slate-50 border border-slate-100 rounded-lg p-3 flex justify-between items-center">
+                    <div className="flex items-center gap-2">
+                      <User className="w-4 h-4 text-indigo-500" />
+                      <span className="text-xs font-black text-slate-850 uppercase tracking-wide">
+                        Applicant Name: {sessionUser?.name || "Employee"}
+                      </span>
+                    </div>
+                    <div className="bg-indigo-50 border border-indigo-150 px-2 py-0.5 rounded text-[10px] text-indigo-700 font-mono font-bold">
+                      {sessionUser?.role || "Staff"}
+                    </div>
                   </div>
-                  <div className="bg-indigo-50 border border-indigo-150 px-2 py-0.5 rounded text-[10px] text-indigo-700 font-mono font-bold">
-                    {sessionUser?.role || "Staff"}
-                  </div>
-                </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-[10px] uppercase font-black text-slate-500 font-mono tracking-wider">Leave Type *</label>
-                    <select
-                      className="w-full bg-white border border-slate-300 rounded p-2 text-xs font-bold text-slate-900 mt-1.5 focus:outline-none focus:border-[#714B67]"
-                      value={leaveType}
-                      onChange={(e) => setLeaveType(e.target.value)}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-[10px] uppercase font-black text-slate-500 font-mono tracking-wider">Leave Type *</label>
+                      <select
+                        className="w-full bg-white border border-slate-300 rounded p-2 text-xs font-bold text-slate-900 mt-1.5 focus:outline-none focus:border-[#714B67]"
+                        value={leaveType}
+                        onChange={(e) => setLeaveType(e.target.value)}
+                      >
+                        <option value="Casual Leave">Casual Leave</option>
+                        <option value="Sick Leave">Sick Leave</option>
+                        <option value="Earned Leave">Earned Leave</option>
+                        <option value="Unpaid Leave">Unpaid Leave</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="text-[10px] uppercase font-black text-slate-500 font-mono tracking-wider">Reason for Leave *</label>
+                      <input
+                        type="text"
+                        placeholder="Short description..."
+                        className="w-full bg-white border border-slate-300 rounded p-2 text-xs font-bold text-slate-900 mt-1.5 focus:outline-none focus:border-[#714B67]"
+                        value={reason}
+                        onChange={(e) => setReason(e.target.value)}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-[10px] uppercase font-black text-slate-500 font-mono tracking-wider">Start Date *</label>
+                      <input
+                        type="date"
+                        className="w-full bg-white border border-slate-300 rounded p-2 text-xs font-bold text-slate-900 mt-1.5 focus:outline-none focus:border-[#714B67]"
+                        value={startDate}
+                        onChange={(e) => setStartDate(e.target.value)}
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] uppercase font-black text-slate-500 font-mono tracking-wider">End Date *</label>
+                      <input
+                        type="date"
+                        className="w-full bg-white border border-slate-300 rounded p-2 text-xs font-bold text-slate-900 mt-1.5 focus:outline-none focus:border-[#714B67]"
+                        value={endDate}
+                        onChange={(e) => setEndDate(e.target.value)}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="pt-4 border-t border-slate-100 flex justify-end">
+                    <button
+                      type="submit"
+                      disabled={submitting}
+                      className="bg-[#714B67] hover:bg-[#5F3F56] w-full px-4 py-3 rounded-lg text-xs font-black text-white transition-all flex items-center justify-center gap-2 shadow-lg disabled:opacity-50"
                     >
-                      <option value="Casual Leave">Casual Leave</option>
-                      <option value="Sick Leave">Sick Leave</option>
-                      <option value="Earned Leave">Earned Leave</option>
-                      <option value="Unpaid Leave">Unpaid Leave</option>
-                    </select>
+                      {submitting ? "Submitting Leave..." : "Apply Leave"}
+                    </button>
                   </div>
-
-                  <div>
-                    <label className="text-[10px] uppercase font-black text-slate-500 font-mono tracking-wider">Reason for Leave *</label>
-                    <input
-                      className="w-full bg-white border border-slate-300 rounded p-2 text-xs font-bold text-slate-900 mt-1.5 focus:outline-none focus:border-[#714B67]"
-                      placeholder="Short description..."
-                      value={reason}
-                      onChange={(e) => setReason(e.target.value)}
-                      required
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-[10px] uppercase font-black text-slate-500 font-mono tracking-wider">Start Date *</label>
-                    <input
-                      type="date"
-                      className="w-full bg-white border border-slate-300 rounded p-2 text-xs font-bold text-slate-900 mt-1.5 focus:outline-none focus:border-[#714B67]"
-                      value={startDate}
-                      onChange={(e) => setStartDate(e.target.value)}
-                      required
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-[10px] uppercase font-black text-slate-500 font-mono tracking-wider">End Date *</label>
-                    <input
-                      type="date"
-                      className="w-full bg-white border border-slate-300 rounded p-2 text-xs font-bold text-slate-900 mt-1.5 focus:outline-none focus:border-[#714B67]"
-                      value={endDate}
-                      onChange={(e) => setEndDate(e.target.value)}
-                      required
-                    />
-                  </div>
-                </div>
-
-                <div className="pt-4 border-t border-slate-100 flex justify-end">
-                  <button
-                    type="submit"
-                    disabled={submitting}
-                    className="bg-[#714B67] hover:bg-[#5F3F56] w-full px-4 py-3 rounded-lg text-xs font-black text-white transition-all flex items-center justify-center gap-2 shadow-lg disabled:opacity-50"
-                  >
-                    {submitting ? "Submitting Leave..." : "Apply Leave"}
-                  </button>
-                </div>
-              </form>
+                </form>
+              </div>
             </div>
           )}
 
-          {/* List of Leave Requests */}
-          <div className="bg-white border border-[#E8E4DF] rounded-xl p-6 shadow-sm">
-            <h3 className="text-xs font-black tracking-widest text-[#1C1C1A] uppercase font-mono pb-2 border-b border-[#E8E4DF] mb-4 flex items-center justify-between relative">
-              <span style={{ fontFamily: "'Playfair Display', serif" }} className="font-serif text-sm font-bold lowercase first-letter:uppercase text-[#1C1C1A]">
-                📋 {canApprove ? "Leave requests registry" : "Your leave request history"}
-              </span>
+          {/* ── Absent Fines History Section (Right Side - Height Matched with Scrollbar) ── */}
+          <div id="absent-fines-section" className="bg-white border border-rose-200/80 rounded-xl p-6 shadow-sm flex flex-col justify-between h-full">
+            <div>
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-3 border-b border-rose-100 mb-3">
+                <div className="flex items-center gap-2">
+                  <div className="p-2 bg-rose-100 text-rose-700 rounded-xl">
+                    <AlertTriangle className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h3 className="text-xs font-black text-rose-950 uppercase tracking-wide">
+                      ⚠️ Absent Fines & Deductions History
+                    </h3>
+                    <p className="text-[10px] text-rose-600 font-medium">
+                      Imposed absence fines & compliance deductions
+                    </p>
+                  </div>
+                </div>
+
+                {myFines.length > 0 && (
+                  <div className="flex items-center gap-2 flex-wrap">
+                    {canApprove && fineEmployeeOptions.length > 1 && (
+                      <select
+                        value={fineEmployeeFilter}
+                        onChange={(e) => setFineEmployeeFilter(e.target.value)}
+                        className="text-[10px] font-bold text-slate-800 bg-white border border-rose-200 rounded-xl px-2.5 py-1 focus:outline-none focus:border-rose-400 shadow-2xs cursor-pointer"
+                      >
+                        <option value="All">👥 All Employees</option>
+                        {fineEmployeeOptions.filter(n => n !== "All").map((name, i) => (
+                          <option key={i} value={name}>👤 {name}</option>
+                        ))}
+                      </select>
+                    )}
+                    <div className="flex items-center gap-1.5 bg-rose-50 border border-rose-200 px-2.5 py-1 rounded-xl">
+                      <span className="text-[10px] font-bold text-rose-700">Total:</span>
+                      <span className="text-xs font-black text-rose-800 bg-rose-200/70 px-2 py-0.5 rounded-md">
+                        ₹{filteredMyFines.reduce((sum, f) => sum + (Number(f.amount) || 0), 0).toLocaleString('en-IN')}
+                      </span>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {loadingFines ? (
+                <div className="p-4 text-center text-xs font-bold text-slate-400">Loading fine history...</div>
+              ) : displayFines.length === 0 ? (
+                <div className="p-4 text-center bg-slate-50/50 rounded-xl border border-dashed border-slate-200 text-xs font-semibold text-slate-500">
+                  ✅ Great news! No absence fines recorded.
+                </div>
+              ) : (
+                <div className="overflow-y-auto overflow-x-auto custom-scrollbar max-h-[220px]">
+                  <table className="w-full text-left text-xs border-collapse">
+                    <thead>
+                      <tr className="bg-rose-50/80 text-rose-950 text-[10px] uppercase font-black tracking-wider border-b border-rose-100 sticky top-0 bg-rose-50 z-10">
+                        {canApprove && <th className="py-2 px-2.5">Employee</th>}
+                        <th className="py-2 px-2.5">Absence Date</th>
+                        <th className="py-2 px-2.5">Fine Amount</th>
+                        <th className="py-2 px-2.5">Reason</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 font-semibold text-slate-800">
+                      {displayFines.map((fine: any) => (
+                        <tr key={fine.id} className="hover:bg-rose-50/30 transition-colors">
+                          {canApprove && (
+                            <td className="py-2 px-2.5">
+                              <span className="font-bold text-slate-900 block truncate max-w-[120px]">{fine.employeeInfo?.name || "Employee"}</span>
+                            </td>
+                          )}
+                          <td className="py-2 px-2.5 font-bold text-slate-900 whitespace-nowrap">
+                            📅 {fine.daysCount > 1
+                              ? `${new Date(fine.fromDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })} to ${new Date(fine.toDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })} (${fine.daysCount} Days)`
+                              : new Date(fine.fromDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
+                          </td>
+                          <td className="py-2 px-2.5 whitespace-nowrap">
+                            <span className="px-2 py-0.5 bg-rose-100 text-rose-800 rounded font-black border border-rose-200 text-[11px]">
+                              ₹{Number(fine.totalAmount).toLocaleString('en-IN')}
+                              {fine.daysCount > 1 && (
+                                <span className="text-[10px] text-rose-600 font-bold ml-1">
+                                  (₹{fine.perDayAmount}/day)
+                                </span>
+                              )}
+                            </span>
+                          </td>
+                          <td className="py-2 px-2.5 text-slate-700 max-w-[140px] truncate" title={fine.reason}>
+                            {fine.reason}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+          </div>
+        </div>
+      </div>
+
+        {/* List of Leave Requests */}
+        <div className="bg-white border border-[#E8E4DF] rounded-xl p-6 shadow-sm">
+          <h3 className="text-xs font-black tracking-widest text-[#1C1C1A] uppercase font-mono pb-2 border-b border-[#E8E4DF] mb-4 flex items-center justify-between relative">
+            <span style={{ fontFamily: "'Playfair Display', serif" }} className="font-serif text-sm font-bold lowercase first-letter:uppercase text-[#1C1C1A]">
+              📋 {canApprove ? "Leave requests registry" : "Your leave request history"}
+            </span>
               <div className="relative">
                 <button
                   type="button"
@@ -5506,10 +5844,10 @@ export function LeaveRequestTab({ sessionUser }: { sessionUser?: any }) {
                     <span className="text-xs font-semibold">No matching leave requests found.</span>
                   </div>
                 ) : (
-                  <div className="overflow-x-auto">
+                  <div className="overflow-y-auto overflow-x-auto custom-scrollbar max-h-[360px]">
                     <table className="w-full text-left text-xs border-collapse">
                       <thead>
-                        <tr className="border-b border-slate-200 bg-slate-50 text-slate-450 font-black uppercase font-mono tracking-wider">
+                        <tr className="border-b border-slate-200 bg-slate-50 text-slate-450 font-black uppercase font-mono tracking-wider sticky top-0 bg-slate-50 z-10">
                           {canApprove && <th className="py-3.5 px-4 text-left">Employee</th>}
                           <th className="py-3.5 px-4 text-left">Type</th>
                           <th className="py-3.5 px-4 text-left">Duration</th>
@@ -5627,9 +5965,7 @@ export function LeaveRequestTab({ sessionUser }: { sessionUser?: any }) {
               </>
             )}
           </div>
-
         </div>
-      </div>
 
       {/* ── Impose Absent Fine Modal ── */}
       {showFineModal && (
@@ -5655,50 +5991,52 @@ export function LeaveRequestTab({ sessionUser }: { sessionUser?: any }) {
                 <label className="block text-[10px] uppercase font-black text-slate-500 tracking-wider mb-1.5">
                   Select Employee * ({allSelectableEmployees.length} total)
                 </label>
-                <select
-                  className="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-xs font-bold text-slate-900 focus:outline-none focus:border-rose-500"
-                  value={fineEmployee?.id || ""}
-                  onChange={(e) => {
-                    const empId = e.target.value;
-                    const selected = allSelectableEmployees.find((emp) => emp.id === empId);
-                    if (selected) {
-                      setFineEmployee({ id: selected.id, name: selected.name });
-                    } else {
-                      setFineEmployee(null);
-                    }
-                  }}
-                >
-                  <option value="">-- Select Employee --</option>
-                  {allSelectableEmployees.map((emp: any) => (
-                    <option key={emp.id} value={emp.id}>
-                      {emp.name} {emp.role ? `(${emp.role})` : emp.email ? `(${emp.email})` : ""}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Date */}
-              <div>
-                <label className="block text-[10px] uppercase font-black text-slate-500 tracking-wider mb-1.5">Date of Absence *</label>
-                <input
-                  type="date"
-                  className="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-xs font-bold text-slate-900 focus:outline-none focus:border-rose-500"
-                  value={fineDate}
-                  max={new Date().toISOString().split("T")[0]}
-                  onChange={(e) => setFineDate(e.target.value)}
+                <FineEmployeeSearchCombobox
+                  employees={allSelectableEmployees}
+                  selectedEmployee={fineEmployee}
+                  onSelectEmployee={setFineEmployee}
                 />
               </div>
 
-              {/* Fine Amount */}
+              {/* Date Range */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[10px] uppercase font-black text-slate-500 tracking-wider mb-1">From Date *</label>
+                  <input
+                    type="date"
+                    className="w-full bg-white border border-slate-300 rounded-lg p-2 text-xs font-bold text-slate-900 focus:outline-none focus:border-rose-500"
+                    value={fineFromDate}
+                    max={new Date().toISOString().split("T")[0]}
+                    onChange={(e) => {
+                      setFineFromDate(e.target.value);
+                      if (!fineToDate || new Date(e.target.value) > new Date(fineToDate)) {
+                        setFineToDate(e.target.value);
+                      }
+                    }}
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] uppercase font-black text-slate-500 tracking-wider mb-1">To Date *</label>
+                  <input
+                    type="date"
+                    className="w-full bg-white border border-slate-300 rounded-lg p-2 text-xs font-bold text-slate-900 focus:outline-none focus:border-rose-500"
+                    value={fineToDate}
+                    min={fineFromDate}
+                    onChange={(e) => setFineToDate(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              {/* Fine Amount per day */}
               <div>
-                <label className="block text-[10px] uppercase font-black text-slate-500 tracking-wider mb-1.5">Fine Amount (₹)</label>
+                <label className="block text-[10px] uppercase font-black text-slate-500 tracking-wider mb-1.5">Per Day Fine Amount (₹)</label>
                 <div className="flex items-center gap-2">
                   {[250, 500, 1000, 2000].map((amt) => (
                     <button
                       key={amt}
                       type="button"
                       onClick={() => setFineAmount(amt)}
-                      className={`flex-1 py-2 rounded-lg text-xs font-black border transition-all ${fineAmount === amt ? "bg-rose-600 text-white border-rose-600" : "bg-white text-slate-600 border-slate-300 hover:border-rose-400"}`}
+                      className={`flex-1 py-2 rounded-lg text-xs font-black border transition-all ${fineAmount === amt ? "bg-rose-600 text-white border-rose-600 shadow-xs" : "bg-white text-slate-600 border-slate-300 hover:border-rose-400"}`}
                     >
                       ₹{amt}
                     </button>
@@ -5716,7 +6054,7 @@ export function LeaveRequestTab({ sessionUser }: { sessionUser?: any }) {
 
               {/* Reason */}
               <div>
-                <label className="block text-[10px] uppercase font-black text-slate-500 tracking-wider mb-1.5">Reason for Fine *</label>
+                <label className="block text-[10px] uppercase font-black text-slate-700 tracking-wider mb-1.5">Reason for Fine *</label>
                 <div className="flex flex-wrap gap-1.5 mb-2">
                   {[
                     "Absent without prior notification",
@@ -5728,14 +6066,18 @@ export function LeaveRequestTab({ sessionUser }: { sessionUser?: any }) {
                       key={preset}
                       type="button"
                       onClick={() => setFineReason(preset)}
-                      className={`text-[10px] font-bold px-2 py-0.5 rounded-full border transition-all ${fineReason === preset ? "bg-rose-100 text-rose-700 border-rose-300" : "bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100"}`}
+                      className={`text-[11px] font-extrabold px-2.5 py-1 rounded-lg border transition-all ${
+                        fineReason === preset
+                          ? "bg-rose-600 text-white border-rose-600 shadow-2xs"
+                          : "bg-slate-100 text-slate-900 border-slate-300 hover:bg-slate-200"
+                      }`}
                     >
                       {preset}
                     </button>
                   ))}
                 </div>
                 <textarea
-                  className="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-xs font-bold text-slate-900 focus:outline-none focus:border-rose-500 resize-none"
+                  className="w-full bg-white border border-slate-300 rounded-xl p-2.5 text-xs font-bold text-slate-950 placeholder:text-slate-400 placeholder:font-normal focus:outline-none focus:border-rose-500 resize-none shadow-2xs"
                   rows={2}
                   value={fineReason}
                   onChange={(e) => setFineReason(e.target.value)}
@@ -5743,13 +6085,16 @@ export function LeaveRequestTab({ sessionUser }: { sessionUser?: any }) {
                 />
               </div>
 
-              {/* Fine Summary */}
-              {fineEmployee && fineDate && (
-                <div className="bg-rose-50 border border-rose-200 rounded-xl p-3">
-                  <p className="text-xs font-black text-rose-800">Fine Summary</p>
-                  <p className="text-[11px] text-rose-600 mt-1">
-                    ₹<span className="font-black">{fineAmount}</span> will be imposed on <span className="font-black">{fineEmployee.name}</span> for absent on <span className="font-black">{fineDate}</span>.
-                    This will appear as <span className="font-black">Absent Fine</span> on their attendance calendar.
+              {/* Fine Summary Breakdown */}
+              {fineEmployee && fineFromDate && fineTotalDays > 0 && (
+                <div className="bg-rose-50 border border-rose-200 rounded-xl p-3.5 space-y-1">
+                  <div className="flex items-center justify-between text-xs font-black text-rose-900">
+                    <span>Fine Summary ({fineTotalDays} Day{fineTotalDays > 1 ? "s" : ""})</span>
+                    <span className="text-sm text-rose-700 font-extrabold">Total: ₹{totalFineCalculated.toLocaleString('en-IN')}</span>
+                  </div>
+                  <p className="text-[11px] text-rose-700 leading-relaxed font-semibold">
+                    ₹<span className="font-black">{fineAmount}</span>/day × <span className="font-black">{fineTotalDays} Day(s)</span> = <span className="font-black">₹{totalFineCalculated.toLocaleString('en-IN')}</span> fine will be imposed on <span className="font-black">{fineEmployee.name}</span> for absence ({fineFromDate} {fineToDate && fineToDate !== fineFromDate ? `to ${fineToDate}` : ""}).
+                    An email notification with complete details will be sent to <span className="font-black">{fineEmployee.name}</span>.
                   </p>
                 </div>
               )}
@@ -5765,10 +6110,10 @@ export function LeaveRequestTab({ sessionUser }: { sessionUser?: any }) {
               </button>
               <button
                 onClick={handleImposeFine}
-                disabled={imposingFine || !fineEmployee || !fineDate}
-                className="flex-1 py-2.5 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-black transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow"
+                disabled={imposingFine || !fineEmployee || !fineFromDate || fineTotalDays <= 0}
+                className="flex-1 py-2.5 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-black transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow flex items-center justify-center gap-1"
               >
-                {imposingFine ? "Imposing..." : `⚠️ Impose ₹${fineAmount} Fine`}
+                {imposingFine ? "Imposing..." : `⚠️ Impose ₹${totalFineCalculated.toLocaleString('en-IN')} Fine ${fineTotalDays > 0 ? `(${fineTotalDays} Day${fineTotalDays > 1 ? "s" : ""})` : ""}`}
               </button>
             </div>
           </div>

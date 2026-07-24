@@ -635,6 +635,7 @@ export default function LegalRecoveryModule({ userRole, triggerToast, sessionUse
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...marketingForm,
+          nextFollowUpDate: marketingForm.nextFollowUpDate || null,
           callType: marketingForm.callType === "Others" ? customCallType : marketingForm.callType,
           callStatus: marketingForm.callStatus === "Others" ? customCallStatus : marketingForm.callStatus,
           branchCode: showMarketingForm.branch.branchCode,

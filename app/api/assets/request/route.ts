@@ -193,12 +193,19 @@ export async function GET(req: Request) {
       }
     }
 
-    const { isUserAuthorizedApprover } = await import("@/lib/approvalRouting");
-    const isAuthorizedApprover = await isUserAuthorizedApprover("asset_request", userId, rawRole);
+    const { getAuthorizedApplicantIdsForApprover } = await import("@/lib/approvalRouting");
+    const { isGeneralApprover, overrideApplicantIds } = await getAuthorizedApplicantIdsForApprover("asset_request", userId, rawRole);
 
     let whereClause: any = {};
-    if (isAuthorizedApprover) {
+    if (isGeneralApprover) {
       whereClause = {};
+    } else if (overrideApplicantIds.length > 0) {
+      whereClause = {
+        [Op.or]: [
+          { employee_id: userId },
+          { employee_id: { [Op.in]: overrideApplicantIds } }
+        ]
+      };
     } else if (isAdministration) {
       // Administration can see approved/dispatched requests + their own requests
       whereClause = {
@@ -380,72 +387,71 @@ export async function POST(req: Request) {
         asset_type,
         reason,
         priority: priority || "Medium",
-        status: "Pending Manager Approval"
+        status: "Pending Owner Approval"
       });
 
-      // --- Send Notification to Admins ---
+      // --- Send Notification & Email directly to Owners ---
       try {
         await Notification.sync({ alter: true });
         const requester = await User.findByPk(userId);
         const requesterProfile = await EmployeeProfile.findOne({ where: { user: userId } });
-        const requesterCompanies = getUserCompanies(requester);
         const requesterName = requester?.name || "An employee";
         const dept = requesterProfile?.department || "General";
 
-        // Find active department managers for this user
-        let matchedApprovers: any[] = [];
-        if (requesterProfile?.department) {
-          matchedApprovers = await findDepartmentManagers(userId, requesterProfile.department);
-        }
-
-        // Fallback: If no department manager, notify general company HRs / Owners / Directors
-        if (matchedApprovers.length === 0) {
-          const admins = await User.findAll({
-            where: {
-              role: { [Op.in]: ["Owner", "Director", "HR Head", "HR Executive"] },
-              status: "active"
-            }
-          });
-          matchedApprovers = admins.filter((admin: any) => {
-            if (admin.role === "Owner" || admin.role === "Director") return true;
-            const adminComps = getUserCompanies(admin);
-            return adminComps.some((c: string) => requesterCompanies.includes(c));
-          });
-        }
-
-      // Create a notification in portal for each matched approver
-      await sendRequestNotification({
-        applicantId: userId,
-        requestType: "Asset",
-        action: "created",
-        details: `${requesterName} has requested a new asset: ${asset_type}. Priority: ${priority || "Medium"}.`
-      });
-
-      const adminEmails: string[] = [];
-      for (const admin of matchedApprovers) {
-        if (admin.id === userId) continue;
-        if (admin.email) adminEmails.push(admin.email);
-      }
-
-      // Send Email to matched Approvers
-      if (adminEmails.length > 0) {
-        const emailHtml = getAssetRequestEmailHtml({
-          applicantName: requesterName,
-          department: dept,
-          assetType: asset_type,
-          priority: priority || "Medium",
-          reason: reason,
+        // Query Owners & Directors for direct approval
+        const owners = await User.findAll({
+          where: {
+            role: { [Op.in]: ["Owner", "Director", "owner", "director"] },
+            status: "active"
+          }
         });
 
-        await sendEmail({
-          to: adminEmails,
-          subject: `💻 Asset Request Approval Required: ${requesterName} – ${asset_type}`,
-          html: emailHtml,
+        // Also check matrix / override approvers
+        const { getApproversForWorkflow } = await import("@/lib/approvalRouting");
+        const routing = await getApproversForWorkflow("asset_request", userId);
+        const extraApprovers = await User.findAll({
+          where: {
+            id: routing.approverUserIds,
+            status: "active"
+          }
         });
+
+        const allMatched = [...owners, ...extraApprovers];
+        const uniqueApprovers = Array.from(new Map(allMatched.map(u => [u.id, u])).values());
+
+        // Create a portal notification for each owner/approver
+        await sendRequestNotification({
+          applicantId: userId,
+          requestType: "Asset",
+          action: "created",
+          details: `${requesterName} has requested a new asset: ${asset_type}. Priority: ${priority || "Medium"}. Awaiting Owner approval.`
+        });
+
+        const ownerEmails: string[] = [];
+        for (const owner of uniqueApprovers) {
+          if (owner.id === userId) continue;
+          if (owner.email) ownerEmails.push(owner.email);
+        }
+
+        // Send Email directly to Owners
+        if (ownerEmails.length > 0) {
+          const emailHtml = getAssetRequestEmailHtml({
+            applicantName: requesterName,
+            department: dept,
+            assetType: asset_type,
+            priority: priority || "Medium",
+            reason: reason,
+          });
+
+          await sendEmail({
+            to: ownerEmails,
+            subject: `💻 Asset Request Approval Required (Owner): ${requesterName} – ${asset_type}`,
+            html: emailHtml,
+          });
+        }
+      } catch (notifErr) {
+        console.error("Error creating notifications:", notifErr);
       }
-    } catch (notifErr) {
-      console.error("Error creating notifications:", notifErr);
-    }
 
       return NextResponse.json({
         success: true,
@@ -544,13 +550,6 @@ export async function POST(req: Request) {
       }
 
       let nextStatus = status;
-      if (status === "Approved") {
-        if (isDeptManager && !isOwnerOrDirector) {
-          nextStatus = "Pending Owner Approval";
-        } else {
-          nextStatus = "Approved";
-        }
-      }
 
       await request.update({
         status: nextStatus,

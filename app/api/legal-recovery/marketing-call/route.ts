@@ -42,6 +42,16 @@ export async function POST(request: Request) {
       data.callerName = (session.user as any).name;
     }
 
+    // Sanitize nextFollowUpDate to prevent invalid date / empty string DB errors
+    let cleanNextFollowUpDate: string | null = null;
+    if (data.nextFollowUpDate && typeof data.nextFollowUpDate === "string" && data.nextFollowUpDate.trim() !== "") {
+      const parsed = new Date(data.nextFollowUpDate);
+      if (!isNaN(parsed.getTime())) {
+        cleanNextFollowUpDate = data.nextFollowUpDate.trim();
+      }
+    }
+    data.nextFollowUpDate = cleanNextFollowUpDate;
+
     // Create Task in TaskLog (used by Kanban)
     const taskTitle = `Business Development - Branch: ${data.branchName || 'Unknown'}`;
     const nextId = await TaskLog.generateNextTaskId(data.callerId);

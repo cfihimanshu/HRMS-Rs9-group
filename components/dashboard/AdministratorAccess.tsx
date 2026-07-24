@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import { Search, Shield, ShieldCheck, ShieldAlert, Key, UserCheck, RefreshCw, CheckSquare, Square, CheckCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -115,102 +115,343 @@ function UserSearchCombobox({
   );
 }
 
-function RequesterOverrideSelector({
+function MultiEmployeeCheckboxSelect({
   employees,
-  currentOverrides,
-  onAddOverride,
-  onRemoveOverride,
+  selectedIds,
+  onChange,
+  placeholder,
+  label,
+  forceUpward = false,
 }: {
   employees: any[];
-  currentOverrides: Array<{ applicantId: string; approverUserIds: string[] }>;
-  onAddOverride: (reqId: string, appId: string) => void;
-  onRemoveOverride: (reqId: string) => void;
+  selectedIds: string[];
+  onChange: (ids: string[]) => void;
+  placeholder: string;
+  label: string;
+  forceUpward?: boolean;
 }) {
-  const [reqId, setReqId] = useState("");
-  const [appId, setAppId] = useState("");
+  const [isOpen, setIsOpen] = useState(false);
+  const [search, setSearch] = useState("");
+  const [openUpward, setOpenUpward] = useState(forceUpward);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  const checkDirection = () => {
+    if (forceUpward) {
+      setOpenUpward(true);
+      return;
+    }
+    if (containerRef.current) {
+      const rect = containerRef.current.getBoundingClientRect();
+      const spaceBelow = window.innerHeight - rect.bottom;
+      setOpenUpward(spaceBelow < 260);
+    }
+  };
+
+  const filtered = useMemo(() => {
+    if (!search.trim()) return employees;
+    const q = search.toLowerCase();
+    return employees.filter(emp =>
+      emp.name?.toLowerCase().includes(q) ||
+      emp.email?.toLowerCase().includes(q) ||
+      emp.role?.toLowerCase().includes(q)
+    );
+  }, [employees, search]);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const handleToggle = (id: string) => {
+    if (selectedIds.includes(id)) {
+      onChange(selectedIds.filter(i => i !== id));
+    } else {
+      onChange([...selectedIds, id]);
+    }
+  };
+
+  const handleSelectAll = () => {
+    const allFilteredIds = filtered.map(e => e.id);
+    const combined = Array.from(new Set([...selectedIds, ...allFilteredIds]));
+    onChange(combined);
+  };
+
+  const handleClearAll = () => {
+    onChange([]);
+  };
 
   return (
-    <div className="pt-3 border-t border-slate-100 space-y-3">
-      <label className="text-[11px] font-black uppercase text-indigo-600 tracking-wider block">
-        ⚡ Requester Specific Override Rules (Optional):
-      </label>
-
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 bg-slate-50 p-2.5 rounded-xl border border-slate-200">
-        <div className="flex-1">
-          <label className="text-[9px] uppercase font-bold text-slate-400 block mb-0.5">When Request Created By:</label>
-          <select
-            value={reqId}
-            onChange={(e) => setReqId(e.target.value)}
-            className="w-full text-xs font-bold bg-white border border-slate-200 rounded-lg p-1.5 focus:outline-none focus:border-indigo-500"
-          >
-            <option value="">Select Requester Employee...</option>
-            {employees.map((emp) => (
-              <option key={emp.id} value={emp.id}>
-                {emp.name} ({emp.role || "User"})
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <span className="text-xs font-black text-indigo-500 self-center text-center">➔</span>
-
-        <div className="flex-1">
-          <label className="text-[9px] uppercase font-bold text-slate-400 block mb-0.5">Route Approval Specifically To:</label>
-          <select
-            value={appId}
-            onChange={(e) => setAppId(e.target.value)}
-            className="w-full text-xs font-bold bg-white border border-slate-200 rounded-lg p-1.5 focus:outline-none focus:border-indigo-500"
-          >
-            <option value="">Select Target Approver...</option>
-            {employees.map((emp) => (
-              <option key={emp.id} value={emp.id}>
-                {emp.name} ({emp.role || "User"})
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <button
-          type="button"
-          disabled={!reqId || !appId || reqId === appId}
-          onClick={() => {
-            if (reqId && appId && reqId !== appId) {
-              onAddOverride(reqId, appId);
-              setReqId("");
-              setAppId("");
-            }
+    <div ref={containerRef} className="relative w-full">
+      <div className="relative">
+        <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+        <input
+          type="text"
+          value={search}
+          onFocus={() => {
+            checkDirection();
+            setIsOpen(true);
           }}
-          className="px-3 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 text-white rounded-lg text-xs font-bold transition-all self-end sm:self-center shrink-0"
-        >
-          + Add Override Pair
-        </button>
+          onChange={(e) => {
+            checkDirection();
+            setSearch(e.target.value);
+            setIsOpen(true);
+          }}
+          placeholder={selectedIds.length > 0 ? `${selectedIds.length} user(s) selected...` : placeholder}
+          className="w-full text-xs pl-8 pr-7 py-2 border border-slate-200 focus:border-indigo-500 rounded-xl bg-white font-bold text-slate-800 placeholder:text-slate-400 placeholder:font-normal focus:outline-none transition-all shadow-2xs cursor-pointer"
+        />
+        {selectedIds.length > 0 && (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleClearAll();
+            }}
+            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs font-bold"
+            title="Clear All Selected"
+          >
+            ✕
+          </button>
+        )}
       </div>
 
-      {/* Active Override Pair Badges */}
-      {currentOverrides && currentOverrides.length > 0 && (
-        <div className="flex flex-wrap gap-2 pt-1">
-          {currentOverrides.map((ov) => {
-            const reqEmp = employees.find((e: any) => e.id === ov.applicantId);
-            const targetAppId = ov.approverUserIds?.[0];
-            const appEmp = employees.find((e: any) => e.id === targetAppId);
-
+      {/* Selected Employee Badges Preview */}
+      {selectedIds.length > 0 && (
+        <div className="flex flex-wrap gap-1.5 mt-2 max-h-24 overflow-y-auto custom-scrollbar p-1 bg-slate-100/60 rounded-xl border border-slate-200/60">
+          {selectedIds.map(id => {
+            const emp = employees.find(e => String(e.id) === String(id));
             return (
               <span
-                key={ov.applicantId}
-                className="inline-flex items-center gap-2 px-3 py-1.5 bg-indigo-50 text-indigo-900 border border-indigo-200 rounded-xl text-xs font-bold shadow-2xs"
+                key={id}
+                className="inline-flex items-center gap-1 px-2 py-0.5 bg-white border border-indigo-200 text-indigo-900 rounded-lg text-[11px] font-bold shadow-2xs"
               >
-                <span>⚡ {reqEmp ? reqEmp.name : ov.applicantId} ➔ Approver: <strong className="text-indigo-700">{appEmp ? appEmp.name : targetAppId}</strong></span>
+                <span>👤 {emp ? emp.name : id}</span>
                 <button
                   type="button"
-                  onClick={() => onRemoveOverride(ov.applicantId)}
-                  className="text-indigo-600 hover:text-indigo-950 font-black ml-1 text-sm leading-none"
-                  title="Remove Override Pair"
+                  onClick={() => handleToggle(id)}
+                  className="text-indigo-500 hover:text-rose-600 font-black ml-0.5"
                 >
                   &times;
                 </button>
               </span>
             );
           })}
+        </div>
+      )}
+
+      {/* Checkbox Dropdown Panel */}
+      {isOpen && (
+        <div className={`absolute z-[99999] left-0 ${openUpward ? "bottom-full mb-1" : "top-full mt-1"} w-full bg-white border border-[#E8E4DF] rounded-2xl shadow-2xl max-h-56 flex flex-col overflow-hidden animate-in fade-in duration-150`}>
+          {/* Header Controls */}
+          <div className="p-2.5 bg-slate-50 border-b border-slate-100 flex items-center justify-between text-[10px] font-black uppercase tracking-wider text-slate-500 shrink-0">
+            <span>{label} ({selectedIds.length} Selected)</span>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={handleSelectAll}
+                className="text-indigo-600 hover:underline font-bold"
+              >
+                Select All
+              </button>
+              <span>•</span>
+              <button
+                type="button"
+                onClick={handleClearAll}
+                className="text-rose-500 hover:underline font-bold"
+              >
+                Clear
+              </button>
+            </div>
+          </div>
+
+          {/* List items with checkboxes */}
+          <div className="p-1.5 overflow-y-auto custom-scrollbar divide-y divide-slate-100 flex-1">
+            {filtered.map(emp => {
+              const isChecked = selectedIds.includes(emp.id);
+              return (
+                <label
+                  key={emp.id}
+                  className={`flex items-center justify-between p-2 hover:bg-indigo-50/60 rounded-xl cursor-pointer transition-colors text-xs font-semibold select-none ${isChecked ? 'bg-indigo-50/40' : ''}`}
+                >
+                  <div className="flex items-center gap-2 min-w-0 pr-2">
+                    <input
+                      type="checkbox"
+                      checked={isChecked}
+                      onChange={() => handleToggle(emp.id)}
+                      className="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                    />
+                    <div className="truncate">
+                      <span className="font-bold text-slate-800 block truncate">{emp.name || "Employee"}</span>
+                      <span className="text-[10px] text-slate-400 font-medium truncate block">{emp.role || "User"} &bull; {emp.email}</span>
+                    </div>
+                  </div>
+                  {isChecked && (
+                    <span className="text-[10px] font-black text-indigo-600 bg-indigo-100/70 px-2 py-0.5 rounded-md shrink-0">
+                      ✓ Selected
+                    </span>
+                  )}
+                </label>
+              );
+            })}
+            {filtered.length === 0 && (
+              <div className="p-4 text-center text-xs text-slate-400 font-medium">
+                No employees found matching search.
+              </div>
+            )}
+          </div>
+
+          {/* Done Button */}
+          <div className="p-2 bg-slate-50 border-t border-slate-100 flex justify-end shrink-0">
+            <button
+              type="button"
+              onClick={() => setIsOpen(false)}
+              className="px-3 py-1 bg-indigo-600 text-white rounded-lg text-xs font-bold hover:bg-indigo-700 transition-colors"
+            >
+              Done
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function RequesterOverrideSelector({
+  employees,
+  currentOverrides,
+  onAddOverride,
+  onRemoveOverride,
+  forceUpward = false,
+}: {
+  employees: any[];
+  currentOverrides: Array<any>;
+  onAddOverride: (reqIds: string[], appIds: string[]) => void;
+  onRemoveOverride: (ruleIndex: number) => void;
+  forceUpward?: boolean;
+}) {
+  const [selectedReqIds, setSelectedReqIds] = useState<string[]>([]);
+  const [selectedAppIds, setSelectedAppIds] = useState<string[]>([]);
+
+  return (
+    <div className="pt-3 border-t border-slate-100 space-y-3">
+      <div className="flex items-center justify-between">
+        <label className="text-[11px] font-black uppercase text-indigo-600 tracking-wider block">
+          ⚡ Requester Specific Override Rules (Multiple Selection Allowed):
+        </label>
+        <span className="text-[10px] text-slate-400 font-bold">
+          {currentOverrides.length} rule(s) configured
+        </span>
+      </div>
+
+      <div className="flex flex-col lg:flex-row items-start lg:items-center gap-3 bg-slate-50/80 p-3.5 rounded-2xl border border-slate-200/80 max-w-4xl">
+        <div className="w-full lg:w-80 shrink-0">
+          <label className="text-[10px] uppercase font-black text-slate-500 block mb-1">
+            When Request Created By (Select 1+ Requesters):
+          </label>
+          <MultiEmployeeCheckboxSelect
+            employees={employees}
+            selectedIds={selectedReqIds}
+            onChange={setSelectedReqIds}
+            placeholder="🔍 Search & check requesters..."
+            label="Requesters"
+            forceUpward={forceUpward}
+          />
+        </div>
+
+        <div className="text-center self-center shrink-0 hidden lg:block pt-3">
+          <span className="w-7 h-7 rounded-full bg-indigo-100 text-indigo-700 font-black text-xs inline-flex items-center justify-center border border-indigo-200">
+            ➔
+          </span>
+        </div>
+
+        <div className="w-full lg:w-80 shrink-0">
+          <label className="text-[10px] uppercase font-black text-slate-500 block mb-1">
+            Route Approval Specifically To (Select 1+ Approvers):
+          </label>
+          <MultiEmployeeCheckboxSelect
+            employees={employees}
+            selectedIds={selectedAppIds}
+            onChange={setSelectedAppIds}
+            placeholder="🔍 Search & check approvers..."
+            label="Target Approvers"
+            forceUpward={forceUpward}
+          />
+        </div>
+
+        <button
+          type="button"
+          disabled={selectedReqIds.length === 0 || selectedAppIds.length === 0}
+          onClick={() => {
+            if (selectedReqIds.length > 0 && selectedAppIds.length > 0) {
+              onAddOverride(selectedReqIds, selectedAppIds);
+              setSelectedReqIds([]);
+              setSelectedAppIds([]);
+            }
+          }}
+          className="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 text-white rounded-xl text-xs font-black transition-all self-start lg:self-end shrink-0 shadow-md flex items-center gap-1.5 mt-1"
+        >
+          <span>+ Add Custom Rule</span>
+        </button>
+      </div>
+
+      {/* Active Multi-Select Override Rules Cards */}
+      {currentOverrides && currentOverrides.length > 0 && (
+        <div className="space-y-2 pt-1">
+          <p className="text-[10px] font-black uppercase tracking-wider text-slate-400">Configured Requester Override Rules:</p>
+          <div className="grid grid-cols-1 gap-2">
+            {currentOverrides.map((ov, index) => {
+              const reqIds: string[] = Array.isArray(ov.applicantIds)
+                ? ov.applicantIds
+                : (ov.applicantId ? [ov.applicantId] : []);
+              const appIds: string[] = Array.isArray(ov.approverUserIds) ? ov.approverUserIds : [];
+
+              return (
+                <div
+                  key={index}
+                  className="p-3 bg-white border border-indigo-200 rounded-2xl shadow-2xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3"
+                >
+                  <div className="flex-1 min-w-0 space-y-1.5">
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 shrink-0">Requesters:</span>
+                      {reqIds.map(rId => {
+                        const emp = employees.find((e: any) => String(e.id) === String(rId));
+                        return (
+                          <span key={rId} className="px-2 py-0.5 bg-slate-100 text-slate-800 border border-slate-200 rounded-lg text-[11px] font-bold">
+                            👤 {emp ? emp.name : rId}
+                          </span>
+                        );
+                      })}
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <span className="text-[10px] font-black uppercase tracking-wider text-indigo-500 shrink-0">➔ Route To:</span>
+                      {appIds.map(aId => {
+                        const emp = employees.find((e: any) => String(e.id) === String(aId));
+                        return (
+                          <span key={aId} className="px-2 py-0.5 bg-indigo-50 text-indigo-800 border border-indigo-200 rounded-lg text-[11px] font-bold">
+                            🎯 {emp ? emp.name : aId}
+                          </span>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => onRemoveOverride(index)}
+                    className="p-2 text-rose-600 hover:text-rose-800 hover:bg-rose-50 rounded-xl transition-all border border-rose-200 shrink-0 text-xs font-bold flex items-center gap-1"
+                    title="Delete Override Rule"
+                  >
+                    <span>🗑️ Delete Rule</span>
+                  </button>
+                </div>
+              );
+            })}
+          </div>
         </div>
       )}
     </div>
@@ -1042,170 +1283,198 @@ export default function AdministratorAccess({ userRole, triggerToast, sessionUse
             </div>
 
             <div className="divide-y divide-slate-100">
-              {approvalMatrix.map((item, idx) => (
-                <div key={item.formKey} className="p-5 hover:bg-slate-50/60 transition-colors space-y-4">
-                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-slate-100 pb-3">
-                    <div>
-                      <span className="text-[10px] font-black uppercase text-[#C9A84C] bg-[#C9A84C]/10 border border-[#C9A84C]/30 px-2 py-0.5 rounded-md tracking-wider">
-                        {item.category || "Workflow"}
-                      </span>
-                      <h4 className="text-sm font-bold text-slate-800 mt-1">{item.formName}</h4>
-                      {/* <p className="text-[11px] text-slate-400 font-mono">Key: {item.formKey}</p> */}
-                    </div>
+              {approvalMatrix.map((item, idx) => {
+                const currentRoles: string[] = item.approverRoles || [];
+                return (
+                  <div key={item.formKey} className="p-5 hover:bg-slate-50/50 transition-colors space-y-4">
+                    {/* Header */}
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-slate-100 pb-3">
+                      <div>
+                        <span className="text-[10px] font-black uppercase text-[#C9A84C] bg-[#C9A84C]/10 border border-[#C9A84C]/30 px-2.5 py-0.5 rounded-md tracking-wider">
+                          {item.category || "Workflow"}
+                        </span>
+                        <h4 className="text-sm font-bold text-slate-900 mt-1">{item.formName}</h4>
+                      </div>
 
-                    <div className="flex items-center gap-4 bg-slate-50 border border-slate-200 p-2 rounded-xl">
-                      <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700 cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={item.notifyEmail !== false}
-                          onChange={(e) => {
-                            const updated = approvalMatrix.map(m => m.formKey === item.formKey ? { ...m, notifyEmail: e.target.checked } : m);
-                            setApprovalMatrix(updated);
-                          }}
-                          className="rounded text-amber-600 focus:ring-amber-500"
-                        />
-                        <span>📧 Email Alert</span>
-                      </label>
-
-                      <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700 cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={item.notifyApp !== false}
-                          onChange={(e) => {
-                            const updated = approvalMatrix.map(m => m.formKey === item.formKey ? { ...m, notifyApp: e.target.checked } : m);
-                            setApprovalMatrix(updated);
-                          }}
-                          className="rounded text-amber-600 focus:ring-amber-500"
-                        />
-                        <span>🔔 In-App Alert</span>
-                      </label>
-
-                      <button
-                        onClick={() => handleSaveMatrixRule(item)}
-                        disabled={savingFormKey === item.formKey}
-                        className="px-4 py-1.5 bg-[#C9A84C] hover:bg-[#B0913F] text-white text-xs font-black rounded-lg shadow-xs transition-all flex items-center gap-1"
-                      >
-                        {savingFormKey === item.formKey ? "Saving..." : "Save Rule"}
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Assign Approver Roles */}
-                  <div>
-                    <label className="text-[11px] font-black uppercase text-slate-500 tracking-wider block mb-2">
-                      Assign Approver Roles (Who gets approval rights):
-                    </label>
-                    <div className="flex flex-wrap gap-2">
-                      {[
-                        "Owner",
-                        "HR Head",
-                        "HR Executive",
-                        "Department Manager",
-                        "Accounts",
-                        "IT MANAGER"
-                      ].map((role) => {
-                        const currentRoles: string[] = item.approverRoles || [];
-                        const isAssigned = currentRoles.includes(role);
-                        return (
-                          <button
-                            key={role}
-                            type="button"
-                            onClick={() => {
-                              const newRoles = isAssigned
-                                ? currentRoles.filter(r => r !== role)
-                                : [...currentRoles, role];
-                              const updated = approvalMatrix.map(m => m.formKey === item.formKey ? { ...m, approverRoles: newRoles } : m);
+                      <div className="flex items-center gap-3 bg-slate-50 border border-slate-200 p-2 rounded-xl">
+                        <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={item.notifyEmail !== false}
+                            onChange={async (e) => {
+                              const updatedItem = { ...item, notifyEmail: e.target.checked };
+                              const updated = approvalMatrix.map(m => m.formKey === item.formKey ? updatedItem : m);
                               setApprovalMatrix(updated);
+                              await handleSaveMatrixRule(updatedItem);
                             }}
-                            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all border flex items-center gap-1.5 ${isAssigned
-                              ? "bg-[#C9A84C] text-white border-[#B0913F] shadow-xs"
-                              : "bg-[#FCFBF9] text-slate-600 border-[#E8E4DF] hover:bg-[#F5F0EA]/60"
-                              }`}
-                          >
-                            <span>{isAssigned ? "✓" : "+"}</span>
-                            <span>{role}</span>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
+                            className="rounded text-amber-600 focus:ring-amber-500 cursor-pointer"
+                          />
+                          <span>📧 Email Alert</span>
+                        </label>
 
-                  {/* Assign Specific Employee Approvers */}
-                  <div className="pt-2 border-t border-slate-100">
-                    <label className="text-[11px] font-black uppercase text-slate-500 tracking-wider block mb-2">
-                      Assign Specific Employee(s) (Optionally select specific user):
-                    </label>
+                        <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={item.notifyApp !== false}
+                            onChange={async (e) => {
+                              const updatedItem = { ...item, notifyApp: e.target.checked };
+                              const updated = approvalMatrix.map(m => m.formKey === item.formKey ? updatedItem : m);
+                              setApprovalMatrix(updated);
+                              await handleSaveMatrixRule(updatedItem);
+                            }}
+                            className="rounded text-amber-600 focus:ring-amber-500 cursor-pointer"
+                          />
+                          <span>🔔 In-App Alert</span>
+                        </label>
 
-                    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
-                      <UserSearchCombobox
-                        employees={employees}
-                        selectedUserIds={item.approverUsers || []}
-                        forceUpward={idx >= Math.max(0, approvalMatrix.length - 3)}
-                        onSelectUser={(selectedUserId) => {
-                          const currentUsers: string[] = item.approverUsers || [];
-                          if (!currentUsers.includes(selectedUserId)) {
-                            const newUsers = [...currentUsers, selectedUserId];
-                            const updated = approvalMatrix.map(m => m.formKey === item.formKey ? { ...m, approverUsers: newUsers } : m);
-                            setApprovalMatrix(updated);
-                          }
-                        }}
-                      />
-
-                      <span className="text-[11px] text-slate-400 font-bold">
-                        {(item.approverUsers || []).length} users assigned
-                      </span>
+                        <button
+                          onClick={() => handleSaveMatrixRule(item)}
+                          disabled={savingFormKey === item.formKey}
+                          className="px-3.5 py-1.5 bg-[#C9A84C] hover:bg-[#B0913F] text-white text-xs font-black rounded-lg shadow-xs transition-all flex items-center gap-1 shrink-0"
+                        >
+                          {savingFormKey === item.formKey ? "Saving..." : "✓ Saved"}
+                        </button>
+                      </div>
                     </div>
 
-                    {/* Removable Selected User Badges */}
-                    {(item.approverUsers && item.approverUsers.length > 0) && (
-                      <div className="flex flex-wrap gap-2 mt-2.5">
-                        {item.approverUsers.map((uId: string) => {
-                          const targetEmp = employees.find((e: any) => e.id === uId);
+                    {/* Step 1: Assign Approver Roles */}
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <label className="text-[11px] font-black uppercase text-slate-700 tracking-wider">
+                          Assign Approver Roles (Click to Enable / Disable):
+                        </label>
+                        <span className="text-[10px] text-slate-400 font-bold">
+                          {currentRoles.length} Role(s) Active
+                        </span>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        {[
+                          "Owner",
+                          "HR Head",
+                          "HR Executive",
+                          "Department Manager",
+                          "Accounts",
+                          "IT MANAGER"
+                        ].map((role) => {
+                          const isAssigned = currentRoles.includes(role);
                           return (
-                            <span
-                              key={uId}
-                              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-50 text-amber-900 border border-amber-300 rounded-xl text-xs font-bold shadow-2xs"
+                            <button
+                              key={role}
+                              type="button"
+                              title={isAssigned ? `Click to REMOVE ${role} role` : `Click to ADD ${role} role`}
+                              onClick={async () => {
+                                const newRoles = isAssigned
+                                  ? currentRoles.filter(r => r !== role)
+                                  : [...currentRoles, role];
+                                const updatedItem = { ...item, approverRoles: newRoles };
+                                const updated = approvalMatrix.map(m => m.formKey === item.formKey ? updatedItem : m);
+                                setApprovalMatrix(updated);
+                                await handleSaveMatrixRule(updatedItem);
+                              }}
+                              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all border flex items-center gap-1.5 ${isAssigned
+                                ? "bg-[#C9A84C] text-white border-[#B0913F] shadow-xs group"
+                                : "bg-slate-50 text-slate-500 border-slate-200 hover:bg-slate-100 hover:text-slate-800"
+                                }`}
                             >
-                              <span>👤 {targetEmp ? `${targetEmp.name} (${targetEmp.role || "User"})` : uId}</span>
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  const newUsers = (item.approverUsers || []).filter((id: string) => id !== uId);
-                                  const updated = approvalMatrix.map(m => m.formKey === item.formKey ? { ...m, approverUsers: newUsers } : m);
-                                  setApprovalMatrix(updated);
-                                }}
-                                className="text-amber-700 hover:text-amber-950 font-black ml-1 text-sm leading-none"
-                                title="Remove User"
-                              >
-                                &times;
-                              </button>
-                            </span>
+                              <span>{isAssigned ? "✓" : "+"}</span>
+                              <span>{role}</span>
+                              {isAssigned && (
+                                <span className="ml-1 text-[10px] bg-amber-800/40 text-amber-100 px-1 rounded hover:bg-rose-600 hover:text-white transition-colors">
+                                  ✕
+                                </span>
+                              )}
+                            </button>
                           );
                         })}
                       </div>
-                    )}
+                    </div>
 
-                    {/* Requester Specific Override Rules */}
-                    <RequesterOverrideSelector
-                      employees={employees}
-                      currentOverrides={item.userOverrides || []}
-                      onAddOverride={(reqId, appId) => {
-                        const current = item.userOverrides || [];
-                        const filtered = current.filter((o: any) => o.applicantId !== reqId);
-                        const updatedOverrides = [...filtered, { applicantId: reqId, approverUserIds: [appId] }];
-                        const updated = approvalMatrix.map(m => m.formKey === item.formKey ? { ...m, userOverrides: updatedOverrides } : m);
-                        setApprovalMatrix(updated);
-                      }}
-                      onRemoveOverride={(reqId) => {
-                        const current = item.userOverrides || [];
-                        const updatedOverrides = current.filter((o: any) => o.applicantId !== reqId);
-                        const updated = approvalMatrix.map(m => m.formKey === item.formKey ? { ...m, userOverrides: updatedOverrides } : m);
-                        setApprovalMatrix(updated);
-                      }}
-                    />
+                    {/* Step 2: Assign Specific Employee Approvers */}
+                    <div className="pt-3 border-t border-slate-100 space-y-2">
+                      <label className="text-[11px] font-black uppercase text-slate-700 tracking-wider block">
+                        Assign Specific Employee(s) (Optional Specific Users):
+                      </label>
+
+                      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+                        <UserSearchCombobox
+                          employees={employees}
+                          selectedUserIds={item.approverUsers || []}
+                          forceUpward={idx >= Math.max(0, approvalMatrix.length - 3)}
+                          onSelectUser={async (selectedUserId) => {
+                            const currentUsers: string[] = item.approverUsers || [];
+                            if (!currentUsers.includes(selectedUserId)) {
+                              const newUsers = [...currentUsers, selectedUserId];
+                              const updatedItem = { ...item, approverUsers: newUsers };
+                              const updated = approvalMatrix.map(m => m.formKey === item.formKey ? updatedItem : m);
+                              setApprovalMatrix(updated);
+                              await handleSaveMatrixRule(updatedItem);
+                            }
+                          }}
+                        />
+
+                        <span className="text-[11px] text-slate-400 font-bold">
+                          {(item.approverUsers || []).length} user(s) assigned
+                        </span>
+                      </div>
+
+                      {/* Removable Selected User Badges */}
+                      {(item.approverUsers && item.approverUsers.length > 0) && (
+                        <div className="flex flex-wrap gap-2 pt-1">
+                          {item.approverUsers.map((uId: string) => {
+                            const targetEmp = employees.find((e: any) => e.id === uId);
+                            return (
+                              <span
+                                key={uId}
+                                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-50 text-amber-900 border border-amber-300 rounded-xl text-xs font-bold shadow-2xs"
+                              >
+                                <span>👤 {targetEmp ? `${targetEmp.name} (${targetEmp.role || "User"})` : uId}</span>
+                                <button
+                                  type="button"
+                                  onClick={async () => {
+                                    const newUsers = (item.approverUsers || []).filter((id: string) => id !== uId);
+                                    const updatedItem = { ...item, approverUsers: newUsers };
+                                    const updated = approvalMatrix.map(m => m.formKey === item.formKey ? updatedItem : m);
+                                    setApprovalMatrix(updated);
+                                    await handleSaveMatrixRule(updatedItem);
+                                  }}
+                                  className="text-rose-600 hover:text-rose-900 font-black ml-1 text-sm leading-none p-0.5 hover:bg-rose-100 rounded"
+                                  title="Remove User"
+                                >
+                                  ✕
+                                </button>
+                              </span>
+                            );
+                          })}
+                        </div>
+                      )}
+
+                      {/* Step 3: Requester Specific Override Rules */}
+                      <RequesterOverrideSelector
+                        employees={employees}
+                        forceUpward={idx >= Math.max(0, approvalMatrix.length - 2)}
+                        currentOverrides={item.userOverrides || []}
+                        onAddOverride={async (reqIds, appIds) => {
+                          const current = item.userOverrides || [];
+                          const newRule = { applicantIds: reqIds, applicantId: reqIds[0], approverUserIds: appIds };
+                          const updatedOverrides = [...current, newRule];
+                          const updatedItem = { ...item, userOverrides: updatedOverrides };
+                          const updated = approvalMatrix.map(m => m.formKey === item.formKey ? updatedItem : m);
+                          setApprovalMatrix(updated);
+                          await handleSaveMatrixRule(updatedItem);
+                        }}
+                        onRemoveOverride={async (ruleIndex) => {
+                          const current = item.userOverrides || [];
+                          const updatedOverrides = current.filter((_: any, idx: number) => idx !== ruleIndex);
+                          const updatedItem = { ...item, userOverrides: updatedOverrides };
+                          const updated = approvalMatrix.map(m => m.formKey === item.formKey ? updatedItem : m);
+                          setApprovalMatrix(updated);
+                          await handleSaveMatrixRule(updatedItem);
+                        }}
+                      />
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
 
               {approvalMatrix.length === 0 && !loadingMatrix && (
                 <div className="p-12 text-center text-slate-400 text-xs font-bold uppercase tracking-wider">

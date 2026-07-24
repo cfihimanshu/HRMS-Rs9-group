@@ -1,3 +1,4 @@
+import { Op } from "sequelize";
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
@@ -23,11 +24,17 @@ export async function GET(request: Request) {
     await sequelize.authenticate();
     await Expense.sync({ alter: true });
 
-    const { isUserAuthorizedApprover } = await import("@/lib/approvalRouting");
+    const { getAuthorizedApplicantIdsForApprover } = await import("@/lib/approvalRouting");
     let whereClause: any = {};
-    const isApproverRole = await isUserAuthorizedApprover("expense_claims", userId, userRole);
-    if (!isApproverRole) {
-      whereClause.employee = userId;
+    const { isGeneralApprover, overrideApplicantIds } = await getAuthorizedApplicantIdsForApprover("expense_claims", userId, userRole);
+    if (isGeneralApprover) {
+      whereClause = {};
+    } else if (overrideApplicantIds.length > 0) {
+      whereClause = {
+        employee: { [Op.in]: [userId, ...overrideApplicantIds] }
+      };
+    } else {
+      whereClause = { employee: userId };
     }
 
     const claims = await Expense.findAll({
@@ -117,7 +124,7 @@ export async function POST(request: Request) {
     // Notify designated Approver users via In-App Notification and Email (Dynamic Routing Matrix)
     try {
       const { getApproversForWorkflow } = await import("@/lib/approvalRouting");
-      const routing = await getApproversForWorkflow("expense_claims");
+      const routing = await getApproversForWorkflow("expense_claims", userId);
 
       if (routing.notifyApp && routing.approverUserIds.length > 0) {
         await Notification.sync();
