@@ -1496,7 +1496,17 @@ export default function LegalRecoveryModule({ userRole, triggerToast, sessionUse
         )}
 
         {activeSubModule === "collections" && (
-          <PaymentCollectionsView payments={payments} cases={cases} loadingPayments={loadingPayments} />
+          <PaymentCollectionsView 
+            payments={payments} 
+            cases={cases} 
+            loadingPayments={loadingPayments} 
+            onRefresh={() => {
+              fetchPayments();
+              fetchGlobalHistory();
+              fetchCases();
+            }}
+            triggerToast={triggerToast}
+          />
         )}
 
         {activeSubModule === "work-logs" && (

@@ -193,8 +193,11 @@ export async function GET(req: Request) {
       }
     }
 
+    const { isUserAuthorizedApprover } = await import("@/lib/approvalRouting");
+    const isAuthorizedApprover = await isUserAuthorizedApprover("asset_request", userId, rawRole);
+
     let whereClause: any = {};
-    if (isOwnerOrDirector || isHR) {
+    if (isAuthorizedApprover) {
       whereClause = {};
     } else if (isAdministration) {
       // Administration can see approved/dispatched requests + their own requests
@@ -459,8 +462,10 @@ export async function POST(req: Request) {
 
       // Check if this is a purchase request
       if (String(requestId).startsWith("purchase-")) {
-        if (!isOwnerOrDirector) {
-          return NextResponse.json({ success: false, error: "Forbidden. Only Owners can approve/reject purchase requests." }, { status: 403 });
+        const { isUserAuthorizedApprover } = await import("@/lib/approvalRouting");
+        const canApprovePurchase = await isUserAuthorizedApprover("inventory_purchase", userId, userRole);
+        if (!canApprovePurchase) {
+          return NextResponse.json({ success: false, error: "Forbidden: You do not have approval rights for inventory purchase requests." }, { status: 403 });
         }
         const purchaseId = parseInt(String(requestId).replace("purchase-", ""), 10);
         const purchaseRequest = await AssetPurchaseRequest.findByPk(purchaseId);
@@ -525,8 +530,10 @@ export async function POST(req: Request) {
 
       // Enforce approval/dispatch workflows
       if (status === "Approved" || status === "Rejected") {
-        if (!isOwnerOrDirector && !isDeptManager) {
-          return NextResponse.json({ success: false, error: "Forbidden. Only Department Managers or Owners can Approve/Reject requests." }, { status: 403 });
+        const { isUserAuthorizedApprover } = await import("@/lib/approvalRouting");
+        const canApproveAsset = await isUserAuthorizedApprover("asset_request", userId, userRole, request.employee_id);
+        if (!canApproveAsset && !isDeptManager) {
+          return NextResponse.json({ success: false, error: "Forbidden: You are not authorized to approve/reject asset requests." }, { status: 403 });
         }
       } else if (status === "Dispatched" || status === "Dispatched (Inventory)" || status === "Dispatched (New Purchase)") {
         if (!isOwnerOrDirector && !isAdministration) {

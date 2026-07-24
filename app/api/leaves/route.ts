@@ -329,80 +329,55 @@ export async function POST(req: Request) {
       console.error("Error creating leave notifications:", notifErr);
     }
 
-    // ── Email Notification dispatch for new leave application
+    // ── Dynamic Approval Matrix Routing for Leaves
     try {
+      const { getApproversForWorkflow } = await import("@/lib/approvalRouting");
+      const routing = await getApproversForWorkflow("leave_requests");
       const applicantUser = await User.findByPk(applicantId);
+
       if (applicantUser) {
         const formattedStart = new Date(startDate).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
         const formattedEnd = new Date(endDate).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
 
-        const emailHtml = getLeaveAppliedEmailHtml({
-          applicantName: applicantUser.name || "Employee",
-          applicantRole: applicantRole || "Employee",
-          leaveType: type,
-          startDate: formattedStart,
-          endDate: formattedEnd,
-          days,
-          reason,
-          pendingStatus: initialStatus,
-        });
-
-        const targetEmails: string[] = [];
-
-        // Try to fetch applicant's reporting manager email from EmployeeProfile
-        if (profile?.reportingManager) {
-          const repManager = await User.findOne({
-            where: { name: profile.reportingManager, status: "active" },
-            attributes: ["email"]
-          });
-          if (repManager?.email) {
-            targetEmails.push(repManager.email);
+        // Send In-App Notifications to assigned approvers
+        if (routing.notifyApp && routing.approverUserIds.length > 0) {
+          const Notification = (await import("@/models/sequelize/Notification")).default;
+          await Notification.sync();
+          for (const targetId of routing.approverUserIds) {
+            if (targetId !== applicantId) {
+              await Notification.create({
+                id: Date.now().toString() + Math.random().toString(36).substring(2, 6),
+                recipient: targetId,
+                title: "🌴 New Leave Application",
+                message: `${applicantUser.name || "An employee"} has applied for a ${days}-day ${type} leave.`,
+                read: false,
+              });
+            }
           }
         }
 
-        if (initialStatus === "Pending Manager Approval" && profile?.department) {
-          const deptManagers = await findDepartmentManagers(applicantId, profile.department);
-          deptManagers.forEach((m: any) => {
-            if (m.email && !targetEmails.includes(m.email)) {
-              targetEmails.push(m.email);
-            }
+        // Send Email Notification to assigned approvers
+        if (routing.notifyEmail && routing.approverEmails.length > 0) {
+          const emailHtml = getLeaveAppliedEmailHtml({
+            applicantName: applicantUser.name || "Employee",
+            applicantRole: applicantRole || "Employee",
+            leaveType: type,
+            startDate: formattedStart,
+            endDate: formattedEnd,
+            days,
+            reason,
+            pendingStatus: initialStatus,
           });
-          
-          if (targetEmails.length > 0) {
-            await sendEmail({
-              to: targetEmails,
-              subject: `🌴 Leave Approval Required: ${applicantUser.name} – ${type}`,
-              html: emailHtml,
-            });
-          }
-        } else if (initialStatus === "Pending HR Approval") {
-          const hrUsers = await findHRUsers(applicantId);
-          hrUsers.forEach((h: any) => {
-            if (h.email && !targetEmails.includes(h.email)) {
-              targetEmails.push(h.email);
-            }
+
+          await sendEmail({
+            to: routing.approverEmails,
+            subject: `🌴 Leave Approval Required: ${applicantUser.name} – ${type}`,
+            html: emailHtml,
           });
-          
-          if (targetEmails.length > 0) {
-            await sendEmail({
-              to: targetEmails,
-              subject: `🌴 Leave Approval Required (HR): ${applicantUser.name} – ${type}`,
-              html: emailHtml,
-            });
-          }
-        } else {
-          // Fallback if initialStatus is different but reporting manager or target exists
-          if (targetEmails.length > 0) {
-            await sendEmail({
-              to: targetEmails,
-              subject: `🌴 Leave Request Submitted: ${applicantUser.name} – ${type}`,
-              html: emailHtml,
-            });
-          }
         }
       }
     } catch (emailErr) {
-      console.error("Leave apply email dispatch error:", emailErr);
+      console.error("Leave apply dynamic email dispatch error:", emailErr);
     }
 
     return NextResponse.json({ success: true, data: leave });
@@ -457,10 +432,39 @@ export async function GET(req: Request) {
       directReportUserIds = reports.map((p: any) => p.user).filter(Boolean);
     }
 
+    // ── Dynamic Approval Routing Matrix check for Leave GET permissions
+    const { isUserAuthorizedApprover } = await import("@/lib/approvalRouting");
+    const isConfiguredApprover = await isUserAuthorizedApprover("leave_requests", userId, userRole);
+
     let filter: any = {};
 
-    if (userRole === "Employee") {
-      // If employee role user has direct reports, let them see their reports' leaves too
+    if (isConfiguredApprover) {
+      if (loggedInUserCompanies.length > 0) {
+        const allTargetUserIds = Array.from(new Set([...sameCompanyUserIds, ...directReportUserIds]));
+        filter = {
+          employee: { [Op.in]: allTargetUserIds }
+        };
+      } else {
+        filter = {}; // Full approver sees all company leaves
+      }
+    } else if (userRole === "Department Manager") {
+      const managerProfile = await EmployeeProfile.findOne({ where: { user: userId } });
+      let deptUserIds: string[] = [];
+      if (managerProfile && managerProfile.department) {
+        const profilesInDept = await EmployeeProfile.findAll({
+          where: { department: managerProfile.department },
+          attributes: ["user"]
+        });
+        deptUserIds = profilesInDept.map((p: any) => p.user).filter(Boolean);
+      }
+      const allTargetUserIds = Array.from(new Set([...deptUserIds, ...directReportUserIds]));
+      filter = {
+        [Op.or]: [
+          { employee: userId },
+          { employee: { [Op.in]: allTargetUserIds } }
+        ]
+      };
+    } else {
       if (directReportUserIds.length > 0) {
         filter = {
           [Op.or]: [
@@ -470,36 +474,6 @@ export async function GET(req: Request) {
         };
       } else {
         filter = { employee: userId };
-      }
-    } else if (userRole === "Department Manager") {
-      // Get manager's department
-      const managerProfile = await EmployeeProfile.findOne({ where: { user: userId } });
-      let deptUserIds: string[] = [];
-      if (managerProfile && managerProfile.department) {
-        // Find users in the same department
-        const profilesInDept = await EmployeeProfile.findAll({
-          where: { department: managerProfile.department },
-          attributes: ["user"]
-        });
-        deptUserIds = profilesInDept.map((p: any) => p.user).filter(Boolean);
-      }
-      
-      const allTargetUserIds = Array.from(new Set([...deptUserIds, ...directReportUserIds]));
-      filter = {
-        [Op.or]: [
-          { employee: userId },
-          { employee: { [Op.in]: allTargetUserIds } }
-        ]
-      };
-    } else {
-      // HR/Owner/Director sees leaves from the same company (or direct reports if any)
-      const allTargetUserIds = Array.from(new Set([...sameCompanyUserIds, ...directReportUserIds]));
-      if (loggedInUserCompanies.length > 0) {
-        filter = {
-          employee: { [Op.in]: allTargetUserIds }
-        };
-      } else {
-        filter = {}; // Global admin sees everything
       }
     }
 
@@ -598,10 +572,12 @@ export async function PUT(req: Request) {
     // Check if logged-in user is explicitly the direct reporting manager of applicant
     const isDirectReportManager = applicantProfile?.reportingManager && loggedInUser?.name && applicantProfile.reportingManager === loggedInUser.name;
 
-    // Check privileges
-    const isPrivileged = ["Owner", "Director", "HR Head", "HR Executive", "Department Manager"].includes(loggedInUserRole) || isDirectReportManager;
+    // Dynamic Check against Approval Matrix for leave_requests
+    const { isUserAuthorizedApprover } = await import("@/lib/approvalRouting");
+    const isAuthorizedMatrixUser = await isUserAuthorizedApprover("leave_requests", loggedInUserId, loggedInUserRole, applicantId);
+    const isPrivileged = isAuthorizedMatrixUser || isDirectReportManager;
     if (!isPrivileged) {
-      return NextResponse.json({ success: false, error: "Access Denied" }, { status: 403 });
+      return NextResponse.json({ success: false, error: "Access Denied: You do not have approval rights for leave requests." }, { status: 403 });
     }
 
     if (currentStatus === "Pending Manager Approval" || currentStatus === "Pending") {
@@ -623,8 +599,8 @@ export async function PUT(req: Request) {
         if (!applicantProfile || !managerProfile || applicantProfile.department !== managerProfile.department) {
           return NextResponse.json({ success: false, error: "Access Denied: You are not the manager of this department." }, { status: 403 });
         }
-      } else if (!isCompanyManager) {
-        return NextResponse.json({ success: false, error: "Access Denied: Only managers can approve at this stage." }, { status: 403 });
+      } else if (!isCompanyManager && !isAuthorizedMatrixUser) {
+        return NextResponse.json({ success: false, error: "Access Denied: Only authorized managers can approve at this stage." }, { status: 403 });
       }
 
       // If approved, proceed to Pending HR Approval. If rejected, set to Rejected.
@@ -634,16 +610,15 @@ export async function PUT(req: Request) {
       (leave as any).managerStatus = status; // Approved / Rejected
       if (remarks) (leave as any).managerRemarks = remarks;
     } else if (currentStatus === "Pending HR Approval") {
-      // Who can approve HR stage?
-      // HR Head, HR Executive, or Owner/Director of same company
-      const isHR = ["HR Head", "HR Executive", "Owner", "Director"].includes(loggedInUserRole);
+      // Who can approve HR stage? Dynamic check against Approval Matrix
+      const isHR = isAuthorizedMatrixUser;
 
       if (loggedInUserCompanies.length > 0 && !isSameCompany) {
         return NextResponse.json({ success: false, error: "Access Denied: Applicant belongs to a different company." }, { status: 403 });
       }
 
       if (!isHR) {
-        return NextResponse.json({ success: false, error: "Access Denied: Only HR or Admin can approve at this stage." }, { status: 403 });
+        return NextResponse.json({ success: false, error: "Access Denied: You are not an authorized approver for HR stage." }, { status: 403 });
       }
 
       finalStatus = status === "Approved" ? "Approved" : "Rejected";

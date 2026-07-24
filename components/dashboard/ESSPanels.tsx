@@ -1,3 +1,4 @@
+import * as XLSX from "xlsx";
 import React, { useState, useEffect, useMemo } from "react";
 import {
   CalendarCheck,
@@ -10,7 +11,19 @@ import {
   AlertCircle,
   Trash2,
   ListTodo,
-  ExternalLink
+  ExternalLink,
+  FileSpreadsheet,
+  Search,
+  Check,
+  XCircle,
+  CheckCircle2,
+  RefreshCw,
+  Calendar,
+  Paperclip,
+  X,
+  Upload,
+  Eye,
+  Filter
 } from "lucide-react";
 import StatCard from "./StatCard";
 
@@ -1207,28 +1220,824 @@ export function ESSPayroll({ user, triggerToast }: ESSProps) {
 }
 
 export function ESSExpenses({ user, triggerToast }: ESSProps) {
+  const [claims, setClaims] = useState<any[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [showClaimModal, setShowClaimModal] = useState<boolean>(false);
+  const [selectedReceiptUrl, setSelectedReceiptUrl] = useState<string | null>(null);
+
+  // Filters State
+  const [searchQuery, setSearchQuery] = useState<string>("");
+  const [categoryFilter, setCategoryFilter] = useState<string>("");
+  const [statusFilter, setStatusFilter] = useState<string>("");
+  const [startDateFilter, setStartDateFilter] = useState<string>("");
+  const [endDateFilter, setEndDateFilter] = useState<string>("");
+
+  // Form State
+  const [category, setCategory] = useState<string>("Travel / Conveyance");
+  const [customCategory, setCustomCategory] = useState<string>("");
+  const [dateIncurred, setDateIncurred] = useState<string>(new Date().toISOString().split("T")[0]);
+  const [amount, setAmount] = useState<string>("");
+  const [merchant, setMerchant] = useState<string>("");
+  const [paymentMode, setPaymentMode] = useState<string>("Cash");
+  const [description, setDescription] = useState<string>("");
+  const [advanceAmount, setAdvanceAmount] = useState<string>("0");
+  const [receiptUrl, setReceiptUrl] = useState<string>("");
+  const [uploadingReceipt, setUploadingReceipt] = useState<boolean>(false);
+  const [submitting, setSubmitting] = useState<boolean>(false);
+
+  const isOwnerOrAdmin = user?.role === "Owner" || user?.role === "Admin" || user?.role === "HR";
+
+  const fetchClaims = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch("/api/ess/expenses");
+      const data = await res.json();
+      if (data.success) {
+        setClaims(data.data || []);
+      }
+    } catch (err) {
+      console.error("Failed to fetch expenses:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchClaims();
+  }, []);
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    const file = files[0];
+    const formData = new FormData();
+    formData.append("file", file);
+
+    setUploadingReceipt(true);
+    try {
+      const res = await fetch("/api/documents/upload", {
+        method: "POST",
+        body: formData,
+      });
+      const data = await res.json();
+      if (data.success && data.url) {
+        setReceiptUrl(data.url);
+        triggerToast("✓ Receipt uploaded successfully!");
+      } else {
+        alert("Receipt upload failed: " + (data.error || "Unknown error"));
+      }
+    } catch (err: any) {
+      console.error("Upload error:", err);
+      alert("File upload error: " + err.message);
+    } finally {
+      setUploadingReceipt(false);
+    }
+  };
+
+  const handleSubmitClaim = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const finalAmount = Number(amount);
+    if (!finalAmount || finalAmount <= 0) {
+      alert("Please enter a valid Claim Amount.");
+      return;
+    }
+    if (!description.trim()) {
+      alert("Please enter Business Purpose / Description.");
+      return;
+    }
+
+    const finalCategory = category === "Other" ? (customCategory.trim() || "Other Expense") : category;
+    const parsedAdvance = Number(advanceAmount) || 0;
+    const computedNet = Math.max(0, finalAmount - parsedAdvance);
+
+    setSubmitting(true);
+    try {
+      const res = await fetch("/api/ess/expenses", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          amount: finalAmount,
+          category: finalCategory,
+          customCategory,
+          dateIncurred,
+          vendorName: merchant.trim(),
+          paymentMode,
+          description: description.trim(),
+          advanceAmount: parsedAdvance,
+          netPayable: computedNet,
+          receiptUrl,
+        }),
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        triggerToast("✓ Expense Claim submitted & request sent to Owner!");
+        setShowClaimModal(false);
+        // Reset Form
+        setCategory("Travel / Conveyance");
+        setCustomCategory("");
+        setAmount("");
+        setMerchant("");
+        setPaymentMode("Cash");
+        setDescription("");
+        setAdvanceAmount("0");
+        setReceiptUrl("");
+        fetchClaims();
+      } else {
+        alert("Failed to submit claim: " + (data.error || "Unknown error"));
+      }
+    } catch (err: any) {
+      console.error("Error submitting claim:", err);
+      alert("Error submitting claim: " + err.message);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleUpdateStatus = async (claimId: string, newStatus: string) => {
+    try {
+      const res = await fetch("/api/ess/expenses", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: claimId,
+          status: newStatus,
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        triggerToast(`✓ Claim status updated to ${newStatus}!`);
+        fetchClaims();
+      } else {
+        alert("Failed to update status: " + (data.error || "Unknown error"));
+      }
+    } catch (err: any) {
+      alert("Error updating status: " + err.message);
+    }
+  };
+
+  // Filter Claims
+  const filteredClaims = claims.filter((claim) => {
+    if (categoryFilter && claim.category !== categoryFilter) return false;
+    if (statusFilter && claim.status !== statusFilter) return false;
+
+    const rawDate = claim.dateIncurred || claim.createdAt;
+    if (rawDate) {
+      const claimDateStr = new Date(rawDate).toISOString().split("T")[0];
+      if (startDateFilter && claimDateStr < startDateFilter) return false;
+      if (endDateFilter && claimDateStr > endDateFilter) return false;
+    }
+
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      return (
+        claim.id?.toLowerCase().includes(q) ||
+        claim.category?.toLowerCase().includes(q) ||
+        claim.vendorName?.toLowerCase().includes(q) ||
+        claim.employeeName?.toLowerCase().includes(q) ||
+        claim.description?.toLowerCase().includes(q) ||
+        claim.paymentMode?.toLowerCase().includes(q)
+      );
+    }
+    return true;
+  });
+
+  const handleExportExcel = () => {
+    if (filteredClaims.length === 0) {
+      alert("No expense claims available to export.");
+      return;
+    }
+
+    const exportData = filteredClaims.map((c, idx) => ({
+      "S.No": idx + 1,
+      "Claim ID": c.id || "",
+      "Employee": c.employeeName || "Employee",
+      "Date Incurred": new Date(c.dateIncurred || c.createdAt).toLocaleDateString("en-IN"),
+      "Category": c.category || "",
+      "Merchant / Vendor": c.vendorName || "N/A",
+      "Payment Mode": c.paymentMode || "Cash",
+      "Claim Amount (₹)": c.amount || 0,
+      "Advance Received (₹)": c.advanceAmount || 0,
+      "Net Payable (₹)": c.netPayable || c.amount || 0,
+      "Business Purpose": c.description || "",
+      "Status": c.status || "Pending",
+      "Approved By": c.approvedBy || "N/A",
+      "Receipt Link": c.receiptUrl || "None",
+    }));
+
+    const worksheet = XLSX.utils.json_to_sheet(exportData);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Expense Claims");
+    const dateStr = new Date().toISOString().split("T")[0];
+    XLSX.writeFile(workbook, `Expense_Claims_${dateStr}.xlsx`);
+  };
+
+  const totalClaimed = claims.reduce((acc, curr) => acc + (Number(curr.amount) || 0), 0);
+  const pendingAmount = claims.filter(c => c.status === "Pending").reduce((acc, curr) => acc + (Number(curr.netPayable || curr.amount) || 0), 0);
+  const approvedAmount = claims.filter(c => c.status === "Approved" || c.status === "Reimbursed").reduce((acc, curr) => acc + (Number(curr.netPayable || curr.amount) || 0), 0);
+
   return (
     <div className="space-y-6 animate-fadeIn text-slate-800">
-      <div className="flex items-center justify-between">
+      {/* Header Bar */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-xl font-black text-slate-800">Expense Claims</h1>
-          <p className="text-xs text-slate-500 mt-1">Submit receipts for reimbursement.</p>
+          <h1 className="text-xl font-black text-slate-800">Expense Claims &amp; Reimbursements</h1>
+          <p className="text-xs text-slate-500 mt-1">Submit bills, track approval status, and manage expense claims.</p>
         </div>
         <button
-          className="bg-amber-600 hover:bg-amber-700 text-white px-4 py-2.5 rounded-lg text-xs font-bold shadow-md flex items-center gap-2"
-          onClick={() => triggerToast("New Claim form opening... (Demo)")}
+          className="bg-amber-600 hover:bg-amber-700 text-white px-4 py-2.5 rounded-xl text-xs font-bold shadow-md transition-all flex items-center gap-2"
+          onClick={() => setShowClaimModal(true)}
         >
           <Plus className="w-4 h-4" /> File New Claim
         </button>
       </div>
 
-      <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
-        <div className="flex flex-col items-center justify-center py-10 text-center">
-          <Coins className="w-12 h-12 text-amber-500/30 mb-3" />
-          <h3 className="text-sm font-bold text-slate-700">No Expense Claims</h3>
-          <p className="text-xs text-slate-500 max-w-sm mt-1">You haven't filed any reimbursement requests yet. Click the button above to upload a bill.</p>
+      {/* Summary Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm flex items-center justify-between">
+          <div>
+            <p className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Total Claims</p>
+            <h3 className="text-2xl font-serif font-light text-slate-800 mt-1">₹{totalClaimed.toLocaleString("en-IN")}</h3>
+            <p className="text-[11px] text-slate-500 mt-0.5">{claims.length} Entries Filed</p>
+          </div>
+          <div className="w-10 h-10 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center">
+            <Coins className="w-5 h-5" />
+          </div>
+        </div>
+
+        <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm flex items-center justify-between">
+          <div>
+            <p className="text-[10px] font-black uppercase text-amber-600 tracking-wider">Pending Approval</p>
+            <h3 className="text-2xl font-serif font-light text-amber-950 mt-1">₹{pendingAmount.toLocaleString("en-IN")}</h3>
+            <p className="text-[11px] text-amber-700 mt-0.5">{claims.filter(c => c.status === "Pending").length} Claims Awaiting Review</p>
+          </div>
+          <div className="w-10 h-10 rounded-2xl bg-amber-100 text-amber-700 flex items-center justify-center">
+            <Clock className="w-5 h-5" />
+          </div>
+        </div>
+
+        <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm flex items-center justify-between">
+          <div>
+            <p className="text-[10px] font-black uppercase text-emerald-600 tracking-wider">Approved / Reimbursed</p>
+            <h3 className="text-2xl font-serif font-light text-emerald-950 mt-1">₹{approvedAmount.toLocaleString("en-IN")}</h3>
+            <p className="text-[11px] text-emerald-700 mt-0.5">{claims.filter(c => c.status === "Approved" || c.status === "Reimbursed").length} Approved Claims</p>
+          </div>
+          <div className="w-10 h-10 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
+            <CheckCircle2 className="w-5 h-5" />
+          </div>
         </div>
       </div>
+
+      {/* Search & Export Excel Bar */}
+      <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm flex flex-col md:flex-row items-center justify-between gap-3">
+        {/* Search Bar */}
+        <div className="flex-1 flex items-center gap-2 bg-slate-50 border border-slate-200 px-3.5 py-2.5 rounded-xl w-full">
+          <Search className="w-4 h-4 text-slate-400" />
+          <input
+            type="text"
+            className="bg-transparent text-xs font-semibold text-slate-800 placeholder:text-slate-400 focus:outline-none w-full"
+            placeholder="Search claims by ID, Category, Merchant, Employee, Purpose..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+        </div>
+
+        {/* Export Excel & Refresh */}
+        <div className="flex items-center gap-2.5 w-full md:w-auto justify-end">
+          {(startDateFilter || endDateFilter || categoryFilter || statusFilter || searchQuery) && (
+            <button
+              onClick={() => {
+                setStartDateFilter("");
+                setEndDateFilter("");
+                setCategoryFilter("");
+                setStatusFilter("");
+                setSearchQuery("");
+              }}
+              className="text-[11px] font-bold text-rose-600 hover:text-rose-800 bg-rose-50 px-3 py-2 rounded-xl border border-rose-200 transition-all"
+            >
+              Reset Filters
+            </button>
+          )}
+
+          <button
+            onClick={handleExportExcel}
+            className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm"
+            title="Export Expense Claims to Excel"
+          >
+            <FileSpreadsheet className="w-4 h-4" /> Export Excel
+          </button>
+
+          <button
+            onClick={fetchClaims}
+            className="p-2.5 bg-slate-50 border border-slate-200 hover:bg-slate-100 rounded-xl text-slate-700 transition-all"
+            title="Refresh List"
+          >
+            <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
+          </button>
+        </div>
+      </div>
+
+      {/* Claims Table */}
+      <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
+        <div className="p-4 border-b border-slate-100 flex items-center justify-between">
+          <h3 className="text-xs font-black uppercase tracking-wider text-slate-700">
+            {isOwnerOrAdmin ? "All Expense Claims (Review & Approvals)" : "My Submitted Claims"}
+          </h3>
+          <span className="text-xs font-bold text-slate-500">{filteredClaims.length} records</span>
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse min-w-max">
+            <thead className="bg-slate-100/90 border-b border-slate-200">
+              <tr className="text-[11px] font-bold text-slate-700 tracking-wide">
+                {/* Date Incurred Excel Filter Header */}
+                <th className="py-3 px-3">
+                  <div className="flex items-center gap-1.5">
+                    <span>Date Incurred</span>
+                    <div className="relative inline-flex items-center">
+                      <Filter className={`w-3.5 h-3.5 cursor-pointer ${startDateFilter ? "text-amber-600 font-bold" : "text-slate-400 hover:text-slate-600"}`} />
+                      <input
+                        type="date"
+                        value={startDateFilter}
+                        onChange={(e) => setStartDateFilter(e.target.value)}
+                        className="absolute inset-0 opacity-0 w-4 h-4 cursor-pointer"
+                        title="Filter by Date"
+                      />
+                    </div>
+                  </div>
+                </th>
+
+                {/* Submitted By Header (Owner View) */}
+                {isOwnerOrAdmin && (
+                  <th className="py-3 px-3">
+                    <div className="flex items-center gap-1.5">
+                      <span>Submitted By</span>
+                      <Filter className="w-3.5 h-3.5 text-slate-400" />
+                    </div>
+                  </th>
+                )}
+
+                {/* Category & Merchant Excel Column Filter */}
+                <th className="py-3 px-3">
+                  <div className="flex items-center gap-1.5">
+                    <span>Category &amp; Merchant</span>
+                    <div className="relative inline-flex items-center">
+                      <Filter className={`w-3.5 h-3.5 cursor-pointer ${categoryFilter ? "text-amber-600 font-bold" : "text-slate-400 hover:text-slate-600"}`} />
+                      <select
+                        value={categoryFilter}
+                        onChange={(e) => setCategoryFilter(e.target.value)}
+                        className="absolute inset-0 opacity-0 w-4 h-4 cursor-pointer"
+                        title="Filter by Category"
+                      >
+                        <option value="">(All Categories)</option>
+                        <option value="Field Visit / Site Travel">Field Visit / Site Travel</option>
+                        <option value="Fuel & Mileage Allowance">Fuel & Mileage Allowance</option>
+                        <option value="Branch / Client Site Visit">Branch / Client Visit</option>
+                        <option value="Legal & Court Work Expense">Legal Court Fee</option>
+                        <option value="Printing, Xerox & Courier">Printing / Courier</option>
+                        <option value="Travel / Conveyance">Travel / Conveyance</option>
+                        <option value="Food & Meals">Food & Meals</option>
+                        <option value="Hotel / Accommodation">Hotel Stay</option>
+                        <option value="Client Meeting / Entertainment">Client Meeting</option>
+                        <option value="Mobile / Internet Bill">Mobile / Internet</option>
+                        <option value="Office Supplies & Stationary">Office Supplies</option>
+                        <option value="Medical Expenses">Medical Expenses</option>
+                      </select>
+                    </div>
+                  </div>
+                </th>
+
+                <th className="py-3 px-3">
+                  <div className="flex items-center gap-1.5">
+                    <span>Business Purpose</span>
+                  </div>
+                </th>
+
+                <th className="py-3 px-3">
+                  <div className="flex items-center gap-1.5">
+                    <span>Claim Amount</span>
+                    <Filter className="w-3.5 h-3.5 text-slate-400" />
+                  </div>
+                </th>
+
+                <th className="py-3 px-3">
+                  <div className="flex items-center gap-1.5">
+                    <span>Net Payable</span>
+                    <Filter className="w-3.5 h-3.5 text-slate-400" />
+                  </div>
+                </th>
+
+                <th className="py-3 px-3">Receipt</th>
+
+                {/* Status Excel Column Filter */}
+                <th className="py-3 px-3">
+                  <div className="flex items-center gap-1.5">
+                    <span>Status</span>
+                    <div className="relative inline-flex items-center">
+                      <Filter className={`w-3.5 h-3.5 cursor-pointer ${statusFilter ? "text-amber-600 font-bold" : "text-slate-400 hover:text-slate-600"}`} />
+                      <select
+                        value={statusFilter}
+                        onChange={(e) => setStatusFilter(e.target.value)}
+                        className="absolute inset-0 opacity-0 w-4 h-4 cursor-pointer"
+                        title="Filter by Status"
+                      >
+                        <option value="">(All Status)</option>
+                        <option value="Pending">⏳ Pending</option>
+                        <option value="Approved">✅ Approved</option>
+                        <option value="Rejected">❌ Rejected</option>
+                        <option value="Reimbursed">💸 Reimbursed</option>
+                      </select>
+                    </div>
+                  </div>
+                </th>
+
+                {(isOwnerOrAdmin || claims.some(c => c.employee && String(c.employee) !== String(user?.id))) && <th className="py-3 px-3 text-center">Actions</th>}
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100 text-xs font-semibold text-slate-700">
+              {filteredClaims.map((claim) => (
+                <tr key={claim.id} className="hover:bg-slate-50/70 transition-colors">
+                  <td className="py-3 px-4 text-slate-600">
+                    <div className="flex items-center gap-1.5">
+                      <Calendar className="w-3.5 h-3.5 text-slate-400" />
+                      <span>{new Date(claim.dateIncurred || claim.createdAt).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}</span>
+                    </div>
+                  </td>
+
+                  {isOwnerOrAdmin && (
+                    <td className="py-3 px-4 text-slate-800 font-bold">
+                      {claim.employeeName || "Employee"}
+                    </td>
+                  )}
+
+                  <td className="py-3 px-4">
+                    <div className="font-bold text-slate-800">{claim.category}</div>
+                    {claim.vendorName && (
+                      <div className="text-[10px] text-slate-400 font-medium">Merchant: {claim.vendorName}</div>
+                    )}
+                  </td>
+
+                  <td className="py-3 px-4 max-w-xs truncate text-slate-600 font-medium" title={claim.description}>
+                    {claim.description || "N/A"}
+                  </td>
+
+                  <td className="py-3 px-4 font-mono font-bold text-slate-800">
+                    ₹{(Number(claim.amount) || 0).toLocaleString("en-IN")}
+                  </td>
+
+                  <td className="py-3 px-4 font-mono font-black text-emerald-700">
+                    ₹{(Number(claim.netPayable || claim.amount) || 0).toLocaleString("en-IN")}
+                  </td>
+
+                  <td className="py-3 px-4">
+                    {claim.receiptUrl ? (
+                      <button
+                        onClick={() => setSelectedReceiptUrl(claim.receiptUrl)}
+                        className="text-[11px] font-black text-indigo-700 hover:text-indigo-900 bg-indigo-50 hover:bg-indigo-100 px-3 py-1.5 rounded-xl border border-indigo-300 transition-all inline-flex items-center gap-1.5 shadow-2xs"
+                        title="View Attached Receipt Document"
+                      >
+                        <Paperclip className="w-3.5 h-3.5 text-indigo-600" />
+                        <span>View Doc</span>
+                        <ExternalLink className="w-2.5 h-2.5 opacity-70" />
+                      </button>
+                    ) : (
+                      <span className="text-[10px] text-slate-400 italic">No File</span>
+                    )}
+                  </td>
+
+                  <td className="py-3 px-4">
+                    {(() => {
+                      const st = claim.status || "Pending";
+                      let badge = "bg-amber-50 text-amber-700 border-amber-200";
+                      let icon = "⏳";
+                      if (st === "Approved") {
+                        badge = "bg-emerald-50 text-emerald-700 border-emerald-200";
+                        icon = "✅";
+                      } else if (st === "Rejected") {
+                        badge = "bg-rose-50 text-rose-700 border-rose-200";
+                        icon = "❌";
+                      } else if (st === "Reimbursed") {
+                        badge = "bg-blue-50 text-blue-700 border-blue-200";
+                        icon = "💸";
+                      }
+                      return (
+                        <span className={`px-2.5 py-1 rounded-lg border text-[10px] font-black tracking-wide inline-flex items-center gap-1 ${badge}`}>
+                          <span>{icon}</span> {st}
+                        </span>
+                      );
+                    })()}
+                  </td>
+
+                  {(isOwnerOrAdmin || (claim.employee && String(claim.employee) !== String(user?.id))) && (
+                    <td className="py-3 px-4 text-center">
+                      <div className="flex items-center justify-center gap-1.5">
+                        {claim.receiptUrl && (
+                          <button
+                            onClick={() => setSelectedReceiptUrl(claim.receiptUrl)}
+                            className="px-2 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 text-[10px] font-bold rounded-lg transition-all flex items-center gap-1"
+                            title="View Attached Receipt Document"
+                          >
+                            <Paperclip className="w-3 h-3 text-indigo-600" /> Doc
+                          </button>
+                        )}
+                        {claim.status === "Pending" ? (
+                          <>
+                            <button
+                              onClick={() => handleUpdateStatus(claim.id, "Approved")}
+                              className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-black rounded-lg shadow-xs transition-all flex items-center gap-1"
+                              title="Approve Claim"
+                            >
+                              <Check className="w-3 h-3" /> Approve
+                            </button>
+                            <button
+                              onClick={() => handleUpdateStatus(claim.id, "Rejected")}
+                              className="px-2.5 py-1 bg-rose-600 hover:bg-rose-700 text-white text-[10px] font-black rounded-lg shadow-xs transition-all flex items-center gap-1"
+                              title="Reject Claim"
+                            >
+                              <XCircle className="w-3 h-3" /> Reject
+                            </button>
+                          </>
+                        ) : (
+                          <span className="text-[10px] font-bold text-slate-400">
+                            {claim.approvedBy ? `By ${claim.approvedBy}` : "Processed"}
+                          </span>
+                        )}
+                      </div>
+                    </td>
+                  )}
+                </tr>
+              ))}
+
+              {filteredClaims.length === 0 && !loading && (
+                <tr>
+                  <td colSpan={isOwnerOrAdmin ? 9 : 7} className="py-12 text-center text-slate-400 text-xs font-bold uppercase tracking-wider">
+                    No Expense Claims Found.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* FILE NEW CLAIM MODAL */}
+      {showClaimModal && (
+        <div className="fixed inset-0 bg-slate-950/75 backdrop-blur-md z-[9999] flex items-center justify-center p-4 overflow-y-auto animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl border border-slate-200 shadow-2xl w-full max-w-2xl overflow-hidden my-auto transform transition-all">
+            {/* Modal Header */}
+            <div className="p-5 bg-gradient-to-r from-amber-700 via-amber-800 to-amber-950 text-white flex items-center justify-between border-b border-amber-700">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-2xl bg-amber-500/20 border border-amber-400/30 text-amber-300 flex items-center justify-center">
+                  <Coins className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold tracking-wide">File Expense Reimbursement Claim</h3>
+                  <p className="text-[11px] text-amber-200 font-medium">Fill out the receipt details below for manager approval.</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowClaimModal(false)}
+                className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-slate-200 hover:text-white flex items-center justify-center transition-all"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Modal Form */}
+            <form onSubmit={handleSubmitClaim} className="p-6 space-y-4 max-h-[80vh] overflow-y-auto custom-scrollbar">
+
+              {/* Category & Date Grid */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                <div>
+                  <label className="text-xs font-black text-slate-700 uppercase tracking-wider block mb-1">
+                    Expense Category <span className="text-rose-500">*</span>
+                  </label>
+                  <select
+                    value={category}
+                    onChange={(e) => setCategory(e.target.value)}
+                    className="w-full text-xs p-3 border-2 border-slate-200 focus:border-amber-500 rounded-xl bg-slate-50 focus:bg-white font-bold text-slate-800 focus:outline-none transition-all"
+                  >
+                    <option value="Field Visit / Site Travel">🗺️ Field Visit / Site Travel (Local Conveyance, Toll, Parking)</option>
+                    <option value="Fuel & Mileage Allowance">🛵 Fuel &amp; Mileage Allowance (Personal Vehicle)</option>
+                    <option value="Branch / Client Site Visit">🏢 Branch / Client Site Visit Expense</option>
+                    <option value="Legal & Court Work Expense">⚖️ Legal &amp; Official Court Filing Fee</option>
+                    <option value="Printing, Xerox & Courier">📄 Printing, Xerox &amp; Courier Charges</option>
+                    <option value="Travel / Conveyance">🚗 Travel / Conveyance (Cab, Auto, Bus, Train)</option>
+                    <option value="Food & Meals">🍽️ Food &amp; Meals (Field Duty / Meeting)</option>
+                    <option value="Hotel / Accommodation">🏨 Hotel Stay &amp; Accommodation</option>
+                    <option value="Client Meeting / Entertainment">🤝 Client Meeting / Entertainment</option>
+                    <option value="Mobile / Internet Bill">📱 Mobile &amp; Internet Bill</option>
+                    <option value="Office Supplies & Stationary">📝 Office Supplies &amp; Stationary</option>
+                    <option value="Medical Expenses">🏥 Medical Expenses</option>
+                    <option value="Other">❓ Other Expense (Custom)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-xs font-black text-slate-700 uppercase tracking-wider block mb-1">
+                    Date Incurred <span className="text-rose-500">*</span>
+                  </label>
+                  <input
+                    type="date"
+                    required
+                    value={dateIncurred}
+                    onChange={(e) => setDateIncurred(e.target.value)}
+                    className="w-full text-xs p-3 border-2 border-slate-200 focus:border-amber-500 rounded-xl bg-slate-50 focus:bg-white font-bold text-slate-800 focus:outline-none transition-all"
+                  />
+                </div>
+              </div>
+
+              {category === "Other" && (
+                <div>
+                  <label className="text-xs font-black text-slate-700 uppercase tracking-wider block mb-1">
+                    Specify Custom Category Name <span className="text-rose-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={customCategory}
+                    onChange={(e) => setCustomCategory(e.target.value)}
+                    placeholder="e.g. Toll Tax, Parking Fee, Courier Charges..."
+                    className="w-full text-xs p-3 border-2 border-slate-200 focus:border-amber-500 rounded-xl bg-slate-50 focus:bg-white font-bold text-slate-800 focus:outline-none transition-all"
+                  />
+                </div>
+              )}
+
+              {/* Amount, Merchant & Payment Mode Grid - Fixed Heights for Labels */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5 items-start">
+                <div>
+                  <label className="text-xs font-black text-slate-700 uppercase tracking-wider h-5 flex items-center mb-1">
+                    Claim Amount (₹) <span className="text-rose-500 ml-1">*</span>
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    step="any"
+                    required
+                    value={amount}
+                    onWheel={(e) => e.currentTarget.blur()}
+                    onChange={(e) => setAmount(e.target.value)}
+                    placeholder="e.g. 1500"
+                    className="w-full text-xs p-3 border-2 border-slate-200 focus:border-amber-500 rounded-xl bg-slate-50 focus:bg-white font-bold text-slate-800 focus:outline-none transition-all [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-xs font-black text-slate-700 uppercase tracking-wider h-5 flex items-center mb-1">
+                    Merchant / Vendor
+                  </label>
+                  <input
+                    type="text"
+                    value={merchant}
+                    onChange={(e) => setMerchant(e.target.value)}
+                    placeholder="e.g. Uber, Swiggy, HP Fuel"
+                    className="w-full text-xs p-3 border-2 border-slate-200 focus:border-amber-500 rounded-xl bg-slate-50 focus:bg-white font-bold text-slate-800 focus:outline-none transition-all"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-xs font-black text-slate-700 uppercase tracking-wider h-5 flex items-center mb-1">
+                    Payment Mode
+                  </label>
+                  <select
+                    value={paymentMode}
+                    onChange={(e) => setPaymentMode(e.target.value)}
+                    className="w-full text-xs p-3 border-2 border-slate-200 focus:border-amber-500 rounded-xl bg-slate-50 focus:bg-white font-bold text-slate-800 focus:outline-none transition-all"
+                  >
+                    <option value="Cash">Cash</option>
+                    <option value="UPI / Online">UPI / Online (GPay/Paytm)</option>
+                    <option value="Credit Card">Credit Card</option>
+                    <option value="Debit Card">Debit Card</option>
+                    <option value="Corporate Card">Corporate Card</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Advance & Net Payable Grid */}
+              <div className="p-3.5 bg-amber-50/70 border border-amber-200 rounded-2xl grid grid-cols-1 sm:grid-cols-2 gap-3 items-center">
+                <div>
+                  <label className="text-[10px] font-black uppercase text-amber-800 block mb-1">
+                    Advance Amount Received (If Any ₹)
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="any"
+                    value={advanceAmount}
+                    onWheel={(e) => e.currentTarget.blur()}
+                    onChange={(e) => setAdvanceAmount(e.target.value)}
+                    className="w-full text-xs p-2.5 border border-amber-300 rounded-xl bg-white font-bold text-slate-800 focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                  />
+                </div>
+                <div className="bg-white p-3 rounded-xl border border-amber-200 text-right">
+                  <span className="text-[10px] font-black uppercase text-amber-800 block">Net Reimbursement Payable:</span>
+                  <span className="text-base font-black font-mono text-emerald-700">
+                    ₹{Math.max(0, (Number(amount) || 0) - (Number(advanceAmount) || 0)).toLocaleString("en-IN")}
+                  </span>
+                </div>
+              </div>
+
+              {/* Description / Business Purpose */}
+              <div>
+                <label className="text-xs font-black text-slate-700 uppercase tracking-wider block mb-1">
+                  Business Purpose / Details <span className="text-rose-500">*</span>
+                </label>
+                <textarea
+                  rows={2}
+                  required
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  placeholder="Explain why this expense was incurred (e.g. Travel to client site at Jaipur Branch)..."
+                  className="w-full text-xs p-3 border-2 border-slate-200 focus:border-amber-500 rounded-xl bg-slate-50 focus:bg-white font-medium text-slate-800 focus:outline-none transition-all resize-none"
+                />
+              </div>
+
+              {/* Upload Receipt */}
+              <div>
+                <label className="text-xs font-black text-slate-700 uppercase tracking-wider block mb-1 flex items-center justify-between">
+                  <span>Upload Bill / Receipt Photo</span>
+                  {uploadingReceipt && <span className="text-[10px] text-amber-600 font-bold animate-pulse">Uploading file...</span>}
+                </label>
+                <div className="border-2 border-dashed border-slate-200 hover:border-amber-400 rounded-2xl p-4 text-center bg-slate-50 hover:bg-amber-50/40 transition-all relative cursor-pointer">
+                  <input
+                    type="file"
+                    accept="image/*,.pdf"
+                    onChange={handleFileUpload}
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                  />
+                  <div className="flex flex-col items-center justify-center gap-1">
+                    <Paperclip className="w-5 h-5 text-slate-400" />
+                    <p className="text-xs font-bold text-slate-700">Click or Drag &amp; Drop receipt file</p>
+                    <p className="text-[10px] text-slate-400 font-medium">Supports JPG, PNG, PDF</p>
+                  </div>
+                </div>
+                {receiptUrl && (
+                  <div className="mt-2 text-[11px] font-bold text-emerald-700 bg-emerald-50 p-2 rounded-xl border border-emerald-200 flex items-center justify-between">
+                    <span>✓ Receipt attached successfully</span>
+                    <a href={receiptUrl} target="_blank" rel="noreferrer" className="text-amber-700 underline">View</a>
+                  </div>
+                )}
+              </div>
+
+              {/* Action Buttons */}
+              <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => setShowClaimModal(false)}
+                  className="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition-all"
+                >
+                  Cancel
+                </button>
+
+                <button
+                  type="submit"
+                  disabled={submitting}
+                  className="px-6 py-2.5 bg-amber-600 hover:bg-amber-700 text-white text-xs font-black rounded-xl shadow-md transition-all flex items-center gap-2"
+                >
+                  <Coins className="w-4 h-4" />
+                  {submitting ? "Submitting..." : "Submit Claim"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* RECEIPT VIEW MODAL */}
+      {selectedReceiptUrl && (
+        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-[9999] flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl overflow-hidden max-w-3xl w-full p-5 space-y-4 shadow-2xl">
+            <div className="flex items-center justify-between border-b pb-3">
+              <div className="flex items-center gap-2">
+                <Paperclip className="w-4 h-4 text-amber-600" />
+                <h3 className="text-sm font-bold text-slate-800">Uploaded Bill / Receipt Document</h3>
+              </div>
+              <div className="flex items-center gap-2">
+                <a
+                  href={selectedReceiptUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="px-3 py-1 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border border-indigo-200 rounded-lg text-xs font-bold transition-all flex items-center gap-1"
+                >
+                  <ExternalLink className="w-3 h-3" /> Open in New Tab
+                </a>
+                <button onClick={() => setSelectedReceiptUrl(null)} className="text-slate-400 hover:text-slate-700 p-1">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+            <div className="max-h-[75vh] overflow-auto flex items-center justify-center bg-slate-100 rounded-2xl p-3 border border-slate-200">
+              {selectedReceiptUrl.toLowerCase().split("?")[0].endsWith(".pdf") ? (
+                <iframe src={selectedReceiptUrl} className="w-full h-[65vh] rounded-xl border-none" title="PDF Receipt Document" />
+              ) : (
+                <img src={selectedReceiptUrl} alt="Receipt Document" className="max-w-full max-h-[70vh] object-contain rounded-xl shadow-sm" />
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

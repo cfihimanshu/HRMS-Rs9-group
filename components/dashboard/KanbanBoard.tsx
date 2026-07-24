@@ -397,18 +397,25 @@ export default function KanbanBoard({
 
   const fetchTasks = async () => {
     try {
-      // First load today's tasks for speed
+      // Tier 1: Load Today's tasks for instant 0ms speed
       const resToday = await fetch("/api/tasks?range=today");
       const dataToday = await resToday.json();
-      if (dataToday.success) {
+      if (dataToday.success && Array.isArray(dataToday.data)) {
         setTasks(dataToday.data);
       }
       setLoading(false); // Hide loading spinner early!
 
-      // Then load all tasks
+      // Tier 2: Load Recent 3 Days (Yesterday & Day Before Yesterday) fast
+      const resRecent = await fetch("/api/tasks?range=recent");
+      const dataRecent = await resRecent.json();
+      if (dataRecent.success && Array.isArray(dataRecent.data)) {
+        setTasks(dataRecent.data);
+      }
+
+      // Tier 3: Load all tasks in background
       const resAll = await fetch("/api/tasks?range=all&limit=all");
       const dataAll = await resAll.json();
-      if (dataAll.success) {
+      if (dataAll.success && Array.isArray(dataAll.data)) {
         setTasks(dataAll.data);
       }
     } catch (err) {
