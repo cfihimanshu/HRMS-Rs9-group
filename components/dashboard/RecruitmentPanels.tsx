@@ -643,6 +643,34 @@ export function JobPostings({
   toggleModal: (modalId: string, open: boolean) => void;
   triggerToast: (msg: string) => void;
 }) {
+  // Filter States
+  const [filterCompany, setFilterCompany] = useState("All");
+  const [filterTitle, setFilterTitle] = useState("");
+  const [filterDate, setFilterDate] = useState("");
+
+  // Extract Unique Companies for Dropdown
+  const companyOptions = React.useMemo(() => {
+    const list = jobs.map(j => j.company?.name || "Acolyte Group").filter(Boolean);
+    return ["All", ...Array.from(new Set(list))];
+  }, [jobs]);
+
+  // Filtered Jobs Memo
+  const filteredJobs = React.useMemo(() => {
+    return jobs.filter((jb) => {
+      const companyName = jb.company?.name || "Acolyte Group";
+      const titleMatches = !filterTitle.trim() || jb.title?.toLowerCase().includes(filterTitle.toLowerCase());
+      const companyMatches = filterCompany === "All" || companyName.toLowerCase() === filterCompany.toLowerCase();
+
+      let dateMatches = true;
+      if (filterDate && jb.createdAt) {
+        const postDate = new Date(jb.createdAt).toISOString().split("T")[0];
+        dateMatches = postDate === filterDate;
+      }
+
+      return titleMatches && companyMatches && dateMatches;
+    });
+  }, [jobs, filterTitle, filterCompany, filterDate]);
+
   // Module 4 Simulator State
   const [simPhone, setSimPhone] = useState("");
   const [simJobId, setSimJobId] = useState("");
@@ -709,7 +737,66 @@ export function JobPostings({
 
       {/* Main Table Card */}
       <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
-        <h2 className="text-xs font-black uppercase text-[#714B67] tracking-wider mb-4 font-mono">Active Vacancy Postings</h2>
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-4">
+          <h2 className="text-xs font-black uppercase text-[#714B67] tracking-wider font-mono">Active Vacancy Postings ({filteredJobs.length})</h2>
+        </div>
+
+        {/* Filter Controls Bar */}
+        <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-200 mb-5 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
+          <div className="flex flex-col sm:flex-row items-center gap-3 flex-1">
+            {/* Search Job Title */}
+            <div className="relative flex-1 w-full">
+              <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <input
+                type="text"
+                placeholder="🔍 Filter by Job Title..."
+                value={filterTitle}
+                onChange={(e) => setFilterTitle(e.target.value)}
+                className="w-full text-xs pl-9 pr-3 py-2 border border-slate-200 focus:border-[#714B67] rounded-xl bg-white font-bold text-slate-800 placeholder:text-slate-400 placeholder:font-normal focus:outline-none transition-all shadow-2xs"
+              />
+            </div>
+
+            {/* Filter Company */}
+            <div className="w-full sm:w-56 shrink-0">
+              <select
+                value={filterCompany}
+                onChange={(e) => setFilterCompany(e.target.value)}
+                className="w-full text-xs px-3 py-2 border border-slate-200 focus:border-[#714B67] rounded-xl bg-white font-bold text-slate-800 focus:outline-none transition-all shadow-2xs cursor-pointer"
+              >
+                <option value="All">🏢 All Companies</option>
+                {companyOptions.filter(c => c !== "All").map((c, i) => (
+                  <option key={i} value={c}>{c}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Filter Posted Date */}
+            <div className="w-full sm:w-48 shrink-0 flex items-center gap-1.5">
+              <label className="text-[10px] font-black uppercase text-slate-400 shrink-0">Posted:</label>
+              <input
+                type="date"
+                value={filterDate}
+                onChange={(e) => setFilterDate(e.target.value)}
+                className="w-full text-xs px-2.5 py-1.5 border border-slate-200 focus:border-[#714B67] rounded-xl bg-white font-bold text-slate-800 focus:outline-none transition-all shadow-2xs cursor-pointer"
+                title="Filter by Post Date"
+              />
+            </div>
+          </div>
+
+          {(filterTitle || filterCompany !== "All" || filterDate) && (
+            <button
+              onClick={() => {
+                setFilterTitle("");
+                setFilterCompany("All");
+                setFilterDate("");
+              }}
+              className="text-xs font-bold text-rose-600 hover:text-rose-700 bg-rose-50 hover:bg-rose-100 px-3 py-1.5 rounded-xl border border-rose-200 transition-all shrink-0 self-end md:self-auto"
+            >
+              Clear Filters ✕
+            </button>
+          )}
+        </div>
+
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs border-collapse">
             <thead>
@@ -724,18 +811,24 @@ export function JobPostings({
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 font-semibold text-slate-700">
-              {jobs.map((jb, idx) => {
+              {filteredJobs.map((jb, idx) => {
                 const companyName = jb.company?.name || "Acolyte Group";
                 const deptName = jb.department?.name || "Sales";
                 const isExpired = !!(jb.postingDuration && (new Date().getTime() - new Date(jb.createdAt).getTime()) > jb.postingDuration * 24 * 60 * 60 * 1000);
+                const postedDateStr = jb.createdAt ? new Date(jb.createdAt).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }) : "N/A";
 
                 return (
                   <tr key={idx} className={`hover:bg-slate-50/50 transition-all ${isExpired ? "bg-white opacity-40 select-none pointer-events-none" : ""}`}>
-                    {/* 1. Title, 2. Company, 4. Location */}
-                    <td className="py-4 pr-2 max-w-[280px]">
+                    {/* 1. Title, 2. Company, 4. Location & Posted Date */}
+                    <td className="py-4 pr-2 max-w-[300px]">
                       <div className="font-bold text-slate-800 text-sm">{jb.title}</div>
                       <div className="text-[10px] text-slate-500 font-bold mt-1 font-mono">
                         🏢 {companyName} | 📍 {jb.location || "Jaipur Office"}
+                      </div>
+                      <div className="mt-1.5">
+                        <span className="text-[10px] text-indigo-700 font-extrabold font-mono bg-indigo-50 border border-indigo-200/80 px-2 py-0.5 rounded-md inline-flex items-center gap-1 shadow-2xs">
+                          📅 Posted: {postedDateStr}
+                        </span>
                       </div>
                     </td>
 
@@ -807,9 +900,11 @@ export function JobPostings({
                   </tr>
                 );
               })}
-              {jobs.length === 0 && (
+              {filteredJobs.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="text-center py-8 text-slate-400 font-bold">No active custom job posts live yet. Click "Create Custom Job Link" to build one!</td>
+                  <td colSpan={7} className="text-center py-10 text-slate-400 font-bold">
+                    No active vacancy postings match your filter criteria.
+                  </td>
                 </tr>
               )}
             </tbody>

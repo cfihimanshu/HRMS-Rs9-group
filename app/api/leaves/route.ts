@@ -332,7 +332,7 @@ export async function POST(req: Request) {
     // ── Dynamic Approval Matrix Routing for Leaves
     try {
       const { getApproversForWorkflow } = await import("@/lib/approvalRouting");
-      const routing = await getApproversForWorkflow("leave_requests");
+      const routing = await getApproversForWorkflow("leave_requests", applicantId);
       const applicantUser = await User.findByPk(applicantId);
 
       if (applicantUser) {
@@ -433,12 +433,12 @@ export async function GET(req: Request) {
     }
 
     // ── Dynamic Approval Routing Matrix check for Leave GET permissions
-    const { isUserAuthorizedApprover } = await import("@/lib/approvalRouting");
-    const isConfiguredApprover = await isUserAuthorizedApprover("leave_requests", userId, userRole);
+    const { getAuthorizedApplicantIdsForApprover } = await import("@/lib/approvalRouting");
+    const { isGeneralApprover, overrideApplicantIds } = await getAuthorizedApplicantIdsForApprover("leave_requests", userId, userRole);
 
     let filter: any = {};
 
-    if (isConfiguredApprover) {
+    if (isGeneralApprover) {
       if (loggedInUserCompanies.length > 0) {
         const allTargetUserIds = Array.from(new Set([...sameCompanyUserIds, ...directReportUserIds]));
         filter = {
@@ -447,6 +447,11 @@ export async function GET(req: Request) {
       } else {
         filter = {}; // Full approver sees all company leaves
       }
+    } else if (overrideApplicantIds.length > 0) {
+      const allowedUsers = Array.from(new Set([userId, ...overrideApplicantIds, ...directReportUserIds]));
+      filter = {
+        employee: { [Op.in]: allowedUsers }
+      };
     } else if (userRole === "Department Manager") {
       const managerProfile = await EmployeeProfile.findOne({ where: { user: userId } });
       let deptUserIds: string[] = [];

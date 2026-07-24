@@ -43,6 +43,16 @@ export async function POST(request: Request) {
       data.callerName = (session.user as any).name;
     }
 
+    // Sanitize nextFollowUpDate to prevent invalid date / empty string DB errors
+    let cleanNextFollowUpDate: string | null = null;
+    if (data.nextFollowUpDate && typeof data.nextFollowUpDate === "string" && data.nextFollowUpDate.trim() !== "") {
+      const parsed = new Date(data.nextFollowUpDate);
+      if (!isNaN(parsed.getTime())) {
+        cleanNextFollowUpDate = data.nextFollowUpDate.trim();
+      }
+    }
+    data.nextFollowUpDate = cleanNextFollowUpDate;
+
     let createdTaskId: string | null = null;
 
     // Auto-create TaskLog entry if nextFollowUpDate is provided

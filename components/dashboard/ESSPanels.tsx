@@ -217,7 +217,7 @@ export function ESSDashboard({ user, triggerToast, setActiveTab, toggleModal, st
       {/* Quick Actions Panel */}
       <div className="bg-[#FCFBF9] border border-[#E8E4DF] rounded-xl p-6 shadow-[0_2px_12px_rgba(0,0,0,0.03)]">
         <h2 className="text-xs font-semibold tracking-widest text-[#1C1C1A] uppercase mb-4">Quick Actions</h2>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
           <button
             onClick={() => setActiveTab && setActiveTab("ess-leaves")}
             className="p-4 border border-[#E8E4DF] bg-white rounded-xl hover:bg-[#FAF9F5] hover:border-indigo-400 transition-all text-left cursor-pointer flex items-center gap-3.5 group shadow-2xs"
@@ -246,6 +246,24 @@ export function ESSDashboard({ user, triggerToast, setActiveTab, toggleModal, st
               <Coins className="w-5 h-5" />
             </div>
             <span className="font-semibold text-[#1C1C1A] text-xs group-hover:text-amber-600 transition-colors">Claim Expense</span>
+          </button>
+
+          <button
+            onClick={() => {
+              if (setActiveTab) {
+                setActiveTab("leave-request");
+                setTimeout(() => {
+                  const el = document.getElementById("absent-fines-section");
+                  if (el) el.scrollIntoView({ behavior: "smooth" });
+                }, 350);
+              }
+            }}
+            className="p-4 border border-rose-200/80 bg-rose-50/50 rounded-xl hover:bg-rose-100/70 hover:border-rose-300 transition-all text-left cursor-pointer flex items-center gap-3.5 group shadow-2xs"
+          >
+            <div className="p-2 rounded-lg bg-rose-600 text-white transition-all">
+              <AlertCircle className="w-5 h-5" />
+            </div>
+            <span className="font-bold text-rose-950 text-xs">My Absent Fines</span>
           </button>
 
           <button
