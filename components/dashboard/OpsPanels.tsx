@@ -1806,7 +1806,7 @@ export function PerformanceCompliance({
   const fetchReports = async () => {
     try {
       setLoading(true);
-      // First load today's reports for speed
+      // Tier 1: Load Today's reports for instant 0ms speed
       const resToday = await fetch("/api/reports/work-report?range=today");
       const dataToday = await resToday.json();
       if (dataToday.success) {
@@ -1814,7 +1814,14 @@ export function PerformanceCompliance({
       }
       setLoading(false); // Hide loading spinner early!
 
-      // Determine active query range for reports
+      // Tier 2: Load Recent 3 Days (Yesterday & Day Before Yesterday) fast
+      const resRecent = await fetch("/api/reports/work-report?range=recent");
+      const dataRecent = await resRecent.json();
+      if (dataRecent.success) {
+        setReports(dataRecent.data || { sod: [], eod: [], tasks: [], fieldVisits: [] });
+      }
+
+      // Tier 3: Determine active query range for full reports
       let queryRange = "all";
       if (dateFilterType === "current-month") {
         queryRange = "current-month";
@@ -1822,7 +1829,7 @@ export function PerformanceCompliance({
         queryRange = `custom&startDate=${startDateFilter || ""}&endDate=${endDateFilter || ""}`;
       }
 
-      // Then load matching reports
+      // Load all remaining matching reports in background
       const resAll = await fetch(`/api/reports/work-report?range=${queryRange}`);
       const dataAll = await resAll.json();
       if (dataAll.success) {
@@ -5519,10 +5526,10 @@ export function LeaveRequestTab({ sessionUser }: { sessionUser?: any }) {
                           const end = new Date(leave.endDate);
 
                           const isDirectReportManager = leave.employee && String(leave.employee.id) !== String(sessionUser?.id);
-                          // Show actions if the current user is authorized to approve this specific status level
+                          // Show actions if current user is an authorized approver for another employee's leave
                           const showActions =
-                            ((isManager || isDirectReportManager) && (leave.status === "Pending Manager Approval" || leave.status === "Pending")) ||
-                            ((isHR || isOwnerOrDirector) && (leave.status === "Pending HR Approval" || leave.status === "Pending Manager Approval" || leave.status === "Pending"));
+                            (isDirectReportManager || isManager || isOwnerOrDirector || isHR) &&
+                            (leave.status === "Pending" || leave.status === "Pending Manager Approval" || leave.status === "Pending HR Approval");
 
                           return (
                             <tr key={leave.id} className="hover:bg-slate-50/50">

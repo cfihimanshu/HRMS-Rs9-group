@@ -79,6 +79,15 @@ export async function GET(req: Request) {
       
       const todayStr = new Date().toISOString().split("T")[0];
       fieldVisitFilter.date = todayStr;
+    } else if (range === "recent" || range === "3days") {
+      const recentStart = new Date();
+      recentStart.setDate(recentStart.getDate() - 3);
+      recentStart.setHours(0, 0, 0, 0);
+
+      filter.date = { [Op.gte]: recentStart };
+      
+      const recentStr = recentStart.toISOString().split("T")[0];
+      fieldVisitFilter.date = { [Op.gte]: recentStr };
     } else if (range === "current-month") {
       const start = new Date();
       start.setDate(1);

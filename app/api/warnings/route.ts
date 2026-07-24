@@ -150,7 +150,8 @@ export async function GET(req: Request) {
     const profile = await EmployeeProfile.findOne({ where: { user: userId }, raw: true });
     const designation = profile?.designation || "";
 
-    const isGlobal = ["Owner", "Director", "HR Head", "HR Executive"].includes(role);
+    const { isUserAuthorizedApprover } = await import("@/lib/approvalRouting");
+    const isGlobal = await isUserAuthorizedApprover("disciplinary_warnings", userId, role);
     const isManager = isManagerRole(role) || isManagerRole(designation);
 
     let warnings: any[] = [];
@@ -525,9 +526,10 @@ export async function PUT(req: Request) {
       });
 
     } else if (action === "reject") {
-      const isGlobal = ["owner", "director", "hr head", "hr executive"].includes(userRoleLower);
+      const { isUserAuthorizedApprover } = await import("@/lib/approvalRouting");
+      const isGlobal = await isUserAuthorizedApprover("disciplinary_warnings", userId, dbUser.role || "Employee");
       if (!isGlobal) {
-        return NextResponse.json({ success: false, error: "Forbidden: Only Owner/HR can reject warnings" }, { status: 403 });
+        return NextResponse.json({ success: false, error: "Forbidden: You are not an authorized approver for warnings." }, { status: 403 });
       }
 
       warning.status = "Rejected";

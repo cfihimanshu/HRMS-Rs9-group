@@ -459,9 +459,9 @@ export function AssetRequestLogs({ sessionUser, triggerToast, setActiveTab }: As
                             {req.priority} Priority
                           </span>
                         </div>
-                        {isManager && (
+                        {(isManager || (req.employee_id && String(req.employee_id) !== String(sessionUser?.id))) && (
                           <div className="text-[10px] text-slate-500 font-bold flex items-center gap-1 mt-1">
-                            <User className="w-3 h-3 text-indigo-500" /> {req.employee?.name} ({req.employee?.department || "General"})
+                            <User className="w-3 h-3 text-indigo-500" /> {req.employee?.name || "Employee"} ({req.employee?.department || "General"})
                           </div>
                         )}
                         <div className="text-[9px] text-slate-400 mt-0.5 font-bold">
@@ -485,10 +485,9 @@ export function AssetRequestLogs({ sessionUser, triggerToast, setActiveTab }: As
                       </div>
                     )}
 
-                    {/* Admin Actions Panel */}
-                    {((isDeptManager && (req.status === "Pending Manager Approval" || req.status === "Pending")) || 
-                      (isOwnerOrDirector && 
-                       (req.status === "Pending Manager Approval" || req.status === "Pending Owner Approval" || req.status === "Pending"))) && (
+                    {/* Admin Actions Panel (Renders Approve/Reject buttons for any authorized approver) */}
+                    {((isManager || (req.employee_id && String(req.employee_id) !== String(sessionUser?.id))) && 
+                      (req.status === "Pending Manager Approval" || req.status === "Pending Owner Approval" || req.status === "Pending")) && (
                       <div className="mt-4 pt-3 border-t border-dashed border-slate-200 dark:border-gray-700 flex flex-col md:flex-row items-center gap-3">
                         <input
                           type="text"
@@ -516,7 +515,7 @@ export function AssetRequestLogs({ sessionUser, triggerToast, setActiveTab }: As
                       </div>
                     )}
 
-                    {(isOwnerOrDirector || isAdministration) && req.status === "Approved" && (
+                    {(isManager || (req.employee_id && String(req.employee_id) !== String(sessionUser?.id))) && req.status === "Approved" && (
                       <div className="mt-4 pt-3 border-t border-dashed border-slate-200 dark:border-gray-700 flex flex-col md:flex-row items-center gap-3">
                         <input
                           type="text"

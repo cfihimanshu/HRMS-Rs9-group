@@ -357,6 +357,11 @@ export async function GET(req: Request) {
       const nextDay = new Date(targetDate);
       nextDay.setDate(nextDay.getDate() + 1);
       query.date = { [Op.gte]: targetDate, [Op.lt]: nextDay };
+    } else if (range === "recent" || range === "3days") {
+      const recentDate = new Date();
+      recentDate.setDate(recentDate.getDate() - 3);
+      recentDate.setHours(0, 0, 0, 0);
+      query.date = { [Op.gte]: recentDate };
     }
 
     // Owner sees all tasks.

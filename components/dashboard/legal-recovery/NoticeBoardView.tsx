@@ -1775,10 +1775,15 @@ export default function NoticeBoardView({
         <div className="bg-white border border-[#E8E4DF] rounded-2xl overflow-hidden shadow-sm animate-fade-in">
           {/* List View Header */}
           <div className="px-5 py-4 border-b border-[#E8E4DF] flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-[#FCFBF9]">
-            <h3 className="font-serif text-base text-slate-800 flex items-center gap-2">
-              <FileText className="w-5 h-5 text-indigo-750" />
-              NOTICE TRACKING BOARD
-            </h3>
+            <div className="flex flex-wrap items-center gap-2.5">
+              <h3 className="font-serif text-base text-slate-800 flex items-center gap-2">
+                <FileText className="w-5 h-5 text-indigo-750" />
+                NOTICE TRACKING BOARD
+              </h3>
+              <span className="text-xs font-bold text-slate-600 bg-slate-100 border border-slate-200 px-3 py-1 rounded-xl">
+                Showing <strong className="text-indigo-700">{filteredNotices.length}</strong> of <strong className="text-slate-800">{notices.length}</strong> notices
+              </span>
+            </div>
 
             <div className="flex items-center gap-2 w-full md:w-auto">
               <div className="bg-white border border-[#E8E4DF] px-3 py-1.5 rounded-lg flex items-center gap-2 flex-1 md:flex-none md:w-64">

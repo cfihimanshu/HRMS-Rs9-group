@@ -5,7 +5,6 @@ class Expense extends Model<any, any> { [key: string]: any; }
 
 Expense.init(
   {
-    
     id: {
       type: DataTypes.STRING,
       primaryKey: true,
@@ -45,6 +44,23 @@ Expense.init(
     },
     remarks: {
       type: DataTypes.STRING,
+      allowNull: true,
+    },
+    vendorName: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    paymentMode: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    advanceAmount: {
+      type: DataTypes.FLOAT,
+      allowNull: true,
+      defaultValue: 0,
+    },
+    netPayable: {
+      type: DataTypes.FLOAT,
       allowNull: true,
     },
     createdAt: {

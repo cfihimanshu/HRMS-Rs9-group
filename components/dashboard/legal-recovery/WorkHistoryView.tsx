@@ -11,9 +11,10 @@ export default function WorkHistoryView() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("");
+  const [submittedByFilter, setSubmittedByFilter] = useState("");
   const [startDateFilter, setStartDateFilter] = useState("");
   const [endDateFilter, setEndDateFilter] = useState("");
-  
+
   // Detail Modal State
   const [selectedLogModal, setSelectedLogModal] = useState<any | null>(null);
   
@@ -42,8 +43,11 @@ export default function WorkHistoryView() {
     fetchHistory();
   }, []);
 
+  const uniqueSubmittedUsers = Array.from(new Set(historyLogs.map((l) => l.employeeName).filter(Boolean)));
+
   const filteredLogs = historyLogs.filter((log) => {
     if (categoryFilter && log.category !== categoryFilter) return false;
+    if (submittedByFilter && log.employeeName !== submittedByFilter) return false;
 
     const rawDate = log.workDate || log.createdAt;
     if (rawDate) {
@@ -183,87 +187,140 @@ export default function WorkHistoryView() {
         </div>
       </div>
 
-      {/* Filter & Search Bar */}
-      <div className="flex flex-col sm:flex-row gap-3 items-center justify-between">
-        <div className="bg-[#FCFBF9] border border-[#E8E4DF] p-3.5 rounded-xl flex-1 flex items-center gap-3 w-full">
-          <Search className="w-4 h-4 text-[#9C9890]" />
-          <input
-            type="text"
-            className="bg-transparent border-none focus:outline-none text-xs w-full font-semibold text-slate-700 placeholder:text-[#9C9890]"
-            placeholder="Search work history by Category, Bank, Branch, Employee, Remarks..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
+      {/* Filter & Search Panel */}
+      <div className="bg-[#FCFBF9] border border-[#E8E4DF] rounded-2xl p-4 shadow-sm space-y-3">
+        {/* Top Tier: Search Bar & Actions */}
+        <div className="flex flex-col md:flex-row items-center justify-between gap-3">
+          <div className="relative flex-1 w-full">
+            <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
+            <input
+              type="text"
+              className="w-full pl-9 pr-8 py-2.5 bg-white border border-[#E8E4DF] rounded-xl text-xs font-semibold text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-indigo-500 transition-all shadow-2xs"
+              placeholder="Search work history by Category, Bank, Branch, Employee, Remarks..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+            {searchQuery && (
+              <button 
+                onClick={() => setSearchQuery("")}
+                className="absolute right-3 top-3 text-slate-400 hover:text-slate-600 text-xs"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
+
+          <div className="flex items-center gap-2 w-full md:w-auto justify-end">
+            <button
+              onClick={handleExportExcel}
+              className="px-3.5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold uppercase tracking-wider transition-all flex items-center gap-1.5 shadow-sm shrink-0"
+              title="Export Work History to Excel"
+            >
+              <FileSpreadsheet className="w-4 h-4" /> Export Excel
+            </button>
+
+            <button
+              onClick={fetchHistory}
+              className="p-2.5 bg-white border border-[#E8E4DF] hover:bg-[#F5F0EA] rounded-xl text-slate-700 transition-all shadow-2xs shrink-0"
+              title="Refresh History"
+            >
+              <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin text-indigo-600" : ""}`} />
+            </button>
+          </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2.5 w-full sm:w-auto">
-          {/* From Date */}
-          <div className="flex items-center gap-1.5 bg-[#FCFBF9] border border-[#E8E4DF] px-3 py-2 rounded-xl">
-            <span className="text-[10px] font-black uppercase text-slate-400">From:</span>
+        {/* Bottom Tier: Filter Controls */}
+        <div className="flex flex-wrap items-center gap-2.5 pt-2 border-t border-[#E8E4DF]/60">
+          {/* Date Range Picker Group */}
+          <div className="flex items-center gap-2 bg-white border border-[#E8E4DF] p-1.5 rounded-xl shadow-2xs">
+            <div className="flex items-center gap-1 px-2">
+              <Calendar className="w-3.5 h-3.5 text-indigo-500" />
+              <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">Date Range</span>
+            </div>
+
             <input
               type="date"
               value={startDateFilter}
               onChange={(e) => setStartDateFilter(e.target.value)}
-              className="bg-transparent text-xs font-bold text-slate-700 focus:outline-none"
+              className="bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-xs font-bold text-slate-700 focus:outline-none focus:border-indigo-400"
+              title="From Date"
             />
-          </div>
-
-          {/* To Date */}
-          <div className="flex items-center gap-1.5 bg-[#FCFBF9] border border-[#E8E4DF] px-3 py-2 rounded-xl">
-            <span className="text-[10px] font-black uppercase text-slate-400">To:</span>
+            <span className="text-xs text-slate-400 font-bold">to</span>
             <input
               type="date"
               value={endDateFilter}
               onChange={(e) => setEndDateFilter(e.target.value)}
-              className="bg-transparent text-xs font-bold text-slate-700 focus:outline-none"
+              className="bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-xs font-bold text-slate-700 focus:outline-none focus:border-indigo-400"
+              title="To Date"
             />
           </div>
 
-          {(startDateFilter || endDateFilter) && (
+          {/* Work Category Dropdown */}
+          <div className="relative inline-flex items-center">
+            <select
+              value={categoryFilter}
+              onChange={(e) => setCategoryFilter(e.target.value)}
+              className="text-xs py-2 px-3 pl-8 bg-white border border-[#E8E4DF] rounded-xl font-bold text-slate-700 focus:outline-none focus:border-indigo-500 shadow-2xs appearance-none cursor-pointer pr-8"
+            >
+              <option value="">All Work Categories</option>
+              <option value="Bank">Bank Work</option>
+              <option value="Office work">Office Work</option>
+              <option value="Other">Other</option>
+            </select>
+            <Layers className="w-3.5 h-3.5 text-indigo-500 absolute left-2.5 pointer-events-none" />
+            <span className="absolute right-2.5 text-slate-400 text-[10px] pointer-events-none">▼</span>
+          </div>
+
+          {/* Submitted By Dropdown */}
+          <div className="relative inline-flex items-center">
+            <select
+              value={submittedByFilter}
+              onChange={(e) => setSubmittedByFilter(e.target.value)}
+              className="text-xs py-2 px-3 pl-8 bg-white border border-[#E8E4DF] rounded-xl font-bold text-slate-700 focus:outline-none focus:border-indigo-500 shadow-2xs appearance-none cursor-pointer pr-8 max-w-[200px] truncate"
+            >
+              <option value="">All Submitted By Users</option>
+              {uniqueSubmittedUsers.map((user: string) => (
+                <option key={user} value={user}>
+                  {user}
+                </option>
+              ))}
+            </select>
+            <User className="w-3.5 h-3.5 text-amber-500 absolute left-2.5 pointer-events-none" />
+            <span className="absolute right-2.5 text-slate-400 text-[10px] pointer-events-none">▼</span>
+          </div>
+
+          {/* Reset All Filters Button */}
+          {(startDateFilter || endDateFilter || categoryFilter || submittedByFilter || searchQuery) && (
             <button
               onClick={() => {
                 setStartDateFilter("");
                 setEndDateFilter("");
+                setCategoryFilter("");
+                setSubmittedByFilter("");
+                setSearchQuery("");
               }}
-              className="text-[11px] font-bold text-rose-600 hover:text-rose-800 bg-rose-50 px-2.5 py-2 rounded-xl border border-rose-200 transition-all"
-              title="Clear Date Filters"
+              className="text-[10px] font-black uppercase tracking-wider text-rose-600 hover:text-rose-800 bg-rose-50 hover:bg-rose-100 px-3 py-2 rounded-xl border border-rose-200 transition-all shadow-2xs ml-auto"
+              title="Reset All Filters"
             >
-              Clear Date
+              Reset Filters
             </button>
           )}
-
-          <select
-            value={categoryFilter}
-            onChange={(e) => setCategoryFilter(e.target.value)}
-            className="text-xs p-3.5 border border-[#E8E4DF] rounded-xl bg-[#FCFBF9] font-bold text-slate-700 focus:outline-none"
-          >
-            <option value="">All Work Categories</option>
-            <option value="Bank">Bank Work</option>
-            <option value="Office work">Office Work</option>
-            <option value="Other">Other</option>
-          </select>
-
-          {/* EXPORT EXCEL BUTTON */}
-          <button
-            onClick={handleExportExcel}
-            className="px-4 py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold uppercase tracking-wider transition-all flex items-center gap-2 shadow-sm hover:shadow"
-            title="Export Work History to Excel"
-          >
-            <FileSpreadsheet className="w-4 h-4" /> Export Excel
-          </button>
-
-          <button
-            onClick={fetchHistory}
-            className="p-3.5 bg-[#FCFBF9] border border-[#E8E4DF] hover:bg-[#F5F0EA] rounded-xl text-slate-700 transition-all"
-            title="Refresh History"
-          >
-            <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
-          </button>
         </div>
       </div>
 
       {/* Data Table */}
       <div className="bg-[#FCFBF9] border border-[#E8E4DF] rounded-2xl overflow-hidden shadow-sm overflow-x-auto">
+        {/* Table Summary Bar */}
+        <div className="px-5 py-3.5 border-b border-[#E8E4DF] bg-white flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Briefcase className="w-4 h-4 text-indigo-600" />
+            <span className="text-xs font-black uppercase tracking-wider text-slate-700">Work History Registry</span>
+          </div>
+          <span className="text-xs font-bold text-slate-600 bg-slate-100 border border-slate-200 px-3 py-1 rounded-xl">
+            Showing <strong className="text-indigo-700">{filteredLogs.length}</strong> of <strong className="text-slate-800">{historyLogs.length}</strong> entries
+          </span>
+        </div>
+
         <table className="w-full border-collapse text-left min-w-max">
           <thead className="bg-[#F5F0EA] border-b border-[#E8E4DF]">
             <tr className="text-[#5D5B57] text-[10px] uppercase font-bold tracking-wider">
