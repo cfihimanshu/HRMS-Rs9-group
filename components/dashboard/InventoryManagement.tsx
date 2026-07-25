@@ -23,9 +23,34 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
   const [selectedCondition, setSelectedCondition] = useState("all");
   const [selectedType, setSelectedType] = useState("all");
 
+  const formatDateDDMMYY = (dateStr?: string) => {
+    if (!dateStr) return "";
+    try {
+      const parts = dateStr.split("-");
+      if (parts.length === 3 && parts[0].length === 4) {
+        const year = parts[0].slice(-2);
+        const month = parts[1];
+        const day = parts[2];
+        return `${day}/${month}/${year}`;
+      }
+      const d = new Date(dateStr);
+      if (isNaN(d.getTime())) return dateStr;
+      const day = String(d.getDate()).padStart(2, "0");
+      const month = String(d.getMonth() + 1).padStart(2, "0");
+      const year = String(d.getFullYear()).slice(-2);
+      return `${day}/${month}/${year}`;
+    } catch (_) {
+      return dateStr;
+    }
+  };
+
+  // Viewing state (tap any asset to view full details)
+  const [viewingAsset, setViewingAsset] = useState<any>(null);
+
   // Editing state
   const [editingAssetId, setEditingAssetId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState({
+    oldAssetId: "",
     assetType: "Laptop",
     assetDetail: "",
     serialNumber: "",
@@ -47,6 +72,7 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
   const [showRegisterForm, setShowRegisterForm] = useState(false);
   const [registerForm, setRegisterForm] = useState({
     id: "",
+    oldAssetId: "",
     assetType: "Laptop",
     assetDetail: "",
     serialNumber: "",
@@ -146,7 +172,7 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
     // Check existing inventory
     inventory.forEach(item => {
       if (item.id) {
-        const match = item.id.trim().match(regex);
+        const match = String(item.id).trim().match(regex);
         if (match) {
           const num = parseInt(match[1], 10);
           if (num > maxNum) {
@@ -159,7 +185,7 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
     // Check existing purchase requests (to prevent duplicates)
     purchaseRequests.forEach(req => {
       if (req.asset_id) {
-        const match = req.asset_id.trim().match(regex);
+        const match = String(req.asset_id).trim().match(regex);
         if (match) {
           const num = parseInt(match[1], 10);
           if (num > maxNum) {
@@ -505,12 +531,18 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
         if (sim1No) {
           const wa1 = assetFields.phoneSim1Whatsapp || "No";
           const wa1Type = wa1 === "Yes" ? ` (${assetFields.phoneSim1WhatsappType || "Personal"})` : "";
-          mobileInfo += `SIM 1 Mobile No: ${sim1No} [WhatsApp: ${wa1}${wa1Type}]\n`;
+          const op1 = (assetFields.phoneSim1Operator === "Other" || assetFields.phoneSim1OperatorCustom)
+            ? (assetFields.phoneSim1OperatorCustom || "Other")
+            : (assetFields.phoneSim1Operator || "Jio");
+          mobileInfo += `SIM 1 Mobile No: ${sim1No} [Company: ${op1}] [WhatsApp: ${wa1}${wa1Type}]\n`;
         }
         if (sim2No) {
           const wa2 = assetFields.phoneSim2Whatsapp || "No";
           const wa2Type = wa2 === "Yes" ? ` (${assetFields.phoneSim2WhatsappType || "Personal"})` : "";
-          mobileInfo += `SIM 2 Mobile No: ${sim2No} [WhatsApp: ${wa2}${wa2Type}]\n`;
+          const op2 = (assetFields.phoneSim2Operator === "Other" || assetFields.phoneSim2OperatorCustom)
+            ? (assetFields.phoneSim2OperatorCustom || "Other")
+            : (assetFields.phoneSim2Operator || "Airtel");
+          mobileInfo += `SIM 2 Mobile No: ${sim2No} [Company: ${op2}] [WhatsApp: ${wa2}${wa2Type}]\n`;
         }
       } else {
         mobileInfo += `SIM Slots Used: None\n`;
@@ -618,6 +650,7 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
         }
         setRegisterForm({
           id: "",
+          oldAssetId: "",
           assetType: "Laptop",
           assetDetail: "",
           serialNumber: "",
@@ -749,6 +782,7 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
 
     setEditingAsset(asset);
     setEditForm({
+      oldAssetId: asset.oldAssetId || "",
       assetType: asset.assetType || "Laptop",
       assetDetail: asset.assetDetail || "",
       serialNumber: asset.serialNumber || "",
@@ -836,12 +870,18 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
         if (sim1No) {
           const wa1 = editAssetFields.phoneSim1Whatsapp || "No";
           const wa1Type = wa1 === "Yes" ? ` (${editAssetFields.phoneSim1WhatsappType || "Personal"})` : "";
-          mobileInfo += `SIM 1 Mobile No: ${sim1No} [WhatsApp: ${wa1}${wa1Type}]\n`;
+          const op1 = (editAssetFields.phoneSim1Operator === "Other" || editAssetFields.phoneSim1OperatorCustom)
+            ? (editAssetFields.phoneSim1OperatorCustom || "Other")
+            : (editAssetFields.phoneSim1Operator || "Jio");
+          mobileInfo += `SIM 1 Mobile No: ${sim1No} [Company: ${op1}] [WhatsApp: ${wa1}${wa1Type}]\n`;
         }
         if (sim2No) {
           const wa2 = editAssetFields.phoneSim2Whatsapp || "No";
           const wa2Type = wa2 === "Yes" ? ` (${editAssetFields.phoneSim2WhatsappType || "Personal"})` : "";
-          mobileInfo += `SIM 2 Mobile No: ${sim2No} [WhatsApp: ${wa2}${wa2Type}]\n`;
+          const op2 = (editAssetFields.phoneSim2Operator === "Other" || editAssetFields.phoneSim2OperatorCustom)
+            ? (editAssetFields.phoneSim2OperatorCustom || "Other")
+            : (editAssetFields.phoneSim2Operator || "Airtel");
+          mobileInfo += `SIM 2 Mobile No: ${sim2No} [Company: ${op2}] [WhatsApp: ${wa2}${wa2Type}]\n`;
         }
       } else {
         mobileInfo += `SIM Slots Used: None\n`;
@@ -963,13 +1003,15 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
 
   // Filter inventory
   const filteredInventory = inventory.filter((asset) => {
-    // 1. Search Query (Detail, Serial, Notes)
+    // 1. Search Query (ID, Old ID, Detail, Serial, Notes)
     const query = searchQuery.toLowerCase();
-    const detailMatch = asset.assetDetail?.toLowerCase().includes(query);
-    const typeMatch = asset.assetType?.toLowerCase().includes(query);
-    const snMatch = asset.serialNumber?.toLowerCase().includes(query);
-    const noteMatch = asset.notes?.toLowerCase().includes(query);
-    const matchesSearch = !searchQuery || detailMatch || typeMatch || snMatch || noteMatch;
+    const idMatch = String(asset.id || "").toLowerCase().includes(query);
+    const oldIdMatch = String(asset.oldAssetId || "").toLowerCase().includes(query);
+    const detailMatch = String(asset.assetDetail || "").toLowerCase().includes(query);
+    const typeMatch = String(asset.assetType || "").toLowerCase().includes(query);
+    const snMatch = String(asset.serialNumber || "").toLowerCase().includes(query);
+    const noteMatch = String(asset.notes || "").toLowerCase().includes(query);
+    const matchesSearch = !searchQuery || idMatch || oldIdMatch || detailMatch || typeMatch || snMatch || noteMatch;
 
     // 2. Company Filter
     const matchesCompany = selectedCompany === "all" || String(asset.companyId) === String(selectedCompany);
@@ -1114,7 +1156,7 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
             </button>
           </div>
           <form onSubmit={handleRegisterSubmit} className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
               <div>
                 <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Asset ID * (Auto Generated)</label>
                 <input
@@ -1124,6 +1166,16 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
                   placeholder="Generating ID..."
                   value={registerForm.id}
                   className="w-full bg-slate-50 border border-[#E8E4DF] rounded-lg px-3 py-2 text-xs text-slate-500 font-mono font-semibold focus:outline-none transition-all cursor-not-allowed"
+                />
+              </div>
+              <div>
+                <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Old Asset ID / Previous ID</label>
+                <input
+                  type="text"
+                  placeholder="e.g. OLD-LAP-01 / PREV-102"
+                  value={registerForm.oldAssetId}
+                  onChange={(e) => setRegisterForm(p => ({ ...p, oldAssetId: e.target.value }))}
+                  className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] placeholder-[#9C9890] font-mono font-semibold focus:outline-none transition-all"
                 />
               </div>
               <div>
@@ -1324,13 +1376,13 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
               </div>
             ) : typeClean === "mobile phone" ? (
               <div className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
                   <div>
                     <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Phone Brand & Model *</label>
                     <input
                       type="text"
                       required
-                      placeholder="e.g. Samsung Galaxy S23"
+                      placeholder="e.g. Tecno Spark6GO"
                       value={assetFields.phoneModel || ""}
                       onChange={(e) => setAssetFields(p => ({ ...p, phoneModel: e.target.value }))}
                       className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
@@ -1341,7 +1393,7 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
                     <input
                       type="text"
                       required
-                      placeholder="e.g. 358901234567890"
+                      placeholder="e.g. 358743619730982"
                       value={assetFields.phoneImei1 || ""}
                       onChange={(e) => setAssetFields(p => ({ ...p, phoneImei1: e.target.value }))}
                       className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-mono"
@@ -1351,7 +1403,7 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
                     <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">IMEI Number 2</label>
                     <input
                       type="text"
-                      placeholder="e.g. 358901234567891 (Optional)"
+                      placeholder="e.g. 358743619730990 (Optional)"
                       value={assetFields.phoneImei2 || ""}
                       onChange={(e) => setAssetFields(p => ({ ...p, phoneImei2: e.target.value }))}
                       className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-mono"
@@ -1361,10 +1413,20 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
                     <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">RAM & Storage</label>
                     <input
                       type="text"
-                      placeholder="e.g. 8GB/128GB"
+                      placeholder="e.g. 4GB/64GB"
                       value={assetFields.phoneSpecs || ""}
                       onChange={(e) => setAssetFields(p => ({ ...p, phoneSpecs: e.target.value }))}
                       className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Phone Lock Passcode / Pattern</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. 1234 / Pattern"
+                      value={assetFields.phonePassword || ""}
+                      onChange={(e) => setAssetFields(p => ({ ...p, phonePassword: e.target.value }))}
+                      className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-mono"
                     />
                   </div>
                 </div>
@@ -1385,16 +1447,45 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
                   {(assetFields.phoneSimSlots === "1 SIM" || assetFields.phoneSimSlots === "2 SIMs") && (
                     <div className="bg-[#FCFBF9] border border-[#E8E4DF] p-3 rounded-lg space-y-2">
                       <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold">SIM 1 Config</label>
-                      <div>
-                        <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">SIM 1 Mobile Number *</label>
-                        <input
-                          type="text"
-                          required
-                          placeholder="e.g. 9876543210"
-                          value={assetFields.phoneSim1No || ""}
-                          onChange={(e) => setAssetFields(p => ({ ...p, phoneSim1No: e.target.value }))}
-                          className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
-                        />
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">SIM 1 Mobile Number *</label>
+                          <input
+                            type="text"
+                            required
+                            placeholder="e.g. 9876543210"
+                            value={assetFields.phoneSim1No || ""}
+                            onChange={(e) => setAssetFields(p => ({ ...p, phoneSim1No: e.target.value }))}
+                            className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">SIM 1 Company / Operator</label>
+                          <select
+                            value={["Jio", "Airtel", "Vodafone Idea (Vi)", "BSNL"].includes(assetFields.phoneSim1Operator || "") ? assetFields.phoneSim1Operator : "Other"}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              setAssetFields(p => ({ ...p, phoneSim1Operator: val, phoneSim1OperatorCustom: val === "Other" ? (p.phoneSim1OperatorCustom || "") : "" }));
+                            }}
+                            className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                          >
+                            <option value="Jio">Jio</option>
+                            <option value="Airtel">Airtel</option>
+                            <option value="Vodafone Idea (Vi)">Vodafone Idea (Vi)</option>
+                            <option value="BSNL">BSNL</option>
+                            <option value="Other">Other (Custom Company)</option>
+                          </select>
+                          {(assetFields.phoneSim1Operator === "Other" || (!["Jio", "Airtel", "Vodafone Idea (Vi)", "BSNL"].includes(assetFields.phoneSim1Operator || "") && assetFields.phoneSim1Operator)) && (
+                            <input
+                              type="text"
+                              required
+                              placeholder="Enter SIM Company Name..."
+                              value={assetFields.phoneSim1OperatorCustom !== undefined ? assetFields.phoneSim1OperatorCustom : (["Jio", "Airtel", "Vodafone Idea (Vi)", "BSNL", "Other"].includes(assetFields.phoneSim1Operator || "") ? "" : assetFields.phoneSim1Operator || "")}
+                              onChange={(e) => setAssetFields(p => ({ ...p, phoneSim1OperatorCustom: e.target.value }))}
+                              className="mt-1.5 w-full bg-white border border-[#C9A84C] focus:border-[#C9A84C] rounded-lg px-3 py-1.5 text-xs text-[#1C1C1A] placeholder-[#9C9890] focus:outline-none font-semibold shadow-sm"
+                            />
+                          )}
+                        </div>
                       </div>
                       <div className="grid grid-cols-2 gap-2">
                         <div>
@@ -1427,16 +1518,45 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
                   {assetFields.phoneSimSlots === "2 SIMs" && (
                     <div className="bg-[#FCFBF9] border border-[#E8E4DF] p-3 rounded-lg space-y-2">
                       <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold">SIM 2 Config</label>
-                      <div>
-                        <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">SIM 2 Mobile Number *</label>
-                        <input
-                          type="text"
-                          required
-                          placeholder="e.g. 9876543211"
-                          value={assetFields.phoneSim2No || ""}
-                          onChange={(e) => setAssetFields(p => ({ ...p, phoneSim2No: e.target.value }))}
-                          className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
-                        />
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">SIM 2 Mobile Number *</label>
+                          <input
+                            type="text"
+                            required
+                            placeholder="e.g. 9876543211"
+                            value={assetFields.phoneSim2No || ""}
+                            onChange={(e) => setAssetFields(p => ({ ...p, phoneSim2No: e.target.value }))}
+                            className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">SIM 2 Company / Operator</label>
+                          <select
+                            value={["Jio", "Airtel", "Vodafone Idea (Vi)", "BSNL"].includes(assetFields.phoneSim2Operator || "") ? assetFields.phoneSim2Operator : "Other"}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              setAssetFields(p => ({ ...p, phoneSim2Operator: val, phoneSim2OperatorCustom: val === "Other" ? (p.phoneSim2OperatorCustom || "") : "" }));
+                            }}
+                            className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                          >
+                            <option value="Jio">Jio</option>
+                            <option value="Airtel">Airtel</option>
+                            <option value="Vodafone Idea (Vi)">Vodafone Idea (Vi)</option>
+                            <option value="BSNL">BSNL</option>
+                            <option value="Other">Other (Custom Company)</option>
+                          </select>
+                          {(assetFields.phoneSim2Operator === "Other" || (!["Jio", "Airtel", "Vodafone Idea (Vi)", "BSNL"].includes(assetFields.phoneSim2Operator || "") && assetFields.phoneSim2Operator)) && (
+                            <input
+                              type="text"
+                              required
+                              placeholder="Enter SIM Company Name..."
+                              value={assetFields.phoneSim2OperatorCustom !== undefined ? assetFields.phoneSim2OperatorCustom : (["Jio", "Airtel", "Vodafone Idea (Vi)", "BSNL", "Other"].includes(assetFields.phoneSim2Operator || "") ? "" : assetFields.phoneSim2Operator || "")}
+                              onChange={(e) => setAssetFields(p => ({ ...p, phoneSim2OperatorCustom: e.target.value }))}
+                              className="mt-1.5 w-full bg-white border border-[#C9A84C] focus:border-[#C9A84C] rounded-lg px-3 py-1.5 text-xs text-[#1C1C1A] placeholder-[#9C9890] focus:outline-none font-semibold shadow-sm"
+                            />
+                          )}
+                        </div>
                       </div>
                       <div className="grid grid-cols-2 gap-2">
                         <div>
@@ -1693,14 +1813,14 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
               </div>
             )}
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Purchase Date</label>
                 <input
                   type="date"
                   value={registerForm.purchaseDate}
                   onChange={(e) => setRegisterForm(p => ({ ...p, purchaseDate: e.target.value }))}
-                  className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all"
+                  className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
                 />
               </div>
               <div>
@@ -1713,9 +1833,6 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
                   className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
                 />
               </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Asset Photo</label>
                 <div className="flex gap-4 items-center">
@@ -1876,13 +1993,18 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
                   const companyName = companies.find(c => String(c.id) === String(asset.companyId))?.name || "General Stock";
 
                   return (
-                    <tr key={asset.id} className="hover:bg-white transition-colors">
+                    <tr key={asset.id} onClick={() => setViewingAsset(asset)} className="hover:bg-indigo-50/30 transition-colors cursor-pointer group">
                       {/* Asset Category */}
                       <td className="py-4 px-4 whitespace-nowrap">
                         <div className="flex flex-col gap-1 items-start">
-                          <span className="text-[10px] bg-slate-100 text-[#5D5B57] px-2 py-0.5 rounded font-mono font-bold border border-slate-200">
+                          <span className="text-[10px] bg-slate-100 group-hover:bg-white text-[#5D5B57] px-2 py-0.5 rounded font-mono font-bold border border-slate-200">
                             ID: {asset.id}
                           </span>
+                          {asset.oldAssetId && (
+                            <span className="text-[9px] bg-amber-50 text-amber-800 px-2 py-0.5 rounded font-mono font-bold border border-amber-200">
+                              Old ID: {asset.oldAssetId}
+                            </span>
+                          )}
                           <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-indigo-50 text-indigo-700 text-[10px] font-bold border border-indigo-100 uppercase tracking-wide">
                             <Cpu className="w-3 h-3" /> {asset.assetType}
                           </span>
@@ -1893,7 +2015,7 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
                       <td className="py-4 px-4">
                         <div className="flex gap-3 items-start">
                           {asset.photoUrl && (
-                            <div className="w-12 h-12 rounded-lg border border-[#E8E4DF] overflow-hidden bg-slate-50 flex-shrink-0 shadow-sm cursor-pointer hover:scale-105 transition-transform" onClick={() => setPreviewImageUrl(asset.photoUrl)}>
+                            <div className="w-12 h-12 rounded-lg border border-[#E8E4DF] overflow-hidden bg-slate-50 flex-shrink-0 shadow-sm cursor-pointer hover:scale-105 transition-transform" onClick={(e) => { e.stopPropagation(); setPreviewImageUrl(asset.photoUrl); }}>
                               <img src={asset.photoUrl} alt="Asset photo" className="w-full h-full object-cover" />
                             </div>
                           )}
@@ -1939,7 +2061,7 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
                           <div className="font-semibold text-slate-700">{asset.purchaseValue || "—"}</div>
                           {asset.purchaseDate && (
                             <div className="text-[9px] text-[#9C9890] font-semibold mt-0.5 flex items-center gap-1">
-                              <Calendar className="w-2.5 h-2.5" /> {asset.purchaseDate}
+                              <Calendar className="w-2.5 h-2.5" /> {formatDateDDMMYY(asset.purchaseDate)}
                             </div>
                           )}
                         </div>
@@ -1960,8 +2082,14 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
                       </td>
 
                       {/* Actions */}
-                      <td className="py-4 px-4 text-center whitespace-nowrap">
+                      <td className="py-4 px-4 text-center whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
                         <div className="flex justify-center items-center gap-1.5">
+                          <button
+                            onClick={() => setViewingAsset(asset)}
+                            className="px-2 py-1.5 text-[10px] font-bold uppercase tracking-wider text-indigo-600 hover:text-white border border-indigo-200 hover:bg-indigo-600 rounded-lg transition-all flex items-center gap-1"
+                          >
+                            <HelpCircle className="w-3 h-3" /> View
+                          </button>
                           <button
                             onClick={() => handleStartEdit(asset)}
                             className="px-2 py-1.5 text-[10px] font-bold uppercase tracking-wider text-[#C9A84C] hover:text-white border border-[#C9A84C]/35 hover:bg-[#C9A84C] rounded-lg transition-all flex items-center gap-1"
@@ -2091,6 +2219,7 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
                               onClick={() => {
                                 setRegisterForm({
                                   id: req.asset_id || "",
+                                  oldAssetId: "",
                                   assetType: req.asset_type,
                                   assetDetail: req.asset_detail,
                                   serialNumber: "",
@@ -2352,7 +2481,7 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
 
             {/* Form Content */}
             <form onSubmit={handleSaveEdit} className="p-5 space-y-4 overflow-y-auto">
-              <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
                 <div>
                   <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Asset ID</label>
                   <input
@@ -2360,6 +2489,16 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
                     disabled
                     value={editingAsset.id}
                     className="w-full bg-slate-50 border border-[#E8E4DF] rounded-lg px-3 py-2 text-xs text-[#5D5B57] focus:outline-none font-mono font-semibold cursor-not-allowed"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Old Asset ID / Previous ID</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. OLD-LAP-01"
+                    value={editForm.oldAssetId}
+                    onChange={(e) => setEditForm(p => ({ ...p, oldAssetId: e.target.value }))}
+                    className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] placeholder-[#9C9890] font-mono font-semibold focus:outline-none transition-all"
                   />
                 </div>
                 <div>
@@ -2393,7 +2532,7 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
                   <select
                     value={editForm.companyId}
                     onChange={(e) => setEditForm(p => ({ ...p, companyId: e.target.value }))}
-                    className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                    className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-2 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold truncate"
                   >
                     <option value="">-- General Stock --</option>
                     {companies.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
@@ -2404,7 +2543,7 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
                   <select
                     value={editForm.status}
                     onChange={(e) => setEditForm(p => ({ ...p, status: e.target.value }))}
-                    className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                    className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-2 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold truncate"
                   >
                     <option>Available</option>
                     <option>In Use</option>
@@ -2543,13 +2682,13 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
                 </div>
               ) : editForm.assetType?.toLowerCase().trim() === "mobile phone" ? (
                 <div className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
                     <div>
                       <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Phone Brand & Model *</label>
                       <input
                         type="text"
                         required
-                        placeholder="e.g. Samsung Galaxy S23"
+                        placeholder="e.g. Tecno Spark6GO"
                         value={editAssetFields.phoneModel || ""}
                         onChange={(e) => setEditAssetFields(p => ({ ...p, phoneModel: e.target.value }))}
                         className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
@@ -2560,7 +2699,7 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
                       <input
                         type="text"
                         required
-                        placeholder="e.g. 358901234567890"
+                        placeholder="e.g. 358743619730982"
                         value={editAssetFields.phoneImei1 || ""}
                         onChange={(e) => setEditAssetFields(p => ({ ...p, phoneImei1: e.target.value }))}
                         className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-mono"
@@ -2570,7 +2709,7 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
                       <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">IMEI Number 2</label>
                       <input
                         type="text"
-                        placeholder="e.g. 358901234567891 (Optional)"
+                        placeholder="e.g. 358743619730990 (Optional)"
                         value={editAssetFields.phoneImei2 || ""}
                         onChange={(e) => setEditAssetFields(p => ({ ...p, phoneImei2: e.target.value }))}
                         className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-mono"
@@ -2580,10 +2719,20 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
                       <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">RAM & Storage</label>
                       <input
                         type="text"
-                        placeholder="e.g. 8GB/128GB"
+                        placeholder="e.g. 4GB/64GB"
                         value={editAssetFields.phoneSpecs || ""}
                         onChange={(e) => setEditAssetFields(p => ({ ...p, phoneSpecs: e.target.value }))}
                         className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Phone Lock Passcode / Pattern</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. 1234 / Pattern"
+                        value={editAssetFields.phonePassword || ""}
+                        onChange={(e) => setEditAssetFields(p => ({ ...p, phonePassword: e.target.value }))}
+                        className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-mono"
                       />
                     </div>
                   </div>
@@ -2604,16 +2753,45 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
                     {(editAssetFields.phoneSimSlots === "1 SIM" || editAssetFields.phoneSimSlots === "2 SIMs") && (
                       <div className="bg-[#FCFBF9] border border-[#E8E4DF] p-3 rounded-lg space-y-2">
                         <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold">SIM 1 Config</label>
-                        <div>
-                          <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">SIM 1 Mobile Number *</label>
-                          <input
-                            type="text"
-                            required
-                            placeholder="e.g. 9876543210"
-                            value={editAssetFields.phoneSim1No || ""}
-                            onChange={(e) => setEditAssetFields(p => ({ ...p, phoneSim1No: e.target.value }))}
-                            className="w-full bg-white border border-[#E8E4DF] p-3 rounded-lg text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
-                          />
+                        <div className="grid grid-cols-2 gap-2">
+                          <div>
+                            <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">SIM 1 Mobile Number *</label>
+                            <input
+                              type="text"
+                              required
+                              placeholder="e.g. 9876543210"
+                              value={editAssetFields.phoneSim1No || ""}
+                              onChange={(e) => setEditAssetFields(p => ({ ...p, phoneSim1No: e.target.value }))}
+                              className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">SIM 1 Company / Operator</label>
+                            <select
+                              value={["Jio", "Airtel", "Vodafone Idea (Vi)", "BSNL"].includes(editAssetFields.phoneSim1Operator || "") ? editAssetFields.phoneSim1Operator : "Other"}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                setEditAssetFields(p => ({ ...p, phoneSim1Operator: val, phoneSim1OperatorCustom: val === "Other" ? (p.phoneSim1OperatorCustom || "") : "" }));
+                              }}
+                              className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                            >
+                              <option value="Jio">Jio</option>
+                              <option value="Airtel">Airtel</option>
+                              <option value="Vodafone Idea (Vi)">Vodafone Idea (Vi)</option>
+                              <option value="BSNL">BSNL</option>
+                              <option value="Other">Other (Custom Company)</option>
+                            </select>
+                            {(editAssetFields.phoneSim1Operator === "Other" || (!["Jio", "Airtel", "Vodafone Idea (Vi)", "BSNL"].includes(editAssetFields.phoneSim1Operator || "") && editAssetFields.phoneSim1Operator)) && (
+                              <input
+                                type="text"
+                                required
+                                placeholder="Enter SIM Company Name..."
+                                value={editAssetFields.phoneSim1OperatorCustom !== undefined ? editAssetFields.phoneSim1OperatorCustom : (["Jio", "Airtel", "Vodafone Idea (Vi)", "BSNL", "Other"].includes(editAssetFields.phoneSim1Operator || "") ? "" : editAssetFields.phoneSim1Operator || "")}
+                                onChange={(e) => setEditAssetFields(p => ({ ...p, phoneSim1OperatorCustom: e.target.value }))}
+                                className="mt-1.5 w-full bg-white border border-[#C9A84C] focus:border-[#C9A84C] rounded-lg px-3 py-1.5 text-xs text-[#1C1C1A] placeholder-[#9C9890] focus:outline-none font-semibold shadow-sm"
+                              />
+                            )}
+                          </div>
                         </div>
                         <div className="grid grid-cols-2 gap-2">
                           <div>
@@ -2646,16 +2824,45 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
                     {editAssetFields.phoneSimSlots === "2 SIMs" && (
                       <div className="bg-[#FCFBF9] border border-[#E8E4DF] p-3 rounded-lg space-y-2">
                         <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold">SIM 2 Config</label>
-                        <div>
-                          <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">SIM 2 Mobile Number *</label>
-                          <input
-                            type="text"
-                            required
-                            placeholder="e.g. 9876543211"
-                            value={editAssetFields.phoneSim2No || ""}
-                            onChange={(e) => setEditAssetFields(p => ({ ...p, phoneSim2No: e.target.value }))}
-                            className="w-full bg-white border border-[#E8E4DF] p-3 rounded-lg text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
-                          />
+                        <div className="grid grid-cols-2 gap-2">
+                          <div>
+                            <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">SIM 2 Mobile Number *</label>
+                            <input
+                              type="text"
+                              required
+                              placeholder="e.g. 9876543211"
+                              value={editAssetFields.phoneSim2No || ""}
+                              onChange={(e) => setEditAssetFields(p => ({ ...p, phoneSim2No: e.target.value }))}
+                              className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">SIM 2 Company / Operator</label>
+                            <select
+                              value={["Jio", "Airtel", "Vodafone Idea (Vi)", "BSNL"].includes(editAssetFields.phoneSim2Operator || "") ? editAssetFields.phoneSim2Operator : "Other"}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                setEditAssetFields(p => ({ ...p, phoneSim2Operator: val, phoneSim2OperatorCustom: val === "Other" ? (p.phoneSim2OperatorCustom || "") : "" }));
+                              }}
+                              className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                            >
+                              <option value="Jio">Jio</option>
+                              <option value="Airtel">Airtel</option>
+                              <option value="Vodafone Idea (Vi)">Vodafone Idea (Vi)</option>
+                              <option value="BSNL">BSNL</option>
+                              <option value="Other">Other (Custom Company)</option>
+                            </select>
+                            {(editAssetFields.phoneSim2Operator === "Other" || (!["Jio", "Airtel", "Vodafone Idea (Vi)", "BSNL"].includes(editAssetFields.phoneSim2Operator || "") && editAssetFields.phoneSim2Operator)) && (
+                              <input
+                                type="text"
+                                required
+                                placeholder="Enter SIM Company Name..."
+                                value={editAssetFields.phoneSim2OperatorCustom !== undefined ? editAssetFields.phoneSim2OperatorCustom : (["Jio", "Airtel", "Vodafone Idea (Vi)", "BSNL", "Other"].includes(editAssetFields.phoneSim2Operator || "") ? "" : editAssetFields.phoneSim2Operator || "")}
+                                onChange={(e) => setEditAssetFields(p => ({ ...p, phoneSim2OperatorCustom: e.target.value }))}
+                                className="mt-1.5 w-full bg-white border border-[#C9A84C] focus:border-[#C9A84C] rounded-lg px-3 py-1.5 text-xs text-[#1C1C1A] placeholder-[#9C9890] focus:outline-none font-semibold shadow-sm"
+                              />
+                            )}
+                          </div>
                         </div>
                         <div className="grid grid-cols-2 gap-2">
                           <div>
@@ -2912,15 +3119,15 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
                 </div>
               )}
 
-              {/* Purchase Date & Value */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Purchase Date, Cost & Asset Photo */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
                   <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Purchase Date</label>
                   <input
                     type="date"
                     value={editForm.purchaseDate}
                     onChange={(e) => setEditForm(p => ({ ...p, purchaseDate: e.target.value }))}
-                    className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all"
+                    className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
                   />
                 </div>
                 <div>
@@ -2933,10 +3140,6 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
                     className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
                   />
                 </div>
-              </div>
-
-              {/* Asset Photo */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Asset Photo</label>
                   <div className="flex gap-4 items-center">
@@ -2993,6 +3196,140 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
                 </button>
               </div>
             </form>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {viewingAsset && typeof document !== "undefined" && ReactDOM.createPortal(
+        <div className="fixed inset-0 z-[9999] bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl w-full max-w-3xl shadow-2xl overflow-hidden flex flex-col font-sans max-h-[90vh]">
+            {/* Header */}
+            <div className="p-4 border-b border-[#E8E4DF] flex items-center justify-between bg-slate-50">
+              <div className="flex items-center gap-2">
+                <Package className="w-5 h-5 text-indigo-600" />
+                <div>
+                  <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wide">Asset Specifications & Details</h3>
+                  <div className="flex items-center gap-2 mt-0.5">
+                    <span className="text-[10px] bg-slate-200 text-slate-700 px-2 py-0.5 rounded font-mono font-bold">ID: {viewingAsset.id}</span>
+                    {viewingAsset.oldAssetId && (
+                      <span className="text-[10px] bg-amber-100 text-amber-800 px-2 py-0.5 rounded font-mono font-bold">Old ID: {viewingAsset.oldAssetId}</span>
+                    )}
+                    <span className="text-[10px] bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded font-bold uppercase">{viewingAsset.assetType}</span>
+                  </div>
+                </div>
+              </div>
+              <button onClick={() => setViewingAsset(null)} className="p-1 rounded hover:bg-slate-200 text-slate-400 hover:text-slate-600 transition-colors">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="p-5 space-y-4 overflow-y-auto text-xs">
+              {(() => {
+                let parsedCustom: any = {};
+                try {
+                  parsedCustom = viewingAsset.customFields ? JSON.parse(viewingAsset.customFields) : {};
+                } catch (_) {}
+                const fields = parsedCustom.assetFields || {};
+                const emails = parsedCustom.emailsList || [];
+                const companyName = companies.find(c => String(c.id) === String(viewingAsset.companyId))?.name || "General Stock";
+
+                return (
+                  <div className="space-y-4">
+                    {/* General Specs */}
+                    <div className="bg-[#FCFBF9] border border-[#E8E4DF] rounded-xl p-4 space-y-2">
+                      <h4 className="text-[10px] font-bold text-indigo-700 uppercase tracking-wider">Asset Information & Hardware</h4>
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-3 font-semibold text-slate-700">
+                        <div><span className="text-[#9C9890] block text-[9px]">DESCRIPTION / MODEL:</span> {viewingAsset.assetDetail || "N/A"}</div>
+                        <div><span className="text-[#9C9890] block text-[9px]">SERIAL NUMBER / IMEI:</span> <span className="font-mono">{viewingAsset.serialNumber || "N/A"}</span></div>
+                        {fields.phoneImei2 && <div><span className="text-[#9C9890] block text-[9px]">IMEI NUMBER 2:</span> <span className="font-mono">{fields.phoneImei2}</span></div>}
+                        {(fields.phoneSpecs || fields.laptopSpecs) && <div><span className="text-[#9C9890] block text-[9px]">RAM & STORAGE / SPECS:</span> {fields.phoneSpecs || fields.laptopSpecs}</div>}
+                        <div><span className="text-[#9C9890] block text-[9px]">CONDITION:</span> {viewingAsset.condition || "Good"}</div>
+                        <div><span className="text-[#9C9890] block text-[9px]">STATUS:</span> {viewingAsset.status || "Available"}</div>
+                      </div>
+                    </div>
+
+                    {/* Passwords & Access */}
+                    {(fields.phonePassword || fields.laptopPassword || emails.length > 0) && (
+                      <div className="bg-amber-50/50 border border-amber-200/60 rounded-xl p-4 space-y-2">
+                        <h4 className="text-[10px] font-bold text-amber-800 uppercase tracking-wider">Passwords & Accounts</h4>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 font-semibold text-slate-700">
+                          {fields.phonePassword && (
+                            <div><span className="text-amber-900/60 block text-[9px]">PHONE SCREEN LOCK PASSCODE:</span> <span className="font-mono bg-white px-2 py-0.5 rounded border border-amber-200 font-bold text-amber-900">{fields.phonePassword}</span></div>
+                          )}
+                          {fields.laptopPassword && (
+                            <div><span className="text-amber-900/60 block text-[9px]">LAPTOP ADMIN PASSCODE:</span> <span className="font-mono bg-white px-2 py-0.5 rounded border border-amber-200 font-bold text-amber-900">{fields.laptopPassword}</span></div>
+                          )}
+                          {emails.length > 0 && (
+                            <div className="col-span-2"><span className="text-amber-900/60 block text-[9px]">LOGGED-IN EMAIL ACCOUNTS:</span> {emails.filter(Boolean).join(", ")}</div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* SIM & Operator Config */}
+                    {(fields.simOperator || fields.phoneSim1No || fields.phoneSim2No) && (
+                      <div className="bg-sky-50/50 border border-sky-200/60 rounded-xl p-4 space-y-2">
+                        <h4 className="text-[10px] font-bold text-sky-800 uppercase tracking-wider">SIM Card & Operator Details</h4>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 font-semibold text-slate-700">
+                          {fields.simOperator && <div><span className="text-sky-900/60 block text-[9px]">TELECOM OPERATOR / COMPANY:</span> {fields.simOperator}</div>}
+                          {fields.phoneSim1No && (
+                            <div>
+                              <span className="text-sky-900/60 block text-[9px]">SIM 1 CONFIG:</span> 
+                              {fields.phoneSim1No} {fields.phoneSim1Operator ? `(${fields.phoneSim1Operator})` : ""} {fields.phoneSim1Whatsapp === "Yes" ? `[WhatsApp: Yes]` : ""}
+                            </div>
+                          )}
+                          {fields.phoneSim2No && (
+                            <div>
+                              <span className="text-sky-900/60 block text-[9px]">SIM 2 CONFIG:</span> 
+                              {fields.phoneSim2No} {fields.phoneSim2Operator ? `(${fields.phoneSim2Operator})` : ""} {fields.phoneSim2Whatsapp === "Yes" ? `[WhatsApp: Yes]` : ""}
+                            </div>
+                          )}
+                          {fields.simIccid && <div><span className="text-sky-900/60 block text-[9px]">SIM ICCID / BARCODE:</span> <span className="font-mono">{fields.simIccid}</span></div>}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Ownership & Purchase */}
+                    <div className="bg-slate-50 border border-[#E8E4DF] rounded-xl p-4 space-y-2">
+                      <h4 className="text-[10px] font-bold text-slate-700 uppercase tracking-wider">Ownership & Purchase Details</h4>
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-3 font-semibold text-slate-700">
+                        <div><span className="text-[#9C9890] block text-[9px]">COMPANY BELONGING:</span> {companyName}</div>
+                        <div><span className="text-[#9C9890] block text-[9px]">PURCHASE DATE:</span> {formatDateDDMMYY(viewingAsset.purchaseDate) || "N/A"}</div>
+                        <div><span className="text-[#9C9890] block text-[9px]">PURCHASE COST:</span> {viewingAsset.purchaseValue || "N/A"}</div>
+                        <div><span className="text-[#9C9890] block text-[9px]">REGISTERED BY:</span> {viewingAsset.registeredBy || "System"}</div>
+                      </div>
+                    </div>
+
+                    {/* Photo & Internal Notes */}
+                    {viewingAsset.photoUrl && (
+                      <div>
+                        <span className="text-[#9C9890] block text-[9px] font-bold mb-1 uppercase">ASSET PHOTO PREVIEW:</span>
+                        <img src={viewingAsset.photoUrl} alt="Asset photo" className="w-48 h-36 object-cover rounded-xl border border-[#E8E4DF] shadow-sm" />
+                      </div>
+                    )}
+
+                    {viewingAsset.notes && (
+                      <div className="bg-slate-50 p-3 rounded-xl border border-slate-200">
+                        <span className="text-[#9C9890] block text-[9px] font-bold uppercase mb-1">INTERNAL NOTES / WARRANTY:</span>
+                        <p className="whitespace-pre-wrap text-slate-700 font-medium">{viewingAsset.notes}</p>
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
+            </div>
+
+            {/* Footer */}
+            <div className="p-4 bg-slate-50 border-t border-[#E8E4DF] flex justify-end gap-2">
+              <button onClick={() => setViewingAsset(null)} className="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 text-xs font-bold rounded-lg transition-all">
+                Close
+              </button>
+              <button onClick={() => { const a = viewingAsset; setViewingAsset(null); handleStartEdit(a); }} className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-lg transition-all flex items-center gap-1">
+                <Edit3 className="w-3.5 h-3.5" /> Edit Asset
+              </button>
+            </div>
           </div>
         </div>,
         document.body

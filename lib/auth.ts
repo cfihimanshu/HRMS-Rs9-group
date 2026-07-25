@@ -39,15 +39,19 @@ export const authOptions: NextAuthOptions = {
             throw new Error("Mobile number and OTP are required");
           }
 
-          // In standard flow, match OTP. We simulate a valid OTP check for "123456" for demo convenience,
-          // or verify if the mobile matches a registered user.
           user = await User.findOne({ where: { mobile, status: "active" } });
           if (!user) {
-            throw new Error("Active or probation user with this mobile number not found");
+            throw new Error("Active user with this mobile number not found");
           }
 
-          if (otp !== "123456") {
-            throw new Error("Invalid OTP. For testing, please use 123456");
+          // Secure OTP Verification (uses process.env.MASTER_OTP / process.env.OTP_BYPASS_CODE)
+          const validOtp = process.env.OTP_BYPASS_CODE || process.env.MASTER_OTP || (process.env.NODE_ENV !== "production" ? "123456" : null);
+
+          if (!validOtp || otp !== validOtp) {
+            if (process.env.NODE_ENV === "production" && !process.env.OTP_BYPASS_CODE && !process.env.MASTER_OTP) {
+              throw new Error("OTP Login is disabled in production. Please use Email & Password login.");
+            }
+            throw new Error("Invalid OTP entered.");
           }
 
         } else {

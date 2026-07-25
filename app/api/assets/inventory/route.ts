@@ -56,7 +56,7 @@ export async function POST(req: Request) {
     try { await AssetInventory.sync({ alter: true }); } catch (_) {}
 
     const body = await req.json();
-    const { id, assetType, assetDetail, serialNumber, purchaseDate, purchaseValue, condition, companyId, notes, photoUrl, customFields } = body;
+    const { id, oldAssetId, assetType, assetDetail, serialNumber, purchaseDate, purchaseValue, condition, companyId, notes, photoUrl, customFields } = body;
 
     if (!id || !id.trim()) {
       return NextResponse.json({ success: false, error: "Asset ID is required" }, { status: 400 });
@@ -72,6 +72,7 @@ export async function POST(req: Request) {
 
     const record = await AssetInventory.create({
       id: id.trim(),
+      oldAssetId: oldAssetId ? oldAssetId.trim() : "",
       assetType,
       assetDetail: assetDetail || "",
       serialNumber: serialNumber || "",
@@ -112,7 +113,7 @@ export async function PUT(req: Request) {
     try { await AssetInventory.sync({ alter: true }); } catch (_) {}
 
     const body = await req.json();
-    const { id, assetType, assetDetail, serialNumber, purchaseDate, purchaseValue, condition, status, companyId, notes, photoUrl, customFields } = body;
+    const { id, oldAssetId, assetType, assetDetail, serialNumber, purchaseDate, purchaseValue, condition, status, companyId, notes, photoUrl, customFields } = body;
 
     if (!id) {
       return NextResponse.json({ success: false, error: "Missing asset id" }, { status: 400 });
@@ -123,6 +124,7 @@ export async function PUT(req: Request) {
       return NextResponse.json({ success: false, error: "Asset not found" }, { status: 404 });
     }
 
+    if (oldAssetId !== undefined) asset.oldAssetId = oldAssetId ? oldAssetId.trim() : "";
     if (assetType !== undefined) asset.assetType = assetType;
     if (assetDetail !== undefined) asset.assetDetail = assetDetail;
     if (serialNumber !== undefined) asset.serialNumber = serialNumber;
