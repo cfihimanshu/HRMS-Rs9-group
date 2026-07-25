@@ -131,7 +131,10 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
     vendor_details: "",
     justification: "",
     company_id: "",
-    asset_id: ""
+    asset_id: "",
+    quantity: 1,
+    expected_delivery_date: "",
+    quotation_url: ""
   });
   const [submittingPurchase, setSubmittingPurchase] = useState(false);
   const [isCustomPurchaseType, setIsCustomPurchaseType] = useState(false);
@@ -356,7 +359,10 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
           vendor_details: "",
           justification: "",
           company_id: "",
-          asset_id: ""
+          asset_id: "",
+          quantity: 1,
+          expected_delivery_date: "",
+          quotation_url: ""
         });
         fetchPurchaseRequests();
       } else {
@@ -424,7 +430,10 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
         vendor_details: "",
         justification: justification,
         company_id: "",
-        asset_id: ""
+        asset_id: "",
+        quantity: 1,
+        expected_delivery_date: "",
+        quotation_url: ""
       });
       setSourceRequestId(sourceId || null);
 
@@ -498,10 +507,20 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
       finalDetail = `${model} (${specs})`;
       finalSerial = serial;
 
-      // Logged-in Emails
+      let laptopInfo = "";
+      if (assetFields.laptopOs) laptopInfo += `OS: ${assetFields.laptopOs}\n`;
+      if (assetFields.laptopHostName) laptopInfo += `Host Name: ${assetFields.laptopHostName}\n`;
+      if (assetFields.laptopCharger) laptopInfo += `Charger Included: ${assetFields.laptopCharger}\n`;
+      if (assetFields.laptopBag) laptopInfo += `Accessories: ${assetFields.laptopBag}\n`;
+      if (assetFields.laptopPassword) {
+        laptopInfo += `Laptop Admin Passcode: ${assetFields.laptopPassword}\n`;
+      }
       const filteredEmails = emailsList.map(e => e.trim()).filter(Boolean);
       if (filteredEmails.length > 0) {
-        finalNotes = `Logged-in Emails: ${filteredEmails.join(", ")}${registerForm.notes ? `\n${registerForm.notes}` : ""}`;
+        laptopInfo += `Logged-in Emails: ${filteredEmails.join(", ")}\n`;
+      }
+      if (laptopInfo) {
+        finalNotes = `${laptopInfo}${registerForm.notes ? `\n${registerForm.notes}` : ""}`;
       }
     } else if (typeClean === "mobile phone") {
       const model = assetFields.phoneModel || "";
@@ -520,9 +539,12 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
       finalDetail = `${model}${specs ? ` (${specs})` : ""}`;
       finalSerial = imei2 ? `IMEI 1: ${imei1}, IMEI 2: ${imei2}` : imei1;
 
-      // Logged-in Emails & SIMs
+      // Passcode, Logged-in Emails & SIMs
       const filteredEmails = emailsList.map(e => e.trim()).filter(Boolean);
       let mobileInfo = "";
+      if (assetFields.phonePassword) {
+        mobileInfo += `Phone Screen Lock Passcode: ${assetFields.phonePassword}\n`;
+      }
       if (filteredEmails.length > 0) {
         mobileInfo += `Logged-in Emails: ${filteredEmails.join(", ")}\n`;
       }
@@ -531,17 +553,13 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
         if (sim1No) {
           const wa1 = assetFields.phoneSim1Whatsapp || "No";
           const wa1Type = wa1 === "Yes" ? ` (${assetFields.phoneSim1WhatsappType || "Personal"})` : "";
-          const op1 = (assetFields.phoneSim1Operator === "Other" || assetFields.phoneSim1OperatorCustom)
-            ? (assetFields.phoneSim1OperatorCustom || "Other")
-            : (assetFields.phoneSim1Operator || "Jio");
+          const op1 = assetFields.phoneSim1OperatorCustom || (assetFields.phoneSim1Operator !== "Other" ? assetFields.phoneSim1Operator : "") || "Jio";
           mobileInfo += `SIM 1 Mobile No: ${sim1No} [Company: ${op1}] [WhatsApp: ${wa1}${wa1Type}]\n`;
         }
         if (sim2No) {
           const wa2 = assetFields.phoneSim2Whatsapp || "No";
           const wa2Type = wa2 === "Yes" ? ` (${assetFields.phoneSim2WhatsappType || "Personal"})` : "";
-          const op2 = (assetFields.phoneSim2Operator === "Other" || assetFields.phoneSim2OperatorCustom)
-            ? (assetFields.phoneSim2OperatorCustom || "Other")
-            : (assetFields.phoneSim2Operator || "Airtel");
+          const op2 = assetFields.phoneSim2OperatorCustom || (assetFields.phoneSim2Operator !== "Other" ? assetFields.phoneSim2Operator : "") || "Airtel";
           mobileInfo += `SIM 2 Mobile No: ${sim2No} [Company: ${op2}] [WhatsApp: ${wa2}${wa2Type}]\n`;
         }
       } else {
@@ -550,6 +568,19 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
 
       if (mobileInfo) {
         finalNotes = `${mobileInfo}${registerForm.notes ? `\n${registerForm.notes}` : ""}`;
+      }
+      if (assetFields.phoneExternalWhatsapp === "Yes" && assetFields.phoneExternalWhatsappNo) {
+        const extWaType = assetFields.phoneExternalWhatsappType || "Business";
+        const extWaLabel = assetFields.phoneExternalWhatsappLabel ? ` (${assetFields.phoneExternalWhatsappLabel})` : "";
+        const extWaLine = `External WhatsApp: ${assetFields.phoneExternalWhatsappNo} [Type: ${extWaType}]${extWaLabel}`;
+        finalNotes = finalNotes ? `${finalNotes}\n${extWaLine}` : extWaLine;
+      }
+      if (assetFields.phoneSocialMedia === "Yes" && (assetFields.phoneSocialMediaUsername || assetFields.phoneSocialMediaApp)) {
+        const app = assetFields.phoneSocialMediaAppCustom || (assetFields.phoneSocialMediaApp !== "Other" ? assetFields.phoneSocialMediaApp : "") || "Instagram";
+        const user = assetFields.phoneSocialMediaUsername || "";
+        const pass = assetFields.phoneSocialMediaPassword ? ` [Password: ${assetFields.phoneSocialMediaPassword}]` : "";
+        const smLine = `Social Media App: ${app} (${user})${pass}`;
+        finalNotes = finalNotes ? `${finalNotes}\n${smLine}` : smLine;
       }
     } else if (typeClean === "headset / accessories") {
       const name = assetFields.accName || "";
@@ -837,10 +868,20 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
       finalDetail = `${model} (${specs})`;
       finalSerial = serial;
 
-      // Logged-in Emails
+      let laptopInfo = "";
+      if (editAssetFields.laptopOs) laptopInfo += `OS: ${editAssetFields.laptopOs}\n`;
+      if (editAssetFields.laptopHostName) laptopInfo += `Host Name: ${editAssetFields.laptopHostName}\n`;
+      if (editAssetFields.laptopCharger) laptopInfo += `Charger Included: ${editAssetFields.laptopCharger}\n`;
+      if (editAssetFields.laptopBag) laptopInfo += `Accessories: ${editAssetFields.laptopBag}\n`;
+      if (editAssetFields.laptopPassword) {
+        laptopInfo += `Laptop Admin Passcode: ${editAssetFields.laptopPassword}\n`;
+      }
       const filteredEmails = editEmailsList.map(e => e.trim()).filter(Boolean);
       if (filteredEmails.length > 0) {
-        finalNotes = `Logged-in Emails: ${filteredEmails.join(", ")}${editForm.notes ? `\n${editForm.notes}` : ""}`;
+        laptopInfo += `Logged-in Emails: ${filteredEmails.join(", ")}\n`;
+      }
+      if (laptopInfo) {
+        finalNotes = `${laptopInfo}${editForm.notes ? `\n${editForm.notes}` : ""}`;
       }
     } else if (typeClean === "mobile phone") {
       const model = editAssetFields.phoneModel || "";
@@ -859,9 +900,12 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
       finalDetail = `${model}${specs ? ` (${specs})` : ""}`;
       finalSerial = imei2 ? `IMEI 1: ${imei1}, IMEI 2: ${imei2}` : imei1;
 
-      // Logged-in Emails & SIMs
+      // Passcode, Logged-in Emails & SIMs
       const filteredEmails = editEmailsList.map(e => e.trim()).filter(Boolean);
       let mobileInfo = "";
+      if (editAssetFields.phonePassword) {
+        mobileInfo += `Phone Screen Lock Passcode: ${editAssetFields.phonePassword}\n`;
+      }
       if (filteredEmails.length > 0) {
         mobileInfo += `Logged-in Emails: ${filteredEmails.join(", ")}\n`;
       }
@@ -870,17 +914,13 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
         if (sim1No) {
           const wa1 = editAssetFields.phoneSim1Whatsapp || "No";
           const wa1Type = wa1 === "Yes" ? ` (${editAssetFields.phoneSim1WhatsappType || "Personal"})` : "";
-          const op1 = (editAssetFields.phoneSim1Operator === "Other" || editAssetFields.phoneSim1OperatorCustom)
-            ? (editAssetFields.phoneSim1OperatorCustom || "Other")
-            : (editAssetFields.phoneSim1Operator || "Jio");
+          const op1 = editAssetFields.phoneSim1OperatorCustom || (editAssetFields.phoneSim1Operator !== "Other" ? editAssetFields.phoneSim1Operator : "") || "Jio";
           mobileInfo += `SIM 1 Mobile No: ${sim1No} [Company: ${op1}] [WhatsApp: ${wa1}${wa1Type}]\n`;
         }
         if (sim2No) {
           const wa2 = editAssetFields.phoneSim2Whatsapp || "No";
           const wa2Type = wa2 === "Yes" ? ` (${editAssetFields.phoneSim2WhatsappType || "Personal"})` : "";
-          const op2 = (editAssetFields.phoneSim2Operator === "Other" || editAssetFields.phoneSim2OperatorCustom)
-            ? (editAssetFields.phoneSim2OperatorCustom || "Other")
-            : (editAssetFields.phoneSim2Operator || "Airtel");
+          const op2 = editAssetFields.phoneSim2OperatorCustom || (editAssetFields.phoneSim2Operator !== "Other" ? editAssetFields.phoneSim2Operator : "") || "Airtel";
           mobileInfo += `SIM 2 Mobile No: ${sim2No} [Company: ${op2}] [WhatsApp: ${wa2}${wa2Type}]\n`;
         }
       } else {
@@ -889,6 +929,12 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
 
       if (mobileInfo) {
         finalNotes = `${mobileInfo}${editForm.notes ? `\n${editForm.notes}` : ""}`;
+      }
+      if (editAssetFields.phoneExternalWhatsapp === "Yes" && editAssetFields.phoneExternalWhatsappNo) {
+        const extWaType = editAssetFields.phoneExternalWhatsappType || "Business";
+        const extWaLabel = editAssetFields.phoneExternalWhatsappLabel ? ` (${editAssetFields.phoneExternalWhatsappLabel})` : "";
+        const extWaLine = `External WhatsApp: ${editAssetFields.phoneExternalWhatsappNo} [Type: ${extWaType}]${extWaLabel}`;
+        finalNotes = finalNotes ? `${finalNotes}\n${extWaLine}` : extWaLine;
       }
     } else if (typeClean === "headset / accessories") {
       const name = editAssetFields.accName || "";
@@ -1272,7 +1318,17 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
                     <option value="Airtel">Airtel</option>
                     <option value="Vodafone Idea (Vi)">Vodafone Idea (Vi)</option>
                     <option value="BSNL">BSNL</option>
+                    <option value="Other">Other</option>
                   </select>
+                  {assetFields.simOperator === "Other" && (
+                    <input
+                      type="text"
+                      placeholder="Specify custom operator..."
+                      value={assetFields.simOperatorCustom || ""}
+                      onChange={(e) => setAssetFields(p => ({ ...p, simOperatorCustom: e.target.value }))}
+                      className="mt-1.5 w-full bg-white border border-[#C9A84C] focus:border-[#C9A84C] rounded-lg px-3 py-1.5 text-xs text-[#1C1C1A] font-semibold"
+                    />
+                  )}
                 </div>
                 <div>
                   <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Network Type</label>
@@ -1284,7 +1340,17 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
                     <option value="5G">5G</option>
                     <option value="4G">4G</option>
                     <option value="3G">3G</option>
+                    <option value="Other">Other</option>
                   </select>
+                  {assetFields.simNetwork === "Other" && (
+                    <input
+                      type="text"
+                      placeholder="Specify custom network..."
+                      value={assetFields.simNetworkCustom || ""}
+                      onChange={(e) => setAssetFields(p => ({ ...p, simNetworkCustom: e.target.value }))}
+                      className="mt-1.5 w-full bg-white border border-[#C9A84C] focus:border-[#C9A84C] rounded-lg px-3 py-1.5 text-xs text-[#1C1C1A] font-semibold"
+                    />
+                  )}
                 </div>
                 <div>
                   <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">SIM Card Number / ICCID</label>
@@ -1294,6 +1360,49 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
                     value={assetFields.simIccid || ""}
                     onChange={(e) => setAssetFields(p => ({ ...p, simIccid: e.target.value }))}
                     className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-mono"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Plan Type & Recharge</label>
+                  <select
+                    value={assetFields.simPlanType || "Postpaid (Corporate Plan)"}
+                    onChange={(e) => setAssetFields(p => ({ ...p, simPlanType: e.target.value }))}
+                    className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                  >
+                    <option value="Postpaid (Corporate Plan)">Postpaid (Corporate Plan)</option>
+                    <option value="Prepaid (Monthly)">Prepaid (Monthly)</option>
+                    <option value="Prepaid (Annual)">Prepaid (Annual)</option>
+                    <option value="Data SIM Only">Data SIM Only</option>
+                    <option value="Other">Other</option>
+                  </select>
+                  {assetFields.simPlanType === "Other" && (
+                    <input
+                      type="text"
+                      placeholder="Specify custom plan..."
+                      value={assetFields.simPlanTypeCustom || ""}
+                      onChange={(e) => setAssetFields(p => ({ ...p, simPlanTypeCustom: e.target.value }))}
+                      className="mt-1.5 w-full bg-white border border-[#C9A84C] focus:border-[#C9A84C] rounded-lg px-3 py-1.5 text-xs text-[#1C1C1A] font-semibold"
+                    />
+                  )}
+                </div>
+                <div>
+                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">SIM PUK Code / PIN</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. PUK: 12345678"
+                    value={assetFields.simPuk || ""}
+                    onChange={(e) => setAssetFields(p => ({ ...p, simPuk: e.target.value }))}
+                    className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-mono"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">KYC / Registered Account Holder</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. CFI Corporate Account"
+                    value={assetFields.simKycName || ""}
+                    onChange={(e) => setAssetFields(p => ({ ...p, simKycName: e.target.value }))}
+                    className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
                   />
                 </div>
               </div>
@@ -1332,6 +1441,78 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
                       className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-mono"
                     />
                   </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                  <div>
+                    <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Operating System (OS)</label>
+                    <select
+                      value={assetFields.laptopOs || "Windows 11 Pro"}
+                      onChange={(e) => setAssetFields(p => ({ ...p, laptopOs: e.target.value }))}
+                      className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                    >
+                      <option value="Windows 11 Pro">Windows 11 Pro</option>
+                      <option value="Windows 10 Pro">Windows 10 Pro</option>
+                      <option value="macOS">macOS</option>
+                      <option value="Ubuntu Linux">Ubuntu Linux</option>
+                      <option value="DOS / No OS">DOS / No OS</option>
+                      <option value="Other">Other</option>
+                    </select>
+                    {assetFields.laptopOs === "Other" && (
+                      <input
+                        type="text"
+                        placeholder="Specify custom OS..."
+                        value={assetFields.laptopOsCustom || ""}
+                        onChange={(e) => setAssetFields(p => ({ ...p, laptopOsCustom: e.target.value }))}
+                        className="mt-1.5 w-full bg-white border border-[#C9A84C] focus:border-[#C9A84C] rounded-lg px-3 py-1.5 text-xs text-[#1C1C1A] font-semibold"
+                      />
+                    )}
+                  </div>
+                  <div>
+                    <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Computer / Host Name</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. CFI-LAP-042"
+                      value={assetFields.laptopHostName || ""}
+                      onChange={(e) => setAssetFields(p => ({ ...p, laptopHostName: e.target.value }))}
+                      className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-mono"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Original Charger Included?</label>
+                    <select
+                      value={assetFields.laptopCharger || "Yes"}
+                      onChange={(e) => setAssetFields(p => ({ ...p, laptopCharger: e.target.value }))}
+                      className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                    >
+                      <option value="Yes">Yes (Original Charger)</option>
+                      <option value="No">No Charger</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Bag & Mouse Issued?</label>
+                    <select
+                      value={assetFields.laptopBag || "Bag & Mouse"}
+                      onChange={(e) => setAssetFields(p => ({ ...p, laptopBag: e.target.value }))}
+                      className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                    >
+                      <option value="Bag & Mouse">Bag & Mouse</option>
+                      <option value="Bag Only">Bag Only</option>
+                      <option value="Mouse Only">Mouse Only</option>
+                      <option value="None">None</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="max-w-md">
+                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Admin Password / Passcode</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Admin@123 / Passcode"
+                    value={assetFields.laptopPassword || ""}
+                    onChange={(e) => setAssetFields(p => ({ ...p, laptopPassword: e.target.value }))}
+                    className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-mono"
+                  />
                 </div>
 
                 <div className="max-w-md">
@@ -1376,7 +1557,7 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
               </div>
             ) : typeClean === "mobile phone" ? (
               <div className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div>
                     <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Phone Brand & Model *</label>
                     <input
@@ -1386,27 +1567,6 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
                       value={assetFields.phoneModel || ""}
                       onChange={(e) => setAssetFields(p => ({ ...p, phoneModel: e.target.value }))}
                       className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">IMEI Number 1 *</label>
-                    <input
-                      type="text"
-                      required
-                      placeholder="e.g. 358743619730982"
-                      value={assetFields.phoneImei1 || ""}
-                      onChange={(e) => setAssetFields(p => ({ ...p, phoneImei1: e.target.value }))}
-                      className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-mono"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">IMEI Number 2</label>
-                    <input
-                      type="text"
-                      placeholder="e.g. 358743619730990 (Optional)"
-                      value={assetFields.phoneImei2 || ""}
-                      onChange={(e) => setAssetFields(p => ({ ...p, phoneImei2: e.target.value }))}
-                      className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-mono"
                     />
                   </div>
                   <div>
@@ -1426,6 +1586,30 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
                       placeholder="e.g. 1234 / Pattern"
                       value={assetFields.phonePassword || ""}
                       onChange={(e) => setAssetFields(p => ({ ...p, phonePassword: e.target.value }))}
+                      className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-mono"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">IMEI Number 1 *</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. 358743619730982"
+                      value={assetFields.phoneImei1 || ""}
+                      onChange={(e) => setAssetFields(p => ({ ...p, phoneImei1: e.target.value }))}
+                      className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-mono"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">IMEI Number 2</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. 358743619730990 (Optional)"
+                      value={assetFields.phoneImei2 || ""}
+                      onChange={(e) => setAssetFields(p => ({ ...p, phoneImei2: e.target.value }))}
                       className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-mono"
                     />
                   </div>
@@ -1588,6 +1772,136 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
                   )}
                 </div>
 
+                  {/* Standalone / External WhatsApp (Wi-Fi / Separate Number) Section */}
+                  <div className="bg-[#FCFBF9] border border-[#E8E4DF] p-3 rounded-lg space-y-2">
+                    <div className="flex items-center justify-between">
+                      <label className="text-[9px] uppercase tracking-wider text-[#9C9890] font-bold flex items-center gap-1.5">
+                        <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+                        Standalone / External WhatsApp (Without Physical SIM)
+                      </label>
+                      <select
+                        value={assetFields.phoneExternalWhatsapp || "No"}
+                        onChange={(e) => setAssetFields(p => ({ ...p, phoneExternalWhatsapp: e.target.value }))}
+                        className="bg-white border border-[#E8E4DF] rounded-md px-2 py-1 text-[10px] font-bold text-slate-700 focus:outline-none"
+                      >
+                        <option value="No">No (Disabled)</option>
+                        <option value="Yes">Yes (Add External Number)</option>
+                      </select>
+                    </div>
+
+                    {assetFields.phoneExternalWhatsapp === "Yes" && (
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5 pt-1">
+                        <div>
+                          <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">WhatsApp Mobile Number *</label>
+                          <input
+                            type="text"
+                            required
+                            placeholder="e.g. 9876543210"
+                            value={assetFields.phoneExternalWhatsappNo || ""}
+                            onChange={(e) => setAssetFields(p => ({ ...p, phoneExternalWhatsappNo: e.target.value }))}
+                            className="w-full bg-white border border-emerald-300 focus:border-emerald-500 rounded-lg px-3 py-1.5 text-xs text-[#1C1C1A] font-semibold"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">WhatsApp Type *</label>
+                          <select
+                            value={assetFields.phoneExternalWhatsappType || "Business"}
+                            onChange={(e) => setAssetFields(p => ({ ...p, phoneExternalWhatsappType: e.target.value }))}
+                            className="w-full bg-white border border-[#E8E4DF] focus:border-emerald-500 rounded-lg px-3 py-1.5 text-xs text-[#1C1C1A] font-semibold"
+                          >
+                            <option value="Business">WhatsApp Business</option>
+                            <option value="Personal">Personal WhatsApp</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Account Label / Remarks</label>
+                          <input
+                            type="text"
+                            placeholder="e.g. Support WA / Wi-Fi Logged-in"
+                            value={assetFields.phoneExternalWhatsappLabel || ""}
+                            onChange={(e) => setAssetFields(p => ({ ...p, phoneExternalWhatsappLabel: e.target.value }))}
+                            className="w-full bg-white border border-[#E8E4DF] focus:border-emerald-500 rounded-lg px-3 py-1.5 text-xs text-[#1C1C1A] font-semibold"
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Logged-in Social Media Applications Section */}
+                  <div className="bg-[#FCFBF9] border border-[#E8E4DF] p-3 rounded-lg space-y-2">
+                    <div className="flex items-center justify-between">
+                      <label className="text-[9px] uppercase tracking-wider text-[#9C9890] font-bold flex items-center gap-1.5">
+                        <span className="w-2 h-2 rounded-full bg-purple-500"></span>
+                        Logged-in Social Media Applications
+                      </label>
+                      <select
+                        value={assetFields.phoneSocialMedia || "No"}
+                        onChange={(e) => setAssetFields(p => ({ ...p, phoneSocialMedia: e.target.value }))}
+                        className="bg-white border border-[#E8E4DF] rounded-md px-2 py-1 text-[10px] font-bold text-slate-700 focus:outline-none"
+                      >
+                        <option value="No">No (Disabled)</option>
+                        <option value="Yes">Yes (Add Social Media Account)</option>
+                      </select>
+                    </div>
+
+                    {assetFields.phoneSocialMedia === "Yes" && (
+                      <div className="space-y-2 pt-1">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5">
+                          <div>
+                            <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Social Media App *</label>
+                            <select
+                              value={["Instagram", "Facebook", "Telegram", "X (Twitter)", "LinkedIn", "YouTube", "Snapchat"].includes(assetFields.phoneSocialMediaApp || "") ? assetFields.phoneSocialMediaApp : "Other"}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                setAssetFields(p => ({ ...p, phoneSocialMediaApp: val, phoneSocialMediaAppCustom: val === "Other" ? (p.phoneSocialMediaAppCustom || "") : "" }));
+                              }}
+                              className="w-full bg-white border border-purple-300 focus:border-purple-500 rounded-lg px-3 py-1.5 text-xs text-[#1C1C1A] font-semibold"
+                            >
+                              <option value="Instagram">Instagram</option>
+                              <option value="Facebook">Facebook</option>
+                              <option value="Telegram">Telegram</option>
+                              <option value="X (Twitter)">X (Twitter)</option>
+                              <option value="LinkedIn">LinkedIn</option>
+                              <option value="YouTube">YouTube</option>
+                              <option value="Snapchat">Snapchat</option>
+                              <option value="Other">Other</option>
+                            </select>
+                            {(assetFields.phoneSocialMediaApp === "Other" || (!["Instagram", "Facebook", "Telegram", "X (Twitter)", "LinkedIn", "YouTube", "Snapchat"].includes(assetFields.phoneSocialMediaApp || "") && assetFields.phoneSocialMediaApp)) && (
+                              <input
+                                type="text"
+                                required
+                                placeholder="Specify custom app (e.g. Threads)..."
+                                value={assetFields.phoneSocialMediaAppCustom || (assetFields.phoneSocialMediaApp !== "Other" ? assetFields.phoneSocialMediaApp : "") || ""}
+                                onChange={(e) => setAssetFields(p => ({ ...p, phoneSocialMediaAppCustom: e.target.value }))}
+                                className="mt-1.5 w-full bg-white border border-purple-400 focus:border-purple-500 rounded-lg px-3 py-1.5 text-xs text-[#1C1C1A] font-semibold"
+                              />
+                            )}
+                          </div>
+                          <div>
+                            <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Username / Handle</label>
+                            <input
+                              type="text"
+                              placeholder="e.g. @company_official (Optional)"
+                              value={assetFields.phoneSocialMediaUsername || ""}
+                              onChange={(e) => setAssetFields(p => ({ ...p, phoneSocialMediaUsername: e.target.value }))}
+                              className="w-full bg-white border border-[#E8E4DF] focus:border-purple-500 rounded-lg px-3 py-1.5 text-xs text-[#1C1C1A] font-semibold font-mono"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Account Passcode / Password</label>
+                            <input
+                              type="text"
+                              placeholder="e.g. Pass@123 (Optional)"
+                              value={assetFields.phoneSocialMediaPassword || ""}
+                              onChange={(e) => setAssetFields(p => ({ ...p, phoneSocialMediaPassword: e.target.value }))}
+                              className="w-full bg-white border border-[#E8E4DF] focus:border-purple-500 rounded-lg px-3 py-1.5 text-xs text-[#1C1C1A] font-mono"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
                 <div className="max-w-md">
                   <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Logged-in Email IDs</label>
                   <div className="space-y-2">
@@ -1691,7 +2005,7 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
                 </div>
               </div>
             ) : typeClean === "office chair / table" ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
                   <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Furniture Description *</label>
                   <input
@@ -1700,6 +2014,16 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
                     placeholder="e.g. Ergonomic Black Mesh Chair, Adjustable Back"
                     value={assetFields.furnitureDesc || ""}
                     onChange={(e) => setAssetFields(p => ({ ...p, furnitureDesc: e.target.value }))}
+                    className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Location / Cabin / Room</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Conference Room A / Cabin 3"
+                    value={assetFields.furnitureLocation || ""}
+                    onChange={(e) => setAssetFields(p => ({ ...p, furnitureLocation: e.target.value }))}
                     className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
                   />
                 </div>
@@ -1715,42 +2039,86 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
                 </div>
               </div>
             ) : typeClean === "router / networking" ? (
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Router Brand & Model *</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="e.g. TP-Link Archer C6"
-                    value={assetFields.routerModel || ""}
-                    onChange={(e) => setAssetFields(p => ({ ...p, routerModel: e.target.value }))}
-                    className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
-                  />
+              <div className="space-y-3">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Router Brand & Model *</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. TP-Link Archer C6"
+                      value={assetFields.routerModel || ""}
+                      onChange={(e) => setAssetFields(p => ({ ...p, routerModel: e.target.value }))}
+                      className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">MAC Address *</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. 00:1A:2B:3C:4D:5E"
+                      value={assetFields.routerMac || ""}
+                      onChange={(e) => setAssetFields(p => ({ ...p, routerMac: e.target.value }))}
+                      className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-mono"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Serial Number</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. SN-RTR99887"
+                      value={assetFields.routerSerial || ""}
+                      onChange={(e) => setAssetFields(p => ({ ...p, routerSerial: e.target.value }))}
+                      className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-mono"
+                    />
+                  </div>
                 </div>
-                <div>
-                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">MAC Address *</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="e.g. 00:1A:2B:3C:4D:5E"
-                    value={assetFields.routerMac || ""}
-                    onChange={(e) => setAssetFields(p => ({ ...p, routerMac: e.target.value }))}
-                    className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-mono"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Serial Number</label>
-                  <input
-                    type="text"
-                    placeholder="e.g. SN-RTR99887"
-                    value={assetFields.routerSerial || ""}
-                    onChange={(e) => setAssetFields(p => ({ ...p, routerSerial: e.target.value }))}
-                    className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-mono"
-                  />
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                  <div>
+                    <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Admin Panel IP</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. 192.168.1.1"
+                      value={assetFields.routerIp || ""}
+                      onChange={(e) => setAssetFields(p => ({ ...p, routerIp: e.target.value }))}
+                      className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-mono"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Admin Username & Password</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. admin / pass123"
+                      value={assetFields.routerAdminPass || ""}
+                      onChange={(e) => setAssetFields(p => ({ ...p, routerAdminPass: e.target.value }))}
+                      className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-mono"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Wi-Fi SSID & Password</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. CFI_5G / Pass@2026"
+                      value={assetFields.routerWifiSsid || ""}
+                      onChange={(e) => setAssetFields(p => ({ ...p, routerWifiSsid: e.target.value }))}
+                      className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">ISP / Broadband Connection</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Airtel Fiber / BSNL FTTH"
+                      value={assetFields.routerIsp || ""}
+                      onChange={(e) => setAssetFields(p => ({ ...p, routerIsp: e.target.value }))}
+                      className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                    />
+                  </div>
                 </div>
               </div>
             ) : typeClean === "printer / scanner" ? (
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
                 <div>
                   <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Printer Brand & Model *</label>
                   <input
@@ -1773,7 +2141,17 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
                     <option value="Inkjet Printer">Inkjet Printer</option>
                     <option value="Flatbed Scanner">Flatbed Scanner</option>
                     <option value="Multi-Function Printer">Multi-Function Printer</option>
+                    <option value="Other">Other</option>
                   </select>
+                  {assetFields.printerType === "Other" && (
+                    <input
+                      type="text"
+                      placeholder="Specify custom type..."
+                      value={assetFields.printerTypeCustom || ""}
+                      onChange={(e) => setAssetFields(p => ({ ...p, printerTypeCustom: e.target.value }))}
+                      className="mt-1.5 w-full bg-white border border-[#C9A84C] focus:border-[#C9A84C] rounded-lg px-3 py-1.5 text-xs text-[#1C1C1A] font-semibold"
+                    />
+                  )}
                 </div>
                 <div>
                   <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Serial Number *</label>
@@ -1784,6 +2162,26 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
                     value={assetFields.printerSerial || ""}
                     onChange={(e) => setAssetFields(p => ({ ...p, printerSerial: e.target.value }))}
                     className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-mono"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Printer IP Address</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. 192.168.1.200"
+                    value={assetFields.printerIp || ""}
+                    onChange={(e) => setAssetFields(p => ({ ...p, printerIp: e.target.value }))}
+                    className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-mono"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Toner / Cartridge Model</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. HP 88A / Canon 325"
+                    value={assetFields.printerCartridge || ""}
+                    onChange={(e) => setAssetFields(p => ({ ...p, printerCartridge: e.target.value }))}
+                    className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
                   />
                 </div>
               </div>
@@ -1815,9 +2213,10 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
-                <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Purchase Date</label>
+                <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Purchase Date (DD/MM/YYYY)</label>
                 <input
                   type="date"
+                  placeholder="dd/mm/yyyy"
                   value={registerForm.purchaseDate}
                   onChange={(e) => setRegisterForm(p => ({ ...p, purchaseDate: e.target.value }))}
                   className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
@@ -2139,8 +2538,10 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
                       {isOwner && <th className="p-3">Requested By</th>}
                       <th className="p-3">Asset Type</th>
                       <th className="p-3">Details</th>
+                      <th className="p-3">Qty</th>
                       <th className="p-3">Cost</th>
-                      <th className="p-3">Vendor</th>
+                      <th className="p-3">Vendor / Delivery</th>
+                      <th className="p-3">Quotation</th>
                       <th className="p-3">Justification</th>
                       <th className="p-3">Status</th>
                       <th className="p-3 text-right">Actions</th>
@@ -2163,9 +2564,29 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
                             )}
                           </div>
                         </td>
-                        <td className="p-3 max-w-[200px] truncate">{req.asset_detail}</td>
+                        <td className="p-3 max-w-[180px] truncate">{req.asset_detail}</td>
+                        <td className="p-3 font-mono font-bold text-slate-900">{req.quantity || 1} Pcs</td>
                         <td className="p-3 font-bold text-[#1C1C1A]">₹{req.estimated_cost}</td>
-                        <td className="p-3">{req.vendor_details}</td>
+                        <td className="p-3">
+                          <div className="font-semibold text-slate-800">{req.vendor_details}</div>
+                          {req.expected_delivery_date && (
+                            <div className="text-[9px] text-indigo-700 font-bold mt-0.5">
+                              Est Delivery: {formatDateDDMMYY(req.expected_delivery_date)}
+                            </div>
+                          )}
+                        </td>
+                        <td className="p-3">
+                          {req.quotation_url ? (
+                            <div 
+                              className="w-10 h-10 rounded border border-[#E8E4DF] overflow-hidden bg-slate-50 flex-shrink-0 cursor-pointer hover:scale-105 transition-transform"
+                              onClick={() => setPreviewImageUrl(req.quotation_url)}
+                            >
+                              <img src={req.quotation_url} alt="Quotation preview" className="w-full h-full object-cover" />
+                            </div>
+                          ) : (
+                            <span className="text-[10px] text-slate-400 italic">No File</span>
+                          )}
+                        </td>
                         <td className="p-3 max-w-[180px] truncate" title={req.justification}>{req.justification || "N/A"}</td>
                         <td className="p-3">
                           <div className="flex flex-col gap-1">
@@ -2351,7 +2772,19 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-black mb-1">Quantity *</label>
+                  <input
+                    type="number"
+                    min={1}
+                    required
+                    placeholder="e.g. 1"
+                    value={purchaseForm.quantity}
+                    onChange={(e) => setPurchaseForm(p => ({ ...p, quantity: Math.max(1, Number(e.target.value) || 1) }))}
+                    className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] placeholder-[#9C9890] focus:outline-none transition-all font-semibold font-mono"
+                  />
+                </div>
                 <div>
                   <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-black mb-1">Estimated Cost (₹) *</label>
                   <input
@@ -2364,10 +2797,10 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
                   />
                 </div>
                 <div>
-                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-black mb-1">Vendor / Sourced From *</label>
+                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-black mb-1">Vendor / Source *</label>
                   <input
                     type="text"
-                    placeholder="e.g. Amazon / Local Store"
+                    placeholder="e.g. Amazon / Store"
                     required
                     value={purchaseForm.vendor_details}
                     onChange={(e) => setPurchaseForm(p => ({ ...p, vendor_details: e.target.value }))}
@@ -2376,18 +2809,66 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
                 </div>
               </div>
 
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-black mb-1">Expected Delivery Date (DD/MM/YYYY)</label>
+                  <input
+                    type="date"
+                    placeholder="dd/mm/yyyy"
+                    value={purchaseForm.expected_delivery_date}
+                    onChange={(e) => setPurchaseForm(p => ({ ...p, expected_delivery_date: e.target.value }))}
+                    className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-black mb-1">Company (Optional)</label>
+                  <select
+                    value={purchaseForm.company_id}
+                    onChange={(e) => setPurchaseForm(p => ({ ...p, company_id: e.target.value }))}
+                    className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                  >
+                    <option value="">-- Choose Company --</option>
+                    {companies.map(c => (
+                      <option key={c.id} value={c.id}>{c.name}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
               <div>
-                <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-black mb-1">Company (Optional)</label>
-                <select
-                  value={purchaseForm.company_id}
-                  onChange={(e) => setPurchaseForm(p => ({ ...p, company_id: e.target.value }))}
-                  className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
-                >
-                  <option value="">-- Choose Company --</option>
-                  {companies.map(c => (
-                    <option key={c.id} value={c.id}>{c.name}</option>
-                  ))}
-                </select>
+                <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-black mb-1">Vendor Quotation / Price Screenshot</label>
+                <div className="flex gap-3 items-center">
+                  <input
+                    type="file"
+                    accept="image/*,.pdf"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      if (file.size > 5 * 1024 * 1024) {
+                        triggerToast("File size should be less than 5MB");
+                        return;
+                      }
+                      const reader = new FileReader();
+                      reader.onloadend = () => {
+                        setPurchaseForm(p => ({ ...p, quotation_url: reader.result as string }));
+                      };
+                      reader.readAsDataURL(file);
+                    }}
+                    className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-1.5 text-xs text-[#1C1C1A] focus:outline-none transition-all file:mr-3 file:py-1 file:px-2.5 file:rounded-md file:border-0 file:text-[10px] file:font-bold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100"
+                  />
+                  {purchaseForm.quotation_url && (
+                    <div className="relative w-10 h-10 rounded-lg border border-[#E8E4DF] overflow-hidden bg-slate-50 flex-shrink-0 shadow-sm group">
+                      <img src={purchaseForm.quotation_url} alt="Quotation preview" className="w-full h-full object-cover" />
+                      <button
+                        type="button"
+                        onClick={() => setPurchaseForm(prev => ({ ...prev, quotation_url: "" }))}
+                        className="absolute inset-0 bg-black/60 text-white text-[7px] font-black uppercase opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  )}
+                </div>
               </div>
 
               <div>
@@ -2570,27 +3051,53 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
                   <div>
                     <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Telecom Operator *</label>
                     <select
-                      value={editAssetFields.simOperator || "Jio"}
-                      onChange={(e) => setEditAssetFields(p => ({ ...p, simOperator: e.target.value }))}
+                      value={["Jio", "Airtel", "Vodafone Idea (Vi)", "BSNL"].includes(editAssetFields.simOperator || "") ? editAssetFields.simOperator : "Other"}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setEditAssetFields(p => ({ ...p, simOperator: val, simOperatorCustom: val === "Other" ? (p.simOperatorCustom || "") : "" }));
+                      }}
                       className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
                     >
                       <option value="Jio">Jio</option>
                       <option value="Airtel">Airtel</option>
                       <option value="Vodafone Idea (Vi)">Vodafone Idea (Vi)</option>
                       <option value="BSNL">BSNL</option>
+                      <option value="Other">Other</option>
                     </select>
+                    {(!["Jio", "Airtel", "Vodafone Idea (Vi)", "BSNL"].includes(editAssetFields.simOperator || "") || editAssetFields.simOperator === "Other") && (
+                      <input
+                        type="text"
+                        placeholder="Specify custom operator..."
+                        value={editAssetFields.simOperatorCustom || (editAssetFields.simOperator !== "Other" ? editAssetFields.simOperator : "") || ""}
+                        onChange={(e) => setEditAssetFields(p => ({ ...p, simOperatorCustom: e.target.value }))}
+                        className="mt-1.5 w-full bg-white border border-[#C9A84C] focus:border-[#C9A84C] rounded-lg px-3 py-1.5 text-xs text-[#1C1C1A] font-semibold"
+                      />
+                    )}
                   </div>
                   <div>
                     <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Network Type</label>
                     <select
-                      value={editAssetFields.simNetwork || "5G"}
-                      onChange={(e) => setEditAssetFields(p => ({ ...p, simNetwork: e.target.value }))}
+                      value={["5G", "4G", "3G"].includes(editAssetFields.simNetwork || "") ? editAssetFields.simNetwork : "Other"}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setEditAssetFields(p => ({ ...p, simNetwork: val, simNetworkCustom: val === "Other" ? (p.simNetworkCustom || "") : "" }));
+                      }}
                       className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
                     >
                       <option value="5G">5G</option>
                       <option value="4G">4G</option>
                       <option value="3G">3G</option>
+                      <option value="Other">Other</option>
                     </select>
+                    {(!["5G", "4G", "3G"].includes(editAssetFields.simNetwork || "") || editAssetFields.simNetwork === "Other") && (
+                      <input
+                        type="text"
+                        placeholder="Specify custom network..."
+                        value={editAssetFields.simNetworkCustom || (editAssetFields.simNetwork !== "Other" ? editAssetFields.simNetwork : "") || ""}
+                        onChange={(e) => setEditAssetFields(p => ({ ...p, simNetworkCustom: e.target.value }))}
+                        className="mt-1.5 w-full bg-white border border-[#C9A84C] focus:border-[#C9A84C] rounded-lg px-3 py-1.5 text-xs text-[#1C1C1A] font-semibold"
+                      />
+                    )}
                   </div>
                   <div>
                     <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">SIM Card Number / ICCID</label>
@@ -2737,8 +3244,8 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div>
+                  <div className="space-y-3">
+                    <div className="max-w-xs">
                       <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">SIM Slots Used</label>
                       <select
                         value={editAssetFields.phoneSimSlots || "None"}
@@ -2750,145 +3257,204 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
                         <option value="2 SIMs">2 SIMs</option>
                       </select>
                     </div>
+
                     {(editAssetFields.phoneSimSlots === "1 SIM" || editAssetFields.phoneSimSlots === "2 SIMs") && (
-                      <div className="bg-[#FCFBF9] border border-[#E8E4DF] p-3 rounded-lg space-y-2">
-                        <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold">SIM 1 Config</label>
-                        <div className="grid grid-cols-2 gap-2">
-                          <div>
-                            <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">SIM 1 Mobile Number *</label>
-                            <input
-                              type="text"
-                              required
-                              placeholder="e.g. 9876543210"
-                              value={editAssetFields.phoneSim1No || ""}
-                              onChange={(e) => setEditAssetFields(p => ({ ...p, phoneSim1No: e.target.value }))}
-                              className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">SIM 1 Company / Operator</label>
-                            <select
-                              value={["Jio", "Airtel", "Vodafone Idea (Vi)", "BSNL"].includes(editAssetFields.phoneSim1Operator || "") ? editAssetFields.phoneSim1Operator : "Other"}
-                              onChange={(e) => {
-                                const val = e.target.value;
-                                setEditAssetFields(p => ({ ...p, phoneSim1Operator: val, phoneSim1OperatorCustom: val === "Other" ? (p.phoneSim1OperatorCustom || "") : "" }));
-                              }}
-                              className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
-                            >
-                              <option value="Jio">Jio</option>
-                              <option value="Airtel">Airtel</option>
-                              <option value="Vodafone Idea (Vi)">Vodafone Idea (Vi)</option>
-                              <option value="BSNL">BSNL</option>
-                              <option value="Other">Other (Custom Company)</option>
-                            </select>
-                            {(editAssetFields.phoneSim1Operator === "Other" || (!["Jio", "Airtel", "Vodafone Idea (Vi)", "BSNL"].includes(editAssetFields.phoneSim1Operator || "") && editAssetFields.phoneSim1Operator)) && (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="bg-[#FCFBF9] border border-[#E8E4DF] p-3 rounded-lg space-y-2">
+                          <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold">SIM 1 Config</label>
+                          <div className="grid grid-cols-2 gap-2">
+                            <div>
+                              <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">SIM 1 Mobile Number *</label>
                               <input
                                 type="text"
                                 required
-                                placeholder="Enter SIM Company Name..."
-                                value={editAssetFields.phoneSim1OperatorCustom !== undefined ? editAssetFields.phoneSim1OperatorCustom : (["Jio", "Airtel", "Vodafone Idea (Vi)", "BSNL", "Other"].includes(editAssetFields.phoneSim1Operator || "") ? "" : editAssetFields.phoneSim1Operator || "")}
-                                onChange={(e) => setEditAssetFields(p => ({ ...p, phoneSim1OperatorCustom: e.target.value }))}
-                                className="mt-1.5 w-full bg-white border border-[#C9A84C] focus:border-[#C9A84C] rounded-lg px-3 py-1.5 text-xs text-[#1C1C1A] placeholder-[#9C9890] focus:outline-none font-semibold shadow-sm"
+                                placeholder="e.g. 9876543210"
+                                value={editAssetFields.phoneSim1No || ""}
+                                onChange={(e) => setEditAssetFields(p => ({ ...p, phoneSim1No: e.target.value }))}
+                                className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
                               />
+                            </div>
+                            <div>
+                              <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">SIM 1 Company / Operator</label>
+                              <select
+                                value={["Jio", "Airtel", "Vodafone Idea (Vi)", "BSNL"].includes(editAssetFields.phoneSim1Operator || "") ? editAssetFields.phoneSim1Operator : "Other"}
+                                onChange={(e) => {
+                                  const val = e.target.value;
+                                  setEditAssetFields(p => ({ ...p, phoneSim1Operator: val, phoneSim1OperatorCustom: val === "Other" ? (p.phoneSim1OperatorCustom || "") : "" }));
+                                }}
+                                className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                              >
+                                <option value="Jio">Jio</option>
+                                <option value="Airtel">Airtel</option>
+                                <option value="Vodafone Idea (Vi)">Vodafone Idea (Vi)</option>
+                                <option value="BSNL">BSNL</option>
+                                <option value="Other">Other (Custom Company)</option>
+                              </select>
+                              {(editAssetFields.phoneSim1Operator === "Other" || (!["Jio", "Airtel", "Vodafone Idea (Vi)", "BSNL"].includes(editAssetFields.phoneSim1Operator || "") && editAssetFields.phoneSim1Operator)) && (
+                                <input
+                                  type="text"
+                                  required
+                                  placeholder="Enter SIM Company Name..."
+                                  value={editAssetFields.phoneSim1OperatorCustom !== undefined ? editAssetFields.phoneSim1OperatorCustom : (["Jio", "Airtel", "Vodafone Idea (Vi)", "BSNL", "Other"].includes(editAssetFields.phoneSim1Operator || "") ? "" : editAssetFields.phoneSim1Operator || "")}
+                                  onChange={(e) => setEditAssetFields(p => ({ ...p, phoneSim1OperatorCustom: e.target.value }))}
+                                  className="mt-1.5 w-full bg-white border border-[#C9A84C] focus:border-[#C9A84C] rounded-lg px-3 py-1.5 text-xs text-[#1C1C1A] placeholder-[#9C9890] focus:outline-none font-semibold shadow-sm"
+                                />
+                              )}
+                            </div>
+                          </div>
+                          <div className="grid grid-cols-2 gap-2">
+                            <div>
+                              <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">WhatsApp On?</label>
+                              <select
+                                value={editAssetFields.phoneSim1Whatsapp || "No"}
+                                onChange={(e) => setEditAssetFields(p => ({ ...p, phoneSim1Whatsapp: e.target.value }))}
+                                className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                              >
+                                <option value="No">No</option>
+                                <option value="Yes">Yes</option>
+                              </select>
+                            </div>
+                            {editAssetFields.phoneSim1Whatsapp === "Yes" && (
+                              <div>
+                                <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">WhatsApp Type</label>
+                                <select
+                                  value={editAssetFields.phoneSim1WhatsappType || "Personal"}
+                                  onChange={(e) => setEditAssetFields(p => ({ ...p, phoneSim1WhatsappType: e.target.value }))}
+                                  className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                                >
+                                  <option value="Personal">Personal</option>
+                                  <option value="Business">Business</option>
+                                </select>
+                              </div>
                             )}
                           </div>
                         </div>
-                        <div className="grid grid-cols-2 gap-2">
-                          <div>
-                            <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">WhatsApp On?</label>
-                            <select
-                              value={editAssetFields.phoneSim1Whatsapp || "No"}
-                              onChange={(e) => setEditAssetFields(p => ({ ...p, phoneSim1Whatsapp: e.target.value }))}
-                              className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
-                            >
-                              <option value="No">No</option>
-                              <option value="Yes">Yes</option>
-                            </select>
-                          </div>
-                          {editAssetFields.phoneSim1Whatsapp === "Yes" && (
-                            <div>
-                              <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">WhatsApp Type</label>
-                              <select
-                                value={editAssetFields.phoneSim1WhatsappType || "Personal"}
-                                onChange={(e) => setEditAssetFields(p => ({ ...p, phoneSim1WhatsappType: e.target.value }))}
-                                className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
-                              >
-                                <option value="Personal">Personal</option>
-                                <option value="Business">Business</option>
-                              </select>
+
+                        {editAssetFields.phoneSimSlots === "2 SIMs" && (
+                          <div className="bg-[#FCFBF9] border border-[#E8E4DF] p-3 rounded-lg space-y-2">
+                            <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold">SIM 2 Config</label>
+                            <div className="grid grid-cols-2 gap-2">
+                              <div>
+                                <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">SIM 2 Mobile Number *</label>
+                                <input
+                                  type="text"
+                                  required
+                                  placeholder="e.g. 9876543211"
+                                  value={editAssetFields.phoneSim2No || ""}
+                                  onChange={(e) => setEditAssetFields(p => ({ ...p, phoneSim2No: e.target.value }))}
+                                  className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">SIM 2 Company / Operator</label>
+                                <select
+                                  value={["Jio", "Airtel", "Vodafone Idea (Vi)", "BSNL"].includes(editAssetFields.phoneSim2Operator || "") ? editAssetFields.phoneSim2Operator : "Other"}
+                                  onChange={(e) => {
+                                    const val = e.target.value;
+                                    setEditAssetFields(p => ({ ...p, phoneSim2Operator: val, phoneSim2OperatorCustom: val === "Other" ? (p.phoneSim2OperatorCustom || "") : "" }));
+                                  }}
+                                  className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                                >
+                                  <option value="Jio">Jio</option>
+                                  <option value="Airtel">Airtel</option>
+                                  <option value="Vodafone Idea (Vi)">Vodafone Idea (Vi)</option>
+                                  <option value="BSNL">BSNL</option>
+                                  <option value="Other">Other (Custom Company)</option>
+                                </select>
+                                {(editAssetFields.phoneSim2Operator === "Other" || (!["Jio", "Airtel", "Vodafone Idea (Vi)", "BSNL"].includes(editAssetFields.phoneSim2Operator || "") && editAssetFields.phoneSim2Operator)) && (
+                                  <input
+                                    type="text"
+                                    required
+                                    placeholder="Enter SIM Company Name..."
+                                    value={editAssetFields.phoneSim2OperatorCustom !== undefined ? editAssetFields.phoneSim2OperatorCustom : (["Jio", "Airtel", "Vodafone Idea (Vi)", "BSNL", "Other"].includes(editAssetFields.phoneSim2Operator || "") ? "" : editAssetFields.phoneSim2Operator || "")}
+                                    onChange={(e) => setEditAssetFields(p => ({ ...p, phoneSim2OperatorCustom: e.target.value }))}
+                                    className="mt-1.5 w-full bg-white border border-[#C9A84C] focus:border-[#C9A84C] rounded-lg px-3 py-1.5 text-xs text-[#1C1C1A] placeholder-[#9C9890] focus:outline-none font-semibold shadow-sm"
+                                  />
+                                )}
+                              </div>
                             </div>
-                          )}
-                        </div>
+                            <div className="grid grid-cols-2 gap-2">
+                              <div>
+                                <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">WhatsApp On?</label>
+                                <select
+                                  value={editAssetFields.phoneSim2Whatsapp || "No"}
+                                  onChange={(e) => setEditAssetFields(p => ({ ...p, phoneSim2Whatsapp: e.target.value }))}
+                                  className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                                >
+                                  <option value="No">No</option>
+                                  <option value="Yes">Yes</option>
+                                </select>
+                              </div>
+                              {editAssetFields.phoneSim2Whatsapp === "Yes" && (
+                                <div>
+                                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">WhatsApp Type</label>
+                                  <select
+                                    value={editAssetFields.phoneSim2WhatsappType || "Personal"}
+                                    onChange={(e) => setEditAssetFields(p => ({ ...p, phoneSim2WhatsappType: e.target.value }))}
+                                    className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                                  >
+                                    <option value="Personal">Personal</option>
+                                    <option value="Business">Business</option>
+                                  </select>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        )}
                       </div>
                     )}
-                    {editAssetFields.phoneSimSlots === "2 SIMs" && (
-                      <div className="bg-[#FCFBF9] border border-[#E8E4DF] p-3 rounded-lg space-y-2">
-                        <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold">SIM 2 Config</label>
-                        <div className="grid grid-cols-2 gap-2">
-                          <div>
-                            <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">SIM 2 Mobile Number *</label>
-                            <input
-                              type="text"
-                              required
-                              placeholder="e.g. 9876543211"
-                              value={editAssetFields.phoneSim2No || ""}
-                              onChange={(e) => setEditAssetFields(p => ({ ...p, phoneSim2No: e.target.value }))}
-                              className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">SIM 2 Company / Operator</label>
-                            <select
-                              value={["Jio", "Airtel", "Vodafone Idea (Vi)", "BSNL"].includes(editAssetFields.phoneSim2Operator || "") ? editAssetFields.phoneSim2Operator : "Other"}
-                              onChange={(e) => {
-                                const val = e.target.value;
-                                setEditAssetFields(p => ({ ...p, phoneSim2Operator: val, phoneSim2OperatorCustom: val === "Other" ? (p.phoneSim2OperatorCustom || "") : "" }));
-                              }}
-                              className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
-                            >
-                              <option value="Jio">Jio</option>
-                              <option value="Airtel">Airtel</option>
-                              <option value="Vodafone Idea (Vi)">Vodafone Idea (Vi)</option>
-                              <option value="BSNL">BSNL</option>
-                              <option value="Other">Other (Custom Company)</option>
-                            </select>
-                            {(editAssetFields.phoneSim2Operator === "Other" || (!["Jio", "Airtel", "Vodafone Idea (Vi)", "BSNL"].includes(editAssetFields.phoneSim2Operator || "") && editAssetFields.phoneSim2Operator)) && (
-                              <input
-                                type="text"
-                                required
-                                placeholder="Enter SIM Company Name..."
-                                value={editAssetFields.phoneSim2OperatorCustom !== undefined ? editAssetFields.phoneSim2OperatorCustom : (["Jio", "Airtel", "Vodafone Idea (Vi)", "BSNL", "Other"].includes(editAssetFields.phoneSim2Operator || "") ? "" : editAssetFields.phoneSim2Operator || "")}
-                                onChange={(e) => setEditAssetFields(p => ({ ...p, phoneSim2OperatorCustom: e.target.value }))}
-                                className="mt-1.5 w-full bg-white border border-[#C9A84C] focus:border-[#C9A84C] rounded-lg px-3 py-1.5 text-xs text-[#1C1C1A] placeholder-[#9C9890] focus:outline-none font-semibold shadow-sm"
-                              />
-                            )}
-                          </div>
+                  </div>
+
+                  {/* Standalone / External WhatsApp (Wi-Fi / Separate Number) Section */}
+                  <div className="bg-[#FCFBF9] border border-[#E8E4DF] p-3 rounded-lg space-y-2">
+                    <div className="flex items-center justify-between">
+                      <label className="text-[9px] uppercase tracking-wider text-[#9C9890] font-bold flex items-center gap-1.5">
+                        <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+                        Standalone / External WhatsApp (Without Physical SIM)
+                      </label>
+                      <select
+                        value={editAssetFields.phoneExternalWhatsapp || "No"}
+                        onChange={(e) => setEditAssetFields(p => ({ ...p, phoneExternalWhatsapp: e.target.value }))}
+                        className="bg-white border border-[#E8E4DF] rounded-md px-2 py-1 text-[10px] font-bold text-slate-700 focus:outline-none"
+                      >
+                        <option value="No">No (Disabled)</option>
+                        <option value="Yes">Yes (Add External Number)</option>
+                      </select>
+                    </div>
+
+                    {editAssetFields.phoneExternalWhatsapp === "Yes" && (
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5 pt-1">
+                        <div>
+                          <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">WhatsApp Mobile Number *</label>
+                          <input
+                            type="text"
+                            required
+                            placeholder="e.g. 9876543210"
+                            value={editAssetFields.phoneExternalWhatsappNo || ""}
+                            onChange={(e) => setEditAssetFields(p => ({ ...p, phoneExternalWhatsappNo: e.target.value }))}
+                            className="w-full bg-white border border-emerald-300 focus:border-emerald-500 rounded-lg px-3 py-1.5 text-xs text-[#1C1C1A] font-semibold"
+                          />
                         </div>
-                        <div className="grid grid-cols-2 gap-2">
-                          <div>
-                            <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">WhatsApp On?</label>
-                            <select
-                              value={editAssetFields.phoneSim2Whatsapp || "No"}
-                              onChange={(e) => setEditAssetFields(p => ({ ...p, phoneSim2Whatsapp: e.target.value }))}
-                              className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
-                            >
-                              <option value="No">No</option>
-                              <option value="Yes">Yes</option>
-                            </select>
-                          </div>
-                          {editAssetFields.phoneSim2Whatsapp === "Yes" && (
-                            <div>
-                              <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">WhatsApp Type</label>
-                              <select
-                                value={editAssetFields.phoneSim2WhatsappType || "Personal"}
-                                onChange={(e) => setEditAssetFields(p => ({ ...p, phoneSim2WhatsappType: e.target.value }))}
-                                className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
-                              >
-                                <option value="Personal">Personal</option>
-                                <option value="Business">Business</option>
-                              </select>
-                            </div>
-                          )}
+                        <div>
+                          <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">WhatsApp Type *</label>
+                          <select
+                            value={editAssetFields.phoneExternalWhatsappType || "Business"}
+                            onChange={(e) => setEditAssetFields(p => ({ ...p, phoneExternalWhatsappType: e.target.value }))}
+                            className="w-full bg-white border border-[#E8E4DF] focus:border-emerald-500 rounded-lg px-3 py-1.5 text-xs text-[#1C1C1A] font-semibold"
+                          >
+                            <option value="Business">WhatsApp Business</option>
+                            <option value="Personal">Personal WhatsApp</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Account Label / Remarks</label>
+                          <input
+                            type="text"
+                            placeholder="e.g. Support WA / Wi-Fi Logged-in"
+                            value={editAssetFields.phoneExternalWhatsappLabel || ""}
+                            onChange={(e) => setEditAssetFields(p => ({ ...p, phoneExternalWhatsappLabel: e.target.value }))}
+                            className="w-full bg-white border border-[#E8E4DF] focus:border-emerald-500 rounded-lg px-3 py-1.5 text-xs text-[#1C1C1A] font-semibold"
+                          />
                         </div>
                       </div>
                     )}
@@ -3245,6 +3811,16 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
                         <div><span className="text-[#9C9890] block text-[9px]">SERIAL NUMBER / IMEI:</span> <span className="font-mono">{viewingAsset.serialNumber || "N/A"}</span></div>
                         {fields.phoneImei2 && <div><span className="text-[#9C9890] block text-[9px]">IMEI NUMBER 2:</span> <span className="font-mono">{fields.phoneImei2}</span></div>}
                         {(fields.phoneSpecs || fields.laptopSpecs) && <div><span className="text-[#9C9890] block text-[9px]">RAM & STORAGE / SPECS:</span> {fields.phoneSpecs || fields.laptopSpecs}</div>}
+                        {fields.laptopOs && <div><span className="text-[#9C9890] block text-[9px]">OPERATING SYSTEM (OS):</span> {fields.laptopOs}</div>}
+                        {fields.laptopHostName && <div><span className="text-[#9C9890] block text-[9px]">HOST NAME:</span> <span className="font-mono font-bold text-indigo-900">{fields.laptopHostName}</span></div>}
+                        {fields.laptopCharger && <div><span className="text-[#9C9890] block text-[9px]">CHARGER INCLUDED:</span> {fields.laptopCharger}</div>}
+                        {fields.laptopBag && <div><span className="text-[#9C9890] block text-[9px]">BAG & MOUSE:</span> {fields.laptopBag}</div>}
+                        {fields.simPlanType && <div><span className="text-[#9C9890] block text-[9px]">SIM PLAN TYPE:</span> {fields.simPlanType}</div>}
+                        {fields.simPuk && <div><span className="text-[#9C9890] block text-[9px]">SIM PUK / PIN:</span> <span className="font-mono">{fields.simPuk}</span></div>}
+                        {fields.routerWifiSsid && <div><span className="text-[#9C9890] block text-[9px]">WI-FI SSID & PASS:</span> {fields.routerWifiSsid}</div>}
+                        {fields.routerIp && <div><span className="text-[#9C9890] block text-[9px]">ADMIN IP:</span> <span className="font-mono">{fields.routerIp}</span></div>}
+                        {fields.printerCartridge && <div><span className="text-[#9C9890] block text-[9px]">TONER / CARTRIDGE:</span> <span className="font-bold text-amber-900">{fields.printerCartridge}</span></div>}
+                        {fields.furnitureLocation && <div><span className="text-[#9C9890] block text-[9px]">LOCATION / CABIN:</span> {fields.furnitureLocation}</div>}
                         <div><span className="text-[#9C9890] block text-[9px]">CONDITION:</span> {viewingAsset.condition || "Good"}</div>
                         <div><span className="text-[#9C9890] block text-[9px]">STATUS:</span> {viewingAsset.status || "Available"}</div>
                       </div>
@@ -3269,27 +3845,80 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
                     )}
 
                     {/* SIM & Operator Config */}
-                    {(fields.simOperator || fields.phoneSim1No || fields.phoneSim2No) && (
-                      <div className="bg-sky-50/50 border border-sky-200/60 rounded-xl p-4 space-y-2">
-                        <h4 className="text-[10px] font-bold text-sky-800 uppercase tracking-wider">SIM Card & Operator Details</h4>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 font-semibold text-slate-700">
-                          {fields.simOperator && <div><span className="text-sky-900/60 block text-[9px]">TELECOM OPERATOR / COMPANY:</span> {fields.simOperator}</div>}
-                          {fields.phoneSim1No && (
-                            <div>
-                              <span className="text-sky-900/60 block text-[9px]">SIM 1 CONFIG:</span> 
-                              {fields.phoneSim1No} {fields.phoneSim1Operator ? `(${fields.phoneSim1Operator})` : ""} {fields.phoneSim1Whatsapp === "Yes" ? `[WhatsApp: Yes]` : ""}
-                            </div>
-                          )}
-                          {fields.phoneSim2No && (
-                            <div>
-                              <span className="text-sky-900/60 block text-[9px]">SIM 2 CONFIG:</span> 
-                              {fields.phoneSim2No} {fields.phoneSim2Operator ? `(${fields.phoneSim2Operator})` : ""} {fields.phoneSim2Whatsapp === "Yes" ? `[WhatsApp: Yes]` : ""}
-                            </div>
-                          )}
-                          {fields.simIccid && <div><span className="text-sky-900/60 block text-[9px]">SIM ICCID / BARCODE:</span> <span className="font-mono">{fields.simIccid}</span></div>}
+                    {(() => {
+                      const notesStr = viewingAsset.notes || "";
+                      const sim1OpFromNotes = notesStr.match(/SIM 1[^\[]*\[Company:\s*([^\]]+)\]/i)?.[1] || notesStr.match(/\[Company:\s*([^\]]+)\]/i)?.[1] || "";
+                      const sim2OpFromNotes = notesStr.match(/SIM 2[^\[]*\[Company:\s*([^\]]+)\]/i)?.[1] || "";
+
+                      const sim1Op = fields.phoneSim1OperatorCustom || (fields.phoneSim1Operator && fields.phoneSim1Operator !== "Other" ? fields.phoneSim1Operator : "") || sim1OpFromNotes || (fields.phoneSim1Operator !== "Other" ? fields.phoneSim1Operator : "") || fields.simOperator || "";
+                      const sim2Op = fields.phoneSim2OperatorCustom || (fields.phoneSim2Operator && fields.phoneSim2Operator !== "Other" ? fields.phoneSim2Operator : "") || sim2OpFromNotes || (fields.phoneSim2Operator !== "Other" ? fields.phoneSim2Operator : "") || "";
+
+                      const sim1No = fields.phoneSim1No || notesStr.match(/SIM 1 (?:Mobile No|No|Number|CONFIG):\s*([0-9\s+]+)/i)?.[1] || notesStr.match(/SIM 1:\s*([0-9\s+]+)/i)?.[1] || "";
+                      const sim2No = fields.phoneSim2No || notesStr.match(/SIM 2 (?:Mobile No|No|Number|CONFIG):\s*([0-9\s+]+)/i)?.[1] || notesStr.match(/SIM 2:\s*([0-9\s+]+)/i)?.[1] || "";
+
+                      const sim1Wa = fields.phoneSim1Whatsapp || notesStr.match(/SIM 1[^\[]*\[WhatsApp:\s*([^\]]+)\]/i)?.[1] || "";
+                      const sim2Wa = fields.phoneSim2Whatsapp || notesStr.match(/SIM 2[^\[]*\[WhatsApp:\s*([^\]]+)\]/i)?.[1] || "";
+
+                      if (!fields.simOperator && !sim1No && !sim2No && !sim1Op && !sim2Op) return null;
+
+                      return (
+                        <div className="bg-sky-50/50 border border-sky-200/60 rounded-xl p-4 space-y-2">
+                          <h4 className="text-[10px] font-bold text-sky-800 uppercase tracking-wider">SIM Card & Operator Details</h4>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 font-semibold text-slate-700">
+                            {fields.simOperator && <div><span className="text-sky-900/60 block text-[9px]">TELECOM OPERATOR / COMPANY:</span> <span className="font-bold text-sky-900">{fields.simOperator}</span></div>}
+                            {(sim1No || sim1Op) && (
+                              <div>
+                                <span className="text-sky-900/60 block text-[9px]">SIM 1 CONFIG:</span> 
+                                <span className="font-mono font-bold text-slate-900">{sim1No || "N/A"}</span>
+                                {sim1Op ? <span className="ml-1.5 text-sky-800 font-bold bg-white px-2 py-0.5 rounded border border-sky-200 shadow-xs">({sim1Op})</span> : ""}
+                                {sim1Wa ? <span className="ml-1.5 text-[10px] text-emerald-700 font-bold bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">[WhatsApp: {sim1Wa}]</span> : ""}
+                              </div>
+                            )}
+                            {(sim2No || sim2Op) && (
+                              <div>
+                                <span className="text-sky-900/60 block text-[9px]">SIM 2 CONFIG:</span> 
+                                <span className="font-mono font-bold text-slate-900">{sim2No || "N/A"}</span>
+                                {sim2Op ? <span className="ml-1.5 text-sky-800 font-bold bg-white px-2 py-0.5 rounded border border-sky-200 shadow-xs">({sim2Op})</span> : ""}
+                                {sim2Wa ? <span className="ml-1.5 text-[10px] text-emerald-700 font-bold bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">[WhatsApp: {sim2Wa}]</span> : ""}
+                              </div>
+                            )}
+                            {fields.simIccid && <div><span className="text-sky-900/60 block text-[9px]">SIM ICCID / BARCODE:</span> <span className="font-mono">{fields.simIccid}</span></div>}
+                            {(fields.phoneExternalWhatsappNo || notesStr.match(/External WhatsApp:\s*([0-9\s+]+)/i)?.[1]) && (
+                              <div className="col-span-2 bg-emerald-50/70 border border-emerald-200/80 p-2.5 rounded-lg">
+                                <span className="text-emerald-900/70 block text-[9px] font-bold">EXTERNAL / STANDALONE WHATSAPP (WITHOUT PHYSICAL SIM):</span>
+                                <span className="font-mono font-bold text-emerald-900 text-xs">
+                                  {fields.phoneExternalWhatsappNo || notesStr.match(/External WhatsApp:\s*([0-9\s+]+)/i)?.[1]}
+                                </span>
+                                <span className="ml-2 text-[10px] bg-white text-emerald-800 font-bold px-2 py-0.5 rounded border border-emerald-200 shadow-xs">
+                                  Type: {fields.phoneExternalWhatsappType || "Business"}
+                                </span>
+                                {(fields.phoneExternalWhatsappLabel || notesStr.match(/External WhatsApp:[^\[]*\[Label:\s*([^\]]+)\]/i)?.[1]) && (
+                                  <span className="ml-2 text-[10px] text-slate-600 font-semibold">
+                                    ({fields.phoneExternalWhatsappLabel || notesStr.match(/External WhatsApp:[^\[]*\[Label:\s*([^\]]+)\]/i)?.[1]})
+                                  </span>
+                                )}
+                              </div>
+                            )}
+                            {(fields.phoneSocialMediaUsername || notesStr.match(/Social Media App:\s*([^\n]+)/i)?.[1]) && (
+                              <div className="col-span-2 bg-purple-50/70 border border-purple-200/80 p-2.5 rounded-lg">
+                                <span className="text-purple-900/70 block text-[9px] font-bold">LOGGED-IN SOCIAL MEDIA ACCOUNT:</span>
+                                <span className="font-bold text-purple-950 text-xs">
+                                  {fields.phoneSocialMediaAppCustom || (fields.phoneSocialMediaApp && fields.phoneSocialMediaApp !== "Other" ? fields.phoneSocialMediaApp : "") || notesStr.match(/Social Media App:\s*([^\(]+)/i)?.[1]?.trim() || "Social Media"}
+                                </span>
+                                <span className="ml-2 font-mono font-bold text-purple-900 text-xs bg-white px-2 py-0.5 rounded border border-purple-200 shadow-xs">
+                                  {fields.phoneSocialMediaUsername || notesStr.match(/Social Media App:[^\(]*\(([^\)]+)\)/i)?.[1]}
+                                </span>
+                                {fields.phoneSocialMediaPassword && (
+                                  <span className="ml-2 text-[10px] font-mono font-bold text-amber-900 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
+                                    [Pass: {fields.phoneSocialMediaPassword}]
+                                  </span>
+                                )}
+                              </div>
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    )}
+                      );
+                    })()}
 
                     {/* Ownership & Purchase */}
                     <div className="bg-slate-50 border border-[#E8E4DF] rounded-xl p-4 space-y-2">

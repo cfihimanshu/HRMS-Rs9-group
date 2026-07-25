@@ -67,7 +67,8 @@ export default function AssetsRegistry({ userRole, triggerToast, sessionUser }: 
   const [selectedDept, setSelectedDept] = useState("all");
 
   // Editing state
-  const [editingEmployeeId, setEditingEmployeeId] = useState<string | null>(null);
+  const [editingEmployee, setEditingEmployee] = useState<any>(null);
+  const [showEditModal, setShowEditModal] = useState(false);
   const [editForm, setEditForm] = useState({
     allocatedAsset: "",
     allocatedSim: "",
@@ -75,6 +76,23 @@ export default function AssetsRegistry({ userRole, triggerToast, sessionUser }: 
     allocatedWhatsapp: ""
   });
   const [updating, setUpdating] = useState(false);
+
+  // Structured Edit Modal states
+  const [editModeType, setEditModeType] = useState<"structured" | "raw">("structured");
+  const [editAssetType, setEditAssetType] = useState("Mobile Phone");
+  const [editAssetFields, setEditAssetFields] = useState<Record<string, any>>({});
+  const [editSimSlots, setEditSimSlots] = useState("1 SIM");
+  const [editSim1No, setEditSim1No] = useState("");
+  const [editSim1Operator, setEditSim1Operator] = useState("Jio");
+  const [editSim1OperatorCustom, setEditSim1OperatorCustom] = useState("");
+  const [editSim1Whatsapp, setEditSim1Whatsapp] = useState("No");
+  const [editSim1WhatsappType, setEditSim1WhatsappType] = useState("Personal");
+  const [editSim2No, setEditSim2No] = useState("");
+  const [editSim2Operator, setEditSim2Operator] = useState("Airtel");
+  const [editSim2OperatorCustom, setEditSim2OperatorCustom] = useState("");
+  const [editSim2Whatsapp, setEditSim2Whatsapp] = useState("No");
+  const [editSim2WhatsappType, setEditSim2WhatsappType] = useState("Personal");
+  const [editEmailsList, setEditEmailsList] = useState<string[]>([""]);
 
   // Selection state for checkboxes
   const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set());
@@ -489,20 +507,175 @@ export default function AssetsRegistry({ userRole, triggerToast, sessionUser }: 
   }, [companies, employees, sessionUser, userRole]);
 
   const handleStartEdit = (emp: any) => {
-    setEditingEmployeeId(emp.employeeProfile?.employeeId || null);
+    setEditingEmployee(emp);
+    const assetStr = emp.employeeProfile?.allocatedAsset || "";
+    const simStr = emp.employeeProfile?.allocatedSim || "";
+    const gmailStr = emp.employeeProfile?.allocatedGmail || "";
+    const waStr = emp.employeeProfile?.allocatedWhatsapp || "";
+
     setEditForm({
-      allocatedAsset: emp.employeeProfile?.allocatedAsset || "",
-      allocatedSim: emp.employeeProfile?.allocatedSim || "",
-      allocatedGmail: emp.employeeProfile?.allocatedGmail || "",
-      allocatedWhatsapp: emp.employeeProfile?.allocatedWhatsapp || ""
+      allocatedAsset: assetStr,
+      allocatedSim: simStr,
+      allocatedGmail: gmailStr,
+      allocatedWhatsapp: waStr
     });
+
+    // Detect asset type
+    let type = "Mobile Phone";
+    if (assetStr.toLowerCase().includes("laptop")) type = "Laptop";
+    else if (assetStr.toLowerCase().includes("desktop")) type = "Desktop";
+    else if (assetStr.toLowerCase().includes("sim card") || assetStr.toLowerCase().includes("sim")) type = "SIM Card";
+    else if (assetStr.toLowerCase().includes("headset") || assetStr.toLowerCase().includes("accessory")) type = "Headset / Accessories";
+    else if (assetStr.toLowerCase().includes("id card") || assetStr.toLowerCase().includes("lanyard")) type = "ID Card / Lanyard";
+    else if (assetStr.toLowerCase().includes("chair") || assetStr.toLowerCase().includes("table")) type = "Office Chair / Table";
+    else if (assetStr.toLowerCase().includes("router")) type = "Router / Networking";
+    else if (assetStr.toLowerCase().includes("printer") || assetStr.toLowerCase().includes("scanner")) type = "Printer / Scanner";
+    setEditAssetType(type);
+
+    // Extract IMEI 1, IMEI 2 & Serial
+    const imei1Match = assetStr.match(/IMEI 1:\s*([0-9a-zA-Z]+)/i);
+    const imei2Match = assetStr.match(/IMEI 2:\s*([0-9a-zA-Z]+)/i);
+    const snMatch = assetStr.match(/\[S\/N:\s*([^\]]+)\]/i);
+
+    // Extract Logged-in Emails
+    const emailsMatch = assetStr.match(/Logged-in Emails:\s*([^\|\n\)]+)/i);
+    let extractedEmails: string[] = [];
+    if (emailsMatch && emailsMatch[1]) {
+      extractedEmails = emailsMatch[1].split(",").map((e: string) => e.trim()).filter(Boolean);
+    } else if (gmailStr) {
+      extractedEmails = [gmailStr];
+    }
+    if (extractedEmails.length === 0) extractedEmails = [""];
+    setEditEmailsList(extractedEmails);
+
+    // Extract SIM details
+    const sim1Match = simStr.match(/SIM 1:\s*([^\s\[\]]+)/i);
+    const sim2Match = simStr.match(/SIM 2:\s*([^\s\[\]]+)/i);
+    const sim1OpMatch = simStr.match(/SIM 1:[^\[]*\[Company:\s*([^\]]+)\]/i);
+    const sim2OpMatch = simStr.match(/SIM 2:[^\[]*\[Company:\s*([^\]]+)\]/i);
+
+    setEditSim1No(sim1Match ? sim1Match[1] : "");
+    setEditSim2No(sim2Match ? sim2Match[1] : "");
+
+    if (sim1OpMatch && sim1OpMatch[1]) {
+      const op = sim1OpMatch[1].trim();
+      if (["Jio", "Airtel", "Vodafone Idea (Vi)", "BSNL"].includes(op)) {
+        setEditSim1Operator(op);
+        setEditSim1OperatorCustom("");
+      } else {
+        setEditSim1Operator("Other");
+        setEditSim1OperatorCustom(op);
+      }
+    } else {
+      setEditSim1Operator("Jio");
+      setEditSim1OperatorCustom("");
+    }
+
+    if (sim2OpMatch && sim2OpMatch[1]) {
+      const op = sim2OpMatch[1].trim();
+      if (["Jio", "Airtel", "Vodafone Idea (Vi)", "BSNL"].includes(op)) {
+        setEditSim2Operator(op);
+        setEditSim2OperatorCustom("");
+      } else {
+        setEditSim2Operator("Other");
+        setEditSim2OperatorCustom(op);
+      }
+    } else {
+      setEditSim2Operator("Airtel");
+      setEditSim2OperatorCustom("");
+    }
+
+    setEditSimSlots(sim2Match ? "2 SIMs" : sim1Match ? "1 SIM" : "None");
+
+    let cleanModel = assetStr.replace(/^[^:]+:\s*/, '').replace(/\[S\/N:[^\]]+\]\s*/, '').replace(/\| Logged-in Emails:[^\n\)]+/, '').replace(/\(Assigned:[^\)]+\)/, '').trim();
+
+    setEditAssetFields({
+      phoneModel: cleanModel || "",
+      phoneSpecs: "",
+      phoneImei1: imei1Match ? imei1Match[1] : (snMatch ? snMatch[1] : ""),
+      phoneImei2: imei2Match ? imei2Match[1] : "",
+      laptopModel: cleanModel || "",
+      laptopSerial: snMatch ? snMatch[1] : "",
+      accName: cleanModel || "",
+      simMobile: sim1Match ? sim1Match[1] : "",
+      simOperator: "Jio"
+    });
+
+    setEditModeType("structured");
+    setShowEditModal(true);
   };
 
   const handleCancelEdit = () => {
-    setEditingEmployeeId(null);
+    setShowEditModal(false);
+    setEditingEmployee(null);
   };
 
-  const handleSaveEdit = async (employeeId: string) => {
+  const handleSaveEdit = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!editingEmployee) return;
+
+    const employeeId = editingEmployee.employeeProfile?.employeeId;
+    if (!employeeId) {
+      triggerToast("Employee ID not found");
+      return;
+    }
+
+    let finalAllocatedAsset = editForm.allocatedAsset;
+    let finalAllocatedSim = editForm.allocatedSim;
+    let finalAllocatedGmail = editForm.allocatedGmail;
+    let finalAllocatedWhatsapp = editForm.allocatedWhatsapp;
+
+    if (editModeType === "structured") {
+      const tc = editAssetType.toLowerCase();
+      let detail = "";
+      let serial = "";
+
+      if (tc === "mobile phone") {
+        const model = editAssetFields.phoneModel || "Mobile Phone";
+        const specs = editAssetFields.phoneSpecs ? ` (${editAssetFields.phoneSpecs})` : "";
+        const imei1 = editAssetFields.phoneImei1 || "";
+        const imei2 = editAssetFields.phoneImei2 || "";
+        detail = `${model}${specs}`;
+        serial = imei2 ? `IMEI 1: ${imei1}, IMEI 2: ${imei2}` : imei1;
+      } else if (tc === "laptop") {
+        detail = `${editAssetFields.laptopModel || "Laptop"} (${editAssetFields.laptopSpecs || ""})`;
+        serial = editAssetFields.laptopSerial || "";
+      } else if (tc === "desktop") {
+        detail = editAssetFields.desktopModel || "Desktop PC";
+        serial = editAssetFields.desktopSerial || "";
+      } else {
+        detail = editAssetFields.phoneModel || editAssetFields.accName || editAssetType;
+        serial = editAssetFields.phoneImei1 || editAssetFields.laptopSerial || "";
+      }
+
+      const filteredEmails = editEmailsList.map((e: string) => e.trim()).filter(Boolean);
+      const emailsStr = filteredEmails.length > 0 ? ` | Logged-in Emails: ${filteredEmails.join(", ")}` : "";
+      const displayValue = serial ? `[S/N: ${serial}] ${detail}` : detail;
+
+      finalAllocatedAsset = `${editAssetType}: ${displayValue}${emailsStr}`;
+      if (filteredEmails.length > 0) {
+        finalAllocatedGmail = filteredEmails[0];
+      }
+
+      if (editSimSlots !== "None") {
+        let simDetails = `SIM Slots Used: ${editSimSlots}`;
+        if (editSim1No) {
+          const op1 = (editSim1Operator === "Other" && editSim1OperatorCustom) ? editSim1OperatorCustom : editSim1Operator;
+          const wa1Type = editSim1Whatsapp === "Yes" ? ` (${editSim1WhatsappType})` : "";
+          simDetails += `, SIM 1: ${editSim1No} [Company: ${op1}] [WhatsApp: ${editSim1Whatsapp}${wa1Type}]`;
+          if (!finalAllocatedWhatsapp && editSim1Whatsapp === "Yes") {
+            finalAllocatedWhatsapp = `${editSim1No} (${editSim1WhatsappType})`;
+          }
+        }
+        if (editSim2No) {
+          const op2 = (editSim2Operator === "Other" && editSim2OperatorCustom) ? editSim2OperatorCustom : editSim2Operator;
+          const wa2Type = editSim2Whatsapp === "Yes" ? ` (${editSim2WhatsappType})` : "";
+          simDetails += `, SIM 2: ${editSim2No} [Company: ${op2}] [WhatsApp: ${editSim2Whatsapp}${wa2Type}]`;
+        }
+        finalAllocatedSim = simDetails;
+      }
+    }
+
     try {
       setUpdating(true);
       const res = await fetch("/api/employees", {
@@ -510,14 +683,18 @@ export default function AssetsRegistry({ userRole, triggerToast, sessionUser }: 
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           employeeId,
-          ...editForm
+          allocatedAsset: finalAllocatedAsset,
+          allocatedSim: finalAllocatedSim,
+          allocatedGmail: finalAllocatedGmail,
+          allocatedWhatsapp: finalAllocatedWhatsapp
         })
       });
 
       const result = await res.json();
       if (result.success) {
         triggerToast("Asset allocation updated successfully");
-        setEditingEmployeeId(null);
+        setShowEditModal(false);
+        setEditingEmployee(null);
         // Refresh local data state
         setEmployees(prev => prev.map(emp => {
           if (emp.employeeProfile?.employeeId === employeeId) {
@@ -525,7 +702,10 @@ export default function AssetsRegistry({ userRole, triggerToast, sessionUser }: 
               ...emp,
               employeeProfile: {
                 ...emp.employeeProfile,
-                ...editForm
+                allocatedAsset: finalAllocatedAsset,
+                allocatedSim: finalAllocatedSim,
+                allocatedGmail: finalAllocatedGmail,
+                allocatedWhatsapp: finalAllocatedWhatsapp
               }
             };
           }
@@ -896,7 +1076,6 @@ export default function AssetsRegistry({ userRole, triggerToast, sessionUser }: 
                   const profile = emp.employeeProfile;
                   const companyName = emp.companies?.[0]?.name || "General Company";
                   const deptName = typeof profile?.department === "object" ? profile.department?.name : "General / IT";
-                  const isEditing = editingEmployeeId === profile?.employeeId;
                   const profileId = profile?.employeeId || "";
                   const isSelected = selectedRows.has(profileId);
 
@@ -936,125 +1115,64 @@ export default function AssetsRegistry({ userRole, triggerToast, sessionUser }: 
 
                       {/* Allocated Asset */}
                       <td className="py-4 px-4">
-                        {isEditing ? (
-                          <input
-                            type="text"
-                            value={editForm.allocatedAsset}
-                            onChange={(e) => setEditForm({ ...editForm, allocatedAsset: e.target.value })}
-                            className="bg-white border border-[#E8E4DF] rounded px-2 py-1 text-xs focus:outline-none w-full max-w-[150px] font-semibold"
-                          />
-                        ) : (
-                          <span className={cn("font-medium", profile?.allocatedAsset ? "text-[#1C1C1A]" : "text-[#9C9890] italic")}>
-                            {profile?.allocatedAsset || "Not Assigned"}
-                          </span>
-                        )}
+                        <span className={cn("font-medium text-xs block whitespace-pre-wrap max-w-xs", profile?.allocatedAsset ? "text-[#1C1C1A]" : "text-[#9C9890] italic")}>
+                          {profile?.allocatedAsset || "Not Assigned"}
+                        </span>
                       </td>
 
                       {/* Allocated SIM */}
                       <td className="py-4 px-4">
-                        {isEditing ? (
-                          <input
-                            type="text"
-                            value={editForm.allocatedSim}
-                            onChange={(e) => setEditForm({ ...editForm, allocatedSim: e.target.value })}
-                            className="bg-white border border-[#E8E4DF] rounded px-2 py-1 text-xs focus:outline-none w-full max-w-[150px] font-semibold"
-                          />
-                        ) : (
-                          <span className={cn("font-mono font-bold", profile?.allocatedSim ? "text-[#1C1C1A]" : "text-[#9C9890] italic")}>
-                            {profile?.allocatedSim || "No SIM"}
-                          </span>
-                        )}
+                        <span className={cn("font-mono text-xs font-semibold block whitespace-pre-wrap max-w-xs", profile?.allocatedSim ? "text-[#1C1C1A]" : "text-[#9C9890] italic")}>
+                          {profile?.allocatedSim || "No SIM"}
+                        </span>
                       </td>
 
                       {/* Allocated Gmail */}
                       <td className="py-4 px-4">
-                        {isEditing ? (
-                          <input
-                            type="text"
-                            value={editForm.allocatedGmail}
-                            onChange={(e) => setEditForm({ ...editForm, allocatedGmail: e.target.value })}
-                            className="bg-white border border-[#E8E4DF] rounded px-2 py-1 text-xs focus:outline-none w-full max-w-[180px] font-semibold"
-                          />
-                        ) : (
-                          <span className={cn("font-semibold", profile?.allocatedGmail ? "text-indigo-650" : "text-[#9C9890] italic")}>
-                            {profile?.allocatedGmail || "No Gmail"}
-                          </span>
-                        )}
+                        <span className={cn("font-semibold text-xs", profile?.allocatedGmail ? "text-indigo-650" : "text-[#9C9890] italic")}>
+                          {profile?.allocatedGmail || "No Gmail"}
+                        </span>
                       </td>
 
                       {/* Allocated WhatsApp */}
                       <td className="py-4 px-4">
-                        {isEditing ? (
-                          <select
-                            value={editForm.allocatedWhatsapp}
-                            onChange={(e) => setEditForm({ ...editForm, allocatedWhatsapp: e.target.value })}
-                            className="bg-white border border-[#E8E4DF] rounded px-2 py-1 text-xs focus:outline-none font-semibold"
-                          >
-                            <option value="">None</option>
-                            <option value="Personal WhatsApp">Personal WhatsApp</option>
-                            <option value="Business WhatsApp">Business WhatsApp</option>
-                            <option value="Corporate Number">Corporate WhatsApp</option>
-                          </select>
-                        ) : (
-                          <span className={cn(
-                            "inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold border",
-                            profile?.allocatedWhatsapp?.includes("Business") 
-                              ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-                              : profile?.allocatedWhatsapp 
-                              ? "bg-blue-50 text-blue-700 border-blue-200" 
-                              : "bg-slate-50 text-slate-400 border-slate-200 italic"
-                          )}>
-                            {profile?.allocatedWhatsapp || "None"}
-                          </span>
-                        )}
+                        <span className={cn(
+                          "inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold border",
+                          profile?.allocatedWhatsapp?.includes("Business") 
+                            ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                            : profile?.allocatedWhatsapp 
+                            ? "bg-blue-50 text-blue-700 border-blue-200" 
+                            : "bg-slate-50 text-slate-400 border-slate-200 italic"
+                        )}>
+                          {profile?.allocatedWhatsapp || "None"}
+                        </span>
                       </td>
 
                       {/* Action buttons */}
                       <td className="py-4 px-4 text-center">
-                        {isEditing ? (
-                          <div className="flex justify-center items-center gap-1.5">
-                            <button
-                              onClick={() => handleSaveEdit(profile.employeeId)}
-                              disabled={updating}
-                              className="p-1 text-emerald-600 hover:bg-emerald-50 rounded border border-emerald-200 transition-all"
-                              title="Save Allocation"
-                            >
-                              <Check className="w-3.5 h-3.5" />
-                            </button>
-                            <button
-                              onClick={handleCancelEdit}
-                              disabled={updating}
-                              className="p-1 text-rose-600 hover:bg-rose-50 rounded border border-rose-200 transition-all"
-                              title="Cancel"
-                            >
-                              <X className="w-3.5 h-3.5" />
-                            </button>
-                          </div>
-                        ) : (
-                          <div className="flex justify-center items-center gap-1.5">
-                            <button
-                              onClick={() => handleStartEdit(emp)}
-                              className="px-2 py-1.5 text-[10px] font-bold uppercase tracking-wider text-[#C9A84C] hover:text-white border border-[#C9A84C]/35 hover:bg-[#C9A84C] rounded-lg transition-all flex items-center gap-1"
-                              title="Edit Allocation"
-                            >
-                              <Edit3 className="w-3 h-3" /> Edit
-                            </button>
-                            <button
-                              onClick={() => setDeleteConfirm({ show: true, type: "single", empId: profileId, empName: emp.name })}
-                              className="px-2 py-1.5 text-[10px] font-bold uppercase tracking-wider text-red-400 hover:text-white border border-red-200 hover:bg-red-500 rounded-lg transition-all flex items-center gap-1"
-                              title="Clear Asset Allocations"
-                            >
-                              <Trash2 className="w-3 h-3" /> Clear
-                            </button>
-                            <button
-                              onClick={() => handleDeleteUser(emp.id)}
-                              className="px-2 py-1.5 text-[10px] font-bold uppercase tracking-wider text-rose-500 hover:text-white border border-rose-200 hover:bg-rose-500 rounded-lg transition-all flex items-center gap-1"
-                              title="Delete Employee Permanently"
-                            >
-                              <UserX className="w-3 h-3" /> Delete
-                            </button>
-                          </div>
-                        )}
+                        <div className="flex justify-center items-center gap-1.5">
+                          <button
+                            onClick={() => handleStartEdit(emp)}
+                            className="px-2 py-1.5 text-[10px] font-bold uppercase tracking-wider text-[#C9A84C] hover:text-white border border-[#C9A84C]/35 hover:bg-[#C9A84C] rounded-lg transition-all flex items-center gap-1"
+                            title="Edit Allocation"
+                          >
+                            <Edit3 className="w-3 h-3" /> Edit
+                          </button>
+                          <button
+                            onClick={() => setDeleteConfirm({ show: true, type: "single", empId: profileId, empName: emp.name })}
+                            className="px-2 py-1.5 text-[10px] font-bold uppercase tracking-wider text-red-400 hover:text-white border border-red-200 hover:bg-red-500 rounded-lg transition-all flex items-center gap-1"
+                            title="Clear Asset Allocations"
+                          >
+                            <Trash2 className="w-3 h-3" /> Clear
+                          </button>
+                          <button
+                            onClick={() => handleDeleteUser(emp.id)}
+                            className="px-2 py-1.5 text-[10px] font-bold uppercase tracking-wider text-rose-500 hover:text-white border border-rose-200 hover:bg-rose-500 rounded-lg transition-all flex items-center gap-1"
+                            title="Delete Employee Permanently"
+                          >
+                            <UserX className="w-3 h-3" /> Delete
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   );
@@ -1760,6 +1878,520 @@ export default function AssetsRegistry({ userRole, triggerToast, sessionUser }: 
                   className="flex-1 px-4 py-2 rounded-lg bg-[#C9A84C] text-white text-xs font-semibold uppercase tracking-wider hover:bg-[#B5963D] disabled:opacity-50 transition-colors shadow-sm"
                 >
                   {updating ? "Saving..." : "Assign"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* --- Edit Allocation Modal Portal --- */}
+      {showEditModal && editingEmployee && typeof document !== "undefined" && ReactDOM.createPortal(
+        <div className="fixed inset-0 z-[9999] bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl w-full max-w-2xl shadow-2xl overflow-hidden flex flex-col font-sans max-h-[90vh]">
+            {/* Modal Header */}
+            <div className="p-4 border-b border-[#E8E4DF] flex items-center justify-between bg-[#FCFBF9]">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2 bg-indigo-50 border border-indigo-100 rounded-lg text-indigo-600">
+                  <Edit3 className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-[#1C1C1A] uppercase tracking-wide">Edit Asset Allocation & Records</h3>
+                  <div className="flex items-center gap-2 mt-0.5">
+                    <span className="text-[10px] bg-[#F4F1EA] text-[#1C1C1A] px-2 py-0.5 rounded font-bold">
+                      {editingEmployee.name}
+                    </span>
+                    <span className="text-[10px] bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded font-mono font-bold">
+                      ID: {editingEmployee.employeeProfile?.employeeId || "N/A"}
+                    </span>
+                  </div>
+                </div>
+              </div>
+              <button 
+                onClick={handleCancelEdit} 
+                className="p-1.5 rounded-lg hover:bg-slate-200 text-slate-400 hover:text-slate-600 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Modal Form */}
+            <form onSubmit={handleSaveEdit} className="p-5 space-y-4 overflow-y-auto text-xs">
+              {/* Mode Toggle */}
+              <div className="flex items-center justify-between bg-slate-50 border border-[#E8E4DF] p-2 rounded-lg">
+                <span className="text-[10px] uppercase font-bold text-slate-600 tracking-wider">Form Edit Mode</span>
+                <div className="flex gap-1">
+                  <button
+                    type="button"
+                    onClick={() => setEditModeType("structured")}
+                    className={cn(
+                      "px-3 py-1 rounded text-[10px] font-bold transition-all",
+                      editModeType === "structured" ? "bg-indigo-600 text-white shadow-sm" : "bg-white text-slate-600 border border-[#E8E4DF]"
+                    )}
+                  >
+                    Structured Form
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setEditModeType("raw")}
+                    className={cn(
+                      "px-3 py-1 rounded text-[10px] font-bold transition-all",
+                      editModeType === "raw" ? "bg-indigo-600 text-white shadow-sm" : "bg-white text-slate-600 border border-[#E8E4DF]"
+                    )}
+                  >
+                    Direct Text Override
+                  </button>
+                </div>
+              </div>
+
+              {editModeType === "structured" ? (
+                <div className="space-y-3">
+                  {/* Asset Type Dropdown */}
+                  <div>
+                    <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Asset Category / Type *</label>
+                    <select
+                      value={editAssetType}
+                      onChange={(e) => setEditAssetType(e.target.value)}
+                      className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                    >
+                      <option value="Mobile Phone">Mobile Phone</option>
+                      <option value="Laptop">Laptop</option>
+                      <option value="Desktop">Desktop PC</option>
+                      <option value="SIM Card">SIM Card</option>
+                      <option value="Headset / Accessories">Headset / Accessories</option>
+                      <option value="ID Card / Lanyard">ID Card / Lanyard</option>
+                      <option value="Office Chair / Table">Office Chair / Table</option>
+                      <option value="Router / Networking">Router / Networking</option>
+                      <option value="Printer / Scanner">Printer / Scanner</option>
+                    </select>
+                  </div>
+
+                  {/* Device Spec Fields */}
+                  {editAssetType === "Mobile Phone" && (
+                    <div className="space-y-3 bg-[#FCFBF9] border border-[#E8E4DF] p-3 rounded-lg">
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Phone Brand & Model *</label>
+                          <input
+                            type="text"
+                            required
+                            placeholder="e.g. Samsung Galaxy S23"
+                            value={editAssetFields.phoneModel || ""}
+                            onChange={(e) => setEditAssetFields(p => ({ ...p, phoneModel: e.target.value }))}
+                            className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">RAM & Storage</label>
+                          <input
+                            type="text"
+                            placeholder="e.g. 8GB/128GB"
+                            value={editAssetFields.phoneSpecs || ""}
+                            onChange={(e) => setEditAssetFields(p => ({ ...p, phoneSpecs: e.target.value }))}
+                            className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                          />
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">IMEI Number 1 *</label>
+                          <input
+                            type="text"
+                            required
+                            placeholder="e.g. 358901234567890"
+                            value={editAssetFields.phoneImei1 || ""}
+                            onChange={(e) => setEditAssetFields(p => ({ ...p, phoneImei1: e.target.value }))}
+                            className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-mono"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">IMEI Number 2</label>
+                          <input
+                            type="text"
+                            placeholder="e.g. 358901234567891 (Optional)"
+                            value={editAssetFields.phoneImei2 || ""}
+                            onChange={(e) => setEditAssetFields(p => ({ ...p, phoneImei2: e.target.value }))}
+                            className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-mono"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {editAssetType === "Laptop" && (
+                    <div className="space-y-3 bg-[#FCFBF9] border border-[#E8E4DF] p-3 rounded-lg">
+                      <div className="grid grid-cols-3 gap-3">
+                        <div>
+                          <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Laptop Brand & Model *</label>
+                          <input
+                            type="text"
+                            required
+                            placeholder="e.g. HP EliteBook 840 G8"
+                            value={editAssetFields.laptopModel || ""}
+                            onChange={(e) => setEditAssetFields(p => ({ ...p, laptopModel: e.target.value }))}
+                            className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Processor / RAM / Storage *</label>
+                          <input
+                            type="text"
+                            required
+                            placeholder="e.g. Intel i5, 16GB, 512GB SSD"
+                            value={editAssetFields.laptopSpecs || ""}
+                            onChange={(e) => setEditAssetFields(p => ({ ...p, laptopSpecs: e.target.value }))}
+                            className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Serial Number</label>
+                          <input
+                            type="text"
+                            placeholder="e.g. SN-H1G4691X"
+                            value={editAssetFields.laptopSerial || ""}
+                            onChange={(e) => setEditAssetFields(p => ({ ...p, laptopSerial: e.target.value }))}
+                            className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-mono"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* SIM Slots Section */}
+                  {editAssetType === "Mobile Phone" && (
+                    <div className="space-y-3 bg-[#FCFBF9] border border-[#E8E4DF] p-3 rounded-lg">
+                      <div>
+                        <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">SIM Slots Used</label>
+                        <select
+                          value={editSimSlots}
+                          onChange={(e) => setEditSimSlots(e.target.value)}
+                          className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                        >
+                          <option value="None">None</option>
+                          <option value="1 SIM">1 SIM</option>
+                          <option value="2 SIMs">2 SIMs</option>
+                        </select>
+                      </div>
+
+                      {(editSimSlots === "1 SIM" || editSimSlots === "2 SIMs") && (
+                        <div className="bg-white border border-[#E8E4DF] p-3 rounded-lg space-y-2">
+                          <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold">SIM 1 Config</label>
+                          <div className="grid grid-cols-2 gap-2">
+                            <div>
+                              <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">SIM 1 Phone Number *</label>
+                              <input
+                                type="text"
+                                required
+                                placeholder="e.g. 9876543210"
+                                value={editSim1No}
+                                onChange={(e) => setEditSim1No(e.target.value)}
+                                className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">SIM 1 Company / Operator</label>
+                              <select
+                                value={["Jio", "Airtel", "Vodafone Idea (Vi)", "BSNL"].includes(editSim1Operator) ? editSim1Operator : "Other"}
+                                onChange={(e) => {
+                                  const val = e.target.value;
+                                  setEditSim1Operator(val);
+                                  if (val !== "Other") setEditSim1OperatorCustom("");
+                                }}
+                                className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                              >
+                                <option value="Jio">Jio</option>
+                                <option value="Airtel">Airtel</option>
+                                <option value="Vodafone Idea (Vi)">Vodafone Idea (Vi)</option>
+                                <option value="BSNL">BSNL</option>
+                                <option value="Other">Other (Custom Company)</option>
+                              </select>
+                              {(editSim1Operator === "Other" || (!["Jio", "Airtel", "Vodafone Idea (Vi)", "BSNL"].includes(editSim1Operator) && editSim1OperatorCustom !== undefined)) && (
+                                <input
+                                  type="text"
+                                  placeholder="Enter SIM Company Name..."
+                                  value={editSim1OperatorCustom}
+                                  onChange={(e) => setEditSim1OperatorCustom(e.target.value)}
+                                  className="mt-1.5 w-full bg-white border border-[#C9A84C] rounded-lg px-3 py-1.5 text-xs font-semibold"
+                                />
+                              )}
+                            </div>
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-2">
+                            <div>
+                              <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">WhatsApp On?</label>
+                              <select
+                                value={editSim1Whatsapp}
+                                onChange={(e) => setEditSim1Whatsapp(e.target.value)}
+                                className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                              >
+                                <option value="No">No</option>
+                                <option value="Yes">Yes</option>
+                              </select>
+                            </div>
+                            {editSim1Whatsapp === "Yes" && (
+                              <div>
+                                <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">WhatsApp Type</label>
+                                <select
+                                  value={editSim1WhatsappType}
+                                  onChange={(e) => setEditSim1WhatsappType(e.target.value)}
+                                  className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                                >
+                                  <option value="Personal">Personal</option>
+                                  <option value="Business">Business</option>
+                                </select>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                      {editSimSlots === "2 SIMs" && (
+                        <div className="bg-white border border-[#E8E4DF] p-3 rounded-lg space-y-2">
+                          <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold">SIM 2 Config</label>
+                          <div className="grid grid-cols-2 gap-2">
+                            <div>
+                              <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">SIM 2 Phone Number *</label>
+                              <input
+                                type="text"
+                                required
+                                placeholder="e.g. 9876543211"
+                                value={editSim2No}
+                                onChange={(e) => setEditSim2No(e.target.value)}
+                                className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">SIM 2 Company / Operator</label>
+                              <select
+                                value={["Jio", "Airtel", "Vodafone Idea (Vi)", "BSNL"].includes(editSim2Operator) ? editSim2Operator : "Other"}
+                                onChange={(e) => {
+                                  const val = e.target.value;
+                                  setEditSim2Operator(val);
+                                  if (val !== "Other") setEditSim2OperatorCustom("");
+                                }}
+                                className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                              >
+                                <option value="Jio">Jio</option>
+                                <option value="Airtel">Airtel</option>
+                                <option value="Vodafone Idea (Vi)">Vodafone Idea (Vi)</option>
+                                <option value="BSNL">BSNL</option>
+                                <option value="Other">Other (Custom Company)</option>
+                              </select>
+                              {(editSim2Operator === "Other" || (!["Jio", "Airtel", "Vodafone Idea (Vi)", "BSNL"].includes(editSim2Operator) && editSim2OperatorCustom !== undefined)) && (
+                                <input
+                                  type="text"
+                                  placeholder="Enter SIM Company Name..."
+                                  value={editSim2OperatorCustom}
+                                  onChange={(e) => setEditSim2OperatorCustom(e.target.value)}
+                                  className="mt-1.5 w-full bg-white border border-[#C9A84C] rounded-lg px-3 py-1.5 text-xs font-semibold"
+                                />
+                              )}
+                            </div>
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-2">
+                            <div>
+                              <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">WhatsApp On?</label>
+                              <select
+                                value={editSim2Whatsapp}
+                                onChange={(e) => setEditSim2Whatsapp(e.target.value)}
+                                className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                              >
+                                <option value="No">No</option>
+                                <option value="Yes">Yes</option>
+                              </select>
+                            </div>
+                            {editSim2Whatsapp === "Yes" && (
+                              <div>
+                                <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">WhatsApp Type</label>
+                                <select
+                                  value={editSim2WhatsappType}
+                                  onChange={(e) => setEditSim2WhatsappType(e.target.value)}
+                                  className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                                >
+                                  <option value="Personal">Personal</option>
+                                  <option value="Business">Business</option>
+                                </select>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Standalone / External WhatsApp (Wi-Fi / Separate Number) Section */}
+                  <div className="bg-[#FCFBF9] border border-[#E8E4DF] p-3 rounded-lg space-y-2">
+                    <div className="flex items-center justify-between">
+                      <label className="text-[9px] uppercase tracking-wider text-[#9C9890] font-bold flex items-center gap-1.5">
+                        <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+                        Standalone / External WhatsApp (Without Physical SIM)
+                      </label>
+                      <select
+                        value={editAssetFields.phoneExternalWhatsapp || "No"}
+                        onChange={(e) => setEditAssetFields(p => ({ ...p, phoneExternalWhatsapp: e.target.value }))}
+                        className="bg-white border border-[#E8E4DF] rounded-md px-2 py-1 text-[10px] font-bold text-slate-700 focus:outline-none"
+                      >
+                        <option value="No">No (Disabled)</option>
+                        <option value="Yes">Yes (Add External Number)</option>
+                      </select>
+                    </div>
+
+                    {editAssetFields.phoneExternalWhatsapp === "Yes" && (
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5 pt-1">
+                        <div>
+                          <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">WhatsApp Mobile Number *</label>
+                          <input
+                            type="text"
+                            required
+                            placeholder="e.g. 9876543210"
+                            value={editAssetFields.phoneExternalWhatsappNo || ""}
+                            onChange={(e) => setEditAssetFields(p => ({ ...p, phoneExternalWhatsappNo: e.target.value }))}
+                            className="w-full bg-white border border-emerald-300 focus:border-emerald-500 rounded-lg px-3 py-1.5 text-xs text-[#1C1C1A] font-semibold"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">WhatsApp Type *</label>
+                          <select
+                            value={editAssetFields.phoneExternalWhatsappType || "Business"}
+                            onChange={(e) => setEditAssetFields(p => ({ ...p, phoneExternalWhatsappType: e.target.value }))}
+                            className="w-full bg-white border border-[#E8E4DF] focus:border-emerald-500 rounded-lg px-3 py-1.5 text-xs text-[#1C1C1A] font-semibold"
+                          >
+                            <option value="Business">WhatsApp Business</option>
+                            <option value="Personal">Personal WhatsApp</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Account Label / Remarks</label>
+                          <input
+                            type="text"
+                            placeholder="e.g. Support WA / Wi-Fi Logged-in"
+                            value={editAssetFields.phoneExternalWhatsappLabel || ""}
+                            onChange={(e) => setEditAssetFields(p => ({ ...p, phoneExternalWhatsappLabel: e.target.value }))}
+                            className="w-full bg-white border border-[#E8E4DF] focus:border-emerald-500 rounded-lg px-3 py-1.5 text-xs text-[#1C1C1A] font-semibold"
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Logged-in Emails Section */}
+                  <div className="space-y-2 bg-[#FCFBF9] border border-[#E8E4DF] p-3 rounded-lg">
+                    <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold">Logged-in Email IDs</label>
+                    <div className="space-y-2">
+                      {editEmailsList.map((email, index) => (
+                        <div key={index} className="flex gap-2 items-center">
+                          <input
+                            type="email"
+                            placeholder="e.g. user@company.com"
+                            value={email}
+                            onChange={(e) => {
+                              const newList = [...editEmailsList];
+                              newList[index] = e.target.value;
+                              setEditEmailsList(newList);
+                            }}
+                            className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                          />
+                          {editEmailsList.length > 1 && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const newList = editEmailsList.filter((_, i) => i !== index);
+                                setEditEmailsList(newList);
+                              }}
+                              className="px-2.5 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-lg text-xs font-bold transition-all border border-rose-100"
+                            >
+                              Remove
+                            </button>
+                          )}
+                        </div>
+                      ))}
+                      <button
+                        type="button"
+                        onClick={() => setEditEmailsList([...editEmailsList, ""])}
+                        className="mt-1 px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-[10px] font-bold rounded-lg transition-all border border-indigo-150 flex items-center gap-1.5 w-fit"
+                      >
+                        + Add Email ID
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">
+                      Allocated Asset (Hardware Description)
+                    </label>
+                    <textarea
+                      rows={4}
+                      value={editForm.allocatedAsset}
+                      onChange={(e) => setEditForm(p => ({ ...p, allocatedAsset: e.target.value }))}
+                      placeholder="e.g. Mobile Phone: [S/N: 356789123456799] Oppo Reno 14 (128GB) | Logged-in Emails: user@gmail.com"
+                      className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-mono font-semibold"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">
+                      Allocated SIM & Mobile Number Details
+                    </label>
+                    <textarea
+                      rows={3}
+                      value={editForm.allocatedSim}
+                      onChange={(e) => setEditForm(p => ({ ...p, allocatedSim: e.target.value }))}
+                      placeholder="e.g. SIM Slots Used: 1 SIM, SIM 1: 9879879876 [Company: Jio] [WhatsApp: Yes]"
+                      className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-mono font-semibold"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">
+                        Corporate Gmail / Email Account
+                      </label>
+                      <input
+                        type="text"
+                        value={editForm.allocatedGmail}
+                        onChange={(e) => setEditForm(p => ({ ...p, allocatedGmail: e.target.value }))}
+                        placeholder="e.g. employee.name@gmail.com"
+                        className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">
+                        WhatsApp Status / Number
+                      </label>
+                      <input
+                        type="text"
+                        value={editForm.allocatedWhatsapp}
+                        onChange={(e) => setEditForm(p => ({ ...p, allocatedWhatsapp: e.target.value }))}
+                        placeholder="e.g. Personal WhatsApp / 9876543210"
+                        className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Modal Footer */}
+              <div className="pt-3 border-t border-[#E8E4DF] flex justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={handleCancelEdit}
+                  disabled={updating}
+                  className="px-4 py-2 border border-[#E8E4DF] rounded-lg text-xs font-bold text-slate-500 hover:bg-slate-100 transition-all"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={updating}
+                  className="px-5 py-2 bg-[#C9A84C] hover:bg-[#b5953e] text-white rounded-lg text-xs font-bold transition-all disabled:opacity-50 shadow-sm"
+                >
+                  {updating ? "Saving..." : "Save Changes"}
                 </button>
               </div>
             </form>

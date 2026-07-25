@@ -68,6 +68,102 @@ AssetInventory.init(
       type: DataTypes.TEXT("long"),
       allowNull: true,
     },
+    phonePassword: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    simCompany: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    sim1Number: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    sim2Number: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    externalWhatsappNo: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    laptopOs: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    laptopHostName: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    simPlanType: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    routerWifiSsid: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    printerCartridge: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    furnitureLocation: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    socialMediaApp: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    socialMediaUsername: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    socialMediaPassword: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    phoneCharger: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    phoneColor: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    laptopCharger: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    laptopBag: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    simPuk: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    simKycName: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    routerIp: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    routerAdminPass: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    routerIsp: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    printerIp: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
     updatedAt: {
       type: DataTypes.DATE,
       allowNull: true,

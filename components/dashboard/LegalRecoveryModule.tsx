@@ -344,13 +344,10 @@ export default function LegalRecoveryModule({ userRole, triggerToast, sessionUse
       if (dataWorkLog.success && dataWorkLog.data) {
         merged = [...merged, ...dataWorkLog.data.map((item: any) => ({ ...item, logType: 'Legal Work Log' }))];
       }
-      if (dataPayment.success && dataPayment.data) {
-        merged = [...merged, ...dataPayment.data.map((item: any) => ({ ...item, logType: 'Payment Collection' }))];
-      }
 
       merged.sort((a, b) => {
-        const dateA = new Date(a.callDate || a.workDate || a.paymentDate || a.createdAt).getTime();
-        const dateB = new Date(b.callDate || b.workDate || b.paymentDate || b.createdAt).getTime();
+        const dateA = new Date(a.callDate || a.workDate || a.createdAt).getTime();
+        const dateB = new Date(b.callDate || b.workDate || b.createdAt).getTime();
         return dateB - dateA;
       });
 

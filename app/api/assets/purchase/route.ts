@@ -6,6 +6,12 @@ import AssetPurchaseRequest from "@/models/sequelize/AssetPurchaseRequest";
 import User from "@/models/sequelize/User";
 import EmployeeProfile from "@/models/sequelize/EmployeeProfile";
 
+async function ensurePurchaseColumns() {
+  try { await sequelize.query(`ALTER TABLE asset_purchase_requests ADD quantity INT DEFAULT 1;`); } catch (_) {}
+  try { await sequelize.query(`ALTER TABLE asset_purchase_requests ADD expected_delivery_date VARCHAR(255) NULL;`); } catch (_) {}
+  try { await sequelize.query(`ALTER TABLE asset_purchase_requests ADD quotation_url LONGTEXT NULL;`); } catch (_) {}
+}
+
 export async function GET(req: Request) {
   try {
     const session = await getServerSession(authOptions);
@@ -15,6 +21,7 @@ export async function GET(req: Request) {
 
     await sequelize.authenticate();
     try { await AssetPurchaseRequest.sync({ alter: true }); } catch (_) {}
+    await ensurePurchaseColumns();
 
     const userId = (session.user as any).id;
     // Fetch live user role to avoid session caching issues
@@ -79,7 +86,7 @@ export async function POST(req: Request) {
     const { action } = body;
 
     if (action === "create") {
-      const { asset_type, asset_detail, estimated_cost, vendor_details, justification, company_id, asset_id } = body;
+      const { asset_type, asset_detail, estimated_cost, vendor_details, justification, company_id, asset_id, quantity, expected_delivery_date, quotation_url } = body;
 
       if (!asset_type || !asset_detail || !estimated_cost || !vendor_details) {
         return NextResponse.json({ success: false, error: "Asset Type, Details, Cost, and Vendor Details are required." }, { status: 400 });
@@ -94,7 +101,10 @@ export async function POST(req: Request) {
         justification: justification || "",
         company_id: company_id || null,
         status: "Pending Owner Approval",
-        asset_id: asset_id || null
+        asset_id: asset_id || null,
+        quantity: quantity ? Number(quantity) : 1,
+        expected_delivery_date: expected_delivery_date || null,
+        quotation_url: quotation_url || null
       });
 
       return NextResponse.json({

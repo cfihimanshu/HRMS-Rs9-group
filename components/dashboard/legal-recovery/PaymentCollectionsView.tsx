@@ -427,7 +427,7 @@ export default function PaymentCollectionsView({
                   <label className="px-3 py-2.5 bg-slate-100 hover:bg-slate-200 border border-[#E8E4DF] rounded-xl text-xs font-bold text-slate-700 cursor-pointer transition-colors shrink-0 flex items-center gap-1">
                     <Upload className="w-3.5 h-3.5" />
                     <span>{uploadingProof ? "..." : "Upload"}</span>
-                    <input type="file" onChange={handleFileUpload} className="hidden" accept="image/*,.pdf" />
+                    <input type="file" onChange={handleFileUpload} className="hidden" accept="*/*" />
                   </label>
                 </div>
               </div>

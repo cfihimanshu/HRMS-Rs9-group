@@ -52,6 +52,19 @@ AssetPurchaseRequest.init(
       type: DataTypes.TEXT,
       allowNull: true,
     },
+    quantity: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+      defaultValue: 1,
+    },
+    expected_delivery_date: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    quotation_url: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+    },
     createdAt: {
       type: DataTypes.DATE,
       allowNull: true,
