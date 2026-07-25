@@ -172,7 +172,7 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
     // Check existing inventory
     inventory.forEach(item => {
       if (item.id) {
-        const match = item.id.trim().match(regex);
+        const match = String(item.id).trim().match(regex);
         if (match) {
           const num = parseInt(match[1], 10);
           if (num > maxNum) {
@@ -185,7 +185,7 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
     // Check existing purchase requests (to prevent duplicates)
     purchaseRequests.forEach(req => {
       if (req.asset_id) {
-        const match = req.asset_id.trim().match(regex);
+        const match = String(req.asset_id).trim().match(regex);
         if (match) {
           const num = parseInt(match[1], 10);
           if (num > maxNum) {
@@ -1005,12 +1005,12 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
   const filteredInventory = inventory.filter((asset) => {
     // 1. Search Query (ID, Old ID, Detail, Serial, Notes)
     const query = searchQuery.toLowerCase();
-    const idMatch = asset.id?.toLowerCase().includes(query);
-    const oldIdMatch = asset.oldAssetId?.toLowerCase().includes(query);
-    const detailMatch = asset.assetDetail?.toLowerCase().includes(query);
-    const typeMatch = asset.assetType?.toLowerCase().includes(query);
-    const snMatch = asset.serialNumber?.toLowerCase().includes(query);
-    const noteMatch = asset.notes?.toLowerCase().includes(query);
+    const idMatch = String(asset.id || "").toLowerCase().includes(query);
+    const oldIdMatch = String(asset.oldAssetId || "").toLowerCase().includes(query);
+    const detailMatch = String(asset.assetDetail || "").toLowerCase().includes(query);
+    const typeMatch = String(asset.assetType || "").toLowerCase().includes(query);
+    const snMatch = String(asset.serialNumber || "").toLowerCase().includes(query);
+    const noteMatch = String(asset.notes || "").toLowerCase().includes(query);
     const matchesSearch = !searchQuery || idMatch || oldIdMatch || detailMatch || typeMatch || snMatch || noteMatch;
 
     // 2. Company Filter

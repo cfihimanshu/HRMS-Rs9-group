@@ -25,9 +25,6 @@ if (!daemonStarted && !isServerless) {
 
   setInterval(async () => {
     try {
-      // Authenticate
-      await sequelize.authenticate();
-
       const now = new Date();
       // Look for tasks where scheduledAt is in the past and reminder not yet sent
       const dueTasks = await TaskLog.findAll({
@@ -211,7 +208,10 @@ if (!daemonStarted && !isServerless) {
           }
         }
       }
-    } catch (daemonErr) {
+    } catch (daemonErr: any) {
+      if (daemonErr?.name === "SequelizeConnectionAcquireTimeoutError" || daemonErr?.original?.name === "TimeoutError" || daemonErr?.message?.includes("timeout")) {
+        return;
+      }
       console.error("⏰ [Task Reminder Daemon] Loop Error:", daemonErr);
     }
   }, 30000);
