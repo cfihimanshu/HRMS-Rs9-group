@@ -152,22 +152,22 @@ EmployeeProfile.init(
       allowNull: true,
     },
     allocatedAsset: {
-      type: DataTypes.STRING,
+      type: DataTypes.TEXT,
       allowNull: true,
       defaultValue: "",
     },
     allocatedSim: {
-      type: DataTypes.STRING,
+      type: DataTypes.TEXT,
       allowNull: true,
       defaultValue: "",
     },
     allocatedGmail: {
-      type: DataTypes.STRING,
+      type: DataTypes.TEXT,
       allowNull: true,
       defaultValue: "",
     },
     allocatedWhatsapp: {
-      type: DataTypes.STRING,
+      type: DataTypes.TEXT,
       allowNull: true,
       defaultValue: "",
     },

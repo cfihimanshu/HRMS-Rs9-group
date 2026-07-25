@@ -12,12 +12,13 @@ const sequelize = new Sequelize(
     dialectModule: mysql2,
     logging: false,
     dialectOptions: {
-      connectTimeout: 5000,
+      connectTimeout: 60000,
+      ssl: process.env.MYSQL_SSL === "true" ? { rejectUnauthorized: false } : undefined
     },
     pool: {
       max: 10,
       min: 0,
-      acquire: 5000,
+      acquire: 60000,
       idle: 10000
     }
   }

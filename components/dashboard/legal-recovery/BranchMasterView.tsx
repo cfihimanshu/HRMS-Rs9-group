@@ -574,7 +574,7 @@ export default function BranchMasterView({
                 <label className="text-xs font-black text-slate-800 uppercase tracking-wider block mb-2 flex items-center justify-between">
                   <span className="flex items-center gap-1.5">
                     <Upload className="w-3.5 h-3.5 text-emerald-600" />
-                    Upload Attachment (Image / Document)
+                    Upload Attachment (All Images / Documents / Recordings)
                   </span>
                   {uploadingFile && (
                     <span className="text-[10px] text-emerald-600 font-bold animate-pulse">Uploading file...</span>
@@ -584,7 +584,7 @@ export default function BranchMasterView({
                 <div className="border-2 border-dashed border-slate-200 hover:border-emerald-400 rounded-2xl p-4 text-center bg-slate-50/70 hover:bg-emerald-50/30 transition-all relative group cursor-pointer">
                   <input
                     type="file"
-                    accept="image/*,.pdf,.doc,.docx"
+                    accept="*/*"
                     onChange={handleFileUpload}
                     className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
                   />
@@ -594,7 +594,7 @@ export default function BranchMasterView({
                       Click or Drag &amp; Drop file here
                     </p>
                     <p className="text-[10px] text-slate-400 font-medium">
-                      Supports JPG, PNG, PDF, DOCX
+                      Supports All Files: Images, PDF, DOCX, Audio Recordings, Videos, Spreadsheets
                     </p>
                   </div>
                 </div>

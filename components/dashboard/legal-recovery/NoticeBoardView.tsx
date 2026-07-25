@@ -3349,7 +3349,7 @@ export default function NoticeBoardView({
                         id="billing-file-input"
                         type="file"
                         multiple
-                        accept="image/*,application/pdf,.xls,.xlsx,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,audio/*,video/*"
+                        accept="*/*"
                         className="hidden"
                         onChange={e => {
                           if (e.target.files) {

@@ -545,6 +545,12 @@ export async function POST(req: Request) {
 export async function PUT(req: Request) {
   try {
     await sequelize.authenticate();
+    try {
+      await sequelize.query("ALTER TABLE `employeeprofiles` MODIFY COLUMN `allocatedAsset` TEXT;");
+      await sequelize.query("ALTER TABLE `employeeprofiles` MODIFY COLUMN `allocatedSim` TEXT;");
+      await sequelize.query("ALTER TABLE `employeeprofiles` MODIFY COLUMN `allocatedGmail` TEXT;");
+      await sequelize.query("ALTER TABLE `employeeprofiles` MODIFY COLUMN `allocatedWhatsapp` TEXT;");
+    } catch (_) {}
     await EmployeeProfile.sync({ alter: true });
     const session = await getServerSession(authOptions);
     if (!session || !session.user) {

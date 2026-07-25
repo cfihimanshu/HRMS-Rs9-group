@@ -68,6 +68,102 @@ AssetInventory.init(
       type: DataTypes.TEXT("long"),
       allowNull: true,
     },
+    phonePassword: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+    },
+    simCompany: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+    },
+    sim1Number: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+    },
+    sim2Number: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+    },
+    externalWhatsappNo: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+    },
+    laptopOs: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+    },
+    laptopHostName: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+    },
+    simPlanType: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+    },
+    routerWifiSsid: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+    },
+    printerCartridge: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+    },
+    furnitureLocation: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+    },
+    socialMediaApp: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+    },
+    socialMediaUsername: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+    },
+    socialMediaPassword: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+    },
+    phoneCharger: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+    },
+    phoneColor: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+    },
+    laptopCharger: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+    },
+    laptopBag: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+    },
+    simPuk: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+    },
+    simKycName: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+    },
+    routerIp: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+    },
+    routerAdminPass: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+    },
+    routerIsp: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+    },
+    printerIp: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+    },
     updatedAt: {
       type: DataTypes.DATE,
       allowNull: true,

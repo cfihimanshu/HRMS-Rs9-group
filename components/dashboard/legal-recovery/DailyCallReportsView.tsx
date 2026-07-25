@@ -26,28 +26,53 @@ export default function DailyCallReportsView({
 
   // Helper to extract bank and branch names for either Follow-up, Business Development, Work, or Payment logs
   const getBankAndBranch = (log: any) => {
-    // If the log record already contains a saved static bankName/branchName snapshot, prioritize it
-    if (log.bankName || log.branchName) {
-      return {
-        bankName: log.bankName || 'Unknown Bank',
-        branchName: log.branchName || ''
-      };
+    let bName = log.bankName && log.bankName !== 'Unknown Bank' ? log.bankName : '';
+    let brName = log.branchName || '';
+
+    // 1. Try parsing from subCategory (e.g. "State Bank Of India - DEOLI - Deoli")
+    if (!bName && log.subCategory && log.subCategory.includes(' - ')) {
+      const parts = log.subCategory.split(' - ');
+      if (parts.length >= 2) {
+        bName = parts[0].trim();
+        if (!brName) brName = parts.slice(1).join(' - ').trim();
+      }
     }
 
-    if (log.logType === 'Business Development') {
-      const branch = branchesList.find(b => b.branchCode === log.branchCode);
-      const bank = banksList.find(b => b.id === branch?.bankId);
-      return {
-        bankName: bank?.bankName || 'Unknown Bank',
-        branchName: branch?.branchName || ''
-      };
-    } else {
-      const caseObj = cases.find(c => c.id === log.masterId);
-      return {
-        bankName: caseObj?.bankName || log.bankName || 'Unknown Bank',
-        branchName: caseObj?.branchName || ''
-      };
+    // 2. Try matching from cases list using masterId
+    if (!bName && log.masterId) {
+      const caseObj = cases.find(c => String(c.id) === String(log.masterId));
+      if (caseObj) {
+        bName = caseObj.bankName || bName;
+        if (!brName) brName = caseObj.branchName || brName;
+      }
     }
+
+    // 3. Try matching from branchesList / banksList using branchId or branchCode
+    if (!bName && (log.branchId || log.branchCode)) {
+      const branch = branchesList.find(b => String(b.id) === String(log.branchId) || b.branchCode === log.branchCode);
+      if (branch) {
+        if (!brName) brName = branch.branchName || brName;
+        const bank = banksList.find(b => String(b.id) === String(branch.bankId));
+        if (bank) bName = bank.bankName;
+      }
+    }
+
+    // 4. Try matching bank name from text in remarks or subCategory
+    if (!bName) {
+      const textToSearch = `${log.remarks || ''} ${log.subCategory || ''}`;
+      const foundBank = banksList.find(b => b.bankName && textToSearch.toLowerCase().includes(b.bankName.toLowerCase()));
+      if (foundBank) bName = foundBank.bankName;
+    }
+
+    // Fallback if still unassigned
+    if (!bName) {
+      bName = log.category === 'Office work' || log.subCategory?.includes('Office') ? 'Office Work / General' : (log.bankName || 'General Bank');
+    }
+
+    return {
+      bankName: bName,
+      branchName: brName
+    };
   };
 
   // DYNAMIC DEPENDENT FILTERS: Dropdown options update based on other active filters
