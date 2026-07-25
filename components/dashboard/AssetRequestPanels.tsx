@@ -637,7 +637,7 @@ export function AssetRequestLogs({ sessionUser, triggerToast, setActiveTab }: As
                                   ? "bg-indigo-50 text-indigo-700 dark:bg-indigo-900/20 dark:text-indigo-400" 
                                   : "bg-slate-100 text-slate-650 dark:bg-gray-800 dark:text-slate-400"
                               }`}>
-                                {item.assetType}
+                                {item.assetType} {item.oldAssetId ? `(Old ID: ${item.oldAssetId})` : ""}
                               </span>
                             </td>
                             <td className="p-3 max-w-[200px] truncate">{item.assetDetail || "N/A"}</td>

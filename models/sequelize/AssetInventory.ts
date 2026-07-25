@@ -10,6 +10,10 @@ AssetInventory.init(
       primaryKey: true,
       allowNull: false,
     },
+    oldAssetId: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
     assetType: {
       type: DataTypes.STRING,
       allowNull: false,
