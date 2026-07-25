@@ -8,30 +8,30 @@ import AssetInventory from "@/models/sequelize/AssetInventory";
 async function ensureColumns() {
   try { await sequelize.query(`ALTER TABLE asset_inventory ADD customFields LONGTEXT NULL;`); } catch (_) {}
   try { await sequelize.query(`ALTER TABLE asset_inventory ADD photoUrl LONGTEXT NULL;`); } catch (_) {}
-  try { await sequelize.query(`ALTER TABLE asset_inventory ADD phonePassword VARCHAR(255) NULL;`); } catch (_) {}
-  try { await sequelize.query(`ALTER TABLE asset_inventory ADD simCompany VARCHAR(255) NULL;`); } catch (_) {}
-  try { await sequelize.query(`ALTER TABLE asset_inventory ADD sim1Number VARCHAR(255) NULL;`); } catch (_) {}
-  try { await sequelize.query(`ALTER TABLE asset_inventory ADD sim2Number VARCHAR(255) NULL;`); } catch (_) {}
-  try { await sequelize.query(`ALTER TABLE asset_inventory ADD externalWhatsappNo VARCHAR(255) NULL;`); } catch (_) {}
-  try { await sequelize.query(`ALTER TABLE asset_inventory ADD laptopOs VARCHAR(255) NULL;`); } catch (_) {}
-  try { await sequelize.query(`ALTER TABLE asset_inventory ADD laptopHostName VARCHAR(255) NULL;`); } catch (_) {}
-  try { await sequelize.query(`ALTER TABLE asset_inventory ADD simPlanType VARCHAR(255) NULL;`); } catch (_) {}
-  try { await sequelize.query(`ALTER TABLE asset_inventory ADD routerWifiSsid VARCHAR(255) NULL;`); } catch (_) {}
-  try { await sequelize.query(`ALTER TABLE asset_inventory ADD printerCartridge VARCHAR(255) NULL;`); } catch (_) {}
-  try { await sequelize.query(`ALTER TABLE asset_inventory ADD furnitureLocation VARCHAR(255) NULL;`); } catch (_) {}
-  try { await sequelize.query(`ALTER TABLE asset_inventory ADD socialMediaApp VARCHAR(255) NULL;`); } catch (_) {}
-  try { await sequelize.query(`ALTER TABLE asset_inventory ADD socialMediaUsername VARCHAR(255) NULL;`); } catch (_) {}
-  try { await sequelize.query(`ALTER TABLE asset_inventory ADD socialMediaPassword VARCHAR(255) NULL;`); } catch (_) {}
-  try { await sequelize.query(`ALTER TABLE asset_inventory ADD phoneCharger VARCHAR(255) NULL;`); } catch (_) {}
-  try { await sequelize.query(`ALTER TABLE asset_inventory ADD phoneColor VARCHAR(255) NULL;`); } catch (_) {}
-  try { await sequelize.query(`ALTER TABLE asset_inventory ADD laptopCharger VARCHAR(255) NULL;`); } catch (_) {}
-  try { await sequelize.query(`ALTER TABLE asset_inventory ADD laptopBag VARCHAR(255) NULL;`); } catch (_) {}
-  try { await sequelize.query(`ALTER TABLE asset_inventory ADD simPuk VARCHAR(255) NULL;`); } catch (_) {}
-  try { await sequelize.query(`ALTER TABLE asset_inventory ADD simKycName VARCHAR(255) NULL;`); } catch (_) {}
-  try { await sequelize.query(`ALTER TABLE asset_inventory ADD routerIp VARCHAR(255) NULL;`); } catch (_) {}
-  try { await sequelize.query(`ALTER TABLE asset_inventory ADD routerAdminPass VARCHAR(255) NULL;`); } catch (_) {}
-  try { await sequelize.query(`ALTER TABLE asset_inventory ADD routerIsp VARCHAR(255) NULL;`); } catch (_) {}
-  try { await sequelize.query(`ALTER TABLE asset_inventory ADD printerIp VARCHAR(255) NULL;`); } catch (_) {}
+  try { await sequelize.query(`ALTER TABLE asset_inventory ADD phonePassword TEXT NULL;`); } catch (_) {}
+  try { await sequelize.query(`ALTER TABLE asset_inventory ADD simCompany TEXT NULL;`); } catch (_) {}
+  try { await sequelize.query(`ALTER TABLE asset_inventory ADD sim1Number TEXT NULL;`); } catch (_) {}
+  try { await sequelize.query(`ALTER TABLE asset_inventory ADD sim2Number TEXT NULL;`); } catch (_) {}
+  try { await sequelize.query(`ALTER TABLE asset_inventory ADD externalWhatsappNo TEXT NULL;`); } catch (_) {}
+  try { await sequelize.query(`ALTER TABLE asset_inventory ADD laptopOs TEXT NULL;`); } catch (_) {}
+  try { await sequelize.query(`ALTER TABLE asset_inventory ADD laptopHostName TEXT NULL;`); } catch (_) {}
+  try { await sequelize.query(`ALTER TABLE asset_inventory ADD simPlanType TEXT NULL;`); } catch (_) {}
+  try { await sequelize.query(`ALTER TABLE asset_inventory ADD routerWifiSsid TEXT NULL;`); } catch (_) {}
+  try { await sequelize.query(`ALTER TABLE asset_inventory ADD printerCartridge TEXT NULL;`); } catch (_) {}
+  try { await sequelize.query(`ALTER TABLE asset_inventory ADD furnitureLocation TEXT NULL;`); } catch (_) {}
+  try { await sequelize.query(`ALTER TABLE asset_inventory ADD socialMediaApp TEXT NULL;`); } catch (_) {}
+  try { await sequelize.query(`ALTER TABLE asset_inventory ADD socialMediaUsername TEXT NULL;`); } catch (_) {}
+  try { await sequelize.query(`ALTER TABLE asset_inventory ADD socialMediaPassword TEXT NULL;`); } catch (_) {}
+  try { await sequelize.query(`ALTER TABLE asset_inventory ADD phoneCharger TEXT NULL;`); } catch (_) {}
+  try { await sequelize.query(`ALTER TABLE asset_inventory ADD phoneColor TEXT NULL;`); } catch (_) {}
+  try { await sequelize.query(`ALTER TABLE asset_inventory ADD laptopCharger TEXT NULL;`); } catch (_) {}
+  try { await sequelize.query(`ALTER TABLE asset_inventory ADD laptopBag TEXT NULL;`); } catch (_) {}
+  try { await sequelize.query(`ALTER TABLE asset_inventory ADD simPuk TEXT NULL;`); } catch (_) {}
+  try { await sequelize.query(`ALTER TABLE asset_inventory ADD simKycName TEXT NULL;`); } catch (_) {}
+  try { await sequelize.query(`ALTER TABLE asset_inventory ADD routerIp TEXT NULL;`); } catch (_) {}
+  try { await sequelize.query(`ALTER TABLE asset_inventory ADD routerAdminPass TEXT NULL;`); } catch (_) {}
+  try { await sequelize.query(`ALTER TABLE asset_inventory ADD routerIsp TEXT NULL;`); } catch (_) {}
+  try { await sequelize.query(`ALTER TABLE asset_inventory ADD printerIp TEXT NULL;`); } catch (_) {}
 }
 
 // ─── GET: Fetch all inventory assets ──────────────────────────────────────────
@@ -50,8 +50,8 @@ export async function GET(req: Request) {
     }
 
     await sequelize.authenticate();
-    try { await AssetInventory.sync({ alter: true }); } catch (_) {}
     await ensureColumns();
+    try { await AssetInventory.sync({ alter: true }); } catch (_) {}
 
     const { searchParams } = new URL(req.url);
     const companyId = searchParams.get("companyId");
@@ -59,7 +59,19 @@ export async function GET(req: Request) {
     const where: any = {};
     if (companyId) where.companyId = companyId;
 
-    const records = await AssetInventory.findAll({ where, order: [["createdAt", "DESC"]] });
+    let records;
+    try {
+      records = await AssetInventory.findAll({ where, order: [["createdAt", "DESC"]] });
+    } catch (err: any) {
+      if (err?.message?.includes("Unknown column")) {
+        console.warn("[/api/assets/inventory GET] Missing column detected, re-running ensureColumns & retrying...", err.message);
+        await ensureColumns();
+        records = await AssetInventory.findAll({ where, order: [["createdAt", "DESC"]] });
+      } else {
+        throw err;
+      }
+    }
+
     return NextResponse.json({ success: true, data: records });
   } catch (error: any) {
     console.error("[/api/assets/inventory GET]", error.message);
@@ -84,8 +96,8 @@ export async function POST(req: Request) {
     }
 
     await sequelize.authenticate();
-    try { await AssetInventory.sync({ alter: true }); } catch (_) {}
     await ensureColumns();
+    try { await AssetInventory.sync({ alter: true }); } catch (_) {}
 
     const body = await req.json();
     const { id, oldAssetId, assetType, assetDetail, serialNumber, purchaseDate, purchaseValue, condition, companyId, notes, photoUrl, customFields, phonePassword: bodyPassword, simCompany: bodySimComp, sim1Number: bodySim1No, sim2Number: bodySim2No } = body;
@@ -177,8 +189,8 @@ export async function PUT(req: Request) {
     }
 
     await sequelize.authenticate();
-    try { await AssetInventory.sync({ alter: true }); } catch (_) {}
     await ensureColumns();
+    try { await AssetInventory.sync({ alter: true }); } catch (_) {}
 
     const body = await req.json();
     const { id, oldAssetId, assetType, assetDetail, serialNumber, purchaseDate, purchaseValue, condition, status, companyId, notes, photoUrl, customFields, phonePassword: bodyPassword, simCompany: bodySimComp, sim1Number: bodySim1No, sim2Number: bodySim2No } = body;
