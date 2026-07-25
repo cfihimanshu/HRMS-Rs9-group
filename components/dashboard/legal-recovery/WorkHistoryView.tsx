@@ -18,10 +18,23 @@ export default function WorkHistoryView() {
   // Detail Modal State
   const [selectedLogModal, setSelectedLogModal] = useState<any | null>(null);
   
+  // Dynamic DB Banks & Branches
+  const [banksList, setBanksList] = useState<any[]>([]);
+  const [branchesList, setBranchesList] = useState<any[]>([]);
+
   // Edit Modal State
   const [editLogModal, setEditLogModal] = useState<any | null>(null);
+  const [editCategory, setEditCategory] = useState<string>("Bank");
+  const [editSubCategory, setEditSubCategory] = useState<string>("");
+  const [editBankId, setEditBankId] = useState<string>("");
+  const [editBranchId, setEditBranchId] = useState<string>("");
+  const [editBankName, setEditBankName] = useState<string>("");
+  const [editBranchName, setEditBranchName] = useState<string>("");
+  const [editWorkDate, setEditWorkDate] = useState<string>("");
   const [editStatus, setEditStatus] = useState<string>("Pending");
   const [editRemarks, setEditRemarks] = useState<string>("");
+  const [editAttachmentUrl, setEditAttachmentUrl] = useState<string>("");
+  const [uploadingEditFile, setUploadingEditFile] = useState<boolean>(false);
   const [savingEdit, setSavingEdit] = useState<boolean>(false);
 
   const fetchHistory = async () => {
@@ -39,9 +52,65 @@ export default function WorkHistoryView() {
     }
   };
 
+  const fetchBanksAndBranches = async () => {
+    try {
+      const [resBanks, resBranches] = await Promise.all([
+        fetch("/api/legal-recovery/banks"),
+        fetch("/api/legal-recovery/branches"),
+      ]);
+      const dataBanks = await resBanks.json();
+      const dataBranches = await resBranches.json();
+      if (dataBanks.success) setBanksList(dataBanks.data || []);
+      if (dataBranches.success) setBranchesList(dataBranches.data || []);
+    } catch (err) {
+      console.error("Failed to fetch banks/branches:", err);
+    }
+  };
+
   useEffect(() => {
     fetchHistory();
+    fetchBanksAndBranches();
   }, []);
+
+  const handleBankSelect = (val: string) => {
+    setEditBankId(val);
+    if (!val) {
+      setEditBankName("");
+      setEditBranchId("");
+      setEditBranchName("");
+    } else {
+      const targetBank = banksList.find((b) => b.id?.toString() === val);
+      const bName = targetBank ? targetBank.bankName : "";
+      setEditBankName(bName);
+
+      const availableBranches = branchesList.filter((br) => br.bankId?.toString() === val);
+      if (availableBranches.length > 0) {
+        setEditBranchId(availableBranches[0].id?.toString());
+        setEditBranchName(availableBranches[0].branchName);
+        if (editCategory === "Bank") {
+          setEditSubCategory(`${bName} - ${availableBranches[0].branchName}`);
+        }
+      } else {
+        setEditBranchId("");
+        setEditBranchName("");
+      }
+    }
+  };
+
+  const handleBranchSelect = (val: string) => {
+    setEditBranchId(val);
+    if (!val) {
+      setEditBranchName("");
+    } else {
+      const targetBranch = branchesList.find((br) => br.id?.toString() === val);
+      if (targetBranch) {
+        setEditBranchName(targetBranch.branchName);
+        if (editCategory === "Bank") {
+          setEditSubCategory(`${editBankName || "Bank"} - ${targetBranch.branchName}`);
+        }
+      }
+    }
+  };
 
   const uniqueSubmittedUsers = Array.from(new Set(historyLogs.map((l) => l.employeeName).filter(Boolean)));
 
@@ -101,7 +170,6 @@ export default function WorkHistoryView() {
     XLSX.writeFile(workbook, `Legal_Work_History_${dateStr}.xlsx`);
   };
 
-
   const handleSaveStatus = async () => {
     if (!editLogModal) return;
     setSavingEdit(true);
@@ -111,8 +179,14 @@ export default function WorkHistoryView() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           id: editLogModal.id,
+          category: editCategory,
+          subCategory: editSubCategory,
+          bankName: editBankName,
+          branchName: editBranchName,
           status: editStatus,
           remarks: editRemarks,
+          workDate: editWorkDate ? new Date(editWorkDate) : undefined,
+          attachmentUrl: editAttachmentUrl,
         }),
       });
       const data = await res.json();
@@ -120,12 +194,40 @@ export default function WorkHistoryView() {
         setEditLogModal(null);
         fetchHistory();
       } else {
-        alert("Failed to update status: " + (data.error || "Unknown error"));
+        alert("Failed to update work entry: " + (data.error || "Unknown error"));
       }
     } catch (err: any) {
-      alert("Error updating status: " + err.message);
+      alert("Error updating work entry: " + err.message);
     } finally {
       setSavingEdit(false);
+    }
+  };
+
+  const handleEditFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    const file = files[0];
+    const formData = new FormData();
+    formData.append("file", file);
+
+    setUploadingEditFile(true);
+    try {
+      const res = await fetch("/api/documents/upload", {
+        method: "POST",
+        body: formData,
+      });
+      const data = await res.json();
+      if (data.success && data.url) {
+        setEditAttachmentUrl(data.url);
+      } else {
+        alert("File upload failed: " + (data.error || "Unknown error"));
+      }
+    } catch (err: any) {
+      console.error("Upload error:", err);
+      alert("File upload error: " + (err.message || "Upload failed"));
+    } finally {
+      setUploadingEditFile(false);
     }
   };
 
@@ -431,11 +533,27 @@ export default function WorkHistoryView() {
                       <button
                         onClick={() => {
                           setEditLogModal(log);
+                          setEditCategory(log.category || "Bank");
+                          setEditSubCategory(log.subCategory || "");
+
+                          const matchedBank = banksList.find((b) => b.bankName?.toLowerCase() === log.bankName?.toLowerCase());
+                          const bId = matchedBank ? matchedBank.id?.toString() : "";
+                          setEditBankId(bId);
+                          setEditBankName(log.bankName || "");
+
+                          const matchedBranch = branchesList.find((br) => (log.masterId && br.id === log.masterId) || br.branchName?.toLowerCase() === log.branchName?.toLowerCase());
+                          const brId = matchedBranch ? matchedBranch.id?.toString() : "";
+                          setEditBranchId(brId);
+                          setEditBranchName(log.branchName || "");
+
                           setEditStatus(log.status || "Pending");
                           setEditRemarks(log.remarks || "");
+                          setEditAttachmentUrl(log.attachmentUrl || "");
+                          const rawDate = log.workDate || log.createdAt;
+                          setEditWorkDate(rawDate ? new Date(rawDate).toISOString().split("T")[0] : new Date().toISOString().split("T")[0]);
                         }}
                         className="px-2.5 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-colors inline-flex items-center gap-1"
-                        title="Edit Work Status & Remarks"
+                        title="Edit Work Entry Details"
                       >
                         <Edit className="w-3 h-3 text-indigo-600" /> Edit
                       </button>
@@ -592,21 +710,21 @@ export default function WorkHistoryView() {
         document.body
       )}
 
-      {/* EDIT WORK STATUS MODAL */}
+      {/* EDIT WORK ENTRY MODAL */}
       {editLogModal && typeof window !== "undefined" && ReactDOM.createPortal(
         <div className="fixed inset-0 bg-slate-950/75 backdrop-blur-md z-[9999] flex items-center justify-center p-4 overflow-y-auto animate-in fade-in duration-200">
-          <div className="bg-white rounded-3xl border border-slate-200 shadow-2xl w-full max-w-md overflow-hidden my-auto transform transition-all">
+          <div className="bg-white rounded-3xl border border-slate-200 shadow-2xl w-full max-w-xl overflow-hidden my-auto transform transition-all max-h-[90vh] flex flex-col">
             
             {/* Modal Header */}
-            <div className="p-5 bg-gradient-to-r from-indigo-900 via-slate-800 to-slate-900 text-white flex items-center justify-between border-b border-indigo-800">
+            <div className="p-5 bg-gradient-to-r from-indigo-900 via-slate-800 to-slate-900 text-white flex items-center justify-between border-b border-indigo-800 shrink-0">
               <div className="flex items-center gap-3">
                 <div className="w-9 h-9 rounded-2xl bg-indigo-500/20 border border-indigo-400/30 text-indigo-400 flex items-center justify-center">
                   <Edit className="w-4 h-4" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-bold tracking-wide">Edit Work Status</h3>
-                  <p className="text-[11px] text-slate-300 font-medium truncate max-w-[240px]">
-                    {editLogModal.subCategory}
+                  <h3 className="text-sm font-bold tracking-wide">Edit Work Entry Details</h3>
+                  <p className="text-[11px] text-slate-300 font-medium truncate max-w-[280px]">
+                    {editSubCategory || editLogModal.subCategory}
                   </p>
                 </div>
               </div>
@@ -619,8 +737,104 @@ export default function WorkHistoryView() {
               </button>
             </div>
 
-            {/* Modal Form */}
-            <div className="p-6 space-y-4">
+            {/* Modal Form Content */}
+            <div className="p-6 space-y-4 overflow-y-auto custom-scrollbar flex-1">
+              
+              {/* Category & Date Grid */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-black text-slate-700 uppercase tracking-wider block mb-1.5">
+                    Work Category <span className="text-rose-500">*</span>
+                  </label>
+                  <select
+                    value={editCategory}
+                    onChange={(e) => setEditCategory(e.target.value)}
+                    className="w-full text-xs p-3 border-2 border-slate-200 focus:border-indigo-500 rounded-xl bg-slate-50 focus:bg-white font-bold text-slate-800 focus:outline-none transition-all"
+                  >
+                    <option value="Bank">Bank Work</option>
+                    <option value="Office work">Office Work</option>
+                    <option value="Other">Other Work</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-xs font-black text-slate-700 uppercase tracking-wider block mb-1.5">
+                    Work Date <span className="text-rose-500">*</span>
+                  </label>
+                  <input
+                    type="date"
+                    value={editWorkDate}
+                    onChange={(e) => setEditWorkDate(e.target.value)}
+                    className="w-full text-xs p-3 border-2 border-slate-200 focus:border-indigo-500 rounded-xl bg-slate-50 focus:bg-white font-bold text-slate-800 focus:outline-none transition-all"
+                  />
+                </div>
+              </div>
+
+              {/* Sub-Category / Details */}
+              <div>
+                <label className="text-xs font-black text-slate-700 uppercase tracking-wider block mb-1.5">
+                  Details / Title (Sub-Category) <span className="text-rose-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={editSubCategory}
+                  onChange={(e) => setEditSubCategory(e.target.value)}
+                  placeholder="e.g. RAJASTHAN GRAMIN BANK - BARMER or Notice Drafting"
+                  className="w-full text-xs p-3 border-2 border-slate-200 focus:border-indigo-500 rounded-xl bg-slate-50 focus:bg-white font-semibold text-slate-800 focus:outline-none transition-all"
+                />
+              </div>
+
+              {/* Bank & Branch Name Dynamic DB Dropdowns Grid */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {/* Bank Select */}
+                <div>
+                  <label className="text-xs font-black text-slate-700 uppercase tracking-wider block mb-1.5 flex items-center justify-between">
+                    <span>Bank Name</span>
+                    {banksList.length > 0 && (
+                      <span className="text-[10px] text-indigo-600 font-bold lowercase">({banksList.length} in DB)</span>
+                    )}
+                  </label>
+                  <select
+                    value={editBankId}
+                    onChange={(e) => handleBankSelect(e.target.value)}
+                    className="w-full text-xs p-3 border-2 border-slate-200 focus:border-indigo-500 rounded-xl bg-slate-50 focus:bg-white font-bold text-slate-800 focus:outline-none transition-all"
+                  >
+                    <option value="">-- Select Bank --</option>
+                    {banksList.map((b) => (
+                      <option key={b.id} value={b.id?.toString()}>
+                        🏦 {b.bankName}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Branch Select */}
+                <div>
+                  <label className="text-xs font-black text-slate-700 uppercase tracking-wider block mb-1.5 flex items-center justify-between">
+                    <span>Branch Name</span>
+                    {editBankId && (
+                      <span className="text-[10px] text-indigo-600 font-bold lowercase">
+                        ({branchesList.filter((br) => br.bankId?.toString() === editBankId).length} branches)
+                      </span>
+                    )}
+                  </label>
+                  <select
+                    value={editBranchId}
+                    onChange={(e) => handleBranchSelect(e.target.value)}
+                    className="w-full text-xs p-3 border-2 border-slate-200 focus:border-indigo-500 rounded-xl bg-slate-50 focus:bg-white font-bold text-slate-800 focus:outline-none transition-all"
+                  >
+                    <option value="">-- Select Branch --</option>
+                    {branchesList
+                      .filter((br) => !editBankId || br.bankId?.toString() === editBankId)
+                      .map((br) => (
+                        <option key={br.id} value={br.id?.toString()}>
+                          📍 {br.branchName} {br.branchCode ? `(${br.branchCode})` : ""}
+                        </option>
+                      ))}
+                  </select>
+                </div>
+              </div>
+
               {/* Work Status Selection */}
               <div>
                 <label className="text-xs font-black text-slate-700 uppercase tracking-wider block mb-1.5">
@@ -637,6 +851,46 @@ export default function WorkHistoryView() {
                 </select>
               </div>
 
+              {/* Attachment File Section */}
+              <div>
+                <label className="text-xs font-black text-slate-700 uppercase tracking-wider block mb-1.5">
+                  Attachment Document
+                </label>
+                {editAttachmentUrl ? (
+                  <div className="flex items-center justify-between p-3 bg-indigo-50/70 border border-indigo-200 rounded-xl text-xs font-bold text-indigo-900">
+                    <a
+                      href={editAttachmentUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="flex items-center gap-2 truncate hover:underline"
+                    >
+                      <Paperclip className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
+                      <span className="truncate">{editAttachmentUrl.split("/").pop()}</span>
+                    </a>
+                    <button
+                      type="button"
+                      onClick={() => setEditAttachmentUrl("")}
+                      className="text-rose-600 hover:text-rose-800 text-[10px] font-bold underline shrink-0 ml-2"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-3">
+                    <label className="cursor-pointer inline-flex items-center gap-2 px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl border border-slate-300 text-xs font-bold transition-all shadow-2xs">
+                      <Paperclip className="w-3.5 h-3.5" />
+                      {uploadingEditFile ? "Uploading File..." : "Upload Document"}
+                      <input
+                        type="file"
+                        className="hidden"
+                        onChange={handleEditFileUpload}
+                        disabled={uploadingEditFile}
+                      />
+                    </label>
+                  </div>
+                )}
+              </div>
+
               {/* Remarks Input */}
               <div>
                 <label className="text-xs font-black text-slate-700 uppercase tracking-wider block mb-1.5">
@@ -651,25 +905,26 @@ export default function WorkHistoryView() {
                 />
               </div>
 
-              {/* Modal Actions */}
-              <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-2.5">
-                <button
-                  type="button"
-                  onClick={() => setEditLogModal(null)}
-                  className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition-all"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  disabled={savingEdit}
-                  onClick={handleSaveStatus}
-                  className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-black rounded-xl shadow-md transition-all flex items-center gap-1.5"
-                >
-                  <Save className="w-3.5 h-3.5" />
-                  {savingEdit ? "Saving..." : "Save Changes"}
-                </button>
-              </div>
+            </div>
+
+            {/* Modal Actions */}
+            <div className="p-4 bg-slate-50 border-t border-slate-200 flex items-center justify-end gap-2.5 shrink-0">
+              <button
+                type="button"
+                onClick={() => setEditLogModal(null)}
+                className="px-4 py-2.5 bg-slate-200 hover:bg-slate-300 text-slate-700 text-xs font-bold rounded-xl transition-all"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={savingEdit || uploadingEditFile}
+                onClick={handleSaveStatus}
+                className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-black rounded-xl shadow-md transition-all flex items-center gap-1.5 disabled:opacity-50"
+              >
+                <Save className="w-3.5 h-3.5" />
+                {savingEdit ? "Saving Changes..." : "Save Changes"}
+              </button>
             </div>
 
           </div>

@@ -14,6 +14,10 @@ LegalWorkHistory.init(
       type: DataTypes.INTEGER,
       allowNull: true,
     },
+    taskId: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
     category: {
       type: DataTypes.STRING,
       allowNull: false,

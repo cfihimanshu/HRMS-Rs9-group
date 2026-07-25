@@ -233,18 +233,24 @@ export async function DELETE(req: Request) {
     }
 
     const userRole = (session.user as any).role;
-    const canManage = ["Owner", "Director", "HR Head"].includes(userRole);
+    const canManage = ["Owner", "Director", "HR Head", "HR Executive", "Department Manager"].includes(userRole);
     if (!canManage) {
-      return NextResponse.json({ success: false, error: "Only Owner/HR Head can remove fines" }, { status: 403 });
+      return NextResponse.json({ success: false, error: "Only managers, HR, and Owner can remove fines" }, { status: 403 });
     }
 
     const body = await req.json();
-    const { fineId } = body;
-    if (!fineId) {
-      return NextResponse.json({ success: false, error: "fineId is required" }, { status: 400 });
+    const { fineId, fineIds } = body;
+
+    await sequelize.authenticate();
+
+    if (fineIds && Array.isArray(fineIds) && fineIds.length > 0) {
+      await AbsentFine.destroy({ where: { id: { [Op.in]: fineIds } } });
+    } else if (fineId) {
+      await AbsentFine.destroy({ where: { id: fineId } });
+    } else {
+      return NextResponse.json({ success: false, error: "fineId or fineIds is required" }, { status: 400 });
     }
 
-    await AbsentFine.destroy({ where: { id: fineId } });
     return NextResponse.json({ success: true });
   } catch (error: any) {
     console.error("[/api/fines DELETE]", error.message);
