@@ -5108,6 +5108,7 @@ export function LeaveRequestTab({ sessionUser }: { sessionUser?: any }) {
   const canApprove = isOwnerOrDirector || isHR || isManager || hasDirectReports;
   const canApply = !isOwnerOrDirector && (userRole === "Employee" || isManager || !canApprove || hasDirectReports);
   const canImposeFine = isOwnerOrDirector || isManager;
+  const canRemoveFine = isOwnerOrDirector || isHR || isManager || ["Owner", "Director", "HR Head", "HR Executive", "Department Manager"].includes(userRole);
 
   // Filter states
   const [filterUser, setFilterUser] = useState("");
@@ -5121,6 +5122,7 @@ export function LeaveRequestTab({ sessionUser }: { sessionUser?: any }) {
   // Fine modal & history state
   const [myFines, setMyFines] = useState<any[]>([]);
   const [loadingFines, setLoadingFines] = useState(false);
+  const [expandedFineId, setExpandedFineId] = useState<string | null>(null);
 
   // Fine history employee filter
   const [fineEmployeeFilter, setFineEmployeeFilter] = useState("All");
@@ -5165,6 +5167,7 @@ export function LeaveRequestTab({ sessionUser }: { sessionUser?: any }) {
       if (!currentGroup) {
         currentGroup = {
           id: item.id,
+          rawIds: [item.id],
           employee: itemEmpId,
           employeeInfo: item.employeeInfo,
           fromDate: item.date,
@@ -5195,10 +5198,12 @@ export function LeaveRequestTab({ sessionUser }: { sessionUser?: any }) {
           currentGroup.toDate = item.date;
           currentGroup.totalAmount += itemAmount;
           currentGroup.daysCount += 1;
+          if (item.id) currentGroup.rawIds.push(item.id);
         } else {
           grouped.push(currentGroup);
           currentGroup = {
             id: item.id,
+            rawIds: [item.id],
             employee: itemEmpId,
             employeeInfo: item.employeeInfo,
             fromDate: item.date,
@@ -5222,6 +5227,33 @@ export function LeaveRequestTab({ sessionUser }: { sessionUser?: any }) {
     // Sort grouped list by created/date descending (newest first)
     return grouped.sort((a, b) => new Date(b.fromDate).getTime() - new Date(a.fromDate).getTime());
   }, [filteredMyFines]);
+
+  const handleDeleteFine = async (fine: any) => {
+    const empName = fine.employeeInfo?.name || "Employee";
+    const ids = fine.rawIds && fine.rawIds.length ? fine.rawIds : [fine.id];
+    if (!confirm(`Are you sure you want to remove fine of ₹${Number(fine.totalAmount).toLocaleString('en-IN')} for ${empName}?`)) {
+      return;
+    }
+
+    try {
+      const res = await fetch("/api/fines", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ fineIds: ids }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setExpandedFineId(null);
+        fetchMyFines();
+        alert("✅ Fine record removed successfully!");
+      } else {
+        alert(data.error || "Failed to remove fine");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Failed to remove fine");
+    }
+  };
 
   const [showFineModal, setShowFineModal] = useState(false);
   const [fineEmployee, setFineEmployee] = useState<{ id: string; name: string } | null>(null);
@@ -5546,11 +5578,11 @@ export function LeaveRequestTab({ sessionUser }: { sessionUser?: any }) {
         </div>
 
         {/* ── Top Row 2-Column Grid: Apply Leave Form (Left) & Absent Fines History (Right) ── */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
 
           {/* Form View for Applicants */}
           {canApply && (
-            <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm flex flex-col justify-between">
+            <div className="lg:col-span-5 bg-white border border-slate-200 rounded-xl p-6 shadow-sm flex flex-col justify-between">
               <div>
                 <h3 className="text-xs font-black tracking-widest text-[#714B67] uppercase font-mono pb-2 border-b border-slate-100 mb-4 flex items-center justify-between">
                   <span>📋 Apply for Leave Request</span>
@@ -5632,7 +5664,7 @@ export function LeaveRequestTab({ sessionUser }: { sessionUser?: any }) {
           )}
 
           {/* ── Absent Fines History Section (Right Side - Height Matched with Scrollbar) ── */}
-          <div id="absent-fines-section" className="bg-white border border-rose-200/80 rounded-xl p-6 shadow-sm flex flex-col justify-between h-full">
+          <div id="absent-fines-section" className={`${canApply ? "lg:col-span-5" : "lg:col-span-9"} bg-white border border-rose-200/80 rounded-xl p-5 shadow-sm flex flex-col justify-between h-full`}>
             <div>
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-3 border-b border-rose-100 mb-3">
                 <div className="flex items-center gap-2">
@@ -5680,51 +5712,128 @@ export function LeaveRequestTab({ sessionUser }: { sessionUser?: any }) {
                   ✅ Great news! No absence fines recorded.
                 </div>
               ) : (
-                <div className="overflow-y-auto overflow-x-auto custom-scrollbar max-h-[220px]">
+                <div className="overflow-y-auto overflow-x-auto custom-scrollbar max-h-[300px]">
                   <table className="w-full text-left text-xs border-collapse">
                     <thead>
                       <tr className="bg-rose-50/80 text-rose-950 text-[10px] uppercase font-black tracking-wider border-b border-rose-100 sticky top-0 bg-rose-50 z-10">
-                        {canApprove && <th className="py-2 px-2.5">Employee</th>}
-                        <th className="py-2 px-2.5">Absence Date</th>
-                        <th className="py-2 px-2.5">Fine Amount</th>
-                        <th className="py-2 px-2.5">Reason</th>
+                        {canApprove && <th className="py-2 px-2">Employee</th>}
+                        <th className="py-2 px-2">Absence Date</th>
+                        <th className="py-2 px-2">Fine Amount</th>
+                        <th className="py-2 px-2">Reason</th>
+                        {canRemoveFine && <th className="py-2 px-2 text-right">Action</th>}
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 font-semibold text-slate-800">
-                      {displayFines.map((fine: any) => (
-                        <tr key={fine.id} className="hover:bg-rose-50/30 transition-colors">
-                          {canApprove && (
-                            <td className="py-2 px-2.5">
-                              <span className="font-bold text-slate-900 block truncate max-w-[120px]">{fine.employeeInfo?.name || "Employee"}</span>
-                            </td>
-                          )}
-                          <td className="py-2 px-2.5 font-bold text-slate-900 whitespace-nowrap">
-                            📅 {fine.daysCount > 1
-                              ? `${new Date(fine.fromDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })} to ${new Date(fine.toDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })} (${fine.daysCount} Days)`
-                              : new Date(fine.fromDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
-                          </td>
-                          <td className="py-2 px-2.5 whitespace-nowrap">
-                            <span className="px-2 py-0.5 bg-rose-100 text-rose-800 rounded font-black border border-rose-200 text-[11px]">
-                              ₹{Number(fine.totalAmount).toLocaleString('en-IN')}
-                              {fine.daysCount > 1 && (
-                                <span className="text-[10px] text-rose-600 font-bold ml-1">
-                                  (₹{fine.perDayAmount}/day)
-                                </span>
+                      {displayFines.map((fine: any) => {
+                        const isExpanded = expandedFineId === fine.id;
+                        const colSpanCount = (canApprove ? 4 : 3) + (canRemoveFine ? 1 : 0);
+                        return (
+                          <React.Fragment key={fine.id}>
+                            <tr
+                              onClick={() => setExpandedFineId(isExpanded ? null : fine.id)}
+                              className={`hover:bg-rose-50/50 transition-all cursor-pointer ${isExpanded ? "bg-rose-50/60" : ""
+                                }`}
+                              title="Click to view complete fine reason"
+                            >
+                              {canApprove && (
+                                <td className="py-2 px-2">
+                                  <span className="font-bold text-slate-900 block truncate max-w-[110px]">
+                                    {fine.employeeInfo?.name || "Employee"}
+                                  </span>
+                                </td>
                               )}
-                            </span>
-                          </td>
-                          <td className="py-2 px-2.5 text-slate-700 max-w-[140px] truncate" title={fine.reason}>
-                            {fine.reason}
-                          </td>
-                        </tr>
-                      ))}
+                              <td className="py-2 px-2 font-bold text-slate-900 whitespace-nowrap">
+                                📅 {fine.daysCount > 1
+                                  ? `${new Date(fine.fromDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })} to ${new Date(fine.toDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })} (${fine.daysCount} Days)`
+                                  : new Date(fine.fromDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
+                              </td>
+                              <td className="py-2 px-2 whitespace-nowrap">
+                                <span className="px-1.5 py-0.5 bg-rose-100 text-rose-800 rounded font-black border border-rose-200 text-[11px]">
+                                  ₹{Number(fine.totalAmount).toLocaleString('en-IN')}
+                                  {fine.daysCount > 1 && (
+                                    <span className="text-[10px] text-rose-600 font-bold ml-1">
+                                      (₹{fine.perDayAmount}/day)
+                                    </span>
+                                  )}
+                                </span>
+                              </td>
+                              <td className="py-2 px-2 text-slate-700 max-w-[150px] truncate" title={fine.reason}>
+                                {fine.reason}
+                              </td>
+                              {canRemoveFine && (
+                                <td className="py-2 px-2 text-right whitespace-nowrap">
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleDeleteFine(fine);
+                                    }}
+                                    className="px-2 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded text-[10px] font-bold transition-all flex items-center gap-1 ml-auto"
+                                    title="Remove / Delete Fine"
+                                  >
+                                    🗑️ Remove
+                                  </button>
+                                </td>
+                              )}
+                            </tr>
+                            {isExpanded && (
+                              <tr className="bg-rose-50/40 border-b border-rose-200/60">
+                                <td colSpan={colSpanCount} className="px-3 py-2.5">
+                                  <div className="bg-white border border-rose-200 rounded-xl p-3 shadow-xs space-y-2 animate-fadeIn">
+                                    <div className="flex items-center justify-between">
+                                      <span className="text-[10px] uppercase font-black tracking-wider text-rose-700 font-mono flex items-center gap-1">
+                                        <span>📝</span> Complete Fine Reason
+                                      </span>
+                                      <button
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          setExpandedFineId(null);
+                                        }}
+                                        className="text-[10px] font-bold text-rose-600 hover:text-rose-800 bg-rose-50 hover:bg-rose-100 px-2 py-0.5 rounded-md border border-rose-200/60 transition-colors"
+                                      >
+                                        Close ✕
+                                      </button>
+                                    </div>
+                                    <p className="text-xs text-slate-800 font-semibold leading-relaxed bg-rose-50/50 p-2.5 rounded-lg border border-rose-100/80 whitespace-pre-wrap break-words">
+                                      {fine.reason}
+                                    </p>
+                                    <div className="text-[10px] text-slate-500 font-medium pt-2 flex flex-wrap items-center justify-between gap-2 border-t border-rose-100/60">
+                                      <div className="flex flex-wrap items-center gap-3">
+                                        {fine.employeeInfo?.name && (
+                                          <span>Employee: <strong className="text-slate-800">{fine.employeeInfo.name}</strong></span>
+                                        )}
+                                        {fine.imposedByInfo?.name && (
+                                          <span>Imposed By: <strong className="text-slate-800">{fine.imposedByInfo.name}</strong></span>
+                                        )}
+                                        {fine.createdAt && (
+                                          <span>Date Recorded: <strong className="text-slate-800">{new Date(fine.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</strong></span>
+                                        )}
+                                      </div>
+                                      {canRemoveFine && (
+                                        <button
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleDeleteFine(fine);
+                                          }}
+                                          className="flex items-center gap-1 text-[10px] font-black text-rose-700 bg-rose-100 hover:bg-rose-200 border border-rose-300 px-2.5 py-1 rounded-md transition-all shadow-2xs"
+                                        >
+                                          🗑️ Remove Fine
+                                        </button>
+                                      )}
+                                    </div>
+                                  </div>
+                                </td>
+                              </tr>
+                            )}
+                          </React.Fragment>
+                        );
+                      })}
                     </tbody>
                   </table>
                 </div>
               )}
+            </div>
           </div>
         </div>
-      </div>
 
         {/* List of Leave Requests */}
         <div className="bg-white border border-[#E8E4DF] rounded-xl p-6 shadow-sm">
@@ -5732,240 +5841,240 @@ export function LeaveRequestTab({ sessionUser }: { sessionUser?: any }) {
             <span style={{ fontFamily: "'Playfair Display', serif" }} className="font-serif text-sm font-bold lowercase first-letter:uppercase text-[#1C1C1A]">
               📋 {canApprove ? "Leave requests registry" : "Your leave request history"}
             </span>
-              <div className="relative">
-                <button
-                  type="button"
-                  onClick={() => setShowFilters(!showFilters)}
-                  className={`flex items-center gap-2 border px-4 py-2 text-xs font-bold transition-all rounded-xl shadow-sm focus:outline-none ${showFilters
-                    ? "bg-[#C9A84C] border-[#C9A84C] text-[#FCFBF9]"
-                    : "bg-[#FCFBF9] hover:bg-[#F5F2EC] border-[#E8E4DF] text-[#1C1C1A]"
-                    }`}
-                >
-                  <Filter className="w-3.5 h-3.5" />
-                  <span>Filter Leaves</span>
-                  {(filterUser || filterDate || filterStatus !== "All") && (
-                    <span className="w-1.5 h-1.5 rounded-full bg-[#C9A84C] animate-pulse" />
-                  )}
-                </button>
-
-                {/* Floating Filter Popover */}
-                {showFilters && (
-                  <div className="absolute right-0 mt-3 z-50 bg-[#FCFBF9] border border-[#E8E4DF] shadow-[0_25px_60px_-15px_rgba(0,0,0,0.15)] rounded-2xl p-5 w-[300px] space-y-4 text-left normal-case font-sans">
-                    <div className="flex justify-between items-center border-b border-[#E8E4DF] pb-2">
-                      <span className="text-xs font-bold text-[#1C1C1A] tracking-wider uppercase font-mono">Filter Registry</span>
-                      <button
-                        type="button"
-                        onClick={() => setShowFilters(false)}
-                        className="text-[#9C9890] hover:text-[#1C1C1A] transition-colors"
-                      >
-                        <X className="w-4 h-4" />
-                      </button>
-                    </div>
-
-                    <div className="space-y-4 text-xs">
-                      <div>
-                        <label className="text-[9px] uppercase font-bold text-[#9C9890] font-mono tracking-widest block mb-1">Select Employee</label>
-                        <select
-                          className="w-full bg-white border border-[#E8E4DF] rounded-xl p-2.5 text-xs font-bold text-[#1C1C1A] focus:outline-none focus:border-[#C9A84C] focus:ring-1 focus:ring-[#C9A84C]"
-                          value={filterUser}
-                          onChange={(e) => setFilterUser(e.target.value)}
-                        >
-                          <option value="">All Employees</option>
-                          {uniqueUsers.map((u) => (
-                            <option key={u.id} value={u.id}>
-                              {u.name}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-
-                      <div>
-                        <label className="text-[9px] uppercase font-bold text-[#9C9890] font-mono tracking-widest block mb-1">Filter by Date</label>
-                        <input
-                          type="date"
-                          className="w-full bg-white border border-[#E8E4DF] rounded-xl p-2.5 text-xs font-bold text-[#1C1C1A] focus:outline-none focus:border-[#C9A84C] focus:ring-1 focus:ring-[#C9A84C]"
-                          value={filterDate}
-                          onChange={(e) => setFilterDate(e.target.value)}
-                        />
-                      </div>
-
-                      <div>
-                        <label className="text-[9px] uppercase font-bold text-[#9C9890] font-mono tracking-widest block mb-1">Status</label>
-                        <select
-                          className="w-full bg-white border border-[#E8E4DF] rounded-xl p-2.5 text-xs font-bold text-[#1C1C1A] focus:outline-none focus:border-[#C9A84C] focus:ring-1 focus:ring-[#C9A84C]"
-                          value={filterStatus}
-                          onChange={(e) => setFilterStatus(e.target.value)}
-                        >
-                          <option value="All">All Statuses</option>
-                          <option value="Pending">Pending</option>
-                          <option value="Approved">Approved</option>
-                          <option value="Rejected">Rejected</option>
-                        </select>
-                      </div>
-                    </div>
-
-                    <div className="pt-2 flex gap-3">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setFilterUser("");
-                          setFilterDate("");
-                          setFilterStatus("All");
-                          setShowFilters(false);
-                        }}
-                        className="flex-1 bg-[#FCFBF9] hover:bg-[#F5F2EC] text-[#6B665E] py-2.5 rounded-xl text-[10px] font-bold transition-all border border-[#E8E4DF]"
-                      >
-                        Clear All
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setShowFilters(false)}
-                        className="flex-1 bg-[#C9A84C] hover:bg-[#B5963D] text-[#FCFBF9] py-2.5 rounded-xl text-[10px] font-bold transition-all shadow-md"
-                      >
-                        Apply Filters
-                      </button>
-                    </div>
-                  </div>
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setShowFilters(!showFilters)}
+                className={`flex items-center gap-2 border px-4 py-2 text-xs font-bold transition-all rounded-xl shadow-sm focus:outline-none ${showFilters
+                  ? "bg-[#C9A84C] border-[#C9A84C] text-[#FCFBF9]"
+                  : "bg-[#FCFBF9] hover:bg-[#F5F2EC] border-[#E8E4DF] text-[#1C1C1A]"
+                  }`}
+              >
+                <Filter className="w-3.5 h-3.5" />
+                <span>Filter Leaves</span>
+                {(filterUser || filterDate || filterStatus !== "All") && (
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#C9A84C] animate-pulse" />
                 )}
-              </div>
-            </h3>
+              </button>
 
-            {loadingList ? (
-              <div className="h-48 flex flex-col items-center justify-center">
-                <Loader2 className="w-8 h-8 text-[#714B67] animate-spin mb-2" />
-                <span className="text-xs font-semibold text-slate-500">Loading leave requests...</span>
-              </div>
-            ) : (
-              <>
-
-                {filteredLeaves.length === 0 ? (
-                  <div className="h-48 flex flex-col items-center justify-center text-slate-400">
-                    <Calendar className="w-8 h-8 mb-2" />
-                    <span className="text-xs font-semibold">No matching leave requests found.</span>
+              {/* Floating Filter Popover */}
+              {showFilters && (
+                <div className="absolute right-0 mt-3 z-50 bg-[#FCFBF9] border border-[#E8E4DF] shadow-[0_25px_60px_-15px_rgba(0,0,0,0.15)] rounded-2xl p-5 w-[300px] space-y-4 text-left normal-case font-sans">
+                  <div className="flex justify-between items-center border-b border-[#E8E4DF] pb-2">
+                    <span className="text-xs font-bold text-[#1C1C1A] tracking-wider uppercase font-mono">Filter Registry</span>
+                    <button
+                      type="button"
+                      onClick={() => setShowFilters(false)}
+                      className="text-[#9C9890] hover:text-[#1C1C1A] transition-colors"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
                   </div>
-                ) : (
-                  <div className="overflow-y-auto overflow-x-auto custom-scrollbar max-h-[360px]">
-                    <table className="w-full text-left text-xs border-collapse">
-                      <thead>
-                        <tr className="border-b border-slate-200 bg-slate-50 text-slate-450 font-black uppercase font-mono tracking-wider sticky top-0 bg-slate-50 z-10">
-                          {canApprove && <th className="py-3.5 px-4 text-left">Employee</th>}
-                          <th className="py-3.5 px-4 text-left">Type</th>
-                          <th className="py-3.5 px-4 text-left">Duration</th>
-                          <th className="py-3.5 px-4 text-center">Days</th>
-                          <th className="py-3.5 px-4 text-left">Reason</th>
-                          <th className="py-3.5 px-4 text-center">Status</th>
-                          {canApprove && <th className="py-3.5 px-4 text-left">Remarks & Actions</th>}
-                          {!canApprove && <th className="py-3.5 px-4 text-left">Processed By & Remarks</th>}
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-100 font-semibold text-slate-650">
-                        {filteredLeaves.map((leave: any) => {
-                          const start = new Date(leave.startDate);
-                          const end = new Date(leave.endDate);
 
-                          const isDirectReportManager = leave.employee && String(leave.employee.id) !== String(sessionUser?.id);
-                          // Show actions if current user is an authorized approver for another employee's leave
-                          const showActions =
-                            (isDirectReportManager || isManager || isOwnerOrDirector || isHR) &&
-                            (leave.status === "Pending" || leave.status === "Pending Manager Approval" || leave.status === "Pending HR Approval");
+                  <div className="space-y-4 text-xs">
+                    <div>
+                      <label className="text-[9px] uppercase font-bold text-[#9C9890] font-mono tracking-widest block mb-1">Select Employee</label>
+                      <select
+                        className="w-full bg-white border border-[#E8E4DF] rounded-xl p-2.5 text-xs font-bold text-[#1C1C1A] focus:outline-none focus:border-[#C9A84C] focus:ring-1 focus:ring-[#C9A84C]"
+                        value={filterUser}
+                        onChange={(e) => setFilterUser(e.target.value)}
+                      >
+                        <option value="">All Employees</option>
+                        {uniqueUsers.map((u) => (
+                          <option key={u.id} value={u.id}>
+                            {u.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
 
-                          return (
-                            <tr key={leave.id} className="hover:bg-slate-50/50">
-                              {canApprove && (
-                                <td className="py-3.5 px-4">
-                                  <div className="flex flex-col">
-                                    <span className="font-black text-slate-800">{leave.employee?.name || "Unknown"}</span>
-                                    <span className="text-[10px] text-slate-400 font-mono font-bold">{leave.employee?.email || ""}</span>
-                                  </div>
-                                </td>
-                              )}
+                    <div>
+                      <label className="text-[9px] uppercase font-bold text-[#9C9890] font-mono tracking-widest block mb-1">Filter by Date</label>
+                      <input
+                        type="date"
+                        className="w-full bg-white border border-[#E8E4DF] rounded-xl p-2.5 text-xs font-bold text-[#1C1C1A] focus:outline-none focus:border-[#C9A84C] focus:ring-1 focus:ring-[#C9A84C]"
+                        value={filterDate}
+                        onChange={(e) => setFilterDate(e.target.value)}
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-[9px] uppercase font-bold text-[#9C9890] font-mono tracking-widest block mb-1">Status</label>
+                      <select
+                        className="w-full bg-white border border-[#E8E4DF] rounded-xl p-2.5 text-xs font-bold text-[#1C1C1A] focus:outline-none focus:border-[#C9A84C] focus:ring-1 focus:ring-[#C9A84C]"
+                        value={filterStatus}
+                        onChange={(e) => setFilterStatus(e.target.value)}
+                      >
+                        <option value="All">All Statuses</option>
+                        <option value="Pending">Pending</option>
+                        <option value="Approved">Approved</option>
+                        <option value="Rejected">Rejected</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="pt-2 flex gap-3">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setFilterUser("");
+                        setFilterDate("");
+                        setFilterStatus("All");
+                        setShowFilters(false);
+                      }}
+                      className="flex-1 bg-[#FCFBF9] hover:bg-[#F5F2EC] text-[#6B665E] py-2.5 rounded-xl text-[10px] font-bold transition-all border border-[#E8E4DF]"
+                    >
+                      Clear All
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setShowFilters(false)}
+                      className="flex-1 bg-[#C9A84C] hover:bg-[#B5963D] text-[#FCFBF9] py-2.5 rounded-xl text-[10px] font-bold transition-all shadow-md"
+                    >
+                      Apply Filters
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </h3>
+
+          {loadingList ? (
+            <div className="h-48 flex flex-col items-center justify-center">
+              <Loader2 className="w-8 h-8 text-[#714B67] animate-spin mb-2" />
+              <span className="text-xs font-semibold text-slate-500">Loading leave requests...</span>
+            </div>
+          ) : (
+            <>
+
+              {filteredLeaves.length === 0 ? (
+                <div className="h-48 flex flex-col items-center justify-center text-slate-400">
+                  <Calendar className="w-8 h-8 mb-2" />
+                  <span className="text-xs font-semibold">No matching leave requests found.</span>
+                </div>
+              ) : (
+                <div className="overflow-y-auto overflow-x-auto custom-scrollbar max-h-[360px]">
+                  <table className="w-full text-left text-xs border-collapse">
+                    <thead>
+                      <tr className="border-b border-slate-200 bg-slate-50 text-slate-450 font-black uppercase font-mono tracking-wider sticky top-0 bg-slate-50 z-10">
+                        {canApprove && <th className="py-3.5 px-4 text-left">Employee</th>}
+                        <th className="py-3.5 px-4 text-left">Type</th>
+                        <th className="py-3.5 px-4 text-left">Duration</th>
+                        <th className="py-3.5 px-4 text-center">Days</th>
+                        <th className="py-3.5 px-4 text-left">Reason</th>
+                        <th className="py-3.5 px-4 text-center">Status</th>
+                        {canApprove && <th className="py-3.5 px-4 text-left">Remarks & Actions</th>}
+                        {!canApprove && <th className="py-3.5 px-4 text-left">Processed By & Remarks</th>}
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 font-semibold text-slate-650">
+                      {filteredLeaves.map((leave: any) => {
+                        const start = new Date(leave.startDate);
+                        const end = new Date(leave.endDate);
+
+                        const isDirectReportManager = leave.employee && String(leave.employee.id) !== String(sessionUser?.id);
+                        // Show actions if current user is an authorized approver for another employee's leave
+                        const showActions =
+                          (isDirectReportManager || isManager || isOwnerOrDirector || isHR) &&
+                          (leave.status === "Pending" || leave.status === "Pending Manager Approval" || leave.status === "Pending HR Approval");
+
+                        return (
+                          <tr key={leave.id} className="hover:bg-slate-50/50">
+                            {canApprove && (
+                              <td className="py-3.5 px-4">
+                                <div className="flex flex-col">
+                                  <span className="font-black text-slate-800">{leave.employee?.name || "Unknown"}</span>
+                                  <span className="text-[10px] text-slate-400 font-mono font-bold">{leave.employee?.email || ""}</span>
+                                </div>
+                              </td>
+                            )}
+                            <td className="py-3.5 px-4 whitespace-nowrap">
+                              <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-50 text-indigo-600 border border-indigo-100">
+                                {leave.type}
+                              </span>
+                            </td>
+                            <td className="py-3.5 px-4 whitespace-nowrap text-slate-700">
+                              {start.toLocaleDateString()} to {end.toLocaleDateString()}
+                            </td>
+                            <td className="py-3.5 px-4 text-center text-slate-700 font-mono">
+                              {leave.days}
+                            </td>
+                            <td className="py-3.5 px-4 max-w-xs truncate text-slate-600" title={leave.reason}>
+                              {leave.reason}
+                            </td>
+                            <td className="py-3.5 px-4 text-center whitespace-nowrap">
+                              <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${leave.status === "Approved"
+                                ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                                : leave.status === "Rejected"
+                                  ? "bg-rose-50 text-rose-700 border border-rose-200"
+                                  : leave.status === "Pending HR Approval"
+                                    ? "bg-blue-50 text-blue-700 border border-blue-200"
+                                    : "bg-amber-50 text-amber-700 border border-amber-200"
+                                }`}>
+                                {leave.status}
+                              </span>
+                            </td>
+
+                            {/* Actions for Managers/HR/Owners */}
+                            {canApprove && (
                               <td className="py-3.5 px-4 whitespace-nowrap">
-                                <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-50 text-indigo-600 border border-indigo-100">
-                                  {leave.type}
-                                </span>
+                                {showActions ? (
+                                  <div className="flex items-center gap-2">
+                                    <input
+                                      className="bg-white border border-slate-300 rounded px-2 py-1 text-xs font-bold text-slate-900 focus:outline-none focus:border-[#714B67]"
+                                      placeholder="remarks..."
+                                      value={actionRemarks[leave.id] || ""}
+                                      onChange={(e) => setActionRemarks({ ...actionRemarks, [leave.id]: e.target.value })}
+                                    />
+                                    <button
+                                      onClick={() => handleUpdateStatus(leave.id, "Approved")}
+                                      className="bg-emerald-600 hover:bg-emerald-700 text-white px-2.5 py-1 rounded text-[10px] font-bold transition-all shadow"
+                                    >
+                                      {isManager ? "Approve & Forward" : "Final Approve"}
+                                    </button>
+                                    <button
+                                      onClick={() => handleUpdateStatus(leave.id, "Rejected")}
+                                      className="bg-rose-600 hover:bg-rose-700 text-white px-2.5 py-1 rounded text-[10px] font-bold transition-all shadow"
+                                    >
+                                      Reject
+                                    </button>
+                                  </div>
+                                ) : (
+                                  <span className="text-slate-450 text-[11px] italic">
+                                    {leave.status === "Pending HR Approval"
+                                      ? "Forwarded to HR - Awaiting HR Review"
+                                      : leave.remarks ? `Remarks: ${leave.remarks}` : "Awaiting Manager Review"}
+                                  </span>
+                                )}
                               </td>
-                              <td className="py-3.5 px-4 whitespace-nowrap text-slate-700">
-                                {start.toLocaleDateString()} to {end.toLocaleDateString()}
-                              </td>
-                              <td className="py-3.5 px-4 text-center text-slate-700 font-mono">
-                                {leave.days}
-                              </td>
-                              <td className="py-3.5 px-4 max-w-xs truncate text-slate-600" title={leave.reason}>
-                                {leave.reason}
-                              </td>
-                              <td className="py-3.5 px-4 text-center whitespace-nowrap">
-                                <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${leave.status === "Approved"
-                                  ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
-                                  : leave.status === "Rejected"
-                                    ? "bg-rose-50 text-rose-700 border border-rose-200"
-                                    : leave.status === "Pending HR Approval"
-                                      ? "bg-blue-50 text-blue-700 border border-blue-200"
-                                      : "bg-amber-50 text-amber-700 border border-amber-200"
-                                  }`}>
-                                  {leave.status}
-                                </span>
-                              </td>
+                            )}
 
-                              {/* Actions for Managers/HR/Owners */}
-                              {canApprove && (
-                                <td className="py-3.5 px-4 whitespace-nowrap">
-                                  {showActions ? (
-                                    <div className="flex items-center gap-2">
-                                      <input
-                                        className="bg-white border border-slate-300 rounded px-2 py-1 text-xs font-bold text-slate-900 focus:outline-none focus:border-[#714B67]"
-                                        placeholder="remarks..."
-                                        value={actionRemarks[leave.id] || ""}
-                                        onChange={(e) => setActionRemarks({ ...actionRemarks, [leave.id]: e.target.value })}
-                                      />
-                                      <button
-                                        onClick={() => handleUpdateStatus(leave.id, "Approved")}
-                                        className="bg-emerald-600 hover:bg-emerald-700 text-white px-2.5 py-1 rounded text-[10px] font-bold transition-all shadow"
-                                      >
-                                        {isManager ? "Approve & Forward" : "Final Approve"}
-                                      </button>
-                                      <button
-                                        onClick={() => handleUpdateStatus(leave.id, "Rejected")}
-                                        className="bg-rose-600 hover:bg-rose-700 text-white px-2.5 py-1 rounded text-[10px] font-bold transition-all shadow"
-                                      >
-                                        Reject
-                                      </button>
-                                    </div>
-                                  ) : (
-                                    <span className="text-slate-450 text-[11px] italic">
-                                      {leave.status === "Pending HR Approval"
-                                        ? "Forwarded to HR - Awaiting HR Review"
-                                        : leave.remarks ? `Remarks: ${leave.remarks}` : "Awaiting Manager Review"}
-                                    </span>
-                                  )}
-                                </td>
-                              )}
-
-                              {/* processed info for Employees */}
-                              {!canApprove && (
-                                <td className="py-3.5 px-4 text-slate-500 text-[11px] italic max-w-xs truncate">
-                                  {leave.status !== "Pending" && leave.status !== "Pending Manager Approval" && leave.status !== "Pending HR Approval" ? (
-                                    <span>
-                                      By: {leave.approvedBy?.name || "HR/Manager"}
-                                      {leave.remarks ? ` (${leave.remarks})` : ""}
-                                    </span>
-                                  ) : (
-                                    <span>
-                                      {leave.status === "Pending Manager Approval" ? "Awaiting Manager Review" : "Awaiting HR Review"}
-                                    </span>
-                                  )}
-                                </td>
-                              )}
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-              </>
-            )}
-          </div>
+                            {/* processed info for Employees */}
+                            {!canApprove && (
+                              <td className="py-3.5 px-4 text-slate-500 text-[11px] italic max-w-xs truncate">
+                                {leave.status !== "Pending" && leave.status !== "Pending Manager Approval" && leave.status !== "Pending HR Approval" ? (
+                                  <span>
+                                    By: {leave.approvedBy?.name || "HR/Manager"}
+                                    {leave.remarks ? ` (${leave.remarks})` : ""}
+                                  </span>
+                                ) : (
+                                  <span>
+                                    {leave.status === "Pending Manager Approval" ? "Awaiting Manager Review" : "Awaiting HR Review"}
+                                  </span>
+                                )}
+                              </td>
+                            )}
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </>
+          )}
         </div>
+      </div>
 
       {/* ── Impose Absent Fine Modal ── */}
       {showFineModal && (
@@ -6066,11 +6175,10 @@ export function LeaveRequestTab({ sessionUser }: { sessionUser?: any }) {
                       key={preset}
                       type="button"
                       onClick={() => setFineReason(preset)}
-                      className={`text-[11px] font-extrabold px-2.5 py-1 rounded-lg border transition-all ${
-                        fineReason === preset
-                          ? "bg-rose-600 text-white border-rose-600 shadow-2xs"
-                          : "bg-slate-100 text-slate-900 border-slate-300 hover:bg-slate-200"
-                      }`}
+                      className={`text-[11px] font-extrabold px-2.5 py-1 rounded-lg border transition-all ${fineReason === preset
+                        ? "bg-rose-600 text-white border-rose-600 shadow-2xs"
+                        : "bg-slate-100 text-slate-900 border-slate-300 hover:bg-slate-200"
+                        }`}
                     >
                       {preset}
                     </button>

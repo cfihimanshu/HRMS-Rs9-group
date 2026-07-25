@@ -105,6 +105,10 @@ export default function BranchMasterView({
     const targetBank = banksList.find((b) => b.id?.toString() === selectedBankId);
     const targetBranch = branchesList.find((b) => b.id?.toString() === selectedBranchId);
 
+    const effectiveBranch = targetBranch || selectedBranch;
+    const parentBankOfSelected = banksList.find((b) => b.id === selectedBranch?.bankId);
+    const effectiveBank = targetBank || parentBankOfSelected || banksList.find((b) => b.id === effectiveBranch?.bankId);
+
     if (workType === "Bank") {
       if (!selectedBankId || !selectedBranchId) {
         alert("Please select both Bank and Branch.");
@@ -126,7 +130,7 @@ export default function BranchMasterView({
     try {
       const subCat =
         workType === "Bank"
-          ? `${targetBank?.bankName || "Bank"} - ${targetBranch?.branchName || "Branch"}`
+          ? `${effectiveBank?.bankName || "Bank"} - ${effectiveBranch?.branchName || "Branch"}`
           : workType === "Office work"
           ? officeWorkDetail.trim()
           : otherWorkDetail.trim();
@@ -138,7 +142,7 @@ export default function BranchMasterView({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          masterId: selectedBranch?.id || 0,
+          masterId: effectiveBranch?.id || 0,
           category: workType,
           subCategory: subCat,
           remarks: [
@@ -158,8 +162,8 @@ export default function BranchMasterView({
       // 2. Post to /api/tasks (creates TaskLog entry in tasks DB table)
       const taskTitle = `[Branch Work] ${workType}: ${subCat}`;
       const taskDesc = [
-        `Branch: ${selectedBranch?.branchName || ""}`,
-        `Bank: ${targetBank?.bankName || ""}`,
+        `Branch: ${effectiveBranch?.branchName || ""}`,
+        `Bank: ${effectiveBank?.bankName || ""}`,
         `Work Type: ${workType}`,
         `Work Date: ${selectedWorkDate.toLocaleDateString("en-IN")}`,
         `Detail: ${subCat}`,
@@ -183,17 +187,20 @@ export default function BranchMasterView({
           dueDate: selectedWorkDate,
         }),
       });
+      const dataTask = await resTask.json();
+      const createdTaskId = dataTask.success && dataTask.data?.id ? dataTask.data.id : null;
 
       // 3. Post to /api/legal-recovery/work-history (saves to legal_work_history DB table)
       await fetch("/api/legal-recovery/work-history", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          masterId: selectedBranch?.id || 0,
+          masterId: effectiveBranch?.id || 0,
+          taskId: createdTaskId,
           category: workType,
           subCategory: subCat,
-          bankName: targetBank?.bankName || "",
-          branchName: selectedBranch?.branchName || "",
+          bankName: effectiveBank?.bankName || "",
+          branchName: effectiveBranch?.branchName || "",
           attachmentUrl: uploadedFileUrl || "",
           remarks: remarks || "",
           status: workStatus || "Pending",
@@ -201,8 +208,7 @@ export default function BranchMasterView({
         }),
       });
 
-      const dataTask = await resTask.json();
-      if (dataTask.success) {
+      if (dataTask && dataTask.success) {
         alert("Work Entry & Task saved successfully!");
       } else {
         alert("Work log saved successfully!");
