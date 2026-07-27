@@ -21,6 +21,8 @@ export async function GET(req: Request) {
     const isHrOrOwner = ["Owner", "Director", "IT Admin", "HR Head", "HR Executive"].includes(role);
 
     await sequelize.authenticate();
+    await User.sync({ alter: true });
+    await Grievance.sync({ alter: true });
 
     let query: any = { status: { [Op.ne]: "inactive" } };
 

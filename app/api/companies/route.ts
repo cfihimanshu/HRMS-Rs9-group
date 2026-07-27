@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import sequelize from "@/lib/sequelize";
+import sequelize, { safeAuthenticate } from "@/lib/sequelize";
 import Company from "@/models/sequelize/Company";
 
 const DEFAULT_COMPANIES = [
@@ -15,9 +15,12 @@ const DEFAULT_COMPANIES = [
   { id: "comp_channel009", name: "Channel009", code: "C009", address: "Channel009 Media Network", status: "active" }
 ];
 
+let isCompanySeeded = false;
+
 async function seedDefaultCompanies() {
+  if (isCompanySeeded) return;
   try {
-    await Company.sync({ alter: true });
+    await Company.sync();
     for (const item of DEFAULT_COMPANIES) {
       const exists = await Company.findOne({
         where: { code: item.code }
@@ -26,6 +29,7 @@ async function seedDefaultCompanies() {
         await Company.create(item);
       }
     }
+    isCompanySeeded = true;
   } catch (err) {
     console.error("Error seeding default companies:", err);
   }
@@ -33,49 +37,35 @@ async function seedDefaultCompanies() {
 
 export async function GET() {
   try {
-    await sequelize.authenticate();
+    const isDbConnected = await safeAuthenticate(4000);
+    if (!isDbConnected) {
+      return NextResponse.json({ success: true, data: DEFAULT_COMPANIES });
+    }
+
     await seedDefaultCompanies();
 
     const companies = await Company.findAll({
       where: { status: "active" },
-      order: [['name', 'ASC']]
+      order: [["name", "ASC"]],
     });
     return NextResponse.json({ success: true, data: companies });
   } catch (error: any) {
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    console.error("GET /api/companies error:", error);
+    return NextResponse.json({ success: true, data: DEFAULT_COMPANIES });
   }
 }
 
-export async function POST(req: Request) {
+export async function POST(request: Request) {
   try {
-    await sequelize.authenticate();
-    await seedDefaultCompanies();
-
-    const body = await req.json();
-    const { name, code, address } = body;
-    if (!name || !code) {
-      return NextResponse.json({ success: false, error: "Missing required fields: name, code" }, { status: 400 });
+    const data = await request.json();
+    const isDbConnected = await safeAuthenticate(6000);
+    if (!isDbConnected) {
+      return NextResponse.json({ success: false, error: "Database connection timeout" }, { status: 503 });
     }
 
-    const uppercaseCode = code.trim().toUpperCase();
-    const existing = await Company.findOne({ where: { code: uppercaseCode } });
-    if (existing) {
-      if (existing.status !== "active") {
-        existing.status = "active";
-        await existing.save();
-        return NextResponse.json({ success: true, data: existing, message: "Company reactivated" });
-      }
-      return NextResponse.json({ success: true, data: existing, message: "Company already exists" });
-    }
-
-    const newCompany = await Company.create({
-      id: "comp_" + Date.now(),
-      name: name.trim(),
-      code: uppercaseCode,
-      address: address || "",
-      status: "active"
-    });
-    return NextResponse.json({ success: true, data: newCompany, message: "Company created successfully" });
+    await Company.sync();
+    const company = await Company.create(data);
+    return NextResponse.json({ success: true, data: company });
   } catch (error: any) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
