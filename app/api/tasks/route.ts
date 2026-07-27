@@ -539,6 +539,37 @@ export async function POST(req: Request) {
       elapsedSeconds: 0,
     });
 
+    // Auto-create LegalRecoverySchedule entry so tasks created from My Tasks page appear in Schedule Work Report
+    try {
+      const LegalRecoverySchedule = (sequelize.models as any).LegalRecoverySchedule || (await import("@/models/sequelize/LegalRecoverySchedule")).default;
+      await LegalRecoverySchedule.sync({ alter: true });
+      const todayStr = now.toISOString().split("T")[0];
+      const timeStr = now.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: true });
+
+      await LegalRecoverySchedule.create({
+        id: "lrs_task_" + record.id + "_" + Date.now(),
+        employeeId: targetEmployeeId,
+        sodId: null,
+        date: scheduledAt ? new Date(scheduledAt).toISOString().split("T")[0] : todayStr,
+        time: timeStr,
+        workSection: taskTitle,
+        type: ["AO related", "RBO related", "branch related", "case related"].includes(body.subType || "") ? "Bank Related" : (taskType || "General"),
+        subType: body.subType || null,
+        status: status || "Pending",
+        remarks: description || "",
+        details: description || "",
+        bankName: body.bankName || null,
+        branchName: body.branchName || null,
+        aoName: body.aoName || null,
+        rboName: body.rboName || null,
+        caseDetails: body.caseDetails || null,
+        proofAttachment: body.proofAttachment || body.attachmentUrl || null,
+        taskId: record.id
+      });
+    } catch (lrsSyncErr) {
+      console.error("Failed to sync created task to LegalRecoverySchedule:", lrsSyncErr);
+    }
+
     // Notify assigned employee (if assigned by Owner to someone else)
     if (userRole === "Owner" && employeeId && employeeId !== userId) {
       try {
@@ -731,6 +762,67 @@ export async function PUT(req: Request) {
     }
 
     await task.save();
+
+    // Bi-directional status & proofAttachment sync to LegalRecoverySchedule
+    try {
+      const LegalRecoverySchedule = (sequelize.models as any).LegalRecoverySchedule || (await import("@/models/sequelize/LegalRecoverySchedule")).default;
+      await LegalRecoverySchedule.sync({ alter: true });
+
+      const schedulesToSync: any[] = [];
+
+      // 1. Direct match by taskId or scheduleId
+      const directMatches = await LegalRecoverySchedule.findAll({
+        where: {
+          [Op.or]: [
+            { taskId: task.id },
+            { id: task.id },
+            ...(task.scheduleId ? [{ id: task.scheduleId }, { taskId: task.scheduleId }] : [])
+          ]
+        }
+      });
+      schedulesToSync.push(...directMatches);
+
+      // 2. Fallback match by employeeId and workSection / bankName title match
+      if (schedulesToSync.length === 0 && task.employee) {
+        const empSchedules = await LegalRecoverySchedule.findAll({
+          where: { employeeId: task.employee }
+        });
+        for (const sch of empSchedules) {
+          const schWork = (sch.workSection || "").toLowerCase().trim();
+          const schBank = (sch.bankName || "").toLowerCase().trim();
+          const tTitle = (task.taskTitle || "").toLowerCase().trim();
+          const tDesc = (task.description || "").toLowerCase().trim();
+
+          if (
+            (schWork && schWork.length > 2 && (tTitle.includes(schWork) || tDesc.includes(schWork))) ||
+            (schBank && schBank.length > 2 && (tTitle.includes(schBank) || tDesc.includes(schBank)))
+          ) {
+            schedulesToSync.push(sch);
+          }
+        }
+      }
+
+      for (const sch of schedulesToSync) {
+        if (status !== undefined) {
+          const rawSt = String(status).toLowerCase().trim();
+          const mappedStatus = (rawSt === "completed" || rawSt === "done") ? "Completed" : (rawSt.includes("progress") || rawSt === "running") ? "In Progress" : "Pending";
+          sch.status = mappedStatus;
+          if (mappedStatus === "Completed") {
+            if (!sch.completedAt) sch.completedAt = new Date();
+          } else {
+            sch.completedAt = null;
+          }
+        }
+        if (proofAttachment !== undefined && proofAttachment) {
+          sch.proofAttachment = proofAttachment;
+        } else if (task.proofAttachment) {
+          sch.proofAttachment = task.proofAttachment;
+        }
+        await sch.save();
+      }
+    } catch (syncErr) {
+      console.error("Failed to sync task status to LegalRecoverySchedule:", syncErr);
+    }
 
     const portalUrl = "https://hrms.cfi247.com/";
 

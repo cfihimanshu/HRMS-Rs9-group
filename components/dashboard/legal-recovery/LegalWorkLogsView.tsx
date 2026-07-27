@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Briefcase, Search, CheckCircle, ChevronDown, ChevronRight, Check, Download, Table, LayoutList, Filter } from "lucide-react";
+import { Briefcase, Search, ChevronDown, ChevronRight, LayoutList, Calendar, MapPin, Layers, FileText, Send, CheckCircle2 } from "lucide-react";
 
 const WORK_CATEGORIES: Record<string, string[]> = {
   "ADVOCATE NOTICE": [
@@ -37,23 +37,74 @@ const WORK_CATEGORIES: Record<string, string[]> = {
   ],
   "SEIZER": [
     "COLLECT NOTICE DATA", "PREPARE NOTICE", "DISPATCH NOTICE", "TRACK POSTAL DELIVERY", "PREPARE BILL (BILL BANWANA)", "REQUEST PAYMENT"
+  ],
+  "New RC file case": [
+    "FILE PREPARATION", "COLLECT DOCUMENTS FROM BANK", "DRAFT CASE", "SUBMIT FILE TO COURT", "PREPARE BILL (BILL BANWANA)", "REQUEST PAYMENT"
+  ],
+  "New PSSA": [
+    "APPLICATION PREPARATION", "COLLECT DOCUMENTS", "DRAFT PSSA APPLICATION", "SUBMIT APPLICATION", "PREPARE BILL (BILL BANWANA)", "REQUEST PAYMENT"
+  ],
+  "138 case": [
+    "NOTICE ISSUED", "CHEQUE BOUNCE COMPLAINT DRAFTING", "FILE COMPLAINT IN COURT", "OBTAIN SUMMONS", "PREPARE BILL (BILL BANWANA)", "REQUEST PAYMENT"
   ]
 };
 
 export default function LegalWorkLogsView({ workLogs, branches, banks, loading, onRefresh }: { workLogs: any[], branches: any[], banks: any[], loading: boolean, onRefresh?: () => void }) {
+  const [viewMode, setViewMode] = useState<"form" | "checklist">("form");
+  
+  // Form State
+  const [workDate, setWorkDate] = useState<string>(new Date().toISOString().split('T')[0]);
+  const [workLocation, setWorkLocation] = useState<string>("Office");
+  const [customLocation, setCustomLocation] = useState<string>("");
+  const [typeOfWork, setTypeOfWork] = useState<string>("General");
+  const [bankWorkCategory, setBankWorkCategory] = useState<"Business Development">("Business Development");
+  const [businessDevOption, setBusinessDevOption] = useState<string>("ADVOCATE NOTICE");
+  const [businessDevSubOption, setBusinessDevSubOption] = useState<string>("TAKE NOTICE ASSIGNMENT");
+  const [noOfCount, setNoOfCount] = useState<string>("1");
+  const [allocationDate, setAllocationDate] = useState<string>(new Date().toISOString().split('T')[0]);
+  const [broughtBy, setBroughtBy] = useState<string>("");
+  const [preparedBy, setPreparedBy] = useState<string>("");
+  const [printedBy, setPrintedBy] = useState<string>("");
+  const [dispatchedBy, setDispatchedBy] = useState<string>("");
+  const [billDate, setBillDate] = useState<string>(new Date().toISOString().split('T')[0]);
+  const [billAmount, setBillAmount] = useState<string>("");
+  const [billNo, setBillNo] = useState<string>("");
+  const [personName, setPersonName] = useState<string>("");
+  const [uploadedFilePreview, setUploadedFilePreview] = useState<string>("");
+  const [uploadedFileType, setUploadedFileType] = useState<string>("");
+  const [uploadedFileName, setUploadedFileName] = useState<string>("");
+  const [showPreviewModal, setShowPreviewModal] = useState<boolean>(false);
+  const [selectedBankId, setSelectedBankId] = useState<string>("");
+  const [selectedBranchName, setSelectedBranchName] = useState<string>("");
+  const [remarks, setRemarks] = useState<string>("");
+  const [submittingForm, setSubmittingForm] = useState<boolean>(false);
+  const [formSuccessMessage, setFormSuccessMessage] = useState<string>("");
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setUploadedFileName(file.name);
+      setUploadedFileType(file.type);
+      if (file.type.startsWith("image/") || file.type.startsWith("audio/") || file.name.endsWith(".aac") || file.name.endsWith(".mp3") || file.name.endsWith(".wav") || file.name.endsWith(".m4a")) {
+        const previewUrl = URL.createObjectURL(file);
+        setUploadedFilePreview(previewUrl);
+      } else {
+        setUploadedFilePreview("");
+      }
+    }
+  };
+
+  // Checklist State
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedBranch, setSelectedBranch] = useState<number | null>(null);
-
-  const getBankName = (bankId: number) => {
-    return banks?.find((b: any) => b.id == bankId)?.bankName || "Unknown Bank";
-  };
   const [expandedCategories, setExpandedCategories] = useState<Record<string, boolean>>({});
   const [updatingTask, setUpdatingTask] = useState<string | null>(null);
   const [activeStepForm, setActiveStepForm] = useState<string | null>(null);
   const [stepRemarks, setStepRemarks] = useState<string>("");
-  const [viewMode, setViewMode] = useState<"checklist" | "reports">("checklist");
-  const [reportSearchQuery, setReportSearchQuery] = useState("");
-  const [reportCategoryFilter, setReportCategoryFilter] = useState("");
+
+  const getBankName = (bankId: number) => {
+    return banks?.find((b: any) => b.id == bankId)?.bankName || "Unknown Bank";
+  };
 
   const filteredBranches = branches.filter(b => {
     const bankName = getBankName(b.bankId);
@@ -96,6 +147,86 @@ export default function LegalWorkLogsView({ workLogs, branches, banks, loading, 
     }
   };
 
+  const handleFormSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (workLocation === "Other" && !customLocation.trim()) {
+      alert("Please specify the custom location.");
+      return;
+    }
+    if ((typeOfWork === "Bank Related" || workLocation === "Bank")) {
+      if (!selectedBankId) {
+        alert("Please select Bank.");
+        return;
+      }
+      if (!selectedBranchName) {
+        alert("Please select Branch.");
+        return;
+      }
+    }
+    if (!remarks.trim()) {
+      alert("Please enter work details or remarks.");
+      return;
+    }
+
+    setSubmittingForm(true);
+    setFormSuccessMessage("");
+
+    try {
+      const bankObj = banks.find((b: any) => String(b.id) === String(selectedBankId));
+      const payload = {
+        workDate,
+        workLocation,
+        customLocation: workLocation === "Other" ? customLocation.trim() : "",
+        typeOfWork,
+        category: typeOfWork === "Bank Related" ? bankWorkCategory : typeOfWork,
+        subCategory: typeOfWork === "Bank Related" && bankWorkCategory === "Business Development"
+          ? (businessDevSubOption || businessDevOption)
+          : (workLocation === "Other" ? (customLocation.trim() || "Other") : workLocation),
+        businessDevOption: typeOfWork === "Bank Related" && bankWorkCategory === "Business Development" ? businessDevOption : undefined,
+        businessDevSubOption: typeOfWork === "Bank Related" && bankWorkCategory === "Business Development" ? businessDevSubOption : undefined,
+        noOfCount: noOfCount || "1",
+        allocationDate: allocationDate || workDate,
+        broughtBy: broughtBy || undefined,
+        preparedBy: preparedBy || undefined,
+        printedBy: printedBy || undefined,
+        dispatchedBy: dispatchedBy || undefined,
+        billDate: billDate || undefined,
+        billAmount: billAmount || undefined,
+        billNo: billNo || undefined,
+        personName: personName || undefined,
+        uploadedFileName: uploadedFileName || undefined,
+        bankName: bankObj?.bankName || undefined,
+        branchName: selectedBranchName || undefined,
+        remarks: remarks.trim(),
+        masterId: selectedBankId ? Number(selectedBankId) : 0,
+      };
+
+      const res = await fetch("/api/legal-recovery/work-log", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        setFormSuccessMessage("Legal Work Log entry saved successfully!");
+        setRemarks("");
+        setCustomLocation("");
+        setSelectedBankId("");
+        setSelectedBranchName("");
+        if (onRefresh) onRefresh();
+        setTimeout(() => setFormSuccessMessage(""), 4000);
+      } else {
+        alert(data.error || "Failed to save work log.");
+      }
+    } catch (err) {
+      console.error("Work log submit error:", err);
+      alert("Failed to save work log.");
+    } finally {
+      setSubmittingForm(false);
+    }
+  };
+
   const getCompletedTaskLog = (branchId: number, category: string, subCategory: string) => {
     return workLogs.find(log => log.masterId === branchId && log.category === category && log.subCategory === subCategory);
   };
@@ -106,355 +237,1052 @@ export default function LegalWorkLogsView({ workLogs, branches, banks, loading, 
     return { completed, total: steps.length, percentage: Math.round((completed / steps.length) * 100) };
   };
 
-  const getBranchDetails = (masterId: number) => {
-    return branches.find(b => b.id === masterId);
-  };
-
-  const filteredWorkLogs = workLogs.filter(log => {
-    const bObj = getBranchDetails(log.masterId);
-    const bankName = bObj ? getBankName(bObj.bankId) : "";
-    const matchesSearch = 
-      (log.employeeName || "").toLowerCase().includes(reportSearchQuery.toLowerCase()) ||
-      (log.category || "").toLowerCase().includes(reportSearchQuery.toLowerCase()) ||
-      (bankName || "").toLowerCase().includes(reportSearchQuery.toLowerCase());
-    const matchesCategory = reportCategoryFilter ? log.category === reportCategoryFilter : true;
-    return matchesSearch && matchesCategory;
-  });
-
-  const exportWorkLogsCSV = () => {
-    const headers = ["Date", "Employee", "Bank", "Branch", "Category", "Task/Step", "Remarks"];
-    const rows = filteredWorkLogs.map(log => {
-      const bObj = getBranchDetails(log.masterId);
-      return [
-        log.workDate ? new Date(log.workDate).toLocaleDateString() : new Date(log.createdAt).toLocaleDateString(),
-        `"${log.employeeName || 'Unknown'}"`,
-        `"${bObj ? getBankName(bObj.bankId) : 'N/A'}"`,
-        `"${bObj?.branchName || 'N/A'}"`,
-        `"${log.category}"`,
-        `"${log.subCategory}"`,
-        `"${log.remarks || ''}"`
-      ].join(",");
-    });
-    const csvContent = [headers.join(","), ...rows].join("\n");
-    const blob = new Blob([csvContent], { type: "text/csv" });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `Legal_Work_Reports_${new Date().toISOString().split('T')[0]}.csv`;
-    a.click();
-    window.URL.revokeObjectURL(url);
-  };
-
   return (
-    <div className="space-y-6">
-      {/* Header & Controls */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-4 rounded-xl border border-[#E8E4DF] shadow-sm">
+    <div className="space-y-6 font-sans">
+      {/* Header & Mode Selector Controls */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-4 rounded-2xl border border-[#E8E4DF] shadow-sm">
         <div className="flex items-center gap-3">
-          <div className="p-2 bg-blue-50 text-blue-600 rounded-lg">
+          <div className="p-2.5 bg-gradient-to-br from-purple-600 to-indigo-700 text-white rounded-xl shadow-md">
             <Briefcase className="w-5 h-5" />
           </div>
           <div>
             <h2 className="text-sm font-black text-[#1C1C1A] uppercase tracking-wider">
-              {viewMode === "checklist" ? "Legal Work Boards" : "Employee Work Reports"}
+              {viewMode === "form" ? "Legal Work Entry Form" : "Legal Work Boards"}
             </h2>
             <p className="text-xs text-[#9C9890] font-semibold mt-0.5">
-              {viewMode === "checklist" ? "Manage case execution checklists" : "Global history and reports of tasks"}
+              {viewMode === "form" ? "Log daily work date, location, type, and execution details" : "Manage case execution checklists"}
             </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-2 bg-slate-100 p-1 rounded-xl">
+        <div className="flex items-center gap-1.5 bg-slate-100 p-1.5 rounded-xl border border-slate-200">
+          <button 
+            onClick={() => setViewMode("form")}
+            className={`px-3.5 py-2 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all flex items-center gap-1.5 ${viewMode === "form" ? 'bg-purple-700 text-white shadow-md' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'}`}
+          >
+            <FileText className="w-3.5 h-3.5" /> Work Entry Form
+          </button>
           <button 
             onClick={() => setViewMode("checklist")}
-            className={`px-4 py-2 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-colors flex items-center gap-1 ${viewMode === "checklist" ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+            className={`px-3.5 py-2 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all flex items-center gap-1.5 ${viewMode === "checklist" ? 'bg-purple-700 text-white shadow-md' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'}`}
           >
             <LayoutList className="w-3.5 h-3.5" /> Checklists
           </button>
-          <button 
-            onClick={() => setViewMode("reports")}
-            className={`px-4 py-2 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-colors flex items-center gap-1 ${viewMode === "reports" ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
-          >
-            <Table className="w-3.5 h-3.5" /> Reports
-          </button>
         </div>
       </div>
 
-      {viewMode === "checklist" && (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start animate-fade-in">
-        {/* Cases List */}
-        <div className="lg:col-span-1 bg-white border border-[#E8E4DF] rounded-xl overflow-hidden shadow-sm h-[600px] flex flex-col">
-          <div className="p-4 bg-slate-50 border-b border-[#E8E4DF]">
-            <div className="relative w-full mb-3">
-              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-              <input 
-                type="text" 
-                placeholder="Search Branches..." 
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-9 pr-4 py-2 bg-white border border-[#E8E4DF] focus:border-blue-500 rounded-xl text-xs focus:outline-none transition-colors"
-              />
+      {/* Mode 1: Legal Work Entry Form (Default) */}
+      {viewMode === "form" && (
+        <div className="w-full max-w-5xl ml-0 space-y-6 animate-fade-in">
+          <div className="bg-white border border-purple-100 rounded-2xl p-6 shadow-sm">
+            <div className="flex items-center justify-between pb-4 mb-6 border-b border-slate-100">
+              <h3 className="text-xs font-black text-slate-950 uppercase tracking-wider flex items-center gap-2">
+                <FileText className="w-4 h-4 text-purple-600" />
+                Legal Work Details Form
+              </h3>
+              <span className="text-[10px] font-black text-purple-900 bg-purple-50 border border-purple-200/60 px-3 py-1 rounded-full">
+                Daily Operations
+              </span>
             </div>
-            <h3 className="text-xs font-black text-slate-700 uppercase tracking-wider">Select a Branch</h3>
-          </div>
-          <div className="overflow-y-auto flex-1 p-2 space-y-2">
-            {filteredBranches.map(b => (
-              <button
-                key={b.id}
-                onClick={() => setSelectedBranch(b.id)}
-                className={`w-full text-left p-3 rounded-lg border transition-all ${
-                  selectedBranch === b.id 
-                    ? 'border-blue-500 bg-blue-50 shadow-sm' 
-                    : 'border-transparent hover:bg-slate-50 border-slate-100'
-                }`}
-              >
-                <div className="font-bold text-xs text-slate-800">{getBankName(b.bankId)}</div>
-                <div className="text-[10px] text-slate-500 font-semibold mb-1">Branch: {b.branchName}</div>
-                <div className="text-[10px] text-[#9C9890]">AO: {b.aoName || 'N/A'}</div>
-              </button>
-            ))}
-            {filteredBranches.length === 0 && (
-              <div className="text-center p-6 text-xs text-slate-400 font-semibold">No branches match your search.</div>
-            )}
-          </div>
-        </div>
 
-        {/* Work Checklist Panel */}
-        <div className="lg:col-span-2 bg-white border border-[#E8E4DF] rounded-xl overflow-hidden shadow-sm h-[600px] flex flex-col">
-          {selectedBranch ? (
-            <>
-              {(() => {
-                const b = branches.find((branchObj: any) => branchObj.id === selectedBranch);
-                const bankName = b ? getBankName(b.bankId) : "";
-                return (
-                  <div className="p-5 border-b border-[#E8E4DF] bg-slate-50 flex items-center justify-between">
-                    <div>
-                      <h2 className="text-sm font-black text-slate-800">{bankName}</h2>
-                      <div className="text-xs text-slate-500 font-semibold mt-1">Branch: {b?.branchName}</div>
-                    </div>
+            {formSuccessMessage && (
+              <div className="mb-5 p-3.5 bg-emerald-50 border border-emerald-200 text-emerald-950 rounded-xl text-xs font-black flex items-center gap-2 animate-fade-in">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+                {formSuccessMessage}
+              </div>
+            )}
+
+            <form onSubmit={handleFormSubmit} className="space-y-6">
+              {/* Row 1: Core Fields (Date, Location, Type) */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-[10px] font-black uppercase tracking-wider text-black mb-1.5 flex items-center gap-1">
+                    <Calendar className="w-3.5 h-3.5 text-purple-600" />
+                    Date *
+                  </label>
+                  <input
+                    type="date"
+                    required
+                    value={workDate}
+                    onChange={e => setWorkDate(e.target.value)}
+                    className="w-full p-2.5 border border-slate-300 rounded-xl text-xs font-black text-slate-950 bg-white focus:outline-none focus:border-purple-600 focus:ring-2 focus:ring-purple-600/10 shadow-2xs transition-all"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-black uppercase tracking-wider text-black mb-1.5 flex items-center gap-1">
+                    <MapPin className="w-3.5 h-3.5 text-purple-600" />
+                    Work Location *
+                  </label>
+                  <select
+                    value={workLocation}
+                    onChange={e => setWorkLocation(e.target.value)}
+                    className="w-full p-2.5 border border-slate-300 rounded-xl text-xs font-black text-slate-950 bg-white focus:outline-none focus:border-purple-600 focus:ring-2 focus:ring-purple-600/10 shadow-2xs transition-all cursor-pointer"
+                  >
+                    <option value="Office">Office</option>
+                    <option value="Bank">Bank</option>
+                    <option value="Field">Field</option>
+                    <option value="Other">Other</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-black uppercase tracking-wider text-black mb-1.5 flex items-center gap-1">
+                    <Layers className="w-3.5 h-3.5 text-purple-600" />
+                    Type of Work *
+                  </label>
+                  <select
+                    value={typeOfWork}
+                    onChange={e => setTypeOfWork(e.target.value)}
+                    className="w-full p-2.5 border border-slate-300 rounded-xl text-xs font-black text-slate-950 bg-white focus:outline-none focus:border-purple-600 focus:ring-2 focus:ring-purple-600/10 shadow-2xs transition-all cursor-pointer"
+                  >
+                    <option value="General">General</option>
+                    <option value="Bank Related">Bank Related</option>
+                    <option value="Operations">Operations</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Conditional Bank Details (Select Bank & Branch) */}
+              {(workLocation === "Bank" || typeOfWork === "Bank Related") && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 bg-purple-50/60 border border-purple-200/80 rounded-xl animate-fade-in shadow-2xs">
+                  <div>
+                    <label className="block text-[10px] font-black uppercase tracking-wider text-black mb-1.5 flex items-center gap-1">
+                      <Briefcase className="w-3.5 h-3.5 text-purple-600" />
+                      Select Bank *
+                    </label>
+                    <select
+                      required
+                      value={selectedBankId}
+                      onChange={e => {
+                        setSelectedBankId(e.target.value);
+                        setSelectedBranchName("");
+                      }}
+                      className="w-full p-2.5 border border-purple-300/80 rounded-xl text-xs font-black text-slate-950 bg-white focus:outline-none focus:border-purple-600 shadow-2xs transition-all cursor-pointer"
+                    >
+                      <option value="">-- Select Bank --</option>
+                      {banks.map(b => (
+                        <option key={String(b.id)} value={String(b.id)}>{b.bankName}</option>
+                      ))}
+                    </select>
                   </div>
-                );
-              })()}
-              
-              <div className="p-6 overflow-y-auto flex-1 space-y-4">
-                {Object.keys(WORK_CATEGORIES).map(category => {
-                  const progress = getTaskCompletionData(selectedBranch, category);
-                  const isExpanded = expandedCategories[category];
-                  
-                  return (
-                    <div key={category} className="border border-slate-200 rounded-xl overflow-hidden shadow-sm">
-                      <button 
-                        onClick={() => toggleCategory(category)}
-                        className="w-full flex items-center justify-between p-4 bg-white hover:bg-slate-50 transition-colors"
+
+                  <div>
+                    <label className="block text-[10px] font-black uppercase tracking-wider text-black mb-1.5 flex items-center gap-1">
+                      <Layers className="w-3.5 h-3.5 text-purple-600" />
+                      Select Branch *
+                    </label>
+                    <select
+                      required
+                      value={selectedBranchName}
+                      onChange={e => setSelectedBranchName(e.target.value)}
+                      disabled={!selectedBankId}
+                      className="w-full p-2.5 border border-purple-300/80 rounded-xl text-xs font-black text-slate-950 bg-white focus:outline-none focus:border-purple-600 shadow-2xs transition-all cursor-pointer disabled:opacity-50"
+                    >
+                      <option value="">{selectedBankId ? "-- Select Branch --" : "Select Bank First"}</option>
+                      {branches
+                        .filter(br => String(br.bankId) === String(selectedBankId))
+                        .map(br => (
+                          <option key={String(br.id)} value={br.branchName}>
+                            {br.branchName} {br.branchCode ? `(${br.branchCode})` : ""}
+                          </option>
+                        ))}
+                    </select>
+                  </div>
+                </div>
+              )}
+
+              {/* Conditional Bank Category & Business Development Options */}
+              {typeOfWork === "Bank Related" && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 bg-purple-50/60 border border-purple-200/80 rounded-xl animate-fade-in shadow-2xs">
+                  <div>
+                    <label className="block text-[10px] font-black uppercase tracking-wider text-black mb-1.5 flex items-center gap-1">
+                      <Layers className="w-3.5 h-3.5 text-purple-600" />
+                      Bank Category *
+                    </label>
+                    <select
+                      value={bankWorkCategory}
+                      onChange={e => setBankWorkCategory(e.target.value as any)}
+                      className="w-full p-2.5 border border-purple-300/80 rounded-xl text-xs font-black text-slate-950 bg-white focus:outline-none focus:border-purple-600 shadow-2xs transition-all cursor-pointer"
+                    >
+                      <option value="Business Development">Business Development</option>
+                    </select>
+                  </div>
+
+                  {bankWorkCategory === "Business Development" && (
+                    <div>
+                      <label className="block text-[10px] font-black uppercase tracking-wider text-black mb-1.5 flex items-center gap-1">
+                        <Briefcase className="w-3.5 h-3.5 text-purple-600" />
+                        Business Development Option *
+                      </label>
+                      <select
+                        value={businessDevOption}
+                        onChange={e => {
+                          const newOpt = e.target.value;
+                          setBusinessDevOption(newOpt);
+                          const steps = WORK_CATEGORIES[newOpt] || [];
+                          setBusinessDevSubOption(steps.length > 0 ? steps[0] : "");
+                        }}
+                        className="w-full p-2.5 border border-purple-300/80 rounded-xl text-xs font-black text-slate-950 bg-white focus:outline-none focus:border-purple-600 shadow-2xs transition-all cursor-pointer"
                       >
-                        <div className="flex items-center gap-3">
-                          {isExpanded ? <ChevronDown className="w-5 h-5 text-slate-400" /> : <ChevronRight className="w-5 h-5 text-slate-400" />}
-                          <span className="text-xs font-bold text-slate-700 uppercase tracking-wider">{category}</span>
-                        </div>
-                        <div className="flex items-center gap-3">
-                          <span className="text-[10px] font-bold text-slate-500">{progress.completed} / {progress.total}</span>
-                          <div className="w-24 h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                            <div 
-                              className={`h-full rounded-full transition-all ${progress.percentage === 100 ? 'bg-emerald-500' : 'bg-blue-500'}`}
-                              style={{ width: `${progress.percentage}%` }}
+                        <option value="ADVOCATE NOTICE">ADVOCATE NOTICE</option>
+                        <option value="RECOVERY SUIT / PSA APPLICATION">RECOVERY SUIT / PSA APPLICATION</option>
+                        <option value="RACO RODA">RACO RODA</option>
+                        <option value="SARFEASI NOTICE">SARFEASI NOTICE</option>
+                        <option value="SY. POSSESSION">SY. POSSESSION</option>
+                        <option value="DM ORDER">DM ORDER</option>
+                        <option value="SP ORDER">SP ORDER</option>
+                        <option value="PY. POSSESSION">PY. POSSESSION</option>
+                        <option value="SEIZER">SEIZER</option>
+                        <option value="New RC file case">New RC file case</option>
+                        <option value="New PSSA">New PSSA</option>
+                        <option value="138 case">138 case</option>
+                      </select>
+                    </div>
+                  )}
+
+                  {bankWorkCategory === "Business Development" && (
+                    <div className="sm:col-span-2 space-y-4 pt-2 border-t border-purple-200/60">
+                      <div>
+                        <label className="block text-[10px] font-black uppercase tracking-wider text-black mb-1.5 flex items-center gap-1">
+                          <CheckCircle2 className="w-3.5 h-3.5 text-purple-600" />
+                          Work Step / Sub-Option * ({businessDevOption})
+                        </label>
+                        <select
+                          value={businessDevSubOption}
+                          onChange={e => setBusinessDevSubOption(e.target.value)}
+                          className="w-full p-2.5 border border-purple-300/80 rounded-xl text-xs font-black text-slate-950 bg-white focus:outline-none focus:border-purple-600 shadow-2xs transition-all cursor-pointer"
+                        >
+                          {(WORK_CATEGORIES[businessDevOption] || []).map((step, idx) => (
+                            <option key={idx} value={step}>{step}</option>
+                          ))}
+                        </select>
+                      </div>
+
+                      {/* Sub-Option A: TAKE NOTICE ASSIGNMENT */}
+                      {businessDevSubOption === "TAKE NOTICE ASSIGNMENT" && (
+                        <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 bg-white p-3.5 rounded-xl border border-purple-200 shadow-2xs animate-fade-in">
+                          <div>
+                            <label className="block text-[10px] font-black uppercase tracking-wider text-black mb-1.5 flex items-center gap-1">
+                              <Layers className="w-3.5 h-3.5 text-purple-600" />
+                              No. of Counts *
+                            </label>
+                            <input
+                              type="number"
+                              min="1"
+                              required
+                              value={noOfCount}
+                              onChange={e => setNoOfCount(e.target.value)}
+                              className="w-full p-2 border border-purple-300 rounded-lg text-xs font-black text-slate-950 bg-white focus:outline-none focus:border-purple-600"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="block text-[10px] font-black uppercase tracking-wider text-black mb-1.5 flex items-center gap-1">
+                              <Briefcase className="w-3.5 h-3.5 text-purple-600" />
+                              Bank Name *
+                            </label>
+                            <select
+                              required
+                              value={selectedBankId}
+                              onChange={e => {
+                                setSelectedBankId(e.target.value);
+                                setSelectedBranchName("");
+                              }}
+                              className="w-full p-2 border border-purple-300 rounded-lg text-xs font-black text-slate-950 bg-white focus:outline-none focus:border-purple-600"
+                            >
+                              <option value="">-- Select Bank --</option>
+                              {banks.map(b => (
+                                <option key={String(b.id)} value={String(b.id)}>{b.bankName}</option>
+                              ))}
+                            </select>
+                          </div>
+
+                          <div>
+                            <label className="block text-[10px] font-black uppercase tracking-wider text-black mb-1.5 flex items-center gap-1">
+                              <Layers className="w-3.5 h-3.5 text-purple-600" />
+                              Branch Name *
+                            </label>
+                            <input
+                              type="text"
+                              required
+                              value={selectedBranchName}
+                              onChange={e => setSelectedBranchName(e.target.value)}
+                              placeholder="Enter branch name..."
+                              className="w-full p-2 border border-purple-300 rounded-lg text-xs font-black text-slate-950 bg-white focus:outline-none focus:border-purple-600"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="block text-[10px] font-black uppercase tracking-wider text-black mb-1.5 flex items-center gap-1">
+                              <Calendar className="w-3.5 h-3.5 text-purple-600" />
+                              Allocation Date *
+                            </label>
+                            <input
+                              type="date"
+                              required
+                              value={allocationDate}
+                              onChange={e => setAllocationDate(e.target.value)}
+                              className="w-full p-2 border border-purple-300 rounded-lg text-xs font-black text-slate-950 bg-white focus:outline-none focus:border-purple-600"
                             />
                           </div>
                         </div>
-                      </button>
-                      
-                      {isExpanded && (
-                        <div className="bg-slate-50 border-t border-slate-200 p-4 space-y-2">
-                          {WORK_CATEGORIES[category].map((step, idx) => {
-                            const completedLog = getCompletedTaskLog(selectedBranch, category, step);
-                            const done = !!completedLog;
-                            const taskKey = `${selectedBranch}-${category}-${step}`;
-                            const isUpdating = updatingTask === taskKey;
-                            
-                            return (
-                              <div key={step} className="flex flex-col p-3 bg-white border border-slate-200 rounded-lg shadow-sm group gap-3">
-                                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 w-full">
-                                  <div className="flex items-center gap-3">
-                                    <div className={`flex items-center justify-center w-6 h-6 rounded-full border-2 transition-colors ${
-                                      done ? 'bg-emerald-500 border-emerald-500 text-white' : 'border-slate-300 text-transparent'
-                                    }`}>
-                                      <Check className="w-3.5 h-3.5" />
-                                    </div>
-                                    <span className={`text-[11px] font-bold tracking-wide ${done ? 'text-emerald-700' : 'text-slate-600 group-hover:text-slate-900'}`}>
-                                      {idx + 1}. {step}
-                                    </span>
-                                  </div>
-                                  {!done && activeStepForm !== taskKey && (
-                                    <button
-                                      onClick={() => { setActiveStepForm(taskKey); setStepRemarks(""); }}
-                                      className="px-3 py-1.5 bg-blue-50 text-blue-700 hover:bg-blue-600 hover:text-white border border-blue-200 rounded text-[10px] font-bold uppercase tracking-wide transition-colors sm:ml-auto"
-                                    >
-                                      Mark Done
-                                    </button>
-                                  )}
-                                  {done && (
-                                    <div className="flex flex-col sm:items-end sm:ml-auto bg-emerald-50 px-3 py-1.5 rounded-lg border border-emerald-100">
-                                      <span className="text-[10px] font-black text-emerald-600 flex items-center gap-1 uppercase tracking-wider mb-0.5">
-                                        <CheckCircle className="w-3 h-3" /> Completed
-                                      </span>
-                                      <span className="text-[9px] font-bold text-slate-500">
-                                        By: <span className="text-slate-700">{completedLog.employeeName || 'Unknown'}</span> 
-                                        {' '}• {completedLog.workDate ? new Date(completedLog.workDate).toLocaleDateString() : 'N/A'}
-                                      </span>
-                                    </div>
-                                  )}
-                                </div>
+                      )}
 
-                                {/* Active Step Form */}
-                                {!done && activeStepForm === taskKey && (
-                                  <div className="w-full bg-slate-50 p-3 rounded-lg border border-blue-100 flex flex-col gap-2 animate-scale-in">
-                                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Remarks / Details (e.g. Qty: 5)</label>
-                                    <input 
-                                      type="text" 
-                                      value={stepRemarks}
-                                      onChange={(e) => setStepRemarks(e.target.value)}
-                                      placeholder="Enter quantity or any extra details..."
-                                      className="w-full text-xs p-2 border border-slate-200 rounded focus:outline-none focus:border-blue-400"
-                                      autoFocus
-                                    />
-                                    <div className="flex justify-end gap-2 mt-1">
-                                      <button 
-                                        disabled={isUpdating}
-                                        onClick={() => setActiveStepForm(null)}
-                                        className="px-3 py-1.5 border border-slate-200 text-slate-500 hover:bg-slate-100 rounded text-[10px] font-bold uppercase tracking-wide transition-colors"
-                                      >
-                                        Cancel
-                                      </button>
-                                      <button 
-                                        disabled={isUpdating}
-                                        onClick={() => handleMarkTaskDone(selectedBranch, category, step, stepRemarks)}
-                                        className="px-3 py-1.5 bg-blue-600 text-white hover:bg-blue-700 rounded text-[10px] font-bold uppercase tracking-wide transition-colors disabled:opacity-50"
-                                      >
-                                        {isUpdating ? "Saving..." : "Confirm Done"}
-                                      </button>
-                                    </div>
-                                  </div>
-                                )}
+                      {/* Sub-Option B: COLLECT NOTICE DATA */}
+                      {businessDevSubOption === "COLLECT NOTICE DATA" && (
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 bg-white p-3.5 rounded-xl border border-purple-200 shadow-2xs animate-fade-in">
+                          <div>
+                            <label className="block text-[10px] font-black uppercase tracking-wider text-black mb-1.5 flex items-center gap-1">
+                              <Layers className="w-3.5 h-3.5 text-purple-600" />
+                              No. of Counts *
+                            </label>
+                            <input
+                              type="number"
+                              min="1"
+                              required
+                              value={noOfCount}
+                              onChange={e => setNoOfCount(e.target.value)}
+                              className="w-full p-2 border border-purple-300 rounded-lg text-xs font-black text-slate-950 bg-white focus:outline-none focus:border-purple-600"
+                            />
+                          </div>
 
-                                {done && completedLog.remarks && completedLog.remarks !== "Marked as completed" && (
-                                  <div className="w-full bg-amber-50/50 p-2 rounded border border-amber-100 text-[10px] font-semibold text-amber-800">
-                                    <span className="text-amber-600/70 uppercase font-black tracking-widest mr-2">Remarks:</span>
-                                    {completedLog.remarks}
-                                  </div>
-                                )}
-                              </div>
-                            );
-                          })}
+                          <div>
+                            <label className="block text-[10px] font-black uppercase tracking-wider text-black mb-1.5 flex items-center gap-1">
+                              <Briefcase className="w-3.5 h-3.5 text-purple-600" />
+                              Brought By *
+                            </label>
+                            <input
+                              type="text"
+                              required
+                              placeholder="Person name who brought data..."
+                              value={broughtBy}
+                              onChange={e => setBroughtBy(e.target.value)}
+                              className="w-full p-2 border border-purple-300 rounded-lg text-xs font-black text-slate-950 bg-white focus:outline-none focus:border-purple-600"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="block text-[10px] font-black uppercase tracking-wider text-black mb-1.5 flex items-center gap-1">
+                              <FileText className="w-3.5 h-3.5 text-purple-600" />
+                              Upload Notice Data File (Optional)
+                            </label>
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="file"
+                                accept=".xlsx,.xls,.csv,.pdf,.doc,.docx,.png,.jpg,.jpeg,.gif,.webp,image/*"
+                                onChange={handleFileChange}
+                                className="w-full text-xs font-bold text-slate-700 file:mr-2 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-[10px] file:font-black file:bg-purple-100 file:text-purple-800 hover:file:bg-purple-200 cursor-pointer"
+                              />
+                              {uploadedFileName && (
+                                <button
+                                  type="button"
+                                  onClick={() => setShowPreviewModal(true)}
+                                  className="px-2.5 py-1.5 bg-purple-700 text-white rounded-lg text-[10px] font-black hover:bg-purple-800 flex items-center gap-1 whitespace-nowrap shadow-xs cursor-pointer"
+                                >
+                                  👁️ Preview
+                                </button>
+                              )}
+                            </div>
+                            {uploadedFileName && (
+                              <span className="text-[10px] font-bold text-purple-700 mt-1 block truncate">
+                                📄 {uploadedFileName}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Sub-Option C: PREPARE NOTICE LIST */}
+                      {businessDevSubOption === "PREPARE NOTICE LIST" && (
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 bg-white p-3.5 rounded-xl border border-purple-200 shadow-2xs animate-fade-in">
+                          <div>
+                            <label className="block text-[10px] font-black uppercase tracking-wider text-black mb-1.5 flex items-center gap-1">
+                              <Layers className="w-3.5 h-3.5 text-purple-600" />
+                              No. of Counts *
+                            </label>
+                            <input
+                              type="number"
+                              min="1"
+                              required
+                              value={noOfCount}
+                              onChange={e => setNoOfCount(e.target.value)}
+                              className="w-full p-2 border border-purple-300 rounded-lg text-xs font-black text-slate-950 bg-white focus:outline-none focus:border-purple-600"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="block text-[10px] font-black uppercase tracking-wider text-black mb-1.5 flex items-center gap-1">
+                              <Briefcase className="w-3.5 h-3.5 text-purple-600" />
+                              Prepared By *
+                            </label>
+                            <input
+                              type="text"
+                              required
+                              placeholder="Person name who prepared list..."
+                              value={preparedBy}
+                              onChange={e => setPreparedBy(e.target.value)}
+                              className="w-full p-2 border border-purple-300 rounded-lg text-xs font-black text-slate-950 bg-white focus:outline-none focus:border-purple-600"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="block text-[10px] font-black uppercase tracking-wider text-black mb-1.5 flex items-center gap-1">
+                              <FileText className="w-3.5 h-3.5 text-purple-600" />
+                              Upload Notice List File (Optional)
+                            </label>
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="file"
+                                accept=".xlsx,.xls,.csv,.pdf,.doc,.docx,.png,.jpg,.jpeg,.gif,.webp,image/*"
+                                onChange={handleFileChange}
+                                className="w-full text-xs font-bold text-slate-700 file:mr-2 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-[10px] file:font-black file:bg-purple-100 file:text-purple-800 hover:file:bg-purple-200 cursor-pointer"
+                              />
+                              {uploadedFileName && (
+                                <button
+                                  type="button"
+                                  onClick={() => setShowPreviewModal(true)}
+                                  className="px-2.5 py-1.5 bg-purple-700 text-white rounded-lg text-[10px] font-black hover:bg-purple-800 flex items-center gap-1 whitespace-nowrap shadow-xs cursor-pointer"
+                                >
+                                  👁️ Preview
+                                </button>
+                              )}
+                            </div>
+                            {uploadedFileName && (
+                              <span className="text-[10px] font-bold text-purple-700 mt-1 block truncate">
+                                📄 {uploadedFileName}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Sub-Option D: GENERATE NOTICE VIA SOFTWARE/MAIL MERGE */}
+                      {(businessDevSubOption?.includes("GENERATE NOTICE")) && (
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 bg-white p-3.5 rounded-xl border border-purple-200 shadow-2xs animate-fade-in">
+                          <div>
+                            <label className="block text-[10px] font-black uppercase tracking-wider text-black mb-1.5 flex items-center gap-1">
+                              <Layers className="w-3.5 h-3.5 text-purple-600" />
+                              No. of Counts *
+                            </label>
+                            <input
+                              type="number"
+                              min="1"
+                              required
+                              value={noOfCount}
+                              onChange={e => setNoOfCount(e.target.value)}
+                              className="w-full p-2 border border-purple-300 rounded-lg text-xs font-black text-slate-950 bg-white focus:outline-none focus:border-purple-600"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="block text-[10px] font-black uppercase tracking-wider text-black mb-1.5 flex items-center gap-1">
+                              <Briefcase className="w-3.5 h-3.5 text-purple-600" />
+                              Printed By *
+                            </label>
+                            <input
+                              type="text"
+                              required
+                              placeholder="Person name who printed notices..."
+                              value={printedBy}
+                              onChange={e => setPrintedBy(e.target.value)}
+                              className="w-full p-2 border border-purple-300 rounded-lg text-xs font-black text-slate-950 bg-white focus:outline-none focus:border-purple-600"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="block text-[10px] font-black uppercase tracking-wider text-black mb-1.5 flex items-center gap-1">
+                              <FileText className="w-3.5 h-3.5 text-purple-600" />
+                              Upload Notice File (Optional)
+                            </label>
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="file"
+                                accept=".xlsx,.xls,.csv,.pdf,.doc,.docx,.png,.jpg,.jpeg,.gif,.webp,image/*"
+                                onChange={handleFileChange}
+                                className="w-full text-xs font-bold text-slate-700 file:mr-2 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-[10px] file:font-black file:bg-purple-100 file:text-purple-800 hover:file:bg-purple-200 cursor-pointer"
+                              />
+                              {uploadedFileName && (
+                                <button
+                                  type="button"
+                                  onClick={() => setShowPreviewModal(true)}
+                                  className="px-2.5 py-1.5 bg-purple-700 text-white rounded-lg text-[10px] font-black hover:bg-purple-800 flex items-center gap-1 whitespace-nowrap shadow-xs cursor-pointer"
+                                >
+                                  👁️ Preview
+                                </button>
+                              )}
+                            </div>
+                            {uploadedFileName && (
+                              <span className="text-[10px] font-bold text-purple-700 mt-1 block truncate">
+                                📄 {uploadedFileName}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Sub-Option E: DISPATCH NOTICES */}
+                      {(businessDevSubOption?.includes("DISPATCH NOTICE")) && (
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 bg-white p-3.5 rounded-xl border border-purple-200 shadow-2xs animate-fade-in">
+                          <div>
+                            <label className="block text-[10px] font-black uppercase tracking-wider text-black mb-1.5 flex items-center gap-1">
+                              <Layers className="w-3.5 h-3.5 text-purple-600" />
+                              No. of Counts *
+                            </label>
+                            <input
+                              type="number"
+                              min="1"
+                              required
+                              value={noOfCount}
+                              onChange={e => setNoOfCount(e.target.value)}
+                              className="w-full p-2 border border-purple-300 rounded-lg text-xs font-black text-slate-950 bg-white focus:outline-none focus:border-purple-600"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="block text-[10px] font-black uppercase tracking-wider text-black mb-1.5 flex items-center gap-1">
+                              <Briefcase className="w-3.5 h-3.5 text-purple-600" />
+                              Dispatched By *
+                            </label>
+                            <input
+                              type="text"
+                              required
+                              placeholder="Person name who dispatched..."
+                              value={dispatchedBy}
+                              onChange={e => setDispatchedBy(e.target.value)}
+                              className="w-full p-2 border border-purple-300 rounded-lg text-xs font-black text-slate-950 bg-white focus:outline-none focus:border-purple-600"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="block text-[10px] font-black uppercase tracking-wider text-black mb-1.5 flex items-center gap-1">
+                              <FileText className="w-3.5 h-3.5 text-purple-600" />
+                              Upload Dispatch Proof / File (Optional)
+                            </label>
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="file"
+                                accept=".xlsx,.xls,.csv,.pdf,.doc,.docx,.png,.jpg,.jpeg,.gif,.webp,image/*"
+                                onChange={handleFileChange}
+                                className="w-full text-xs font-bold text-slate-700 file:mr-2 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-[10px] file:font-black file:bg-purple-100 file:text-purple-800 hover:file:bg-purple-200 cursor-pointer"
+                              />
+                              {uploadedFileName && (
+                                <button
+                                  type="button"
+                                  onClick={() => setShowPreviewModal(true)}
+                                  className="px-2.5 py-1.5 bg-purple-700 text-white rounded-lg text-[10px] font-black hover:bg-purple-800 flex items-center gap-1 whitespace-nowrap shadow-xs cursor-pointer"
+                                >
+                                  👁️ Preview
+                                </button>
+                              )}
+                            </div>
+                            {uploadedFileName && (
+                              <span className="text-[10px] font-bold text-purple-700 mt-1 block truncate">
+                                📄 {uploadedFileName}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Sub-Option F: PREPARE BILL (BILL BANWANA) */}
+                      {(businessDevSubOption?.includes("PREPARE BILL")) && (
+                        <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 bg-white p-3.5 rounded-xl border border-purple-200 shadow-2xs animate-fade-in">
+                          <div>
+                            <label className="block text-[10px] font-black uppercase tracking-wider text-black mb-1.5 flex items-center gap-1">
+                              <Calendar className="w-3.5 h-3.5 text-purple-600" />
+                              Bill Date *
+                            </label>
+                            <input
+                              type="date"
+                              required
+                              value={billDate}
+                              onChange={e => setBillDate(e.target.value)}
+                              className="w-full p-2 border border-purple-300 rounded-lg text-xs font-black text-slate-950 bg-white focus:outline-none focus:border-purple-600"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="block text-[10px] font-black uppercase tracking-wider text-black mb-1.5 flex items-center gap-1">
+                              <Briefcase className="w-3.5 h-3.5 text-purple-600" />
+                              Bill Amount (₹) *
+                            </label>
+                            <input
+                              type="number"
+                              required
+                              placeholder="Enter amount..."
+                              value={billAmount}
+                              onChange={e => setBillAmount(e.target.value)}
+                              className="w-full p-2 border border-purple-300 rounded-lg text-xs font-black text-slate-950 bg-white focus:outline-none focus:border-purple-600"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="block text-[10px] font-black uppercase tracking-wider text-black mb-1.5 flex items-center gap-1">
+                              <Layers className="w-3.5 h-3.5 text-purple-600" />
+                              Bill No. *
+                            </label>
+                            <input
+                              type="text"
+                              required
+                              placeholder="Enter bill number..."
+                              value={billNo}
+                              onChange={e => setBillNo(e.target.value)}
+                              className="w-full p-2 border border-purple-300 rounded-lg text-xs font-black text-slate-950 bg-white focus:outline-none focus:border-purple-600"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="block text-[10px] font-black uppercase tracking-wider text-black mb-1.5 flex items-center gap-1">
+                              <FileText className="w-3.5 h-3.5 text-purple-600" />
+                              Upload Bill File (Optional)
+                            </label>
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="file"
+                                accept=".xlsx,.xls,.csv,.pdf,.doc,.docx,.png,.jpg,.jpeg,.gif,.webp,.mp3,.wav,.aac,.m4a,.ogg,audio/*,image/*"
+                                onChange={handleFileChange}
+                                className="w-full text-xs font-bold text-slate-700 file:mr-2 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-[10px] file:font-black file:bg-purple-100 file:text-purple-800 hover:file:bg-purple-200 cursor-pointer"
+                              />
+                              {uploadedFileName && (
+                                <button
+                                  type="button"
+                                  onClick={() => setShowPreviewModal(true)}
+                                  className="px-2.5 py-1.5 bg-purple-700 text-white rounded-lg text-[10px] font-black hover:bg-purple-800 flex items-center gap-1 whitespace-nowrap shadow-xs cursor-pointer"
+                                >
+                                  👁️ Preview
+                                </button>
+                              )}
+                            </div>
+                            {uploadedFileName && (
+                              <span className="text-[10px] font-bold text-purple-700 mt-1 block truncate">
+                                📄 {uploadedFileName}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Sub-Option G: REQUEST PAYMENT */}
+                      {(businessDevSubOption?.includes("REQUEST PAYMENT")) && (
+                        <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 bg-white p-3.5 rounded-xl border border-purple-200 shadow-2xs animate-fade-in">
+                          <div>
+                            <label className="block text-[10px] font-black uppercase tracking-wider text-black mb-1.5 flex items-center gap-1">
+                              <Briefcase className="w-3.5 h-3.5 text-purple-600" />
+                              Amount (₹) *
+                            </label>
+                            <input
+                              type="number"
+                              required
+                              placeholder="Enter amount..."
+                              value={billAmount}
+                              onChange={e => setBillAmount(e.target.value)}
+                              className="w-full p-2 border border-purple-300 rounded-lg text-xs font-black text-slate-950 bg-white focus:outline-none focus:border-purple-600"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="block text-[10px] font-black uppercase tracking-wider text-black mb-1.5 flex items-center gap-1">
+                              <Layers className="w-3.5 h-3.5 text-purple-600" />
+                              Person Name (Optional)
+                            </label>
+                            <input
+                              type="text"
+                              placeholder="Enter person name..."
+                              value={personName}
+                              onChange={e => setPersonName(e.target.value)}
+                              className="w-full p-2 border border-purple-300 rounded-lg text-xs font-black text-slate-950 bg-white focus:outline-none focus:border-purple-600"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="block text-[10px] font-black uppercase tracking-wider text-black mb-1.5 flex items-center gap-1">
+                              <Calendar className="w-3.5 h-3.5 text-purple-600" />
+                              Allocated Date *
+                            </label>
+                            <input
+                              type="date"
+                              required
+                              value={allocationDate}
+                              onChange={e => setAllocationDate(e.target.value)}
+                              className="w-full p-2 border border-purple-300 rounded-lg text-xs font-black text-slate-950 bg-white focus:outline-none focus:border-purple-600"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="block text-[10px] font-black uppercase tracking-wider text-black mb-1.5 flex items-center gap-1">
+                              <FileText className="w-3.5 h-3.5 text-purple-600" />
+                              Upload File (Optional)
+                            </label>
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="file"
+                                accept=".xlsx,.xls,.csv,.pdf,.doc,.docx,.png,.jpg,.jpeg,.gif,.webp,.mp3,.wav,.aac,.m4a,.ogg,audio/*,image/*"
+                                onChange={handleFileChange}
+                                className="w-full text-xs font-bold text-slate-700 file:mr-2 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-[10px] file:font-black file:bg-purple-100 file:text-purple-800 hover:file:bg-purple-200 cursor-pointer"
+                              />
+                              {uploadedFileName && (
+                                <button
+                                  type="button"
+                                  onClick={() => setShowPreviewModal(true)}
+                                  className="px-2.5 py-1.5 bg-purple-700 text-white rounded-lg text-[10px] font-black hover:bg-purple-800 flex items-center gap-1 whitespace-nowrap shadow-xs cursor-pointer"
+                                >
+                                  👁️ Preview
+                                </button>
+                              )}
+                            </div>
+                            {uploadedFileName && (
+                              <span className="text-[10px] font-bold text-purple-700 mt-1 block truncate">
+                                📄 {uploadedFileName}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Default Fallback for other sub-options */}
+                      {businessDevSubOption !== "TAKE NOTICE ASSIGNMENT" &&
+                       businessDevSubOption !== "COLLECT NOTICE DATA" &&
+                       businessDevSubOption !== "PREPARE NOTICE LIST" &&
+                       !businessDevSubOption?.includes("GENERATE NOTICE") &&
+                       !businessDevSubOption?.includes("DISPATCH NOTICE") &&
+                       !businessDevSubOption?.includes("PREPARE BILL") &&
+                       !businessDevSubOption?.includes("REQUEST PAYMENT") && (
+                        <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 bg-white p-3.5 rounded-xl border border-purple-200 shadow-2xs animate-fade-in">
+                          <div>
+                            <label className="block text-[10px] font-black uppercase tracking-wider text-black mb-1.5 flex items-center gap-1">
+                              <Layers className="w-3.5 h-3.5 text-purple-600" />
+                              No. of Count *
+                            </label>
+                            <input
+                              type="number"
+                              min="1"
+                              required
+                              value={noOfCount}
+                              onChange={e => setNoOfCount(e.target.value)}
+                              placeholder="Enter count..."
+                              className="w-full p-2 border border-purple-300 rounded-lg text-xs font-black text-slate-950 bg-white focus:outline-none focus:border-purple-600"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="block text-[10px] font-black uppercase tracking-wider text-black mb-1.5 flex items-center gap-1">
+                              <Briefcase className="w-3.5 h-3.5 text-purple-600" />
+                              Branch Name *
+                            </label>
+                            <input
+                              type="text"
+                              required
+                              value={selectedBranchName}
+                              onChange={e => setSelectedBranchName(e.target.value)}
+                              placeholder="Enter branch name..."
+                              className="w-full p-2 border border-purple-300 rounded-lg text-xs font-black text-slate-950 bg-white focus:outline-none focus:border-purple-600"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="block text-[10px] font-black uppercase tracking-wider text-black mb-1.5 flex items-center gap-1">
+                              <Calendar className="w-3.5 h-3.5 text-purple-600" />
+                              Allocation Date *
+                            </label>
+                            <input
+                              type="date"
+                              required
+                              value={allocationDate}
+                              onChange={e => setAllocationDate(e.target.value)}
+                              className="w-full p-2 border border-purple-300 rounded-lg text-xs font-black text-slate-950 bg-white focus:outline-none focus:border-purple-600"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="block text-[10px] font-black uppercase tracking-wider text-black mb-1.5 flex items-center gap-1">
+                              <FileText className="w-3.5 h-3.5 text-purple-600" />
+                              Upload File
+                            </label>
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="file"
+                                accept=".xlsx,.xls,.csv,.pdf,.doc,.docx,.png,.jpg,.jpeg,.gif,.webp,.mp3,.wav,.aac,.m4a,.ogg,audio/*,image/*"
+                                onChange={handleFileChange}
+                                className="w-full text-xs font-bold text-slate-700 file:mr-2 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-[10px] file:font-black file:bg-purple-100 file:text-purple-800 hover:file:bg-purple-200 cursor-pointer"
+                              />
+                              {uploadedFileName && (
+                                <button
+                                  type="button"
+                                  onClick={() => setShowPreviewModal(true)}
+                                  className="px-2.5 py-1.5 bg-purple-700 text-white rounded-lg text-[10px] font-black hover:bg-purple-800 flex items-center gap-1 whitespace-nowrap shadow-xs cursor-pointer"
+                                >
+                                  👁️ Preview
+                                </button>
+                              )}
+                            </div>
+                          </div>
                         </div>
                       )}
                     </div>
-                  );
-                })}
+                  )}
+                </div>
+              )}
+
+              {/* Custom Location Field */}
+              {workLocation === "Other" && (
+                <div className="p-4 bg-amber-50/70 border border-amber-200 rounded-xl animate-fade-in shadow-2xs">
+                  <label className="block text-[10px] font-black uppercase tracking-wider text-amber-950 mb-1.5">
+                    Specify Custom Work Location *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="Enter custom location details..."
+                    value={customLocation}
+                    onChange={e => setCustomLocation(e.target.value)}
+                    className="w-full p-2.5 border border-amber-300 rounded-xl text-xs font-black text-slate-950 bg-white focus:outline-none focus:border-amber-600 shadow-2xs"
+                  />
+                </div>
+              )}
+
+              {/* Remarks Field */}
+              <div>
+                <label className="block text-[10px] font-black uppercase tracking-wider text-black mb-1.5">
+                  Remarks / Work Details *
+                </label>
+                <textarea
+                  required
+                  rows={3}
+                  value={remarks}
+                  onChange={e => setRemarks(e.target.value)}
+                  placeholder="Enter specific work instructions, execution notes or completed tasks summary..."
+                  className="w-full p-3 border border-slate-300 rounded-xl text-xs font-bold text-slate-950 bg-white focus:outline-none focus:border-purple-600 focus:ring-2 focus:ring-purple-600/10 shadow-2xs transition-all"
+                />
               </div>
-            </>
-          ) : (
-            <div className="flex flex-col items-center justify-center flex-1 text-center p-8 opacity-60">
-              <div className="w-16 h-16 bg-slate-100 text-slate-400 rounded-2xl flex items-center justify-center mb-4">
-                <Briefcase size={32} />
+
+              {/* Submit Button */}
+              <div className="flex justify-end pt-2">
+                <button
+                  type="submit"
+                  disabled={submittingForm}
+                  className="w-full sm:w-auto px-6 py-2.5 bg-gradient-to-r from-purple-700 to-indigo-700 hover:from-purple-800 hover:to-indigo-800 text-white font-extrabold text-xs rounded-xl shadow-md transition-all flex items-center justify-center gap-2 disabled:opacity-60 cursor-pointer"
+                >
+                  {submittingForm ? (
+                    <>Saving Work Log...</>
+                  ) : (
+                    <>
+                      <Send className="w-3.5 h-3.5" /> Submit Work Log
+                    </>
+                  )}
+                </button>
               </div>
-              <h3 className="text-sm font-black text-slate-500 uppercase tracking-wider mb-2">No Branch Selected</h3>
-              <p className="text-xs text-slate-400 font-semibold max-w-[250px]">
-                Select a branch from the list on the left to manage its work execution checklist.
-              </p>
-            </div>
-          )}
+            </form>
+          </div>
         </div>
-      </div>
       )}
 
-      {viewMode === "reports" && (
-        <div className="animate-fade-in space-y-6">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-            <div className="flex items-center gap-3 w-full sm:w-auto">
-              <div className="relative flex-1 sm:w-64">
+      {/* Mode 2: Checklist Boards */}
+      {viewMode === "checklist" && (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start animate-fade-in">
+          {/* Cases List */}
+          <div className="lg:col-span-1 bg-white border border-[#E8E4DF] rounded-xl overflow-hidden shadow-sm h-[600px] flex flex-col">
+            <div className="p-4 bg-slate-50 border-b border-[#E8E4DF]">
+              <div className="relative w-full mb-3">
                 <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                 <input 
                   type="text" 
-                  placeholder="Search Employee, Bank, Category..." 
-                  value={reportSearchQuery}
-                  onChange={(e) => setReportSearchQuery(e.target.value)}
+                  placeholder="Search Branches..." 
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
                   className="w-full pl-9 pr-4 py-2 bg-white border border-[#E8E4DF] focus:border-blue-500 rounded-xl text-xs focus:outline-none transition-colors"
                 />
               </div>
-              <div className="relative">
-                <Filter className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                <select
-                  value={reportCategoryFilter}
-                  onChange={(e) => setReportCategoryFilter(e.target.value)}
-                  className="pl-9 pr-8 py-2 bg-white border border-[#E8E4DF] focus:border-blue-500 rounded-xl text-xs focus:outline-none appearance-none font-semibold text-slate-700"
-                >
-                  <option value="">All Categories</option>
-                  {Object.keys(WORK_CATEGORIES).map(cat => (
-                    <option key={cat} value={cat}>{cat}</option>
-                  ))}
-                </select>
-              </div>
+              <h3 className="text-xs font-black text-slate-700 uppercase tracking-wider">Select a Branch</h3>
             </div>
-            <button 
-              onClick={exportWorkLogsCSV}
-              className="px-4 py-2 bg-emerald-50 text-emerald-700 hover:bg-emerald-600 hover:text-white border border-emerald-200 rounded-xl text-[10px] font-bold uppercase tracking-wider transition-colors flex items-center gap-2"
-            >
-              <Download className="w-4 h-4" /> Export Report CSV
-            </button>
+            <div className="overflow-y-auto flex-1 p-2 space-y-2">
+              {filteredBranches.map(b => (
+                <button
+                  key={b.id}
+                  onClick={() => setSelectedBranch(b.id)}
+                  className={`w-full text-left p-3 rounded-lg border transition-all ${
+                    selectedBranch === b.id 
+                      ? 'border-blue-500 bg-blue-50 shadow-sm' 
+                      : 'border-transparent hover:bg-slate-50 border-slate-100'
+                  }`}
+                >
+                  <div className="font-bold text-xs text-slate-800">{getBankName(b.bankId)}</div>
+                  <div className="text-[10px] text-slate-500 font-semibold mb-1">Branch: {b.branchName}</div>
+                  <div className="text-[10px] text-[#9C9890]">AO: {b.aoName || 'N/A'}</div>
+                </button>
+              ))}
+              {filteredBranches.length === 0 && (
+                <div className="text-center p-6 text-xs text-slate-400 font-semibold">No branches match your search.</div>
+              )}
+            </div>
           </div>
 
-          <div className="bg-white border border-[#E8E4DF] rounded-xl overflow-hidden shadow-sm">
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse">
-                <thead>
-                  <tr className="bg-[#FCFBF9] border-b border-[#E8E4DF]">
-                    <th className="py-3 px-4 text-[10px] font-black text-[#9C9890] uppercase tracking-wider">Date & Employee</th>
-                    <th className="py-3 px-4 text-[10px] font-black text-[#9C9890] uppercase tracking-wider">Branch Details</th>
-                    <th className="py-3 px-4 text-[10px] font-black text-[#9C9890] uppercase tracking-wider">Category</th>
-                    <th className="py-3 px-4 text-[10px] font-black text-[#9C9890] uppercase tracking-wider">Work Action & Remarks</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-[#E8E4DF] text-xs">
-                  {loading ? (
-                    <tr>
-                      <td colSpan={4} className="py-12 text-center text-slate-500 font-semibold">Loading reports...</td>
-                    </tr>
-                  ) : filteredWorkLogs.length === 0 ? (
-                    <tr>
-                      <td colSpan={4} className="py-12 text-center text-slate-500 font-semibold">No work logs found.</td>
-                    </tr>
-                  ) : (
-                    filteredWorkLogs.map(log => {
-                      const caseObj = getBranchDetails(log.masterId);
-                      return (
-                        <tr key={log.id} className="hover:bg-slate-50 transition-colors">
-                          <td className="py-3 px-4">
-                            <div className="font-bold text-slate-800">
-                              {log.workDate ? new Date(log.workDate).toLocaleDateString() : new Date(log.createdAt).toLocaleDateString()}
+          {/* Work Checklist Panel */}
+          <div className="lg:col-span-2 bg-white border border-[#E8E4DF] rounded-xl overflow-hidden shadow-sm h-[600px] flex flex-col">
+            {selectedBranch ? (
+              <>
+                {(() => {
+                  const b = branches.find((branchObj: any) => branchObj.id === selectedBranch);
+                  const bankName = b ? getBankName(b.bankId) : "";
+                  return (
+                    <div className="p-5 border-b border-[#E8E4DF] bg-slate-50 flex items-center justify-between">
+                      <div>
+                        <h2 className="text-sm font-black text-slate-800">{bankName}</h2>
+                        <div className="text-xs text-slate-500 font-semibold mt-1">Branch: {b?.branchName}</div>
+                      </div>
+                    </div>
+                  );
+                })()}
+                
+                <div className="p-6 overflow-y-auto flex-1 space-y-4">
+                  {Object.keys(WORK_CATEGORIES).map(category => {
+                    const progress = getTaskCompletionData(selectedBranch, category);
+                    const isExpanded = expandedCategories[category];
+                    
+                    return (
+                      <div key={category} className="border border-slate-200 rounded-xl overflow-hidden shadow-sm">
+                        <button 
+                          onClick={() => toggleCategory(category)}
+                          className="w-full flex items-center justify-between p-4 bg-white hover:bg-slate-50 transition-colors"
+                        >
+                          <div className="flex items-center gap-3">
+                            {isExpanded ? <ChevronDown className="w-5 h-5 text-slate-400" /> : <ChevronRight className="w-5 h-5 text-slate-400" />}
+                            <span className="font-black text-xs text-slate-800 tracking-wide uppercase">{category}</span>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <span className="text-[10px] font-bold text-slate-500">{progress.completed}/{progress.total} Steps</span>
+                            <div className="w-16 bg-slate-100 rounded-full h-1.5 overflow-hidden">
+                              <div className="bg-blue-600 h-full rounded-full" style={{ width: `${progress.percentage}%` }}></div>
                             </div>
-                            <div className="text-slate-500 mt-0.5 font-semibold">By: <span className="text-blue-600">{log.employeeName || 'Unknown'}</span></div>
-                          </td>
-                          <td className="py-3 px-4">
-                            <div className="font-bold text-[#1C1C1A]">{caseObj?.bankName || 'N/A'}</div>
-                            <div className="text-slate-500">{caseObj?.branchName || 'N/A'}</div>
-                          </td>
-                          <td className="py-3 px-4">
-                            <span className="px-2 py-1 bg-blue-50 text-blue-700 rounded text-[10px] font-black uppercase tracking-wider border border-blue-100">
-                              {log.category}
-                            </span>
-                          </td>
-                          <td className="py-3 px-4 max-w-sm">
-                            <div className="font-bold text-slate-800 mb-1">{log.subCategory}</div>
-                            {log.remarks && log.remarks !== "Marked as completed" && (
-                              <div className="text-[10px] text-slate-500 bg-slate-100 p-1.5 rounded border border-slate-200 mt-1">
-                                {log.remarks}
-                              </div>
-                            )}
-                          </td>
-                        </tr>
-                      );
-                    })
-                  )}
-                </tbody>
-              </table>
+                          </div>
+                        </button>
+
+                        {isExpanded && (
+                          <div className="p-4 bg-slate-50 border-t border-slate-100 space-y-3">
+                            {WORK_CATEGORIES[category].map(step => {
+                              const log = getCompletedTaskLog(selectedBranch, category, step);
+                              const isStepDone = !!log;
+                              const taskKey = `${selectedBranch}-${category}-${step}`;
+                              const isUpdating = updatingTask === taskKey;
+                              const isFormOpen = activeStepForm === taskKey;
+
+                              return (
+                                <div key={step} className="p-3 bg-white border border-slate-200 rounded-lg flex flex-col gap-2">
+                                  <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-2">
+                                      <div className={`w-4 h-4 rounded-full flex items-center justify-center text-[10px] font-bold ${isStepDone ? 'bg-emerald-500 text-white' : 'bg-slate-200 text-slate-500'}`}>
+                                        {isStepDone ? "✓" : "•"}
+                                      </div>
+                                      <span className={`text-xs font-bold ${isStepDone ? 'text-slate-800' : 'text-slate-600'}`}>{step}</span>
+                                    </div>
+                                    
+                                    {!isStepDone && (
+                                      <button 
+                                        onClick={() => setActiveStepForm(isFormOpen ? null : taskKey)}
+                                        className="px-3 py-1 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded text-[10px] font-bold uppercase transition-colors"
+                                      >
+                                        Mark Done
+                                      </button>
+                                    )}
+                                  </div>
+
+                                  {isFormOpen && !isStepDone && (
+                                    <div className="mt-2 p-3 bg-blue-50/50 border border-blue-200 rounded-lg space-y-2 animate-fade-in">
+                                      <input 
+                                        type="text"
+                                        placeholder="Add remarks or notes..."
+                                        value={stepRemarks}
+                                        onChange={(e) => setStepRemarks(e.target.value)}
+                                        className="w-full p-2 bg-white border border-slate-300 rounded text-xs focus:outline-none focus:border-blue-500"
+                                      />
+                                      <div className="flex justify-end gap-2">
+                                        <button 
+                                          onClick={() => setActiveStepForm(null)}
+                                          className="px-2.5 py-1 text-slate-500 text-[10px] font-bold"
+                                        >
+                                          Cancel
+                                        </button>
+                                        <button 
+                                          disabled={isUpdating}
+                                          onClick={() => handleMarkTaskDone(selectedBranch, category, step, stepRemarks)}
+                                          className="px-3 py-1 bg-blue-600 text-white rounded text-[10px] font-bold uppercase hover:bg-blue-700"
+                                        >
+                                          {isUpdating ? "Saving..." : "Confirm Done"}
+                                        </button>
+                                      </div>
+                                    </div>
+                                  )}
+
+                                  {isStepDone && (
+                                    <div className="text-[10px] text-slate-500 bg-slate-50 p-2 rounded border border-slate-100 flex items-center justify-between">
+                                      <span>Done by: <strong>{log.employeeName || 'Unknown'}</strong> ({log.remarks || 'No remarks'})</span>
+                                      <span className="text-slate-400">{new Date(log.createdAt).toLocaleDateString()}</span>
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </>
+            ) : (
+              <div className="flex-1 flex flex-col items-center justify-center p-8 text-center">
+                <Briefcase className="w-12 h-12 text-slate-200 mb-3" />
+                <h3 className="text-xs font-black text-slate-400 uppercase tracking-wider mb-1">No Branch Selected</h3>
+                <p className="text-xs text-slate-400 max-w-xs">Select a branch from the list on the left to manage its work execution checklist.</p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* File Preview Modal */}
+      {showPreviewModal && (
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 animate-fade-in">
+          <div className="bg-white rounded-2xl p-5 max-w-lg w-full space-y-4 shadow-2xl relative border border-purple-100">
+            <div className="flex justify-between items-center pb-3 border-b border-slate-100">
+              <h4 className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
+                📄 File Preview: {uploadedFileName}
+              </h4>
+              <button
+                type="button"
+                onClick={() => setShowPreviewModal(false)}
+                className="text-slate-400 hover:text-slate-700 font-black text-sm px-2 py-0.5 rounded-lg hover:bg-slate-100 cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="max-h-[350px] overflow-auto flex items-center justify-center bg-slate-50 rounded-xl p-4 border border-slate-200">
+              {uploadedFilePreview && (uploadedFileType.startsWith("image/") || uploadedFileName.match(/\.(png|jpg|jpeg|gif|webp)$/i)) ? (
+                <img src={uploadedFilePreview} alt="Preview" className="max-h-[300px] object-contain rounded-lg shadow-sm" />
+              ) : uploadedFilePreview && (uploadedFileType.startsWith("audio/") || uploadedFileName.match(/\.(mp3|wav|aac|m4a|ogg)$/i)) ? (
+                <div className="text-center py-6 space-y-3 w-full max-w-sm">
+                  <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center mx-auto text-purple-700 font-bold text-xl">
+                    🎵
+                  </div>
+                  <p className="text-xs font-black text-slate-800 truncate">{uploadedFileName}</p>
+                  <audio controls src={uploadedFilePreview} className="w-full rounded-lg shadow-xs" />
+                </div>
+              ) : (
+                <div className="text-center py-8 space-y-2">
+                  <FileText className="w-10 h-10 text-purple-600 mx-auto" />
+                  <p className="text-xs font-bold text-slate-700">{uploadedFileName}</p>
+                  <p className="text-[10px] text-slate-400 font-semibold">File / Recording selected and ready for submission.</p>
+                </div>
+              )}
+            </div>
+            <div className="flex justify-end pt-2">
+              <button
+                type="button"
+                onClick={() => setShowPreviewModal(false)}
+                className="px-4 py-2 bg-purple-700 text-white rounded-xl text-xs font-black hover:bg-purple-800 cursor-pointer shadow-md"
+              >
+                Close Preview
+              </button>
             </div>
           </div>
         </div>

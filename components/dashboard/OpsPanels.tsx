@@ -28,13 +28,16 @@ import {
   AlertTriangle,
   Users,
   Scale,
+  Save,
   RefreshCw,
   FileSpreadsheet,
   Coins,
   ChevronDown,
   ChevronUp,
-  CalendarClock
+  CalendarClock,
+  Trash2
 } from "lucide-react";
+import LegalRecoverySchedulePanel from "./LegalRecoverySchedulePanel";
 
 const formatTimeTo12Hour = (dateInput: any): string => {
   if (!dateInput) return "—";
@@ -51,6 +54,75 @@ const formatTimeTo12Hour = (dateInput: any): string => {
   }
 };
 
+const SearchableCombobox = ({
+  label,
+  value,
+  onChange,
+  options,
+  placeholder
+}: {
+  label: string;
+  value: string;
+  onChange: (val: string) => void;
+  options: string[];
+  placeholder: string;
+}) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const filteredOptions = options.filter(opt =>
+    opt && opt.toLowerCase().includes((value || "").toLowerCase())
+  );
+
+  return (
+    <div className="relative" ref={containerRef}>
+      <label className="block text-[9px] font-bold uppercase text-slate-600 mb-1">{label}</label>
+      <input
+        type="text"
+        value={value}
+        onFocus={() => setIsOpen(true)}
+        onChange={e => {
+          onChange(e.target.value);
+          setIsOpen(true);
+        }}
+        placeholder={placeholder}
+        className="w-full p-2 border border-slate-300 rounded-lg text-xs font-bold text-slate-800 bg-white focus:outline-none focus:border-purple-600 h-[38px]"
+      />
+      {isOpen && (
+        <div className="absolute z-50 left-0 right-0 mt-1 bg-white border border-purple-200 rounded-lg shadow-xl max-h-36 overflow-y-auto divide-y divide-slate-100">
+          {filteredOptions.length > 0 ? (
+            filteredOptions.map((opt, i) => (
+              <div
+                key={i}
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  onChange(opt);
+                  setIsOpen(false);
+                }}
+                className="p-2 text-xs font-bold text-slate-700 hover:bg-purple-50 hover:text-purple-900 cursor-pointer transition-colors"
+              >
+                {opt}
+              </div>
+            ))
+          ) : (
+            <div className="p-2 text-xs text-slate-400 italic">No matching options found (keep typing for custom)</div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
+
 interface OpsProps {
   sessionUser?: any;
   stats: any;
@@ -61,6 +133,7 @@ interface OpsProps {
 }
 
 export function DailyCommitments({
+  // Main Daily Commitment Panel Component with Searchable Comboboxes & Balanced JSX
   sessionUser,
   stats,
   handleAttendancePunch,
@@ -83,7 +156,7 @@ export function DailyCommitments({
   const [locationStatus, setLocationStatus] = useState("Awaiting GPS...");
   const [cameraError, setCameraError] = useState("");
   // SOD Task Title Master & Task Mode Master States
-  const [sodCategories, setSodCategories] = useState<string[]>(["General", "Legal", "Bank", "Interview", "IT", "Notice", "Others"]);
+  const [sodCategories, setSodCategories] = useState<string[]>(["General", "Legal Recovery", "Legal", "Bank", "Interview", "IT", "Notice", "Others"]);
   const [sodTaskTitle, setSodTaskTitle] = useState<string>("General");
   const [showAddSodTitleInput, setShowAddSodTitleInput] = useState(false);
   const [newSodTitleText, setNewSodTitleText] = useState("");
@@ -94,7 +167,9 @@ export function DailyCommitments({
 
   // Bank / Branch / Officer subfields for Bank & Notice Task Titles
   const [banksList, setBanksList] = useState<{ id: string | number; bankName: string }[]>([]);
-  const [branchesList, setBranchesList] = useState<{ id: string | number; branchName: string; nbfcId?: any }[]>([]);
+  const [branchesList, setBranchesList] = useState<{ id: string | number; bankId?: any; branchName: string; branchCode?: string; aoName?: string; ao?: string; rbo?: string; rboName?: string; nbfcId?: any }[]>([]);
+  const [nbfcsList, setNbfcsList] = useState<{ id: string | number; nbfcName: string; nbfcCode?: string }[]>([]);
+  const [nbfcBranchesList, setNbfcBranchesList] = useState<{ id: string | number; nbfcId?: any; branchName: string; branchCode?: string; aoName?: string; rbo?: string }[]>([]);
   const [selectedBankId, setSelectedBankId] = useState("");
   const [sodBankName, setSodBankName] = useState("");
   const [sodBranchName, setSodBranchName] = useState("");
@@ -102,18 +177,166 @@ export function DailyCommitments({
   const [sodOfficerPhone, setSodOfficerPhone] = useState("");
   const [sodTaskDetails, setSodTaskDetails] = useState("");
 
+  // Legal Recovery Schedule States inside DailyCommitments
+  const [userVertical, setUserVertical] = useState<string>(sessionUser?.vertical || "");
+  const [legalScheduleItems, setLegalScheduleItems] = useState<any[]>([]);
+  const [legalInputDate, setLegalInputDate] = useState(new Date().toISOString().split("T")[0]);
+  const [legalInputTime, setLegalInputTime] = useState("10:00 AM");
+  const [legalInputWorkSection, setLegalInputWorkSection] = useState("");
+  const [legalWorkLocation, setLegalWorkLocation] = useState<string>("Office"); // Office | Bank | Field | Other
+  const [legalCustomLocation, setLegalCustomLocation] = useState<string>("");
+  const [legalInputType, setLegalInputType] = useState("General"); // General | Bank Related | Others
+  const [legalInputSubType, setLegalInputSubType] = useState("AO related"); // AO related | RBO related | branch related | case related
+
+  // Dynamic Subfields according to User Rules
+  const [legalInputRemarks, setLegalInputRemarks] = useState("");
+  const [legalInputOtherType, setLegalInputOtherType] = useState("");
+  const [legalInputBankName, setLegalInputBankName] = useState("");
+  const [legalInputAoName, setLegalInputAoName] = useState("");
+  const [legalInputRboName, setLegalInputRboName] = useState("");
+  const [legalInputBranchName, setLegalInputBranchName] = useState("");
+  const [legalInputCaseDetails, setLegalInputCaseDetails] = useState("");
+  const [legalInputDetails, setLegalInputDetails] = useState("");
+
+  useEffect(() => {
+    fetch("/api/employees/me")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success && data.data?.vertical) {
+          setUserVertical(data.data.vertical);
+          if (["Legal Recovery", "Security", "Legal & Security"].includes(data.data.vertical)) {
+            setSodTaskTitle("Legal Recovery");
+          }
+        }
+      })
+      .catch((err) => console.error("Failed to load user profile in DailyCommitments:", err));
+
+    fetchBanksAndBranches();
+  }, []);
+
+  const isLegalRecovery = ["Legal Recovery", "Security", "Legal & Security"].includes(userVertical) ||
+    ["Legal Recovery", "Security", "Legal & Security"].includes(sessionUser?.vertical) ||
+    ["Legal", "Legal Recovery", "Security"].includes(sodTaskTitle);
+
+  const handleAddLegalScheduleItem = () => {
+    const effectiveLocation = legalWorkLocation === "Other"
+      ? (legalCustomLocation.trim() || "Other")
+      : legalWorkLocation;
+
+    if (legalWorkLocation === "Other" && !legalCustomLocation.trim()) {
+      alert("Please enter custom location details.");
+      return;
+    }
+    if (legalInputType === "Others" && !legalInputOtherType.trim()) {
+      alert("Please specify custom Type / Input for Others.");
+      return;
+    }
+    if (legalInputType === "Bank Related") {
+      if (!legalInputBankName.trim()) {
+        alert("Please select Bank Name.");
+        return;
+      }
+      if (["branch related", "case related"].includes(legalInputSubType) && !legalInputBranchName.trim()) {
+        alert("Please select Branch for the selected Bank.");
+        return;
+      }
+      if (legalInputSubType === "case related" && !legalInputCaseDetails.trim()) {
+        alert("Please enter Case Details.");
+        return;
+      }
+    }
+    if (legalInputType === "NBFC" && !legalInputBankName.trim()) {
+      alert("Please select or type NBFC Name.");
+      return;
+    }
+
+    const newItem = {
+      id: "temp_" + Date.now() + "_" + Math.random().toString(36).substr(2, 4),
+      date: legalInputDate,
+      time: legalInputTime,
+      workSection: effectiveLocation,
+      workLocation: legalWorkLocation,
+      customLocation: legalWorkLocation === "Other" ? legalCustomLocation.trim() : null,
+      type: legalInputType,
+      subType: legalInputType === "Bank Related" ? legalInputSubType : (legalInputType === "Call" ? (legalInputSubType || "Incoming Call") : null),
+      remarks: legalInputRemarks.trim(),
+      otherType: (legalInputType === "Others" || legalInputType === "Field Visit") ? legalInputOtherType.trim() : null,
+      bankName: ["Bank Related", "NBFC"].includes(legalInputType) ? legalInputBankName.trim() : null,
+      branchName: ["Bank Related", "NBFC"].includes(legalInputType) ? legalInputBranchName.trim() : null,
+      aoName: (legalInputType === "Bank Related" && ["AO related", "RBO related", "branch related", "case related"].includes(legalInputSubType)) ? legalInputAoName.trim() : null,
+      rboName: (legalInputType === "Bank Related" && ["RBO related", "branch related", "case related"].includes(legalInputSubType)) ? legalInputRboName.trim() : null,
+      caseDetails: (legalInputType === "Bank Related" && legalInputSubType === "case related") ? legalInputCaseDetails.trim() : null,
+      details: legalInputDetails.trim(),
+      status: "Pending"
+    };
+
+    setLegalScheduleItems(prev => [...prev, newItem]);
+
+    // Reset fields
+    setLegalWorkLocation("Office");
+    setLegalCustomLocation("");
+    setLegalInputWorkSection("");
+    setLegalInputRemarks("");
+    setLegalInputOtherType("");
+    setLegalInputBankName("");
+    setLegalInputAoName("");
+    setLegalInputRboName("");
+    setLegalInputBranchName("");
+    setLegalInputCaseDetails("");
+    setLegalInputDetails("");
+  };
+
+  const handleSaveSchedulesDirect = async () => {
+    if (legalScheduleItems.length === 0) {
+      alert("Please add at least 1 schedule entry to your table before saving.");
+      return;
+    }
+    setSubmittingSOD(true);
+    try {
+      const success = await handleSodSubmit({
+        taskSummary: `[Legal Recovery SOD] ${legalScheduleItems.length} Schedule Tasks Saved`,
+        taskType: "Legal Recovery",
+        selfieUrl: "/uploads/sod-schedule-direct.jpg",
+        location: { latitude: 26.9124, longitude: 75.7873, address: "Office Location" },
+        legalSchedules: legalScheduleItems
+      });
+
+      if (success) {
+        alert("Schedule tasks saved successfully! Synced with Schedule Work Report and My Tasks.");
+        setSodAlreadySubmitted(true);
+        setLegalScheduleItems([]);
+      }
+    } catch (err: any) {
+      console.error(err);
+      alert("Failed to save schedule tasks: " + (err?.message || "Unknown error"));
+    } finally {
+      setSubmittingSOD(false);
+    }
+  };
+
+  const handleDeleteLegalScheduleItem = (index: number) => {
+    setLegalScheduleItems(prev => prev.filter((_, i) => i !== index));
+  };
+
   const fetchBanksAndBranches = async () => {
     try {
-      const [bankRes, branchRes] = await Promise.all([
+      const [bankRes, branchRes, nbfcRes, nbfcBranchRes] = await Promise.all([
         fetch("/api/legal-recovery/banks"),
+        fetch("/api/legal-recovery/branches"),
+        fetch("/api/legal-recovery/nbfc"),
         fetch("/api/legal-recovery/nbfc-branches")
       ]);
       const bankData = await bankRes.json();
       const branchData = await branchRes.json();
+      const nbfcData = await nbfcRes.json();
+      const nbfcBranchData = await nbfcBranchRes.json();
+
       if (bankData.success) setBanksList(bankData.data || []);
       if (branchData.success) setBranchesList(branchData.data || []);
+      if (nbfcData.success) setNbfcsList(nbfcData.data || []);
+      if (nbfcBranchData.success) setNbfcBranchesList(nbfcBranchData.data || []);
     } catch (err) {
-      console.error("Failed to load banks/branches for SOD:", err);
+      console.error("Failed to load banks/branches/nbfcs for SOD:", err);
     }
   };
 
@@ -657,28 +880,24 @@ export function DailyCommitments({
 
     setLocationStatus("Syncing with RS9 ERP System...");
     try {
-      let finalTaskSummary = "";
-      if (sodTaskTitle === "Bank") {
-        finalTaskSummary = `[Bank: ${sodBankName || "Bank"}] Branch: ${sodBranchName || "—"} | Officer: ${sodOfficerName || "—"} (${sodOfficerPhone || "—"})${remarks ? ` — ${remarks}` : ""}`;
-      } else if (sodTaskTitle === "Notice") {
-        finalTaskSummary = `[Notice] Bank: ${sodBankName || "Bank"}, Branch: ${sodBranchName || "—"}${remarks ? ` — ${remarks}` : ""}`;
-      } else {
-        finalTaskSummary = sodTaskTitle ? `[${sodTaskTitle}] ${remarks || sodTaskTitle}` : (remarks || "General Task");
-      }
-
+      const isLegalMode = isLegalRecovery;
       const success = await handleSodSubmit({
-        taskSummary: finalTaskSummary,
-        taskType: taskType === "Other" ? (customTaskType.trim() || "Other") : taskType,
+        taskSummary: isLegalMode
+          ? `[Legal Recovery SOD] ${legalScheduleItems.length} Schedule Items Declared`
+          : (sodTaskTitle === "Bank" ? `[Bank: ${sodBankName || "Bank"}] Branch: ${sodBranchName || "—"} | Officer: ${sodOfficerName || "—"} (${sodOfficerPhone || "—"})${remarks ? ` — ${remarks}` : ""}` : (sodTaskTitle ? `[${sodTaskTitle}] ${remarks || sodTaskTitle}` : (remarks || "General Task"))),
+        taskType: isLegalMode ? "Legal Recovery" : (taskType === "Other" ? (customTaskType.trim() || "Other") : taskType),
         projectName: (sodTaskTitle === "IT" || taskType === "Development") ? (projectName.trim() || "") : undefined,
         remarks: remarks,
         selfieUrl,
-        location
+        location,
+        legalSchedules: isLegalMode ? legalScheduleItems : undefined
       });
 
       if (success) {
         setSodAlreadySubmitted(true);
         setShowCamera(false);
         setRemarks("");
+        setLegalScheduleItems([]);
         setSodTaskDetails("");
         setSodBankName("");
         setSodBranchName("");
@@ -886,296 +1105,821 @@ export function DailyCommitments({
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
-                  {/* Task Title (Master Category Dropdown synced with Tasks) */}
-                  <div className="md:col-span-2">
-                    <div className="flex justify-between items-center mb-1">
-                      <label className="text-[10px] uppercase font-black text-slate-700 font-mono tracking-wider">
-                        Task Title / Category *
-                      </label>
-                      <button
-                        type="button"
-                        onClick={() => setShowAddSodTitleInput(!showAddSodTitleInput)}
-                        className="text-[10px] font-bold text-indigo-600 hover:underline flex items-center gap-0.5"
-                      >
-                        <Plus className="w-3 h-3" /> Add Master Title
-                      </button>
+                {/* Legal Recovery Vertical SOD Schedule Planner Table */}
+                {isLegalRecovery && (
+                  <div className="space-y-4 bg-purple-50/50 border border-purple-200 rounded-xl p-4 animate-fade-in md:col-span-2">
+                    <div className="flex items-center justify-between border-b border-purple-200 pb-2">
+                      <span className="text-xs font-black uppercase tracking-wider text-purple-900 font-mono flex items-center gap-1.5">
+                        <Scale className="w-4 h-4 text-purple-600" /> Legal Recovery Schedule Planner Table
+                      </span>
+                      <span className="text-[10px] font-mono text-purple-700 bg-purple-100 px-2 py-0.5 rounded font-bold">
+                        Legal Recovery Mode Active
+                      </span>
                     </div>
-                    <select
-                      className="w-full bg-white border border-slate-300 rounded p-2 text-xs font-bold text-slate-900 focus:outline-none focus:border-[#714B67]"
-                      value={sodTaskTitle}
-                      onChange={(e) => {
-                        const val = e.target.value;
-                        if (val === "ADD_NEW_TITLE") {
-                          setShowAddSodTitleInput(true);
-                        } else {
-                          setShowAddSodTitleInput(false);
-                          setSodTaskTitle(val);
-                        }
-                      }}
-                      required
-                    >
-                      <option value="">-- Select Task Title --</option>
-                      {sodCategories.map((cat) => (
-                        <option key={cat} value={cat}>
-                          {cat}
-                        </option>
-                      ))}
-                      <option value="ADD_NEW_TITLE" className="font-bold text-[#714B67] bg-purple-50">
-                        ➕ Add New Master Option...
-                      </option>
-                    </select>
 
-                    {showAddSodTitleInput && (
-                      <div className="mt-2 p-2.5 bg-purple-50 border border-purple-200 rounded-lg space-y-2 animate-fade-in">
-                        <label className="block text-[9px] uppercase tracking-wider text-purple-700 font-black">
-                          Add New Category / Title (Stored in Master DB) *
-                        </label>
-                        <div className="flex gap-1.5">
-                          <input
-                            type="text"
-                            className="flex-1 bg-white border border-purple-300 rounded p-2 text-xs font-bold text-slate-900 focus:outline-none focus:border-[#714B67]"
-                            placeholder="Enter new task title/category..."
-                            value={newSodTitleText}
-                            onChange={(e) => setNewSodTitleText(e.target.value)}
-                          />
-                          <button
-                            type="button"
-                            onClick={handleAddSodTitle}
-                            className="bg-[#714B67] hover:bg-[#5F3F56] text-white px-3 py-1.5 rounded text-xs font-bold transition-all"
-                          >
-                            Save Title
-                          </button>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-
-
-                  {/* Task Type / Mode (Master Mode Dropdown synced with Tasks) */}
-                  <div className="md:col-span-2">
-                    <div className="flex justify-between items-center mb-1">
-                      <label className="text-[10px] uppercase font-black text-slate-700 font-mono tracking-wider">
-                        Task Type / Mode *
-                      </label>
-                      <button
-                        type="button"
-                        onClick={() => setShowAddSodModeInput(!showAddSodModeInput)}
-                        className="text-[10px] font-bold text-indigo-600 hover:underline flex items-center gap-0.5"
-                      >
-                        <Plus className="w-3 h-3" /> Add Master Mode
-                      </button>
-                    </div>
-                    <select
-                      className="w-full bg-white border border-slate-300 rounded p-2 text-xs font-bold text-slate-900 focus:outline-none focus:border-[#714B67]"
-                      value={taskType}
-                      onChange={(e) => {
-                        const val = e.target.value;
-                        if (val === "ADD_NEW_MODE") {
-                          setShowAddSodModeInput(true);
-                        } else {
-                          setShowAddSodModeInput(false);
-                          setTaskType(val);
-                        }
-                      }}
-                      required
-                    >
-                      <option value="">-- Select Task Mode --</option>
-                      {sodTaskModes.map((mode) => (
-                        <option key={mode} value={mode}>
-                          {mode}
-                        </option>
-                      ))}
-                      <option value="ADD_NEW_MODE" className="font-bold text-[#714B67] bg-purple-50">
-                        ➕ Add New Mode Option...
-                      </option>
-                    </select>
-
-                    {showAddSodModeInput && (
-                      <div className="mt-2 p-2.5 bg-purple-50 border border-purple-200 rounded-lg space-y-2 animate-fade-in">
-                        <label className="block text-[9px] uppercase tracking-wider text-purple-700 font-black">
-                          Add New Task Mode (Stored in Master DB) *
-                        </label>
-                        <div className="flex gap-1.5">
-                          <input
-                            type="text"
-                            className="flex-1 bg-white border border-purple-300 rounded p-2 text-xs font-bold text-slate-900 focus:outline-none focus:border-[#714B67]"
-                            placeholder="Enter new task mode (e.g. Field Visit)..."
-                            value={newSodModeText}
-                            onChange={(e) => setNewSodModeText(e.target.value)}
-                          />
-                          <button
-                            type="button"
-                            onClick={handleAddSodMode}
-                            className="bg-[#714B67] hover:bg-[#5F3F56] text-white px-3 py-1.5 rounded text-xs font-bold transition-all"
-                          >
-                            Save Mode
-                          </button>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Sub-Fields (For Bank or Notice) */}
-                  {(sodTaskTitle === "Bank" || sodTaskTitle === "Notice") && (
-                    <div className="md:col-span-2 space-y-3 bg-emerald-50/80 border border-emerald-200 rounded-xl p-3 text-slate-800 animate-fade-in">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        {/* Select Bank */}
+                    {/* Schedule Form Input Row */}
+                    <div className="bg-white p-3.5 rounded-xl border border-purple-200 shadow-sm space-y-3">
+                      {/* Top Row: Date, Time, Work Section, Type */}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
                         <div>
-                          <label className="block text-[9px] uppercase tracking-wider text-emerald-800 font-black mb-1">
-                            Select Bank *
-                          </label>
-                          <select
-                            required
-                            value={selectedBankId}
-                            onChange={(e) => {
-                              const bid = e.target.value;
-                              const bObj = banksList.find((b) => String(b.id) === bid);
-                              setSelectedBankId(bid);
-                              setSodBankName(bObj?.bankName || "");
-                              setSodBranchName("");
+                          <label className="block text-[9px] font-bold uppercase text-slate-500 mb-1">Date *</label>
+                          <input
+                            type="date"
+                            value={legalInputDate}
+                            onChange={e => setLegalInputDate(e.target.value)}
+                            className="w-full p-2 border border-slate-300 rounded-lg text-xs font-bold text-slate-800 focus:outline-none focus:border-purple-600 bg-white"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[9px] font-bold uppercase text-slate-500 mb-1">Time *</label>
+                          <input
+                            type="time"
+                            value={
+                              (() => {
+                                if (!legalInputTime) return "10:00";
+                                const match = legalInputTime.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)?$/i);
+                                if (!match) return "10:00";
+                                let [_, h, m, ampm] = match;
+                                let hour = parseInt(h, 10);
+                                if (ampm) {
+                                  if (ampm.toUpperCase() === "PM" && hour < 12) hour += 12;
+                                  if (ampm.toUpperCase() === "AM" && hour === 12) hour = 0;
+                                }
+                                return `${String(hour).padStart(2, '0')}:${m}`;
+                              })()
+                            }
+                            onChange={e => {
+                              const val = e.target.value;
+                              if (!val) return;
+                              const [h, m] = val.split(":");
+                              let hour = parseInt(h, 10);
+                              const ampm = hour >= 12 ? "PM" : "AM";
+                              hour = hour % 12 || 12;
+                              setLegalInputTime(`${String(hour).padStart(2, '0')}:${m} ${ampm}`);
                             }}
-                            className="w-full border border-emerald-200 rounded-lg p-2 text-xs font-bold focus:outline-none focus:border-emerald-500 text-slate-800 bg-white"
+                            className="w-full p-2 border border-slate-300 rounded-lg text-xs font-bold text-slate-800 focus:outline-none focus:border-purple-600 bg-white"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[9px] font-bold uppercase text-slate-500 mb-1">Work Location *</label>
+                          <select
+                            value={legalWorkLocation}
+                            onChange={e => setLegalWorkLocation(e.target.value)}
+                            className="w-full p-2 border border-slate-300 rounded-lg text-xs font-bold text-slate-800 focus:outline-none focus:border-purple-600 bg-white"
                           >
-                            <option value="">-- Select Bank --</option>
-                            {banksList.map((b) => (
-                              <option key={String(b.id)} value={String(b.id)}>
-                                {b.bankName}
-                              </option>
-                            ))}
+                            <option value="Office">Office</option>
+                            <option value="Bank">Bank</option>
+                            <option value="Field">Field</option>
+                            <option value="Other">Other</option>
                           </select>
                         </div>
-
-                        {/* Select Branch */}
                         <div>
-                          <label className="block text-[9px] uppercase tracking-wider text-emerald-800 font-black mb-1">
-                            Select Branch *
-                          </label>
+                          <label className="block text-[9px] font-bold uppercase text-slate-500 mb-1">Type *</label>
                           <select
-                            required
-                            value={sodBranchName}
-                            onChange={(e) => setSodBranchName(e.target.value)}
-                            disabled={!selectedBankId}
-                            className="w-full border border-emerald-200 rounded-lg p-2 text-xs font-bold focus:outline-none focus:border-emerald-500 text-slate-800 bg-white disabled:opacity-50"
+                            value={legalInputType}
+                            onChange={e => setLegalInputType(e.target.value)}
+                            className="w-full p-2 border border-slate-300 rounded-lg text-xs font-bold text-slate-900 focus:outline-none focus:border-purple-600"
                           >
-                            <option value="">{selectedBankId ? "-- Select Branch --" : "Select a bank first"}</option>
-                            {branchesList
-                              .filter((br: any) => !br.nbfcId || String(br.nbfcId) === String(selectedBankId))
-                              .map((br: any) => (
-                                <option key={String(br.id)} value={br.branchName}>
-                                  {br.branchName}
-                                </option>
-                              ))}
+                            <option value="General">General</option>
+                            <option value="Bank Related">Bank Related</option>
+                            <option value="NBFC">NBFC</option>
+                            <option value="Call">Call</option>
+                            <option value="Field Visit">Field Visit</option>
+                            <option value="Others">Others</option>
                           </select>
                         </div>
                       </div>
 
-                      {/* Officer Name & Phone ONLY for Bank */}
-                      {sodTaskTitle === "Bank" && (
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 animate-fade-in">
+                      {/* Conditional Custom Work Location when 'Other' */}
+                      {legalWorkLocation === "Other" && (
+                        <div className="p-2.5 bg-amber-50/70 border border-amber-200 rounded-lg animate-fade-in">
+                          <label className="block text-[9px] font-bold uppercase text-amber-800 mb-1">Specify Work Location *</label>
+                          <input
+                            type="text"
+                            value={legalCustomLocation}
+                            onChange={e => setLegalCustomLocation(e.target.value)}
+                            placeholder="Enter custom location details..."
+                            className="w-full p-2 border border-amber-300 rounded-lg text-xs font-bold text-slate-800 focus:outline-none focus:border-amber-600 bg-white"
+                          />
+                        </div>
+                      )}
+
+                      {/* Dynamic Conditional Fields based on Type */}
+
+                      {/* Case 0: Type === "Call" -> Incoming / Outgoing selection */}
+                      {legalInputType === "Call" && (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 animate-fade-in pt-1">
                           <div>
-                            <label className="block text-[9px] uppercase tracking-wider text-emerald-800 font-black mb-1">
-                              Officer Name *
-                            </label>
-                            <input
-                              type="text"
-                              required
-                              placeholder="e.g. Ramesh Sharma"
-                              value={sodOfficerName}
-                              onChange={(e) => setSodOfficerName(e.target.value)}
-                              className="w-full border border-emerald-200 rounded-lg p-2 text-xs font-bold focus:outline-none focus:border-emerald-500 placeholder-slate-400 text-slate-800 bg-white"
-                            />
+                            <label className="block text-[9px] font-black uppercase tracking-wider text-purple-800 mb-1">Call Direction / Mode *</label>
+                            <select
+                              value={legalInputSubType || "Incoming Call"}
+                              onChange={e => setLegalInputSubType(e.target.value)}
+                              className="w-full p-2 border border-purple-300 rounded-lg text-xs font-extrabold text-purple-900 bg-purple-50 focus:outline-none focus:border-purple-600 h-[38px]"
+                            >
+                              <option value="Incoming Call">Incoming Call 📥</option>
+                              <option value="Outgoing Call">Outgoing Call 📤</option>
+                            </select>
                           </div>
                           <div>
-                            <label className="block text-[9px] uppercase tracking-wider text-emerald-800 font-black mb-1">
-                              Officer Phone *
-                            </label>
+                            <label className="block text-[9px] font-bold uppercase text-slate-500 mb-1">Remarks / Call Note (Optional)</label>
                             <input
-                              type="tel"
-                              required
-                              placeholder="e.g. 9876543210"
-                              value={sodOfficerPhone}
-                              onChange={(e) => setSodOfficerPhone(e.target.value)}
-                              className="w-full border border-emerald-200 rounded-lg p-2 text-xs font-bold focus:outline-none focus:border-emerald-500 placeholder-slate-400 text-slate-800 bg-white"
+                              type="text"
+                              value={legalInputRemarks}
+                              onChange={e => setLegalInputRemarks(e.target.value)}
+                              placeholder="Call details or summary..."
+                              className="w-full p-2 border border-slate-300 rounded-lg text-xs font-semibold text-slate-800 focus:outline-none focus:border-purple-600 h-[38px]"
                             />
                           </div>
                         </div>
                       )}
-                    </div>
-                  )}
 
-                  {taskType === "Other" && (
-                    <div className="md:col-span-2">
-                      <label className="text-[10px] uppercase font-black text-slate-500 font-mono tracking-wider">Specify Task Type *</label>
-                      <input className="w-full bg-white border border-slate-300 rounded p-2 text-xs font-bold text-slate-900 mt-1.5 focus:outline-none focus:border-[#714B67]" placeholder="Please specify task type..." value={customTaskType} onChange={e => setCustomTaskType(e.target.value)} required />
-                    </div>
-                  )}
-                  {(sodTaskTitle === "IT" || taskType === "Development") && (
-                    <div className="md:col-span-2 space-y-1.5">
-                      <div className="flex justify-between items-center">
-                        <label className="text-[10px] uppercase font-black text-slate-700 font-mono tracking-wider">Project Name *</label>
+                      {/* Case 1: Type === "General" -> Remark option */}
+                      {legalInputType === "General" && (
+                        <div className="animate-fade-in pt-1">
+                          <label className="block text-[9px] font-bold uppercase text-slate-500 mb-1">Remarks (Optional)</label>
+                          <input
+                            type="text"
+                            value={legalInputRemarks}
+                            onChange={e => setLegalInputRemarks(e.target.value)}
+                            placeholder="General remarks or notes..."
+                            className="w-full p-2 border border-slate-300 rounded-lg text-xs font-semibold text-slate-800 focus:outline-none focus:border-purple-600"
+                          />
+                        </div>
+                      )}
+
+                      {/* Case 2: Type === "Field Visit" -> Field Visit details */}
+                      {legalInputType === "Field Visit" && (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 animate-fade-in pt-1">
+                          <div>
+                            <label className="block text-[9px] font-bold uppercase text-slate-500 mb-1">Visit Location / Target Site *</label>
+                            <input
+                              type="text"
+                              value={legalInputOtherType}
+                              onChange={e => setLegalInputOtherType(e.target.value)}
+                              placeholder="Enter site location or client name..."
+                              className="w-full p-2 border border-slate-300 rounded-lg text-xs font-bold text-slate-800 focus:outline-none focus:border-purple-600"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-[9px] font-bold uppercase text-slate-500 mb-1">Visit Details / Purpose *</label>
+                            <input
+                              type="text"
+                              value={legalInputDetails}
+                              onChange={e => setLegalInputDetails(e.target.value)}
+                              placeholder="Field visit purpose or agenda..."
+                              className="w-full p-2 border border-slate-300 rounded-lg text-xs font-semibold text-slate-800 focus:outline-none focus:border-purple-600"
+                            />
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Case 3: Type === "Others" -> Input option */}
+                      {legalInputType === "Others" && (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 animate-fade-in pt-1">
+                          <div>
+                            <label className="block text-[9px] font-bold uppercase text-slate-500 mb-1">Specify Custom Type / Input *</label>
+                            <input
+                              type="text"
+                              value={legalInputOtherType}
+                              onChange={e => setLegalInputOtherType(e.target.value)}
+                              placeholder="Specify custom type..."
+                              className="w-full p-2 border border-slate-300 rounded-lg text-xs font-bold text-slate-800 focus:outline-none focus:border-purple-600"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-[9px] font-bold uppercase text-slate-500 mb-1">Details (Optional)</label>
+                            <input
+                              type="text"
+                              value={legalInputDetails}
+                              onChange={e => setLegalInputDetails(e.target.value)}
+                              placeholder="Additional details..."
+                              className="w-full p-2 border border-slate-300 rounded-lg text-xs font-semibold text-slate-800 focus:outline-none focus:border-purple-600"
+                            />
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Case 4: Type === "Bank Related" -> Sub-Type selector + Dynamic Bank Fields */}
+                      {legalInputType === "Bank Related" && (
+                        <div className="space-y-3 animate-fade-in pt-1 border-t border-purple-100">
+                          <div>
+                            <label className="block text-[9px] font-black uppercase tracking-wider text-purple-800 mb-1">Select Bank Sub-Type *</label>
+                            <select
+                              value={legalInputSubType}
+                              onChange={e => setLegalInputSubType(e.target.value)}
+                              className="w-full md:w-1/2 p-2 border border-purple-300 rounded-lg text-xs font-extrabold text-purple-900 bg-purple-50 focus:outline-none focus:border-purple-600"
+                            >
+                              <option value="AO related">AO related</option>
+                              <option value="RBO related">RBO related</option>
+                              <option value="branch related">branch related</option>
+                              <option value="case related">case related</option>
+                            </select>
+                          </div>
+
+                          {/* Dynamic Bank Fields according to Sub-Type */}
+                          {(() => {
+                            const selectedBankObj = banksList.find(b => b.bankName?.toLowerCase().trim() === legalInputBankName?.toLowerCase().trim());
+                            const bankBranches = selectedBankObj
+                              ? branchesList.filter((br: any) => String(br.bankId) === String(selectedBankObj.id))
+                              : branchesList;
+
+                            const currentSelectedBranchObj = bankBranches.find((b: any) =>
+                              String(b.id) === String(legalInputBranchName) || b.branchName === legalInputBranchName
+                            );
+
+                            let aoOptions: string[] = [];
+                            let rboOptions: string[] = [];
+
+                            if (currentSelectedBranchObj) {
+                              const brAo = currentSelectedBranchObj.aoName || currentSelectedBranchObj.ao;
+                              const brRbo = currentSelectedBranchObj.rbo || currentSelectedBranchObj.rboName;
+                              aoOptions = brAo ? [brAo] : Array.from(new Set(bankBranches.map((br: any) => br.aoName || br.ao).filter(Boolean)));
+                              rboOptions = brRbo ? [brRbo] : Array.from(new Set(bankBranches.map((br: any) => br.rbo || br.rboName).filter(Boolean)));
+                            } else if (selectedBankObj) {
+                              aoOptions = Array.from(new Set(bankBranches.map((br: any) => br.aoName || br.ao).filter(Boolean)));
+                              rboOptions = Array.from(new Set(bankBranches.map((br: any) => br.rbo || br.rboName).filter(Boolean)));
+                            } else {
+                              aoOptions = Array.from(new Set(branchesList.map((br: any) => br.aoName || br.ao).filter(Boolean)));
+                              rboOptions = Array.from(new Set(branchesList.map((br: any) => br.rbo || br.rboName).filter(Boolean)));
+                            }
+
+                            return (
+                              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 bg-purple-50/40 p-3 rounded-lg border border-purple-200">
+                                {/* 1. Bank Input (from bank_masters) */}
+                                <div>
+                                  <label className="block text-[9px] font-bold uppercase text-slate-600 mb-1">Bank Name * (from bank_masters)</label>
+                                  <select
+                                    value={legalInputBankName}
+                                    onChange={e => {
+                                      const selectedName = e.target.value;
+                                      setLegalInputBankName(selectedName);
+                                      setLegalInputBranchName("");
+                                      setLegalInputAoName("");
+                                      setLegalInputRboName("");
+                                    }}
+                                    className="w-full p-2 border border-slate-300 rounded-lg text-xs font-bold text-slate-800 bg-white focus:outline-none focus:border-purple-600 h-[38px]"
+                                  >
+                                    <option value="">-- Select Bank --</option>
+                                    {banksList.map(b => (
+                                      <option key={String(b.id)} value={b.bankName}>{b.bankName}</option>
+                                    ))}
+                                  </select>
+                                </div>
+
+                                {/* 2. Branch Input (Right after Bank for branch related & case related) */}
+                                {["branch related", "case related"].includes(legalInputSubType) && (
+                                  <div>
+                                    <label className="block text-[9px] font-bold uppercase text-slate-600 mb-1">Branch * (from branch_masters)</label>
+                                    <select
+                                      value={currentSelectedBranchObj ? String(currentSelectedBranchObj.id) : legalInputBranchName}
+                                      onChange={e => {
+                                        const selectedVal = e.target.value;
+                                        const brObj = bankBranches.find((b: any) => String(b.id) === String(selectedVal) || b.branchName === selectedVal);
+                                        if (brObj) {
+                                          setLegalInputBranchName(brObj.branchName);
+                                          if (brObj.aoName || brObj.ao) setLegalInputAoName(brObj.aoName || brObj.ao || "");
+                                          if (brObj.rbo || brObj.rboName) setLegalInputRboName(brObj.rbo || brObj.rboName || "");
+                                        } else {
+                                          setLegalInputBranchName(selectedVal);
+                                        }
+                                      }}
+                                      className="w-full p-2 border border-slate-300 rounded-lg text-xs font-bold text-slate-800 bg-white focus:outline-none focus:border-purple-600 h-[38px]"
+                                    >
+                                      <option value="">-- Select Branch --</option>
+                                      {bankBranches.map((br: any) => (
+                                        <option key={String(br.id)} value={String(br.id)}>
+                                          {br.branchName} {br.branchCode ? `(${br.branchCode})` : ""}
+                                        </option>
+                                      ))}
+                                    </select>
+                                  </div>
+                                )}
+
+                                {/* 3. AO Input - Filtered for Selected Bank/Branch */}
+                                <SearchableCombobox
+                                  label="AO (Administrative Office) *"
+                                  value={legalInputAoName}
+                                  onChange={val => {
+                                    setLegalInputAoName(val);
+                                    if (val) {
+                                      const match = bankBranches.find((br: any) =>
+                                        (br.aoName && br.aoName.toLowerCase().trim() === val.toLowerCase().trim()) ||
+                                        (br.ao && br.ao.toLowerCase().trim() === val.toLowerCase().trim())
+                                      );
+                                      if (match) {
+                                        if (match.rbo || match.rboName) setLegalInputRboName(match.rbo || match.rboName || "");
+                                        if (match.branchName && !legalInputBranchName) setLegalInputBranchName(match.branchName);
+                                      }
+                                    }
+                                  }}
+                                  options={aoOptions}
+                                  placeholder="Type or select AO..."
+                                />
+
+                                {/* 4. RBO Input - Filtered for Selected Bank/Branch */}
+                                {["RBO related", "branch related", "case related"].includes(legalInputSubType) && (
+                                  <SearchableCombobox
+                                    label="RBO (Regional Office) *"
+                                    value={legalInputRboName}
+                                    onChange={val => {
+                                      setLegalInputRboName(val);
+                                      if (val) {
+                                        const match = bankBranches.find((br: any) =>
+                                          (br.rboName && br.rboName.toLowerCase().trim() === val.toLowerCase().trim()) ||
+                                          (br.rbo && br.rbo.toLowerCase().trim() === val.toLowerCase().trim())
+                                        );
+                                        if (match) {
+                                          if (match.aoName || match.ao) setLegalInputAoName(match.aoName || match.ao || "");
+                                          if (match.branchName && !legalInputBranchName) setLegalInputBranchName(match.branchName);
+                                        }
+                                      }
+                                    }}
+                                    options={rboOptions}
+                                    placeholder="Type or select RBO..."
+                                  />
+                                )}
+
+                                {/* 5. Case Input (Required ONLY for Case related) */}
+                                {legalInputSubType === "case related" && (
+                                  <div>
+                                    <label className="block text-[9px] font-bold uppercase text-slate-600 mb-1">Case Details / No. *</label>
+                                    <input
+                                      type="text"
+                                      value={legalInputCaseDetails}
+                                      onChange={e => setLegalInputCaseDetails(e.target.value)}
+                                      placeholder="Enter case details..."
+                                      className="w-full p-2 border border-slate-300 rounded-lg text-xs font-bold text-slate-800 bg-white focus:outline-none focus:border-purple-600 h-[38px]"
+                                    />
+                                  </div>
+                                )}
+
+                                {/* 6. Details Input (For ALL Bank sub-types) */}
+                                <div className="sm:col-span-2 md:col-span-3">
+                                  <label className="block text-[9px] font-bold uppercase text-slate-600 mb-1">Details / Remarks *</label>
+                                  <input
+                                    type="text"
+                                    value={legalInputDetails}
+                                    onChange={e => setLegalInputDetails(e.target.value)}
+                                    placeholder="Enter specific work details..."
+                                    className="w-full p-2 border border-slate-300 rounded-lg text-xs font-bold text-slate-800 bg-white focus:outline-none focus:border-purple-600 h-[38px]"
+                                  />
+                                </div>
+                              </div>
+                            );
+                          })()}
+                        </div>
+                      )}
+
+                      {/* Case 5: Type === "NBFC" -> Searchable NBFC Name & Branch (from nbfc_masters & nbfc_branches) */}
+                      {legalInputType === "NBFC" && (
+                        <div className="space-y-3 animate-fade-in pt-1 border-t border-purple-100">
+                          {(() => {
+                            const selectedNbfcObj = nbfcsList.find(n => (n.nbfcName || (n as any).name || "").toLowerCase().trim() === legalInputBankName?.toLowerCase().trim());
+                            const filteredNbfcBranches = selectedNbfcObj
+                              ? nbfcBranchesList.filter((br: any) =>
+                                  String(br.nbfcId) === String(selectedNbfcObj.id) ||
+                                  (br.nbfcName && br.nbfcName.toLowerCase().trim() === selectedNbfcObj.nbfcName?.toLowerCase().trim())
+                                )
+                              : nbfcBranchesList;
+                            const availableNbfcBranches = filteredNbfcBranches.length > 0 ? filteredNbfcBranches : nbfcBranchesList;
+
+                            const nbfcOptions = Array.from(new Set(nbfcsList.map(n => n.nbfcName || (n as any).name).filter(Boolean)));
+                            const nbfcBranchOptions = Array.from(new Set(availableNbfcBranches.map(br => br.branchName).filter(Boolean)));
+
+                            return (
+                              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                                {/* NBFC Name Input - Searchable Combobox (from nbfc_masters) */}
+                                <div>
+                                  <SearchableCombobox
+                                    label="NBFC Name * (from nbfc_masters)"
+                                    value={legalInputBankName}
+                                    onChange={val => {
+                                      setLegalInputBankName(val);
+                                      setLegalInputBranchName("");
+                                    }}
+                                    options={nbfcOptions}
+                                    placeholder="Type or select NBFC..."
+                                  />
+                                </div>
+
+                                {/* NBFC Branch Input - Searchable Combobox (from nbfc_branches) */}
+                                <div>
+                                  <SearchableCombobox
+                                    label="NBFC Branch * (from nbfc_branches)"
+                                    value={legalInputBranchName}
+                                    onChange={setLegalInputBranchName}
+                                    options={nbfcBranchOptions}
+                                    placeholder="Type or select NBFC Branch..."
+                                  />
+                                </div>
+
+                                {/* Details / Remarks Input */}
+                                <div>
+                                  <label className="block text-[9px] font-bold uppercase text-slate-600 mb-1">Details / Remarks *</label>
+                                  <input
+                                    type="text"
+                                    value={legalInputDetails}
+                                    onChange={e => setLegalInputDetails(e.target.value)}
+                                    placeholder="Enter specific NBFC work details..."
+                                    className="w-full p-2 border border-slate-300 rounded-lg text-xs font-bold text-slate-800 bg-white focus:outline-none focus:border-purple-600 h-[38px]"
+                                  />
+                                </div>
+                              </div>
+                            );
+                          })()}
+                        </div>
+                      )}
+
+                      <div className="flex justify-end pt-1">
                         <button
                           type="button"
-                          onClick={() => setShowAddProjectInput(!showAddProjectInput)}
+                          onClick={handleAddLegalScheduleItem}
+                          className="bg-purple-700 hover:bg-purple-800 text-white text-xs font-extrabold px-4 py-2.5 rounded-lg transition-all flex items-center gap-1.5 shadow-md shadow-purple-700/20"
+                        >
+                          <Plus className="w-4 h-4" /> Save & Schedule More Task
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Multi-Day & Multi-Task Schedule Table View */}
+                    {legalScheduleItems.length > 0 ? (
+                      <div className="space-y-2">
+                        <div className="flex justify-between items-center px-1">
+                          <span className="text-[11px] font-black uppercase text-purple-900 font-mono flex items-center gap-1">
+                            📅 Multi Task-Day Schedule ({legalScheduleItems.length} Entries across {[...new Set(legalScheduleItems.map(i => i.date))].length} Days)
+                          </span>
+                          <span className="text-[10px] text-purple-700 font-bold bg-purple-100 px-2 py-0.5 rounded">
+                            You can add more entries for any date before submitting
+                          </span>
+                        </div>
+                        <div className="overflow-x-auto border border-purple-200 rounded-xl bg-white shadow-xs max-h-64 overflow-y-auto">
+                          <table className="w-full text-left text-xs border-collapse">
+                            <thead className="sticky top-0 z-10 bg-purple-100 shadow-2xs">
+                              <tr className="bg-purple-100 text-purple-950 text-[10px] uppercase font-mono font-black border-b border-purple-200">
+                                <th className="py-2.5 px-3">#</th>
+                                <th className="py-2.5 px-3">Date</th>
+                                <th className="py-2.5 px-3">Time</th>
+                                <th className="py-2.5 px-3">Work Location</th>
+                                <th className="py-2.5 px-3">Type</th>
+                                <th className="py-2.5 px-3">Sub-Type / Entry Details</th>
+                                <th className="py-2.5 px-3 text-right">Action</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-purple-100 text-slate-800 font-semibold">
+                              {legalScheduleItems.map((item, idx) => (
+                                <tr key={idx} className="hover:bg-purple-50/40">
+                                  <td className="py-2.5 px-3 font-mono font-bold text-slate-400">{idx + 1}</td>
+                                  <td className="py-2.5 px-3 font-mono text-purple-900 font-extrabold">
+                                    <span className="bg-purple-50 border border-purple-200 px-2 py-0.5 rounded font-mono text-[11px]">
+                                      📅 {item.date}
+                                    </span>
+                                  </td>
+                                  <td className="py-2.5 px-3 font-mono text-purple-700 font-bold">{item.time}</td>
+                                  <td className="py-2.5 px-3 font-bold text-slate-900">{item.workSection}</td>
+                                  <td className="py-2.5 px-3 whitespace-nowrap">
+                                    <span className={`px-2 py-0.5 rounded text-[10px] font-extrabold ${item.type === "Bank Related" ? "bg-purple-100 text-purple-800 border border-purple-200" : item.type === "Others" ? "bg-amber-100 text-amber-800 border border-amber-200" : "bg-blue-100 text-blue-800 border border-blue-200"
+                                      }`}>
+                                      {item.type === "Others" && item.otherType ? `Others (${item.otherType})` : item.type}
+                                    </span>
+                                  </td>
+                                  <td className="py-2.5 px-3 max-w-[320px]">
+                                    {item.type === "General" ? (
+                                      <span className="text-[11px] text-slate-600 italic">{item.remarks || "General work"}</span>
+                                    ) : item.type === "Others" ? (
+                                      <span className="text-[11px] text-slate-700 font-medium">{item.details || item.remarks || "—"}</span>
+                                    ) : (
+                                      <div className="space-y-0.5 text-[10px]">
+                                        <div className="font-bold text-purple-900">
+                                          Sub-Type: <span className="bg-purple-200/70 px-1.5 py-0.5 rounded font-black">{item.subType}</span>
+                                        </div>
+                                        <div className="text-slate-700 flex flex-wrap gap-1 font-semibold">
+                                          {item.bankName && <span className="bg-slate-100 px-1 py-0.5 rounded border border-slate-200">🏦 {item.bankName}</span>}
+                                          {item.aoName && <span className="bg-slate-100 px-1 py-0.5 rounded border border-slate-200">🏛️ AO: {item.aoName}</span>}
+                                          {item.rboName && <span className="bg-slate-100 px-1 py-0.5 rounded border border-slate-200">📍 RBO: {item.rboName}</span>}
+                                          {item.branchName && <span className="bg-slate-100 px-1 py-0.5 rounded border border-slate-200">🏢 Branch: {item.branchName}</span>}
+                                          {item.caseDetails && <span className="bg-rose-50 text-rose-800 px-1 py-0.5 rounded border border-rose-200 font-bold">⚖️ Case: {item.caseDetails}</span>}
+                                        </div>
+                                        {item.details && <div className="text-slate-600 font-medium text-[9px] pt-0.5">Details: "{item.details}"</div>}
+                                      </div>
+                                    )}
+                                  </td>
+                                  <td className="py-2.5 px-3 text-right">
+                                    <button
+                                      type="button"
+                                      onClick={() => handleDeleteLegalScheduleItem(idx)}
+                                      className="text-rose-500 hover:text-rose-700 p-1 hover:bg-rose-50 rounded transition-all"
+                                      title="Delete Entry"
+                                    >
+                                      <Trash2 className="w-4 h-4" />
+                                    </button>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="text-center py-4 text-xs font-semibold text-purple-700 bg-white border border-purple-100 rounded-lg">
+                        ⚠️ Please add at least 1 schedule entry to your table before submitting SOD.
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Generic Task Title & Mode fields (Hidden for Legal Recovery mode) */}
+                {!isLegalRecovery && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
+                    {/* Task Title (Master Category Dropdown synced with Tasks) */}
+                    <div className="md:col-span-2">
+                      <div className="flex justify-between items-center mb-1">
+                        <label className="text-[10px] uppercase font-black text-slate-700 font-mono tracking-wider">
+                          Task Title / Category *
+                        </label>
+                        <button
+                          type="button"
+                          onClick={() => setShowAddSodTitleInput(!showAddSodTitleInput)}
                           className="text-[10px] font-bold text-indigo-600 hover:underline flex items-center gap-0.5"
                         >
-                          <Plus className="w-3 h-3" /> Add Master Project
+                          <Plus className="w-3 h-3" /> Add Master Title
                         </button>
                       </div>
                       <select
-                        required
                         className="w-full bg-white border border-slate-300 rounded p-2 text-xs font-bold text-slate-900 focus:outline-none focus:border-[#714B67]"
-                        value={projectName}
+                        value={sodTaskTitle}
                         onChange={(e) => {
                           const val = e.target.value;
-                          if (val === "ADD_NEW_PROJECT") {
-                            setShowAddProjectInput(true);
+                          if (val === "ADD_NEW_TITLE") {
+                            setShowAddSodTitleInput(true);
                           } else {
-                            setShowAddProjectInput(false);
-                            setProjectName(val);
+                            setShowAddSodTitleInput(false);
+                            setSodTaskTitle(val);
                           }
                         }}
+                        required
                       >
-                        <option value="">-- Select Project Name --</option>
-                        {sodProjects.map((p) => (
-                          <option key={p} value={p}>{p}</option>
+                        <option value="">-- Select Task Title --</option>
+                        {sodCategories.map((cat) => (
+                          <option key={cat} value={cat}>
+                            {cat}
+                          </option>
                         ))}
-                        <option value="ADD_NEW_PROJECT" className="font-bold text-indigo-700 bg-indigo-50">
-                          ➕ Add New Project...
+                        <option value="ADD_NEW_TITLE" className="font-bold text-[#714B67] bg-purple-50">
+                          ➕ Add New Master Option...
                         </option>
                       </select>
 
-                      {showAddProjectInput && (
-                        <div className="p-2.5 bg-indigo-50 border border-indigo-200 rounded-lg space-y-2 animate-fade-in mt-2">
-                          <label className="block text-[9px] uppercase tracking-wider text-indigo-700 font-black">
-                            Add New Project (Stored in Master DB) *
+                      {showAddSodTitleInput && (
+                        <div className="mt-2 p-2.5 bg-purple-50 border border-purple-200 rounded-lg space-y-2 animate-fade-in">
+                          <label className="block text-[9px] uppercase tracking-wider text-purple-700 font-black">
+                            Add New Category / Title (Stored in Master DB) *
                           </label>
-                          <div className="flex gap-2">
+                          <div className="flex gap-1.5">
                             <input
                               type="text"
-                              className="flex-1 bg-white border border-indigo-300 rounded p-2 text-xs font-bold text-slate-900 focus:outline-none focus:border-indigo-600"
-                              placeholder="Enter new project name (e.g. HRMS, RRR)..."
-                              value={newProjectText}
-                              onChange={(e) => setNewProjectText(e.target.value)}
+                              className="flex-1 bg-white border border-purple-300 rounded p-2 text-xs font-bold text-slate-900 focus:outline-none focus:border-[#714B67]"
+                              placeholder="Enter new task title/category..."
+                              value={newSodTitleText}
+                              onChange={(e) => setNewSodTitleText(e.target.value)}
                             />
                             <button
                               type="button"
-                              onClick={handleAddSodProject}
-                              className="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 rounded text-xs font-bold transition-all"
+                              onClick={handleAddSodTitle}
+                              className="bg-[#714B67] hover:bg-[#5F3F56] text-white px-3 py-1.5 rounded text-xs font-bold transition-all"
                             >
-                              Save Project
+                              Save Title
                             </button>
                           </div>
                         </div>
                       )}
                     </div>
-                  )}
-                  <div className="md:col-span-2">
-                    <label className="text-[10px] uppercase font-black text-slate-500 font-mono tracking-wider">Remarks (Optional)</label>
-                    <textarea className="w-full bg-white border border-slate-300 rounded p-2 text-xs font-bold text-slate-900 mt-1.5 focus:outline-none focus:border-[#714B67]" rows={2} value={remarks} onChange={e => setRemarks(e.target.value)} placeholder="Any special notes..." />
+
+
+
+                    {/* Task Type / Mode (Master Mode Dropdown synced with Tasks) */}
+                    <div className="md:col-span-2">
+                      <div className="flex justify-between items-center mb-1">
+                        <label className="text-[10px] uppercase font-black text-slate-700 font-mono tracking-wider">
+                          Task Type / Mode *
+                        </label>
+                        <button
+                          type="button"
+                          onClick={() => setShowAddSodModeInput(!showAddSodModeInput)}
+                          className="text-[10px] font-bold text-indigo-600 hover:underline flex items-center gap-0.5"
+                        >
+                          <Plus className="w-3 h-3" /> Add Master Mode
+                        </button>
+                      </div>
+                      <select
+                        className="w-full bg-white border border-slate-300 rounded p-2 text-xs font-bold text-slate-900 focus:outline-none focus:border-[#714B67]"
+                        value={taskType}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          if (val === "ADD_NEW_MODE") {
+                            setShowAddSodModeInput(true);
+                          } else {
+                            setShowAddSodModeInput(false);
+                            setTaskType(val);
+                          }
+                        }}
+                        required
+                      >
+                        <option value="">-- Select Task Mode --</option>
+                        {sodTaskModes.map((mode) => (
+                          <option key={mode} value={mode}>
+                            {mode}
+                          </option>
+                        ))}
+                        <option value="ADD_NEW_MODE" className="font-bold text-[#714B67] bg-purple-50">
+                          ➕ Add New Mode Option...
+                        </option>
+                      </select>
+
+                      {showAddSodModeInput && (
+                        <div className="mt-2 p-2.5 bg-purple-50 border border-purple-200 rounded-lg space-y-2 animate-fade-in">
+                          <label className="block text-[9px] uppercase tracking-wider text-purple-700 font-black">
+                            Add New Task Mode (Stored in Master DB) *
+                          </label>
+                          <div className="flex gap-1.5">
+                            <input
+                              type="text"
+                              className="flex-1 bg-white border border-purple-300 rounded p-2 text-xs font-bold text-slate-900 focus:outline-none focus:border-[#714B67]"
+                              placeholder="Enter new task mode (e.g. Field Visit)..."
+                              value={newSodModeText}
+                              onChange={(e) => setNewSodModeText(e.target.value)}
+                            />
+                            <button
+                              type="button"
+                              onClick={handleAddSodMode}
+                              className="bg-[#714B67] hover:bg-[#5F3F56] text-white px-3 py-1.5 rounded text-xs font-bold transition-all"
+                            >
+                              Save Mode
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Sub-Fields (For Bank or Notice) */}
+                    {(sodTaskTitle === "Bank" || sodTaskTitle === "Notice") && (
+                      <div className="md:col-span-2 space-y-3 bg-emerald-50/80 border border-emerald-200 rounded-xl p-3 text-slate-800 animate-fade-in">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                          {/* Select Bank */}
+                          <div>
+                            <label className="block text-[9px] uppercase tracking-wider text-emerald-800 font-black mb-1">
+                              Select Bank *
+                            </label>
+                            <select
+                              required
+                              value={selectedBankId}
+                              onChange={(e) => {
+                                const bid = e.target.value;
+                                const bObj = banksList.find((b) => String(b.id) === bid);
+                                setSelectedBankId(bid);
+                                setSodBankName(bObj?.bankName || "");
+                                setSodBranchName("");
+                              }}
+                              className="w-full border border-emerald-200 rounded-lg p-2 text-xs font-bold focus:outline-none focus:border-emerald-500 text-slate-800 bg-white"
+                            >
+                              <option value="">-- Select Bank --</option>
+                              {banksList.map((b) => (
+                                <option key={String(b.id)} value={String(b.id)}>
+                                  {b.bankName}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+
+                          {/* Select Branch */}
+                          <div>
+                            <label className="block text-[9px] uppercase tracking-wider text-emerald-800 font-black mb-1">
+                              Select Branch *
+                            </label>
+                            <select
+                              required
+                              value={sodBranchName}
+                              onChange={(e) => setSodBranchName(e.target.value)}
+                              disabled={!selectedBankId}
+                              className="w-full border border-emerald-200 rounded-lg p-2 text-xs font-bold focus:outline-none focus:border-emerald-500 text-slate-800 bg-white disabled:opacity-50"
+                            >
+                              <option value="">{selectedBankId ? "-- Select Branch --" : "Select a bank first"}</option>
+                              {branchesList
+                                .filter((br: any) => !br.nbfcId || String(br.nbfcId) === String(selectedBankId))
+                                .map((br: any) => (
+                                  <option key={String(br.id)} value={br.branchName}>
+                                    {br.branchName}
+                                  </option>
+                                ))}
+                            </select>
+                          </div>
+                        </div>
+
+                        {/* Officer Name & Phone ONLY for Bank */}
+                        {sodTaskTitle === "Bank" && (
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 animate-fade-in">
+                            <div>
+                              <label className="block text-[9px] uppercase tracking-wider text-emerald-800 font-black mb-1">
+                                Officer Name *
+                              </label>
+                              <input
+                                type="text"
+                                required
+                                placeholder="e.g. Ramesh Sharma"
+                                value={sodOfficerName}
+                                onChange={(e) => setSodOfficerName(e.target.value)}
+                                className="w-full border border-emerald-200 rounded-lg p-2 text-xs font-bold focus:outline-none focus:border-emerald-500 placeholder-slate-400 text-slate-800 bg-white"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-[9px] uppercase tracking-wider text-emerald-800 font-black mb-1">
+                                Officer Phone *
+                              </label>
+                              <input
+                                type="tel"
+                                required
+                                placeholder="e.g. 9876543210"
+                                value={sodOfficerPhone}
+                                onChange={(e) => setSodOfficerPhone(e.target.value)}
+                                className="w-full border border-emerald-200 rounded-lg p-2 text-xs font-bold focus:outline-none focus:border-emerald-500 placeholder-slate-400 text-slate-800 bg-white"
+                              />
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {taskType === "Other" && (
+                      <div className="md:col-span-2">
+                        <label className="text-[10px] uppercase font-black text-slate-500 font-mono tracking-wider">Specify Task Type *</label>
+                        <input className="w-full bg-white border border-slate-300 rounded p-2 text-xs font-bold text-slate-900 mt-1.5 focus:outline-none focus:border-[#714B67]" placeholder="Please specify task type..." value={customTaskType} onChange={e => setCustomTaskType(e.target.value)} required />
+                      </div>
+                    )}
+                    {(sodTaskTitle === "IT" || taskType === "Development") && (
+                      <div className="md:col-span-2 space-y-1.5">
+                        <div className="flex justify-between items-center">
+                          <label className="text-[10px] uppercase font-black text-slate-700 font-mono tracking-wider">Project Name *</label>
+                          <button
+                            type="button"
+                            onClick={() => setShowAddProjectInput(!showAddProjectInput)}
+                            className="text-[10px] font-bold text-indigo-600 hover:underline flex items-center gap-0.5"
+                          >
+                            <Plus className="w-3 h-3" /> Add Master Project
+                          </button>
+                        </div>
+                        <select
+                          required
+                          className="w-full bg-white border border-slate-300 rounded p-2 text-xs font-bold text-slate-900 focus:outline-none focus:border-[#714B67]"
+                          value={projectName}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            if (val === "ADD_NEW_PROJECT") {
+                              setShowAddProjectInput(true);
+                            } else {
+                              setShowAddProjectInput(false);
+                              setProjectName(val);
+                            }
+                          }}
+                        >
+                          <option value="">-- Select Project Name --</option>
+                          {sodProjects.map((p) => (
+                            <option key={p} value={p}>{p}</option>
+                          ))}
+                          <option value="ADD_NEW_PROJECT" className="font-bold text-indigo-700 bg-indigo-50">
+                            ➕ Add New Project...
+                          </option>
+                        </select>
+
+                        {showAddProjectInput && (
+                          <div className="p-2.5 bg-indigo-50 border border-indigo-200 rounded-lg space-y-2 animate-fade-in mt-2">
+                            <label className="block text-[9px] uppercase tracking-wider text-indigo-700 font-black">
+                              Add New Project (Stored in Master DB) *
+                            </label>
+                            <div className="flex gap-2">
+                              <input
+                                type="text"
+                                className="flex-1 bg-white border border-indigo-300 rounded p-2 text-xs font-bold text-slate-900 focus:outline-none focus:border-indigo-600"
+                                placeholder="Enter new project name (e.g. HRMS, RRR)..."
+                                value={newProjectText}
+                                onChange={(e) => setNewProjectText(e.target.value)}
+                              />
+                              <button
+                                type="button"
+                                onClick={handleAddSodProject}
+                                className="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 rounded text-xs font-bold transition-all"
+                              >
+                                Save Project
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    <div className="md:col-span-2">
+                      <label className="text-[10px] uppercase font-black text-slate-500 font-mono tracking-wider">Remarks (Optional)</label>
+                      <textarea className="w-full bg-white border border-slate-300 rounded p-2 text-xs font-bold text-slate-900 mt-1.5 focus:outline-none focus:border-[#714B67]" rows={2} value={remarks} onChange={e => setRemarks(e.target.value)} placeholder="Any special notes..." />
+                    </div>
                   </div>
-                </div>
+                )}
 
                 <div className="bg-rose-50 border border-rose-200 rounded-lg p-3 text-[10px] font-bold text-rose-700 flex items-start gap-2 mt-4">
                   <MapPin className="w-4 h-4 shrink-0 mt-0.5 text-rose-600" />
@@ -1520,18 +2264,20 @@ export function PerformanceCompliance({
   sessionUser,
   preselectedUserId,
   clearPreselectedUserId,
-  initialSubTab
+  initialSubTab,
+  triggerToast
 }: {
   sessionUser?: any;
   preselectedUserId?: string;
   clearPreselectedUserId?: () => void;
-  initialSubTab?: "visual-dashboard" | "sod" | "eod" | "attendance-calendar";
+  initialSubTab?: "visual-dashboard" | "sod" | "eod" | "attendance-calendar" | "legal-recovery-schedule";
+  triggerToast?: (msg: string) => void;
 }) {
   const isOwnerOrDirector = ["Owner", "Director", "HR Head", "HR Executive", "Department Manager"].includes(sessionUser?.role || "");
   const [loading, setLoading] = useState(true);
   const [reports, setReports] = useState<{ sod: any[]; eod: any[]; tasks?: any[]; fieldVisits?: any[] }>({ sod: [], eod: [], tasks: [], fieldVisits: [] });
-  const [activeSubTab, setActiveSubTab] = useState<"visual-dashboard" | "sod" | "eod" | "attendance-calendar">(
-    initialSubTab || (isOwnerOrDirector ? "visual-dashboard" : "sod")
+  const [activeSubTab, setActiveSubTab] = useState<"visual-dashboard" | "sod" | "eod" | "attendance-calendar" | "legal-recovery-schedule">(
+    initialSubTab || (sessionUser?.vertical === "Legal Recovery" ? "legal-recovery-schedule" : isOwnerOrDirector ? "visual-dashboard" : "sod")
   );
 
   useEffect(() => {

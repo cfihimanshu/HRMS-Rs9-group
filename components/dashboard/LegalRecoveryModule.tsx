@@ -17,6 +17,7 @@ import NbfcMasterView from "./legal-recovery/NbfcMasterView";
 import NbfcBranchMasterView from "./legal-recovery/NbfcBranchMasterView";
 import SecurityMasterView from "./legal-recovery/SecurityMasterView";
 import WorkHistoryView from "./legal-recovery/WorkHistoryView";
+import LegalWorkEntryHistoryView from "./legal-recovery/LegalWorkEntryHistoryView";
 
 interface LegalRecoveryModuleProps {
   userRole?: string;
@@ -64,7 +65,7 @@ const WORK_CATEGORIES: Record<string, string[]> = {
 };
 
 export default function LegalRecoveryModule({ userRole, triggerToast, sessionUser }: LegalRecoveryModuleProps) {
-  const [activeSubModule, setActiveSubModule] = useState<"launcher" | "follow-up" | "masters" | "history" | "banks" | "branches" | "collections" | "work-logs" | "notices" | "nbfcs" | "nbfc-branches" | "security" | "work-history">("launcher");
+  const [activeSubModule, setActiveSubModule] = useState<"launcher" | "follow-up" | "masters" | "history" | "banks" | "branches" | "collections" | "work-logs" | "notices" | "nbfcs" | "nbfc-branches" | "security" | "work-history" | "legal-work-entry-history">("launcher");
   const [cases, setCases] = useState<any[]>([]);
   const [banksList, setBanksList] = useState<any[]>([]);
   const [branchesList, setBranchesList] = useState<any[]>([]);
@@ -927,6 +928,18 @@ export default function LegalRecoveryModule({ userRole, triggerToast, sessionUse
             <span className="text-[10px] text-slate-500 mt-1 uppercase tracking-wider font-semibold">Work Log Records</span>
           </button>
 
+          {/* Module 13: Legal Work Entry History */}
+          <button
+            onClick={() => setActiveSubModule("legal-work-entry-history")}
+            className="group flex flex-col items-center justify-center p-6 bg-white border border-[#E8E4DF] rounded-2xl hover:shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:border-purple-200 transition-all duration-300 cursor-pointer"
+          >
+            <div className="w-16 h-16 bg-gradient-to-br from-purple-50 to-purple-100 text-purple-600 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform shadow-sm">
+              <History size={28} strokeWidth={2} />
+            </div>
+            <span className="font-bold text-sm text-slate-800">Legal Work Entry History</span>
+            <span className="text-[10px] text-slate-500 mt-1 uppercase tracking-wider font-semibold">Logged Entries &amp; Details</span>
+          </button>
+
         </div>
       </div>
     );
@@ -1479,7 +1492,11 @@ export default function LegalRecoveryModule({ userRole, triggerToast, sessionUse
           <WorkHistoryView />
         )}
 
-        {activeSubModule !== "banks" && activeSubModule !== "branches" && activeSubModule !== "nbfcs" && activeSubModule !== "nbfc-branches" && activeSubModule !== "security" && activeSubModule !== "work-history" && activeSubModule !== "history" && activeSubModule !== "collections" && activeSubModule !== "work-logs" && activeSubModule !== "notices" && (
+        {activeSubModule === "legal-work-entry-history" && (
+          <LegalWorkEntryHistoryView userRole={userRole} triggerToast={triggerToast} />
+        )}
+
+        {activeSubModule !== "banks" && activeSubModule !== "branches" && activeSubModule !== "nbfcs" && activeSubModule !== "nbfc-branches" && activeSubModule !== "security" && activeSubModule !== "work-history" && activeSubModule !== "legal-work-entry-history" && activeSubModule !== "history" && activeSubModule !== "collections" && activeSubModule !== "work-logs" && activeSubModule !== "notices" && (
           <CasesMasterView cases={cases} loading={loading} setShowFollowUpForm={setShowFollowUpForm} setShowPaymentForm={setShowPaymentForm} openHistory={openHistory} userRole={userRole} onEditCase={handleEditCase} onDeleteCase={handleDeleteCase} />
         )}
 

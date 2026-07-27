@@ -38,6 +38,7 @@ export async function GET(req: Request) {
     }
 
     await sequelize.authenticate();
+    await EmployeeProfile.sync({ alter: true });
     const dbUser = await User.findByPk((session.user as any).id, { raw: true });
     const userMenuAccess = dbUser?.menuAccess || null;
 

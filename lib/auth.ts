@@ -136,6 +136,7 @@ export const authOptions: NextAuthOptions = {
         let designation = user.role;
         let employeeId = user.id?.toString() || user.id.toString();
         let companyName = "Company";
+        let verticalName: string | null = null;
         try {
           const profile = await EmployeeProfile.findOne({ where: { user: user.id || user.id.toString() } });
           let deptDoc = null;
@@ -145,6 +146,7 @@ export const authOptions: NextAuthOptions = {
           if (profile) {
             if (profile.designation) designation = profile.designation;
             if (profile.employeeId) employeeId = profile.employeeId;
+            if (profile.vertical) verticalName = profile.vertical;
             if (profile.profilePhoto) (user as any)._profilePhoto = profile.profilePhoto;
             if (deptDoc && deptDoc.name) {
               departmentName = deptDoc.name;
@@ -214,6 +216,7 @@ export const authOptions: NextAuthOptions = {
           designation: designation,
           employeeId: employeeId,
           company: companyName,
+          vertical: verticalName,
           profilePhoto: (user as any)._profilePhoto || null,
         };
       },
@@ -228,6 +231,7 @@ export const authOptions: NextAuthOptions = {
         token.designation = (user as any).designation;
         token.employeeId = (user as any).employeeId;
         token.company = (user as any).company;
+        token.vertical = (user as any).vertical || null;
         token.profilePhoto = (user as any).profilePhoto || null;
         token.lastRefreshed = Date.now();
       } else if (token.id) {
@@ -278,6 +282,7 @@ export const authOptions: NextAuthOptions = {
           designation: token.designation as string,
           employeeId: token.employeeId as string,
           company: token.company as string,
+          vertical: token.vertical as string | null,
           profilePhoto: token.profilePhoto as string | null,
         } as any;
       }

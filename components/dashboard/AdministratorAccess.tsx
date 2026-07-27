@@ -530,6 +530,7 @@ export default function AdministratorAccess({ userRole, triggerToast, sessionUse
       category: "Daily Operations",
       pages: [
         { id: "attendance", label: "Attendance & Leaves" },
+        { id: "scheduled-work", label: "Schedule Work Report" },
         { id: "tasks", label: "Tasks & Projects" },
         { id: "performance", label: "Performance Matrix" },
         { id: "live-tracking", label: "Live Location Tracking" },
