@@ -1392,6 +1392,31 @@ export default function NoticeBoardView({
   }, [notices, searchQuery, selectedFilters, banksList, branchesList, noticeTypes]);
 
   const visibleColumnsCount = Object.values(visibleColumns).filter(Boolean).length + 1;
+  const bankWiseNoticeSummary = useMemo(() => {
+    const summary = new Map<string, any>();
+    filteredNotices.forEach((notice: any) => {
+      const bank = banksList.find(b => b.id?.toString() === notice.bankId?.toString());
+      const bankName = bank?.bankName || "Unknown Bank";
+      const row = summary.get(bankName) || {
+        bank: bankName, noticeCount: 0, pendingDispatch: 0, billedAmount: 0,
+        receivedAmount: 0, pendingBills: 0, pendingAmount: 0
+      };
+      const quantity = Number(notice.quantity || 1);
+      const billed = Number(notice.billAmount || 0);
+      const received = Number(notice.amountRcvd || 0);
+      const outstanding = Math.max(0, billed - received);
+      row.noticeCount += quantity;
+      if (!notice.dispatchedBy) row.pendingDispatch += quantity;
+      row.billedAmount += billed;
+      row.receivedAmount += received;
+      row.pendingAmount += outstanding;
+      if (outstanding > 0) row.pendingBills += 1;
+      summary.set(bankName, row);
+    });
+    return Array.from(summary.values()).sort((a: any, b: any) =>
+      b.pendingAmount - a.pendingAmount || a.bank.localeCompare(b.bank)
+    );
+  }, [filteredNotices, banksList]);
 
   return (
     <div className="space-y-6">
@@ -1884,6 +1909,43 @@ export default function NoticeBoardView({
               >
                 <PlusCircle className="w-3.5 h-3.5" /> ADD NOTICE
               </button>
+            </div>
+          </div>
+
+          <div className="px-5 py-4 border-b border-[#E8E4DF] bg-slate-50/60">
+            <div className="flex items-center justify-between mb-2">
+              <h4 className="text-[10px] font-black uppercase tracking-wider text-slate-600">Bank-wise Notice & Payment Summary</h4>
+              <span className="text-[9px] font-bold text-slate-400">Current filters applied</span>
+            </div>
+            <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
+              <table className="w-full border-collapse text-[10px]">
+                <thead className="bg-slate-100 text-slate-600 uppercase tracking-wider">
+                  <tr>
+                    <th className="border border-slate-200 px-2 py-2 text-left">Bank</th>
+                    <th className="border border-slate-200 px-2 py-2 text-center">Total Notices</th>
+                    <th className="border border-slate-200 px-2 py-2 text-center">Pending Dispatch</th>
+                    <th className="border border-slate-200 px-2 py-2 text-right">Billed Amount</th>
+                    <th className="border border-slate-200 px-2 py-2 text-right">Received</th>
+                    <th className="border border-slate-200 px-2 py-2 text-center">Pending Bills</th>
+                    <th className="border border-slate-200 px-2 py-2 text-right">Pending Amount</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {bankWiseNoticeSummary.length === 0 ? (
+                    <tr><td colSpan={7} className="px-3 py-5 text-center text-slate-400">No notice records found.</td></tr>
+                  ) : bankWiseNoticeSummary.map((row: any) => (
+                    <tr key={row.bank} className="hover:bg-amber-50/40">
+                      <td className="border border-slate-200 px-2 py-2 font-bold text-slate-800">{row.bank}</td>
+                      <td className="border border-slate-200 px-2 py-2 text-center font-bold">{row.noticeCount}</td>
+                      <td className="border border-slate-200 px-2 py-2 text-center font-bold text-amber-700">{row.pendingDispatch}</td>
+                      <td className="border border-slate-200 px-2 py-2 text-right">₹{row.billedAmount.toLocaleString("en-IN")}</td>
+                      <td className="border border-slate-200 px-2 py-2 text-right text-emerald-700">₹{row.receivedAmount.toLocaleString("en-IN")}</td>
+                      <td className="border border-slate-200 px-2 py-2 text-center font-bold text-rose-700">{row.pendingBills}</td>
+                      <td className="border border-slate-200 px-2 py-2 text-right font-black text-rose-700">₹{row.pendingAmount.toLocaleString("en-IN")}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           </div>
 

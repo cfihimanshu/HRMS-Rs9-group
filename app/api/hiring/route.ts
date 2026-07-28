@@ -76,7 +76,7 @@ export async function GET() {
 export async function POST(req: Request) {
   try {
     await sequelize.authenticate();
-    await HiringRequisition.sync({ alter: true });
+    await HiringRequisition.sync();
     const session = await getServerSession(authOptions);
     const creatorName = (session?.user as any)?.name || "Department Manager";
 
@@ -159,7 +159,7 @@ export async function POST(req: Request) {
 export async function PUT(req: Request) {
   try {
     await sequelize.authenticate();
-    await HiringRequisition.sync({ alter: true });
+    await HiringRequisition.sync();
     const session = await getServerSession(authOptions);
     if (!session || !session.user) {
       return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });

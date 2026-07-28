@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Briefcase, Search, ChevronDown, ChevronRight, LayoutList, Calendar, MapPin, Layers, FileText, Send, CheckCircle2 } from "lucide-react";
 
 const WORK_CATEGORIES: Record<string, string[]> = {
@@ -57,15 +57,19 @@ export default function LegalWorkLogsView({ workLogs, branches, banks, loading, 
   const [workLocation, setWorkLocation] = useState<string>("Office");
   const [customLocation, setCustomLocation] = useState<string>("");
   const [typeOfWork, setTypeOfWork] = useState<string>("General");
-  const [bankWorkCategory, setBankWorkCategory] = useState<"Business Development">("Business Development");
+  const [bankWorkCategory, setBankWorkCategory] = useState<"Business Development" | "Bill Follow Up">("Business Development");
   const [businessDevOption, setBusinessDevOption] = useState<string>("ADVOCATE NOTICE");
   const [businessDevSubOption, setBusinessDevSubOption] = useState<string>("TAKE NOTICE ASSIGNMENT");
   const [noOfCount, setNoOfCount] = useState<string>("1");
   const [allocationDate, setAllocationDate] = useState<string>(new Date().toISOString().split('T')[0]);
+  const [finalRate, setFinalRate] = useState<string>("");
+  const [bankOfficerPerNotice, setBankOfficerPerNotice] = useState<string>("");
+  const [assessmentExpenses, setAssessmentExpenses] = useState<string>("");
   const [broughtBy, setBroughtBy] = useState<string>("");
   const [preparedBy, setPreparedBy] = useState<string>("");
   const [printedBy, setPrintedBy] = useState<string>("");
   const [dispatchedBy, setDispatchedBy] = useState<string>("");
+  const [dispatchAmount, setDispatchAmount] = useState<string>("");
   const [billDate, setBillDate] = useState<string>(new Date().toISOString().split('T')[0]);
   const [billAmount, setBillAmount] = useState<string>("");
   const [billNo, setBillNo] = useState<string>("");
@@ -79,6 +83,83 @@ export default function LegalWorkLogsView({ workLogs, branches, banks, loading, 
   const [remarks, setRemarks] = useState<string>("");
   const [submittingForm, setSubmittingForm] = useState<boolean>(false);
   const [formSuccessMessage, setFormSuccessMessage] = useState<string>("");
+  const [pendingBills, setPendingBills] = useState<any[]>([]);
+  const [pendingBillSummary, setPendingBillSummary] = useState({
+    totalBills: 0,
+    totalBillAmount: 0,
+    totalReceivedAmount: 0,
+    totalPendingAmount: 0,
+  });
+  const [loadingPendingBills, setLoadingPendingBills] = useState(false);
+  const [callDate, setCallDate] = useState(new Date().toISOString().split("T")[0]);
+  const [callTime, setCallTime] = useState("");
+  const [contactedPerson, setContactedPerson] = useState("");
+  const assessmentCount = Math.max(0, Number.parseInt(noOfCount || "0", 10) || 0);
+  const perNoticeRate = Number.parseFloat(finalRate) || 0;
+  const officerPerNotice = Number.parseFloat(bankOfficerPerNotice) || 0;
+  const ownExpenses = Number.parseFloat(assessmentExpenses) || 0;
+  const assessmentTotalRevenue = assessmentCount * perNoticeRate;
+  const assessmentOfficerTotal = assessmentCount * officerPerNotice;
+  const assessmentGrossProfit =
+    assessmentTotalRevenue - assessmentOfficerTotal - ownExpenses;
+  const isBillPreparationStep =
+    businessDevSubOption === "PREPARE BILL (BILL BANWANA)";
+  const isBroughtByStep =
+    businessDevSubOption === "TAKE NOTICE ASSIGNMENT" ||
+    businessDevSubOption === "COLLECT NOTICE DATA";
+  const isPreparedByStep = businessDevSubOption === "PREPARE NOTICE LIST";
+  const isPrintedByStep = businessDevSubOption.includes("GENERATE NOTICE");
+  const isDispatchedByStep = businessDevSubOption.includes("DISPATCH NOTICE");
+  const selectedBranchRecord = branches.find(
+    branch =>
+      String(branch.bankId) === String(selectedBankId) &&
+      branch.branchName === selectedBranchName
+  );
+
+  useEffect(() => {
+    if (
+      bankWorkCategory !== "Bill Follow Up" ||
+      !selectedBankId ||
+      !selectedBranchRecord?.id
+    ) {
+      setPendingBills([]);
+      setPendingBillSummary({
+        totalBills: 0,
+        totalBillAmount: 0,
+        totalReceivedAmount: 0,
+        totalPendingAmount: 0,
+      });
+      return;
+    }
+
+    let cancelled = false;
+    const loadPendingBills = async () => {
+      setLoadingPendingBills(true);
+      try {
+        const params = new URLSearchParams({
+          bankId: selectedBankId,
+          branchId: String(selectedBranchRecord.id),
+        });
+        const response = await fetch(`/api/legal-recovery/bill-follow-up?${params}`);
+        const result = await response.json();
+        if (!cancelled && response.ok && result.success) {
+          setPendingBills(result.data || []);
+          setPendingBillSummary(result.summary);
+        } else if (!cancelled) {
+          setPendingBills([]);
+        }
+      } catch (error) {
+        if (!cancelled) setPendingBills([]);
+        console.error("Failed to load pending bills:", error);
+      } finally {
+        if (!cancelled) setLoadingPendingBills(false);
+      }
+    };
+    loadPendingBills();
+    return () => {
+      cancelled = true;
+    };
+  }, [bankWorkCategory, selectedBankId, selectedBranchRecord?.id]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -167,6 +248,13 @@ export default function LegalWorkLogsView({ workLogs, branches, banks, loading, 
       alert("Please enter work details or remarks.");
       return;
     }
+    if (
+      bankWorkCategory === "Bill Follow Up" &&
+      (!callDate || !callTime || !contactedPerson.trim())
+    ) {
+      alert("Please enter call date, call time and contacted person.");
+      return;
+    }
 
     setSubmittingForm(true);
     setFormSuccessMessage("");
@@ -179,20 +267,46 @@ export default function LegalWorkLogsView({ workLogs, branches, banks, loading, 
         customLocation: workLocation === "Other" ? customLocation.trim() : "",
         typeOfWork,
         category: typeOfWork === "Bank Related" ? bankWorkCategory : typeOfWork,
-        subCategory: typeOfWork === "Bank Related" && bankWorkCategory === "Business Development"
-          ? (businessDevSubOption || businessDevOption)
+        subCategory: typeOfWork === "Bank Related"
+          ? (bankWorkCategory === "Business Development"
+              ? (businessDevSubOption || businessDevOption)
+              : "BILL FOLLOW UP")
           : (workLocation === "Other" ? (customLocation.trim() || "Other") : workLocation),
         businessDevOption: typeOfWork === "Bank Related" && bankWorkCategory === "Business Development" ? businessDevOption : undefined,
         businessDevSubOption: typeOfWork === "Bank Related" && bankWorkCategory === "Business Development" ? businessDevSubOption : undefined,
         noOfCount: noOfCount || "1",
         allocationDate: allocationDate || workDate,
-        broughtBy: broughtBy || undefined,
-        preparedBy: preparedBy || undefined,
-        printedBy: printedBy || undefined,
-        dispatchedBy: dispatchedBy || undefined,
-        billDate: billDate || undefined,
-        billAmount: billAmount || undefined,
-        billNo: billNo || undefined,
+        finalRate: businessDevSubOption === "TAKE NOTICE ASSIGNMENT" ? finalRate : undefined,
+        expenses: businessDevSubOption === "TAKE NOTICE ASSIGNMENT" ? (assessmentExpenses || "0") : undefined,
+        financialDetails: businessDevSubOption === "TAKE NOTICE ASSIGNMENT"
+          ? JSON.stringify({
+              noticeCount: assessmentCount,
+              perNoticeRate,
+              bankOfficerPerNotice: officerPerNotice,
+              ownExpenses,
+            })
+          : undefined,
+        followUpDetails: bankWorkCategory === "Bill Follow Up"
+          ? JSON.stringify({
+              callDate,
+              callTime,
+              contactedPerson: contactedPerson.trim(),
+              conversation: remarks.trim(),
+              attachment: uploadedFileName || null,
+              bankId: selectedBankId,
+              branchId: selectedBranchRecord?.id || null,
+              bills: pendingBills,
+              summary: pendingBillSummary,
+            })
+          : undefined,
+        broughtBy: isBroughtByStep ? (broughtBy || undefined) : undefined,
+        preparedBy: isPreparedByStep ? (preparedBy || undefined) : undefined,
+        printedBy: isPrintedByStep ? (printedBy || undefined) : undefined,
+        dispatchedBy: isDispatchedByStep ? (dispatchedBy || undefined) : undefined,
+        stageAmount: isDispatchedByStep ? dispatchAmount : undefined,
+        billDate: isBillPreparationStep ? (billDate || undefined) : undefined,
+        billAmount: isBillPreparationStep ? (billAmount || undefined) : undefined,
+        billNo: isBillPreparationStep ? (billNo || undefined) : undefined,
         personName: personName || undefined,
         uploadedFileName: uploadedFileName || undefined,
         bankName: bankObj?.bankName || undefined,
@@ -214,6 +328,18 @@ export default function LegalWorkLogsView({ workLogs, branches, banks, loading, 
         setCustomLocation("");
         setSelectedBankId("");
         setSelectedBranchName("");
+        setBroughtBy("");
+        setPreparedBy("");
+        setPrintedBy("");
+        setDispatchedBy("");
+        setDispatchAmount("");
+        setFinalRate("");
+        setBankOfficerPerNotice("");
+        setAssessmentExpenses("");
+        setCallDate(new Date().toISOString().split("T")[0]);
+        setCallTime("");
+        setContactedPerson("");
+        setPendingBills([]);
         if (onRefresh) onRefresh();
         setTimeout(() => setFormSuccessMessage(""), 4000);
       } else {
@@ -406,6 +532,7 @@ export default function LegalWorkLogsView({ workLogs, branches, banks, loading, 
                       className="w-full p-2.5 border border-purple-300/80 rounded-xl text-xs font-black text-slate-950 bg-white focus:outline-none focus:border-purple-600 shadow-2xs transition-all cursor-pointer"
                     >
                       <option value="Business Development">Business Development</option>
+                      <option value="Bill Follow Up">Bill Follow Up</option>
                     </select>
                   </div>
 
@@ -461,7 +588,7 @@ export default function LegalWorkLogsView({ workLogs, branches, banks, loading, 
 
                       {/* Sub-Option A: TAKE NOTICE ASSIGNMENT */}
                       {businessDevSubOption === "TAKE NOTICE ASSIGNMENT" && (
-                        <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 bg-white p-3.5 rounded-xl border border-purple-200 shadow-2xs animate-fade-in">
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 bg-white p-3.5 rounded-xl border border-purple-200 shadow-2xs animate-fade-in">
                           <div>
                             <label className="block text-[10px] font-black uppercase tracking-wider text-black mb-1.5 flex items-center gap-1">
                               <Layers className="w-3.5 h-3.5 text-purple-600" />
@@ -526,12 +653,81 @@ export default function LegalWorkLogsView({ workLogs, branches, banks, loading, 
                               className="w-full p-2 border border-purple-300 rounded-lg text-xs font-black text-slate-950 bg-white focus:outline-none focus:border-purple-600"
                             />
                           </div>
+
+                          <div>
+                            <label className="block text-[10px] font-black uppercase tracking-wider text-black mb-1.5 flex items-center gap-1">
+                              <Briefcase className="w-3.5 h-3.5 text-purple-600" />
+                              Brought By *
+                            </label>
+                            <input
+                              type="text"
+                              required
+                              value={broughtBy}
+                              onChange={e => setBroughtBy(e.target.value)}
+                              placeholder="Enter person name..."
+                              className="w-full p-2 border border-purple-300 rounded-lg text-xs font-black text-slate-950 bg-white focus:outline-none focus:border-purple-600"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="block text-[10px] font-black uppercase tracking-wider text-black mb-1.5">
+                              Per Notice Rate (₹) *
+                            </label>
+                            <input
+                              type="number"
+                              min="0"
+                              step="0.01"
+                              required
+                              value={finalRate}
+                              onChange={e => setFinalRate(e.target.value)}
+                              placeholder="Rate per notice"
+                              className="w-full p-2 border border-purple-300 rounded-lg text-xs font-black text-slate-950 bg-white focus:outline-none focus:border-purple-600"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="block text-[10px] font-black uppercase tracking-wider text-black mb-1.5">
+                              Bank Officer / Notice (₹) *
+                            </label>
+                            <input
+                              type="number"
+                              min="0"
+                              step="0.01"
+                              required
+                              value={bankOfficerPerNotice}
+                              onChange={e => setBankOfficerPerNotice(e.target.value)}
+                              placeholder="Officer share per notice"
+                              className="w-full p-2 border border-purple-300 rounded-lg text-xs font-black text-slate-950 bg-white focus:outline-none focus:border-purple-600"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="block text-[10px] font-black uppercase tracking-wider text-black mb-1.5">
+                              Own Expenses (₹)
+                            </label>
+                            <input
+                              type="number"
+                              min="0"
+                              step="0.01"
+                              value={assessmentExpenses}
+                              onChange={e => setAssessmentExpenses(e.target.value)}
+                              placeholder="Enter expenses"
+                              className="w-full p-2 border border-purple-300 rounded-lg text-xs font-black text-slate-950 bg-white focus:outline-none focus:border-purple-600"
+                            />
+                          </div>
+
+                          <div className="sm:col-span-4 grid grid-cols-2 sm:grid-cols-4 gap-2 rounded-lg border border-purple-200 bg-purple-50/50 p-2">
+                            <div><span className="text-[9px] font-bold uppercase text-slate-500">Total Revenue</span><div className="font-black">₹{assessmentTotalRevenue.toLocaleString("en-IN")}</div></div>
+                            <div><span className="text-[9px] font-bold uppercase text-slate-500">Officer Total</span><div className="font-black text-amber-700">₹{assessmentOfficerTotal.toLocaleString("en-IN")}</div></div>
+                            <div><span className="text-[9px] font-bold uppercase text-slate-500">Own Expenses</span><div className="font-black text-rose-700">₹{ownExpenses.toLocaleString("en-IN")}</div></div>
+                            <div><span className="text-[9px] font-bold uppercase text-slate-500">GP Before Dispatch</span><div className={`font-black ${assessmentGrossProfit >= 0 ? "text-emerald-700" : "text-rose-700"}`}>₹{assessmentGrossProfit.toLocaleString("en-IN")}</div></div>
+                          </div>
                         </div>
                       )}
 
                       {/* Sub-Option B: COLLECT NOTICE DATA */}
                       {businessDevSubOption === "COLLECT NOTICE DATA" && (
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 bg-white p-3.5 rounded-xl border border-purple-200 shadow-2xs animate-fade-in">
+                        <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 bg-white p-3.5 rounded-xl border border-purple-200 shadow-2xs animate-fade-in">
                           <div>
                             <label className="block text-[10px] font-black uppercase tracking-wider text-black mb-1.5 flex items-center gap-1">
                               <Layers className="w-3.5 h-3.5 text-purple-600" />
@@ -723,7 +919,7 @@ export default function LegalWorkLogsView({ workLogs, branches, banks, loading, 
 
                       {/* Sub-Option E: DISPATCH NOTICES */}
                       {(businessDevSubOption?.includes("DISPATCH NOTICE")) && (
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 bg-white p-3.5 rounded-xl border border-purple-200 shadow-2xs animate-fade-in">
+                        <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 bg-white p-3.5 rounded-xl border border-purple-200 shadow-2xs animate-fade-in">
                           <div>
                             <label className="block text-[10px] font-black uppercase tracking-wider text-black mb-1.5 flex items-center gap-1">
                               <Layers className="w-3.5 h-3.5 text-purple-600" />
@@ -750,6 +946,22 @@ export default function LegalWorkLogsView({ workLogs, branches, banks, loading, 
                               placeholder="Person name who dispatched..."
                               value={dispatchedBy}
                               onChange={e => setDispatchedBy(e.target.value)}
+                              className="w-full p-2 border border-purple-300 rounded-lg text-xs font-black text-slate-950 bg-white focus:outline-none focus:border-purple-600"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="block text-[10px] font-black uppercase tracking-wider text-black mb-1.5">
+                              Amount (₹) *
+                            </label>
+                            <input
+                              type="number"
+                              min="0"
+                              step="0.01"
+                              required
+                              value={dispatchAmount}
+                              onChange={e => setDispatchAmount(e.target.value)}
+                              placeholder="Enter dispatch amount..."
                               className="w-full p-2 border border-purple-300 rounded-lg text-xs font-black text-slate-950 bg-white focus:outline-none focus:border-purple-600"
                             />
                           </div>
@@ -1021,6 +1233,91 @@ export default function LegalWorkLogsView({ workLogs, branches, banks, loading, 
                       )}
                     </div>
                   )}
+
+                  {bankWorkCategory === "Bill Follow Up" && (
+                    <div className="sm:col-span-2 space-y-4 border-t border-purple-200/60 pt-4">
+                      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                        <div className="rounded-lg border border-slate-200 bg-white p-3">
+                          <span className="text-[9px] font-black uppercase text-slate-500">Pending Bills</span>
+                          <div className="mt-1 text-lg font-black text-slate-900">
+                            {loadingPendingBills ? "..." : pendingBillSummary.totalBills}
+                          </div>
+                        </div>
+                        <div className="rounded-lg border border-slate-200 bg-white p-3">
+                          <span className="text-[9px] font-black uppercase text-slate-500">Total Bill Amount</span>
+                          <div className="mt-1 text-sm font-black text-slate-900">
+                            ₹{pendingBillSummary.totalBillAmount.toLocaleString("en-IN")}
+                          </div>
+                        </div>
+                        <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-3">
+                          <span className="text-[9px] font-black uppercase text-emerald-700">Amount Received</span>
+                          <div className="mt-1 text-sm font-black text-emerald-700">
+                            ₹{pendingBillSummary.totalReceivedAmount.toLocaleString("en-IN")}
+                          </div>
+                        </div>
+                        <div className="rounded-lg border border-rose-200 bg-rose-50 p-3">
+                          <span className="text-[9px] font-black uppercase text-rose-700">Total Pending</span>
+                          <div className="mt-1 text-sm font-black text-rose-700">
+                            ₹{pendingBillSummary.totalPendingAmount.toLocaleString("en-IN")}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="overflow-x-auto rounded-lg border border-purple-200 bg-white">
+                        <table className="min-w-[620px] text-xs">
+                          <thead>
+                            <tr>
+                              <th>Bill No.</th>
+                              <th>Bill Date</th>
+                              <th>Bill Amount</th>
+                              <th>Received</th>
+                              <th>Pending</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {loadingPendingBills ? (
+                              <tr><td colSpan={5} className="text-center text-slate-500">Loading pending bills...</td></tr>
+                            ) : pendingBills.length === 0 ? (
+                              <tr><td colSpan={5} className="text-center text-slate-500">No pending bill found for selected branch.</td></tr>
+                            ) : pendingBills.map(bill => (
+                              <tr key={bill.id}>
+                                <td className="font-bold">{bill.billNo || `#${bill.id}`}</td>
+                                <td>{bill.billDate || "—"}</td>
+                                <td>₹{Number(bill.billAmount).toLocaleString("en-IN")}</td>
+                                <td className="text-emerald-700">₹{Number(bill.receivedAmount).toLocaleString("en-IN")}</td>
+                                <td className="font-black text-rose-700">₹{Number(bill.pendingAmount).toLocaleString("en-IN")}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+
+                      <div className="grid grid-cols-1 gap-3 rounded-xl border border-purple-200 bg-white p-3 sm:grid-cols-3">
+                        <div>
+                          <label className="mb-1 block text-[10px] font-black uppercase">Call Date *</label>
+                          <input type="date" required value={callDate} onChange={e => setCallDate(e.target.value)} className="w-full rounded-lg border border-purple-300 p-2 text-xs font-bold" />
+                        </div>
+                        <div>
+                          <label className="mb-1 block text-[10px] font-black uppercase">Call Time *</label>
+                          <input type="time" required value={callTime} onChange={e => setCallTime(e.target.value)} className="w-full rounded-lg border border-purple-300 p-2 text-xs font-bold" />
+                        </div>
+                        <div>
+                          <label className="mb-1 block text-[10px] font-black uppercase">Contacted Person *</label>
+                          <input type="text" required value={contactedPerson} onChange={e => setContactedPerson(e.target.value)} placeholder="Name / designation" className="w-full rounded-lg border border-purple-300 p-2 text-xs font-bold" />
+                        </div>
+                        <div className="sm:col-span-3">
+                          <label className="mb-1 block text-[10px] font-black uppercase">Call Attachment</label>
+                          <input
+                            type="file"
+                            accept=".pdf,.doc,.docx,.png,.jpg,.jpeg,.mp3,.wav,.aac,.m4a,.ogg,audio/*,image/*"
+                            onChange={handleFileChange}
+                            className="w-full text-xs font-bold file:mr-2 file:rounded-lg file:border-0 file:bg-purple-100 file:px-3 file:py-1.5 file:text-[10px] file:font-black file:text-purple-800"
+                          />
+                          {uploadedFileName && <span className="mt-1 block text-[10px] font-bold text-purple-700">📎 {uploadedFileName}</span>}
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -1051,7 +1348,7 @@ export default function LegalWorkLogsView({ workLogs, branches, banks, loading, 
                   rows={3}
                   value={remarks}
                   onChange={e => setRemarks(e.target.value)}
-                  placeholder="Enter specific work instructions, execution notes or completed tasks summary..."
+                  placeholder={bankWorkCategory === "Bill Follow Up" ? "Call par kya baat hui, payment commitment aur next follow-up details..." : "Enter specific work instructions, execution notes or completed tasks summary..."}
                   className="w-full p-3 border border-slate-300 rounded-xl text-xs font-bold text-slate-950 bg-white focus:outline-none focus:border-purple-600 focus:ring-2 focus:ring-purple-600/10 shadow-2xs transition-all"
                 />
               </div>

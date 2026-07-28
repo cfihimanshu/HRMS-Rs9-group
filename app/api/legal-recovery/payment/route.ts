@@ -10,7 +10,7 @@ export async function POST(request: Request) {
     await sequelize.authenticate();
     
     // Sync model if table doesn't exist
-    await LegalRecoveryPayment.sync({ alter: true });
+    await LegalRecoveryPayment.sync();
     
     // 1. Fetch master info to get bank and branch names
     const master = data.masterId ? await LegalRecoveryMaster.findByPk(data.masterId) : null;
@@ -53,7 +53,7 @@ export async function POST(request: Request) {
 export async function GET() {
   try {
     await sequelize.authenticate();
-    await LegalRecoveryPayment.sync({ alter: true });
+    await LegalRecoveryPayment.sync();
     const payments = await LegalRecoveryPayment.findAll({
       order: [["createdAt", "DESC"]],
       raw: true
@@ -104,7 +104,7 @@ export async function PUT(request: Request) {
     }
 
     await sequelize.authenticate();
-    await LegalRecoveryPayment.sync({ alter: true });
+    await LegalRecoveryPayment.sync();
 
     const payment = await LegalRecoveryPayment.findByPk(id);
     if (!payment) {

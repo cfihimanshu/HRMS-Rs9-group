@@ -15,7 +15,7 @@ const COMMON_DEPARTMENTS = [
 
 async function seedDefaultDepartments() {
   try {
-    await Department.sync({ alter: true });
+    await Department.sync();
     for (const name of COMMON_DEPARTMENTS) {
       const exists = await Department.findOne({
         where: { name }

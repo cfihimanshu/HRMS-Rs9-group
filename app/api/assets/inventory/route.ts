@@ -51,7 +51,7 @@ export async function GET(req: Request) {
 
     await sequelize.authenticate();
     await ensureColumns();
-    try { await AssetInventory.sync({ alter: true }); } catch (_) {}
+    try { await AssetInventory.sync(); } catch (_) {}
 
     const { searchParams } = new URL(req.url);
     const companyId = searchParams.get("companyId");
@@ -97,7 +97,7 @@ export async function POST(req: Request) {
 
     await sequelize.authenticate();
     await ensureColumns();
-    try { await AssetInventory.sync({ alter: true }); } catch (_) {}
+    try { await AssetInventory.sync(); } catch (_) {}
 
     const body = await req.json();
     const { id, oldAssetId, assetType, assetDetail, serialNumber, purchaseDate, purchaseValue, condition, companyId, notes, photoUrl, customFields, phonePassword: bodyPassword, simCompany: bodySimComp, sim1Number: bodySim1No, sim2Number: bodySim2No } = body;
@@ -190,7 +190,7 @@ export async function PUT(req: Request) {
 
     await sequelize.authenticate();
     await ensureColumns();
-    try { await AssetInventory.sync({ alter: true }); } catch (_) {}
+    try { await AssetInventory.sync(); } catch (_) {}
 
     const body = await req.json();
     const { id, oldAssetId, assetType, assetDetail, serialNumber, purchaseDate, purchaseValue, condition, status, companyId, notes, photoUrl, customFields, phonePassword: bodyPassword, simCompany: bodySimComp, sim1Number: bodySim1No, sim2Number: bodySim2No } = body;

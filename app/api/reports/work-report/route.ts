@@ -69,6 +69,33 @@ export async function GET(req: Request) {
       fieldVisitFilter = { employee_id: { [Op.in]: managedUserIds } };
     }
 
+    // Work Report is reserved for employees who are not assigned to any
+    // vertical. Vertical employees are shown in Scheduled Work instead.
+    const verticalProfiles = await EmployeeProfile.findAll({
+      attributes: ["user", "vertical"],
+      where: {
+        user: { [Op.not]: null },
+        vertical: { [Op.not]: null }
+      },
+      raw: true
+    });
+    const verticalUserIds = verticalProfiles
+      .filter((profile: any) => String(profile.vertical || "").trim().length > 0)
+      .map((profile: any) => String(profile.user));
+
+    if (isGlobalManager) {
+      if (verticalUserIds.length > 0) {
+        filter.employee = { [Op.notIn]: verticalUserIds };
+        fieldVisitFilter.employee_id = { [Op.notIn]: verticalUserIds };
+      }
+    } else {
+      const nonVerticalManagedUserIds = managedUserIds.filter(
+        managedId => !verticalUserIds.includes(String(managedId))
+      );
+      filter.employee = { [Op.in]: nonVerticalManagedUserIds };
+      fieldVisitFilter.employee_id = { [Op.in]: nonVerticalManagedUserIds };
+    }
+
     if (range === "today") {
       const todayStart = new Date();
       todayStart.setHours(0, 0, 0, 0);
@@ -233,5 +260,4 @@ export async function GET(req: Request) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
 }
-
 

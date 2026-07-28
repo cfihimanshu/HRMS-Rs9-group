@@ -24,3 +24,15 @@
     at async handleRequest (C:\Users\dell\HRMS-Rs9-group\node_modules\next\dist\server\lib\router-server.js:359:24)
     at async requestHandlerImpl (C:\Users\dell\HRMS-Rs9-group\node_modules\next\dist\server\lib\router-server.js:383:13)
     at async Server.requestListener (C:\Users\dell\HRMS-Rs9-group\node_modules\next\dist\server\lib\start-server.js:141:13)
+2026-07-28T10:14:36.741Z: SequelizeConnectionError: Unknown database 'hrmsnew'
+    at ConnectionManager.connect (/home/himanshu/Desktop/HRMS-Rs9-group/node_modules/sequelize/lib/dialects/mysql/connection-manager.js:102:17)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async ConnectionManager._connect (/home/himanshu/Desktop/HRMS-Rs9-group/node_modules/sequelize/lib/dialects/abstract/connection-manager.js:222:24)
+2026-07-28T10:16:41.485Z: SequelizeConnectionError: Unknown database 'hrmsnew'
+    at ConnectionManager.connect (/home/himanshu/Desktop/HRMS-Rs9-group/node_modules/sequelize/lib/dialects/mysql/connection-manager.js:102:17)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async ConnectionManager._connect (/home/himanshu/Desktop/HRMS-Rs9-group/node_modules/sequelize/lib/dialects/abstract/connection-manager.js:222:24)
+2026-07-28T10:24:32.437Z: SequelizeConnectionError: Unknown database 'hrmsnew'
+    at ConnectionManager.connect (/home/himanshu/Desktop/HRMS-Rs9-group/node_modules/sequelize/lib/dialects/mysql/connection-manager.js:102:17)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async ConnectionManager._connect (/home/himanshu/Desktop/HRMS-Rs9-group/node_modules/sequelize/lib/dialects/abstract/connection-manager.js:222:24)

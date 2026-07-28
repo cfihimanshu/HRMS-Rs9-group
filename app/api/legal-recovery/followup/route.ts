@@ -11,8 +11,8 @@ export async function POST(request: Request) {
     await sequelize.authenticate();
     
     // Sync models if tables don't exist
-    await LegalRecoveryFollowUp.sync({ alter: true });
-    await TaskLog.sync({ alter: true });
+    await LegalRecoveryFollowUp.sync();
+    await TaskLog.sync();
 
     // Sanitize nextFollowUpDate to prevent invalid date / empty string DB errors
     let cleanNextFollowUpDate: string | null = null;
@@ -86,7 +86,7 @@ export async function GET(request: Request) {
     const masterId = searchParams.get('masterId');
     
     await sequelize.authenticate();
-    await LegalRecoveryFollowUp.sync({ alter: true });
+    await LegalRecoveryFollowUp.sync();
     
     const whereClause = masterId ? { masterId } : {};
     

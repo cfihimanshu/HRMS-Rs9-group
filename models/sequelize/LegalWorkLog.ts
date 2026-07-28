@@ -75,6 +75,31 @@ LegalWorkLog.init(
       type: DataTypes.STRING,
       allowNull: true,
     },
+    finalRate: {
+      type: DataTypes.DECIMAL(12, 2),
+      allowNull: true,
+    },
+    expenses: {
+      type: DataTypes.DECIMAL(12, 2),
+      allowNull: true,
+      defaultValue: 0,
+    },
+    grossProfit: {
+      type: DataTypes.DECIMAL(12, 2),
+      allowNull: true,
+    },
+    followUpDetails: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+    },
+    stageAmount: {
+      type: DataTypes.DECIMAL(12, 2),
+      allowNull: true,
+    },
+    financialDetails: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+    },
     broughtBy: {
       type: DataTypes.STRING,
       allowNull: true,

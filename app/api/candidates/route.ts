@@ -11,14 +11,14 @@ import { logAudit } from "@/lib/audit";
 import { Op } from "sequelize";
 
 // ── One-time schema sync guard ────────────────────────────────────────────────
-// Runs Candidate.sync({ alter: true }) only once per server process lifetime
+// Runs Candidate.sync() only once per server process lifetime
 // to avoid concurrent MySQL ALTER TABLE errors from simultaneous requests.
 let candidateSyncDone = (global as any).__candidateSyncDone || false;
 async function ensureCandidateSync() {
   if (!candidateSyncDone) {
     (global as any).__candidateSyncDone = true;
     candidateSyncDone = true;
-    await Candidate.sync({ alter: true });
+    await Candidate.sync();
   }
 }
 

@@ -15,8 +15,8 @@ export async function GET() {
     }
 
     await sequelize.authenticate();
-    await User.sync({ alter: true });
-    await EmployeeProfile.sync({ alter: true });
+    await User.sync();
+    await EmployeeProfile.sync();
 
     const userId = (session.user as any).id?.toString();
     const userDoc = userId ? await User.findByPk(userId, { raw: true }) : null;

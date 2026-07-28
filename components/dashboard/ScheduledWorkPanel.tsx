@@ -91,7 +91,7 @@ export default function ScheduledWorkPanel({ sessionUser, triggerToast }: Schedu
   const fetchAllSchedules = async () => {
     setLoading(true);
     try {
-      let url = "/api/legal-recovery/schedule?all=true";
+      let url = "/api/legal-recovery/schedule?all=true&verticalOnly=true";
       if (fromDate && toDate) {
         url += `&fromDate=${fromDate}&toDate=${toDate}`;
       } else if (fromDate) {

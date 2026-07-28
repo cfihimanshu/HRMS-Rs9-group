@@ -1,14 +1,17 @@
 import { NextResponse } from "next/server";
 import BranchMaster from "@/models/sequelize/BranchMaster";
 import sequelize from "@/lib/sequelize";
+import { requireApiSession, MANAGEMENT_ROLES } from "@/lib/apiAuth";
 
 export async function GET(request: Request) {
   try {
+    const auth = await requireApiSession();
+    if (auth.response) return auth.response;
     const { searchParams } = new URL(request.url);
     const bankId = searchParams.get('bankId');
     
     await sequelize.authenticate();
-    await BranchMaster.sync({ alter: true });
+    await BranchMaster.sync();
     
     const where = bankId ? { bankId } : {};
     
@@ -24,9 +27,11 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
+    const auth = await requireApiSession(MANAGEMENT_ROLES);
+    if (auth.response) return auth.response;
     const data = await request.json();
     await sequelize.authenticate();
-    await BranchMaster.sync({ alter: true });
+    await BranchMaster.sync();
     
     if (!data.branchCode) {
       return NextResponse.json({ success: false, error: "Branch Code is required" }, { status: 400 });
@@ -46,13 +51,15 @@ export async function POST(request: Request) {
 
 export async function PUT(request: Request) {
   try {
+    const auth = await requireApiSession(MANAGEMENT_ROLES);
+    if (auth.response) return auth.response;
     const data = await request.json();
     const { id, ...updateData } = data;
     if (!id) {
       return NextResponse.json({ success: false, error: "Branch ID is required" }, { status: 400 });
     }
     await sequelize.authenticate();
-    await BranchMaster.sync({ alter: true });
+    await BranchMaster.sync();
 
     const branch = await BranchMaster.findByPk(id);
     if (!branch) {

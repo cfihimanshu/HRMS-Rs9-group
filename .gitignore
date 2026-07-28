@@ -8,9 +8,12 @@
 
 # testing
 /coverage
+/backups/
+/db-audit-report.json
 
 # next.js
 /.next/
+/.next-dev/
 /out/
 
 # production

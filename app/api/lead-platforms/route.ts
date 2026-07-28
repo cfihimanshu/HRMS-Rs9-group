@@ -13,7 +13,7 @@ export async function GET() {
     }
 
     await sequelize.authenticate();
-    await LeadPlatform.sync({ alter: true });
+    await LeadPlatform.sync();
 
     const defaults = [
       { id: "indeed-391", name: "Indeed", prefix: "IND", tableName: "leads_indeed" },
@@ -72,7 +72,7 @@ export async function POST(req: Request) {
     const tableName = `leads_${id.replace(/-/g, "_")}`;
 
     await sequelize.authenticate();
-    await LeadPlatform.sync({ alter: true });
+    await LeadPlatform.sync();
 
     // Check if duplicate
     const exists = await LeadPlatform.findOne({ where: { id } });

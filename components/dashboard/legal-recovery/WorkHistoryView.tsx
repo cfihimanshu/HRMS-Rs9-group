@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import ReactDOM from "react-dom";
 import {
   Search, RefreshCw, Briefcase, Paperclip, Calendar, User, FileText,
-  Layers, ExternalLink, Download, FileSpreadsheet, Eye, X, CheckCircle2, Building2, Building, Edit, Save, Clock
+  Layers, ExternalLink, Download, FileSpreadsheet, Eye, X, CheckCircle2, Building2, Building, Edit, Save, Clock, Trash2
 } from "lucide-react";
 import * as XLSX from "xlsx";
 
@@ -33,9 +33,13 @@ export default function WorkHistoryView() {
   const [editWorkDate, setEditWorkDate] = useState<string>("");
   const [editStatus, setEditStatus] = useState<string>("Pending");
   const [editRemarks, setEditRemarks] = useState<string>("");
+  const [editAmount, setEditAmount] = useState<string>("");
   const [editAttachmentUrl, setEditAttachmentUrl] = useState<string>("");
   const [uploadingEditFile, setUploadingEditFile] = useState<boolean>(false);
   const [savingEdit, setSavingEdit] = useState<boolean>(false);
+  const [columnFilters, setColumnFilters] = useState({
+    date: "", category: "", details: "", status: "", employee: "", amount: "", remarks: ""
+  });
 
   const fetchHistory = async () => {
     setLoading(true);
@@ -117,6 +121,13 @@ export default function WorkHistoryView() {
   const filteredLogs = historyLogs.filter((log) => {
     if (categoryFilter && log.category !== categoryFilter) return false;
     if (submittedByFilter && log.employeeName !== submittedByFilter) return false;
+    if (columnFilters.date && !new Date(log.workDate || log.createdAt).toLocaleDateString("en-IN").toLowerCase().includes(columnFilters.date.toLowerCase())) return false;
+    if (columnFilters.category && !String(log.category || "").toLowerCase().includes(columnFilters.category.toLowerCase())) return false;
+    if (columnFilters.details && !`${log.subCategory || ""} ${log.bankName || ""} ${log.branchName || ""}`.toLowerCase().includes(columnFilters.details.toLowerCase())) return false;
+    if (columnFilters.status && String(log.status || "Pending").toLowerCase() !== columnFilters.status.toLowerCase()) return false;
+    if (columnFilters.employee && !String(log.employeeName || "").toLowerCase().includes(columnFilters.employee.toLowerCase())) return false;
+    if (columnFilters.amount && !String(Number(log.amount || 0)).includes(columnFilters.amount)) return false;
+    if (columnFilters.remarks && !String(log.remarks || "").toLowerCase().includes(columnFilters.remarks.toLowerCase())) return false;
 
     const rawDate = log.workDate || log.createdAt;
     if (rawDate) {
@@ -158,6 +169,7 @@ export default function WorkHistoryView() {
       "Bank Name": log.bankName || "",
       "Branch Name": log.branchName || "",
       "Work Status": log.status || "Pending",
+      "Amount": Number(log.amount || 0),
       "Submitted By": log.employeeName || "System",
       "Attachment Link": log.attachmentUrl || "None",
       "Remarks / Notes": log.remarks || "",
@@ -187,6 +199,7 @@ export default function WorkHistoryView() {
           remarks: editRemarks,
           workDate: editWorkDate ? new Date(editWorkDate) : undefined,
           attachmentUrl: editAttachmentUrl,
+          amount: Number(editAmount || 0),
         }),
       });
       const data = await res.json();
@@ -200,6 +213,18 @@ export default function WorkHistoryView() {
       alert("Error updating work entry: " + err.message);
     } finally {
       setSavingEdit(false);
+    }
+  };
+
+  const handleDelete = async (log: any) => {
+    if (!confirm(`Delete "${log.subCategory || "this work entry"}"? This action cannot be undone.`)) return;
+    try {
+      const res = await fetch(`/api/legal-recovery/work-history?id=${encodeURIComponent(log.id)}`, { method: "DELETE" });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.error || "Delete failed");
+      setHistoryLogs(prev => prev.filter(item => item.id !== log.id));
+    } catch (error: any) {
+      alert(error.message || "Unable to delete work entry");
     }
   };
 
@@ -413,7 +438,7 @@ export default function WorkHistoryView() {
       {/* Data Table */}
       <div className="bg-[#FCFBF9] border border-[#E8E4DF] rounded-2xl overflow-hidden shadow-sm overflow-x-auto">
         {/* Table Summary Bar */}
-        <div className="px-5 py-3.5 border-b border-[#E8E4DF] bg-white flex items-center justify-between">
+        <div className="px-3 py-2 border-b border-[#E8E4DF] bg-white flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Briefcase className="w-4 h-4 text-indigo-600" />
             <span className="text-xs font-black uppercase tracking-wider text-slate-700">Work History Registry</span>
@@ -423,17 +448,29 @@ export default function WorkHistoryView() {
           </span>
         </div>
 
-        <table className="w-full border-collapse text-left min-w-max">
+        <table className="w-full border-collapse text-left min-w-[1180px] table-fixed">
           <thead className="bg-[#F5F0EA] border-b border-[#E8E4DF]">
             <tr className="text-[#5D5B57] text-[10px] uppercase font-bold tracking-wider">
-              <th className="py-3.5 px-4">Date &amp; Time</th>
-              <th className="py-3.5 px-4">Work Category</th>
-              <th className="py-3.5 px-4">Details / Entity</th>
-              <th className="py-3.5 px-4">Status</th>
-              <th className="py-3.5 px-4">Submitted By</th>
-              <th className="py-3.5 px-4">Attachment</th>
-              <th className="py-3.5 px-4">Remarks</th>
-              <th className="py-3.5 px-4 text-center">Action</th>
+              <th className="py-2 px-2 w-32">Date &amp; Time</th>
+              <th className="py-2 px-2 w-28">Category</th>
+              <th className="py-2 px-2 w-56">Details / Entity</th>
+              <th className="py-2 px-2 w-24">Status</th>
+              <th className="py-2 px-2 w-32">Submitted By</th>
+              <th className="py-2 px-2 w-24 text-right">Amount</th>
+              <th className="py-2 px-2 w-24">Attachment</th>
+              <th className="py-2 px-2 w-48">Remarks</th>
+              <th className="py-2 px-2 w-32 text-center">Action</th>
+            </tr>
+            <tr className="bg-white">
+              <th className="p-1"><input value={columnFilters.date} onChange={e => setColumnFilters(p => ({...p, date:e.target.value}))} placeholder="Filter date" className="w-full border rounded px-1.5 py-1 text-[9px] font-medium normal-case" /></th>
+              <th className="p-1"><input value={columnFilters.category} onChange={e => setColumnFilters(p => ({...p, category:e.target.value}))} placeholder="Filter" className="w-full border rounded px-1.5 py-1 text-[9px] font-medium normal-case" /></th>
+              <th className="p-1"><input value={columnFilters.details} onChange={e => setColumnFilters(p => ({...p, details:e.target.value}))} placeholder="Filter details/bank" className="w-full border rounded px-1.5 py-1 text-[9px] font-medium normal-case" /></th>
+              <th className="p-1"><select value={columnFilters.status} onChange={e => setColumnFilters(p => ({...p, status:e.target.value}))} className="w-full border rounded px-1 py-1 text-[9px] font-medium normal-case"><option value="">All</option><option>Pending</option><option>In Progress</option><option>Completed</option></select></th>
+              <th className="p-1"><input value={columnFilters.employee} onChange={e => setColumnFilters(p => ({...p, employee:e.target.value}))} placeholder="Filter user" className="w-full border rounded px-1.5 py-1 text-[9px] font-medium normal-case" /></th>
+              <th className="p-1"><input value={columnFilters.amount} onChange={e => setColumnFilters(p => ({...p, amount:e.target.value}))} placeholder="₹ amount" className="w-full border rounded px-1.5 py-1 text-[9px] font-medium normal-case text-right" /></th>
+              <th className="p-1"></th>
+              <th className="p-1"><input value={columnFilters.remarks} onChange={e => setColumnFilters(p => ({...p, remarks:e.target.value}))} placeholder="Filter remarks" className="w-full border rounded px-1.5 py-1 text-[9px] font-medium normal-case" /></th>
+              <th className="p-1 text-center"><button onClick={() => setColumnFilters({date:"",category:"",details:"",status:"",employee:"",amount:"",remarks:""})} className="text-[9px] text-rose-600 normal-case hover:underline">Clear filters</button></th>
             </tr>
           </thead>
           <tbody className="divide-y divide-[#E8E4DF] text-xs">
@@ -445,7 +482,7 @@ export default function WorkHistoryView() {
 
               return (
                 <tr key={log.id} className="hover:bg-white transition-colors">
-                  <td className="py-3.5 px-4 text-slate-600 font-medium">
+                  <td className="py-2 px-2 text-slate-600 font-medium">
                     <div className="flex items-center gap-1.5">
                       <Calendar className="w-3.5 h-3.5 text-slate-400" />
                       <span>{new Date(log.workDate || log.createdAt).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}</span>
@@ -455,14 +492,14 @@ export default function WorkHistoryView() {
                     </span>
                   </td>
 
-                  <td className="py-3.5 px-4">
+                  <td className="py-2 px-2">
                     <span className={`px-2.5 py-1 rounded-lg border text-[10px] font-black uppercase tracking-wide inline-block ${categoryBadge}`}>
                       {log.category}
                     </span>
                   </td>
 
-                  <td className="py-3.5 px-4">
-                    <div className="font-bold text-slate-800">{log.subCategory}</div>
+                  <td className="py-2 px-2">
+                    <div className="font-bold text-slate-800 truncate" title={log.subCategory}>{log.subCategory}</div>
                     {log.bankName && (
                       <div className="text-[10px] text-slate-500 font-medium">
                         Bank: {log.bankName} {log.branchName ? `• ${log.branchName}` : ""}
@@ -471,7 +508,7 @@ export default function WorkHistoryView() {
                   </td>
 
                   {/* Status Column */}
-                  <td className="py-3.5 px-4">
+                  <td className="py-2 px-2">
                     {(() => {
                       const st = log.status || "Pending";
                       let badgeStyle = "bg-amber-50 text-amber-700 border-amber-200";
@@ -491,14 +528,18 @@ export default function WorkHistoryView() {
                     })()}
                   </td>
 
-                  <td className="py-3.5 px-4 text-slate-700 font-semibold">
+                  <td className="py-2 px-2 text-slate-700 font-semibold">
                     <div className="flex items-center gap-1.5">
                       <User className="w-3.5 h-3.5 text-slate-400" />
                       <span>{log.employeeName || "System"}</span>
                     </div>
                   </td>
 
-                  <td className="py-3.5 px-4">
+                  <td className="py-2 px-2 text-right font-black text-emerald-700">
+                    ₹{Number(log.amount || 0).toLocaleString("en-IN")}
+                  </td>
+
+                  <td className="py-2 px-2">
                     {log.attachmentUrl ? (
                       <a
                         href={log.attachmentUrl}
@@ -515,13 +556,13 @@ export default function WorkHistoryView() {
 
                   <td
                     onClick={() => setSelectedLogModal(log)}
-                    className="py-3.5 px-4 text-slate-600 font-medium max-w-xs truncate cursor-pointer hover:text-indigo-600 hover:underline"
+                    className="py-2 px-2 text-slate-600 font-medium truncate cursor-pointer hover:text-indigo-600 hover:underline"
                     title="Click to view full remarks and record details"
                   >
                     {log.remarks || <span className="text-slate-400 italic">N/A</span>}
                   </td>
 
-                  <td className="py-3.5 px-4 text-center">
+                  <td className="py-2 px-2 text-center">
                     <div className="flex items-center justify-center gap-1.5">
                       <button
                         onClick={() => setSelectedLogModal(log)}
@@ -548,6 +589,7 @@ export default function WorkHistoryView() {
 
                           setEditStatus(log.status || "Pending");
                           setEditRemarks(log.remarks || "");
+                          setEditAmount(String(log.amount || 0));
                           setEditAttachmentUrl(log.attachmentUrl || "");
                           const rawDate = log.workDate || log.createdAt;
                           setEditWorkDate(rawDate ? new Date(rawDate).toISOString().split("T")[0] : new Date().toISOString().split("T")[0]);
@@ -557,6 +599,13 @@ export default function WorkHistoryView() {
                       >
                         <Edit className="w-3 h-3 text-indigo-600" /> Edit
                       </button>
+                      <button
+                        onClick={() => handleDelete(log)}
+                        className="p-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-lg transition-colors"
+                        title="Delete Work Entry"
+                      >
+                        <Trash2 className="w-3 h-3" />
+                      </button>
                     </div>
                   </td>
                 </tr>
@@ -565,7 +614,7 @@ export default function WorkHistoryView() {
 
             {filteredLogs.length === 0 && !loading && (
               <tr>
-                <td colSpan={8} className="text-center py-12 text-slate-400 text-xs font-bold uppercase tracking-wider">
+                <td colSpan={9} className="text-center py-12 text-slate-400 text-xs font-bold uppercase tracking-wider">
                   No Work History Entries Found.
                 </td>
               </tr>
@@ -638,6 +687,11 @@ export default function WorkHistoryView() {
                   <User className="w-3.5 h-3.5 text-slate-500" />
                   {selectedLogModal.employeeName || "System"}
                 </span>
+              </div>
+
+              <div className="flex items-center justify-between p-3.5 bg-emerald-50 rounded-xl border border-emerald-200 text-xs">
+                <span className="font-bold text-emerald-700 uppercase text-[10px] tracking-wider">Amount</span>
+                <span className="font-black text-emerald-800">₹{Number(selectedLogModal.amount || 0).toLocaleString("en-IN")}</span>
               </div>
 
               {/* Attachment Preview Section */}
@@ -835,8 +889,9 @@ export default function WorkHistoryView() {
                 </div>
               </div>
 
-              {/* Work Status Selection */}
-              <div>
+              {/* Work Status and Amount */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
                 <label className="text-xs font-black text-slate-700 uppercase tracking-wider block mb-1.5">
                   Work Status <span className="text-rose-500">*</span>
                 </label>
@@ -849,6 +904,21 @@ export default function WorkHistoryView() {
                   <option value="In Progress">🔄 In Progress</option>
                   <option value="Completed">✅ Completed</option>
                 </select>
+                </div>
+                <div>
+                  <label className="text-xs font-black text-slate-700 uppercase tracking-wider block mb-1.5">
+                    Amount (₹)
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={editAmount}
+                    onChange={(e) => setEditAmount(e.target.value)}
+                    placeholder="Enter amount"
+                    className="w-full text-xs p-3 border-2 border-slate-200 focus:border-emerald-500 rounded-xl bg-slate-50 focus:bg-white font-bold text-slate-800 focus:outline-none transition-all"
+                  />
+                </div>
               </div>
 
               {/* Attachment File Section */}

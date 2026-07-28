@@ -113,7 +113,7 @@ const defaultRoles = [
 export async function GET(req: Request) {
   try {
     await sequelize.authenticate();
-    await Role.sync({ alter: true });
+    await Role.sync();
 
     // Seed default roles if they do not exist
     for (const dr of defaultRoles) {
@@ -206,7 +206,7 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   try {
     await sequelize.authenticate();
-    await Role.sync({ alter: true });
+    await Role.sync();
     const body = await req.json();
     const { name, companyName, companyId, department } = body;
 

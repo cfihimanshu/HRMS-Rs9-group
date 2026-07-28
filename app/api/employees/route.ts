@@ -8,7 +8,7 @@ import Probation from "@/models/sequelize/Probation";
 import bcrypt from "bcryptjs";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { logAudit } from "@/lib/audit";
+import { getRequestIp, logAudit } from "@/lib/audit";
 import { logHRActivity } from "@/lib/hrAudit";
 import { sendEmail } from "@/lib/email";
 import { Op } from "sequelize";
@@ -42,7 +42,7 @@ function getUserCompanies(user: any): string[] {
 export async function GET(req: Request) {
   try {
     await sequelize.authenticate();
-    await EmployeeProfile.sync({ alter: true });
+    await EmployeeProfile.sync();
     const session = await getServerSession(authOptions);
     if (!session || !session.user) {
       return NextResponse.json({ success: false, error: "Unauthorized access" }, { status: 401 });
@@ -170,7 +170,7 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   try {
     await sequelize.authenticate();
-    await EmployeeProfile.sync({ alter: true });
+    await EmployeeProfile.sync();
     const session = await getServerSession(authOptions);
     if (!session || !session.user || !["Owner", "Director", "HR Head", "HR Executive"].includes((session.user as any).role)) {
       return NextResponse.json({ success: false, error: "Unauthorized access" }, { status: 401 });
@@ -554,7 +554,7 @@ export async function PUT(req: Request) {
       await sequelize.query("ALTER TABLE `employeeprofiles` MODIFY COLUMN `allocatedGmail` TEXT;");
       await sequelize.query("ALTER TABLE `employeeprofiles` MODIFY COLUMN `allocatedWhatsapp` TEXT;");
     } catch (_) {}
-    await EmployeeProfile.sync({ alter: true });
+    await EmployeeProfile.sync();
     const session = await getServerSession(authOptions);
     if (!session || !session.user) {
       return NextResponse.json({ success: false, error: "Unauthorized access" }, { status: 401 });
@@ -652,6 +652,14 @@ export async function PUT(req: Request) {
     if (!profile) {
       return NextResponse.json({ success: false, error: "Employee profile not found" }, { status: 404 });
     }
+
+    const userBeforeUpdate = profile.user
+      ? await User.findByPk(profile.user, { raw: true })
+      : null;
+    const beforeSnapshot = {
+      ...profile.toJSON(),
+      userAccount: userBeforeUpdate,
+    };
 
     if (isAdministration && !isOwnerOrDirector && !isHR) {
       const targetUser = await User.findByPk(profile.user, { raw: true });
@@ -773,10 +781,20 @@ export async function PUT(req: Request) {
     // Log Audit Entry
     await logAudit({
       userId: (session.user as any).id,
-      action: "UPDATE_EMPLOYEE_ASSETS",
+      userName: session.user.name,
+      userRole: (session.user as any).role,
+      action: "UPDATE_EMPLOYEE",
       entity: "EmployeeProfile",
       entityId: profile.id,
-      details: `Updated assets/profile for employee ID ${employeeId}.`
+      details: `Updated employee profile ${profile.employeeId || employeeId || profile.id}.`,
+      ipAddress: getRequestIp(req),
+      before: beforeSnapshot,
+      after: {
+        ...profile.toJSON(),
+        userAccount: profile.user
+          ? await User.findByPk(profile.user, { raw: true })
+          : null,
+      },
     });
 
     return NextResponse.json({ success: true, data: profile, message: "Employee profile updated successfully" });

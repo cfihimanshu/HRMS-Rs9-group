@@ -21,7 +21,7 @@ export async function GET(req: Request) {
     const userRole = (session.user as any).role;
 
     await sequelize.authenticate();
-    await AbsentFine.sync({ alter: true });
+    await AbsentFine.sync();
 
     const { searchParams } = new URL(req.url);
     const employeeId = searchParams.get("employeeId");
@@ -83,7 +83,7 @@ export async function POST(req: Request) {
     }
 
     await sequelize.authenticate();
-    await AbsentFine.sync({ alter: true });
+    await AbsentFine.sync();
 
     const body = await req.json();
     const { employeeId, date, fromDate, toDate, amount = 500, reason } = body;

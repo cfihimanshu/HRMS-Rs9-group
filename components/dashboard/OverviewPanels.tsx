@@ -858,7 +858,8 @@ export function DepartmentDashboard({
   userRole,
   selectedDeptId = "all",
   onDeptChange,
-  onNavigateTodayTasks
+  onNavigateTodayTasks,
+  onRefresh
 }: {
   stats: any;
   onNavigateTab: (tab: string) => void;
@@ -866,6 +867,7 @@ export function DepartmentDashboard({
   selectedDeptId?: string;
   onDeptChange?: (dept: string) => void;
   onNavigateTodayTasks?: () => void;
+  onRefresh?: () => void;
 }) {
   const deptStats = stats?.deptStats || {};
   const [isDark, setIsDark] = React.useState(false);
@@ -873,6 +875,8 @@ export function DepartmentDashboard({
   const [showTeamModal, setShowTeamModal] = React.useState(false);
   const [showSodEodModal, setShowSodEodModal] = React.useState(false);
   const [departments, setDepartments] = React.useState<any[]>([]);
+  const [teamSearch, setTeamSearch] = React.useState("");
+  const [attendanceFilter, setAttendanceFilter] = React.useState("all");
 
   React.useEffect(() => {
     setIsDark(document.documentElement.classList.contains("dark"));
@@ -898,11 +902,66 @@ export function DepartmentDashboard({
     return () => observer.disconnect();
   }, []);
 
-  const isGlobal = ["Director", "HR Head", "HR Executive"].includes(userRole || "");
+  const isGlobal = ["Owner", "Director", "HR Head", "HR Executive"].includes(userRole || "");
   const teamList = deptStats.teamList || [];
 
-  // Deduplicate department names for filter dropdown
-  const uniqueDeptNames = Array.from(new Set(departments.map(d => d.name).filter(Boolean)));
+  const uniqueDepartments = departments.filter((department, index, list) =>
+    department?.name && list.findIndex(item => item.name === department.name) === index
+  );
+  const filteredTeamList = teamList.filter((member: any) => {
+    const search = teamSearch.trim().toLowerCase();
+    const matchesSearch = !search || [
+      member.name,
+      member.designation,
+      member.role,
+      member.department
+    ].some(value => String(value || "").toLowerCase().includes(search));
+    const matchesAttendance = attendanceFilter === "all" ||
+      String(member.attendanceStatus || "").toLowerCase() === attendanceFilter;
+    return matchesSearch && matchesAttendance;
+  });
+  const taskCompletionRate = deptStats.tasksToday
+    ? Math.round(((deptStats.completedTasks || 0) / deptStats.tasksToday) * 100)
+    : 0;
+  const sodComplianceRate = deptStats.teamMembers
+    ? Math.round(((deptStats.sod || 0) / deptStats.teamMembers) * 100)
+    : 0;
+  const eodComplianceRate = deptStats.teamMembers
+    ? Math.round(((deptStats.eod || 0) / deptStats.teamMembers) * 100)
+    : 0;
+  const teamWorkload = [...teamList]
+    .sort((a: any, b: any) =>
+      (b.tasksOverdue || 0) - (a.tasksOverdue || 0) ||
+      (b.tasksTotal || 0) - (a.tasksTotal || 0)
+    )
+    .slice(0, 6);
+
+  const exportDepartmentReport = () => {
+    if (teamList.length === 0) return;
+    const rows = teamList.map((member: any) => ({
+      "Employee Name": member.name || "",
+      "Designation": member.designation || member.role || "",
+      "Department": member.department || "",
+      "Employment Status": member.status || "",
+      "Attendance Today": member.attendanceStatus || "Absent",
+      "SOD Time": member.sodTime ? new Date(member.sodTime).toLocaleTimeString("en-IN") : "",
+      "EOD Time": member.eodTime ? new Date(member.eodTime).toLocaleTimeString("en-IN") : "",
+      "Tasks Today": member.tasksTotal || 0,
+      "Tasks Completed": member.tasksCompleted || 0,
+      "Tasks Pending": Math.max(0, (member.tasksTotal || 0) - (member.tasksCompleted || 0)),
+      "Tasks Overdue": member.tasksOverdue || 0
+    }));
+    const workbook = XLSX.utils.book_new();
+    const worksheet = XLSX.utils.json_to_sheet(rows);
+    worksheet["!cols"] = Object.keys(rows[0]).map((key) => ({
+      wch: Math.max(key.length + 2, ...rows.map((row: any) => String(row[key] ?? "").length + 2))
+    }));
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Department Team");
+    XLSX.writeFile(
+      workbook,
+      `Department_Report_${selectedDeptId === "all" ? "All" : selectedDeptId}_${new Date().toISOString().slice(0, 10)}.xlsx`
+    );
+  };
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -930,14 +989,27 @@ export function DepartmentDashboard({
                   }`}
               >
                 <option value="all">All Departments</option>
-                {uniqueDeptNames.map((name: string) => (
-                  <option key={name} value={name}>
-                    {name}
+                {uniqueDepartments.map((department: any) => (
+                  <option key={department.id || department.name} value={department.id || department.name}>
+                    {department.name}
                   </option>
                 ))}
               </select>
             </div>
           )}
+          <button
+            onClick={onRefresh}
+            className="border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 px-3 py-2 rounded-lg text-sm font-semibold transition-colors flex items-center gap-2"
+          >
+            <RotateCw className="w-4 h-4" /> Refresh
+          </button>
+          <button
+            onClick={exportDepartmentReport}
+            disabled={teamList.length === 0}
+            className="border border-emerald-200 bg-emerald-50 hover:bg-emerald-100 disabled:opacity-50 text-emerald-700 px-3 py-2 rounded-lg text-sm font-semibold transition-colors flex items-center gap-2"
+          >
+            <Download className="w-4 h-4" /> Export
+          </button>
           <button
             onClick={() => setShowHiringModal(true)}
             className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors shadow-sm flex items-center gap-2"
@@ -970,20 +1042,48 @@ export function DepartmentDashboard({
                 <X className="w-5 h-5" />
               </button>
             </div>
+            <div className="px-6 pt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <input
+                value={teamSearch}
+                onChange={(event) => setTeamSearch(event.target.value)}
+                placeholder="Search employee, role..."
+                className="border border-slate-200 rounded-lg px-3 py-2 text-xs outline-none focus:border-indigo-400"
+              />
+              <select
+                value={attendanceFilter}
+                onChange={(event) => setAttendanceFilter(event.target.value)}
+                className="border border-slate-200 rounded-lg px-3 py-2 text-xs outline-none focus:border-indigo-400"
+              >
+                <option value="all">All Attendance</option>
+                <option value="present">Present</option>
+                <option value="absent">Absent</option>
+                <option value="on leave">On Leave</option>
+              </select>
+            </div>
             <div className="p-6 max-h-[60vh] overflow-y-auto space-y-3">
-              {teamList.length === 0 ? (
+              {filteredTeamList.length === 0 ? (
                 <p className="text-center text-sm text-slate-400 py-4">No team members found.</p>
               ) : (
-                teamList.map((m: any) => (
+                filteredTeamList.map((m: any) => (
                   <div key={m.id} className={`p-4 rounded-xl border flex items-center justify-between ${isDark ? "bg-gray-800/50 border-gray-700" : "bg-slate-50/50 border-slate-150"}`}>
                     <div>
                       <h4 className="text-sm font-bold">{m.name}</h4>
                       <p className="text-xs text-slate-500 dark:text-gray-400 mt-0.5">
                         {m.designation || m.role} • {m.department}
                       </p>
+                      <p className="text-[10px] text-slate-400 mt-1">
+                        Tasks {m.tasksCompleted || 0}/{m.tasksTotal || 0}
+                        {m.tasksOverdue ? ` • ${m.tasksOverdue} overdue` : ""}
+                      </p>
                     </div>
-                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${m.status === "active" ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-400" : "bg-slate-100 text-slate-600 border-slate-200"}`}>
-                      {m.status === "active" ? "Active" : "Inactive"}
+                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+                      m.attendanceStatus === "Present"
+                        ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                        : m.attendanceStatus === "On Leave"
+                          ? "bg-amber-50 text-amber-700 border-amber-200"
+                          : "bg-rose-50 text-rose-700 border-rose-200"
+                    }`}>
+                      {m.attendanceStatus || "Absent"}
                     </span>
                   </div>
                 ))
@@ -1102,8 +1202,132 @@ export function DepartmentDashboard({
         />
       </div>
 
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
+        <button
+          type="button"
+          onClick={() => onNavigateTodayTasks?.()}
+          className={`p-5 rounded-xl border shadow-sm text-left transition-colors ${isDark ? "bg-gray-900 border-gray-800 hover:border-indigo-700" : "bg-white border-slate-200 hover:border-indigo-300"}`}
+        >
+          <div className="flex items-center justify-between">
+            <h2 className={`text-sm font-bold ${isDark ? "text-white" : "text-slate-800"}`}>Today's Task Pipeline</h2>
+            <span className="text-xs font-bold text-indigo-600">{taskCompletionRate}% done</span>
+          </div>
+          <div className="grid grid-cols-4 gap-2 mt-4 text-center">
+            {[
+              ["Completed", deptStats.completedTasks || 0, "text-emerald-600"],
+              ["In Progress", deptStats.inProgressTasks || 0, "text-amber-600"],
+              ["Pending", deptStats.pendingTasks || 0, "text-slate-600"],
+              ["Overdue", deptStats.overdueTasks || 0, "text-rose-600"]
+            ].map(([label, value, color]) => (
+              <div key={String(label)}>
+                <div className={`text-lg font-bold ${color}`}>{value}</div>
+                <div className="text-[10px] text-slate-500 mt-0.5">{label}</div>
+              </div>
+            ))}
+          </div>
+          <div className={`h-2 rounded-full mt-4 overflow-hidden ${isDark ? "bg-gray-800" : "bg-slate-100"}`}>
+            <div className="h-full bg-indigo-500 rounded-full" style={{ width: `${Math.min(100, taskCompletionRate)}%` }} />
+          </div>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setShowTeamModal(true)}
+          className={`p-5 rounded-xl border shadow-sm text-left transition-colors ${isDark ? "bg-gray-900 border-gray-800 hover:border-emerald-700" : "bg-white border-slate-200 hover:border-emerald-300"}`}
+        >
+          <div className="flex items-center justify-between">
+            <h2 className={`text-sm font-bold ${isDark ? "text-white" : "text-slate-800"}`}>Attendance Today</h2>
+            <Users className="w-4 h-4 text-emerald-500" />
+          </div>
+          <div className="grid grid-cols-3 gap-3 mt-4">
+            {[
+              ["Present", deptStats.presentToday || 0, "bg-emerald-50 text-emerald-700"],
+              ["On Leave", deptStats.onLeaveToday || 0, "bg-amber-50 text-amber-700"],
+              ["Absent", deptStats.absentToday || 0, "bg-rose-50 text-rose-700"]
+            ].map(([label, value, color]) => (
+              <div key={String(label)} className={`rounded-lg p-3 ${color}`}>
+                <div className="text-xl font-bold">{value}</div>
+                <div className="text-[10px] font-semibold mt-1">{label}</div>
+              </div>
+            ))}
+          </div>
+        </button>
+
+        <div className={`p-5 rounded-xl border shadow-sm ${isDark ? "bg-gray-900 border-gray-800" : "bg-white border-slate-200"}`}>
+          <div className="flex items-center justify-between">
+            <h2 className={`text-sm font-bold ${isDark ? "text-white" : "text-slate-800"}`}>Manager Attention</h2>
+            <AlertTriangle className="w-4 h-4 text-amber-500" />
+          </div>
+          <div className="grid grid-cols-2 gap-2 mt-4 text-xs">
+            <button onClick={() => onNavigateTab("ess-leaves")} className="rounded-lg border border-slate-200 p-3 text-left hover:bg-slate-50">
+              <span className="block text-lg font-bold text-indigo-600">{deptStats.pendingLeaves || 0}</span>
+              Pending Leaves
+            </button>
+            <button onClick={() => onNavigateTab("ess-expenses")} className="rounded-lg border border-slate-200 p-3 text-left hover:bg-slate-50">
+              <span className="block text-lg font-bold text-indigo-600">{deptStats.pendingExpenses || 0}</span>
+              Pending Expenses
+            </button>
+            <button onClick={() => setShowSodEodModal(true)} className="rounded-lg border border-slate-200 p-3 text-left hover:bg-slate-50">
+              <span className="block text-lg font-bold text-rose-600">{deptStats.sodPending || 0}</span>
+              SOD Pending
+            </button>
+            <button onClick={() => setShowSodEodModal(true)} className="rounded-lg border border-slate-200 p-3 text-left hover:bg-slate-50">
+              <span className="block text-lg font-bold text-rose-600">{deptStats.eodPending || 0}</span>
+              EOD Pending
+            </button>
+          </div>
+        </div>
+      </div>
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6">
+          <div className={`p-5 rounded-xl border shadow-sm ${isDark ? "bg-gray-900 border-gray-800" : "bg-white border-slate-200"}`}>
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h2 className={`text-lg font-bold ${isDark ? "text-white" : "text-slate-800"}`}>Team Workload Today</h2>
+                <p className="text-xs text-slate-500 mt-0.5">Overdue and high-workload employees appear first</p>
+              </div>
+              <button onClick={() => setShowTeamModal(true)} className="text-xs font-bold text-indigo-600 hover:text-indigo-700">View all</button>
+            </div>
+            {teamWorkload.length === 0 ? (
+              <div className="py-8 text-center text-sm text-slate-400">No team data available for this department.</div>
+            ) : (
+              <div className="divide-y divide-slate-100">
+                {teamWorkload.map((member: any) => {
+                  const completion = member.tasksTotal
+                    ? Math.round(((member.tasksCompleted || 0) / member.tasksTotal) * 100)
+                    : 0;
+                  return (
+                    <div key={member.id} className="grid grid-cols-[minmax(150px,1fr)_minmax(120px,1fr)_70px_80px] items-center gap-3 py-3 text-xs">
+                      <div className="min-w-0">
+                        <div className={`font-bold truncate ${isDark ? "text-gray-100" : "text-slate-700"}`}>{member.name}</div>
+                        <div className="text-[10px] text-slate-400 truncate">{member.designation || member.role || "Team member"}</div>
+                      </div>
+                      <div>
+                        <div className={`h-1.5 rounded-full overflow-hidden ${isDark ? "bg-gray-800" : "bg-slate-100"}`}>
+                          <div className="h-full bg-indigo-500 rounded-full" style={{ width: `${Math.min(100, completion)}%` }} />
+                        </div>
+                        <div className="text-[10px] text-slate-400 mt-1">{member.tasksCompleted || 0}/{member.tasksTotal || 0} completed</div>
+                      </div>
+                      <span className={`font-bold ${member.tasksOverdue ? "text-rose-600" : "text-slate-400"}`}>
+                        {member.tasksOverdue || 0} overdue
+                      </span>
+                      <span className={`text-[10px] font-bold text-center px-2 py-1 rounded-full ${
+                        member.attendanceStatus === "Present"
+                          ? "bg-emerald-50 text-emerald-700"
+                          : member.attendanceStatus === "On Leave"
+                            ? "bg-amber-50 text-amber-700"
+                            : "bg-rose-50 text-rose-700"
+                      }`}>
+                        {member.attendanceStatus || "Absent"}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
           <div className={`p-6 rounded-xl border shadow-sm ${isDark ? "bg-gray-900 border-gray-800" : "bg-white border-slate-200"}`}>
             <div className="flex items-center justify-between mb-4">
               <h2 className={`text-lg font-bold ${isDark ? "text-white" : "text-slate-800"}`}>Team Performance Trends</h2>
@@ -1114,6 +1338,26 @@ export function DepartmentDashboard({
         </div>
 
         <div className="space-y-6">
+          <div className={`p-5 rounded-xl border shadow-sm ${isDark ? "bg-gray-900 border-gray-800" : "bg-white border-slate-200"}`}>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className={`text-sm font-bold ${isDark ? "text-white" : "text-slate-800"}`}>Daily Compliance</h2>
+              <button onClick={() => setShowSodEodModal(true)} className="text-[10px] font-bold text-indigo-600">Inspect</button>
+            </div>
+            {[
+              ["SOD submitted", deptStats.sod || 0, sodComplianceRate, "bg-indigo-500"],
+              ["EOD submitted", deptStats.eod || 0, eodComplianceRate, "bg-emerald-500"]
+            ].map(([label, value, percent, color]) => (
+              <div key={String(label)} className="mb-4 last:mb-0">
+                <div className="flex justify-between text-xs mb-1.5">
+                  <span className="text-slate-500">{label}</span>
+                  <span className={`font-bold ${isDark ? "text-white" : "text-slate-700"}`}>{value}/{deptStats.teamMembers || 0} ({percent}%)</span>
+                </div>
+                <div className={`h-2 rounded-full overflow-hidden ${isDark ? "bg-gray-800" : "bg-slate-100"}`}>
+                  <div className={`h-full rounded-full ${color}`} style={{ width: `${Math.min(100, Number(percent))}%` }} />
+                </div>
+              </div>
+            ))}
+          </div>
           <div className={`p-6 rounded-xl border shadow-sm ${isDark ? "bg-gray-900 border-gray-800" : "bg-white border-slate-200"}`}>
             <div className="flex items-center justify-between mb-6">
               <h2 className={`text-lg font-bold ${isDark ? "text-white" : "text-slate-800"}`}>Team Activity</h2>

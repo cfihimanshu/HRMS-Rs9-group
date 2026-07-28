@@ -7,7 +7,7 @@ import sequelize from "@/lib/sequelize";
 import TaskLog from "@/models/sequelize/TaskLog";
 import User from "@/models/sequelize/User";
 import EmployeeProfile from "@/models/sequelize/EmployeeProfile";
-import { logAudit } from "@/lib/audit";
+import { getRequestIp, logAudit } from "@/lib/audit";
 import { sendEmail } from "@/lib/email";
 import Notification from "@/models/sequelize/Notification";
 import { Op } from "sequelize";
@@ -542,7 +542,7 @@ export async function POST(req: Request) {
     // Auto-create LegalRecoverySchedule entry so tasks created from My Tasks page appear in Schedule Work Report
     try {
       const LegalRecoverySchedule = (sequelize.models as any).LegalRecoverySchedule || (await import("@/models/sequelize/LegalRecoverySchedule")).default;
-      await LegalRecoverySchedule.sync({ alter: true });
+      await LegalRecoverySchedule.sync();
       const todayStr = now.toISOString().split("T")[0];
       const timeStr = now.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: true });
 
@@ -694,6 +694,7 @@ export async function PUT(req: Request) {
     if (!task) {
       return NextResponse.json({ success: false, error: "Task not found" }, { status: 404 });
     }
+    const taskBeforeUpdate = task.toJSON();
 
     // Forward task date to a future date (preserves original date so task remains visible in today's list)
     if (targetDate) {
@@ -766,7 +767,7 @@ export async function PUT(req: Request) {
     // Bi-directional status & proofAttachment sync to LegalRecoverySchedule
     try {
       const LegalRecoverySchedule = (sequelize.models as any).LegalRecoverySchedule || (await import("@/models/sequelize/LegalRecoverySchedule")).default;
-      await LegalRecoverySchedule.sync({ alter: true });
+      await LegalRecoverySchedule.sync();
 
       const schedulesToSync: any[] = [];
 
@@ -892,6 +893,19 @@ export async function PUT(req: Request) {
         console.error("Task completion notification error:", notifErr);
       }
     }
+
+    await logAudit({
+      userId,
+      userName,
+      userRole,
+      action: "UPDATE_TASK",
+      entity: "TaskLog",
+      entityId: String(task.id),
+      details: `${userName} updated task: ${task.taskTitle}.`,
+      ipAddress: getRequestIp(req),
+      before: taskBeforeUpdate,
+      after: task.toJSON(),
+    });
 
     return NextResponse.json({ success: true, data: task });
   } catch (error: any) {

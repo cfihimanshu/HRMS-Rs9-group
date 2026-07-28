@@ -17,8 +17,8 @@ export async function POST(req: Request) {
     const receivedBy = (session.user as any).id || session.user.name || "System";
 
     await sequelize.authenticate();
-    await LegalSecurity.sync({ alter: true });
-    await LegalSecurityPayment.sync({ alter: true });
+    await LegalSecurity.sync();
+    await LegalSecurityPayment.sync();
 
     const body = await req.json();
     const {
@@ -101,7 +101,7 @@ export async function GET(req: Request) {
     const securityId = searchParams.get("securityId");
 
     await sequelize.authenticate();
-    await LegalSecurityPayment.sync({ alter: true });
+    await LegalSecurityPayment.sync();
 
     const whereClause = securityId ? { securityId } : {};
     const payments = await LegalSecurityPayment.findAll({

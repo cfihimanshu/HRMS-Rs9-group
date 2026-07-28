@@ -21,7 +21,7 @@ const DEFAULT_NOTICE_TYPES = [
 export async function GET() {
   try {
     await sequelize.authenticate();
-    await LegalNoticeType.sync({ alter: true });
+    await LegalNoticeType.sync();
 
     // Auto-seed if empty
     const count = await LegalNoticeType.count();
@@ -50,7 +50,7 @@ export async function POST(request: Request) {
     }
 
     await sequelize.authenticate();
-    await LegalNoticeType.sync({ alter: true });
+    await LegalNoticeType.sync();
 
     const [newType, created] = await LegalNoticeType.findOrCreate({
       where: { name: data.name.trim() },
@@ -79,7 +79,7 @@ export async function PUT(request: Request) {
     }
 
     await sequelize.authenticate();
-    await LegalNoticeType.sync({ alter: true });
+    await LegalNoticeType.sync();
 
     const typeRecord = await LegalNoticeType.findByPk(id);
     if (!typeRecord) {
@@ -108,7 +108,7 @@ export async function DELETE(request: Request) {
     }
 
     await sequelize.authenticate();
-    await LegalNoticeType.sync({ alter: true });
+    await LegalNoticeType.sync();
 
     const typeRecord = await LegalNoticeType.findByPk(id);
     if (!typeRecord) {

@@ -3,14 +3,37 @@ import fs from "fs/promises";
 import path from "path";
 import { Client } from "basic-ftp";
 import { Readable } from "stream";
+import { requireApiSession } from "@/lib/apiAuth";
+
+const MAX_UPLOAD_BYTES = 20 * 1024 * 1024;
+const ALLOWED_UPLOAD_TYPES = new Set([
+  "application/pdf",
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+  "text/csv",
+  "application/vnd.ms-excel",
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  "audio/mpeg",
+  "audio/wav",
+  "video/mp4",
+]);
 
 export async function POST(request: Request) {
   try {
+    const auth = await requireApiSession();
+    if (auth.response) return auth.response;
     const formData = await request.formData();
     const file = formData.get("file") as File;
 
     if (!file) {
       return NextResponse.json({ success: false, error: "No file uploaded" }, { status: 400 });
+    }
+    if (file.size <= 0 || file.size > MAX_UPLOAD_BYTES) {
+      return NextResponse.json({ success: false, error: "File must be between 1 byte and 20 MB" }, { status: 413 });
+    }
+    if (!ALLOWED_UPLOAD_TYPES.has(file.type)) {
+      return NextResponse.json({ success: false, error: "Unsupported file type" }, { status: 415 });
     }
 
     const fileName = file.name.toLowerCase();

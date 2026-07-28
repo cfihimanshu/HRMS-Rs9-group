@@ -15,7 +15,7 @@ export async function GET(request: Request) {
     const masterId = searchParams.get("masterId");
 
     await sequelize.authenticate();
-    await LegalWorkHistory.sync({ alter: true });
+    await LegalWorkHistory.sync();
 
     let whereClause: any = {};
     if (category) whereClause.category = category;
@@ -93,7 +93,7 @@ export async function POST(request: Request) {
   try {
     const data = await request.json();
     await sequelize.authenticate();
-    await LegalWorkHistory.sync({ alter: true });
+    await LegalWorkHistory.sync();
 
     const session = await getServerSession(authOptions);
     if (session?.user) {
@@ -121,13 +121,13 @@ export async function POST(request: Request) {
 export async function PUT(request: Request) {
   try {
     const data = await request.json();
-    const { id, status, remarks, category, subCategory, workDate, bankName, branchName, attachmentUrl } = data;
+    const { id, status, remarks, category, subCategory, workDate, bankName, branchName, attachmentUrl, amount } = data;
     if (!id) {
       return NextResponse.json({ success: false, error: "Missing entry ID" }, { status: 400 });
     }
 
     await sequelize.authenticate();
-    await LegalWorkHistory.sync({ alter: true });
+    await LegalWorkHistory.sync();
 
     const entry = await LegalWorkHistory.findByPk(id);
     if (!entry) {
@@ -142,6 +142,7 @@ export async function PUT(request: Request) {
     if (bankName !== undefined) entry.bankName = bankName;
     if (branchName !== undefined) entry.branchName = branchName;
     if (attachmentUrl !== undefined) entry.attachmentUrl = attachmentUrl;
+    if (amount !== undefined) entry.amount = Math.max(0, Number(amount) || 0);
 
     await entry.save();
 
@@ -211,6 +212,35 @@ export async function PUT(request: Request) {
     return NextResponse.json({ success: true, data: entry });
   } catch (error: any) {
     console.error("[/api/legal-recovery/work-history PUT] Error:", error.message);
+    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+  }
+}
+
+export async function DELETE(request: Request) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user) {
+      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
+    }
+    const { searchParams } = new URL(request.url);
+    const id = searchParams.get("id");
+    if (!id) return NextResponse.json({ success: false, error: "Missing entry ID" }, { status: 400 });
+
+    await sequelize.authenticate();
+    const entry = await LegalWorkHistory.findByPk(id);
+    if (!entry) return NextResponse.json({ success: false, error: "Entry not found" }, { status: 404 });
+
+    const role = String((session.user as any).role || "");
+    const userId = String((session.user as any).id || "");
+    const canManage = ["Owner", "Director", "HR Head", "HR Executive", "Department Manager"].includes(role);
+    if (!canManage && String(entry.employeeId || "") !== userId) {
+      return NextResponse.json({ success: false, error: "You cannot delete this entry" }, { status: 403 });
+    }
+
+    await entry.destroy();
+    return NextResponse.json({ success: true });
+  } catch (error: any) {
+    console.error("[/api/legal-recovery/work-history DELETE] Error:", error.message);
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
 }

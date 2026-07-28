@@ -34,7 +34,7 @@ export async function GET(req: Request) {
     }
 
     await sequelize.authenticate();
-    await TaskLog.sync({ alter: true });
+    await TaskLog.sync();
 
     const now = new Date();
     const windowStart = new Date(now.getTime() - 5 * 60 * 1000); // 5 min ago
@@ -130,7 +130,7 @@ export async function GET(req: Request) {
 
         // Insert in-app notifications
         try {
-          await Notification.sync({ alter: true });
+          await Notification.sync();
           
           if (task.employee) {
             await Notification.create({

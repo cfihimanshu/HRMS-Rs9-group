@@ -18,7 +18,7 @@ export async function GET(req: Request) {
 
     const userId = (session.user as any).id;
     await sequelize.authenticate();
-    await EodReport.sync({ alter: true });
+    await EodReport.sync();
 
     const today = new Date();
     today.setUTCHours(0, 0, 0, 0);
@@ -62,7 +62,7 @@ export async function POST(req: Request) {
     }
 
     await sequelize.authenticate();
-    await EodReport.sync({ alter: true });
+    await EodReport.sync();
 
     const today = new Date();
     today.setUTCHours(0, 0, 0, 0);

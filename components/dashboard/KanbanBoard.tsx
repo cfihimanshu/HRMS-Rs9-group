@@ -225,7 +225,20 @@ export default function KanbanBoard({
 
   // Bank / Branch master data (from Legal Recovery)
   const [banksList, setBanksList] = useState<{ id: string | number; bankName: string; bankCode: string }[]>([]);
-  const [branchesList, setBranchesList] = useState<{ id: string | number; branchName: string; branchCode: string }[]>([]);
+  const [branchesList, setBranchesList] = useState<{
+    id: string | number;
+    branchName: string;
+    branchCode: string;
+    bankId?: string | number;
+    rbo?: string;
+    rboName?: string;
+    branchManager?: string;
+    branchManagerContact?: string;
+    aoName?: string;
+    foName?: string;
+    foContact?: string;
+  }[]>([]);
+  const isBillFollowUp = selectedTaskCategory.trim().toLowerCase() === "bill follow up";
 
   // Progress Notes Modal & Task Details
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
@@ -537,13 +550,13 @@ export default function KanbanBoard({
 
     // Build structured description for Bank or Call tasks
     let finalDesc = desc;
-    if (selectedTaskCategory === "Bank" || callCategory === "Bank" || selectedTaskCategory === "Notice") {
+    if (selectedTaskCategory === "Bank" || callCategory === "Bank" || selectedTaskCategory === "Notice" || isBillFollowUp) {
       const customLines = customCallFields
         .filter(f => f.key.trim() && f.value.trim())
         .map(f => `${f.key.trim()}: ${f.value.trim()}`);
 
       finalDesc = [
-        `Category: ${selectedTaskCategory === "Notice" ? "Notice" : "Bank"}${type === "Call" ? ` (${callDirection})` : ` (${bankSubType})`}`,
+        `Category: ${selectedTaskCategory}${type === "Call" ? ` (${callDirection})` : ` (${bankSubType})`}`,
         bankName ? `Bank: ${bankName}` : "",
         branchName ? `Branch: ${branchName}` : "",
         aoName ? `AO: ${aoName}` : "",
@@ -1673,7 +1686,7 @@ export default function KanbanBoard({
                                 setShowAddCategoryInput(false);
                                 setSelectedTaskCategory(val);
                                 setTitle(val);
-                                if (val === "Bank" || val === "Notice") {
+                                if (val === "Bank" || val === "Notice" || val.trim().toLowerCase() === "bill follow up") {
                                   setType("Call");
                                   setCallCategory("Bank");
                                 } else if (val === "Interview") {
@@ -1905,11 +1918,11 @@ export default function KanbanBoard({
                         )}
 
                         {/* ── Sub-Fields (For Bank, Notice or Interview) ── */}
-                        {(selectedTaskCategory === "Bank" || selectedTaskCategory === "Notice" || selectedTaskCategory === "Interview") && (
+                        {(selectedTaskCategory === "Bank" || selectedTaskCategory === "Notice" || selectedTaskCategory === "Interview" || isBillFollowUp) && (
                           <div className="space-y-2 bg-emerald-50 border border-emerald-200 rounded-xl p-3 animate-fade-in text-[#1C1C1A]">
 
                             {/* Bank & Notice — Bank & Branch selection */}
-                            {(selectedTaskCategory === "Bank" || selectedTaskCategory === "Notice" || callCategory === "Bank") && (
+                            {(selectedTaskCategory === "Bank" || selectedTaskCategory === "Notice" || callCategory === "Bank" || isBillFollowUp) && (
                               <div className="space-y-3 animate-fade-in">
 
                                 {/* Case 1: When Task Mode is a Bank Sub-Type (AO related, RBO related, branch related, case related) */}
@@ -1975,6 +1988,8 @@ export default function KanbanBoard({
                                                 setBranchName("");
                                                 setAoName("");
                                                 setRboName("");
+                                                setOfficerName("");
+                                                setOfficerPhone("");
                                                 fetchBranches(bid);
                                               }}
                                               className="w-full border border-emerald-200 rounded-lg px-2 py-2 text-xs font-bold focus:outline-none focus:border-emerald-500 text-slate-700 bg-white"
@@ -2000,8 +2015,21 @@ export default function KanbanBoard({
                                                     setBranchName(brObj.branchName);
                                                     if ((brObj as any).aoName || (brObj as any).ao) setAoName((brObj as any).aoName || (brObj as any).ao || "");
                                                     if ((brObj as any).rbo || (brObj as any).rboName) setRboName((brObj as any).rbo || (brObj as any).rboName || "");
+                                                    setOfficerName(
+                                                      brObj.branchManager ||
+                                                      brObj.aoName ||
+                                                      brObj.foName ||
+                                                      ""
+                                                    );
+                                                    setOfficerPhone(
+                                                      brObj.branchManagerContact ||
+                                                      brObj.foContact ||
+                                                      ""
+                                                    );
                                                   } else {
                                                     setBranchName(selectedVal);
+                                                    setOfficerName("");
+                                                    setOfficerPhone("");
                                                   }
                                                 }}
                                                 disabled={!selectedBankId}
@@ -2074,6 +2102,8 @@ export default function KanbanBoard({
                                             setSelectedBankId(bid);
                                             setBankName(bObj?.bankName || "");
                                             setBranchName("");
+                                            setOfficerName("");
+                                            setOfficerPhone("");
                                             fetchBranches(bid);
                                           }}
                                           className="w-full border border-emerald-200 rounded-lg px-2 py-2 text-xs font-bold focus:outline-none focus:border-emerald-500 text-slate-700 bg-white"
@@ -2089,7 +2119,29 @@ export default function KanbanBoard({
                                         <select
                                           required
                                           value={branchName}
-                                          onChange={e => setBranchName(e.target.value)}
+                                          onChange={e => {
+                                            const selectedBranchName = e.target.value;
+                                            const selectedBranch = branchesList.find(
+                                              branch => branch.branchName === selectedBranchName
+                                            );
+                                            setBranchName(selectedBranchName);
+                                            setRboName(
+                                              selectedBranch?.rbo ||
+                                              selectedBranch?.rboName ||
+                                              ""
+                                            );
+                                            setOfficerName(
+                                              selectedBranch?.branchManager ||
+                                              selectedBranch?.aoName ||
+                                              selectedBranch?.foName ||
+                                              ""
+                                            );
+                                            setOfficerPhone(
+                                              selectedBranch?.branchManagerContact ||
+                                              selectedBranch?.foContact ||
+                                              ""
+                                            );
+                                          }}
                                           disabled={!selectedBankId}
                                           className="w-full border border-emerald-200 rounded-lg px-2 py-2 text-xs font-bold focus:outline-none focus:border-emerald-500 text-slate-700 bg-white disabled:opacity-50"
                                         >
@@ -2100,6 +2152,23 @@ export default function KanbanBoard({
                                         </select>
                                       </div>
                                     </div>
+
+                                    {isBillFollowUp && (
+                                      <SearchableCombobox
+                                        label="RBO (Regional Office) *"
+                                        value={rboName}
+                                        onChange={setRboName}
+                                        options={Array.from(
+                                          new Set(
+                                            branchesList
+                                              .map(branch => branch.rbo || branch.rboName)
+                                              .filter((value): value is string => Boolean(value))
+                                          )
+                                        )}
+                                        placeholder="Type or select RBO..."
+                                        required
+                                      />
+                                    )}
 
                                     {/* Officer Name & Phone for Bank */}
                                     {selectedTaskCategory === "Bank" && (

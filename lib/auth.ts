@@ -11,6 +11,23 @@ import TaskLog from "@/models/sequelize/TaskLog";
 import Notification from "@/models/sequelize/Notification";
 import { Op } from "sequelize";
 
+const LOGIN_WINDOW_MS = 15 * 60 * 1000;
+const LOGIN_MAX_ATTEMPTS = 8;
+const loginAttempts = new Map<string, { count: number; resetAt: number }>();
+
+function enforceLoginRateLimit(key: string) {
+  const now = Date.now();
+  const current = loginAttempts.get(key);
+  if (!current || current.resetAt <= now) {
+    loginAttempts.set(key, { count: 1, resetAt: now + LOGIN_WINDOW_MS });
+    return;
+  }
+  if (current.count >= LOGIN_MAX_ATTEMPTS) {
+    throw new Error("Too many login attempts. Please try again after 15 minutes.");
+  }
+  current.count += 1;
+}
+
 export const authOptions: NextAuthOptions = {
   providers: [
     CredentialsProvider({
@@ -31,6 +48,8 @@ export const authOptions: NextAuthOptions = {
         }
 
         const { loginType, email, password, mobile, otp } = credentials;
+        const forwardedIp = String((req.headers as any)?.["x-forwarded-for"] || "unknown").split(",")[0].trim();
+        enforceLoginRateLimit(`${forwardedIp}:${String(email || mobile || "unknown").toLowerCase()}`);
 
         let user;
 
@@ -67,8 +86,6 @@ export const authOptions: NextAuthOptions = {
           let isValid = false;
           if (user.password && (user.password.startsWith("$2a$") || user.password.startsWith("$2b$"))) {
             isValid = await bcrypt.compare(password, user.password);
-          } else {
-            isValid = (password === user.password);
           }
           if (!isValid) {
             throw new Error("Invalid password");
@@ -83,8 +100,10 @@ export const authOptions: NextAuthOptions = {
           userAgent: (req.headers as any)?.["user-agent"] || "Unknown",
           timestamp: new Date(),
         });
+        loginHistory = loginHistory.slice(-100);
         user.loginHistory = JSON.stringify(loginHistory);
         await user.save();
+        loginAttempts.delete(`${forwardedIp}:${String(email || mobile || "unknown").toLowerCase()}`);
 
         // Write to Audit Log
         await logAudit({
@@ -296,5 +315,10 @@ export const authOptions: NextAuthOptions = {
     strategy: "jwt",
     maxAge: 24 * 60 * 60, // 24 hours
   },
-  secret: process.env.NEXTAUTH_SECRET || "acolyte-hr-secret-key-1234567890",
+  secret: (() => {
+    if (!process.env.NEXTAUTH_SECRET) {
+      throw new Error("NEXTAUTH_SECRET is required");
+    }
+    return process.env.NEXTAUTH_SECRET;
+  })(),
 };
