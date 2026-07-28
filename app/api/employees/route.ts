@@ -11,6 +11,7 @@ import { authOptions } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
 import { logHRActivity } from "@/lib/hrAudit";
 import { sendEmail } from "@/lib/email";
+import { Op } from "sequelize";
 
 function getUserCompanies(user: any): string[] {
   if (!user || !user.companies) return [];
@@ -128,6 +129,7 @@ export async function GET(req: Request) {
 
       return {
         ...empJson,
+        vertical: profile?.vertical || null,
         profilePhoto: profile?.profilePhoto || null,
         reportingManager: profile?.reportingManager || null,
         dailyWorkingHours: profile?.dailyWorkingHours || 8,
@@ -178,7 +180,7 @@ export async function POST(req: Request) {
     const {
       name, email, password, role, mobile, companyId,
       employeeId, designation, dateOfJoining, baseSalary,
-      department, jobTitle, reportingManager, assignedManager, profilePhoto, dailyWorkingHours, workingDays
+      department, vertical, jobTitle, reportingManager, assignedManager, profilePhoto, dailyWorkingHours, workingDays
     } = body;
 
     // Security check: Only an Owner can onboard another Owner
@@ -271,6 +273,7 @@ export async function POST(req: Request) {
       employeeId,
       designation: designation || "Employee",
       department: resolvedDepartmentId,
+      vertical: vertical || null,
       dateOfJoining: dateOfJoining || new Date(),
       baseSalary: baseSalary || 0,
       reportingManager: reportingManager || assignedManager || null,
@@ -593,6 +596,7 @@ export async function PUT(req: Request) {
       role,
       status,
       department,
+      vertical,
       dateOfJoining,
       dateOfBirth,
       gender,
@@ -613,11 +617,38 @@ export async function PUT(req: Request) {
       profilePhoto
     } = body;
 
-    if (!employeeId) {
-      return NextResponse.json({ success: false, error: "Missing employeeId" }, { status: 400 });
+    const targetUserId = body.userId;
+
+    let profile = null;
+    if (employeeId) {
+      profile = await EmployeeProfile.findOne({ where: { employeeId } });
+    }
+    if (!profile && (targetUserId || employeeId)) {
+      profile = await EmployeeProfile.findOne({ where: { user: targetUserId || employeeId } });
+    }
+    if (!profile) {
+      const searchId = targetUserId || employeeId;
+      if (searchId) {
+        const userDoc = await User.findOne({
+          where: {
+            [Op.or]: [
+              { id: searchId },
+              ...(email ? [{ email }] : [])
+            ]
+          }
+        });
+        if (userDoc) {
+          profile = await EmployeeProfile.create({
+            id: Date.now().toString(),
+            user: userDoc.id,
+            employeeId: employeeId || userDoc.id,
+            designation: designation || "Employee",
+            vertical: vertical || null
+          });
+        }
+      }
     }
 
-    const profile = await EmployeeProfile.findOne({ where: { employeeId } });
     if (!profile) {
       return NextResponse.json({ success: false, error: "Employee profile not found" }, { status: 404 });
     }
@@ -666,6 +697,7 @@ export async function PUT(req: Request) {
     if (allocatedWhatsapp !== undefined) profile.allocatedWhatsapp = allocatedWhatsapp;
     if (designation !== undefined) profile.designation = designation;
     if (baseSalary !== undefined) profile.baseSalary = baseSalary;
+    if (vertical !== undefined) profile.vertical = vertical;
     if (department !== undefined) {
       let resolvedDepartmentId = department;
       if (department && profile.user) {

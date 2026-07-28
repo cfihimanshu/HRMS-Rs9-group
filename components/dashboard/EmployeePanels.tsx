@@ -26,6 +26,7 @@ const departmentRoles: Record<string, string[]> = {
 export default function EmployeeDirectory({ userRole, triggerToast, sessionUser }: EmployeeDirectoryProps) {
   const [employees, setEmployees] = useState<any[]>([]);
   const [companies, setCompanies] = useState<any[]>([]);
+  const [verticals, setVerticals] = useState<any[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [showAddForm, setShowAddForm] = useState(false);
   const [isOnboardingOwner, setIsOnboardingOwner] = useState(false);
@@ -33,6 +34,7 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
   const [search, setSearch] = useState<string>("");
   const [filterRole, setFilterRole] = useState<string>("All");
   const [filterCompany, setFilterCompany] = useState<string>("All");
+  const [filterVertical, setFilterVertical] = useState<string>("All");
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
 
@@ -155,6 +157,7 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
     companyId: "",
     employeeId: "",
     designation: "Employee",
+    vertical: "",
     dateOfJoining: "",
     baseSalary: "",
     department: "Human Resources (HR)",
@@ -187,7 +190,7 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
       const data = await res.json();
       if (data.success && data.data) {
         triggerToast("Company created successfully!");
-        
+
         const updatedCompRes = await fetch("/api/companies");
         const updatedCompData = await updatedCompRes.json();
         if (updatedCompData.success && updatedCompData.data) {
@@ -212,18 +215,21 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
   const fetchData = async () => {
     try {
       setLoading(true);
-      const [empRes, compRes, roleRes, desigRes] = await Promise.all([
+      const [empRes, compRes, roleRes, desigRes, vertRes] = await Promise.all([
         fetch("/api/employees"),
         fetch("/api/companies"),
         fetch("/api/roles"),
-        fetch("/api/designations")
+        fetch("/api/designations"),
+        fetch("/api/verticals")
       ]);
       const empData = await empRes.json();
       const compData = await compRes.json();
       const roleData = await roleRes.json();
       const desigData = await desigRes.json();
+      const vertData = await vertRes.json();
       if (empData.success) setEmployees(empData.data);
       if (compData.success) setCompanies(compData.data);
+      if (vertData.success) setVerticals(vertData.data || []);
       if (roleData.success && roleData.data) {
         setDbRoles(roleData.data);
       }
@@ -370,7 +376,7 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
         setIsDeptManager(false);
         setFormData({
           name: "", email: "", password: "", role: "HR Executive", mobile: "",
-          companyId: "", employeeId: "", designation: "Employee", dateOfJoining: "", baseSalary: "",
+          companyId: "", employeeId: "", designation: "Employee", vertical: "", dateOfJoining: "", baseSalary: "",
           department: "Human Resources (HR)", jobTitle: "HR Executive", reportingManager: "", assignedManager: "",
           profilePhoto: "", dailyWorkingHours: "8", workingDays: "Mon,Tue,Wed,Thu,Fri,Sat"
         });
@@ -556,6 +562,7 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
   const [updating, setUpdating] = useState(false);
   const [editForm, setEditForm] = useState({
     employeeId: "",
+    userId: "",
     companyId: "",
     name: "",
     email: "",
@@ -564,6 +571,7 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
     status: "active",
     designation: "",
     department: "",
+    vertical: "",
     dateOfJoining: "",
     baseSalary: "",
     gender: "",
@@ -586,9 +594,75 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
   const [showEditCustomDeptInput, setShowEditCustomDeptInput] = useState(false);
   const [showEditCustomRoleInput, setShowEditCustomRoleInput] = useState(false);
   const [showEditCustomDesignationInput, setShowEditCustomDesignationInput] = useState(false);
+  const [showCustomVerticalInput, setShowCustomVerticalInput] = useState(false);
+  const [customVerticalName, setCustomVerticalName] = useState("");
+  const [customVerticalCode, setCustomVerticalCode] = useState("");
+  const [showEditCustomVerticalInput, setShowEditCustomVerticalInput] = useState(false);
+  const [editCustomVerticalName, setEditCustomVerticalName] = useState("");
+  const [editCustomVerticalCode, setEditCustomVerticalCode] = useState("");
   const [editCustomDeptName, setEditCustomDeptName] = useState("");
   const [editCustomRoleName, setEditCustomRoleName] = useState("");
   const [editCustomDesignationName, setEditCustomDesignationName] = useState("");
+
+  const handleAddCustomVertical = async () => {
+    if (!customVerticalName.trim()) {
+      triggerToast("Vertical name cannot be empty");
+      return;
+    }
+    const code = customVerticalCode.trim() || customVerticalName.trim().slice(0, 4).toUpperCase();
+    try {
+      const res = await fetch("/api/verticals", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: customVerticalName.trim(), code })
+      });
+      const data = await res.json();
+      if (data.success) {
+        triggerToast(`Vertical "${customVerticalName.trim()}" created in Database!`);
+        setShowCustomVerticalInput(false);
+        setCustomVerticalName("");
+        setCustomVerticalCode("");
+        const vertRes = await fetch("/api/verticals");
+        const vertData = await vertRes.json();
+        if (vertData.success) setVerticals(vertData.data || []);
+        setFormData(prev => ({ ...prev, vertical: data.data.name }));
+      } else {
+        triggerToast("Failed to create vertical: " + data.error);
+      }
+    } catch (err) {
+      triggerToast("Error creating vertical");
+    }
+  };
+
+  const handleEditAddCustomVertical = async () => {
+    if (!editCustomVerticalName.trim()) {
+      triggerToast("Vertical name cannot be empty");
+      return;
+    }
+    const code = editCustomVerticalCode.trim() || editCustomVerticalName.trim().slice(0, 4).toUpperCase();
+    try {
+      const res = await fetch("/api/verticals", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: editCustomVerticalName.trim(), code })
+      });
+      const data = await res.json();
+      if (data.success) {
+        triggerToast(`Vertical "${editCustomVerticalName.trim()}" created in Database!`);
+        setShowEditCustomVerticalInput(false);
+        setEditCustomVerticalName("");
+        setEditCustomVerticalCode("");
+        const vertRes = await fetch("/api/verticals");
+        const vertData = await vertRes.json();
+        if (vertData.success) setVerticals(vertData.data || []);
+        setEditForm(prev => ({ ...prev, vertical: data.data.name }));
+      } else {
+        triggerToast("Failed to create vertical: " + data.error);
+      }
+    } catch (err) {
+      triggerToast("Error creating vertical");
+    }
+  };
 
   const handleEditAddCustomDept = async () => {
     if (!editCustomDeptName.trim()) {
@@ -726,6 +800,7 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
 
     setEditForm({
       employeeId: profile.employeeId || "",
+      userId: emp.id || profile.user || "",
       companyId: (emp.companies && emp.companies[0]) ? (typeof emp.companies[0] === 'object' ? emp.companies[0].id : emp.companies[0]) : "",
       name: emp.name || "",
       email: emp.email || "",
@@ -734,6 +809,7 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
       status: emp.status || "active",
       designation: profile.designation || "",
       department: typeof profile.department === "object" ? (profile.department?.name || "") : (profile.department || ""),
+      vertical: emp.vertical || profile.vertical || "",
       dateOfJoining: formatDate(profile.dateOfJoining),
       baseSalary: profile.baseSalary !== undefined ? String(profile.baseSalary) : "",
       gender: profile.gender || "",
@@ -806,6 +882,15 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
   const availableDepartments = dbRoles.length > 0
     ? Array.from(new Set(dbRoles.map((r: any) => r.department).filter(Boolean))).sort()
     : defaultDepts;
+
+  const defaultVerticalList = [
+    { id: "vert_legal_recovery", name: "Legal Recovery", code: "LR" },
+    { id: "vert_security", name: "Security", code: "SEC" },
+    { id: "vert_media_gpde", name: "Media GPDE", code: "MGPDE" },
+    { id: "vert_startup_consultancy", name: "Startup / Business Consultancy", code: "SBC" },
+    { id: "vert_delivery_courier", name: "Delivery / Courier", code: "DEL" }
+  ];
+  const availableVerticals = verticals.length > 0 ? verticals : defaultVerticalList;
 
   // const allowedCompanies = ["CFI", "RAA", "CTPL", "ATPL", "RNPL", "MVPL"];
 
@@ -890,6 +975,13 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
       });
     }
 
+    // Vertical filter from UI dropdown
+    let matchesVerticalFilter = true;
+    if (filterVertical !== "All") {
+      const empVert = emp.vertical || emp.employeeProfile?.vertical || "";
+      matchesVerticalFilter = empVert === filterVertical;
+    }
+
     // Role-based visibility check
     let matchesCompany = true;
     const normalizedRole = (userRole || "").trim().toLowerCase();
@@ -905,7 +997,7 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
       }
     }
 
-    return matchesSearch && matchesFilter && matchesCompanyFilter && matchesCompany;
+    return matchesSearch && matchesFilter && matchesCompanyFilter && matchesVerticalFilter && matchesCompany;
   });
 
   // Filter top company dropdown options based on role
@@ -980,11 +1072,11 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
     : dbDesignations.filter((d: any) => d.department_id === "global").length > 0
       ? [...dbDesignations.filter((d: any) => d.department_id === "global")]
       : [
-          { id: "desig_intern", name: "Intern" },
-          { id: "desig_employee", name: "Employee" },
-          { id: "desig_dept_head", name: "Department Head" },
-          { id: "desig_manager", name: "Manager" }
-        ];
+        { id: "desig_intern", name: "Intern" },
+        { id: "desig_employee", name: "Employee" },
+        { id: "desig_dept_head", name: "Department Head" },
+        { id: "desig_manager", name: "Manager" }
+      ];
   if (!displayDesignations.some((d: any) => (d.name || "").toLowerCase() === "employee")) {
     displayDesignations.push({ id: "desig_employee_default", name: "Employee" });
   }
@@ -998,11 +1090,11 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
     : dbDesignations.filter((d: any) => d.department_id === "global").length > 0
       ? [...dbDesignations.filter((d: any) => d.department_id === "global")]
       : [
-          { id: "desig_intern", name: "Intern" },
-          { id: "desig_employee", name: "Employee" },
-          { id: "desig_dept_head", name: "Department Head" },
-          { id: "desig_manager", name: "Manager" }
-        ];
+        { id: "desig_intern", name: "Intern" },
+        { id: "desig_employee", name: "Employee" },
+        { id: "desig_dept_head", name: "Department Head" },
+        { id: "desig_manager", name: "Manager" }
+      ];
   if (!editDisplayDesignations.some((d: any) => (d.name || "").toLowerCase() === "employee")) {
     editDisplayDesignations.push({ id: "desig_employee_default", name: "Employee" });
   }
@@ -1020,7 +1112,7 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
     let empComps: any[] = [];
     if (Array.isArray(emp.companies)) empComps = emp.companies;
     else if (typeof emp.companies === "string") { try { empComps = JSON.parse(emp.companies); } catch { empComps = []; } }
-    
+
     return empComps.some((c: any) => (typeof c === "string" ? c : c?.id?.toString()) === currentCompanyId);
   });
 
@@ -1044,9 +1136,9 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
                 } else {
                   setShowAddForm(true);
                   setIsOnboardingOwner(false);
-                   setFormData({
+                  setFormData({
                     name: "", email: "", password: "", role: "HR Executive", mobile: "",
-                    companyId: "", employeeId: "", designation: "Employee", dateOfJoining: "", baseSalary: "",
+                    companyId: "", employeeId: "", designation: "Employee", vertical: "", dateOfJoining: "", baseSalary: "",
                     department: "Human Resources (HR)", jobTitle: "HR Executive", reportingManager: "", assignedManager: "",
                     profilePhoto: "", dailyWorkingHours: "8", workingDays: "Mon,Tue,Wed,Thu,Fri,Sat"
                   });
@@ -1066,7 +1158,7 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
                   setIsOnboardingOwner(false);
                   setFormData({
                     name: "", email: "", password: "", role: "HR Executive", mobile: "",
-                    companyId: "", employeeId: "", designation: "Employee", dateOfJoining: "", baseSalary: "",
+                    companyId: "", employeeId: "", designation: "Employee", vertical: "", dateOfJoining: "", baseSalary: "",
                     department: "Human Resources (HR)", jobTitle: "HR Executive", reportingManager: "", assignedManager: "",
                     profilePhoto: "", dailyWorkingHours: "8", workingDays: "Mon,Tue,Wed,Thu,Fri,Sat"
                   });
@@ -1099,7 +1191,7 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
 
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
-              
+
               {/* Left Column: Personal Information */}
               <div className="space-y-6">
                 <div className="flex items-center gap-2 mb-2 pb-2 border-b border-dashed border-slate-200 dark:border-gray-800">
@@ -1186,8 +1278,8 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
 
                 {!isOnboardingOwner ? (
                   <div className="space-y-4">
-                    {/* Row 1: Company & Department */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {/* Row 1: Company, Business Vertical & Department */}
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                       <div>
                         <label className={`block text-xs font-bold mb-1.5 ${isDark ? "text-indigo-400" : "text-indigo-600"}`}>Company *</label>
                         <select
@@ -1230,6 +1322,54 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
                               />
                               <button type="button" onClick={handleAddCustomCompany} className="bg-indigo-600 hover:bg-indigo-700 text-white text-xs px-3 py-1.5 rounded font-bold transition-all">Add</button>
                               <button type="button" onClick={() => { setShowCustomCompanyInput(false); setCustomCompanyName(""); setCustomCompanyCode(""); }} className={`text-xs px-3 py-1.5 rounded font-bold border transition-all ${isDark ? "bg-gray-800 border-gray-700 text-gray-300 hover:bg-gray-700" : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"}`}>Cancel</button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Business Vertical Selection */}
+                      <div>
+                        <label className={`block text-xs font-bold mb-1.5 ${isDark ? "text-[#C9A84C]" : "text-[#B3923E]"}`}>Business Vertical *</label>
+                        <select
+                          name="vertical"
+                          value={formData.vertical}
+                          onChange={(e) => {
+                            if (e.target.value === "add_custom_vertical") {
+                              setShowCustomVerticalInput(true);
+                            } else {
+                              setShowCustomVerticalInput(false);
+                              handleChange(e);
+                            }
+                          }}
+                          className={`w-full p-2.5 rounded-lg border text-sm font-bold focus:border-indigo-500 focus:outline-none transition-all ${isDark ? "bg-gray-800 border-gray-700 text-white" : "bg-white border-slate-300 hover:border-indigo-400"}`}
+                        >
+                          <option value="">-- Select Vertical --</option>
+                          {availableVerticals.map((v: any) => (
+                            <option key={v.id} value={v.name}>{v.name} ({v.code || 'V'})</option>
+                          ))}
+                          <option value="add_custom_vertical">+ Add Custom Vertical...</option>
+                        </select>
+                        {showCustomVerticalInput && (
+                          <div className="mt-2 p-3 border border-dashed rounded bg-slate-50 dark:bg-gray-800 space-y-2">
+                            <div>
+                              <input
+                                type="text"
+                                value={customVerticalName}
+                                onChange={e => setCustomVerticalName(e.target.value)}
+                                placeholder="Vertical Name (e.g. Real Estate)"
+                                className={`w-full p-2 rounded border text-xs focus:outline-none focus:border-indigo-500 ${isDark ? "bg-gray-850 border-gray-700 text-white" : "bg-white border-slate-200 text-slate-700"}`}
+                              />
+                            </div>
+                            <div className="flex gap-2">
+                              <input
+                                type="text"
+                                value={customVerticalCode}
+                                onChange={e => setCustomVerticalCode(e.target.value)}
+                                placeholder="Code (e.g. RE)"
+                                className={`flex-1 p-2 rounded border text-xs focus:outline-none focus:border-indigo-500 ${isDark ? "bg-gray-850 border-gray-700 text-white" : "bg-white border-slate-200 text-slate-700"}`}
+                              />
+                              <button type="button" onClick={handleAddCustomVertical} className="bg-indigo-600 hover:bg-indigo-700 text-white text-xs px-3 py-1.5 rounded font-bold transition-all">Add to DB</button>
+                              <button type="button" onClick={() => { setShowCustomVerticalInput(false); setCustomVerticalName(""); setCustomVerticalCode(""); }} className={`text-xs px-3 py-1.5 rounded font-bold border transition-all ${isDark ? "bg-gray-800 border-gray-700 text-gray-300 hover:bg-gray-700" : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"}`}>Cancel</button>
                             </div>
                           </div>
                         )}
@@ -1288,10 +1428,10 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
                               onChange={e => setCustomRoleName(e.target.value)}
                               placeholder="New Role Name"
                               className={`flex-1 p-2 rounded border text-xs focus:outline-none focus:border-indigo-500 ${isDark ? "bg-gray-800 border-gray-700 text-white" : "bg-slate-50 border-slate-200 text-slate-700"}`}
-                        />
+                            />
                             <button type="button" onClick={handleAddCustomRole} className="bg-indigo-600 hover:bg-indigo-700 text-white text-xs px-3 py-1.5 rounded font-bold transition-all">Add</button>
                             <button type="button" onClick={() => { setShowCustomRoleInput(false); setCustomRoleName(""); }} className={`text-xs px-3 py-1.5 rounded font-bold border transition-all ${isDark ? "bg-gray-800 border-gray-700 text-gray-300 hover:bg-gray-700" : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"}`}>Cancel</button>
-                      </div>
+                          </div>
                         )}
                       </div>
 
@@ -1407,11 +1547,10 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
                                   }
                                   setFormData(prev => ({ ...prev, workingDays: newDays.join(",") }));
                                 }}
-                                className={`w-8 h-8 rounded-lg text-[10px] font-black uppercase transition-all shadow-sm border ${
-                                  isWorking
+                                className={`w-8 h-8 rounded-lg text-[10px] font-black uppercase transition-all shadow-sm border ${isWorking
                                     ? "bg-blue-600 border-blue-600 text-white hover:bg-blue-700"
                                     : "bg-white dark:bg-gray-850 border-slate-250 dark:border-gray-750 text-slate-500 dark:text-gray-450 hover:bg-slate-50"
-                                }`}
+                                  }`}
                               >
                                 {day.slice(0, 1)}
                               </button>
@@ -1481,6 +1620,19 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
                   <option value="All">All Companies</option>
                   {companies.map((c) => (
                     <option key={c.id} value={c.id}>{c.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className={`text-xs font-bold font-mono ${isDark ? "text-gray-400" : "text-slate-500"}`}>Vertical Filter:</span>
+                <select
+                  className={`border rounded-lg px-3 py-2 text-xs font-semibold focus:outline-none focus:border-indigo-500 ${isDark ? "bg-gray-800 border-gray-700 text-gray-300" : "bg-slate-50 border-slate-200 text-slate-700"}`}
+                  value={filterVertical}
+                  onChange={e => setFilterVertical(e.target.value)}
+                >
+                  <option value="All">All Verticals</option>
+                  {verticals.map((v) => (
+                    <option key={v.id} value={v.name}>{v.name}</option>
                   ))}
                 </select>
               </div>
@@ -1568,6 +1720,11 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
                                   {emp.employeeProfile.department && (
                                     <div className="text-[10px] text-slate-450 dark:text-gray-400 italic">
                                       Dept: {typeof emp.employeeProfile.department === "object" ? emp.employeeProfile.department.name : emp.employeeProfile.department}
+                                      {(emp.vertical || emp.employeeProfile.vertical) && (
+                                        <span className="ml-1 px-1.5 py-0.2 rounded bg-purple-100 dark:bg-purple-950/50 text-purple-700 dark:text-purple-300 not-italic font-semibold">
+                                          {emp.vertical || emp.employeeProfile.vertical}
+                                        </span>
+                                      )}
                                     </div>
                                   )}
                                 </div>
@@ -1673,11 +1830,10 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
                                               return (
                                                 <span
                                                   key={day}
-                                                  className={`px-1.5 py-0.5 rounded text-[8px] font-black uppercase border ${
-                                                    isWorking
+                                                  className={`px-1.5 py-0.5 rounded text-[8px] font-black uppercase border ${isWorking
                                                       ? "bg-blue-600 border-blue-600 text-white"
                                                       : "bg-white dark:bg-gray-800 border-slate-200 dark:border-gray-700 text-slate-400"
-                                                  }`}
+                                                    }`}
                                                 >
                                                   {day.slice(0, 1)}
                                                 </span>
@@ -1817,20 +1973,69 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {/* Company (disabled) */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {/* Company */}
                   <div>
-                    <label className="block text-xs font-bold mb-1.5 text-slate-700 dark:text-gray-300">Company</label>
+                    <label className="block text-xs font-bold mb-1.5 text-slate-700 dark:text-gray-300">Company *</label>
                     <select
-                      disabled
                       value={editForm.companyId || (employees.find(emp => emp.id === editForm.employeeId)?.employeeProfile?.companyId || "")}
-                      className="w-full p-2.5 rounded-lg border text-sm focus:outline-none opacity-60 cursor-not-allowed bg-slate-200 border-slate-200 text-slate-655 dark:bg-gray-850 dark:border-gray-700 dark:text-gray-400 font-semibold"
+                      onChange={(e) => setEditForm(prev => ({ ...prev, companyId: e.target.value }))}
+                      className={`w-full p-2.5 rounded-lg border text-sm focus:border-indigo-500 focus:outline-none ${isDark ? "bg-gray-800 border-gray-700 text-white" : "bg-slate-50 border-slate-200 font-semibold"}`}
                     >
                       <option value="">-- Assigned Company --</option>
                       {companies.map(c => (
                         <option key={c.id} value={c.id}>{c.name} ({c.code})</option>
                       ))}
                     </select>
+                  </div>
+
+                  {/* Business Vertical */}
+                  <div>
+                    <label className="block text-xs font-bold mb-1.5 text-indigo-600 dark:text-indigo-400 flex items-center justify-between">
+                      <span>Business Vertical *</span>
+                    </label>
+                    <select
+                      value={editForm.vertical}
+                      onChange={(e) => {
+                        if (e.target.value === "add_custom_vertical") {
+                          setShowEditCustomVerticalInput(true);
+                        } else {
+                          setShowEditCustomVerticalInput(false);
+                          setEditForm(prev => ({ ...prev, vertical: e.target.value }));
+                        }
+                      }}
+                      className={`w-full p-2.5 rounded-lg border text-sm font-bold focus:border-purple-500 focus:outline-none border-purple-200 dark:border-purple-900/60 ${isDark ? "bg-gray-800 text-white" : "bg-purple-50/20 text-slate-800"}`}
+                    >
+                      <option value="">-- Select Business Vertical --</option>
+                      {availableVerticals.map((v: any) => (
+                        <option key={v.id} value={v.name}>{v.name} ({v.code || 'V'})</option>
+                      ))}
+                      <option value="add_custom_vertical">+ Add Custom Vertical...</option>
+                    </select>
+                    {showEditCustomVerticalInput && (
+                      <div className="mt-2 p-3 border border-dashed rounded bg-purple-50/40 dark:bg-gray-800 space-y-2">
+                        <div>
+                          <input
+                            type="text"
+                            value={editCustomVerticalName}
+                            onChange={e => setEditCustomVerticalName(e.target.value)}
+                            placeholder="Vertical Name (e.g. Real Estate)"
+                            className={`w-full p-2 rounded border text-xs focus:outline-none focus:border-purple-500 ${isDark ? "bg-gray-850 border-gray-700 text-white" : "bg-white border-slate-200 text-slate-700"}`}
+                          />
+                        </div>
+                        <div className="flex gap-2">
+                          <input
+                            type="text"
+                            value={editCustomVerticalCode}
+                            onChange={e => setEditCustomVerticalCode(e.target.value)}
+                            placeholder="Code (e.g. RE)"
+                            className={`flex-1 p-2 rounded border text-xs focus:outline-none focus:border-purple-500 ${isDark ? "bg-gray-850 border-gray-700 text-white" : "bg-white border-slate-200 text-slate-700"}`}
+                          />
+                          <button type="button" onClick={handleEditAddCustomVertical} className="bg-purple-600 hover:bg-purple-700 text-white text-xs px-3 py-1.5 rounded font-bold transition-all shadow-sm">Save to DB</button>
+                          <button type="button" onClick={() => { setShowEditCustomVerticalInput(false); setEditCustomVerticalName(""); setEditCustomVerticalCode(""); }} className={`text-xs px-3 py-1.5 rounded font-bold border transition-all ${isDark ? "bg-gray-800 border-gray-700 text-gray-300 hover:bg-gray-700" : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"}`}>Cancel</button>
+                        </div>
+                      </div>
+                    )}
                   </div>
 
                   {/* Employee ID (read-only) */}
@@ -2103,11 +2308,10 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
                               }
                               setEditForm(prev => ({ ...prev, workingDays: newDays.join(",") }));
                             }}
-                            className={`w-8 h-8 rounded-lg text-[10px] font-black uppercase transition-all shadow-sm border ${
-                              isWorking
+                            className={`w-8 h-8 rounded-lg text-[10px] font-black uppercase transition-all shadow-sm border ${isWorking
                                 ? "bg-blue-600 border-blue-600 text-white hover:bg-blue-700"
                                 : "bg-white dark:bg-gray-850 border-slate-250 dark:border-gray-750 text-slate-500 dark:text-gray-450 hover:bg-slate-50"
-                            }`}
+                              }`}
                           >
                             {day.slice(0, 1)}
                           </button>

@@ -34,10 +34,82 @@ LegalWorkLog.init(
       type: DataTypes.TEXT,
       allowNull: true,
     },
+    workLocation: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    customLocation: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    typeOfWork: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    bankName: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    branchName: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
     workDate: {
       type: DataTypes.DATE,
       allowNull: true,
       defaultValue: DataTypes.NOW,
+    },
+    businessDevOption: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    businessDevSubOption: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    noOfCount: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    allocationDate: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    broughtBy: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    preparedBy: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    printedBy: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    dispatchedBy: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    billDate: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    billAmount: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    billNo: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    personName: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    uploadedFileName: {
+      type: DataTypes.STRING,
+      allowNull: true,
     },
   },
   {

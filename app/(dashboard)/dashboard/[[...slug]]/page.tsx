@@ -31,6 +31,7 @@ import {
   ProbationEvaluation
 } from "@/components/dashboard/OnboardingPanels";
 import { DailyCommitments, PerformanceCompliance, LeaveRequestTab } from "@/components/dashboard/OpsPanels";
+import ScheduledWorkPanel from "@/components/dashboard/ScheduledWorkPanel";
 import { FieldVisitLogs } from "@/components/dashboard/FieldVisitPanels";
 import {
   BusinessAssociates,
@@ -1354,6 +1355,13 @@ export default function UnifiedEnterpriseDashboard() {
               handleAttendancePunch={handleAttendancePunch}
               handleSodSubmit={handleSodSubmit}
               handleEodSubmit={handleEodSubmit}
+            />
+          )}
+
+          {activeTab === "scheduled-work" && (
+            <ScheduledWorkPanel
+              sessionUser={session?.user}
+              triggerToast={triggerToast}
             />
           )}
 

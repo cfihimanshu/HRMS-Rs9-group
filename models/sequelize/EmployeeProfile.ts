@@ -7,6 +7,7 @@ class EmployeeProfile extends Model {
   public employeeId!: string;
   public designation!: string;
   public department!: string;
+  public vertical!: string;
   public dateOfJoining!: Date;
   public dateOfBirth!: Date;
   public gender!: string;
@@ -50,6 +51,10 @@ EmployeeProfile.init(
       allowNull: true,
     },
     department: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    vertical: {
       type: DataTypes.STRING,
       allowNull: true,
     },

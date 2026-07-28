@@ -73,6 +73,86 @@ const TYPE_COLORS: Record<string, string> = {
   Other: "bg-slate-100 text-slate-600 border-slate-200",
 };
 
+const SearchableCombobox = ({
+  label,
+  value,
+  onChange,
+  options,
+  placeholder,
+  required = false
+}: {
+  label: string;
+  value: string;
+  onChange: (val: string) => void;
+  options: string[];
+  placeholder: string;
+  required?: boolean;
+}) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const filteredOptions = options.filter(opt =>
+    opt && opt.toLowerCase().includes((value || "").toLowerCase())
+  );
+
+  return (
+    <div className="relative font-sans" ref={containerRef}>
+      <label className="block text-[9px] uppercase tracking-wider text-emerald-700 font-black mb-1">{label}</label>
+      <div className="relative">
+        <input
+          type="text"
+          required={required}
+          value={value}
+          onFocus={() => setIsOpen(true)}
+          onChange={e => {
+            onChange(e.target.value);
+            setIsOpen(true);
+          }}
+          placeholder={placeholder}
+          className="w-full border border-emerald-200 rounded-lg px-2.5 py-2 text-xs font-bold focus:outline-none focus:border-emerald-500 placeholder-slate-400 text-slate-800 bg-white shadow-2xs pr-7"
+        />
+        <div
+          onClick={() => setIsOpen(prev => !prev)}
+          className="absolute right-2 top-2.5 cursor-pointer text-emerald-600 hover:text-emerald-800 text-[10px]"
+        >
+          ▼
+        </div>
+      </div>
+      {isOpen && (
+        <div className="absolute z-50 left-0 right-0 mt-1 bg-white border border-emerald-300 rounded-xl shadow-2xl max-h-40 overflow-y-auto divide-y divide-slate-100 font-sans animate-fade-in">
+          {filteredOptions.length > 0 ? (
+            filteredOptions.map((opt, i) => (
+              <div
+                key={i}
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  onChange(opt);
+                  setIsOpen(false);
+                }}
+                className="px-3 py-2 text-xs font-bold text-slate-800 hover:bg-emerald-50 hover:text-emerald-900 cursor-pointer transition-colors"
+              >
+                {opt}
+              </div>
+            ))
+          ) : (
+            <div className="px-3 py-2 text-xs text-slate-400 italic">No matching options found (keep typing for custom)</div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
+
 export default function KanbanBoard({
   initialDateFilter,
   initialSearchFilter
@@ -117,6 +197,11 @@ export default function KanbanBoard({
   const [officerPhone, setOfficerPhone] = useState("");
   const [bankCategory, setBankCategory] = useState("Operations");
   const [bankCategoryOther, setBankCategoryOther] = useState("");
+  const [bankSubType, setBankSubType] = useState<string>("AO related");
+  const [aoName, setAoName] = useState<string>("");
+  const [rboName, setRboName] = useState<string>("");
+  const [caseDetails, setCaseDetails] = useState<string>("");
+  const [callDirection, setCallDirection] = useState<string>("Incoming Call");
 
   // Dynamic Task Category Master List (General, Legal, IT, Bank, Interview, Others, etc.)
   const [bankCategories, setBankCategories] = useState<string[]>([]);
@@ -450,32 +535,35 @@ export default function KanbanBoard({
       }
     }
 
-    // Build structured description for Call tasks
+    // Build structured description for Bank or Call tasks
     let finalDesc = desc;
-    if (type === "Call" && (callCategory === "Bank" || selectedTaskCategory === "Bank" || selectedTaskCategory === "Notice")) {
-      const cat = bankCategory === "Other" ? (bankCategoryOther.trim() || "Other") : bankCategory;
+    if (selectedTaskCategory === "Bank" || callCategory === "Bank" || selectedTaskCategory === "Notice") {
       const customLines = customCallFields
         .filter(f => f.key.trim() && f.value.trim())
         .map(f => `${f.key.trim()}: ${f.value.trim()}`);
 
       finalDesc = [
-        `Call Category: ${selectedTaskCategory === "Notice" ? "Notice" : "Bank"}`,
+        `Category: ${selectedTaskCategory === "Notice" ? "Notice" : "Bank"}${type === "Call" ? ` (${callDirection})` : ` (${bankSubType})`}`,
         bankName ? `Bank: ${bankName}` : "",
         branchName ? `Branch: ${branchName}` : "",
+        aoName ? `AO: ${aoName}` : "",
+        rboName ? `RBO: ${rboName}` : "",
+        caseDetails ? `Case Details: ${caseDetails}` : "",
         officerName ? `Officer Name: ${officerName}` : "",
         officerPhone ? `Officer Phone: ${officerPhone}` : "",
-        `Category: ${cat}`,
         ...customLines,
         desc ? `Remark: ${desc}` : "",
       ].filter(Boolean).join("\n");
     } else if (type === "Call" && callCategory === "Interview") {
-      finalDesc = [`Call Category: Interview`, desc ? `Remark: ${desc}` : ""].filter(Boolean).join("\n");
+      finalDesc = [`Call Category: Interview (${callDirection})`, desc ? `Remark: ${desc}` : ""].filter(Boolean).join("\n");
     } else if (type === "Call" && callCategory === "Others") {
       finalDesc = [
-        `Call Category: Others`,
+        `Call Mode: ${callDirection}`,
         otherCategoryDesc ? `Describe: ${otherCategoryDesc}` : "",
         desc ? `Remark: ${desc}` : "",
       ].filter(Boolean).join("\n");
+    } else if (type === "Call") {
+      finalDesc = [`Call Mode: ${callDirection}`, desc].filter(Boolean).join("\n");
     } else if ((selectedTaskCategory === "IT" || type === "Development") && selectedProjectName) {
       finalDesc = [`[Project: ${selectedProjectName}]`, desc].filter(Boolean).join(" ");
     }
@@ -492,7 +580,13 @@ export default function KanbanBoard({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           taskTitle: effectiveTitle,
-          taskType: type,
+          taskType: ["AO related", "RBO related", "branch related", "case related"].includes(type) ? "Bank Related" : (type || "General"),
+          subType: type === "Call" ? callDirection : (selectedTaskCategory === "Bank" ? bankSubType : undefined),
+          bankName: bankName || undefined,
+          branchName: branchName || undefined,
+          aoName: aoName || undefined,
+          rboName: rboName || undefined,
+          caseDetails: caseDetails || undefined,
           description: finalDesc,
           status: "Pending",
           employeeId: assigneeId || undefined,
@@ -505,10 +599,15 @@ export default function KanbanBoard({
         setSelectedTaskCategory("General");
         setDesc("");
         setCallCategory("");
+        setCallDirection("Incoming Call");
         setOtherCategoryDesc("");
         setSelectedProjectName("");
         setBankName("");
         setBranchName("");
+        setAoName("");
+        setRboName("");
+        setCaseDetails("");
+        setBankSubType("AO related");
         setSelectedBankId("");
         setBranchesList([]);
         setOfficerName("");
@@ -1663,13 +1762,26 @@ export default function KanbanBoard({
                               } else {
                                 setShowAddModeInput(false);
                                 setType(val);
+                                if (["AO related", "RBO related", "branch related", "case related"].includes(val)) {
+                                  setBankSubType(val);
+                                }
                               }
                             }}
                             required
                           >
-                            {taskModes.map(modeObj => (
-                              <option key={modeObj.id} value={modeObj.name}>{modeObj.name}</option>
-                            ))}
+                            {selectedTaskCategory === "Bank" && (
+                              <optgroup label="Bank Modes / Sub-Types">
+                                <option value="AO related">AO related</option>
+                                <option value="RBO related">RBO related</option>
+                                <option value="branch related">branch related</option>
+                                <option value="case related">case related</option>
+                              </optgroup>
+                            )}
+                            <optgroup label={selectedTaskCategory === "Bank" ? "Other Task Modes" : "Task Modes"}>
+                              {taskModes.map(modeObj => (
+                                <option key={modeObj.id} value={modeObj.name}>{modeObj.name}</option>
+                              ))}
+                            </optgroup>
                             <option value="ADD_NEW_MODE" className="font-bold text-[#714B67] bg-purple-50">
                               ➕ Add New Task Mode...
                             </option>
@@ -1705,6 +1817,23 @@ export default function KanbanBoard({
                                   Cancel
                                 </button>
                               </div>
+                            </div>
+                          )}
+
+                          {/* Call Direction / Mode Selector (when Task Mode is Call) */}
+                          {type === "Call" && (
+                            <div className="mt-2 p-2.5 bg-purple-50/70 border border-purple-200 rounded-xl space-y-1 animate-fade-in">
+                              <label className="block text-[9px] font-black uppercase tracking-wider text-purple-800">
+                                Call Direction / Mode *
+                              </label>
+                              <select
+                                value={callDirection}
+                                onChange={e => setCallDirection(e.target.value)}
+                                className="w-full border border-purple-300 rounded-lg px-2.5 py-2 text-xs font-extrabold text-purple-900 bg-white focus:outline-none focus:border-purple-600"
+                              >
+                                <option value="Incoming Call">Incoming Call 📥</option>
+                                <option value="Outgoing Call">Outgoing Call 📤</option>
+                              </select>
                             </div>
                           )}
                         </div>
@@ -1781,71 +1910,224 @@ export default function KanbanBoard({
 
                             {/* Bank & Notice — Bank & Branch selection */}
                             {(selectedTaskCategory === "Bank" || selectedTaskCategory === "Notice" || callCategory === "Bank") && (
-                              <div className="space-y-2 animate-fade-in">
-                                <div className="grid grid-cols-2 gap-2">
-                                  <div>
-                                    <label className="block text-[9px] uppercase tracking-wider text-emerald-700 font-black mb-1">Select Bank *</label>
-                                    <select
-                                      required
-                                      value={selectedBankId}
-                                      onChange={e => {
-                                        const bid = e.target.value;
-                                        const bObj = banksList.find(b => String(b.id) === bid);
-                                        setSelectedBankId(bid);
-                                        setBankName(bObj?.bankName || "");
-                                        setBranchName("");
-                                        fetchBranches(bid);
-                                      }}
-                                      className="w-full border border-emerald-200 rounded-lg px-2 py-2 text-xs font-bold focus:outline-none focus:border-emerald-500 text-slate-700 bg-white"
-                                    >
-                                      <option value="">-- Select Bank --</option>
-                                      {banksList.map(b => (
-                                        <option key={String(b.id)} value={String(b.id)}>{b.bankName}</option>
-                                      ))}
-                                    </select>
-                                  </div>
-                                  <div>
-                                    <label className="block text-[9px] uppercase tracking-wider text-emerald-700 font-black mb-1">Select Branch *</label>
-                                    <select
-                                      required
-                                      value={branchName}
-                                      onChange={e => setBranchName(e.target.value)}
-                                      disabled={!selectedBankId}
-                                      className="w-full border border-emerald-200 rounded-lg px-2 py-2 text-xs font-bold focus:outline-none focus:border-emerald-500 text-slate-700 bg-white disabled:opacity-50"
-                                    >
-                                      <option value="">{selectedBankId ? "-- Select Branch --" : "Select a bank first"}</option>
-                                      {branchesList.map(br => (
-                                        <option key={String(br.id)} value={br.branchName}>{br.branchName}</option>
-                                      ))}
-                                    </select>
-                                  </div>
-                                </div>
+                              <div className="space-y-3 animate-fade-in">
 
-                                {/* Officer Name & Phone ONLY for Bank (NOT for Notice) */}
-                                {selectedTaskCategory === "Bank" && (
-                                  <div className="grid grid-cols-2 gap-2 animate-fade-in">
+                                {/* Case 1: When Task Mode is a Bank Sub-Type (AO related, RBO related, branch related, case related) */}
+                                {selectedTaskCategory === "Bank" && ["AO related", "RBO related", "branch related", "case related"].includes(type) ? (
+                                  <>
                                     <div>
-                                      <label className="block text-[9px] uppercase tracking-wider text-emerald-700 font-black mb-1">Officer Name *</label>
-                                      <input
-                                        type="text"
-                                        required
-                                        placeholder="e.g. Ramesh Sharma"
-                                        value={officerName}
-                                        onChange={e => setOfficerName(e.target.value)}
-                                        className="w-full border border-emerald-200 rounded-lg px-2 py-2 text-xs font-bold focus:outline-none focus:border-emerald-500 placeholder-slate-400 text-slate-800 bg-white"
-                                      />
+                                      <label className="block text-[9px] font-black uppercase tracking-wider text-emerald-800 mb-1">Select Bank Sub-Type *</label>
+                                      <select
+                                        value={bankSubType}
+                                        onChange={e => {
+                                          const val = e.target.value;
+                                          setBankSubType(val);
+                                          setType(val);
+                                        }}
+                                        className="w-full border border-emerald-300 rounded-lg px-2.5 py-2 text-xs font-extrabold text-emerald-900 bg-white focus:outline-none focus:border-emerald-600"
+                                      >
+                                        <option value="AO related">AO related</option>
+                                        <option value="RBO related">RBO related</option>
+                                        <option value="branch related">branch related</option>
+                                        <option value="case related">case related</option>
+                                      </select>
                                     </div>
-                                    <div>
-                                      <label className="block text-[9px] uppercase tracking-wider text-emerald-700 font-black mb-1">Officer Phone *</label>
-                                      <input
-                                        type="tel"
-                                        required
-                                        placeholder="e.g. 9876543210"
-                                        value={officerPhone}
-                                        onChange={e => setOfficerPhone(e.target.value)}
-                                        className="w-full border border-emerald-200 rounded-lg px-2 py-2 text-xs font-bold focus:outline-none focus:border-emerald-500 placeholder-slate-400 text-slate-800 bg-white"
-                                      />
+
+                                    {(() => {
+                                      const selectedBankObj = banksList.find(b => String(b.id) === selectedBankId || b.bankName?.toLowerCase().trim() === bankName?.toLowerCase().trim());
+                                      const bankBranches = selectedBankObj
+                                        ? branchesList.filter((br: any) => String(br.bankId) === String(selectedBankObj.id))
+                                        : branchesList;
+
+                                      const currentSelectedBranchObj = bankBranches.find((b: any) =>
+                                        String(b.id) === String(branchName) || b.branchName === branchName
+                                      );
+
+                                      let aoOptions: string[] = [];
+                                      let rboOptions: string[] = [];
+
+                                      if (currentSelectedBranchObj) {
+                                        const brAo = (currentSelectedBranchObj as any).aoName || (currentSelectedBranchObj as any).ao;
+                                        const brRbo = (currentSelectedBranchObj as any).rbo || (currentSelectedBranchObj as any).rboName;
+                                        aoOptions = brAo ? [brAo] : Array.from(new Set(bankBranches.map((br: any) => br.aoName || br.ao).filter(Boolean)));
+                                        rboOptions = brRbo ? [brRbo] : Array.from(new Set(bankBranches.map((br: any) => br.rbo || br.rboName).filter(Boolean)));
+                                      } else if (selectedBankObj) {
+                                        aoOptions = Array.from(new Set(bankBranches.map((br: any) => br.aoName || br.ao).filter(Boolean)));
+                                        rboOptions = Array.from(new Set(bankBranches.map((br: any) => br.rbo || br.rboName).filter(Boolean)));
+                                      } else {
+                                        aoOptions = Array.from(new Set(branchesList.map((br: any) => (br as any).aoName || (br as any).ao).filter(Boolean)));
+                                        rboOptions = Array.from(new Set(branchesList.map((br: any) => (br as any).rbo || (br as any).rboName).filter(Boolean)));
+                                      }
+
+                                      return (
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                                          {/* Bank Input */}
+                                          <div>
+                                            <label className="block text-[9px] uppercase tracking-wider text-emerald-700 font-black mb-1">Select Bank *</label>
+                                            <select
+                                              required
+                                              value={selectedBankId}
+                                              onChange={e => {
+                                                const bid = e.target.value;
+                                                const bObj = banksList.find(b => String(b.id) === bid);
+                                                setSelectedBankId(bid);
+                                                setBankName(bObj?.bankName || "");
+                                                setBranchName("");
+                                                setAoName("");
+                                                setRboName("");
+                                                fetchBranches(bid);
+                                              }}
+                                              className="w-full border border-emerald-200 rounded-lg px-2 py-2 text-xs font-bold focus:outline-none focus:border-emerald-500 text-slate-700 bg-white"
+                                            >
+                                              <option value="">-- Select Bank --</option>
+                                              {banksList.map(b => (
+                                                <option key={String(b.id)} value={String(b.id)}>{b.bankName}</option>
+                                              ))}
+                                            </select>
+                                          </div>
+
+                                          {/* Branch Input */}
+                                          {["branch related", "case related"].includes(bankSubType) && (
+                                            <div>
+                                              <label className="block text-[9px] uppercase tracking-wider text-emerald-700 font-black mb-1">Select Branch *</label>
+                                              <select
+                                                required
+                                                value={branchName}
+                                                onChange={e => {
+                                                  const selectedVal = e.target.value;
+                                                  const brObj = bankBranches.find((b: any) => String(b.id) === String(selectedVal) || b.branchName === selectedVal);
+                                                  if (brObj) {
+                                                    setBranchName(brObj.branchName);
+                                                    if ((brObj as any).aoName || (brObj as any).ao) setAoName((brObj as any).aoName || (brObj as any).ao || "");
+                                                    if ((brObj as any).rbo || (brObj as any).rboName) setRboName((brObj as any).rbo || (brObj as any).rboName || "");
+                                                  } else {
+                                                    setBranchName(selectedVal);
+                                                  }
+                                                }}
+                                                disabled={!selectedBankId}
+                                                className="w-full border border-emerald-200 rounded-lg px-2 py-2 text-xs font-bold focus:outline-none focus:border-emerald-500 text-slate-700 bg-white disabled:opacity-50"
+                                              >
+                                                <option value="">{selectedBankId ? "-- Select Branch --" : "Select a bank first"}</option>
+                                                {bankBranches.map((br: any) => (
+                                                  <option key={String(br.id)} value={br.branchName}>
+                                                    {br.branchName} {br.branchCode ? `(${br.branchCode})` : ""}
+                                                  </option>
+                                                ))}
+                                              </select>
+                                            </div>
+                                          )}
+
+                                          {/* AO Input */}
+                                          {["AO related", "branch related", "case related"].includes(bankSubType) && (
+                                            <SearchableCombobox
+                                              label="AO (Administrative Office) *"
+                                              value={aoName}
+                                              onChange={setAoName}
+                                              options={aoOptions}
+                                              placeholder="Type or select AO..."
+                                              required
+                                            />
+                                          )}
+
+                                          {/* RBO Input */}
+                                          {["RBO related", "branch related", "case related"].includes(bankSubType) && (
+                                            <SearchableCombobox
+                                              label="RBO (Regional Office) *"
+                                              value={rboName}
+                                              onChange={setRboName}
+                                              options={rboOptions}
+                                              placeholder="Type or select RBO..."
+                                              required
+                                            />
+                                          )}
+
+                                          {/* Case Details Input */}
+                                          {bankSubType === "case related" && (
+                                            <div className="sm:col-span-2">
+                                              <label className="block text-[9px] uppercase tracking-wider text-emerald-700 font-black mb-1">Case Details / No. *</label>
+                                              <input
+                                                type="text"
+                                                required
+                                                placeholder="Enter case details or case number..."
+                                                value={caseDetails}
+                                                onChange={e => setCaseDetails(e.target.value)}
+                                                className="w-full border border-emerald-200 rounded-lg px-2 py-2 text-xs font-bold focus:outline-none focus:border-emerald-500 placeholder-slate-400 text-slate-800 bg-white"
+                                              />
+                                            </div>
+                                          )}
+                                        </div>
+                                      );
+                                    })()}
+                                  </>
+                                ) : (
+                                  /* Case 2: For all other Task Modes (Call, SMS, Email, Meeting, WhatsApp, Field Visit, etc.) -> Original Bank Fields */
+                                  <div className="space-y-2 animate-fade-in">
+                                    <div className="grid grid-cols-2 gap-2">
+                                      <div>
+                                        <label className="block text-[9px] uppercase tracking-wider text-emerald-700 font-black mb-1">Select Bank *</label>
+                                        <select
+                                          required
+                                          value={selectedBankId}
+                                          onChange={e => {
+                                            const bid = e.target.value;
+                                            const bObj = banksList.find(b => String(b.id) === bid);
+                                            setSelectedBankId(bid);
+                                            setBankName(bObj?.bankName || "");
+                                            setBranchName("");
+                                            fetchBranches(bid);
+                                          }}
+                                          className="w-full border border-emerald-200 rounded-lg px-2 py-2 text-xs font-bold focus:outline-none focus:border-emerald-500 text-slate-700 bg-white"
+                                        >
+                                          <option value="">-- Select Bank --</option>
+                                          {banksList.map(b => (
+                                            <option key={String(b.id)} value={String(b.id)}>{b.bankName}</option>
+                                          ))}
+                                        </select>
+                                      </div>
+                                      <div>
+                                        <label className="block text-[9px] uppercase tracking-wider text-emerald-700 font-black mb-1">Select Branch *</label>
+                                        <select
+                                          required
+                                          value={branchName}
+                                          onChange={e => setBranchName(e.target.value)}
+                                          disabled={!selectedBankId}
+                                          className="w-full border border-emerald-200 rounded-lg px-2 py-2 text-xs font-bold focus:outline-none focus:border-emerald-500 text-slate-700 bg-white disabled:opacity-50"
+                                        >
+                                          <option value="">{selectedBankId ? "-- Select Branch --" : "Select a bank first"}</option>
+                                          {branchesList.map(br => (
+                                            <option key={String(br.id)} value={br.branchName}>{br.branchName}</option>
+                                          ))}
+                                        </select>
+                                      </div>
                                     </div>
+
+                                    {/* Officer Name & Phone for Bank */}
+                                    {selectedTaskCategory === "Bank" && (
+                                      <div className="grid grid-cols-2 gap-2 animate-fade-in">
+                                        <div>
+                                          <label className="block text-[9px] uppercase tracking-wider text-emerald-700 font-black mb-1">Officer Name *</label>
+                                          <input
+                                            type="text"
+                                            required
+                                            placeholder="e.g. Ramesh Sharma"
+                                            value={officerName}
+                                            onChange={e => setOfficerName(e.target.value)}
+                                            className="w-full border border-emerald-200 rounded-lg px-2 py-2 text-xs font-bold focus:outline-none focus:border-emerald-500 placeholder-slate-400 text-slate-800 bg-white"
+                                          />
+                                        </div>
+                                        <div>
+                                          <label className="block text-[9px] uppercase tracking-wider text-emerald-700 font-black mb-1">Officer Phone *</label>
+                                          <input
+                                            type="tel"
+                                            required
+                                            placeholder="e.g. 9876543210"
+                                            value={officerPhone}
+                                            onChange={e => setOfficerPhone(e.target.value)}
+                                            className="w-full border border-emerald-200 rounded-lg px-2 py-2 text-xs font-bold focus:outline-none focus:border-emerald-500 placeholder-slate-400 text-slate-800 bg-white"
+                                          />
+                                        </div>
+                                      </div>
+                                    )}
                                   </div>
                                 )}
                               </div>

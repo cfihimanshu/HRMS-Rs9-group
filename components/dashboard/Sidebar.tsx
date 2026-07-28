@@ -3,7 +3,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import ReactDOM from "react-dom";
 import {
   LayoutDashboard, UserSquare2, FileEdit, Briefcase, Users2, ScanLine,
-  Video, ShieldCheck, FileText, FileSpreadsheet, GraduationCap, Clock, CalendarCheck,
+  Video, ShieldCheck, FileText, FileSpreadsheet, GraduationCap, Clock, CalendarCheck, CalendarClock,
   TrendingUp, BriefcaseIcon, Building2, Coins, HelpCircle, AlertTriangle, ShieldAlert,
   LogOut, ChevronDown, ChevronRight, MapPin, Cpu, Package, Key, Scale
 } from "lucide-react";
@@ -93,6 +93,7 @@ export default function DashboardSidebar({
     { id: "probation", label: "6-Month Probation Audit", icon: Clock, category: "Training & Probation", badge: stats?.operations?.probationCases, roles: ["Owner", "Director", "HR Head", "HR Executive", "Trainer"] },
 
     { id: "attendance", label: "Attendance Punch & SOD", icon: CalendarCheck, category: "Daily Operations", roles: ["Owner", "Director", "HR Head", "HR Executive", "Department Manager", "Accounts", "Trainer", "IT Admin", "DSM", "RIBP / Risk Officer"] },
+    { id: "scheduled-work", label: "Schedule Work Report", icon: CalendarClock, category: "Daily Operations", roles: ["Owner", "Director", "HR Head", "HR Executive", "Department Manager", "Accounts", "Trainer", "Employee", "IT Admin", "DSM", "RIBP / Risk Officer"] },
     { id: "tasks", label: "My Tasks (Kanban)", icon: FileEdit, category: "Daily Operations", roles: ["Owner", "Director", "HR Head", "HR Executive", "Department Manager", "Accounts", "Trainer", "Employee", "IT Admin", "DSM", "RIBP / Risk Officer"] },
     { id: "performance", label: "Work Report", icon: FileText, category: "Daily Operations", roles: ["Owner", "Director", "HR Head", "HR Executive", "Department Manager", "Employee"] },
     { id: "live-tracking", label: "Live GPS Tracking", icon: MapPin, category: "Daily Operations", roles: ["Owner", "Director", "HR Head", "Department Manager"] },
@@ -126,6 +127,13 @@ export default function DashboardSidebar({
   const menuItems = allMenuItems.filter(item => {
     if (item.id === "disciplinary-warnings") {
       return item.roles.map(r => r.toLowerCase()).includes(userRole.toLowerCase());
+    }
+    if (item.id === "scheduled-work") {
+      const userVert = user?.vertical || "";
+      const isLegalOrSecVert = ["Legal Recovery", "Security", "Legal & Security"].includes(userVert);
+      const isManagerialRole = ["Owner", "Director", "HR Head", "HR Executive", "Department Manager"].includes(userRole);
+      const hasExplicitAccess = allowedPageIds && allowedPageIds.includes("scheduled-work");
+      return isManagerialRole || isLegalOrSecVert || !!hasExplicitAccess;
     }
     if (item.id === "legal-recovery") {
       const hasExplicitAccess = allowedPageIds && allowedPageIds.includes("legal-recovery");
