@@ -34,7 +34,7 @@ export async function GET(req: Request) {
 
     await sequelize.authenticate();
     try {
-      await BankMaster.sync({ alter: true });
+      await BankMaster.sync();
     } catch (syncErr: any) {
       console.error("Error syncing BankMaster table:", syncErr);
     }
@@ -67,7 +67,7 @@ export async function POST(req: Request) {
 
     await sequelize.authenticate();
     try {
-      await BankMaster.sync({ alter: true });
+      await BankMaster.sync();
     } catch (syncErr: any) {
       console.error("Error syncing BankMaster table:", syncErr);
     }

@@ -1,12 +1,11 @@
 import { LoginForm } from "@/components/login-form";
 import { LoginSplash } from "@/components/login-splash";
 
+// Keep the login route independently compilable after development asset refreshes.
 export default function LoginPage() {
   return (
     <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#FAF9F6] p-6 font-sans md:p-10 text-slate-800">
       <LoginSplash />
-      {/* eslint-disable-next-line @next/next/no-page-custom-font */}
-      <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300&display=swap" rel="stylesheet" />
       
       {/* Elegant luxury watermarks in the background */}
       <div className="absolute right-[-5%] bottom-[-5%] select-none pointer-events-none text-[#F3EFE9] font-serif text-[24vw] leading-none font-extralight tracking-tighter opacity-70" style={{ fontFamily: "'Cormorant Garamond', serif" }}>

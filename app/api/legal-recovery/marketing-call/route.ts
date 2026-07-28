@@ -11,7 +11,7 @@ export async function GET(request: Request) {
     const branchCode = searchParams.get("branchCode");
     
     await sequelize.authenticate();
-    await LegalMarketingCall.sync({ alter: true });
+    await LegalMarketingCall.sync();
 
     let whereClause = {};
     if (branchCode) {
@@ -33,8 +33,8 @@ export async function POST(request: Request) {
   try {
     const data = await request.json();
     await sequelize.authenticate();
-    await LegalMarketingCall.sync({ alter: true });
-    await TaskLog.sync({ alter: true });
+    await LegalMarketingCall.sync();
+    await TaskLog.sync();
     
     const session = await getServerSession(authOptions);
     if (session?.user) {

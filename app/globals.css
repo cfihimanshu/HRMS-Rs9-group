@@ -10,6 +10,8 @@
     --color-primary-hover: #B3923E;
     --color-primary-light: #FCFBF9;
     --color-primary-border: #E8E4DF;
+    --font-sans: "Segoe UI", Arial, Helvetica, sans-serif;
+    --font-serif: Georgia, "Times New Roman", serif;
   }
 }
 
@@ -17,9 +19,39 @@
   *, *::before, *::after { box-sizing: border-box; }
   html { scroll-behavior: smooth; }
   body { 
-    font-family: 'DM Sans', var(--font-sans); 
+    font-family: var(--font-sans);
     background-color: #FAFAF7;
     color: #1C1C1A;
+  }
+
+  /* Keep every data table compact and visually consistent. */
+  table {
+    width: 100%;
+    border-collapse: collapse !important;
+    border-spacing: 0 !important;
+    border: 1px solid #D8D4CE;
+  }
+
+  table th,
+  table td {
+    border: 1px solid #D8D4CE !important;
+    padding: 0.375rem 0.5rem !important;
+    line-height: 1.25rem;
+    vertical-align: middle;
+  }
+
+  table th {
+    background-color: #F3F1ED;
+    color: #3F3D39;
+    font-weight: 600;
+  }
+
+  table tbody tr {
+    border: 0 !important;
+  }
+
+  table tbody tr:hover {
+    background-color: #FAF8F5;
   }
 }
 
@@ -97,4 +129,3 @@
   border: 2px solid transparent;
   background-clip: padding-box;
 }
-

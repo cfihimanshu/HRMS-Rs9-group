@@ -8,15 +8,11 @@ import {
 import { cn } from "@/lib/utils";
 import BankMasterView from "./legal-recovery/BankMasterView";
 import BranchMasterView from "./legal-recovery/BranchMasterView";
-import CasesMasterView from "./legal-recovery/CasesMasterView";
-import DailyCallReportsView from "./legal-recovery/DailyCallReportsView";
-import PaymentCollectionsView from "./legal-recovery/PaymentCollectionsView";
 import LegalWorkLogsView from "./legal-recovery/LegalWorkLogsView";
 import NoticeBoardView from "./legal-recovery/NoticeBoardView";
 import NbfcMasterView from "./legal-recovery/NbfcMasterView";
 import NbfcBranchMasterView from "./legal-recovery/NbfcBranchMasterView";
 import SecurityMasterView from "./legal-recovery/SecurityMasterView";
-import WorkHistoryView from "./legal-recovery/WorkHistoryView";
 import LegalWorkEntryHistoryView from "./legal-recovery/LegalWorkEntryHistoryView";
 
 interface LegalRecoveryModuleProps {
@@ -795,18 +791,6 @@ export default function LegalRecoveryModule({ userRole, triggerToast, sessionUse
         {/* Apps Grid */}
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6 pt-4">
 
-          {/* Module 2: Masters */}
-          <button
-            onClick={() => setActiveSubModule("masters")}
-            className="group flex flex-col items-center justify-center p-6 bg-white border border-[#E8E4DF] rounded-2xl hover:shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:border-emerald-200 transition-all duration-300"
-          >
-            <div className="w-16 h-16 bg-gradient-to-br from-emerald-50 to-emerald-100 text-emerald-600 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform shadow-sm">
-              <Building size={28} strokeWidth={2} />
-            </div>
-            <span className="font-bold text-sm text-slate-800">Bank Cases</span>
-            <span className="text-[10px] text-slate-500 mt-1 uppercase tracking-wider font-semibold">Add Cases</span>
-          </button>
-
           {/* Module 3: Manage Banks */}
           <button
             onClick={() => setActiveSubModule("banks")}
@@ -829,31 +813,6 @@ export default function LegalRecoveryModule({ userRole, triggerToast, sessionUse
             </div>
             <span className="font-bold text-sm text-slate-800">Branch Master</span>
             <span className="text-[10px] text-slate-500 mt-1 uppercase tracking-wider font-semibold">Add Branches</span>
-          </button>
-
-          {/* Module 5: History */}
-          <button
-            onClick={() => setActiveSubModule("history")}
-            className="group flex flex-col items-center justify-center p-6 bg-white border border-[#E8E4DF] rounded-2xl hover:shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:border-amber-200 transition-all duration-300"
-          >
-            <div className="w-16 h-16 bg-gradient-to-br from-amber-50 to-amber-100 text-amber-600 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform shadow-sm">
-              <FileText size={28} strokeWidth={2} />
-            </div>
-            <span className="font-bold text-sm text-slate-800">All Reports</span>
-            <span className="text-[10px] text-slate-500 mt-1 uppercase tracking-wider font-semibold">Call History</span>
-          </button>
-
-          {/* Module 6: Collections */}
-          <button
-            onClick={() => setActiveSubModule("collections")}
-            className="group flex flex-col items-center justify-center p-6 bg-white border border-[#E8E4DF] rounded-2xl hover:shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:border-emerald-200 transition-all duration-300"
-          >
-            <div className="w-16 h-16 bg-gradient-to-br from-emerald-50 to-emerald-100 text-emerald-600 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform shadow-sm">
-              <Banknote size={28} strokeWidth={2} />
-            </div>
-            {/* <span className="font-bold text-sm text-slate-800">Collections</span> */}
-            <span className="font-bold text-sm text-slate-800">Collections</span>
-            <span className="text-[10px] text-slate-500 mt-1 uppercase tracking-wider font-semibold">Payments Received</span>
           </button>
 
           {/* Module 7: Legal Work Logs */}
@@ -914,18 +873,6 @@ export default function LegalRecoveryModule({ userRole, triggerToast, sessionUse
             </div>
             <span className="font-bold text-sm text-slate-800">Security</span>
             <span className="text-[10px] text-slate-500 mt-1 uppercase tracking-wider font-semibold">Security Deposits &amp; Bills</span>
-          </button>
-
-          {/* Module 12: Work History */}
-          <button
-            onClick={() => setActiveSubModule("work-history")}
-            className="group flex flex-col items-center justify-center p-6 bg-white border border-[#E8E4DF] rounded-2xl hover:shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:border-teal-200 transition-all duration-300"
-          >
-            <div className="w-16 h-16 bg-gradient-to-br from-teal-50 to-teal-100 text-teal-600 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform shadow-sm">
-              <History size={28} strokeWidth={2} />
-            </div>
-            <span className="font-bold text-sm text-slate-800">Work History</span>
-            <span className="text-[10px] text-slate-500 mt-1 uppercase tracking-wider font-semibold">Work Log Records</span>
           </button>
 
           {/* Module 13: Legal Work Entry History */}
@@ -1488,40 +1435,8 @@ export default function LegalRecoveryModule({ userRole, triggerToast, sessionUse
           />
         )}
 
-        {activeSubModule === "work-history" && (
-          <WorkHistoryView />
-        )}
-
         {activeSubModule === "legal-work-entry-history" && (
           <LegalWorkEntryHistoryView userRole={userRole} triggerToast={triggerToast} />
-        )}
-
-        {activeSubModule !== "banks" && activeSubModule !== "branches" && activeSubModule !== "nbfcs" && activeSubModule !== "nbfc-branches" && activeSubModule !== "security" && activeSubModule !== "work-history" && activeSubModule !== "legal-work-entry-history" && activeSubModule !== "history" && activeSubModule !== "collections" && activeSubModule !== "work-logs" && activeSubModule !== "notices" && (
-          <CasesMasterView cases={cases} loading={loading} setShowFollowUpForm={setShowFollowUpForm} setShowPaymentForm={setShowPaymentForm} openHistory={openHistory} userRole={userRole} onEditCase={handleEditCase} onDeleteCase={handleDeleteCase} />
-        )}
-
-        {activeSubModule === "history" && (
-          <DailyCallReportsView
-            globalHistory={globalHistory}
-            cases={cases}
-            loadingGlobalHistory={loadingGlobalHistory}
-            branchesList={branchesList}
-            banksList={banksList}
-          />
-        )}
-
-        {activeSubModule === "collections" && (
-          <PaymentCollectionsView 
-            payments={payments} 
-            cases={cases} 
-            loadingPayments={loadingPayments} 
-            onRefresh={() => {
-              fetchPayments();
-              fetchGlobalHistory();
-              fetchCases();
-            }}
-            triggerToast={triggerToast}
-          />
         )}
 
         {activeSubModule === "work-logs" && (

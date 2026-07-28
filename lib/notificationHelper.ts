@@ -29,7 +29,7 @@ export async function sendRequestNotification({
   fallbackDepartment?: string;
 }) {
   try {
-    await Notification.sync({ alter: true });
+    await Notification.sync();
 
     // Find applicant and their department ID
     let departmentId = "";

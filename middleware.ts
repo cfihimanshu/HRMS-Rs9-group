@@ -5,8 +5,17 @@ export default withAuth(
   function middleware(req) {
     const token = req.nextauth.token;
     const path = req.nextUrl.pathname;
+    const method = req.method.toUpperCase();
+    const isPublicApi =
+      path.startsWith("/api/auth/") ||
+      (method === "GET" && (path === "/api/jobs" || path === "/api/job-form-config")) ||
+      (method === "POST" && path === "/api/candidates");
 
     if (!token) {
+      if (path.startsWith("/api/")) {
+        if (isPublicApi) return NextResponse.next();
+        return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
+      }
       return NextResponse.redirect(new URL("/login", req.url));
     }
 
@@ -45,7 +54,11 @@ export default withAuth(
   },
   {
     callbacks: {
-      authorized: ({ token }) => !!token,
+      authorized: ({ token, req }) => {
+        const path = req.nextUrl.pathname;
+        if (path.startsWith("/api/")) return true;
+        return !!token;
+      },
     },
   }
 );
@@ -60,5 +73,6 @@ export const config = {
     "/associate/:path*",
     "/vendor/:path*",
     "/franchise/:path*",
+    "/api/:path*",
   ],
 };

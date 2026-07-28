@@ -20,7 +20,7 @@ export async function GET(req: Request) {
     }
 
     await sequelize.authenticate();
-    try { await AssetPurchaseRequest.sync({ alter: true }); } catch (_) {}
+    try { await AssetPurchaseRequest.sync(); } catch (_) {}
     await ensurePurchaseColumns();
 
     const userId = (session.user as any).id;
@@ -72,7 +72,7 @@ export async function POST(req: Request) {
     }
 
     await sequelize.authenticate();
-    try { await AssetPurchaseRequest.sync({ alter: true }); } catch (_) {}
+    try { await AssetPurchaseRequest.sync(); } catch (_) {}
 
     const userId = (session.user as any).id;
     // Fetch live user role to avoid session caching issues

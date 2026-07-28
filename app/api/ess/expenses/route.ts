@@ -22,7 +22,7 @@ export async function GET(request: Request) {
     const userRole = (session.user as any).role || "Employee";
 
     await sequelize.authenticate();
-    await Expense.sync({ alter: true });
+    await Expense.sync();
 
     const { getAuthorizedApplicantIdsForApprover } = await import("@/lib/approvalRouting");
     let whereClause: any = {};
@@ -96,7 +96,7 @@ export async function POST(request: Request) {
     }
 
     await sequelize.authenticate();
-    await Expense.sync({ alter: true });
+    await Expense.sync();
 
     const finalCategory = category === "Other" && customCategory ? customCategory : category;
     const numAmount = parseFloat(amount) || 0;
@@ -239,7 +239,7 @@ export async function PUT(request: Request) {
     }
 
     await sequelize.authenticate();
-    await Expense.sync({ alter: true });
+    await Expense.sync();
 
     const claim = await Expense.findByPk(id);
     if (!claim) {

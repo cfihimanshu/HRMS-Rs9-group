@@ -1,10 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
+import { requireApiSession } from "@/lib/apiAuth";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(req: NextRequest) {
   let targetUrl = "";
   try {
+    const auth = await requireApiSession();
+    if (auth.response) return auth.response;
     const { searchParams } = new URL(req.url);
     const fileUrl = searchParams.get("url");
 
@@ -12,14 +15,17 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: "Missing URL parameter" }, { status: 400 });
     }
 
-    // Ensure the target URL is absolute with a protocol prefix
     targetUrl = fileUrl.trim();
-    if (!targetUrl.startsWith("http://") && !targetUrl.startsWith("https://")) {
-      if (targetUrl.startsWith("//")) {
-        targetUrl = "https:" + targetUrl;
-      } else {
-        targetUrl = "https://" + targetUrl;
-      }
+    const parsedUrl = new URL(targetUrl);
+    if (parsedUrl.protocol !== "https:") {
+      return NextResponse.json({ error: "Only HTTPS document URLs are allowed" }, { status: 400 });
+    }
+    const hostname = parsedUrl.hostname.toLowerCase();
+    const allowedHosts = (process.env.DOCUMENT_PROXY_ALLOWED_HOSTS || "res.cloudinary.com,ruhannetwork.com")
+      .split(",").map(host => host.trim().toLowerCase()).filter(Boolean);
+    const allowed = allowedHosts.some(host => hostname === host || hostname.endsWith(`.${host}`));
+    if (!allowed) {
+      return NextResponse.json({ error: "Document host is not allowed" }, { status: 403 });
     }
 
     console.log("Document Proxy Fetching URL:", targetUrl);
@@ -40,9 +46,16 @@ export async function GET(req: NextRequest) {
         statusText: response.statusText
       }, { status: 500 });
     }
+    const contentLength = Number(response.headers.get("content-length") || 0);
+    if (contentLength > 20 * 1024 * 1024) {
+      return NextResponse.json({ error: "Document exceeds the 20 MB proxy limit" }, { status: 413 });
+    }
 
     const arrayBuffer = await response.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
+    if (buffer.length > 20 * 1024 * 1024) {
+      return NextResponse.json({ error: "Document exceeds the 20 MB proxy limit" }, { status: 413 });
+    }
     
     // Determine content type
     let contentType = response.headers.get("content-type") || "";

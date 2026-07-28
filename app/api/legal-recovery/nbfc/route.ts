@@ -5,7 +5,7 @@ import sequelize from "@/lib/sequelize";
 export async function GET() {
   try {
     await sequelize.authenticate();
-    await NbfcMaster.sync({ alter: true });
+    await NbfcMaster.sync();
     
     const nbfcs = await NbfcMaster.findAll({
       order: [["nbfcName", "ASC"]],
@@ -21,7 +21,7 @@ export async function POST(request: Request) {
   try {
     const data = await request.json();
     await sequelize.authenticate();
-    await NbfcMaster.sync({ alter: true });
+    await NbfcMaster.sync();
 
     if (!data.nbfcName) {
       return NextResponse.json({ success: false, error: "NBFC Name is required" }, { status: 400 });
@@ -47,7 +47,7 @@ export async function PUT(request: Request) {
       return NextResponse.json({ success: false, error: "NBFC ID is required" }, { status: 400 });
     }
     await sequelize.authenticate();
-    await NbfcMaster.sync({ alter: true });
+    await NbfcMaster.sync();
 
     const nbfc = await NbfcMaster.findByPk(id);
     if (!nbfc) {
@@ -69,7 +69,7 @@ export async function DELETE(request: Request) {
       return NextResponse.json({ success: false, error: "NBFC ID is required" }, { status: 400 });
     }
     await sequelize.authenticate();
-    await NbfcMaster.sync({ alter: true });
+    await NbfcMaster.sync();
 
     const nbfc = await NbfcMaster.findByPk(id);
     if (!nbfc) {

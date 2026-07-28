@@ -15,7 +15,7 @@ export async function GET(req: Request) {
 
     await sequelize.authenticate();
     try {
-      await TaskCallCategory.sync({ alter: true });
+      await TaskCallCategory.sync();
     } catch (_) {}
 
     // Clean up obsolete / duplicate categories from DB
@@ -80,7 +80,7 @@ export async function POST(req: Request) {
 
     await sequelize.authenticate();
     try {
-      await TaskCallCategory.sync({ alter: true });
+      await TaskCallCategory.sync();
     } catch (_) {}
 
     const body = await req.json();

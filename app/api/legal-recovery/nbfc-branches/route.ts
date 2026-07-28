@@ -5,7 +5,7 @@ import sequelize from "@/lib/sequelize";
 export async function GET() {
   try {
     await sequelize.authenticate();
-    await NbfcBranch.sync({ alter: true });
+    await NbfcBranch.sync();
     
     const branches = await NbfcBranch.findAll({
       order: [["branchName", "ASC"]],
@@ -21,7 +21,7 @@ export async function POST(request: Request) {
   try {
     const data = await request.json();
     await sequelize.authenticate();
-    await NbfcBranch.sync({ alter: true });
+    await NbfcBranch.sync();
 
     if (!data.branchCode) {
       return NextResponse.json({ success: false, error: "Branch Code is required" }, { status: 400 });
@@ -55,7 +55,7 @@ export async function PUT(request: Request) {
       return NextResponse.json({ success: false, error: "Branch ID is required" }, { status: 400 });
     }
     await sequelize.authenticate();
-    await NbfcBranch.sync({ alter: true });
+    await NbfcBranch.sync();
 
     const branch = await NbfcBranch.findByPk(id);
     if (!branch) {
@@ -77,7 +77,7 @@ export async function DELETE(request: Request) {
       return NextResponse.json({ success: false, error: "Branch ID is required" }, { status: 400 });
     }
     await sequelize.authenticate();
-    await NbfcBranch.sync({ alter: true });
+    await NbfcBranch.sync();
 
     const branch = await NbfcBranch.findByPk(id);
     if (!branch) {

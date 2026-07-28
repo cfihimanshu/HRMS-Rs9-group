@@ -2308,6 +2308,7 @@ export function PerformanceCompliance({
   const [expandedRows, setExpandedRows] = useState<Record<string, boolean>>({});
   const [expandedUserRows, setExpandedUserRows] = useState<Record<string, boolean>>({});
   const [showFilters, setShowFilters] = useState(false);
+  const [exportingMasterReport, setExportingMasterReport] = useState(false);
 
   const loggedInDbUser = React.useMemo(() => {
     if (!sessionUser?.id || users.length === 0) return null;
@@ -2946,6 +2947,136 @@ export function PerformanceCompliance({
       document.body.removeChild(link);
     } catch (error) {
       console.error("Failed to export consolidated Excel:", error);
+    }
+  };
+
+  const exportMasterEmployeeReport = async () => {
+    try {
+      setExportingMasterReport(true);
+      const now = new Date();
+      const defaultStart = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`;
+      const defaultEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split("T")[0];
+      const reportStart = dateFilterType === "custom" && startDateFilter ? startDateFilter : defaultStart;
+      const reportEnd = dateFilterType === "custom" && endDateFilter ? endDateFilter : defaultEnd;
+      const params = new URLSearchParams({ startDate: reportStart, endDate: reportEnd });
+      if (selectedUser) params.set("userId", selectedUser);
+
+      const res = await fetch(`/api/reports/master-employee-report?${params.toString()}`);
+      const payload = await res.json();
+      if (!res.ok || !payload.success) throw new Error(payload.error || "Master report could not be generated");
+
+      const data = payload.data;
+      const XLSX = await import("xlsx");
+      const profileMap = new Map((data.profiles || []).map((p: any) => [String(p.user), p]));
+      const deptMap = new Map((data.departments || []).map((d: any) => [String(d.id), d.name]));
+      const userMap = new Map((data.users || []).map((u: any) => [String(u.id), u]));
+      const fmtDate = (value: any) => value ? new Date(value).toLocaleDateString("en-IN") : "";
+      const fmtTime = (value: any) => value ? new Date(value).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" }) : "";
+      const dateKey = (value: any) => value ? new Date(value).toISOString().split("T")[0] : "";
+      const workingDates: string[] = [];
+      for (let cursor = new Date(`${reportStart}T00:00:00`), last = new Date(`${reportEnd}T00:00:00`); cursor <= last; cursor.setDate(cursor.getDate() + 1)) {
+        if (cursor.getDay() !== 0) workingDates.push(cursor.toISOString().split("T")[0]);
+      }
+
+      const summary = (data.users || []).map((user: any) => {
+        const id = String(user.id);
+        const profile: any = profileMap.get(id) || {};
+        const employeeAttendance = (data.attendance || []).filter((a: any) => String(a.employee) === id);
+        const presentDates = new Set(employeeAttendance.map((a: any) => dateKey(a.date)));
+        const employeeLeaves = (data.leaves || []).filter((l: any) => String(l.employee) === id);
+        const leaveDates = new Set<string>();
+        employeeLeaves.forEach((leave: any) => {
+          const leaveStart = new Date(leave.startDate) < new Date(`${reportStart}T00:00:00`) ? new Date(`${reportStart}T00:00:00`) : new Date(leave.startDate);
+          const leaveEnd = new Date(leave.endDate) > new Date(`${reportEnd}T23:59:59`) ? new Date(`${reportEnd}T23:59:59`) : new Date(leave.endDate);
+          for (const d = new Date(leaveStart); d <= leaveEnd; d.setDate(d.getDate() + 1)) {
+            if (d.getDay() !== 0) leaveDates.add(d.toISOString().split("T")[0]);
+          }
+        });
+        const workMs = employeeAttendance.reduce((sum: number, a: any) => {
+          if (!a.checkIn || !a.checkOut) return sum;
+          return sum + Math.max(0, new Date(a.checkOut).getTime() - new Date(a.checkIn).getTime());
+        }, 0);
+        const present = workingDates.filter(d => presentDates.has(d)).length;
+        const leave = workingDates.filter(d => leaveDates.has(d) && !presentDates.has(d)).length;
+        const absent = Math.max(0, workingDates.length - present - leave);
+        const employeeTasks = (data.tasks || []).filter((t: any) => String(t.employee) === id);
+        const completedTasks = employeeTasks.filter((t: any) => ["completed", "done"].includes(String(t.status || "").toLowerCase())).length;
+        return {
+          "Employee ID": profile.employeeId || id,
+          "Employee Name": user.name || "",
+          Email: user.email || "",
+          Role: user.role || "",
+          Designation: profile.designation || "",
+          Department: deptMap.get(String(profile.department)) || "General",
+          Vertical: profile.vertical || "Not Assigned",
+          "Period From": reportStart,
+          "Period To": reportEnd,
+          "Working Days": workingDates.length,
+          "Total Present": present,
+          "Total Absent": absent,
+          "Approved Leave": leave,
+          "Weekly Off": Math.max(0, Math.round((new Date(`${reportEnd}T00:00:00`).getTime() - new Date(`${reportStart}T00:00:00`).getTime()) / 86400000) + 1 - workingDates.length),
+          "Total Work Hours": Number((workMs / 3600000).toFixed(2)),
+          "Tasks Count": employeeTasks.length,
+          "Tasks Completed": completedTasks,
+          "Tasks Pending": employeeTasks.length - completedTasks,
+          "Scheduled Work Count": (data.schedules || []).filter((s: any) => String(s.employeeId) === id).length,
+          "Field Visits": (data.fieldVisits || []).filter((v: any) => String(v.employee_id) === id).length,
+          "Audit Changes": (data.audits || []).filter((a: any) => String(a.user) === id).length
+        };
+      });
+
+      const employeeName = (id: any) => (userMap.get(String(id)) as any)?.name || String(id || "");
+      const attendanceRows = (data.attendance || []).map((a: any) => ({
+        Employee: employeeName(a.employee), Date: fmtDate(a.date), Status: a.status || "Present",
+        "Check In": fmtTime(a.checkIn), "Check Out": fmtTime(a.checkOut),
+        "Working Hours": a.checkIn && a.checkOut ? Number(((new Date(a.checkOut).getTime() - new Date(a.checkIn).getTime()) / 3600000).toFixed(2)) : 0
+      }));
+      const leaveRows = (data.leaves || []).map((leave: any) => ({
+        Employee: employeeName(leave.employee), Type: leave.type || "Leave", "Start Date": fmtDate(leave.startDate),
+        "End Date": fmtDate(leave.endDate), Days: leave.days || "", Status: leave.status,
+        Reason: leave.reason || "", Remarks: leave.remarks || "", Attachment: leave.attachmentUrl || ""
+      }));
+      const taskRows = (data.tasks || []).map((t: any) => ({
+        Employee: employeeName(t.employee), Date: fmtDate(t.date), Title: t.taskTitle, Type: t.taskType,
+        Status: t.status, Description: t.description || t.remarks || "", "Scheduled At": t.scheduledAt ? new Date(t.scheduledAt).toLocaleString("en-IN") : ""
+      }));
+      const scheduleRows = (data.schedules || []).map((s: any) => ({
+        Employee: employeeName(s.employeeId), Date: s.date, Time: s.time, Location: s.workSection,
+        Type: s.type, "Sub Type": s.subType, Bank: s.bankName, Branch: s.branchName, AO: s.aoName, RBO: s.rboName,
+        Status: s.status, Details: s.details || s.remarks || "", Attachment: s.proofAttachment || ""
+      }));
+      const sodEodRows = [
+        ...(data.sods || []).map((s: any) => ({ Employee: employeeName(s.employee), Date: fmtDate(s.date), Report: "SOD", Time: fmtTime(s.createdAt), Details: s.taskSummary || "", Issues: "" })),
+        ...(data.eods || []).map((e: any) => ({ Employee: employeeName(e.employee), Date: fmtDate(e.date), Report: "EOD", Time: fmtTime(e.createdAt), Details: e.completedWork || "", Issues: e.issuesFaced || "" }))
+      ];
+      const visitRows = (data.fieldVisits || []).map((v: any) => ({
+        Employee: employeeName(v.employee_id), Date: v.date, Client: v.client_name, Purpose: v.purpose,
+        "Opening Time": fmtTime(v.opening_time), "Closing Time": fmtTime(v.closing_time), "Distance KM": v.distance_travelled || 0,
+        Expenses: JSON.stringify(v.expenses_json || ""), Notes: v.visit_summary || v.visit_notes || ""
+      }));
+      const auditRows = (data.audits || []).map((a: any) => ({
+        Employee: employeeName(a.user), Timestamp: a.timestamp ? new Date(a.timestamp).toLocaleString("en-IN") : "",
+        Action: a.action, Entity: a.entity, "Entity ID": a.entityId, Changes: a.details, "IP Address": a.ipAddress
+      }));
+
+      const workbook = XLSX.utils.book_new();
+      const addSheet = (name: string, rows: any[]) => XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(rows.length ? rows : [{ Info: "No records in selected period" }]), name);
+      addSheet("Employee Summary", summary);
+      addSheet("Attendance Timings", attendanceRows);
+      addSheet("Approved Leaves", leaveRows);
+      addSheet("Tasks", taskRows);
+      addSheet("Scheduled Work", scheduleRows);
+      addSheet("SOD EOD", sodEodRows);
+      addSheet("Field Visits", visitRows);
+      addSheet("Audit Trail", auditRows);
+      XLSX.writeFile(workbook, `Master_Employee_Report_${reportStart}_to_${reportEnd}.xlsx`);
+      triggerToast?.("Complete master employee report exported successfully");
+    } catch (error: any) {
+      console.error("Failed to export master employee report:", error);
+      triggerToast?.(error.message || "Master report export failed");
+    } finally {
+      setExportingMasterReport(false);
     }
   };
 
@@ -3753,6 +3884,15 @@ export function PerformanceCompliance({
                 <Briefcase className="w-4 h-4 text-indigo-500" /> Employee Work Summary
               </h3>
               <div className="flex items-center gap-3">
+                <button
+                  onClick={exportMasterEmployeeReport}
+                  disabled={exportingMasterReport}
+                  className="bg-emerald-700 hover:bg-emerald-800 disabled:opacity-60 text-white text-[10px] uppercase tracking-wider font-mono font-bold px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-colors shadow-sm"
+                  title="Export attendance, timings, work activities and audit trail"
+                >
+                  {exportingMasterReport ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
+                  {exportingMasterReport ? "Preparing..." : "Master Export"}
+                </button>
                 <button
                   onClick={exportEmployeeWorkSummary}
                   className="bg-[#714B67] hover:bg-[#5D3E55] text-white text-[10px] uppercase tracking-wider font-mono font-bold px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-colors shadow-sm"

@@ -14,7 +14,7 @@ export async function GET(req: Request) {
 
     await sequelize.authenticate();
     try {
-      await TaskMode.sync({ alter: true });
+      await TaskMode.sync();
     } catch (_) {}
 
     let records: any[] = [];
@@ -60,7 +60,7 @@ export async function POST(req: Request) {
 
     await sequelize.authenticate();
     try {
-      await TaskMode.sync({ alter: true });
+      await TaskMode.sync();
     } catch (_) {}
 
     const body = await req.json();

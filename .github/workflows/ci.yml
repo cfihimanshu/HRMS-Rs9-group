@@ -1,0 +1,26 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npm run build
+        env:
+          MYSQL_DATABASE: ci_hrms
+          MYSQL_USER: ci_user
+          MYSQL_PASSWORD: ci_password_not_used_for_compile
+          MYSQL_HOST: 127.0.0.1
+          NEXTAUTH_SECRET: ci-only-secret-at-least-32-characters

@@ -2,9 +2,12 @@ import { NextResponse } from "next/server";
 import LegalNotice from "@/models/sequelize/LegalNotice";
 import LegalNoticeType from "@/models/sequelize/LegalNoticeType";
 import sequelize, { safeAuthenticate } from "@/lib/sequelize";
+import { requireApiSession, MANAGEMENT_ROLES } from "@/lib/apiAuth";
 
 export async function GET() {
   try {
+    const auth = await requireApiSession();
+    if (auth.response) return auth.response;
     const isDbConnected = await safeAuthenticate(4000);
     if (!isDbConnected) {
       return NextResponse.json({ success: true, data: [] });
@@ -30,6 +33,8 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
+    const auth = await requireApiSession();
+    if (auth.response) return auth.response;
     const data = await request.json();
     const isDbConnected = await safeAuthenticate(6000);
     if (!isDbConnected) {
@@ -68,6 +73,8 @@ export async function POST(request: Request) {
 
 export async function PUT(request: Request) {
   try {
+    const auth = await requireApiSession(MANAGEMENT_ROLES);
+    if (auth.response) return auth.response;
     const data = await request.json();
     const isDbConnected = await safeAuthenticate(6000);
     if (!isDbConnected) {
@@ -86,6 +93,8 @@ export async function PUT(request: Request) {
 
 export async function DELETE(request: Request) {
   try {
+    const auth = await requireApiSession(MANAGEMENT_ROLES);
+    if (auth.response) return auth.response;
     const { searchParams } = new URL(request.url);
     const id = searchParams.get("id");
     if (!id) return NextResponse.json({ success: false, error: "ID is required" }, { status: 400 });

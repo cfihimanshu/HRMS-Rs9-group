@@ -22,7 +22,7 @@ export async function GET(req: Request) {
     }
 
     await sequelize.authenticate();
-    await LeadStatus.sync({ alter: true });
+    await LeadStatus.sync();
 
     let statuses = await LeadStatus.findAll({ order: [["createdAt", "ASC"]] });
 
@@ -83,7 +83,7 @@ export async function POST(req: Request) {
     }
 
     await sequelize.authenticate();
-    await LeadStatus.sync({ alter: true });
+    await LeadStatus.sync();
 
     const id = "status_" + name.trim().toLowerCase().replace(/[^a-z0-9]+/g, "_");
 

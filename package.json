@@ -3,10 +3,18 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "predev": "node scripts/clean-next-cache.mjs .next-dev",
     "dev": "next dev -H 0.0.0.0",
+    "prebuild": "node scripts/clean-next-cache.mjs .next",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "typecheck": "tsc --noEmit",
+    "verify": "npm run typecheck && npm run lint && npm run build",
+    "db:audit": "node scripts/db-audit.mjs",
+    "db:backup": "node scripts/db-backup.mjs",
+    "db:migrate:check": "node scripts/db-migrate.mjs --dry-run",
+    "db:migrate": "node scripts/db-migrate.mjs"
   },
   "dependencies": {
     "@types/leaflet": "^1.9.21",

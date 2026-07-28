@@ -4,10 +4,11 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import sequelize from "@/lib/sequelize";
 import LegalRecoverySchedule from "@/models/sequelize/LegalRecoverySchedule";
+import EmployeeProfile from "@/models/sequelize/EmployeeProfile";
 
 async function initDB() {
   await sequelize.authenticate();
-  await LegalRecoverySchedule.sync({ alter: true });
+  await LegalRecoverySchedule.sync();
 }
 
 import { Op } from "sequelize";
@@ -28,6 +29,7 @@ export async function GET(req: Request) {
     const typeParam = searchParams.get("type");
     const statusParam = searchParams.get("status");
     const employeeId = searchParams.get("employeeId");
+    const verticalOnly = searchParams.get("verticalOnly") === "true";
 
     const currentUserId = (session.user as any).id;
     const userRole = (session.user as any).role;
@@ -38,10 +40,32 @@ export async function GET(req: Request) {
     await initDB();
 
     const whereClause: any = {};
+    let verticalUserIds: string[] | null = null;
+
+    // Schedule Work Report must only contain employees who are assigned to a
+    // vertical. Enforce this on the API so blank-vertical records cannot leak
+    // back into the report through refresh, filters, or direct requests.
+    if (verticalOnly) {
+      const verticalProfiles = await EmployeeProfile.findAll({
+        attributes: ["user", "vertical"],
+        where: {
+          user: { [Op.not]: null },
+          vertical: { [Op.not]: null }
+        },
+        raw: true
+      });
+      verticalUserIds = verticalProfiles
+        .filter((profile: any) => String(profile.vertical || "").trim().length > 0)
+        .map((profile: any) => String(profile.user));
+
+      whereClause.employeeId = { [Op.in]: verticalUserIds };
+    }
 
     // Filter by employee if specifically requested, or limit to current user only if non-manager and non-legal/security
     if (employeeId && employeeId !== "all") {
-      whereClause.employeeId = employeeId;
+      whereClause.employeeId = verticalOnly && verticalUserIds
+        ? (verticalUserIds.includes(String(employeeId)) ? employeeId : { [Op.in]: [] })
+        : employeeId;
     } else if (!isManager && !isLegalOrSecurity && !all) {
       whereClause.employeeId = currentUserId;
     }
@@ -82,7 +106,7 @@ export async function GET(req: Request) {
 
     if (TaskLog) {
       try {
-        await TaskLog.sync({ alter: true });
+        await TaskLog.sync();
         const taskIds = Array.from(new Set(enrichedSchedules.map((s: any) => s.taskId).filter(Boolean)));
         const scheduleIds = Array.from(new Set(enrichedSchedules.map((s: any) => s.id).filter(Boolean)));
         const empIds = Array.from(new Set(enrichedSchedules.map((s: any) => s.employeeId).filter(Boolean)));

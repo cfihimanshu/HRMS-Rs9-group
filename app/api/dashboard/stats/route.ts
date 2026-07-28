@@ -29,6 +29,7 @@ import TaskLog from "@/models/sequelize/TaskLog";
 import DisciplinaryWarning from "@/models/sequelize/DisciplinaryWarning";
 import AbsentFine from "@/models/sequelize/AbsentFine";
 import AssetRequest from "@/models/sequelize/AssetRequest";
+import Department from "@/models/sequelize/Department";
 
 export async function GET(req: Request) {
   try {
@@ -38,7 +39,7 @@ export async function GET(req: Request) {
     }
 
     await sequelize.authenticate();
-    await EmployeeProfile.sync({ alter: true });
+    await EmployeeProfile.sync();
     const dbUser = await User.findByPk((session.user as any).id, { raw: true });
     const userMenuAccess = dbUser?.menuAccess || null;
 
@@ -596,8 +597,22 @@ export async function GET(req: Request) {
         ])].filter(Boolean);
       } else if (deptFilterParam && deptFilterParam !== "all") {
         // Global viewer has selected a specific department
+        const selectedDepartment = await Department.findOne({
+          where: {
+            [Op.or]: [
+              { id: deptFilterParam },
+              { name: deptFilterParam }
+            ]
+          },
+          raw: true
+        });
+        const departmentValues = [...new Set([
+          deptFilterParam,
+          (selectedDepartment as any)?.id,
+          (selectedDepartment as any)?.name
+        ].filter(Boolean))];
         const deptProfiles = await EmployeeProfile.findAll({
-          where: { department: deptFilterParam },
+          where: { department: { [Op.in]: departmentValues } },
           attributes: ["user"]
         });
         deptUserIds = deptProfiles.map((p: any) => p.user).filter(Boolean);
@@ -646,7 +661,7 @@ export async function GET(req: Request) {
       const deptEodCount = new Set(deptEodsToday.map((r: any) => r.employee?.toString()).filter(Boolean)).size;
 
       // 3. Tasks planned/created for today in department
-      const deptTasksToday = await TaskLog.count({
+      const deptTaskRows = await TaskLog.findAll({
         where: {
           [Op.or]: [
             { employee: { [Op.in]: deptUserIds } },
@@ -656,8 +671,24 @@ export async function GET(req: Request) {
             [Op.gte]: today,
             [Op.lt]: tomorrow
           }
-        }
+        },
+        attributes: ["id", "employee", "forwardedTo", "taskTitle", "status", "deadlineAt", "date"],
+        raw: true
       });
+      const deptTasksToday = deptTaskRows.length;
+      const completedStatuses = new Set(["completed", "complete", "done"]);
+      const inProgressStatuses = new Set(["in progress", "in-progress", "working", "started"]);
+      const completedTasks = deptTaskRows.filter((task: any) =>
+        completedStatuses.has(String(task.status || "").trim().toLowerCase())
+      ).length;
+      const inProgressTasks = deptTaskRows.filter((task: any) =>
+        inProgressStatuses.has(String(task.status || "").trim().toLowerCase())
+      ).length;
+      const pendingTasks = Math.max(0, deptTasksToday - completedTasks - inProgressTasks);
+      const overdueTasks = deptTaskRows.filter((task: any) => {
+        if (completedStatuses.has(String(task.status || "").trim().toLowerCase())) return false;
+        return task.deadlineAt && new Date(task.deadlineAt).getTime() < now.getTime();
+      }).length;
 
       // 4. Pending manager approvals (leaves and expense claims) for department members
       const pendingLeavesCount = await Leave.count({
@@ -677,19 +708,7 @@ export async function GET(req: Request) {
       const pendingApprovalsCount = pendingLeavesCount + pendingExpensesCount;
 
       // 5. Avg Performance (compliance rate: % of completed tasks today out of all tasks today)
-      const deptCompletedTasksCount = await TaskLog.count({
-        where: {
-          [Op.or]: [
-            { employee: { [Op.in]: deptUserIds } },
-            { forwardedTo: { [Op.in]: deptUserIds } }
-          ],
-          status: "Completed",
-          date: {
-            [Op.gte]: today,
-            [Op.lt]: tomorrow
-          }
-        }
-      });
+      const deptCompletedTasksCount = completedTasks;
 
       const performanceAvg = deptTasksToday > 0
         ? Math.round((deptCompletedTasksCount / deptTasksToday) * 100)
@@ -713,6 +732,37 @@ export async function GET(req: Request) {
         };
       });
 
+      const approvedLeavesToday = await Leave.findAll({
+        where: {
+          employee: { [Op.in]: deptUserIds },
+          status: "Approved",
+          startDate: { [Op.lte]: endOfToday },
+          endDate: { [Op.gte]: today }
+        },
+        attributes: ["employee"],
+        raw: true
+      });
+      const leaveUserIds = new Set(
+        approvedLeavesToday.map((leave: any) => String(leave.employee)).filter(Boolean)
+      );
+      const presentUserIds = new Set(finalPresentIds.map(String));
+
+      const memberTaskSummary: Record<string, { total: number; completed: number; overdue: number }> = {};
+      deptTaskRows.forEach((task: any) => {
+        const employeeId = String(task.forwardedTo || task.employee || "");
+        if (!employeeId) return;
+        if (!memberTaskSummary[employeeId]) {
+          memberTaskSummary[employeeId] = { total: 0, completed: 0, overdue: 0 };
+        }
+        const summary = memberTaskSummary[employeeId];
+        summary.total++;
+        const isCompleted = completedStatuses.has(String(task.status || "").trim().toLowerCase());
+        if (isCompleted) summary.completed++;
+        if (!isCompleted && task.deadlineAt && new Date(task.deadlineAt).getTime() < now.getTime()) {
+          summary.overdue++;
+        }
+      });
+
       const deptTeamList = teamUsers.map((u: any) => ({
         id: u.id,
         name: u.name || "Unnamed",
@@ -721,7 +771,15 @@ export async function GET(req: Request) {
         department: teamProfilesMap[u.id]?.department || "N/A",
         designation: teamProfilesMap[u.id]?.designation || "N/A",
         sodTime: sodMap[u.id.toString()] || null,
-        eodTime: eodMap[u.id.toString()] || null
+        eodTime: eodMap[u.id.toString()] || null,
+        attendanceStatus: leaveUserIds.has(String(u.id))
+          ? "On Leave"
+          : presentUserIds.has(String(u.id))
+            ? "Present"
+            : "Absent",
+        tasksTotal: memberTaskSummary[String(u.id)]?.total || 0,
+        tasksCompleted: memberTaskSummary[String(u.id)]?.completed || 0,
+        tasksOverdue: memberTaskSummary[String(u.id)]?.overdue || 0
       }));
 
       // Get team activities (HRRecentActivity + SodReports + EodReports for department members)
@@ -884,10 +942,21 @@ export async function GET(req: Request) {
       deptStats = {
         teamMembers: teamMembersCount,
         tasksToday: deptTasksToday,
+        completedTasks,
+        inProgressTasks,
+        pendingTasks,
+        overdueTasks,
         sod: deptSodCount,
         eod: deptEodCount,
+        sodPending: Math.max(0, teamMembersCount - deptSodCount),
+        eodPending: Math.max(0, teamMembersCount - deptEodCount),
+        presentToday: deptTeamList.filter((member: any) => member.attendanceStatus === "Present").length,
+        onLeaveToday: deptTeamList.filter((member: any) => member.attendanceStatus === "On Leave").length,
+        absentToday: deptTeamList.filter((member: any) => member.attendanceStatus === "Absent").length,
         performanceAvg: Math.min(100, performanceAvg),
         pendingApprovals: pendingApprovalsCount,
+        pendingLeaves: pendingLeavesCount,
+        pendingExpenses: pendingExpensesCount,
         teamList: deptTeamList,
         teamActivities,
         performanceTrend

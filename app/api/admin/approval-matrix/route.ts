@@ -22,7 +22,7 @@ export async function GET(request: Request) {
     }
 
     await sequelize.authenticate();
-    await ApprovalMatrix.sync({ alter: true });
+    await ApprovalMatrix.sync();
 
     let records = await ApprovalMatrix.findAll({ order: [["category", "ASC"]] });
 
@@ -90,7 +90,7 @@ export async function POST(request: Request) {
     }
 
     await sequelize.authenticate();
-    await ApprovalMatrix.sync({ alter: true });
+    await ApprovalMatrix.sync();
 
     let record = await ApprovalMatrix.findByPk(formKey);
     if (!record) {

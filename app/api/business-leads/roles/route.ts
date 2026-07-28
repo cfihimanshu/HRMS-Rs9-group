@@ -54,7 +54,7 @@ export async function GET(req: Request) {
     }
 
     await sequelize.authenticate();
-    await LeadRole.sync({ alter: true });
+    await LeadRole.sync();
 
     // Sync/copy all roles from the main roles table to leads_roles table
     try {
@@ -120,7 +120,7 @@ export async function POST(req: Request) {
     }
 
     await sequelize.authenticate();
-    await LeadRole.sync({ alter: true });
+    await LeadRole.sync();
 
     const baseId = `role_${getShortCode(name)}`;
     let id = baseId;

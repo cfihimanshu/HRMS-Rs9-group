@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import sequelize from "@/lib/sequelize";
 import Vertical from "@/models/sequelize/Vertical";
+import { requireApiSession, MANAGEMENT_ROLES } from "@/lib/apiAuth";
 
 const DEFAULT_VERTICALS = [
   { id: "vert_legal_recovery", name: "Legal Recovery", code: "LR", description: "Legal recovery, debt resolution & asset recovery operations", status: "active" },
@@ -12,7 +13,7 @@ const DEFAULT_VERTICALS = [
 
 async function seedDefaultVerticals() {
   try {
-    await Vertical.sync({ alter: true });
+    await Vertical.sync();
     const count = await Vertical.count();
     if (count === 0) {
       for (const item of DEFAULT_VERTICALS) {
@@ -29,6 +30,8 @@ async function seedDefaultVerticals() {
 
 export async function GET() {
   try {
+    const auth = await requireApiSession();
+    if (auth.response) return auth.response;
     await sequelize.authenticate();
     await seedDefaultVerticals();
 
@@ -44,6 +47,8 @@ export async function GET() {
 
 export async function POST(req: Request) {
   try {
+    const auth = await requireApiSession(MANAGEMENT_ROLES);
+    if (auth.response) return auth.response;
     await sequelize.authenticate();
     await seedDefaultVerticals();
 
@@ -84,6 +89,8 @@ export async function POST(req: Request) {
 
 export async function PUT(req: Request) {
   try {
+    const auth = await requireApiSession(MANAGEMENT_ROLES);
+    if (auth.response) return auth.response;
     await sequelize.authenticate();
     const body = await req.json();
     const { id, name, code, description, status } = body;
@@ -111,6 +118,8 @@ export async function PUT(req: Request) {
 
 export async function DELETE(req: Request) {
   try {
+    const auth = await requireApiSession(MANAGEMENT_ROLES);
+    if (auth.response) return auth.response;
     await sequelize.authenticate();
     const { searchParams } = new URL(req.url);
     const id = searchParams.get("id");

@@ -55,6 +55,11 @@ LegalWorkHistory.init(
       allowNull: true,
       defaultValue: "Pending",
     },
+    amount: {
+      type: DataTypes.DECIMAL(15, 2),
+      allowNull: true,
+      defaultValue: 0,
+    },
     workDate: {
       type: DataTypes.DATE,
       allowNull: true,

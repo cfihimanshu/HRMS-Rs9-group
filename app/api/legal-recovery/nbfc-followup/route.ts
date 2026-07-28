@@ -11,7 +11,7 @@ export async function GET(request: Request) {
     const nbfcId = searchParams.get("nbfcId");
 
     await sequelize.authenticate();
-    await NbfcFollowup.sync({ alter: true });
+    await NbfcFollowup.sync();
 
     let whereClause: any = {};
     if (nbfcId) {
@@ -34,8 +34,8 @@ export async function POST(request: Request) {
   try {
     const data = await request.json();
     await sequelize.authenticate();
-    await NbfcFollowup.sync({ alter: true });
-    await TaskLog.sync({ alter: true });
+    await NbfcFollowup.sync();
+    await TaskLog.sync();
 
     const session = await getServerSession(authOptions);
     if (session?.user) {

@@ -31,9 +31,6 @@ export function LoginSplash() {
         fadeOut ? "opacity-0" : "opacity-100"
       }`}
     >
-      {/* eslint-disable-next-line @next/next/no-page-custom-font */}
-      <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400&display=swap" rel="stylesheet" />
-      
       <div className="flex flex-col items-center">
         {/* Animated Line Top */}
         <div className="h-[1px] bg-[#C9A84C] animate-[expandWidth_1.5s_ease-out_forwards]" style={{ width: "0%" }}></div>

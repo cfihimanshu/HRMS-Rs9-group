@@ -19,7 +19,7 @@ export async function GET(req: Request) {
     const employeeIdFilter = searchParams.get("employeeId");
     
     await sequelize.authenticate();
-    await FieldVisit.sync({ alter: true });
+    await FieldVisit.sync();
 
     const userRole = (session.user as any).role;
     const userId = (session.user as any).id;
@@ -100,7 +100,7 @@ export async function POST(req: Request) {
     const { action } = body;
 
     await sequelize.authenticate();
-    await FieldVisit.sync({ alter: true });
+    await FieldVisit.sync();
 
     if (action === "start") {
       const { opening_km, opening_coordinates, opening_location, vehicle_number, fuel_status, photo_url } = body;

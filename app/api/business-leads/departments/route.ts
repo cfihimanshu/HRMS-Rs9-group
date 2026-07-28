@@ -37,7 +37,7 @@ export async function GET(req: Request) {
     }
 
     await sequelize.authenticate();
-    await LeadsDepartment.sync({ alter: true });
+    await LeadsDepartment.sync();
 
     let departments = await LeadsDepartment.findAll({ order: [["name", "ASC"]] });
 
@@ -91,7 +91,7 @@ export async function POST(req: Request) {
     }
 
     await sequelize.authenticate();
-    await LeadsDepartment.sync({ alter: true });
+    await LeadsDepartment.sync();
 
     const baseId = `dept_${getShortCode(name)}`;
     let id = baseId;

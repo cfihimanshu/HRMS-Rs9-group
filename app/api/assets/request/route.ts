@@ -170,7 +170,7 @@ export async function GET(req: Request) {
     }
 
     await sequelize.authenticate();
-    await AssetRequest.sync({ alter: true });
+    await AssetRequest.sync();
 
     const userId = (session.user as any).id;
 
@@ -299,7 +299,7 @@ export async function GET(req: Request) {
     // Fetch and merge purchase requests if the logged-in user is Owner/Director
     if (isOwnerOrDirector) {
       try {
-        await AssetPurchaseRequest.sync({ alter: true });
+        await AssetPurchaseRequest.sync();
         const purchaseReqs = await AssetPurchaseRequest.findAll({
           order: [["createdAt", "DESC"]]
         });
@@ -373,7 +373,7 @@ export async function POST(req: Request) {
     const { action } = body;
 
     await sequelize.authenticate();
-    await AssetRequest.sync({ alter: true });
+    await AssetRequest.sync();
 
     if (action === "create") {
       const { asset_type, reason, priority } = body;
@@ -392,7 +392,7 @@ export async function POST(req: Request) {
 
       // --- Send Notification & Email directly to Owners ---
       try {
-        await Notification.sync({ alter: true });
+        await Notification.sync();
         const requester = await User.findByPk(userId);
         const requesterProfile = await EmployeeProfile.findOne({ where: { user: userId } });
         const requesterName = requester?.name || "An employee";

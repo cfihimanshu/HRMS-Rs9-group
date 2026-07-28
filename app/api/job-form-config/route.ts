@@ -6,8 +6,8 @@ import JobFormFieldOption from "@/models/sequelize/JobFormFieldOption";
 export async function GET() {
   try {
     // 1. Sync tables
-    await JobFormField.sync({ alter: true });
-    await JobFormFieldOption.sync({ alter: true });
+    await JobFormField.sync();
+    await JobFormFieldOption.sync();
 
     // 2. Count existing fields
     const count = await JobFormField.count();

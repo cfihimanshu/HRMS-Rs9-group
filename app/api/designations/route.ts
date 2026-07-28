@@ -94,7 +94,7 @@ const defaultDesignations = [
 export async function GET(req: Request) {
   try {
     await sequelize.authenticate();
-    await Designation.sync({ alter: true });
+    await Designation.sync();
 
     // Seed default designations if they do not exist
     for (const dd of defaultDesignations) {
@@ -130,7 +130,7 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   try {
     await sequelize.authenticate();
-    await Designation.sync({ alter: true });
+    await Designation.sync();
     const body = await req.json();
     const { name, departmentId, level } = body;
 

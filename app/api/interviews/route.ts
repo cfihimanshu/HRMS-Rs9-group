@@ -258,7 +258,7 @@ export async function POST(req: Request) {
 
       // Also create a TaskLog for the scheduled interview
       try {
-        await TaskLog.sync({ alter: true });
+        await TaskLog.sync();
         const taskId = await TaskLog.generateNextTaskId((session.user as any).id);
         
         await TaskLog.create({
@@ -556,7 +556,7 @@ export async function PUT(req: Request) {
 
       // Also create a TaskLog for the scheduled follow-up interview
       try {
-        await TaskLog.sync({ alter: true });
+        await TaskLog.sync();
         const taskId = await TaskLog.generateNextTaskId((session.user as any).id);
         
         const activeMode = mode !== undefined ? mode : interview.mode;

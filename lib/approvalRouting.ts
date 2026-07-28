@@ -27,7 +27,7 @@ const DEFAULT_RULES: Record<string, { roles: string[]; notifyEmail: boolean; not
 export async function getApproversForWorkflow(formKey: string, applicantUserId?: string): Promise<ApproverResolutionResult> {
   try {
     await sequelize.authenticate();
-    await ApprovalMatrix.sync({ alter: true });
+    await ApprovalMatrix.sync();
 
     let rule = await ApprovalMatrix.findByPk(formKey);
     let roles: string[] = [];
@@ -179,7 +179,7 @@ export async function getAuthorizedApplicantIdsForApprover(
 }> {
   try {
     await sequelize.authenticate();
-    await ApprovalMatrix.sync({ alter: true });
+    await ApprovalMatrix.sync();
 
     let rule = await ApprovalMatrix.findByPk(formKey);
     let roles: string[] = [];

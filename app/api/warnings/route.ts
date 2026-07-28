@@ -140,8 +140,8 @@ export async function GET(req: Request) {
 
     const userId = (session.user as any).id;
     await sequelize.authenticate();
-    try { await EmployeeProfile.sync({ alter: true }); } catch (_) {}
-    try { await DisciplinaryWarning.sync({ alter: true }); } catch (_) {}
+    try { await EmployeeProfile.sync(); } catch (_) {}
+    try { await DisciplinaryWarning.sync(); } catch (_) {}
 
     const dbUser = await User.findByPk(userId, { raw: true });
     if (!dbUser) {
@@ -242,7 +242,7 @@ export async function POST(req: Request) {
 
     const userId = (session.user as any).id;
     await sequelize.authenticate();
-    await DisciplinaryWarning.sync({ alter: true });
+    await DisciplinaryWarning.sync();
 
     const dbUser = await User.findByPk(userId, { raw: true });
     if (!dbUser) {
@@ -405,7 +405,7 @@ export async function PUT(req: Request) {
 
     const userId = (session.user as any).id;
     await sequelize.authenticate();
-    await DisciplinaryWarning.sync({ alter: true });
+    await DisciplinaryWarning.sync();
 
     const dbUser = await User.findByPk(userId, { raw: true });
     if (!dbUser) {

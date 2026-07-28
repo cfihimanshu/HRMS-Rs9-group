@@ -14,7 +14,7 @@ export async function GET(req: Request) {
 
     await sequelize.authenticate();
     try {
-      await ProjectMaster.sync({ alter: true });
+      await ProjectMaster.sync();
     } catch (_) {}
 
     let records = await ProjectMaster.findAll({ order: [["id", "ASC"]] });
@@ -53,7 +53,7 @@ export async function POST(req: Request) {
 
     await sequelize.authenticate();
     try {
-      await ProjectMaster.sync({ alter: true });
+      await ProjectMaster.sync();
     } catch (_) {}
 
     const body = await req.json();

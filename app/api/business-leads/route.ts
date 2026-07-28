@@ -1024,7 +1024,7 @@ Meeting Link: ${fields.interview_video_link || "N/A"}
 
       const taskTitle = `Lead Log: ${leadName || "Candidate"} (${fields.status})`;
       try {
-        await TaskLog.sync({ alter: true });
+        await TaskLog.sync();
       } catch (e) {
         console.warn("[SCHEMA EVOLUTION] TaskLog sync failed:", e);
       }

@@ -24,7 +24,7 @@ export async function GET(req: Request) {
 
     const userId = (session.user as any).id;
     await sequelize.authenticate();
-    await SodReport.sync({ alter: true });
+    await SodReport.sync();
 
     const today = new Date();
     today.setUTCHours(0, 0, 0, 0);
@@ -115,7 +115,7 @@ export async function POST(req: Request) {
     }
 
     await sequelize.authenticate();
-    await SodReport.sync({ alter: true });
+    await SodReport.sync();
 
     const today = new Date();
     today.setUTCHours(0, 0, 0, 0);
@@ -149,9 +149,9 @@ export async function POST(req: Request) {
     // Save Legal Recovery Schedule entries if provided & create corresponding TaskLogs for My Tasks
     if (Array.isArray(legalSchedules) && legalSchedules.length > 0) {
       try {
-        await LegalRecoverySchedule.sync({ alter: true });
-        await TaskLog.sync({ alter: true });
-        await KanbanTask.sync({ alter: true });
+        await LegalRecoverySchedule.sync();
+        await TaskLog.sync();
+        await KanbanTask.sync();
 
         const nowTimestamp = new Date();
 

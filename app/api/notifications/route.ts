@@ -68,7 +68,7 @@ export async function PUT(req: Request) {
     }
 
     await sequelize.authenticate();
-    await Notification.sync({ alter: true });
+    await Notification.sync();
 
     if (markAllAsRead || !id) {
       await Notification.update(

@@ -5,7 +5,7 @@ import {
   LayoutDashboard, UserSquare2, FileEdit, Briefcase, Users2, ScanLine,
   Video, ShieldCheck, FileText, FileSpreadsheet, GraduationCap, Clock, CalendarCheck, CalendarClock,
   TrendingUp, BriefcaseIcon, Building2, Coins, HelpCircle, AlertTriangle, ShieldAlert,
-  LogOut, ChevronDown, ChevronRight, MapPin, Cpu, Package, Key, Scale
+  LogOut, ChevronDown, ChevronRight, MapPin, Cpu, Package, Key, Scale, History
 } from "lucide-react";
 import { signOut } from "next-auth/react";
 
@@ -82,6 +82,7 @@ export default function DashboardSidebar({
     { id: "assets-registry", label: "Assets Registry", icon: Cpu, category: "Core Workspace", roles: ["Owner", "Director", "HR Head", "HR Executive"] },
     { id: "inventory-management", label: "Inventory Management", icon: Package, category: "Core Workspace", roles: ["Owner"] },
     { id: "admin-access", label: "Administrator Access", icon: Key, category: "Core Workspace", roles: ["Owner"] },
+    { id: "audit-trail", label: "System Audit Trail", icon: History, category: "Core Workspace", roles: ["Owner", "Director", "HR Head"] },
     { id: "legal-recovery", label: "Legal Recovery", icon: Scale, category: "Core Workspace", roles: ["Owner"] },
 
     { id: "screening", label: "AI Screening Module", icon: ScanLine, category: "AI & Vetting Hub", roles: ["Owner", "Director", "HR Head", "HR Executive"] },

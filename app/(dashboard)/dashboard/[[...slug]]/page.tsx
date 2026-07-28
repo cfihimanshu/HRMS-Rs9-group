@@ -62,6 +62,7 @@ import LiveTrackingMap from "@/components/dashboard/LiveTrackingMap";
 import AssignedTaskPopup from "@/components/dashboard/AssignedTaskPopup";
 import PendingTasksModal from "@/components/dashboard/PendingTasksModal";
 import BusinessLeads from "@/components/dashboard/BusinessLeads";
+import AuditTrail from "@/components/dashboard/AuditTrail";
 
 export default function UnifiedEnterpriseDashboard() {
   const { data: session, status } = useSession();
@@ -1071,9 +1072,6 @@ export default function UnifiedEnterpriseDashboard() {
   if (status === "loading" || loading) {
     return (
       <div className="min-h-screen bg-[#FCFBF9] flex flex-col justify-center items-center select-none overflow-hidden relative">
-        {/* eslint-disable-next-line @next/next/no-page-custom-font */}
-        <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400&display=swap" rel="stylesheet" />
-
         {/* Decorative Background */}
         <div className="absolute inset-0 pointer-events-none opacity-[0.03] flex items-center justify-center">
           <svg className="w-[150%] h-[150%] text-[#1C1C1A] animate-[spin_60s_linear_infinite]" viewBox="0 0 100 100" fill="none" stroke="currentColor" strokeWidth="0.5">
@@ -1185,6 +1183,7 @@ export default function UnifiedEnterpriseDashboard() {
               userRole={userRole}
               selectedDeptId={selectedDeptId}
               onDeptChange={setSelectedDeptId}
+              onRefresh={() => loadStats(selectedCompanyId, selectedDeptId)}
               onNavigateTodayTasks={() => {
                 const todayStr = new Date().toLocaleDateString("sv-SE"); // Local date YYYY-MM-DD
                 setTaskDateFilter(todayStr);
@@ -1268,6 +1267,8 @@ export default function UnifiedEnterpriseDashboard() {
               sessionUser={session?.user}
             />
           )}
+
+          {activeTab === "audit-trail" && <AuditTrail />}
 
           {activeTab === "legal-recovery" && (() => {
             const userDept = (session?.user as any)?.department || "";
