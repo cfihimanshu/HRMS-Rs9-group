@@ -4,7 +4,8 @@ import ReactDOM from "react-dom";
 import {
   Search, Edit3, Check, X, RefreshCw, Cpu, Layers, Building2,
   Trash2, AlertTriangle, PlusCircle, PackagePlus, Package,
-  Sparkles, Filter, Calendar, Coins, CheckCircle, HelpCircle, Download
+  Sparkles, Filter, Calendar, Coins, CheckCircle, HelpCircle, Download,
+  UserPlus, UserMinus, History, ArrowRightLeft
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -17,11 +18,18 @@ interface InventoryManagementProps {
 export default function InventoryManagement({ userRole, triggerToast, sessionUser }: InventoryManagementProps) {
   const [inventory, setInventory] = useState<any[]>([]);
   const [companies, setCompanies] = useState<any[]>([]);
+  const [employees, setEmployees] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCompany, setSelectedCompany] = useState("all");
   const [selectedCondition, setSelectedCondition] = useState("all");
   const [selectedType, setSelectedType] = useState("all");
+  const [selectedStatus, setSelectedStatus] = useState("all");
+  const [selectedAssignee, setSelectedAssignee] = useState("all");
+  const [assignedFrom, setAssignedFrom] = useState("");
+  const [assignedTo, setAssignedTo] = useState("");
+  const [handoverFrom, setHandoverFrom] = useState("");
+  const [handoverTo, setHandoverTo] = useState("");
 
   const formatDateDDMMYY = (dateStr?: string) => {
     if (!dateStr) return "";
@@ -124,6 +132,13 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
   const [loadingPurchases, setLoadingPurchases] = useState(false);
   const [showPurchaseModal, setShowPurchaseModal] = useState(false);
   const [previewImageUrl, setPreviewImageUrl] = useState<string | null>(null);
+  const [assigningAsset, setAssigningAsset] = useState<any>(null);
+  const [assignmentUserId, setAssignmentUserId] = useState("");
+  const [assignmentDate, setAssignmentDate] = useState(new Date().toISOString().slice(0, 10));
+  const [assignmentHandoverDate, setAssignmentHandoverDate] = useState("");
+  const [assignmentNotes, setAssignmentNotes] = useState("");
+  const [historyAsset, setHistoryAsset] = useState<any>(null);
+  const [savingAssignment, setSavingAssignment] = useState(false);
   const [purchaseForm, setPurchaseForm] = useState({
     asset_type: "Laptop",
     asset_detail: "",
@@ -280,20 +295,83 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
     try {
       setLoading(true);
       // Fetch inventory
-      const invRes = await fetch("/api/assets/inventory");
-      const invData = await invRes.json();
-
-      // Fetch companies
-      const compRes = await fetch("/api/companies");
-      const compData = await compRes.json();
+      const [invRes, compRes, employeeRes] = await Promise.all([
+        fetch("/api/assets/inventory"),
+        fetch("/api/companies"),
+        fetch("/api/employees?all=1")
+      ]);
+      const [invData, compData, employeeData] = await Promise.all([
+        invRes.json(),
+        compRes.json(),
+        employeeRes.json()
+      ]);
 
       if (invRes.ok) setInventory(invData.data || []);
       if (compRes.ok) setCompanies(compData.data || []);
+      if (employeeRes.ok) setEmployees((employeeData.data || []).filter((employee: any) => employee.status === "active"));
     } catch (error) {
       console.error("Error fetching inventory data:", error);
       triggerToast("Failed to load inventory data");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleAssignmentSave = async () => {
+    if (!assigningAsset) return;
+    if (!assignmentUserId) {
+      triggerToast("Please select an employee");
+      return;
+    }
+    try {
+      setSavingAssignment(true);
+      const response = await fetch("/api/assets/inventory", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          assetId: assigningAsset.id,
+          userId: assignmentUserId,
+          currentAssignedUserId: assigningAsset.assignedToUserId || null,
+          assignedDate: assignmentDate,
+          handoverDate: assignmentHandoverDate || null,
+          notes: assignmentNotes
+        })
+      });
+      const result = await response.json();
+      if (!response.ok || !result.success) throw new Error(result.error || "Assignment failed");
+      triggerToast(`Asset assigned to ${result.data.assignedToName}`);
+      setAssigningAsset(null);
+      setAssignmentUserId("");
+      setAssignmentHandoverDate("");
+      setAssignmentNotes("");
+      await fetchData();
+    } catch (error: any) {
+      triggerToast(error.message || "Failed to assign asset");
+    } finally {
+      setSavingAssignment(false);
+    }
+  };
+
+  const handleUnassignAsset = async (asset: any) => {
+    if (!confirm(`Unassign this asset from ${asset.assignedToName || "employee"}?`)) return;
+    try {
+      const response = await fetch("/api/assets/inventory", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          assetId: asset.id,
+          userId: null,
+          currentAssignedUserId: asset.assignedToUserId || null,
+          handoverDate: new Date().toISOString().slice(0, 10),
+          notes: "Returned to inventory"
+        })
+      });
+      const result = await response.json();
+      if (!response.ok || !result.success) throw new Error(result.error || "Unassignment failed");
+      triggerToast("Asset unassigned and returned to available stock");
+      await fetchData();
+    } catch (error: any) {
+      triggerToast(error.message || "Failed to unassign asset");
     }
   };
 
@@ -1049,15 +1127,18 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
 
   // Filter inventory
   const filteredInventory = inventory.filter((asset) => {
-    // 1. Search Query (ID, Old ID, Detail, Serial, Notes)
-    const query = searchQuery.toLowerCase();
-    const idMatch = String(asset.id || "").toLowerCase().includes(query);
-    const oldIdMatch = String(asset.oldAssetId || "").toLowerCase().includes(query);
-    const detailMatch = String(asset.assetDetail || "").toLowerCase().includes(query);
-    const typeMatch = String(asset.assetType || "").toLowerCase().includes(query);
-    const snMatch = String(asset.serialNumber || "").toLowerCase().includes(query);
-    const noteMatch = String(asset.notes || "").toLowerCase().includes(query);
-    const matchesSearch = !searchQuery || idMatch || oldIdMatch || detailMatch || typeMatch || snMatch || noteMatch;
+    const query = searchQuery.trim().toLowerCase();
+    const companyName = companies.find((company) => String(company.id) === String(asset.companyId))?.name || "General Stock";
+    const historyText = (asset.assignmentHistory || []).map((entry: any) =>
+      [entry.action, entry.fromUserName, entry.toUserName, entry.performedBy, entry.notes, entry.assignedDate, entry.handoverDate].join(" ")
+    ).join(" ");
+    const searchable = [
+      asset.id, asset.oldAssetId, asset.assetDetail, asset.assetType, asset.serialNumber,
+      asset.notes, asset.status, asset.condition, companyName, asset.assignedToName,
+      asset.assignedToUserId, asset.assignedBy, asset.registeredBy, asset.customFields,
+      asset.purchaseDate, asset.purchaseValue, asset.assignedAt, asset.handoverDate, historyText
+    ].join(" ").toLowerCase();
+    const matchesSearch = !query || searchable.includes(query);
 
     // 2. Company Filter
     const matchesCompany = selectedCompany === "all" || String(asset.companyId) === String(selectedCompany);
@@ -1067,8 +1148,18 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
 
     // 4. Asset Type Filter
     const matchesType = selectedType === "all" || asset.assetType === selectedType;
+    const matchesStatus = selectedStatus === "all" || asset.status === selectedStatus;
+    const matchesAssignee = selectedAssignee === "all"
+      || (selectedAssignee === "unassigned" ? !asset.assignedToUserId : String(asset.assignedToUserId) === selectedAssignee);
+    const assignedDay = asset.assignedAt ? String(asset.assignedAt).slice(0, 10) : "";
+    const handoverDay = asset.handoverDate ? String(asset.handoverDate).slice(0, 10) : "";
+    const matchesAssignedDate = (!assignedFrom || (assignedDay && assignedDay >= assignedFrom))
+      && (!assignedTo || (assignedDay && assignedDay <= assignedTo));
+    const matchesHandoverDate = (!handoverFrom || (handoverDay && handoverDay >= handoverFrom))
+      && (!handoverTo || (handoverDay && handoverDay <= handoverTo));
 
-    return matchesSearch && matchesCompany && matchesCondition && matchesType;
+    return matchesSearch && matchesCompany && matchesCondition && matchesType
+      && matchesStatus && matchesAssignee && matchesAssignedDate && matchesHandoverDate;
   });
 
   const exportInventoryToCsv = () => {
@@ -1151,6 +1242,11 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
       },
       { header: "Condition", value: (asset) => asset.condition },
       { header: "Inventory Status", value: (asset) => asset.status },
+      { header: "Assigned User ID", value: (asset) => asset.assignedToUserId },
+      { header: "Assigned To", value: (asset) => asset.assignedToName },
+      { header: "Assigned Date", value: (asset) => asset.assignedAt },
+      { header: "Handover Date", value: (asset) => asset.handoverDate },
+      { header: "Assigned By", value: (asset) => asset.assignedBy },
       { header: "Purchase Date", value: (asset) => asset.purchaseDate },
       { header: "Purchase Value", value: (asset) => asset.purchaseValue },
     ];
@@ -1200,6 +1296,12 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
       { header: "Registered By", value: (asset) => asset.registeredBy },
       { header: "Created At", value: (asset) => asset.createdAt },
       { header: "Updated At", value: (asset) => asset.updatedAt },
+      {
+        header: "Assignment History",
+        value: (asset) => (asset.assignmentHistory || []).map((entry: any) =>
+          `${entry.action}: ${entry.fromUserName || "Stock"} -> ${entry.toUserName || "Stock"}; assigned ${entry.assignedDate || "-"}; handover ${entry.handoverDate || "-"}; by ${entry.performedBy || "-"}`
+        ).join(" | "),
+      },
     ];
 
     const humanizeFieldName = (key: string) => key
@@ -1250,10 +1352,10 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
   };
 
   // Calculate quick stats
-  const totalCount = filteredInventory.length;
-  const availableCount = filteredInventory.filter(a => a.status === "Available").length;
-  const newCount = filteredInventory.filter(a => a.condition === "New").length;
-  const inUseCount = filteredInventory.filter(a => a.status === "In Use").length;
+  const totalCount = inventory.length;
+  const availableCount = inventory.filter(a => a.status === "Available").length;
+  const newCount = inventory.filter(a => a.condition === "New").length;
+  const inUseCount = inventory.filter(a => a.status === "In Use").length;
 
   const typeClean = registerForm.assetType?.toLowerCase().trim();
 
@@ -2477,7 +2579,7 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
       {activeSubTab === "stock" ? (
         <>
           {/* Filter and Search Row */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 bg-[#FCFBF9] border border-[#E8E4DF] p-4 rounded-xl">
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3 bg-[#FCFBF9] border border-[#E8E4DF] p-4 rounded-xl">
         {/* Search */}
         <div>
           <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1.5">Search Asset Detail / Serial</label>
@@ -2535,16 +2637,61 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
             className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
           >
             <option value="all">All Categories</option>
-            <option>Laptop</option>
-            <option>Mobile Phone</option>
-            <option>SIM Card</option>
-            <option>Headset / Accessories</option>
-            <option>ID Card / Lanyard</option>
-            <option>Office Chair / Table</option>
-            <option>Router / Networking</option>
-            <option>Printer / Scanner</option>
-            <option>Other</option>
+            {dynamicAssetTypes.map((type) => <option key={type} value={type}>{type}</option>)}
           </select>
+        </div>
+
+        <div>
+          <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1.5">Inventory Status</label>
+          <select value={selectedStatus} onChange={(e) => setSelectedStatus(e.target.value)} className="w-full bg-white border border-[#E8E4DF] rounded-lg px-3 py-2 text-xs font-semibold">
+            <option value="all">All Statuses</option>
+            {Array.from(new Set(inventory.map((asset) => asset.status).filter(Boolean))).sort().map((status) => (
+              <option key={status} value={status}>{status}</option>
+            ))}
+          </select>
+        </div>
+
+        <div>
+          <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1.5">Assigned To</label>
+          <select value={selectedAssignee} onChange={(e) => setSelectedAssignee(e.target.value)} className="w-full bg-white border border-[#E8E4DF] rounded-lg px-3 py-2 text-xs font-semibold">
+            <option value="all">All Employees</option>
+            <option value="unassigned">Unassigned / Available</option>
+            {[...employees].sort((a: any, b: any) => String(a.name || "").localeCompare(String(b.name || ""))).map((employee: any) => (
+              <option key={employee.id} value={employee.id}>{employee.name}</option>
+            ))}
+          </select>
+        </div>
+
+        <div>
+          <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1.5">Assigned Date Range</label>
+          <div className="grid grid-cols-2 gap-1.5">
+            <input type="date" value={assignedFrom} onChange={(e) => setAssignedFrom(e.target.value)} className="min-w-0 bg-white border border-[#E8E4DF] rounded-lg px-2 py-2 text-[10px]" />
+            <input type="date" value={assignedTo} onChange={(e) => setAssignedTo(e.target.value)} className="min-w-0 bg-white border border-[#E8E4DF] rounded-lg px-2 py-2 text-[10px]" />
+          </div>
+        </div>
+
+        <div>
+          <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1.5">Handover Date Range</label>
+          <div className="flex gap-1.5">
+            <input type="date" value={handoverFrom} onChange={(e) => setHandoverFrom(e.target.value)} className="min-w-0 flex-1 bg-white border border-[#E8E4DF] rounded-lg px-2 py-2 text-[10px]" />
+            <input type="date" value={handoverTo} onChange={(e) => setHandoverTo(e.target.value)} className="min-w-0 flex-1 bg-white border border-[#E8E4DF] rounded-lg px-2 py-2 text-[10px]" />
+            <button
+              type="button"
+              title="Clear all filters"
+              onClick={() => {
+                setSearchQuery(""); setSelectedCompany("all"); setSelectedCondition("all");
+                setSelectedType("all"); setSelectedStatus("all"); setSelectedAssignee("all");
+                setAssignedFrom(""); setAssignedTo(""); setHandoverFrom(""); setHandoverTo("");
+              }}
+              className="px-3 rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-100 font-bold text-[10px]"
+            >
+              Clear
+            </button>
+          </div>
+        </div>
+        <div className="md:col-span-2 xl:col-span-4 flex items-center justify-between border-t border-[#E8E4DF] pt-3 text-[10px] font-bold text-slate-500">
+          <span>Showing {filteredInventory.length} of {inventory.length} assets</span>
+          <span>{availableCount} available · {inUseCount} assigned</span>
         </div>
       </div>
 
@@ -2630,14 +2777,30 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
 
                       {/* Status */}
                       <td className="py-4 px-4">
-                        <span className={cn(
-                          "inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold border uppercase tracking-wider",
-                          asset.status === "Available" ? "bg-emerald-50 text-emerald-700 border-emerald-200" :
-                            asset.status === "In Use" ? "bg-amber-50 text-amber-700 border-amber-200" :
-                              "bg-rose-50 text-rose-700 border-rose-200"
-                        )}>
-                          {asset.status || "Available"}
-                        </span>
+                        <div className="space-y-1">
+                          <span className={cn(
+                            "inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold border uppercase tracking-wider",
+                            asset.status === "Available" ? "bg-emerald-50 text-emerald-700 border-emerald-200" :
+                              asset.status === "In Use" ? "bg-amber-50 text-amber-700 border-amber-200" :
+                                "bg-rose-50 text-rose-700 border-rose-200"
+                          )}>
+                            {asset.status || "Available"}
+                          </span>
+                          {asset.assignedToName && (
+                            <div className="text-[10px] font-bold text-slate-700">
+                              With: {asset.assignedToName}
+                              {asset.assignedAt && (
+                                <span className="block text-[9px] font-medium text-slate-500">Assigned: {formatDateDDMMYY(String(asset.assignedAt).slice(0, 10))}</span>
+                              )}
+                              {asset.handoverDate && (
+                                <span className="block text-[9px] font-medium text-slate-500">Handover: {formatDateDDMMYY(String(asset.handoverDate).slice(0, 10))}</span>
+                              )}
+                              {asset.assignmentSource === "legacy" && (
+                                <span className="block text-[8px] font-medium text-slate-400">Matched from Assets Registry</span>
+                              )}
+                            </div>
+                          )}
+                        </div>
                       </td>
 
                       {/* Purchase details */}
@@ -2680,6 +2843,47 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
                             className="px-2 py-1.5 text-[10px] font-bold uppercase tracking-wider text-[#C9A84C] hover:text-white border border-[#C9A84C]/35 hover:bg-[#C9A84C] rounded-lg transition-all flex items-center gap-1"
                           >
                             <Edit3 className="w-3 h-3" /> Edit
+                          </button>
+                          {asset.assignedToUserId ? (
+                            <>
+                              <button
+                                onClick={() => {
+                                  setAssigningAsset(asset);
+                                  setAssignmentUserId("");
+                                  setAssignmentDate(new Date().toISOString().slice(0, 10));
+                                  setAssignmentHandoverDate("");
+                                  setAssignmentNotes("");
+                                }}
+                                className="px-2 py-1.5 text-[10px] font-bold uppercase tracking-wider text-sky-700 border border-sky-200 hover:bg-sky-600 hover:text-white rounded-lg transition-all flex items-center gap-1"
+                              >
+                                <ArrowRightLeft className="w-3 h-3" /> Transfer
+                              </button>
+                              <button
+                                onClick={() => handleUnassignAsset(asset)}
+                                className="px-2 py-1.5 text-[10px] font-bold uppercase tracking-wider text-rose-600 border border-rose-200 hover:bg-rose-600 hover:text-white rounded-lg transition-all flex items-center gap-1"
+                              >
+                                <UserMinus className="w-3 h-3" /> Unassign
+                              </button>
+                            </>
+                          ) : (
+                            <button
+                              onClick={() => {
+                                setAssigningAsset(asset);
+                                setAssignmentUserId("");
+                                setAssignmentDate(new Date().toISOString().slice(0, 10));
+                                setAssignmentHandoverDate("");
+                                setAssignmentNotes("");
+                              }}
+                              className="px-2 py-1.5 text-[10px] font-bold uppercase tracking-wider text-emerald-700 border border-emerald-200 hover:bg-emerald-600 hover:text-white rounded-lg transition-all flex items-center gap-1"
+                            >
+                              <UserPlus className="w-3 h-3" /> Assign
+                            </button>
+                          )}
+                          <button
+                            onClick={() => setHistoryAsset(asset)}
+                            className="px-2 py-1.5 text-[10px] font-bold uppercase tracking-wider text-violet-700 border border-violet-200 hover:bg-violet-600 hover:text-white rounded-lg transition-all flex items-center gap-1"
+                          >
+                            <History className="w-3 h-3" /> History
                           </button>
                           <button
                             onClick={() => setDeleteConfirm({ show: true, assetId: asset.id, assetType: asset.assetType, serialNumber: asset.serialNumber })}
@@ -4172,6 +4376,118 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
               alt="Asset Preview" 
               className="max-w-full max-h-[80vh] object-contain rounded-lg"
             />
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {assigningAsset && typeof document !== "undefined" && ReactDOM.createPortal(
+        <div className="fixed inset-0 z-[10000] bg-black/25 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="w-full max-w-lg bg-white rounded-2xl border border-slate-200 shadow-2xl overflow-hidden">
+            <div className="px-5 py-4 border-b border-slate-200 flex items-start justify-between">
+              <div>
+                <h3 className="text-base font-bold text-slate-900">{assigningAsset.assignedToUserId ? "Transfer Inventory Asset" : "Assign Inventory Asset"}</h3>
+                <p className="text-xs text-slate-500 mt-1">
+                  {assigningAsset.assetType} · {assigningAsset.assetDetail || assigningAsset.id}
+                </p>
+              </div>
+              <button onClick={() => setAssigningAsset(null)} className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-500">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="p-5 space-y-4">
+              <div>
+                <label className="block text-[10px] uppercase tracking-wider font-bold text-slate-500 mb-1.5">
+                  Select Employee
+                </label>
+                <select
+                  value={assignmentUserId}
+                  onChange={(event) => setAssignmentUserId(event.target.value)}
+                  className="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm font-semibold outline-none focus:border-indigo-500"
+                >
+                  <option value="">-- Select Employee --</option>
+                  {[...employees]
+                    .sort((a: any, b: any) => String(a.name || "").localeCompare(String(b.name || "")))
+                    .map((employee: any) => (
+                      <option key={employee.id} value={employee.id}>
+                        {employee.name} {employee.employeeProfile?.employeeId ? `(${employee.employeeProfile.employeeId})` : ""}
+                      </option>
+                    ))}
+                </select>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[10px] uppercase tracking-wider font-bold text-slate-500 mb-1.5">Assigned Date *</label>
+                  <input type="date" required value={assignmentDate} onChange={(e) => setAssignmentDate(e.target.value)} className="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm font-semibold" />
+                </div>
+                <div>
+                  <label className="block text-[10px] uppercase tracking-wider font-bold text-slate-500 mb-1.5">Handover Date</label>
+                  <input type="date" value={assignmentHandoverDate} onChange={(e) => setAssignmentHandoverDate(e.target.value)} className="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm font-semibold" />
+                </div>
+              </div>
+              <div>
+                <label className="block text-[10px] uppercase tracking-wider font-bold text-slate-500 mb-1.5">Assignment / Handover Note</label>
+                <textarea value={assignmentNotes} onChange={(e) => setAssignmentNotes(e.target.value)} rows={3} placeholder="Condition, accessories, handover remarks..." className="w-full resize-none border border-slate-300 rounded-lg px-3 py-2.5 text-sm" />
+              </div>
+              <div className="bg-indigo-50 border border-indigo-100 rounded-lg p-3 text-xs text-indigo-800">
+                Assignment save hote hi Inventory status “In Use” ho jayega aur employee Assets Registry mein asset dikhne lagega.
+              </div>
+            </div>
+            <div className="px-5 py-4 border-t border-slate-200 flex justify-end gap-2">
+              <button onClick={() => setAssigningAsset(null)} className="px-4 py-2 text-xs font-bold text-slate-600 bg-slate-100 rounded-lg">
+                Cancel
+              </button>
+              <button
+                onClick={handleAssignmentSave}
+                disabled={!assignmentUserId || savingAssignment}
+                className="px-4 py-2 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 rounded-lg flex items-center gap-1.5"
+              >
+                <UserPlus className="w-3.5 h-3.5" />
+                {savingAssignment ? "Saving..." : assigningAsset.assignedToUserId ? "Transfer Asset" : "Assign Asset"}
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {historyAsset && typeof document !== "undefined" && ReactDOM.createPortal(
+        <div className="fixed inset-0 z-[10000] bg-black/25 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="w-full max-w-3xl max-h-[85vh] bg-white rounded-2xl border border-slate-200 shadow-2xl overflow-hidden flex flex-col">
+            <div className="px-5 py-4 border-b border-slate-200 flex items-start justify-between">
+              <div>
+                <h3 className="text-base font-bold text-slate-900 flex items-center gap-2"><History className="w-4 h-4 text-violet-600" /> Asset Assignment History</h3>
+                <p className="text-xs text-slate-500 mt-1">{historyAsset.id} · {historyAsset.assetType} · {historyAsset.assetDetail || "Asset"}</p>
+              </div>
+              <button onClick={() => setHistoryAsset(null)} className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-500"><X className="w-4 h-4" /></button>
+            </div>
+            <div className="p-5 overflow-y-auto">
+              {(historyAsset.assignmentHistory || []).length === 0 ? (
+                <div className="py-10 text-center text-sm text-slate-500">Is asset ke liye abhi koi assignment event record nahi hai.</div>
+              ) : (
+                <div className="space-y-3">
+                  {(historyAsset.assignmentHistory || []).map((entry: any) => (
+                    <div key={entry.id} className="border border-slate-200 rounded-xl p-4 bg-slate-50/60">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <span className="px-2 py-1 rounded-full bg-violet-100 text-violet-800 text-[10px] font-bold uppercase">{entry.action}</span>
+                        <span className="text-[10px] text-slate-500">{entry.createdAt ? new Date(entry.createdAt).toLocaleString("en-IN") : "Legacy record"}</span>
+                      </div>
+                      <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                        <div><span className="text-slate-400 block text-[9px] uppercase font-bold">From</span>{entry.fromUserName || "Available Stock"}</div>
+                        <div><span className="text-slate-400 block text-[9px] uppercase font-bold">To</span>{entry.toUserName || "Available Stock"}</div>
+                        <div><span className="text-slate-400 block text-[9px] uppercase font-bold">Assigned Date</span>{entry.assignedDate ? new Date(entry.assignedDate).toLocaleDateString("en-IN") : "—"}</div>
+                        <div><span className="text-slate-400 block text-[9px] uppercase font-bold">Handover Date</span>{entry.handoverDate ? new Date(entry.handoverDate).toLocaleDateString("en-IN") : "—"}</div>
+                        <div><span className="text-slate-400 block text-[9px] uppercase font-bold">Updated By</span>{entry.performedBy || "System"}</div>
+                        {entry.notes && <div><span className="text-slate-400 block text-[9px] uppercase font-bold">Note</span>{entry.notes}</div>}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            <div className="px-5 py-4 border-t border-slate-200 flex justify-end">
+              <button onClick={() => setHistoryAsset(null)} className="px-4 py-2 bg-slate-900 text-white text-xs font-bold rounded-lg">Close History</button>
+            </div>
           </div>
         </div>,
         document.body

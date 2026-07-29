@@ -6,6 +6,7 @@ import { Readable } from "stream";
 import { requireApiSession } from "@/lib/apiAuth";
 
 const MAX_UPLOAD_BYTES = 20 * 1024 * 1024;
+const MAX_TASK_UPLOAD_BYTES = 100 * 1024 * 1024;
 const ALLOWED_UPLOAD_TYPES = new Set([
   "application/pdf",
   "image/jpeg",
@@ -18,6 +19,11 @@ const ALLOWED_UPLOAD_TYPES = new Set([
   "audio/wav",
   "video/mp4",
 ]);
+const UNSAFE_TASK_EXTENSIONS = new Set([
+  ".asp", ".aspx", ".bat", ".cgi", ".cmd", ".com", ".cpl", ".dll", ".exe",
+  ".htm", ".html", ".jar", ".js", ".jsp", ".mjs", ".msi", ".php", ".phtml",
+  ".phar", ".pl", ".ps1", ".py", ".sh", ".svg", ".xhtml", ".xml"
+]);
 
 export async function POST(request: Request) {
   try {
@@ -25,14 +31,27 @@ export async function POST(request: Request) {
     if (auth.response) return auth.response;
     const formData = await request.formData();
     const file = formData.get("file") as File;
+    const purpose = String(formData.get("purpose") || "");
 
     if (!file) {
       return NextResponse.json({ success: false, error: "No file uploaded" }, { status: 400 });
     }
-    if (file.size <= 0 || file.size > MAX_UPLOAD_BYTES) {
-      return NextResponse.json({ success: false, error: "File must be between 1 byte and 20 MB" }, { status: 413 });
+    const isTaskProof = purpose === "task-proof";
+    const maximumBytes = isTaskProof ? MAX_TASK_UPLOAD_BYTES : MAX_UPLOAD_BYTES;
+    if (file.size <= 0 || file.size > maximumBytes) {
+      return NextResponse.json({
+        success: false,
+        error: `File must be between 1 byte and ${maximumBytes / (1024 * 1024)} MB`
+      }, { status: 413 });
     }
-    if (!ALLOWED_UPLOAD_TYPES.has(file.type)) {
+    const originalExtension = path.extname(file.name || "").toLowerCase();
+    if (isTaskProof && UNSAFE_TASK_EXTENSIONS.has(originalExtension)) {
+      return NextResponse.json({
+        success: false,
+        error: "This executable or active-script file is blocked for security."
+      }, { status: 415 });
+    }
+    if (!isTaskProof && !ALLOWED_UPLOAD_TYPES.has(file.type)) {
       return NextResponse.json({ success: false, error: "Unsupported file type" }, { status: 415 });
     }
 

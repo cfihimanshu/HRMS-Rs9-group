@@ -3,6 +3,41 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import sequelize from "@/lib/sequelize";
 import AssetInventory from "@/models/sequelize/AssetInventory";
+import AssetAssignmentHistory from "@/models/sequelize/AssetAssignmentHistory";
+import EmployeeProfile from "@/models/sequelize/EmployeeProfile";
+import User from "@/models/sequelize/User";
+import Department from "@/models/sequelize/Department";
+import { Op } from "sequelize";
+
+const getAssetSearchTokens = (asset: any): string[] => {
+  const source = [
+    asset.serialNumber,
+    asset.assetDetail,
+    asset.customFields,
+    asset.oldAssetId
+  ].filter(Boolean).join(" ");
+  return Array.from(new Set(source.match(/[A-Za-z0-9]{8,}/g) || []));
+};
+
+const allocationMatchesAsset = (allocation: unknown, asset: any): boolean => {
+  const text = String(allocation || "");
+  if (!text.trim()) return false;
+  if (text.includes(`[Inventory:${asset.id}]`)) return true;
+  return getAssetSearchTokens(asset).some(token => text.toLowerCase().includes(token.toLowerCase()));
+};
+
+const parseLegacyAssignedDate = (allocation: unknown): Date | null => {
+  const match = String(allocation || "").match(/Assigned:\s*(\d{4}-\d{2}-\d{2})/i);
+  if (!match) return null;
+  const date = new Date(`${match[1]}T00:00:00`);
+  return Number.isNaN(date.getTime()) ? null : date;
+};
+
+const parseOptionalDate = (value: unknown, endOfDay = false): Date | null => {
+  if (!value) return null;
+  const date = new Date(`${String(value).slice(0, 10)}T${endOfDay ? "23:59:59" : "00:00:00"}`);
+  return Number.isNaN(date.getTime()) ? null : date;
+};
 
 // ─── GET: Fetch all inventory assets ──────────────────────────────────────────
 async function ensureColumns() {
@@ -72,7 +107,71 @@ export async function GET(req: Request) {
       }
     }
 
-    return NextResponse.json({ success: true, data: records });
+    const assetIds = records.map((record: any) => String(record.id));
+    const [profiles, users, historyRows] = await Promise.all([
+      EmployeeProfile.findAll({
+        where: { allocatedAsset: { [Op.not]: null } },
+        attributes: ["user", "employeeId", "allocatedAsset"],
+        raw: true
+      }),
+      User.findAll({ attributes: ["id", "name"], raw: true }),
+      assetIds.length
+        ? AssetAssignmentHistory.findAll({
+            where: { assetId: { [Op.in]: assetIds } },
+            order: [["createdAt", "DESC"]],
+            raw: true
+          })
+        : []
+    ]);
+    const userNameMap = new Map(users.map((user: any) => [String(user.id), user.name || "Unknown Employee"]));
+    const historiesByAsset = new Map<string, any[]>();
+    historyRows.forEach((row: any) => {
+      const key = String(row.assetId);
+      historiesByAsset.set(key, [...(historiesByAsset.get(key) || []), row]);
+    });
+
+    const data = records.map((record: any) => {
+      const asset = record.toJSON();
+      const assignmentHistory = historiesByAsset.get(String(asset.id)) || [];
+      if (asset.assignedToUserId) {
+        return {
+          ...asset,
+          status: "In Use",
+          assignedToName: asset.assignedToName || userNameMap.get(String(asset.assignedToUserId)) || "Assigned Employee",
+          assignmentHistory
+        };
+      }
+      const legacyProfile: any = profiles.find((profile: any) =>
+        allocationMatchesAsset(profile.allocatedAsset, asset)
+      );
+      if (!legacyProfile) return { ...asset, assignmentHistory };
+      const legacyAssignedAt = parseLegacyAssignedDate(legacyProfile.allocatedAsset);
+      const syntheticHistory = assignmentHistory.length ? [] : [{
+        id: `legacy-${asset.id}`,
+        assetId: asset.id,
+        action: "Legacy Assignment",
+        fromUserId: null,
+        fromUserName: null,
+        toUserId: legacyProfile.user,
+        toUserName: userNameMap.get(String(legacyProfile.user)) || legacyProfile.employeeId || "Assigned Employee",
+        assignedDate: legacyAssignedAt,
+        handoverDate: null,
+        performedBy: "Legacy data",
+        notes: "Matched from employee asset registry",
+        createdAt: legacyAssignedAt
+      }];
+      return {
+        ...asset,
+        status: "In Use",
+        assignedToUserId: legacyProfile.user,
+        assignedToName: userNameMap.get(String(legacyProfile.user)) || legacyProfile.employeeId || "Assigned Employee",
+        assignedAt: asset.assignedAt || legacyAssignedAt,
+        assignmentSource: "legacy",
+        assignmentHistory: [...assignmentHistory, ...syntheticHistory]
+      };
+    });
+
+    return NextResponse.json({ success: true, data });
   } catch (error: any) {
     console.error("[/api/assets/inventory GET]", error.message);
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
@@ -256,6 +355,179 @@ export async function PUT(req: Request) {
     return NextResponse.json({ success: true, data: asset });
   } catch (error: any) {
     console.error("[/api/assets/inventory PUT]", error.message);
+    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+  }
+}
+
+// ─── PATCH: Assign or unassign an inventory asset ─────────────────────────────
+export async function PATCH(req: Request) {
+  const transaction = await sequelize.transaction();
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user) {
+      await transaction.rollback();
+      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
+    }
+
+    const dbUser = await User.findByPk((session.user as any).id, { transaction, raw: true });
+    const role = String(dbUser?.role || "").toLowerCase();
+    const actorProfile: any = await EmployeeProfile.findOne({
+      where: { user: (session.user as any).id },
+      transaction,
+      raw: true
+    });
+    const actorDepartment: any = actorProfile?.department
+      ? await Department.findOne({
+          where: {
+            [Op.or]: [
+              { id: actorProfile.department },
+              { name: actorProfile.department }
+            ]
+          },
+          transaction,
+          raw: true
+        })
+      : null;
+    const isOwner = ["owner", "director"].includes(role);
+    const isAdministration = String(actorDepartment?.name || actorProfile?.department || (session.user as any).department || "")
+      .toLowerCase()
+      .includes("administration");
+    if (!isOwner && !isAdministration) {
+      await transaction.rollback();
+      return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 });
+    }
+
+    const { assetId, userId, currentAssignedUserId, assignedDate, handoverDate, notes } = await req.json();
+    if (!assetId) {
+      await transaction.rollback();
+      return NextResponse.json({ success: false, error: "Asset ID is required" }, { status: 400 });
+    }
+
+    const asset: any = await AssetInventory.findByPk(String(assetId), {
+      transaction,
+      lock: transaction.LOCK.UPDATE
+    });
+    if (!asset) {
+      await transaction.rollback();
+      return NextResponse.json({ success: false, error: "Asset not found" }, { status: 404 });
+    }
+
+    const previousUserId = asset.assignedToUserId
+      ? String(asset.assignedToUserId)
+      : String(currentAssignedUserId || "");
+    const previousUser: any = previousUserId
+      ? await User.findByPk(previousUserId, { transaction, raw: true })
+      : null;
+    const previousUserName = asset.assignedToName || previousUser?.name || null;
+    const previousAssignedAt = asset.assignedAt || null;
+    const actorName = session.user.name || String((session.user as any).id);
+    const eventHandoverDate = parseOptionalDate(handoverDate);
+    if (!userId) {
+      if (previousUserId) {
+        const previousProfile: any = await EmployeeProfile.findOne({
+          where: { user: previousUserId },
+          transaction,
+          lock: transaction.LOCK.UPDATE
+        });
+        if (previousProfile) {
+          previousProfile.allocatedAsset = String(previousProfile.allocatedAsset || "")
+            .split(/\r?\n/)
+            .filter((line: string) => !allocationMatchesAsset(line, asset))
+            .join("\n")
+            .trim();
+          await previousProfile.save({ transaction });
+        }
+      }
+      asset.assignedToUserId = null;
+      asset.assignedToName = null;
+      asset.assignedAt = null;
+      asset.assignedBy = null;
+      asset.handoverDate = eventHandoverDate;
+      asset.status = "Available";
+      await asset.save({ transaction });
+      await AssetAssignmentHistory.create({
+        id: `AAH-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
+        assetId: String(asset.id),
+        action: "Unassigned",
+        fromUserId: previousUserId || null,
+        fromUserName: previousUserName,
+        toUserId: null,
+        toUserName: null,
+        assignedDate: previousAssignedAt,
+        handoverDate: eventHandoverDate || new Date(),
+        performedBy: actorName,
+        notes: String(notes || "").trim() || null
+      }, { transaction });
+      await transaction.commit();
+      return NextResponse.json({ success: true, data: asset });
+    }
+
+    const targetUser: any = await User.findByPk(String(userId), { transaction });
+    const targetProfile: any = await EmployeeProfile.findOne({
+      where: { user: String(userId) },
+      transaction,
+      lock: transaction.LOCK.UPDATE
+    });
+    if (!targetUser || !targetProfile) {
+      await transaction.rollback();
+      return NextResponse.json({ success: false, error: "Employee profile not found" }, { status: 404 });
+    }
+    if (previousUserId && previousUserId !== String(userId)) {
+      const previousProfile: any = await EmployeeProfile.findOne({
+        where: { user: previousUserId },
+        transaction,
+        lock: transaction.LOCK.UPDATE
+      });
+      if (previousProfile) {
+        previousProfile.allocatedAsset = String(previousProfile.allocatedAsset || "")
+          .split(/\r?\n/)
+          .filter((line: string) => !allocationMatchesAsset(line, asset))
+          .join("\n")
+          .trim();
+        await previousProfile.save({ transaction });
+      }
+    }
+
+    const effectiveAssignedDate = parseOptionalDate(assignedDate) || new Date();
+    const assignmentLine =
+      `[Inventory:${asset.id}] ${asset.assetType}: ${asset.assetDetail || "Asset"}` +
+      `${asset.serialNumber ? ` [S/N: ${asset.serialNumber}]` : ""}` +
+      ` [Assigned: ${effectiveAssignedDate.toISOString().slice(0, 10)}]` +
+      `${handoverDate ? ` [Handover: ${String(handoverDate).slice(0, 10)}]` : ""}`;
+    const existingAllocation = String(targetProfile.allocatedAsset || "").trim();
+    const existingLines = existingAllocation ? existingAllocation.split(/\r?\n/) : [];
+    targetProfile.allocatedAsset = [
+      ...existingLines.filter((line: string) => line && !allocationMatchesAsset(line, asset)),
+      assignmentLine
+    ].join("\n");
+    await targetProfile.save({ transaction });
+
+    asset.assignedToUserId = String(targetUser.id);
+    asset.assignedToName = targetUser.name || targetProfile.employeeId || "Employee";
+    asset.assignedAt = effectiveAssignedDate;
+    asset.handoverDate = handoverDate ? String(handoverDate).slice(0, 10) : null;
+    asset.assignedBy = actorName;
+    asset.status = "In Use";
+    await asset.save({ transaction });
+    await AssetAssignmentHistory.create({
+      id: `AAH-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
+      assetId: String(asset.id),
+      action: previousUserId && previousUserId !== String(userId) ? "Transferred" : "Assigned",
+      fromUserId: previousUserId || null,
+      fromUserName: previousUserName,
+      toUserId: String(targetUser.id),
+      toUserName: targetUser.name || targetProfile.employeeId || "Employee",
+      assignedDate: effectiveAssignedDate,
+      handoverDate: eventHandoverDate,
+      performedBy: actorName,
+      notes: String(notes || "").trim() || null
+    }, { transaction });
+    await transaction.commit();
+
+    return NextResponse.json({ success: true, data: asset });
+  } catch (error: any) {
+    if (!(transaction as any).finished) await transaction.rollback();
+    console.error("[/api/assets/inventory PATCH]", error.message);
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
 }
