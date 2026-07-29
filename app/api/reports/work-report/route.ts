@@ -21,8 +21,6 @@ export async function GET(req: Request) {
 
     const userId = (session.user as any).id;
     const role = (session.user as any).role;
-    const isManagerial = ["Owner", "Director", "HR Head", "HR Executive", "Department Manager"].includes(role);
-
     await sequelize.authenticate();
 
     const { searchParams } = new URL(req.url);
@@ -67,33 +65,6 @@ export async function GET(req: Request) {
 
       filter = { employee: { [Op.in]: managedUserIds } };
       fieldVisitFilter = { employee_id: { [Op.in]: managedUserIds } };
-    }
-
-    // Work Report is reserved for employees who are not assigned to any
-    // vertical. Vertical employees are shown in Scheduled Work instead.
-    const verticalProfiles = await EmployeeProfile.findAll({
-      attributes: ["user", "vertical"],
-      where: {
-        user: { [Op.not]: null },
-        vertical: { [Op.not]: null }
-      },
-      raw: true
-    });
-    const verticalUserIds = verticalProfiles
-      .filter((profile: any) => String(profile.vertical || "").trim().length > 0)
-      .map((profile: any) => String(profile.user));
-
-    if (isGlobalManager) {
-      if (verticalUserIds.length > 0) {
-        filter.employee = { [Op.notIn]: verticalUserIds };
-        fieldVisitFilter.employee_id = { [Op.notIn]: verticalUserIds };
-      }
-    } else {
-      const nonVerticalManagedUserIds = managedUserIds.filter(
-        managedId => !verticalUserIds.includes(String(managedId))
-      );
-      filter.employee = { [Op.in]: nonVerticalManagedUserIds };
-      fieldVisitFilter.employee_id = { [Op.in]: nonVerticalManagedUserIds };
     }
 
     if (range === "today") {
@@ -184,7 +155,7 @@ export async function GET(req: Request) {
     // Fetch department names mapping
     const profiles = await EmployeeProfile.findAll({
       where: { user: employeeIds },
-      attributes: ['user', 'department']
+      attributes: ['user', 'department', 'vertical']
     });
 
     const deptIds = Array.from(new Set(profiles.map((p: any) => p.department).filter(Boolean)));
@@ -198,8 +169,11 @@ export async function GET(req: Request) {
       return acc;
     }, {});
 
-    const userDeptMap = profiles.reduce((acc: any, p: any) => {
-      acc[p.user] = deptMap[p.department] || "General";
+    const userProfileMap = profiles.reduce((acc: any, p: any) => {
+      acc[p.user] = {
+        department: deptMap[p.department] || p.department || "General",
+        vertical: p.vertical || ""
+      };
       return acc;
     }, {});
 
@@ -210,7 +184,8 @@ export async function GET(req: Request) {
 
     const employeeMap = employees.reduce((acc: any, emp: any) => {
       const empJson = emp.toJSON();
-      empJson.department = userDeptMap[emp.id] || "General";
+      empJson.department = userProfileMap[emp.id]?.department || "General";
+      empJson.vertical = userProfileMap[emp.id]?.vertical || "";
       acc[emp.id] = empJson;
       return acc;
     }, {});
@@ -260,4 +235,3 @@ export async function GET(req: Request) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
 }
-

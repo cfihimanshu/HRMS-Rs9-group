@@ -19,8 +19,9 @@ export function loadDatabaseEnv() {
     }
   }
   const env = { ...values, ...process.env };
-  const required = ["MYSQL_HOST", "MYSQL_USER", "MYSQL_PASSWORD", "MYSQL_DATABASE"];
+  const required = ["MYSQL_USER", "MYSQL_PASSWORD", "MYSQL_DATABASE"];
   const missing = required.filter(key => !env[key]);
+  if (!env.MYSQL_HOST && !env.MYSQL_SOCKET_PATH) missing.push("MYSQL_HOST");
   if (missing.length) throw new Error(`Missing database variables: ${missing.join(", ")}`);
   return env;
 }
