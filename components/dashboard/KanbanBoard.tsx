@@ -820,6 +820,7 @@ export default function KanbanBoard({
     try {
       const formData = new FormData();
       formData.append("file", file);
+      formData.append("purpose", "task-proof");
 
       const uploadRes = await fetch("/api/documents/upload", {
         method: "POST",
@@ -870,6 +871,7 @@ export default function KanbanBoard({
       alert("Failed to upload proof.");
     } finally {
       setUploadingProof(false);
+      e.target.value = "";
     }
   };
 
@@ -2829,14 +2831,18 @@ export default function KanbanBoard({
                                           return <a href={proofUrl} target="_blank" rel="noopener noreferrer" download={`Task_Document_${idx + 1}.xlsx`} className="p-2.5 bg-slate-50 hover:bg-slate-100 transition-colors rounded-lg border border-slate-200 text-xs font-bold text-slate-700 flex items-center justify-between gap-2 cursor-pointer"><div className="flex items-center gap-2"><Paperclip className="w-4 h-4" /> Excel/CSV Document Uploaded</div> <Download className="w-4 h-4 text-slate-400" /></a>;
                                         }
 
-                                        const isAudio = url.includes('audio/') || url.includes('.mp3') || url.includes('.wav') || url.includes('.m4a') || url.includes('.ogg') || url.includes('.aac') || url.includes('.wma') || url.includes('.amr') || url.includes('.opus');
-                                        const isVideo = url.includes('video/') || url.includes('.mp4') || url.includes('.mov') || url.includes('.webm') || url.includes('.avi') || url.includes('.mkv');
+                                        const isAudio = /\.(mp3|wav|wave|m4a|ogg|oga|aac|wma|amr|opus|flac|aiff|aif|caf|ac3|mp2|weba|mka|ra)(?:$|[?#])/i.test(url) || url.includes('audio/');
+                                        const isVideo = /\.(mp4|mov|webm|avi|mkv|3gp|3g2|mpeg|mpg|m4v|wmv|flv)(?:$|[?#])/i.test(url) || url.includes('video/');
+                                        const isImage = /\.(png|jpe?g|gif|webp|bmp|tiff?|heic|heif|avif)(?:$|[?#])/i.test(url) || url.includes('image/');
 
                                         if (isAudio) {
-                                          return <audio controls className="w-full mt-1 border border-slate-100 rounded-lg p-1 bg-slate-50 shadow-sm"><source src={proofUrl} /></audio>;
+                                          return <div className="space-y-2"><audio controls src={proofUrl} className="w-full mt-1 border border-slate-100 rounded-lg p-1 bg-slate-50 shadow-sm" /><a href={proofUrl} target="_blank" rel="noopener noreferrer" download className="text-[10px] font-bold text-indigo-600 hover:underline">Open / download audio</a></div>;
                                         }
                                         if (isVideo) {
-                                          return <video controls className="max-h-48 w-full rounded-lg border border-slate-200 object-contain shadow-sm bg-slate-50 mt-1"><source src={proofUrl} /></video>;
+                                          return <div className="space-y-2"><video controls src={proofUrl} className="max-h-48 w-full rounded-lg border border-slate-200 object-contain shadow-sm bg-slate-50 mt-1" /><a href={proofUrl} target="_blank" rel="noopener noreferrer" download className="text-[10px] font-bold text-indigo-600 hover:underline">Open / download video</a></div>;
+                                        }
+                                        if (!isImage) {
+                                          return <a href={proofUrl} target="_blank" rel="noopener noreferrer" download className="p-2.5 bg-slate-50 hover:bg-slate-100 transition-colors rounded-lg border border-slate-200 text-xs font-bold text-slate-700 flex items-center justify-between gap-2"><div className="flex items-center gap-2"><Paperclip className="w-4 h-4" /> Uploaded File</div><Download className="w-4 h-4 text-slate-400" /></a>;
                                         }
                                         return (
                                           <img
@@ -2875,7 +2881,7 @@ export default function KanbanBoard({
                                   {uploadingProof ? "Uploading..." : proofUrls.length > 0 ? "+ Add Another Proof" : "Click to upload Proof"}
                                 </p>
                               </div>
-                              <input type="file" className="hidden" accept="image/*,.pdf,audio/*,video/*,.mp3,.mp4,.wav,.m4a,.aac,.mov,.webm,.xlsx,.xls,.csv" onChange={handleUploadProof} disabled={uploadingProof} />
+                              <input type="file" className="hidden" accept="*/*" onChange={handleUploadProof} disabled={uploadingProof} />
                             </label>
                           </div>
                         </div>
