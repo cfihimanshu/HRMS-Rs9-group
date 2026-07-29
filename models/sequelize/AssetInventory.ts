@@ -44,6 +44,26 @@ AssetInventory.init(
       allowNull: false,
       defaultValue: "Available",  // Available | In Use | Damaged | Disposed
     },
+    assignedToUserId: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    assignedToName: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    assignedAt: {
+      type: DataTypes.DATE,
+      allowNull: true,
+    },
+    handoverDate: {
+      type: DataTypes.DATEONLY,
+      allowNull: true,
+    },
+    assignedBy: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
     companyId: {
       type: DataTypes.STRING,
       allowNull: true,

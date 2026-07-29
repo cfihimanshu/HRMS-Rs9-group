@@ -334,16 +334,24 @@ export default function AssetsRegistry({ userRole, triggerToast, sessionUser }: 
         // If an inventory item was selected from stock, mark it as "In Use"
         if (assignForm.selectedInventoryId) {
           try {
-            await fetch("/api/assets/inventory", {
-              method: "PUT",
+            const selectedEmployee = employees.find((employee: any) =>
+              String(employee.employeeProfile?.employeeId) === String(assignForm.assignedToId)
+            );
+            const inventoryResponse = await fetch("/api/assets/inventory", {
+              method: "PATCH",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
-                id: Number(assignForm.selectedInventoryId),
-                status: "In Use"
+                assetId: assignForm.selectedInventoryId,
+                userId: selectedEmployee?.id || null
               })
             });
+            const inventoryResult = await inventoryResponse.json();
+            if (!inventoryResponse.ok || !inventoryResult.success) {
+              throw new Error(inventoryResult.error || "Failed to link inventory assignment");
+            }
           } catch (invErr) {
             console.error("Failed to update inventory status:", invErr);
+            triggerToast("Employee updated, but inventory assignment link failed. Please retry from Inventory Management.");
           }
         } else {
           // AUTO-REGISTER MANUAL ASSET INTO INVENTORY MANAGEMENT WITH "In Use" STATUS
