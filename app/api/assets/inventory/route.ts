@@ -125,15 +125,12 @@ export async function GET(req: Request) {
         raw: true
       }).catch(() => []),
       User.findAll({ attributes: ["id", "name"], raw: true }).catch(() => []),
-      }),
-      User.findAll({ attributes: ["id", "name"], raw: true }),
       assetIds.length
         ? AssetAssignmentHistory.findAll({
             where: { assetId: { [Op.in]: assetIds } },
             order: [["createdAt", "DESC"]],
             raw: true
           }).catch(() => [])
-          })
         : []
     ]);
     const userNameMap = new Map(users.map((user: any) => [String(user.id), user.name || "Unknown Employee"]));
