@@ -197,6 +197,8 @@ export function DailyCommitments({
   const [legalInputBranchName, setLegalInputBranchName] = useState("");
   const [legalInputCaseDetails, setLegalInputCaseDetails] = useState("");
   const [legalInputDetails, setLegalInputDetails] = useState("");
+  const [legalInputOfficerName, setLegalInputOfficerName] = useState("");
+  const [legalInputOfficerPhone, setLegalInputOfficerPhone] = useState("");
 
   useEffect(() => {
     fetch("/api/employees/me")
@@ -219,11 +221,13 @@ export function DailyCommitments({
     ["Legal", "Legal Recovery", "Security"].includes(sodTaskTitle);
 
   const handleAddLegalScheduleItem = () => {
-    const effectiveLocation = legalWorkLocation === "Other"
+    const defaultLoc = legalInputType === "Field Visit" ? "Field" : (["Bank Related", "NBFC"].includes(legalInputType) ? "Bank" : "Office");
+    const actualWorkLoc = legalWorkLocation || defaultLoc;
+    const effectiveLocation = actualWorkLoc === "Other"
       ? (legalCustomLocation.trim() || "Other")
-      : legalWorkLocation;
+      : actualWorkLoc;
 
-    if (legalWorkLocation === "Other" && !legalCustomLocation.trim()) {
+    if (actualWorkLoc === "Other" && !legalCustomLocation.trim()) {
       alert("Please enter custom location details.");
       return;
     }
@@ -231,19 +235,23 @@ export function DailyCommitments({
       alert("Please specify custom Type / Input for Others.");
       return;
     }
-    if (legalInputType === "Bank Related") {
+    if (["Bank Related", "Call", "Field Visit"].includes(legalInputType)) {
       if (!legalInputBankName.trim()) {
         alert("Please select Bank Name.");
         return;
       }
-      if (["branch related", "case related"].includes(legalInputSubType) && !legalInputBranchName.trim()) {
+      if (!legalInputBranchName.trim()) {
         alert("Please select Branch for the selected Bank.");
         return;
       }
-      if (legalInputSubType === "case related" && !legalInputCaseDetails.trim()) {
+      if (legalInputType === "Bank Related" && legalInputSubType === "case related" && !legalInputCaseDetails.trim()) {
         alert("Please enter Case Details.");
         return;
       }
+    }
+    if (legalInputType === "Field Visit" && !legalInputDetails.trim()) {
+      alert("Please enter Visit Details / Purpose.");
+      return;
     }
     if (legalInputType === "NBFC" && !legalInputBankName.trim()) {
       alert("Please select or type NBFC Name.");
@@ -255,17 +263,19 @@ export function DailyCommitments({
       date: legalInputDate,
       time: legalInputTime,
       workSection: effectiveLocation,
-      workLocation: legalWorkLocation,
-      customLocation: legalWorkLocation === "Other" ? legalCustomLocation.trim() : null,
+      workLocation: actualWorkLoc,
+      customLocation: actualWorkLoc === "Other" ? legalCustomLocation.trim() : null,
       type: legalInputType,
-      subType: legalInputType === "Bank Related" ? legalInputSubType : (legalInputType === "Call" ? (legalInputSubType || "Incoming Call") : null),
+      subType: legalInputType === "Bank Related" ? legalInputSubType : (legalInputType === "Call" ? (["Incoming Call", "Outgoing Call"].includes(legalInputSubType) ? legalInputSubType : "Incoming Call") : null),
       remarks: legalInputRemarks.trim(),
-      otherType: (legalInputType === "Others" || legalInputType === "Field Visit") ? legalInputOtherType.trim() : null,
-      bankName: ["Bank Related", "NBFC"].includes(legalInputType) ? legalInputBankName.trim() : null,
-      branchName: ["Bank Related", "NBFC"].includes(legalInputType) ? legalInputBranchName.trim() : null,
-      aoName: (legalInputType === "Bank Related" && ["AO related", "RBO related", "branch related", "case related"].includes(legalInputSubType)) ? legalInputAoName.trim() : null,
-      rboName: (legalInputType === "Bank Related" && ["RBO related", "branch related", "case related"].includes(legalInputSubType)) ? legalInputRboName.trim() : null,
+      otherType: (legalInputType === "Others") ? legalInputOtherType.trim() : null,
+      bankName: ["Bank Related", "NBFC", "Call", "Field Visit"].includes(legalInputType) ? (legalInputBankName.trim() || null) : null,
+      branchName: ["Bank Related", "NBFC", "Call", "Field Visit"].includes(legalInputType) ? (legalInputBranchName.trim() || null) : null,
+      aoName: (legalInputType === "Bank Related" && ["AO related", "RBO related", "branch related", "case related"].includes(legalInputSubType)) ? legalInputAoName.trim() : (legalInputAoName.trim() || null),
+      rboName: (legalInputType === "Bank Related" && ["RBO related", "branch related", "case related"].includes(legalInputSubType)) ? legalInputRboName.trim() : (legalInputRboName.trim() || null),
       caseDetails: (legalInputType === "Bank Related" && legalInputSubType === "case related") ? legalInputCaseDetails.trim() : null,
+      officerName: ["Call", "Field Visit", "Bank Related", "NBFC"].includes(legalInputType) ? (legalInputOfficerName.trim() || null) : null,
+      officerPhone: ["Call", "Field Visit", "Bank Related", "NBFC"].includes(legalInputType) ? (legalInputOfficerPhone.trim() || null) : null,
       details: legalInputDetails.trim(),
       status: "Pending"
     };
@@ -273,7 +283,7 @@ export function DailyCommitments({
     setLegalScheduleItems(prev => [...prev, newItem]);
 
     // Reset fields
-    setLegalWorkLocation("Office");
+    setLegalWorkLocation(defaultLoc);
     setLegalCustomLocation("");
     setLegalInputWorkSection("");
     setLegalInputRemarks("");
@@ -283,6 +293,8 @@ export function DailyCommitments({
     setLegalInputRboName("");
     setLegalInputBranchName("");
     setLegalInputCaseDetails("");
+    setLegalInputOfficerName("");
+    setLegalInputOfficerPhone("");
     setLegalInputDetails("");
   };
 
@@ -1177,7 +1189,23 @@ export function DailyCommitments({
                           <label className="block text-[9px] font-bold uppercase text-slate-500 mb-1">Type *</label>
                           <select
                             value={legalInputType}
-                            onChange={e => setLegalInputType(e.target.value)}
+                            onChange={e => {
+                              const val = e.target.value;
+                              setLegalInputType(val);
+                              if (val === "Call") {
+                                setLegalInputSubType("Incoming Call");
+                                setLegalWorkLocation("Office");
+                              } else if (val === "Field Visit") {
+                                setLegalInputSubType("");
+                                setLegalWorkLocation("Field");
+                              } else if (val === "Bank Related" || val === "NBFC") {
+                                setLegalInputSubType("AO related");
+                                setLegalWorkLocation("Bank");
+                              } else if (val === "General") {
+                                setLegalInputSubType("");
+                                setLegalWorkLocation("Office");
+                              }
+                            }}
                             className="w-full p-2 border border-slate-300 rounded-lg text-xs font-bold text-slate-900 focus:outline-none focus:border-purple-600"
                           >
                             <option value="General">General</option>
@@ -1206,29 +1234,118 @@ export function DailyCommitments({
 
                       {/* Dynamic Conditional Fields based on Type */}
 
-                      {/* Case 0: Type === "Call" -> Incoming / Outgoing selection */}
+                      {/* Case 0: Type === "Call" -> Incoming / Outgoing selection + Bank, Branch & Officer selection */}
                       {legalInputType === "Call" && (
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 animate-fade-in pt-1">
-                          <div>
-                            <label className="block text-[9px] font-black uppercase tracking-wider text-purple-800 mb-1">Call Direction / Mode *</label>
-                            <select
-                              value={legalInputSubType || "Incoming Call"}
-                              onChange={e => setLegalInputSubType(e.target.value)}
-                              className="w-full p-2 border border-purple-300 rounded-lg text-xs font-extrabold text-purple-900 bg-purple-50 focus:outline-none focus:border-purple-600 h-[38px]"
-                            >
-                              <option value="Incoming Call">Incoming Call 📥</option>
-                              <option value="Outgoing Call">Outgoing Call 📤</option>
-                            </select>
+                        <div className="space-y-3 animate-fade-in pt-1">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            <div>
+                              <label className="block text-[9px] font-black uppercase tracking-wider text-purple-800 mb-1">Call Direction / Mode *</label>
+                              <select
+                                value={legalInputSubType || "Incoming Call"}
+                                onChange={e => setLegalInputSubType(e.target.value)}
+                                className="w-full p-2 border border-purple-300 rounded-lg text-xs font-extrabold text-purple-900 bg-purple-50 focus:outline-none focus:border-purple-600 h-[38px]"
+                              >
+                                <option value="Incoming Call">Incoming Call 📥</option>
+                                <option value="Outgoing Call">Outgoing Call 📤</option>
+                              </select>
+                            </div>
+                            <div>
+                              <label className="block text-[9px] font-bold uppercase text-slate-500 mb-1">Remarks / Call Note (Optional)</label>
+                              <input
+                                type="text"
+                                value={legalInputRemarks}
+                                onChange={e => setLegalInputRemarks(e.target.value)}
+                                placeholder="Call details or summary..."
+                                className="w-full p-2 border border-slate-300 rounded-lg text-xs font-semibold text-slate-800 focus:outline-none focus:border-purple-600 h-[38px]"
+                              />
+                            </div>
                           </div>
-                          <div>
-                            <label className="block text-[9px] font-bold uppercase text-slate-500 mb-1">Remarks / Call Note (Optional)</label>
-                            <input
-                              type="text"
-                              value={legalInputRemarks}
-                              onChange={e => setLegalInputRemarks(e.target.value)}
-                              placeholder="Call details or summary..."
-                              className="w-full p-2 border border-slate-300 rounded-lg text-xs font-semibold text-slate-800 focus:outline-none focus:border-purple-600 h-[38px]"
-                            />
+
+                          {/* Bank, Branch & Officer Selection */}
+                          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 bg-purple-50/50 p-3 rounded-lg border border-purple-200">
+                            <div>
+                              <label className="block text-[9px] font-bold uppercase text-slate-600 mb-1">Bank Name *</label>
+                              <select
+                                value={legalInputBankName}
+                                onChange={e => {
+                                  const selectedName = e.target.value;
+                                  setLegalInputBankName(selectedName);
+                                  setLegalInputBranchName("");
+                                  setLegalInputAoName("");
+                                  setLegalInputRboName("");
+                                }}
+                                className="w-full p-2 border border-slate-300 rounded-lg text-xs font-bold text-slate-800 bg-white focus:outline-none focus:border-purple-600 h-[38px]"
+                              >
+                                <option value="">-- Select Bank * --</option>
+                                {banksList.map(b => (
+                                  <option key={String(b.id)} value={b.bankName}>{b.bankName}</option>
+                                ))}
+                              </select>
+                            </div>
+                            <div>
+                              <label className="block text-[9px] font-bold uppercase text-slate-600 mb-1">Branch *</label>
+                              <select
+                                value={
+                                  (() => {
+                                    const selectedBankObj = banksList.find(b => b.bankName?.toLowerCase().trim() === legalInputBankName?.toLowerCase().trim());
+                                    const bankBranches = selectedBankObj
+                                      ? branchesList.filter((br: any) => String(br.bankId) === String(selectedBankObj.id))
+                                      : branchesList;
+                                    const match = bankBranches.find((b: any) => String(b.id) === String(legalInputBranchName) || b.branchName === legalInputBranchName);
+                                    return match ? String(match.id) : legalInputBranchName;
+                                  })()
+                                }
+                                onChange={e => {
+                                  const selectedVal = e.target.value;
+                                  const selectedBankObj = banksList.find(b => b.bankName?.toLowerCase().trim() === legalInputBankName?.toLowerCase().trim());
+                                  const bankBranches = selectedBankObj
+                                    ? branchesList.filter((br: any) => String(br.bankId) === String(selectedBankObj.id))
+                                    : branchesList;
+                                  const brObj = bankBranches.find((b: any) => String(b.id) === String(selectedVal) || b.branchName === selectedVal);
+                                  if (brObj) {
+                                    setLegalInputBranchName(brObj.branchName);
+                                    if (brObj.aoName || brObj.ao) setLegalInputAoName(brObj.aoName || brObj.ao || "");
+                                    if (brObj.rbo || brObj.rboName) setLegalInputRboName(brObj.rbo || brObj.rboName || "");
+                                  } else {
+                                    setLegalInputBranchName(selectedVal);
+                                  }
+                                }}
+                                className="w-full p-2 border border-slate-300 rounded-lg text-xs font-bold text-slate-800 bg-white focus:outline-none focus:border-purple-600 h-[38px]"
+                              >
+                                <option value="">-- Select Branch * --</option>
+                                {(() => {
+                                  const selectedBankObj = banksList.find(b => b.bankName?.toLowerCase().trim() === legalInputBankName?.toLowerCase().trim());
+                                  const bankBranches = selectedBankObj
+                                    ? branchesList.filter((br: any) => String(br.bankId) === String(selectedBankObj.id))
+                                    : branchesList;
+                                  return bankBranches.map((br: any) => (
+                                    <option key={String(br.id)} value={String(br.id)}>
+                                      {br.branchName} {br.branchCode ? `(${br.branchCode})` : ""}
+                                    </option>
+                                  ));
+                                })()}
+                              </select>
+                            </div>
+                            <div>
+                              <label className="block text-[9px] font-bold uppercase text-slate-600 mb-1">Officer Name</label>
+                              <input
+                                type="text"
+                                value={legalInputOfficerName}
+                                onChange={e => setLegalInputOfficerName(e.target.value)}
+                                placeholder="Officer name..."
+                                className="w-full p-2 border border-slate-300 rounded-lg text-xs font-bold text-slate-800 bg-white focus:outline-none focus:border-purple-600 h-[38px]"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-[9px] font-bold uppercase text-slate-600 mb-1">Officer Number</label>
+                              <input
+                                type="text"
+                                value={legalInputOfficerPhone}
+                                onChange={e => setLegalInputOfficerPhone(e.target.value)}
+                                placeholder="Phone / contact..."
+                                className="w-full p-2 border border-slate-300 rounded-lg text-xs font-bold text-slate-800 bg-white focus:outline-none focus:border-purple-600 h-[38px]"
+                              />
+                            </div>
                           </div>
                         </div>
                       )}
@@ -1247,19 +1364,96 @@ export function DailyCommitments({
                         </div>
                       )}
 
-                      {/* Case 2: Type === "Field Visit" -> Field Visit details */}
+                      {/* Case 2: Type === "Field Visit" -> Bank/Branch/Officer selection followed by Visit Details / Purpose */}
                       {legalInputType === "Field Visit" && (
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 animate-fade-in pt-1">
-                          <div>
-                            <label className="block text-[9px] font-bold uppercase text-slate-500 mb-1">Visit Location / Target Site *</label>
-                            <input
-                              type="text"
-                              value={legalInputOtherType}
-                              onChange={e => setLegalInputOtherType(e.target.value)}
-                              placeholder="Enter site location or client name..."
-                              className="w-full p-2 border border-slate-300 rounded-lg text-xs font-bold text-slate-800 focus:outline-none focus:border-purple-600"
-                            />
+                        <div className="space-y-3 animate-fade-in pt-1">
+                          {/* Bank, Branch & Officer Selection */}
+                          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 bg-purple-50/50 p-3 rounded-lg border border-purple-200">
+                            <div>
+                              <label className="block text-[9px] font-bold uppercase text-slate-600 mb-1">Bank Name *</label>
+                              <select
+                                value={legalInputBankName}
+                                onChange={e => {
+                                  const selectedName = e.target.value;
+                                  setLegalInputBankName(selectedName);
+                                  setLegalInputBranchName("");
+                                  setLegalInputAoName("");
+                                  setLegalInputRboName("");
+                                }}
+                                className="w-full p-2 border border-slate-300 rounded-lg text-xs font-bold text-slate-800 bg-white focus:outline-none focus:border-purple-600 h-[38px]"
+                              >
+                                <option value="">-- Select Bank * --</option>
+                                {banksList.map(b => (
+                                  <option key={String(b.id)} value={b.bankName}>{b.bankName}</option>
+                                ))}
+                              </select>
+                            </div>
+                            <div>
+                              <label className="block text-[9px] font-bold uppercase text-slate-600 mb-1">Branch *</label>
+                              <select
+                                value={
+                                  (() => {
+                                    const selectedBankObj = banksList.find(b => b.bankName?.toLowerCase().trim() === legalInputBankName?.toLowerCase().trim());
+                                    const bankBranches = selectedBankObj
+                                      ? branchesList.filter((br: any) => String(br.bankId) === String(selectedBankObj.id))
+                                      : branchesList;
+                                    const match = bankBranches.find((b: any) => String(b.id) === String(legalInputBranchName) || b.branchName === legalInputBranchName);
+                                    return match ? String(match.id) : legalInputBranchName;
+                                  })()
+                                }
+                                onChange={e => {
+                                  const selectedVal = e.target.value;
+                                  const selectedBankObj = banksList.find(b => b.bankName?.toLowerCase().trim() === legalInputBankName?.toLowerCase().trim());
+                                  const bankBranches = selectedBankObj
+                                    ? branchesList.filter((br: any) => String(br.bankId) === String(selectedBankObj.id))
+                                    : branchesList;
+                                  const brObj = bankBranches.find((b: any) => String(b.id) === String(selectedVal) || b.branchName === selectedVal);
+                                  if (brObj) {
+                                    setLegalInputBranchName(brObj.branchName);
+                                    if (brObj.aoName || brObj.ao) setLegalInputAoName(brObj.aoName || brObj.ao || "");
+                                    if (brObj.rbo || brObj.rboName) setLegalInputRboName(brObj.rbo || brObj.rboName || "");
+                                  } else {
+                                    setLegalInputBranchName(selectedVal);
+                                  }
+                                }}
+                                className="w-full p-2 border border-slate-300 rounded-lg text-xs font-bold text-slate-800 bg-white focus:outline-none focus:border-purple-600 h-[38px]"
+                              >
+                                <option value="">-- Select Branch * --</option>
+                                {(() => {
+                                  const selectedBankObj = banksList.find(b => b.bankName?.toLowerCase().trim() === legalInputBankName?.toLowerCase().trim());
+                                  const bankBranches = selectedBankObj
+                                    ? branchesList.filter((br: any) => String(br.bankId) === String(selectedBankObj.id))
+                                    : branchesList;
+                                  return bankBranches.map((br: any) => (
+                                    <option key={String(br.id)} value={String(br.id)}>
+                                      {br.branchName} {br.branchCode ? `(${br.branchCode})` : ""}
+                                    </option>
+                                  ));
+                                })()}
+                              </select>
+                            </div>
+                            <div>
+                              <label className="block text-[9px] font-bold uppercase text-slate-600 mb-1">Officer Name</label>
+                              <input
+                                type="text"
+                                value={legalInputOfficerName}
+                                onChange={e => setLegalInputOfficerName(e.target.value)}
+                                placeholder="Officer name..."
+                                className="w-full p-2 border border-slate-300 rounded-lg text-xs font-bold text-slate-800 bg-white focus:outline-none focus:border-purple-600 h-[38px]"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-[9px] font-bold uppercase text-slate-600 mb-1">Officer Number</label>
+                              <input
+                                type="text"
+                                value={legalInputOfficerPhone}
+                                onChange={e => setLegalInputOfficerPhone(e.target.value)}
+                                placeholder="Phone / contact..."
+                                className="w-full p-2 border border-slate-300 rounded-lg text-xs font-bold text-slate-800 bg-white focus:outline-none focus:border-purple-600 h-[38px]"
+                              />
+                            </div>
                           </div>
+
                           <div>
                             <label className="block text-[9px] font-bold uppercase text-slate-500 mb-1">Visit Details / Purpose *</label>
                             <input
@@ -1267,7 +1461,7 @@ export function DailyCommitments({
                               value={legalInputDetails}
                               onChange={e => setLegalInputDetails(e.target.value)}
                               placeholder="Field visit purpose or agenda..."
-                              className="w-full p-2 border border-slate-300 rounded-lg text-xs font-semibold text-slate-800 focus:outline-none focus:border-purple-600"
+                              className="w-full p-2 border border-slate-300 rounded-lg text-xs font-semibold text-slate-800 focus:outline-none focus:border-purple-600 h-[38px]"
                             />
                           </div>
                         </div>
@@ -1477,9 +1671,9 @@ export function DailyCommitments({
                             const selectedNbfcObj = nbfcsList.find(n => (n.nbfcName || (n as any).name || "").toLowerCase().trim() === legalInputBankName?.toLowerCase().trim());
                             const filteredNbfcBranches = selectedNbfcObj
                               ? nbfcBranchesList.filter((br: any) =>
-                                  String(br.nbfcId) === String(selectedNbfcObj.id) ||
-                                  (br.nbfcName && br.nbfcName.toLowerCase().trim() === selectedNbfcObj.nbfcName?.toLowerCase().trim())
-                                )
+                                String(br.nbfcId) === String(selectedNbfcObj.id) ||
+                                (br.nbfcName && br.nbfcName.toLowerCase().trim() === selectedNbfcObj.nbfcName?.toLowerCase().trim())
+                              )
                               : nbfcBranchesList;
                             const availableNbfcBranches = filteredNbfcBranches.length > 0 ? filteredNbfcBranches : nbfcBranchesList;
 
@@ -1589,14 +1783,17 @@ export function DailyCommitments({
                                       <span className="text-[11px] text-slate-700 font-medium">{item.details || item.remarks || "—"}</span>
                                     ) : (
                                       <div className="space-y-0.5 text-[10px]">
-                                        <div className="font-bold text-purple-900">
-                                          Sub-Type: <span className="bg-purple-200/70 px-1.5 py-0.5 rounded font-black">{item.subType}</span>
-                                        </div>
+                                        {item.subType && (
+                                          <div className="font-bold text-purple-900">
+                                            Sub-Type: <span className="bg-purple-200/70 px-1.5 py-0.5 rounded font-black">{item.subType}</span>
+                                          </div>
+                                        )}
                                         <div className="text-slate-700 flex flex-wrap gap-1 font-semibold">
                                           {item.bankName && <span className="bg-slate-100 px-1 py-0.5 rounded border border-slate-200">🏦 {item.bankName}</span>}
                                           {item.aoName && <span className="bg-slate-100 px-1 py-0.5 rounded border border-slate-200">🏛️ AO: {item.aoName}</span>}
                                           {item.rboName && <span className="bg-slate-100 px-1 py-0.5 rounded border border-slate-200">📍 RBO: {item.rboName}</span>}
                                           {item.branchName && <span className="bg-slate-100 px-1 py-0.5 rounded border border-slate-200">🏢 Branch: {item.branchName}</span>}
+                                          {item.officerName && <span className="bg-slate-100 px-1 py-0.5 rounded border border-slate-200">👤 Officer: {item.officerName}{item.officerPhone ? ` (${item.officerPhone})` : ""}</span>}
                                           {item.caseDetails && <span className="bg-rose-50 text-rose-800 px-1 py-0.5 rounded border border-rose-200 font-bold">⚖️ Case: {item.caseDetails}</span>}
                                         </div>
                                         {item.details && <div className="text-slate-600 font-medium text-[9px] pt-0.5">Details: "{item.details}"</div>}
@@ -5978,6 +6175,7 @@ export function LeaveRequestTab({ sessionUser }: { sessionUser?: any }) {
 
   // Form states
   const [leaveType, setLeaveType] = useState("Casual Leave");
+  const [customLeaveType, setCustomLeaveType] = useState("");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [reason, setReason] = useState("");
@@ -6375,11 +6573,20 @@ export function LeaveRequestTab({ sessionUser }: { sessionUser?: any }) {
       return;
     }
 
+    const effectiveType = leaveType === "Other" ? customLeaveType.trim() : leaveType;
+    if (leaveType === "Other" && !effectiveType) {
+      alert("Please specify custom Leave Type");
+      return;
+    }
+
     // calculate number of days
     const start = new Date(startDate);
     const end = new Date(endDate);
     const diffTime = Math.abs(end.getTime() - start.getTime());
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+    let diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+    if (effectiveType === "Half Day" || effectiveType === "Half Day Leave") {
+      diffDays = 0.5;
+    }
 
     setSubmitting(true);
     try {
@@ -6387,7 +6594,7 @@ export function LeaveRequestTab({ sessionUser }: { sessionUser?: any }) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          type: leaveType,
+          type: effectiveType,
           startDate,
           endDate,
           days: diffDays,
@@ -6399,6 +6606,7 @@ export function LeaveRequestTab({ sessionUser }: { sessionUser?: any }) {
         setStartDate("");
         setEndDate("");
         setReason("");
+        setCustomLeaveType("");
         fetchLeaves();
       } else {
         alert(data.error || "Failed to submit leave request");
@@ -6493,15 +6701,46 @@ export function LeaveRequestTab({ sessionUser }: { sessionUser?: any }) {
                       <select
                         className="w-full bg-white border border-slate-300 rounded p-2 text-xs font-bold text-slate-900 mt-1.5 focus:outline-none focus:border-[#714B67]"
                         value={leaveType}
-                        onChange={(e) => setLeaveType(e.target.value)}
+                        onChange={(e) => {
+                          setLeaveType(e.target.value);
+                          if (e.target.value !== "Other") setCustomLeaveType("");
+                        }}
                       >
                         <option value="Casual Leave">Casual Leave</option>
+                        <option value="Half Day">Half Day Leave</option>
                         <option value="Sick Leave">Sick Leave</option>
                         <option value="Earned Leave">Earned Leave</option>
                         <option value="Unpaid Leave">Unpaid Leave</option>
+                        <option value="Other">Other</option>
                       </select>
                     </div>
 
+                    {leaveType === "Other" ? (
+                      <div>
+                        <label className="text-[10px] uppercase font-black text-slate-500 font-mono tracking-wider">Specify Leave Type *</label>
+                        <input
+                          type="text"
+                          placeholder="Custom leave type..."
+                          className="w-full bg-white border border-slate-300 rounded p-2 text-xs font-bold text-slate-900 mt-1.5 focus:outline-none focus:border-[#714B67]"
+                          value={customLeaveType}
+                          onChange={(e) => setCustomLeaveType(e.target.value)}
+                        />
+                      </div>
+                    ) : (
+                      <div>
+                        <label className="text-[10px] uppercase font-black text-slate-500 font-mono tracking-wider">Reason for Leave *</label>
+                        <input
+                          type="text"
+                          placeholder="Short description..."
+                          className="w-full bg-white border border-slate-300 rounded p-2 text-xs font-bold text-slate-900 mt-1.5 focus:outline-none focus:border-[#714B67]"
+                          value={reason}
+                          onChange={(e) => setReason(e.target.value)}
+                        />
+                      </div>
+                    )}
+                  </div>
+
+                  {leaveType === "Other" && (
                     <div>
                       <label className="text-[10px] uppercase font-black text-slate-500 font-mono tracking-wider">Reason for Leave *</label>
                       <input
@@ -6512,7 +6751,7 @@ export function LeaveRequestTab({ sessionUser }: { sessionUser?: any }) {
                         onChange={(e) => setReason(e.target.value)}
                       />
                     </div>
-                  </div>
+                  )}
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>

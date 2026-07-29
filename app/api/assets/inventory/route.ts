@@ -67,6 +67,15 @@ async function ensureColumns() {
   try { await sequelize.query(`ALTER TABLE asset_inventory ADD routerAdminPass TEXT NULL;`); } catch (_) {}
   try { await sequelize.query(`ALTER TABLE asset_inventory ADD routerIsp TEXT NULL;`); } catch (_) {}
   try { await sequelize.query(`ALTER TABLE asset_inventory ADD printerIp TEXT NULL;`); } catch (_) {}
+  try { await sequelize.query(`ALTER TABLE asset_inventory ADD assignedToUserId TEXT NULL;`); } catch (_) {}
+  try { await sequelize.query(`ALTER TABLE asset_inventory ADD assignedToName TEXT NULL;`); } catch (_) {}
+  try { await sequelize.query(`ALTER TABLE asset_inventory ADD assignedAt DATETIME NULL;`); } catch (_) {}
+  try { await sequelize.query(`ALTER TABLE asset_inventory ADD handoverDate DATE NULL;`); } catch (_) {}
+  try { await sequelize.query(`ALTER TABLE asset_inventory ADD assignedBy TEXT NULL;`); } catch (_) {}
+  try { await sequelize.query(`ALTER TABLE asset_inventory ADD assignedToDeptId TEXT NULL;`); } catch (_) {}
+  try { await sequelize.query(`ALTER TABLE asset_inventory ADD assignedDate DATETIME NULL;`); } catch (_) {}
+  try { await sequelize.query(`ALTER TABLE asset_inventory ADD handoverPdfUrl LONGTEXT NULL;`); } catch (_) {}
+  try { await sequelize.query(`ALTER TABLE asset_inventory ADD handoverRemarks TEXT NULL;`); } catch (_) {}
 }
 
 // ─── GET: Fetch all inventory assets ──────────────────────────────────────────
@@ -87,6 +96,7 @@ export async function GET(req: Request) {
     await sequelize.authenticate();
     await ensureColumns();
     try { await AssetInventory.sync(); } catch (_) {}
+    try { await AssetAssignmentHistory.sync(); } catch (_) {}
 
     const { searchParams } = new URL(req.url);
     const companyId = searchParams.get("companyId");
@@ -113,14 +123,14 @@ export async function GET(req: Request) {
         where: { allocatedAsset: { [Op.not]: null } },
         attributes: ["user", "employeeId", "allocatedAsset"],
         raw: true
-      }),
-      User.findAll({ attributes: ["id", "name"], raw: true }),
+      }).catch(() => []),
+      User.findAll({ attributes: ["id", "name"], raw: true }).catch(() => []),
       assetIds.length
         ? AssetAssignmentHistory.findAll({
             where: { assetId: { [Op.in]: assetIds } },
             order: [["createdAt", "DESC"]],
             raw: true
-          })
+          }).catch(() => [])
         : []
     ]);
     const userNameMap = new Map(users.map((user: any) => [String(user.id), user.name || "Unknown Employee"]));
@@ -397,7 +407,8 @@ export async function PATCH(req: Request) {
       return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 });
     }
 
-    const { assetId, userId, currentAssignedUserId, assignedDate, handoverDate, notes } = await req.json();
+    const body = await req.json();
+    const { assetId, userId, currentAssignedUserId, assignedDate, handoverDate, notes, assignedToName } = body;
     if (!assetId) {
       await transaction.rollback();
       return NextResponse.json({ success: false, error: "Asset ID is required" }, { status: 400 });
@@ -421,8 +432,37 @@ export async function PATCH(req: Request) {
     const previousUserName = asset.assignedToName || previousUser?.name || null;
     const previousAssignedAt = asset.assignedAt || null;
     const actorName = session.user.name || String((session.user as any).id);
-    const eventHandoverDate = parseOptionalDate(handoverDate);
+    const parsedHandoverDate = parseOptionalDate(handoverDate);
     if (!userId) {
+      if (assignedToName && String(assignedToName).trim() !== "" && String(assignedToName) !== "null") {
+        const customName = String(assignedToName).trim();
+        const effectiveAssignedDate = parseOptionalDate(assignedDate) || new Date();
+        asset.assignedToUserId = null;
+        asset.assignedToName = customName;
+        asset.assignedAt = effectiveAssignedDate;
+        asset.handoverDate = handoverDate ? String(handoverDate).slice(0, 10) : null;
+        asset.assignedBy = actorName;
+        asset.status = "In Use";
+        await asset.save({ transaction });
+
+        await AssetAssignmentHistory.create({
+          id: `AAH-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
+          assetId: String(asset.id),
+          action: "Assigned",
+          fromUserId: previousUserId || null,
+          fromUserName: previousUserName,
+          toUserId: null,
+          toUserName: customName,
+          assignedDate: effectiveAssignedDate,
+          handoverDate: parsedHandoverDate,
+          performedBy: actorName,
+          notes: String(notes || "").trim() || null
+        }, { transaction });
+
+        await transaction.commit();
+        return NextResponse.json({ success: true, data: asset });
+      }
+
       if (previousUserId) {
         const previousProfile: any = await EmployeeProfile.findOne({
           where: { user: previousUserId },
@@ -442,7 +482,7 @@ export async function PATCH(req: Request) {
       asset.assignedToName = null;
       asset.assignedAt = null;
       asset.assignedBy = null;
-      asset.handoverDate = eventHandoverDate;
+      asset.handoverDate = parsedHandoverDate;
       asset.status = "Available";
       await asset.save({ transaction });
       await AssetAssignmentHistory.create({
@@ -454,7 +494,7 @@ export async function PATCH(req: Request) {
         toUserId: null,
         toUserName: null,
         assignedDate: previousAssignedAt,
-        handoverDate: eventHandoverDate || new Date(),
+        handoverDate: parsedHandoverDate || new Date(),
         performedBy: actorName,
         notes: String(notes || "").trim() || null
       }, { transaction });
@@ -518,7 +558,7 @@ export async function PATCH(req: Request) {
       toUserId: String(targetUser.id),
       toUserName: targetUser.name || targetProfile.employeeId || "Employee",
       assignedDate: effectiveAssignedDate,
-      handoverDate: eventHandoverDate,
+      handoverDate: parsedHandoverDate,
       performedBy: actorName,
       notes: String(notes || "").trim() || null
     }, { transaction });

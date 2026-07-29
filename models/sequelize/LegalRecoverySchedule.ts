@@ -78,6 +78,14 @@ LegalRecoverySchedule.init(
       type: DataTypes.TEXT,
       allowNull: true,
     },
+    officerName: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    officerPhone: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
     completedAt: {
       type: DataTypes.DATE,
       allowNull: true,

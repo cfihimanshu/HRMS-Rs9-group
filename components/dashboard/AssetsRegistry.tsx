@@ -24,25 +24,25 @@ const matchDepartmentNames = (name1: string, name2: string): boolean => {
   const n1 = name1.toLowerCase().trim();
   const n2 = name2.toLowerCase().trim();
   if (n1 === n2) return true;
-  
+
   // Custom normalization rules
   const getTokens = (s: string) => {
     let cleaned = s.replace(/[^a-z0-9]/g, " ")
-                   .replace(/\band\b/g, "")
-                   .replace(/\btech\b/g, "")
-                   .replace(/\bsupport\b/g, "")
-                   .replace(/\bfinance\b/g, "");
+      .replace(/\band\b/g, "")
+      .replace(/\btech\b/g, "")
+      .replace(/\bsupport\b/g, "")
+      .replace(/\bfinance\b/g, "");
     return cleaned.split(/\s+/).filter(Boolean);
   };
-  
+
   const tokens1 = getTokens(n1);
   const tokens2 = getTokens(n2);
-  
+
   if (n1 === "hr" && n2.includes("human resources")) return true;
   if (n2 === "hr" && n1.includes("human resources")) return true;
   if (n1 === "it" && n2.includes("information technology")) return true;
   if (n2 === "it" && n1.includes("information technology")) return true;
-  
+
   return tokens1.some(t1 => tokens2.includes(t1));
 };
 
@@ -61,7 +61,7 @@ export default function AssetsRegistry({ userRole, triggerToast, sessionUser }: 
   const [inventoryItems, setInventoryItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
-  
+
   // Selected filters
   const [selectedCompany, setSelectedCompany] = useState("all");
   const [selectedDept, setSelectedDept] = useState("all");
@@ -73,7 +73,10 @@ export default function AssetsRegistry({ userRole, triggerToast, sessionUser }: 
     allocatedAsset: "",
     allocatedSim: "",
     allocatedGmail: "",
-    allocatedWhatsapp: ""
+    allocatedWhatsapp: "",
+    name: "",
+    email: "",
+    password: ""
   });
   const [updating, setUpdating] = useState(false);
 
@@ -107,6 +110,8 @@ export default function AssetsRegistry({ userRole, triggerToast, sessionUser }: 
     date: new Date().toISOString().split('T')[0],
     companyId: "",
     assignedToId: "",
+    customEmployeeName: "",
+    isCustomEmployee: false,
     assignedBy: "",
     assetType: "Laptop",
     assetValue: "",
@@ -165,7 +170,7 @@ export default function AssetsRegistry({ userRole, triggerToast, sessionUser }: 
         let comps: any[] = [];
         if (Array.isArray(matchedEmp.companies)) comps = matchedEmp.companies;
         else if (typeof matchedEmp.companies === "string") {
-          try { comps = JSON.parse(matchedEmp.companies); } catch(e) {}
+          try { comps = JSON.parse(matchedEmp.companies); } catch (e) { }
         }
         const companyId = comps[0]?.id || comps[0] || "";
 
@@ -193,19 +198,32 @@ export default function AssetsRegistry({ userRole, triggerToast, sessionUser }: 
 
   const handleAssignSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!assignForm.assignedToId) {
+    const isCustom = assignForm.isCustomEmployee || assignForm.assignedToId === "CUSTOM_OTHER";
+    if (isCustom) {
+      if (!assignForm.customEmployeeName.trim()) {
+        triggerToast("Please enter employee name.");
+        return;
+      }
+    } else if (!assignForm.assignedToId) {
       triggerToast("Please select an employee to assign the asset to.");
       return;
     }
-    
+
     try {
       setUpdating(true);
-      
+
+      const effectiveEmpId = isCustom ? `EMP_${Date.now()}` : assignForm.assignedToId;
       const payload: any = {
-        employeeId: assignForm.assignedToId,
+        employeeId: effectiveEmpId,
         allocatedGmail: assignForm.allocatedGmail,
         allocatedWhatsapp: assignForm.allocatedWhatsapp,
       };
+
+      if (isCustom) {
+        payload.createIfMissing = true;
+        payload.name = assignForm.customEmployeeName.trim();
+        payload.companyId = assignForm.companyId;
+      }
 
       const typeClean = assignForm.assetType.toLowerCase().trim();
       let finalDetail = assignForm.assetValue; // fallback
@@ -323,6 +341,54 @@ export default function AssetsRegistry({ userRole, triggerToast, sessionUser }: 
         }
       }
 
+      if (isCustom) {
+        const customName = assignForm.customEmployeeName.trim();
+        if (assignForm.selectedInventoryId) {
+          await fetch("/api/assets/inventory", {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              assetId: assignForm.selectedInventoryId,
+              assignedToName: customName,
+              userId: null
+            })
+          });
+        } else {
+          let notesText = "";
+          if (filteredEmails.length > 0) notesText += `Logged-in Emails: ${filteredEmails.join(", ")}\n`;
+          const createInvRes = await fetch("/api/assets/inventory", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              assetType: assignForm.assetType,
+              assetDetail: finalDetail,
+              serialNumber: finalSerial,
+              purchaseDate: assignForm.date,
+              purchaseValue: "0",
+              condition: "Good",
+              companyId: assignForm.companyId || null,
+              notes: notesText
+            })
+          });
+          const createInvResult = await createInvRes.json();
+          if (createInvResult.success && createInvResult.data?.id) {
+            await fetch("/api/assets/inventory", {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                assetId: createInvResult.data.id,
+                assignedToName: customName,
+                userId: null
+              })
+            });
+          }
+        }
+        triggerToast(`Asset assigned to ${customName}`);
+        setShowAssignModal(false);
+        fetchData();
+        return;
+      }
+
       const res = await fetch("/api/employees", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
@@ -393,7 +459,7 @@ export default function AssetsRegistry({ userRole, triggerToast, sessionUser }: 
               })
             });
             const createInvResult = await createInvRes.json();
-            
+
             // 2. Mark it as "In Use" (assigned) in the inventory list
             if (createInvResult.success && createInvResult.data?.id) {
               await fetch("/api/assets/inventory", {
@@ -409,21 +475,10 @@ export default function AssetsRegistry({ userRole, triggerToast, sessionUser }: 
             console.error("Failed to auto-register manual asset into inventory:", invCreateErr);
           }
         }
-        triggerToast(`Asset assigned successfully to ${employees.find(emp => emp.employeeProfile?.employeeId === assignForm.assignedToId)?.name || "employee"}`);
+        const assignedEmpName = isCustom ? assignForm.customEmployeeName.trim() : (employees.find(emp => emp.employeeProfile?.employeeId === assignForm.assignedToId)?.name || "employee");
+        triggerToast(`Asset assigned successfully to ${assignedEmpName}`);
         setShowAssignModal(false);
-        // Refresh local data state
-        setEmployees(prev => prev.map(emp => {
-          if (emp.employeeProfile?.employeeId === assignForm.assignedToId) {
-            return {
-              ...emp,
-              employeeProfile: {
-                ...emp.employeeProfile,
-                ...payload
-              }
-            };
-          }
-          return emp;
-        }));
+        fetchData();
       } else {
         triggerToast(result.error || "Failed to assign asset");
       }
@@ -442,15 +497,15 @@ export default function AssetsRegistry({ userRole, triggerToast, sessionUser }: 
   const fetchData = async () => {
     try {
       setLoading(true);
-      
+
       // Fetch employees
       const empRes = await fetch("/api/employees");
       const empData = await empRes.json();
-      
+
       // Fetch departments
       const deptRes = await fetch("/api/departments");
       const deptData = await deptRes.json();
-      
+
       // Fetch companies
       const compRes = await fetch("/api/companies");
       const compData = await compRes.json();
@@ -499,16 +554,16 @@ export default function AssetsRegistry({ userRole, triggerToast, sessionUser }: 
   const allowedCompanies = useMemo(() => {
     const isOwnerOrHR = ["owner", "director", "hr head", "hr-head", "hr executive", "hr-executive"].includes((userRole || "").toLowerCase());
     if (isOwnerOrHR) return companies;
-    
+
     // Find logged in user object
     const loggedInUserObj = employees.find(emp => String(emp.id) === String(sessionUser?.id));
     if (!loggedInUserObj) return [];
-    
+
     let comps: any[] = [];
     if (Array.isArray(loggedInUserObj.companies)) {
       comps = loggedInUserObj.companies;
     } else if (typeof loggedInUserObj.companies === "string") {
-      try { comps = JSON.parse(loggedInUserObj.companies); } catch(e) {}
+      try { comps = JSON.parse(loggedInUserObj.companies); } catch (e) { }
     }
     const allowedIds = comps.map((c: any) => String(c.id || c));
     return companies.filter(comp => allowedIds.includes(String(comp.id)));
@@ -525,7 +580,10 @@ export default function AssetsRegistry({ userRole, triggerToast, sessionUser }: 
       allocatedAsset: assetStr,
       allocatedSim: simStr,
       allocatedGmail: gmailStr,
-      allocatedWhatsapp: waStr
+      allocatedWhatsapp: waStr,
+      name: emp.name || "",
+      email: emp.email || "",
+      password: ""
     });
 
     // Detect asset type
@@ -686,16 +744,23 @@ export default function AssetsRegistry({ userRole, triggerToast, sessionUser }: 
 
     try {
       setUpdating(true);
+      const payload: any = {
+        employeeId,
+        allocatedAsset: finalAllocatedAsset,
+        allocatedSim: finalAllocatedSim,
+        allocatedGmail: finalAllocatedGmail,
+        allocatedWhatsapp: finalAllocatedWhatsapp,
+        name: editForm.name,
+        email: editForm.email
+      };
+      if (editForm.password) {
+        payload.password = editForm.password;
+      }
+
       const res = await fetch("/api/employees", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          employeeId,
-          allocatedAsset: finalAllocatedAsset,
-          allocatedSim: finalAllocatedSim,
-          allocatedGmail: finalAllocatedGmail,
-          allocatedWhatsapp: finalAllocatedWhatsapp
-        })
+        body: JSON.stringify(payload)
       });
 
       const result = await res.json();
@@ -797,7 +862,7 @@ export default function AssetsRegistry({ userRole, triggerToast, sessionUser }: 
 
   const handleDeleteUser = async (userId: string) => {
     if (!confirm("Are you sure you want to PERMANENTLY delete this employee from the entire system? This cannot be undone.")) return;
-    
+
     try {
       setDeleting(true);
       const res = await fetch(`/api/employees?id=${userId}`, {
@@ -841,7 +906,7 @@ export default function AssetsRegistry({ userRole, triggerToast, sessionUser }: 
         try { comps = JSON.parse(comps); } catch (e) { comps = []; }
       }
       if (!Array.isArray(comps)) comps = [];
-      
+
       return comps.length === 0 || comps.some((id: any) => String(id) === String(selectedCompany));
     });
 
@@ -876,7 +941,7 @@ export default function AssetsRegistry({ userRole, triggerToast, sessionUser }: 
   // Filter logic
   const filteredEmployees = employees.filter((emp) => {
     const profile = emp.employeeProfile;
-    
+
     // 1. Search Query (Name, ID, designation, assets details)
     const query = searchQuery.toLowerCase();
     const nameMatch = emp.name?.toLowerCase().includes(query);
@@ -903,7 +968,7 @@ export default function AssetsRegistry({ userRole, triggerToast, sessionUser }: 
       } else if (emp.companies) {
         compList = [emp.companies];
       }
-      
+
       matchesCompany = compList.some((c: any) => {
         if (!c) return false;
         const cId = typeof c === "object" ? c.id : c;
@@ -941,7 +1006,7 @@ export default function AssetsRegistry({ userRole, triggerToast, sessionUser }: 
 
   return (
     <div className="space-y-6 animate-fade-in text-[#1C1C1A]">
-      
+
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-[#E8E4DF] pb-5">
         <div>
@@ -963,19 +1028,21 @@ export default function AssetsRegistry({ userRole, triggerToast, sessionUser }: 
               <Trash2 className="w-3.5 h-3.5" /> Clear Selected ({selectedRows.size})
             </button>
           )}
-          <button 
+          <button
             onClick={fetchData}
             className="px-3 py-1.5 bg-[#FCFBF9] border border-[#E8E4DF] hover:bg-[#F5F0EA] text-[#5D5B57] hover:text-[#1C1C1A] rounded-lg text-[10px] font-semibold tracking-wider uppercase transition-all flex items-center gap-1.5"
           >
             <RefreshCw className={cn("w-3.5 h-3.5", loading && "animate-spin")} /> Refresh
           </button>
-          <button 
+          <button
             onClick={() => {
               setShowAssignModal(true);
               setAssignForm({
                 date: new Date().toISOString().split('T')[0],
                 companyId: selectedCompany !== "all" ? selectedCompany : (allowedCompanies[0]?.id || ""),
                 assignedToId: "",
+                customEmployeeName: "",
+                isCustomEmployee: false,
                 assignedBy: sessionUser?.name || "Owner",
                 assetType: "Laptop",
                 assetValue: "",
@@ -1146,11 +1213,11 @@ export default function AssetsRegistry({ userRole, triggerToast, sessionUser }: 
                       <td className="py-4 px-4">
                         <span className={cn(
                           "inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold border",
-                          profile?.allocatedWhatsapp?.includes("Business") 
+                          profile?.allocatedWhatsapp?.includes("Business")
                             ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-                            : profile?.allocatedWhatsapp 
-                            ? "bg-blue-50 text-blue-700 border-blue-200" 
-                            : "bg-slate-50 text-slate-400 border-slate-200 italic"
+                            : profile?.allocatedWhatsapp
+                              ? "bg-blue-50 text-blue-700 border-blue-200"
+                              : "bg-slate-50 text-slate-400 border-slate-200 italic"
                         )}>
                           {profile?.allocatedWhatsapp || "None"}
                         </span>
@@ -1236,7 +1303,7 @@ export default function AssetsRegistry({ userRole, triggerToast, sessionUser }: 
             className="bg-white rounded-2xl shadow-2xl p-6 w-[680px] max-w-[95vw] border border-[#E8E4DF] flex flex-col max-h-[90vh]"
             onClick={(e) => e.stopPropagation()}
           >
-             <div className="flex justify-between items-center border-b border-[#E8E4DF] pb-3 mb-4 flex-shrink-0">
+            <div className="flex justify-between items-center border-b border-[#E8E4DF] pb-3 mb-4 flex-shrink-0">
               <h3 className="text-lg font-serif font-light text-[#1C1C1A]" style={{ fontFamily: "'Playfair Display', serif" }}>
                 Assign New Asset
               </h3>
@@ -1279,38 +1346,76 @@ export default function AssetsRegistry({ userRole, triggerToast, sessionUser }: 
 
               {/* Assigned To field */}
               <div>
-                <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Assigned To (Employee) *</label>
-                <select
-                  required
-                  value={assignForm.assignedToId}
-                  disabled={!assignForm.companyId}
-                  onChange={(e) => {
-                    const empId = e.target.value;
-                    const matchedEmp = employees.find(emp => emp.employeeProfile?.employeeId === empId);
-                    setAssignForm(prev => ({
-                      ...prev,
-                      assignedToId: empId,
-                      allocatedGmail: matchedEmp?.employeeProfile?.allocatedGmail || "",
-                      allocatedWhatsapp: matchedEmp?.employeeProfile?.allocatedWhatsapp || ""
-                    }));
-                  }}
-                  className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold disabled:opacity-50"
-                >
-                  <option value="">-- Select Employee --</option>
-                  {employees.filter(emp => {
-                    let comps: any[] = [];
-                    if (Array.isArray(emp.companies)) comps = emp.companies;
-                    else if (typeof emp.companies === "string") {
-                      try { comps = JSON.parse(emp.companies); } catch(e) {}
-                    }
-                    if (!Array.isArray(comps)) comps = [];
-                    return comps.some((c: any) => String(c.id || c) === String(assignForm.companyId));
-                  }).map(emp => (
-                    <option key={emp.employeeProfile?.employeeId} value={emp.employeeProfile?.employeeId}>
-                      {emp.name} ({emp.employeeProfile?.employeeId || "No ID"})
-                    </option>
-                  ))}
-                </select>
+                <div className="flex justify-between items-center mb-1">
+                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold">Assigned To (Employee) *</label>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAssignForm(prev => ({
+                        ...prev,
+                        isCustomEmployee: !prev.isCustomEmployee,
+                        assignedToId: !prev.isCustomEmployee ? "CUSTOM_OTHER" : "",
+                        customEmployeeName: ""
+                      }));
+                    }}
+                    className="text-[10px] font-bold text-[#C9A84C] hover:underline flex items-center gap-1"
+                  >
+                    {assignForm.isCustomEmployee ? "📋 Select from DB" : "✏️ Type Custom Name"}
+                  </button>
+                </div>
+
+                {!assignForm.isCustomEmployee && assignForm.assignedToId !== "CUSTOM_OTHER" ? (
+                  <select
+                    required={!assignForm.isCustomEmployee}
+                    value={assignForm.assignedToId}
+                    disabled={!assignForm.companyId}
+                    onChange={(e) => {
+                      const empId = e.target.value;
+                      if (empId === "CUSTOM_OTHER") {
+                        setAssignForm(prev => ({
+                          ...prev,
+                          assignedToId: empId,
+                          isCustomEmployee: true,
+                          customEmployeeName: ""
+                        }));
+                      } else {
+                        const matchedEmp = employees.find(emp => emp.employeeProfile?.employeeId === empId || emp.id === empId);
+                        setAssignForm(prev => ({
+                          ...prev,
+                          assignedToId: empId,
+                          allocatedGmail: matchedEmp?.employeeProfile?.allocatedGmail || "",
+                          allocatedWhatsapp: matchedEmp?.employeeProfile?.allocatedWhatsapp || ""
+                        }));
+                      }
+                    }}
+                    className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold disabled:opacity-50"
+                  >
+                    <option value="">-- Select Employee --</option>
+                    {employees.filter(emp => {
+                      let comps: any[] = [];
+                      if (Array.isArray(emp.companies)) comps = emp.companies;
+                      else if (typeof emp.companies === "string") {
+                        try { comps = JSON.parse(emp.companies); } catch (e) { }
+                      }
+                      if (!Array.isArray(comps)) comps = [];
+                      return comps.some((c: any) => String(c.id || c) === String(assignForm.companyId));
+                    }).map(emp => (
+                      <option key={emp.employeeProfile?.employeeId || emp.id} value={emp.employeeProfile?.employeeId || emp.id}>
+                        {emp.name} ({emp.employeeProfile?.employeeId || "No ID"})
+                      </option>
+                    ))}
+                    <option value="CUSTOM_OTHER">✏️ Type Custom Employee Name (Not in DB)</option>
+                  </select>
+                ) : (
+                  <input
+                    type="text"
+                    required
+                    value={assignForm.customEmployeeName}
+                    onChange={(e) => setAssignForm(prev => ({ ...prev, customEmployeeName: e.target.value, assignedToId: "CUSTOM_OTHER", isCustomEmployee: true }))}
+                    placeholder="Enter full employee name (e.g. Ramesh Kumar)..."
+                    className="w-full bg-white border border-[#C9A84C] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold shadow-sm"
+                  />
+                )}
               </div>
 
               {/* Gmail & WhatsApp fields */}
@@ -1381,7 +1486,7 @@ export default function AssetsRegistry({ userRole, triggerToast, sessionUser }: 
                       Available Stock (Select to Auto-Fill details)
                     </label>
                     {(() => {
-                      const available = inventoryItems.filter(item => 
+                      const available = inventoryItems.filter(item =>
                         item.assetType === assignForm.assetType &&
                         item.status === "Available"
                       ).sort((a, b) => {
@@ -1414,7 +1519,7 @@ export default function AssetsRegistry({ userRole, triggerToast, sessionUser }: 
 
                             if (selectedInv) {
                               const typeClean = (selectedInv.assetType || "").toLowerCase().trim();
-                              
+
                               // 1. Logged-in Emails
                               const emailMatch = selectedInv.notes?.match(/Logged-in Emails:\s*([^\n]+)/);
                               if (emailMatch) {
@@ -1729,7 +1834,7 @@ export default function AssetsRegistry({ userRole, triggerToast, sessionUser }: 
                         <option value="2 SIMs">2 SIMs</option>
                       </select>
                     </div>
-                     {(simSlots === "1 SIM" || simSlots === "2 SIMs") && (
+                    {(simSlots === "1 SIM" || simSlots === "2 SIMs") && (
                       <div className="bg-white border border-[#E8E4DF] p-3 rounded-lg space-y-2 animate-fade-in">
                         <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold">SIM 1 Config</label>
                         <div>
@@ -1916,8 +2021,8 @@ export default function AssetsRegistry({ userRole, triggerToast, sessionUser }: 
                   </div>
                 </div>
               </div>
-              <button 
-                onClick={handleCancelEdit} 
+              <button
+                onClick={handleCancelEdit}
                 className="p-1.5 rounded-lg hover:bg-slate-200 text-slate-400 hover:text-slate-600 transition-colors"
               >
                 <X className="w-5 h-5" />
@@ -1926,6 +2031,47 @@ export default function AssetsRegistry({ userRole, triggerToast, sessionUser }: 
 
             {/* Modal Form */}
             <form onSubmit={handleSaveEdit} className="p-5 space-y-4 overflow-y-auto text-xs">
+              {/* Employee Account Credentials & Profile Info */}
+              <div className="bg-[#FCFBF9] border border-[#E8E4DF] p-3 rounded-xl space-y-2.5">
+                <label className="block text-[10px] uppercase font-bold tracking-wider text-[#9C9890]">
+                  Employee Account Details (Name, Email & Login Password)
+                </label>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div>
+                    <label className="block text-[9px] uppercase font-bold text-[#5D5B57] mb-1">Employee Name</label>
+                    <input
+                      type="text"
+                      required
+                      value={editForm.name}
+                      onChange={(e) => setEditForm(prev => ({ ...prev, name: e.target.value }))}
+                      placeholder="e.g. Sonu Kumar"
+                      className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-1.5 text-xs font-semibold text-[#1C1C1A]"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[9px] uppercase font-bold text-[#5D5B57] mb-1">Login Email ID *</label>
+                    <input
+                      type="email"
+                      required
+                      value={editForm.email}
+                      onChange={(e) => setEditForm(prev => ({ ...prev, email: e.target.value }))}
+                      placeholder="e.g. sonu@company.com"
+                      className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-1.5 text-xs font-semibold font-mono text-indigo-700"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[9px] uppercase font-bold text-[#5D5B57] mb-1">New Password (Optional)</label>
+                    <input
+                      type="password"
+                      placeholder="Leave blank if unchanged"
+                      value={editForm.password}
+                      onChange={(e) => setEditForm(prev => ({ ...prev, password: e.target.value }))}
+                      className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-1.5 text-xs font-semibold text-[#1C1C1A]"
+                    />
+                  </div>
+                </div>
+              </div>
+
               {/* Mode Toggle */}
               <div className="flex items-center justify-between bg-slate-50 border border-[#E8E4DF] p-2 rounded-lg">
                 <span className="text-[10px] uppercase font-bold text-slate-600 tracking-wider">Form Edit Mode</span>
