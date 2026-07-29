@@ -108,11 +108,19 @@ const getSequelizeInstance = () => {
     return globalThis.sequelizeInstance;
   }
 
-  const requiredDatabaseEnv = ["MYSQL_DATABASE", "MYSQL_USER", "MYSQL_PASSWORD", "MYSQL_HOST"] as const;
-  const missingDatabaseEnv = requiredDatabaseEnv.filter(key => !process.env[key]);
+  const requiredDatabaseEnv = ["MYSQL_DATABASE", "MYSQL_USER", "MYSQL_PASSWORD"] as const;
+  const missingDatabaseEnv: string[] = requiredDatabaseEnv.filter(key => !process.env[key]);
+  if (!process.env.MYSQL_HOST && !process.env.MYSQL_SOCKET_PATH) {
+    missingDatabaseEnv.push("MYSQL_HOST or MYSQL_SOCKET_PATH");
+  }
   if (missingDatabaseEnv.length > 0) {
     throw new Error(`Missing required database environment variables: ${missingDatabaseEnv.join(", ")}`);
   }
+
+  const connectTimeout = Number(process.env.MYSQL_CONNECT_TIMEOUT_MS || 10000);
+  const poolMax = Number(process.env.MYSQL_POOL_MAX || (process.env.NODE_ENV === "production" ? 5 : 20));
+  const poolAcquire = Number(process.env.MYSQL_POOL_ACQUIRE_MS || 20000);
+  const socketPath = process.env.MYSQL_SOCKET_PATH?.trim();
 
   const instance = new Sequelize(
     process.env.MYSQL_DATABASE!,
@@ -125,15 +133,16 @@ const getSequelizeInstance = () => {
       dialectModule: mysql2,
       logging: false,
       dialectOptions: {
-        connectTimeout: 5000,
+        connectTimeout,
+        ...(socketPath ? { socketPath } : {}),
         ssl: process.env.MYSQL_SSL === "true"
           ? { rejectUnauthorized: process.env.MYSQL_SSL_REJECT_UNAUTHORIZED !== "false" }
           : undefined
       },
       pool: {
-        max: 20,
+        max: poolMax,
         min: 0,
-        acquire: 10000,
+        acquire: poolAcquire,
         idle: 5000,
         evict: 1000
       }

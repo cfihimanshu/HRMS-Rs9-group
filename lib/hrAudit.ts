@@ -10,13 +10,14 @@ interface HRActivityParams {
 
 export async function logHRActivity({
   userId,
-  userRole,
+  userRole: _userRole,
   action,
   details
 }: HRActivityParams) {
   try {
     await sequelize.authenticate();
     await HRRecentActivity.create({
+      id: `${Date.now()}${Math.random().toString(36).slice(2, 9)}`,
       user: userId,
       action,
       details,
@@ -26,4 +27,3 @@ export async function logHRActivity({
     console.error("Failed to write HR recent activity:", error);
   }
 }
-

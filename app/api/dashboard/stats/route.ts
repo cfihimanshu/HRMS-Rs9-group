@@ -62,7 +62,7 @@ export async function GET(req: Request) {
     let reportFilter: any = {};
 
     const sessionUser = session.user as any;
-    const isGlobalViewer = ["Owner", "Director", "HR Head"].includes(sessionUser.role);
+    const isGlobalViewer = ["Owner", "Director", "HR Head", "HR Executive"].includes(sessionUser.role);
 
     if (companyId) {
       userFilter.companies = { [Op.like]: `%${companyId}%` };

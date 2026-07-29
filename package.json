@@ -12,6 +12,7 @@
     "typecheck": "tsc --noEmit",
     "verify": "npm run typecheck && npm run lint && npm run build",
     "db:audit": "node scripts/db-audit.mjs",
+    "db:check": "node scripts/db-check.mjs",
     "db:backup": "node scripts/db-backup.mjs",
     "db:migrate:check": "node scripts/db-migrate.mjs --dry-run",
     "db:migrate": "node scripts/db-migrate.mjs"

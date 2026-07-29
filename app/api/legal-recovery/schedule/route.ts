@@ -5,6 +5,8 @@ import { authOptions } from "@/lib/auth";
 import sequelize from "@/lib/sequelize";
 import LegalRecoverySchedule from "@/models/sequelize/LegalRecoverySchedule";
 import EmployeeProfile from "@/models/sequelize/EmployeeProfile";
+import TaskLog from "@/models/sequelize/TaskLog";
+import User from "@/models/sequelize/User";
 
 async function initDB() {
   await sequelize.authenticate();
@@ -85,99 +87,94 @@ export async function GET(req: Request) {
     });
 
     // Attach employee details & live TaskLog status / proofAttachment
-    const User = (sequelize.models as any).User;
-    const TaskLog = (sequelize.models as any).TaskLog;
     let enrichedSchedules = schedules.map((s: any) => s.toJSON());
 
-    if (User) {
-      const userIds = Array.from(new Set(schedules.map((s: any) => s.employeeId).filter(Boolean)));
-      if (userIds.length > 0) {
-        const users = await User.findAll({
-          where: { id: userIds },
-          attributes: ["id", "name", "email", "role"]
-        });
-        const userMap = new Map(users.map((u: any) => [String(u.id), u.toJSON()]));
-        enrichedSchedules = enrichedSchedules.map((json: any) => ({
-          ...json,
-          user: userMap.get(String(json.employeeId)) || null
-        }));
-      }
+    const userIds = Array.from(
+      new Set(schedules.map((schedule: any) => String(schedule.employeeId || "").trim()).filter(Boolean))
+    );
+    if (userIds.length > 0) {
+      const users = await User.findAll({
+        where: { id: { [Op.in]: userIds } },
+        attributes: ["id", "name", "email", "role"]
+      });
+      const userMap = new Map(users.map((user: any) => [String(user.id).trim(), user.toJSON()]));
+      enrichedSchedules = enrichedSchedules.map((schedule: any) => ({
+        ...schedule,
+        user: userMap.get(String(schedule.employeeId || "").trim()) || null
+      }));
     }
 
-    if (TaskLog) {
-      try {
-        await TaskLog.sync();
-        const taskIds = Array.from(new Set(enrichedSchedules.map((s: any) => s.taskId).filter(Boolean)));
-        const scheduleIds = Array.from(new Set(enrichedSchedules.map((s: any) => s.id).filter(Boolean)));
-        const empIds = Array.from(new Set(enrichedSchedules.map((s: any) => s.employeeId).filter(Boolean)));
+    try {
+      const taskIds = Array.from(new Set(enrichedSchedules.map((s: any) => s.taskId).filter(Boolean)));
+      const scheduleIds = Array.from(new Set(enrichedSchedules.map((s: any) => s.id).filter(Boolean)));
+      const empIds = Array.from(new Set(enrichedSchedules.map((s: any) => s.employeeId).filter(Boolean)));
 
-        const [tasks, empTasks] = await Promise.all([
-          TaskLog.findAll({
-            where: {
-              [Op.or]: [
-                ...(taskIds.length > 0 ? [{ id: taskIds }] : []),
-                ...(scheduleIds.length > 0 ? [{ scheduleId: scheduleIds }] : [])
-              ]
+      const [tasks, empTasks] = await Promise.all([
+        TaskLog.findAll({
+          where: {
+            [Op.or]: [
+              ...(taskIds.length > 0 ? [{ id: taskIds }] : []),
+              ...(scheduleIds.length > 0 ? [{ scheduleId: scheduleIds }] : [])
+            ]
+          }
+        }).catch(() => []),
+        TaskLog.findAll({
+          where: { employee: empIds }
+        }).catch(() => [])
+      ]);
+
+      const taskByIdMap = new Map(tasks.map((t: any) => [String(t.id), t.toJSON()]));
+      const taskBySchMap = new Map(tasks.map((t: any) => [String(t.scheduleId), t.toJSON()]));
+
+      enrichedSchedules = enrichedSchedules.map((json: any) => {
+        let matchedTask: any =
+          taskByIdMap.get(String(json.taskId)) ||
+          taskBySchMap.get(String(json.id)) ||
+          taskByIdMap.get(String(json.id)) ||
+          taskBySchMap.get(String(json.taskId));
+
+        if (!matchedTask) {
+          matchedTask = empTasks.find((t: any) => {
+            if (String(t.employee) !== String(json.employeeId)) return false;
+            if (t.scheduleId && (t.scheduleId === json.id || t.scheduleId === json.taskId)) return true;
+            if (t.id && (t.id === json.id || t.id === json.taskId)) return true;
+
+            const title = (t.taskTitle || "").toLowerCase();
+            const workSec = (json.workSection || "").toLowerCase();
+            const bank = (json.bankName || "").toLowerCase();
+
+            if (workSec && workSec !== "general" && workSec !== "office" && workSec !== "bank" && workSec !== "field") {
+              if (title.includes(workSec) || workSec.includes(title)) return true;
             }
-          }).catch(() => []),
-          TaskLog.findAll({
-            where: { employee: empIds }
-          }).catch(() => [])
-        ]);
+            if (bank && title.includes(bank)) return true;
+            return false;
+          });
+        }
 
-        const taskByIdMap = new Map(tasks.map((t: any) => [String(t.id), t.toJSON()]));
-        const taskBySchMap = new Map(tasks.map((t: any) => [String(t.scheduleId), t.toJSON()]));
+        const dbStatus = (json.status || "").toLowerCase().trim();
+        const taskStatus = (matchedTask?.status || "").toLowerCase().trim();
+        const isTimerRunning = matchedTask?.timerState === "Running";
 
-        enrichedSchedules = enrichedSchedules.map((json: any) => {
-          let matchedTask: any =
-            taskByIdMap.get(String(json.taskId)) ||
-            taskBySchMap.get(String(json.id)) ||
-            taskByIdMap.get(String(json.id)) ||
-            taskBySchMap.get(String(json.taskId));
+        let liveStatus = "Pending";
+        if (dbStatus === "completed" || dbStatus === "done" || taskStatus === "completed" || taskStatus === "done") {
+          liveStatus = "Completed";
+        } else if (dbStatus === "in progress" || taskStatus.includes("progress") || taskStatus === "running" || isTimerRunning) {
+          liveStatus = "In Progress";
+        }
 
-          if (!matchedTask) {
-            matchedTask = empTasks.find((t: any) => {
-              if (String(t.employee) !== String(json.employeeId)) return false;
-              if (t.scheduleId && (t.scheduleId === json.id || t.scheduleId === json.taskId)) return true;
-              if (t.id && (t.id === json.id || t.id === json.taskId)) return true;
+        const liveProof = matchedTask?.proofAttachment || json.proofAttachment || null;
+        const liveCompletedAt = liveStatus === "Completed" ? (json.completedAt || matchedTask?.updatedAt || new Date()) : null;
 
-              const title = (t.taskTitle || "").toLowerCase();
-              const workSec = (json.workSection || "").toLowerCase();
-              const bank = (json.bankName || "").toLowerCase();
-
-              if (workSec && workSec !== "general" && workSec !== "office" && workSec !== "bank" && workSec !== "field") {
-                if (title.includes(workSec) || workSec.includes(title)) return true;
-              }
-              if (bank && title.includes(bank)) return true;
-              return false;
-            });
-          }
-
-          const dbStatus = (json.status || "").toLowerCase().trim();
-          const taskStatus = (matchedTask?.status || "").toLowerCase().trim();
-          const isTimerRunning = matchedTask?.timerState === "Running";
-
-          let liveStatus = "Pending";
-          if (dbStatus === "completed" || dbStatus === "done" || taskStatus === "completed" || taskStatus === "done") {
-            liveStatus = "Completed";
-          } else if (dbStatus === "in progress" || taskStatus.includes("progress") || taskStatus === "running" || isTimerRunning) {
-            liveStatus = "In Progress";
-          }
-
-          const liveProof = matchedTask?.proofAttachment || json.proofAttachment || null;
-          const liveCompletedAt = liveStatus === "Completed" ? (json.completedAt || matchedTask?.updatedAt || new Date()) : null;
-
-          return {
-            ...json,
-            status: liveStatus,
-            proofAttachment: liveProof,
-            completedAt: liveCompletedAt,
-            taskLog: matchedTask || null
-          };
-        });
-      } catch (tErr) {
-        console.error("Error enriching schedules with TaskLog data:", tErr);
-      }
+        return {
+          ...json,
+          status: liveStatus,
+          proofAttachment: liveProof,
+          completedAt: liveCompletedAt,
+          taskLog: matchedTask || null
+        };
+      });
+    } catch (tErr) {
+      console.error("Error enriching schedules with TaskLog data:", tErr);
     }
 
     // Filter by type & status AFTER live TaskLog enrichment
