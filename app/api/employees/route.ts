@@ -649,6 +649,30 @@ export async function PUT(req: Request) {
       }
     }
 
+    if (!profile && body.createIfMissing && body.name) {
+      const generatedEmpId = employeeId || `EMP_${Date.now()}`;
+      const dummyEmail = email || `custom_${Date.now()}@company.local`;
+      const newUser = await User.create({
+        id: `USER_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
+        name: body.name,
+        email: dummyEmail,
+        password: "TempPassword123!",
+        role: "Employee",
+        status: "active",
+        companies: body.companyId ? [body.companyId] : []
+      });
+      profile = await EmployeeProfile.create({
+        id: `EP_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
+        user: newUser.id,
+        employeeId: generatedEmpId,
+        designation: designation || "Staff",
+        allocatedAsset: allocatedAsset || "",
+        allocatedSim: allocatedSim || "",
+        allocatedGmail: allocatedGmail || "",
+        allocatedWhatsapp: allocatedWhatsapp || ""
+      });
+    }
+
     if (!profile) {
       return NextResponse.json({ success: false, error: "Employee profile not found" }, { status: 404 });
     }
@@ -767,6 +791,9 @@ export async function PUT(req: Request) {
         if (mobile !== undefined) userRec.mobile = mobile;
         if (role !== undefined) userRec.role = role;
         if (status !== undefined) userRec.status = status;
+        if (body.password) {
+          userRec.password = await bcrypt.hash(body.password, 10);
+        }
         if (companies !== undefined) {
           // If companies is passed as a string or array, save it
           userRec.companies = Array.isArray(companies) ? companies : JSON.parse(companies);

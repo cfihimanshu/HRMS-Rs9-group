@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import ReactDOM from "react-dom";
 import {
   Search, Edit3, Check, X, RefreshCw, Cpu, Layers, Building2,
@@ -134,6 +134,8 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
   const [previewImageUrl, setPreviewImageUrl] = useState<string | null>(null);
   const [assigningAsset, setAssigningAsset] = useState<any>(null);
   const [assignmentUserId, setAssignmentUserId] = useState("");
+  const [customEmployeeName, setCustomEmployeeName] = useState("");
+  const [isCustomEmployee, setIsCustomEmployee] = useState(false);
   const [assignmentDate, setAssignmentDate] = useState(new Date().toISOString().slice(0, 10));
   const [assignmentHandoverDate, setAssignmentHandoverDate] = useState("");
   const [assignmentNotes, setAssignmentNotes] = useState("");
@@ -186,7 +188,7 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
 
     let maxNum = 0;
     const regex = new RegExp(`^${prefix}-(\\d+)$`, "i");
-    
+
     // Check existing inventory
     inventory.forEach(item => {
       if (item.id) {
@@ -308,7 +310,7 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
 
       if (invRes.ok) setInventory(invData.data || []);
       if (compRes.ok) setCompanies(compData.data || []);
-      if (employeeRes.ok) setEmployees((employeeData.data || []).filter((employee: any) => employee.status === "active"));
+      if (employeeRes.ok) setEmployees((employeeData.data || []).filter((employee: any) => !employee.status || String(employee.status).toLowerCase() === "active"));
     } catch (error) {
       console.error("Error fetching inventory data:", error);
       triggerToast("Failed to load inventory data");
@@ -319,18 +321,27 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
 
   const handleAssignmentSave = async () => {
     if (!assigningAsset) return;
-    if (!assignmentUserId) {
+    const isCustom = isCustomEmployee || assignmentUserId === "CUSTOM_OTHER";
+    if (isCustom) {
+      if (!customEmployeeName.trim()) {
+        triggerToast("Please enter custom employee name");
+        return;
+      }
+    } else if (!assignmentUserId) {
       triggerToast("Please select an employee");
       return;
     }
+
     try {
       setSavingAssignment(true);
+      const customName = customEmployeeName.trim();
       const response = await fetch("/api/assets/inventory", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           assetId: assigningAsset.id,
-          userId: assignmentUserId,
+          userId: isCustom ? null : assignmentUserId,
+          assignedToName: isCustom ? customName : undefined,
           currentAssignedUserId: assigningAsset.assignedToUserId || null,
           assignedDate: assignmentDate,
           handoverDate: assignmentHandoverDate || null,
@@ -339,9 +350,12 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
       });
       const result = await response.json();
       if (!response.ok || !result.success) throw new Error(result.error || "Assignment failed");
-      triggerToast(`Asset assigned to ${result.data.assignedToName}`);
+
+      triggerToast(`Asset assigned to ${result.data?.assignedToName || customName}`);
       setAssigningAsset(null);
       setAssignmentUserId("");
+      setCustomEmployeeName("");
+      setIsCustomEmployee(false);
       setAssignmentHandoverDate("");
       setAssignmentNotes("");
       await fetchData();
@@ -361,6 +375,7 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
         body: JSON.stringify({
           assetId: asset.id,
           userId: null,
+          assignedToName: null,
           currentAssignedUserId: asset.assignedToUserId || null,
           handoverDate: new Date().toISOString().slice(0, 10),
           notes: "Returned to inventory"
@@ -605,7 +620,7 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
       const imei1 = assetFields.phoneImei1 || "";
       const imei2 = assetFields.phoneImei2 || "";
       const specs = assetFields.phoneSpecs || "";
-      
+
       const simSlots = assetFields.phoneSimSlots || "None";
       const sim1No = assetFields.phoneSim1No || "";
       const sim2No = assetFields.phoneSim2No || "";
@@ -787,7 +802,7 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
   const handleStartEdit = (asset: any) => {
     let fields: Record<string, string> = {};
     let emails: string[] = [""];
-    
+
     if (asset.customFields) {
       try {
         const parsed = JSON.parse(asset.customFields);
@@ -826,7 +841,7 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
         const serialStr = asset.serialNumber || "";
         const imei1 = serialStr.match(/IMEI 1: ([^,]*)/)?.[1] || serialStr;
         const imei2 = serialStr.match(/IMEI 2: (.*)/)?.[1] || "";
-        
+
         const simSlots = asset.notes?.match(/SIM Slots Used: ([^\n]*)/)?.[1] || "None";
         const sim1No = asset.notes?.match(/SIM 1 Mobile No: ([^ ]*)/)?.[1] || "";
         const sim1Whatsapp = asset.notes?.match(/SIM 1 Mobile No:.*WhatsApp: (Yes|No)/)?.[1] || "No";
@@ -834,7 +849,7 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
         const sim2No = asset.notes?.match(/SIM 2 Mobile No: ([^ ]*)/)?.[1] || "";
         const sim2Whatsapp = asset.notes?.match(/SIM 2 Mobile No:.*WhatsApp: (Yes|No)/)?.[1] || "No";
         const sim2WhatsappType = asset.notes?.match(/SIM 2 Mobile No:.*WhatsApp: Yes \(([^)]*)\)/)?.[1] || "Personal";
-        
+
         fields = {
           phoneModel: openParen > -1 ? detail.substring(0, openParen).trim() : detail,
           phoneSpecs: openParen > -1 && closeParen > openParen ? detail.substring(openParen + 1, closeParen).trim() : "",
@@ -966,7 +981,7 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
       const imei1 = editAssetFields.phoneImei1 || "";
       const imei2 = editAssetFields.phoneImei2 || "";
       const specs = editAssetFields.phoneSpecs || "";
-      
+
       const simSlots = editAssetFields.phoneSimSlots || "None";
       const sim1No = editAssetFields.phoneSim1No || "";
       const sim2No = editAssetFields.phoneSim2No || "";
@@ -1125,6 +1140,30 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
     }
   };
 
+  // Combine DB employees and custom assignedToName entries for filter
+  const assigneeOptions = useMemo(() => {
+    const list: Array<{ id: string; name: string }> = [];
+    const seenNames = new Set<string>();
+
+    employees.forEach((emp: any) => {
+      const name = String(emp.name || "").trim();
+      if (name) {
+        list.push({ id: String(emp.id), name });
+        seenNames.add(name.toLowerCase());
+      }
+    });
+
+    inventory.forEach((asset: any) => {
+      const customName = String(asset.assignedToName || "").trim();
+      if (customName && !seenNames.has(customName.toLowerCase())) {
+        list.push({ id: customName, name: customName });
+        seenNames.add(customName.toLowerCase());
+      }
+    });
+
+    return list.sort((a, b) => a.name.localeCompare(b.name));
+  }, [employees, inventory]);
+
   // Filter inventory
   const filteredInventory = inventory.filter((asset) => {
     const query = searchQuery.trim().toLowerCase();
@@ -1150,7 +1189,10 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
     const matchesType = selectedType === "all" || asset.assetType === selectedType;
     const matchesStatus = selectedStatus === "all" || asset.status === selectedStatus;
     const matchesAssignee = selectedAssignee === "all"
-      || (selectedAssignee === "unassigned" ? !asset.assignedToUserId : String(asset.assignedToUserId) === selectedAssignee);
+      || (selectedAssignee === "unassigned"
+          ? (!asset.assignedToUserId && !asset.assignedToName)
+          : (String(asset.assignedToUserId) === selectedAssignee || String(asset.assignedToName) === selectedAssignee)
+         );
     const assignedDay = asset.assignedAt ? String(asset.assignedAt).slice(0, 10) : "";
     const handoverDay = asset.handoverDate ? String(asset.handoverDate).slice(0, 10) : "";
     const matchesAssignedDate = (!assignedFrom || (assignedDay && assignedDay >= assignedFrom))
@@ -1411,21 +1453,19 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
       <div className="flex gap-2 border-b border-[#E8E4DF] pb-px mb-6">
         <button
           onClick={() => setActiveSubTab("stock")}
-          className={`pb-2.5 px-4 text-xs font-black tracking-wider uppercase border-b-2 transition-all ${
-            activeSubTab === "stock"
+          className={`pb-2.5 px-4 text-xs font-black tracking-wider uppercase border-b-2 transition-all ${activeSubTab === "stock"
               ? "border-[#C9A84C] text-[#1C1C1A]"
               : "border-transparent text-[#9C9890] hover:text-[#5D5B57]"
-          }`}
+            }`}
         >
           Inventory Stock
         </button>
         <button
           onClick={() => setActiveSubTab("purchases")}
-          className={`pb-2.5 px-4 text-xs font-black tracking-wider uppercase border-b-2 transition-all flex items-center gap-1.5 ${
-            activeSubTab === "purchases"
+          className={`pb-2.5 px-4 text-xs font-black tracking-wider uppercase border-b-2 transition-all flex items-center gap-1.5 ${activeSubTab === "purchases"
               ? "border-[#C9A84C] text-[#1C1C1A]"
               : "border-transparent text-[#9C9890] hover:text-[#5D5B57]"
-          }`}
+            }`}
         >
           Purchase Requests
           {purchaseRequests.filter(r => r.status === "Pending Owner Approval").length > 0 && (
@@ -2060,135 +2100,135 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
                   )}
                 </div>
 
-                  {/* Standalone / External WhatsApp (Wi-Fi / Separate Number) Section */}
-                  <div className="bg-[#FCFBF9] border border-[#E8E4DF] p-3 rounded-lg space-y-2">
-                    <div className="flex items-center justify-between">
-                      <label className="text-[9px] uppercase tracking-wider text-[#9C9890] font-bold flex items-center gap-1.5">
-                        <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
-                        Standalone / External WhatsApp (Without Physical SIM)
-                      </label>
-                      <select
-                        value={assetFields.phoneExternalWhatsapp || "No"}
-                        onChange={(e) => setAssetFields(p => ({ ...p, phoneExternalWhatsapp: e.target.value }))}
-                        className="bg-white border border-[#E8E4DF] rounded-md px-2 py-1 text-[10px] font-bold text-slate-700 focus:outline-none"
-                      >
-                        <option value="No">No (Disabled)</option>
-                        <option value="Yes">Yes (Add External Number)</option>
-                      </select>
-                    </div>
+                {/* Standalone / External WhatsApp (Wi-Fi / Separate Number) Section */}
+                <div className="bg-[#FCFBF9] border border-[#E8E4DF] p-3 rounded-lg space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label className="text-[9px] uppercase tracking-wider text-[#9C9890] font-bold flex items-center gap-1.5">
+                      <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+                      Standalone / External WhatsApp (Without Physical SIM)
+                    </label>
+                    <select
+                      value={assetFields.phoneExternalWhatsapp || "No"}
+                      onChange={(e) => setAssetFields(p => ({ ...p, phoneExternalWhatsapp: e.target.value }))}
+                      className="bg-white border border-[#E8E4DF] rounded-md px-2 py-1 text-[10px] font-bold text-slate-700 focus:outline-none"
+                    >
+                      <option value="No">No (Disabled)</option>
+                      <option value="Yes">Yes (Add External Number)</option>
+                    </select>
+                  </div>
 
-                    {assetFields.phoneExternalWhatsapp === "Yes" && (
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5 pt-1">
+                  {assetFields.phoneExternalWhatsapp === "Yes" && (
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5 pt-1">
+                      <div>
+                        <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">WhatsApp Mobile Number *</label>
+                        <input
+                          type="text"
+                          required
+                          placeholder="e.g. 9876543210"
+                          value={assetFields.phoneExternalWhatsappNo || ""}
+                          onChange={(e) => setAssetFields(p => ({ ...p, phoneExternalWhatsappNo: e.target.value }))}
+                          className="w-full bg-white border border-emerald-300 focus:border-emerald-500 rounded-lg px-3 py-1.5 text-xs text-[#1C1C1A] font-semibold"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">WhatsApp Type *</label>
+                        <select
+                          value={assetFields.phoneExternalWhatsappType || "Business"}
+                          onChange={(e) => setAssetFields(p => ({ ...p, phoneExternalWhatsappType: e.target.value }))}
+                          className="w-full bg-white border border-[#E8E4DF] focus:border-emerald-500 rounded-lg px-3 py-1.5 text-xs text-[#1C1C1A] font-semibold"
+                        >
+                          <option value="Business">WhatsApp Business</option>
+                          <option value="Personal">Personal WhatsApp</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Account Label / Remarks</label>
+                        <input
+                          type="text"
+                          placeholder="e.g. Support WA / Wi-Fi Logged-in"
+                          value={assetFields.phoneExternalWhatsappLabel || ""}
+                          onChange={(e) => setAssetFields(p => ({ ...p, phoneExternalWhatsappLabel: e.target.value }))}
+                          className="w-full bg-white border border-[#E8E4DF] focus:border-emerald-500 rounded-lg px-3 py-1.5 text-xs text-[#1C1C1A] font-semibold"
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Logged-in Social Media Applications Section */}
+                <div className="bg-[#FCFBF9] border border-[#E8E4DF] p-3 rounded-lg space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label className="text-[9px] uppercase tracking-wider text-[#9C9890] font-bold flex items-center gap-1.5">
+                      <span className="w-2 h-2 rounded-full bg-purple-500"></span>
+                      Logged-in Social Media Applications
+                    </label>
+                    <select
+                      value={assetFields.phoneSocialMedia || "No"}
+                      onChange={(e) => setAssetFields(p => ({ ...p, phoneSocialMedia: e.target.value }))}
+                      className="bg-white border border-[#E8E4DF] rounded-md px-2 py-1 text-[10px] font-bold text-slate-700 focus:outline-none"
+                    >
+                      <option value="No">No (Disabled)</option>
+                      <option value="Yes">Yes (Add Social Media Account)</option>
+                    </select>
+                  </div>
+
+                  {assetFields.phoneSocialMedia === "Yes" && (
+                    <div className="space-y-2 pt-1">
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5">
                         <div>
-                          <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">WhatsApp Mobile Number *</label>
-                          <input
-                            type="text"
-                            required
-                            placeholder="e.g. 9876543210"
-                            value={assetFields.phoneExternalWhatsappNo || ""}
-                            onChange={(e) => setAssetFields(p => ({ ...p, phoneExternalWhatsappNo: e.target.value }))}
-                            className="w-full bg-white border border-emerald-300 focus:border-emerald-500 rounded-lg px-3 py-1.5 text-xs text-[#1C1C1A] font-semibold"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">WhatsApp Type *</label>
+                          <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Social Media App *</label>
                           <select
-                            value={assetFields.phoneExternalWhatsappType || "Business"}
-                            onChange={(e) => setAssetFields(p => ({ ...p, phoneExternalWhatsappType: e.target.value }))}
-                            className="w-full bg-white border border-[#E8E4DF] focus:border-emerald-500 rounded-lg px-3 py-1.5 text-xs text-[#1C1C1A] font-semibold"
+                            value={["Instagram", "Facebook", "Telegram", "X (Twitter)", "LinkedIn", "YouTube", "Snapchat"].includes(assetFields.phoneSocialMediaApp || "") ? assetFields.phoneSocialMediaApp : "Other"}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              setAssetFields(p => ({ ...p, phoneSocialMediaApp: val, phoneSocialMediaAppCustom: val === "Other" ? (p.phoneSocialMediaAppCustom || "") : "" }));
+                            }}
+                            className="w-full bg-white border border-purple-300 focus:border-purple-500 rounded-lg px-3 py-1.5 text-xs text-[#1C1C1A] font-semibold"
                           >
-                            <option value="Business">WhatsApp Business</option>
-                            <option value="Personal">Personal WhatsApp</option>
+                            <option value="Instagram">Instagram</option>
+                            <option value="Facebook">Facebook</option>
+                            <option value="Telegram">Telegram</option>
+                            <option value="X (Twitter)">X (Twitter)</option>
+                            <option value="LinkedIn">LinkedIn</option>
+                            <option value="YouTube">YouTube</option>
+                            <option value="Snapchat">Snapchat</option>
+                            <option value="Other">Other</option>
                           </select>
+                          {(assetFields.phoneSocialMediaApp === "Other" || (!["Instagram", "Facebook", "Telegram", "X (Twitter)", "LinkedIn", "YouTube", "Snapchat"].includes(assetFields.phoneSocialMediaApp || "") && assetFields.phoneSocialMediaApp)) && (
+                            <input
+                              type="text"
+                              required
+                              placeholder="Specify custom app (e.g. Threads)..."
+                              value={assetFields.phoneSocialMediaAppCustom || (assetFields.phoneSocialMediaApp !== "Other" ? assetFields.phoneSocialMediaApp : "") || ""}
+                              onChange={(e) => setAssetFields(p => ({ ...p, phoneSocialMediaAppCustom: e.target.value }))}
+                              className="mt-1.5 w-full bg-white border border-purple-400 focus:border-purple-500 rounded-lg px-3 py-1.5 text-xs text-[#1C1C1A] font-semibold"
+                            />
+                          )}
                         </div>
                         <div>
-                          <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Account Label / Remarks</label>
+                          <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Username / Handle</label>
                           <input
                             type="text"
-                            placeholder="e.g. Support WA / Wi-Fi Logged-in"
-                            value={assetFields.phoneExternalWhatsappLabel || ""}
-                            onChange={(e) => setAssetFields(p => ({ ...p, phoneExternalWhatsappLabel: e.target.value }))}
-                            className="w-full bg-white border border-[#E8E4DF] focus:border-emerald-500 rounded-lg px-3 py-1.5 text-xs text-[#1C1C1A] font-semibold"
+                            placeholder="e.g. @company_official (Optional)"
+                            value={assetFields.phoneSocialMediaUsername || ""}
+                            onChange={(e) => setAssetFields(p => ({ ...p, phoneSocialMediaUsername: e.target.value }))}
+                            className="w-full bg-white border border-[#E8E4DF] focus:border-purple-500 rounded-lg px-3 py-1.5 text-xs text-[#1C1C1A] font-semibold font-mono"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Account Passcode / Password</label>
+                          <input
+                            type="text"
+                            placeholder="e.g. Pass@123 (Optional)"
+                            value={assetFields.phoneSocialMediaPassword || ""}
+                            onChange={(e) => setAssetFields(p => ({ ...p, phoneSocialMediaPassword: e.target.value }))}
+                            className="w-full bg-white border border-[#E8E4DF] focus:border-purple-500 rounded-lg px-3 py-1.5 text-xs text-[#1C1C1A] font-mono"
                           />
                         </div>
                       </div>
-                    )}
-                  </div>
-
-                  {/* Logged-in Social Media Applications Section */}
-                  <div className="bg-[#FCFBF9] border border-[#E8E4DF] p-3 rounded-lg space-y-2">
-                    <div className="flex items-center justify-between">
-                      <label className="text-[9px] uppercase tracking-wider text-[#9C9890] font-bold flex items-center gap-1.5">
-                        <span className="w-2 h-2 rounded-full bg-purple-500"></span>
-                        Logged-in Social Media Applications
-                      </label>
-                      <select
-                        value={assetFields.phoneSocialMedia || "No"}
-                        onChange={(e) => setAssetFields(p => ({ ...p, phoneSocialMedia: e.target.value }))}
-                        className="bg-white border border-[#E8E4DF] rounded-md px-2 py-1 text-[10px] font-bold text-slate-700 focus:outline-none"
-                      >
-                        <option value="No">No (Disabled)</option>
-                        <option value="Yes">Yes (Add Social Media Account)</option>
-                      </select>
                     </div>
-
-                    {assetFields.phoneSocialMedia === "Yes" && (
-                      <div className="space-y-2 pt-1">
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5">
-                          <div>
-                            <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Social Media App *</label>
-                            <select
-                              value={["Instagram", "Facebook", "Telegram", "X (Twitter)", "LinkedIn", "YouTube", "Snapchat"].includes(assetFields.phoneSocialMediaApp || "") ? assetFields.phoneSocialMediaApp : "Other"}
-                              onChange={(e) => {
-                                const val = e.target.value;
-                                setAssetFields(p => ({ ...p, phoneSocialMediaApp: val, phoneSocialMediaAppCustom: val === "Other" ? (p.phoneSocialMediaAppCustom || "") : "" }));
-                              }}
-                              className="w-full bg-white border border-purple-300 focus:border-purple-500 rounded-lg px-3 py-1.5 text-xs text-[#1C1C1A] font-semibold"
-                            >
-                              <option value="Instagram">Instagram</option>
-                              <option value="Facebook">Facebook</option>
-                              <option value="Telegram">Telegram</option>
-                              <option value="X (Twitter)">X (Twitter)</option>
-                              <option value="LinkedIn">LinkedIn</option>
-                              <option value="YouTube">YouTube</option>
-                              <option value="Snapchat">Snapchat</option>
-                              <option value="Other">Other</option>
-                            </select>
-                            {(assetFields.phoneSocialMediaApp === "Other" || (!["Instagram", "Facebook", "Telegram", "X (Twitter)", "LinkedIn", "YouTube", "Snapchat"].includes(assetFields.phoneSocialMediaApp || "") && assetFields.phoneSocialMediaApp)) && (
-                              <input
-                                type="text"
-                                required
-                                placeholder="Specify custom app (e.g. Threads)..."
-                                value={assetFields.phoneSocialMediaAppCustom || (assetFields.phoneSocialMediaApp !== "Other" ? assetFields.phoneSocialMediaApp : "") || ""}
-                                onChange={(e) => setAssetFields(p => ({ ...p, phoneSocialMediaAppCustom: e.target.value }))}
-                                className="mt-1.5 w-full bg-white border border-purple-400 focus:border-purple-500 rounded-lg px-3 py-1.5 text-xs text-[#1C1C1A] font-semibold"
-                              />
-                            )}
-                          </div>
-                          <div>
-                            <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Username / Handle</label>
-                            <input
-                              type="text"
-                              placeholder="e.g. @company_official (Optional)"
-                              value={assetFields.phoneSocialMediaUsername || ""}
-                              onChange={(e) => setAssetFields(p => ({ ...p, phoneSocialMediaUsername: e.target.value }))}
-                              className="w-full bg-white border border-[#E8E4DF] focus:border-purple-500 rounded-lg px-3 py-1.5 text-xs text-[#1C1C1A] font-semibold font-mono"
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Account Passcode / Password</label>
-                            <input
-                              type="text"
-                              placeholder="e.g. Pass@123 (Optional)"
-                              value={assetFields.phoneSocialMediaPassword || ""}
-                              onChange={(e) => setAssetFields(p => ({ ...p, phoneSocialMediaPassword: e.target.value }))}
-                              className="w-full bg-white border border-[#E8E4DF] focus:border-purple-500 rounded-lg px-3 py-1.5 text-xs text-[#1C1C1A] font-mono"
-                            />
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                  </div>
+                  )}
+                </div>
 
                 <div className="max-w-md">
                   <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Logged-in Email IDs</label>
@@ -2580,329 +2620,329 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
         <>
           {/* Filter and Search Row */}
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3 bg-[#FCFBF9] border border-[#E8E4DF] p-4 rounded-xl">
-        {/* Search */}
-        <div>
-          <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1.5">Search Asset Detail / Serial</label>
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#9C9890]" />
-            <input
-              type="text"
-              placeholder="Search..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg pl-9 pr-3 py-2 text-xs text-[#1C1C1A] placeholder-[#9C9890] focus:outline-none transition-all"
-            />
+            {/* Search */}
+            <div>
+              <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1.5">Search Asset Detail / Serial</label>
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#9C9890]" />
+                <input
+                  type="text"
+                  placeholder="Search..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg pl-9 pr-3 py-2 text-xs text-[#1C1C1A] placeholder-[#9C9890] focus:outline-none transition-all"
+                />
+              </div>
+            </div>
+
+            {/* Company Dropdown */}
+            <div>
+              <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1.5">Belongs to Company</label>
+              <select
+                value={selectedCompany}
+                onChange={(e) => setSelectedCompany(e.target.value)}
+                className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+              >
+                <option value="all">All Stocks</option>
+                {companies.map((comp) => (
+                  <option key={comp.id} value={comp.id}>
+                    {comp.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Condition Filter */}
+            <div>
+              <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1.5">Condition Status</label>
+              <select
+                value={selectedCondition}
+                onChange={(e) => setSelectedCondition(e.target.value)}
+                className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+              >
+                <option value="all">All Conditions</option>
+                <option value="New">New</option>
+                <option value="Good">Good</option>
+                <option value="Fair">Fair</option>
+                <option value="Needs Repair">Needs Repair</option>
+              </select>
+            </div>
+
+            {/* Asset Type Filter */}
+            <div>
+              <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1.5">Asset Category</label>
+              <select
+                value={selectedType}
+                onChange={(e) => setSelectedType(e.target.value)}
+                className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+              >
+                <option value="all">All Categories</option>
+                {dynamicAssetTypes.map((type) => <option key={type} value={type}>{type}</option>)}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1.5">Inventory Status</label>
+              <select value={selectedStatus} onChange={(e) => setSelectedStatus(e.target.value)} className="w-full bg-white border border-[#E8E4DF] rounded-lg px-3 py-2 text-xs font-semibold">
+                <option value="all">All Statuses</option>
+                {Array.from(new Set(inventory.map((asset) => asset.status).filter(Boolean))).sort().map((status) => (
+                  <option key={status} value={status}>{status}</option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1.5">Assigned To</label>
+              <select value={selectedAssignee} onChange={(e) => setSelectedAssignee(e.target.value)} className="w-full bg-white border border-[#E8E4DF] rounded-lg px-3 py-2 text-xs font-semibold">
+                <option value="all">All Employees</option>
+                <option value="unassigned">Unassigned / Available</option>
+                {assigneeOptions.map((item: any) => (
+                  <option key={item.id} value={item.id}>{item.name}</option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1.5">Assigned Date Range</label>
+              <div className="grid grid-cols-2 gap-1.5">
+                <input type="date" value={assignedFrom} onChange={(e) => setAssignedFrom(e.target.value)} className="min-w-0 bg-white border border-[#E8E4DF] rounded-lg px-2 py-2 text-[10px]" />
+                <input type="date" value={assignedTo} onChange={(e) => setAssignedTo(e.target.value)} className="min-w-0 bg-white border border-[#E8E4DF] rounded-lg px-2 py-2 text-[10px]" />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1.5">Handover Date Range</label>
+              <div className="flex gap-1.5">
+                <input type="date" value={handoverFrom} onChange={(e) => setHandoverFrom(e.target.value)} className="min-w-0 flex-1 bg-white border border-[#E8E4DF] rounded-lg px-2 py-2 text-[10px]" />
+                <input type="date" value={handoverTo} onChange={(e) => setHandoverTo(e.target.value)} className="min-w-0 flex-1 bg-white border border-[#E8E4DF] rounded-lg px-2 py-2 text-[10px]" />
+                <button
+                  type="button"
+                  title="Clear all filters"
+                  onClick={() => {
+                    setSearchQuery(""); setSelectedCompany("all"); setSelectedCondition("all");
+                    setSelectedType("all"); setSelectedStatus("all"); setSelectedAssignee("all");
+                    setAssignedFrom(""); setAssignedTo(""); setHandoverFrom(""); setHandoverTo("");
+                  }}
+                  className="px-3 rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-100 font-bold text-[10px]"
+                >
+                  Clear
+                </button>
+              </div>
+            </div>
+            <div className="md:col-span-2 xl:col-span-4 flex items-center justify-between border-t border-[#E8E4DF] pt-3 text-[10px] font-bold text-slate-500">
+              <span>Showing {filteredInventory.length} of {inventory.length} assets</span>
+              <span>{availableCount} available · {inUseCount} assigned</span>
+            </div>
           </div>
-        </div>
 
-        {/* Company Dropdown */}
-        <div>
-          <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1.5">Belongs to Company</label>
-          <select
-            value={selectedCompany}
-            onChange={(e) => setSelectedCompany(e.target.value)}
-            className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
-          >
-            <option value="all">All Stocks</option>
-            {companies.map((comp) => (
-              <option key={comp.id} value={comp.id}>
-                {comp.name}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        {/* Condition Filter */}
-        <div>
-          <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1.5">Condition Status</label>
-          <select
-            value={selectedCondition}
-            onChange={(e) => setSelectedCondition(e.target.value)}
-            className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
-          >
-            <option value="all">All Conditions</option>
-            <option value="New">New</option>
-            <option value="Good">Good</option>
-            <option value="Fair">Fair</option>
-            <option value="Needs Repair">Needs Repair</option>
-          </select>
-        </div>
-
-        {/* Asset Type Filter */}
-        <div>
-          <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1.5">Asset Category</label>
-          <select
-            value={selectedType}
-            onChange={(e) => setSelectedType(e.target.value)}
-            className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
-          >
-            <option value="all">All Categories</option>
-            {dynamicAssetTypes.map((type) => <option key={type} value={type}>{type}</option>)}
-          </select>
-        </div>
-
-        <div>
-          <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1.5">Inventory Status</label>
-          <select value={selectedStatus} onChange={(e) => setSelectedStatus(e.target.value)} className="w-full bg-white border border-[#E8E4DF] rounded-lg px-3 py-2 text-xs font-semibold">
-            <option value="all">All Statuses</option>
-            {Array.from(new Set(inventory.map((asset) => asset.status).filter(Boolean))).sort().map((status) => (
-              <option key={status} value={status}>{status}</option>
-            ))}
-          </select>
-        </div>
-
-        <div>
-          <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1.5">Assigned To</label>
-          <select value={selectedAssignee} onChange={(e) => setSelectedAssignee(e.target.value)} className="w-full bg-white border border-[#E8E4DF] rounded-lg px-3 py-2 text-xs font-semibold">
-            <option value="all">All Employees</option>
-            <option value="unassigned">Unassigned / Available</option>
-            {[...employees].sort((a: any, b: any) => String(a.name || "").localeCompare(String(b.name || ""))).map((employee: any) => (
-              <option key={employee.id} value={employee.id}>{employee.name}</option>
-            ))}
-          </select>
-        </div>
-
-        <div>
-          <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1.5">Assigned Date Range</label>
-          <div className="grid grid-cols-2 gap-1.5">
-            <input type="date" value={assignedFrom} onChange={(e) => setAssignedFrom(e.target.value)} className="min-w-0 bg-white border border-[#E8E4DF] rounded-lg px-2 py-2 text-[10px]" />
-            <input type="date" value={assignedTo} onChange={(e) => setAssignedTo(e.target.value)} className="min-w-0 bg-white border border-[#E8E4DF] rounded-lg px-2 py-2 text-[10px]" />
-          </div>
-        </div>
-
-        <div>
-          <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1.5">Handover Date Range</label>
-          <div className="flex gap-1.5">
-            <input type="date" value={handoverFrom} onChange={(e) => setHandoverFrom(e.target.value)} className="min-w-0 flex-1 bg-white border border-[#E8E4DF] rounded-lg px-2 py-2 text-[10px]" />
-            <input type="date" value={handoverTo} onChange={(e) => setHandoverTo(e.target.value)} className="min-w-0 flex-1 bg-white border border-[#E8E4DF] rounded-lg px-2 py-2 text-[10px]" />
-            <button
-              type="button"
-              title="Clear all filters"
-              onClick={() => {
-                setSearchQuery(""); setSelectedCompany("all"); setSelectedCondition("all");
-                setSelectedType("all"); setSelectedStatus("all"); setSelectedAssignee("all");
-                setAssignedFrom(""); setAssignedTo(""); setHandoverFrom(""); setHandoverTo("");
-              }}
-              className="px-3 rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-100 font-bold text-[10px]"
-            >
-              Clear
-            </button>
-          </div>
-        </div>
-        <div className="md:col-span-2 xl:col-span-4 flex items-center justify-between border-t border-[#E8E4DF] pt-3 text-[10px] font-bold text-slate-500">
-          <span>Showing {filteredInventory.length} of {inventory.length} assets</span>
-          <span>{availableCount} available · {inUseCount} assigned</span>
-        </div>
-      </div>
-
-      {/* Main Stock Table */}
-      {loading ? (
-        <div className="text-center py-12">
-          <p className="text-[#9C9890] text-xs uppercase tracking-widest animate-pulse font-medium">Loading inventory lists...</p>
-        </div>
-      ) : filteredInventory.length === 0 ? (
-        <div className="bg-[#FCFBF9] border border-[#E8E4DF] rounded-xl p-12 text-center">
-          <Package className="w-8 h-8 text-slate-300 mx-auto mb-2" />
-          <p className="text-[#9C9890] text-xs uppercase tracking-widest font-medium">No inventory items matched</p>
-        </div>
-      ) : (
-        <div className="bg-[#FCFBF9] border border-[#E8E4DF] rounded-xl overflow-hidden shadow-sm">
-          <div className="overflow-x-auto">
-            <table className="w-full border-collapse text-left">
-              <thead>
-                <tr className="border-b border-[#E8E4DF] bg-[#F5F0EA]/40 text-[#5D5B57] text-[10px] uppercase font-bold tracking-wider">
-                  <th className="py-3.5 px-4 font-bold">Category</th>
-                  <th className="py-3.5 px-4 font-bold">Asset Description & Serial</th>
-                  <th className="py-3.5 px-4 font-bold">Condition</th>
-                  <th className="py-3.5 px-4 font-bold">Inventory Status</th>
-                  <th className="py-3.5 px-4 font-bold">Purchase Details</th>
-                  <th className="py-3.5 px-4 font-bold">Company / Notes</th>
-                  <th className="py-3.5 px-4 font-bold text-center">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-[#E8E4DF] text-xs">
-                {filteredInventory.map((asset) => {
-                  const companyName = companies.find(c => String(c.id) === String(asset.companyId))?.name || "General Stock";
-
-                  return (
-                    <tr key={asset.id} onClick={() => setViewingAsset(asset)} className="hover:bg-indigo-50/30 transition-colors cursor-pointer group">
-                      {/* Asset Category */}
-                      <td className="py-4 px-4 whitespace-nowrap">
-                        <div className="flex flex-col gap-1 items-start">
-                          <span className="text-[10px] bg-slate-100 group-hover:bg-white text-[#5D5B57] px-2 py-0.5 rounded font-mono font-bold border border-slate-200">
-                            ID: {asset.id}
-                          </span>
-                          {asset.oldAssetId && (
-                            <span className="text-[9px] bg-amber-50 text-amber-800 px-2 py-0.5 rounded font-mono font-bold border border-amber-200">
-                              Old ID: {asset.oldAssetId}
-                            </span>
-                          )}
-                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-indigo-50 text-indigo-700 text-[10px] font-bold border border-indigo-100 uppercase tracking-wide">
-                            <Cpu className="w-3 h-3" /> {asset.assetType}
-                          </span>
-                        </div>
-                      </td>
-
-                      {/* Detail & Serial */}
-                      <td className="py-4 px-4">
-                        <div className="flex gap-3 items-start">
-                          {asset.photoUrl && (
-                            <div className="w-12 h-12 rounded-lg border border-[#E8E4DF] overflow-hidden bg-slate-50 flex-shrink-0 shadow-sm cursor-pointer hover:scale-105 transition-transform" onClick={(e) => { e.stopPropagation(); setPreviewImageUrl(asset.photoUrl); }}>
-                              <img src={asset.photoUrl} alt="Asset photo" className="w-full h-full object-cover" />
-                            </div>
-                          )}
-                          <div>
-                            <div className="font-semibold text-[#1C1C1A]">{asset.assetDetail || "No Description"}</div>
-                            {asset.serialNumber && (
-                              <div className="text-[10px] text-[#9C9890] font-mono mt-0.5">
-                                S/N: {asset.serialNumber}
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      </td>
-
-                      {/* Condition */}
-                      <td className="py-4 px-4">
-                        <span className={cn(
-                          "inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold border uppercase tracking-wider",
-                          asset.condition === "New" ? "bg-emerald-50 text-emerald-700 border-emerald-250" :
-                            asset.condition === "Good" ? "bg-blue-50 text-blue-700 border-blue-250" :
-                              asset.condition === "Fair" ? "bg-amber-50 text-amber-700 border-amber-250" :
-                                "bg-rose-50 text-rose-700 border-rose-250"
-                        )}>
-                          {asset.condition || "Good"}
-                        </span>
-                      </td>
-
-                      {/* Status */}
-                      <td className="py-4 px-4">
-                        <div className="space-y-1">
-                          <span className={cn(
-                            "inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold border uppercase tracking-wider",
-                            asset.status === "Available" ? "bg-emerald-50 text-emerald-700 border-emerald-200" :
-                              asset.status === "In Use" ? "bg-amber-50 text-amber-700 border-amber-200" :
-                                "bg-rose-50 text-rose-700 border-rose-200"
-                          )}>
-                            {asset.status || "Available"}
-                          </span>
-                          {asset.assignedToName && (
-                            <div className="text-[10px] font-bold text-slate-700">
-                              With: {asset.assignedToName}
-                              {asset.assignedAt && (
-                                <span className="block text-[9px] font-medium text-slate-500">Assigned: {formatDateDDMMYY(String(asset.assignedAt).slice(0, 10))}</span>
-                              )}
-                              {asset.handoverDate && (
-                                <span className="block text-[9px] font-medium text-slate-500">Handover: {formatDateDDMMYY(String(asset.handoverDate).slice(0, 10))}</span>
-                              )}
-                              {asset.assignmentSource === "legacy" && (
-                                <span className="block text-[8px] font-medium text-slate-400">Matched from Assets Registry</span>
-                              )}
-                            </div>
-                          )}
-                        </div>
-                      </td>
-
-                      {/* Purchase details */}
-                      <td className="py-4 px-4">
-                        <div>
-                          <div className="font-semibold text-slate-700">{asset.purchaseValue || "—"}</div>
-                          {asset.purchaseDate && (
-                            <div className="text-[9px] text-[#9C9890] font-semibold mt-0.5 flex items-center gap-1">
-                              <Calendar className="w-2.5 h-2.5" /> {formatDateDDMMYY(asset.purchaseDate)}
-                            </div>
-                          )}
-                        </div>
-                      </td>
-
-                      {/* Company & Notes */}
-                      <td className="py-4 px-4 max-w-[200px]">
-                        <div className="space-y-1">
-                          <div className="flex items-center gap-1 text-[9px] font-bold text-slate-800 uppercase tracking-wide">
-                            <Building2 className="w-2.5 h-2.5 text-[#C9A84C]" /> {companyName}
-                          </div>
-                          {asset.notes && (
-                            <p className="text-[10px] text-[#9C9890] italic line-clamp-2">
-                              {asset.notes}
-                            </p>
-                          )}
-                        </div>
-                      </td>
-
-                      {/* Actions */}
-                      <td className="py-4 px-4 text-center whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
-                        <div className="flex justify-center items-center gap-1.5">
-                          <button
-                            onClick={() => setViewingAsset(asset)}
-                            className="px-2 py-1.5 text-[10px] font-bold uppercase tracking-wider text-indigo-600 hover:text-white border border-indigo-200 hover:bg-indigo-600 rounded-lg transition-all flex items-center gap-1"
-                          >
-                            <HelpCircle className="w-3 h-3" /> View
-                          </button>
-                          <button
-                            onClick={() => handleStartEdit(asset)}
-                            className="px-2 py-1.5 text-[10px] font-bold uppercase tracking-wider text-[#C9A84C] hover:text-white border border-[#C9A84C]/35 hover:bg-[#C9A84C] rounded-lg transition-all flex items-center gap-1"
-                          >
-                            <Edit3 className="w-3 h-3" /> Edit
-                          </button>
-                          {asset.assignedToUserId ? (
-                            <>
-                              <button
-                                onClick={() => {
-                                  setAssigningAsset(asset);
-                                  setAssignmentUserId("");
-                                  setAssignmentDate(new Date().toISOString().slice(0, 10));
-                                  setAssignmentHandoverDate("");
-                                  setAssignmentNotes("");
-                                }}
-                                className="px-2 py-1.5 text-[10px] font-bold uppercase tracking-wider text-sky-700 border border-sky-200 hover:bg-sky-600 hover:text-white rounded-lg transition-all flex items-center gap-1"
-                              >
-                                <ArrowRightLeft className="w-3 h-3" /> Transfer
-                              </button>
-                              <button
-                                onClick={() => handleUnassignAsset(asset)}
-                                className="px-2 py-1.5 text-[10px] font-bold uppercase tracking-wider text-rose-600 border border-rose-200 hover:bg-rose-600 hover:text-white rounded-lg transition-all flex items-center gap-1"
-                              >
-                                <UserMinus className="w-3 h-3" /> Unassign
-                              </button>
-                            </>
-                          ) : (
-                            <button
-                              onClick={() => {
-                                setAssigningAsset(asset);
-                                setAssignmentUserId("");
-                                setAssignmentDate(new Date().toISOString().slice(0, 10));
-                                setAssignmentHandoverDate("");
-                                setAssignmentNotes("");
-                              }}
-                              className="px-2 py-1.5 text-[10px] font-bold uppercase tracking-wider text-emerald-700 border border-emerald-200 hover:bg-emerald-600 hover:text-white rounded-lg transition-all flex items-center gap-1"
-                            >
-                              <UserPlus className="w-3 h-3" /> Assign
-                            </button>
-                          )}
-                          <button
-                            onClick={() => setHistoryAsset(asset)}
-                            className="px-2 py-1.5 text-[10px] font-bold uppercase tracking-wider text-violet-700 border border-violet-200 hover:bg-violet-600 hover:text-white rounded-lg transition-all flex items-center gap-1"
-                          >
-                            <History className="w-3 h-3" /> History
-                          </button>
-                          <button
-                            onClick={() => setDeleteConfirm({ show: true, assetId: asset.id, assetType: asset.assetType, serialNumber: asset.serialNumber })}
-                            className="px-2 py-1.5 text-[10px] font-bold uppercase tracking-wider text-rose-500 hover:text-white border border-rose-250 hover:bg-rose-500 rounded-lg transition-all flex items-center gap-1"
-                          >
-                            <Trash2 className="w-3 h-3" /> Delete
-                          </button>
-                        </div>
-                      </td>
+          {/* Main Stock Table */}
+          {loading ? (
+            <div className="text-center py-12">
+              <p className="text-[#9C9890] text-xs uppercase tracking-widest animate-pulse font-medium">Loading inventory lists...</p>
+            </div>
+          ) : filteredInventory.length === 0 ? (
+            <div className="bg-[#FCFBF9] border border-[#E8E4DF] rounded-xl p-12 text-center">
+              <Package className="w-8 h-8 text-slate-300 mx-auto mb-2" />
+              <p className="text-[#9C9890] text-xs uppercase tracking-widest font-medium">No inventory items matched</p>
+            </div>
+          ) : (
+            <div className="bg-[#FCFBF9] border border-[#E8E4DF] rounded-xl overflow-hidden shadow-sm">
+              <div className="overflow-x-auto">
+                <table className="w-full border-collapse text-left">
+                  <thead>
+                    <tr className="border-b border-[#E8E4DF] bg-[#F5F0EA]/40 text-[#5D5B57] text-[10px] uppercase font-bold tracking-wider">
+                      <th className="py-3.5 px-4 font-bold">Category</th>
+                      <th className="py-3.5 px-4 font-bold">Asset Description & Serial</th>
+                      <th className="py-3.5 px-4 font-bold">Condition</th>
+                      <th className="py-3.5 px-4 font-bold">Inventory Status</th>
+                      <th className="py-3.5 px-4 font-bold">Purchase Details</th>
+                      <th className="py-3.5 px-4 font-bold">Company / Notes</th>
+                      <th className="py-3.5 px-4 font-bold text-center">Actions</th>
                     </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
-    </>
-    ) : (
+                  </thead>
+                  <tbody className="divide-y divide-[#E8E4DF] text-xs">
+                    {filteredInventory.map((asset) => {
+                      const companyName = companies.find(c => String(c.id) === String(asset.companyId))?.name || "General Stock";
+
+                      return (
+                        <tr key={asset.id} onClick={() => setViewingAsset(asset)} className="hover:bg-indigo-50/30 transition-colors cursor-pointer group">
+                          {/* Asset Category */}
+                          <td className="py-4 px-4 whitespace-nowrap">
+                            <div className="flex flex-col gap-1 items-start">
+                              <span className="text-[10px] bg-slate-100 group-hover:bg-white text-[#5D5B57] px-2 py-0.5 rounded font-mono font-bold border border-slate-200">
+                                ID: {asset.id}
+                              </span>
+                              {asset.oldAssetId && (
+                                <span className="text-[9px] bg-amber-50 text-amber-800 px-2 py-0.5 rounded font-mono font-bold border border-amber-200">
+                                  Old ID: {asset.oldAssetId}
+                                </span>
+                              )}
+                              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-indigo-50 text-indigo-700 text-[10px] font-bold border border-indigo-100 uppercase tracking-wide">
+                                <Cpu className="w-3 h-3" /> {asset.assetType}
+                              </span>
+                            </div>
+                          </td>
+
+                          {/* Detail & Serial */}
+                          <td className="py-4 px-4">
+                            <div className="flex gap-3 items-start">
+                              {asset.photoUrl && (
+                                <div className="w-12 h-12 rounded-lg border border-[#E8E4DF] overflow-hidden bg-slate-50 flex-shrink-0 shadow-sm cursor-pointer hover:scale-105 transition-transform" onClick={(e) => { e.stopPropagation(); setPreviewImageUrl(asset.photoUrl); }}>
+                                  <img src={asset.photoUrl} alt="Asset photo" className="w-full h-full object-cover" />
+                                </div>
+                              )}
+                              <div>
+                                <div className="font-semibold text-[#1C1C1A]">{asset.assetDetail || "No Description"}</div>
+                                {asset.serialNumber && (
+                                  <div className="text-[10px] text-[#9C9890] font-mono mt-0.5">
+                                    S/N: {asset.serialNumber}
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </td>
+
+                          {/* Condition */}
+                          <td className="py-4 px-4">
+                            <span className={cn(
+                              "inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold border uppercase tracking-wider",
+                              asset.condition === "New" ? "bg-emerald-50 text-emerald-700 border-emerald-250" :
+                                asset.condition === "Good" ? "bg-blue-50 text-blue-700 border-blue-250" :
+                                  asset.condition === "Fair" ? "bg-amber-50 text-amber-700 border-amber-250" :
+                                    "bg-rose-50 text-rose-700 border-rose-250"
+                            )}>
+                              {asset.condition || "Good"}
+                            </span>
+                          </td>
+
+                          {/* Status */}
+                          <td className="py-4 px-4">
+                            <div className="space-y-1">
+                              <span className={cn(
+                                "inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold border uppercase tracking-wider",
+                                asset.status === "Available" ? "bg-emerald-50 text-emerald-700 border-emerald-200" :
+                                  asset.status === "In Use" ? "bg-amber-50 text-amber-700 border-amber-200" :
+                                    "bg-rose-50 text-rose-700 border-rose-200"
+                              )}>
+                                {asset.status || "Available"}
+                              </span>
+                              {asset.assignedToName && (
+                                <div className="text-[10px] font-bold text-slate-700">
+                                  With: {asset.assignedToName}
+                                  {asset.assignedAt && (
+                                    <span className="block text-[9px] font-medium text-slate-500">Assigned: {formatDateDDMMYY(String(asset.assignedAt).slice(0, 10))}</span>
+                                  )}
+                                  {asset.handoverDate && (
+                                    <span className="block text-[9px] font-medium text-slate-500">Handover: {formatDateDDMMYY(String(asset.handoverDate).slice(0, 10))}</span>
+                                  )}
+                                  {asset.assignmentSource === "legacy" && (
+                                    <span className="block text-[8px] font-medium text-slate-400">Matched from Assets Registry</span>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          </td>
+
+                          {/* Purchase details */}
+                          <td className="py-4 px-4">
+                            <div>
+                              <div className="font-semibold text-slate-700">{asset.purchaseValue || "—"}</div>
+                              {asset.purchaseDate && (
+                                <div className="text-[9px] text-[#9C9890] font-semibold mt-0.5 flex items-center gap-1">
+                                  <Calendar className="w-2.5 h-2.5" /> {formatDateDDMMYY(asset.purchaseDate)}
+                                </div>
+                              )}
+                            </div>
+                          </td>
+
+                          {/* Company & Notes */}
+                          <td className="py-4 px-4 max-w-[200px]">
+                            <div className="space-y-1">
+                              <div className="flex items-center gap-1 text-[9px] font-bold text-slate-800 uppercase tracking-wide">
+                                <Building2 className="w-2.5 h-2.5 text-[#C9A84C]" /> {companyName}
+                              </div>
+                              {asset.notes && (
+                                <p className="text-[10px] text-[#9C9890] italic line-clamp-2">
+                                  {asset.notes}
+                                </p>
+                              )}
+                            </div>
+                          </td>
+
+                          {/* Actions */}
+                          <td className="py-4 px-4 text-center whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
+                            <div className="flex justify-center items-center gap-1.5">
+                              <button
+                                onClick={() => setViewingAsset(asset)}
+                                className="px-2 py-1.5 text-[10px] font-bold uppercase tracking-wider text-indigo-600 hover:text-white border border-indigo-200 hover:bg-indigo-600 rounded-lg transition-all flex items-center gap-1"
+                              >
+                                <HelpCircle className="w-3 h-3" /> View
+                              </button>
+                              <button
+                                onClick={() => handleStartEdit(asset)}
+                                className="px-2 py-1.5 text-[10px] font-bold uppercase tracking-wider text-[#C9A84C] hover:text-white border border-[#C9A84C]/35 hover:bg-[#C9A84C] rounded-lg transition-all flex items-center gap-1"
+                              >
+                                <Edit3 className="w-3 h-3" /> Edit
+                              </button>
+                              {(asset.assignedToUserId || asset.assignedToName || asset.status === "In Use") ? (
+                                <>
+                                  <button
+                                    onClick={() => {
+                                      setAssigningAsset(asset);
+                                      setAssignmentUserId("");
+                                      setAssignmentDate(new Date().toISOString().slice(0, 10));
+                                      setAssignmentHandoverDate("");
+                                      setAssignmentNotes("");
+                                    }}
+                                    className="px-2 py-1.5 text-[10px] font-bold uppercase tracking-wider text-sky-700 border border-sky-200 hover:bg-sky-600 hover:text-white rounded-lg transition-all flex items-center gap-1"
+                                  >
+                                    <ArrowRightLeft className="w-3 h-3" /> Transfer
+                                  </button>
+                                  <button
+                                    onClick={() => handleUnassignAsset(asset)}
+                                    className="px-2 py-1.5 text-[10px] font-bold uppercase tracking-wider text-rose-600 border border-rose-200 hover:bg-rose-600 hover:text-white rounded-lg transition-all flex items-center gap-1"
+                                  >
+                                    <UserMinus className="w-3 h-3" /> Unassign
+                                  </button>
+                                </>
+                              ) : (
+                                <button
+                                  onClick={() => {
+                                    setAssigningAsset(asset);
+                                    setAssignmentUserId("");
+                                    setAssignmentDate(new Date().toISOString().slice(0, 10));
+                                    setAssignmentHandoverDate("");
+                                    setAssignmentNotes("");
+                                  }}
+                                  className="px-2 py-1.5 text-[10px] font-bold uppercase tracking-wider text-emerald-700 border border-emerald-200 hover:bg-emerald-600 hover:text-white rounded-lg transition-all flex items-center gap-1"
+                                >
+                                  <UserPlus className="w-3 h-3" /> Assign
+                                </button>
+                              )}
+                              <button
+                                onClick={() => setHistoryAsset(asset)}
+                                className="px-2 py-1.5 text-[10px] font-bold uppercase tracking-wider text-violet-700 border border-violet-200 hover:bg-violet-600 hover:text-white rounded-lg transition-all flex items-center gap-1"
+                              >
+                                <History className="w-3 h-3" /> History
+                              </button>
+                              <button
+                                onClick={() => setDeleteConfirm({ show: true, assetId: asset.id, assetType: asset.assetType, serialNumber: asset.serialNumber })}
+                                className="px-2 py-1.5 text-[10px] font-bold uppercase tracking-wider text-rose-500 hover:text-white border border-rose-250 hover:bg-rose-500 rounded-lg transition-all flex items-center gap-1"
+                              >
+                                <Trash2 className="w-3 h-3" /> Delete
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+        </>
+      ) : (
         /* Purchase Requests Log */
         <div className="bg-[#FCFBF9] border border-[#E8E4DF] rounded-xl p-5 shadow-sm space-y-4">
           <div className="flex justify-between items-center border-b border-[#E8E4DF] pb-3">
@@ -2967,7 +3007,7 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
                         </td>
                         <td className="p-3">
                           {req.quotation_url ? (
-                            <div 
+                            <div
                               className="w-10 h-10 rounded border border-[#E8E4DF] overflow-hidden bg-slate-50 flex-shrink-0 cursor-pointer hover:scale-105 transition-transform"
                               onClick={() => setPreviewImageUrl(req.quotation_url)}
                             >
@@ -2980,15 +3020,14 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
                         <td className="p-3 max-w-[180px] truncate" title={req.justification}>{req.justification || "N/A"}</td>
                         <td className="p-3">
                           <div className="flex flex-col gap-1">
-                            <span className={`inline-flex items-center w-fit text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border ${
-                              req.status === "Pending Owner Approval"
+                            <span className={`inline-flex items-center w-fit text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border ${req.status === "Pending Owner Approval"
                                 ? "bg-amber-50 text-amber-700 border-amber-200"
                                 : req.status === "Approved"
-                                ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-                                : req.status === "Rejected"
-                                ? "bg-rose-50 text-rose-700 border-rose-200"
-                                : "bg-blue-50 text-blue-700 border-blue-200"
-                            }`}>
+                                  ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                                  : req.status === "Rejected"
+                                    ? "bg-rose-50 text-rose-700 border-rose-200"
+                                    : "bg-blue-50 text-blue-700 border-blue-200"
+                              }`}>
                               {req.status}
                             </span>
                             {req.status === "Rejected" && req.owner_remarks && (
@@ -4186,7 +4225,7 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
                 let parsedCustom: any = {};
                 try {
                   parsedCustom = viewingAsset.customFields ? JSON.parse(viewingAsset.customFields) : {};
-                } catch (_) {}
+                } catch (_) { }
                 const fields = parsedCustom.assetFields || {};
                 const emails = parsedCustom.emailsList || [];
                 const companyName = companies.find(c => String(c.id) === String(viewingAsset.companyId))?.name || "General Stock";
@@ -4258,7 +4297,7 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
                             {fields.simOperator && <div><span className="text-sky-900/60 block text-[9px]">TELECOM OPERATOR / COMPANY:</span> <span className="font-bold text-sky-900">{fields.simOperator}</span></div>}
                             {(sim1No || sim1Op) && (
                               <div>
-                                <span className="text-sky-900/60 block text-[9px]">SIM 1 CONFIG:</span> 
+                                <span className="text-sky-900/60 block text-[9px]">SIM 1 CONFIG:</span>
                                 <span className="font-mono font-bold text-slate-900">{sim1No || "N/A"}</span>
                                 {sim1Op ? <span className="ml-1.5 text-sky-800 font-bold bg-white px-2 py-0.5 rounded border border-sky-200 shadow-xs">({sim1Op})</span> : ""}
                                 {sim1Wa ? <span className="ml-1.5 text-[10px] text-emerald-700 font-bold bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">[WhatsApp: {sim1Wa}]</span> : ""}
@@ -4266,7 +4305,7 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
                             )}
                             {(sim2No || sim2Op) && (
                               <div>
-                                <span className="text-sky-900/60 block text-[9px]">SIM 2 CONFIG:</span> 
+                                <span className="text-sky-900/60 block text-[9px]">SIM 2 CONFIG:</span>
                                 <span className="font-mono font-bold text-slate-900">{sim2No || "N/A"}</span>
                                 {sim2Op ? <span className="ml-1.5 text-sky-800 font-bold bg-white px-2 py-0.5 rounded border border-sky-200 shadow-xs">({sim2Op})</span> : ""}
                                 {sim2Wa ? <span className="ml-1.5 text-[10px] text-emerald-700 font-bold bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">[WhatsApp: {sim2Wa}]</span> : ""}
@@ -4355,11 +4394,11 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
       )}
 
       {previewImageUrl && typeof document !== "undefined" && ReactDOM.createPortal(
-        <div 
+        <div
           className="fixed inset-0 z-[10000] bg-black/20 backdrop-blur-md flex items-center justify-center p-4 transition-all duration-300"
           onClick={() => setPreviewImageUrl(null)}
         >
-          <div 
+          <div
             className="relative max-w-4xl max-h-[90vh] bg-white border border-[#E8E4DF] rounded-2xl overflow-hidden shadow-2xl flex flex-col p-2"
             onClick={(e) => e.stopPropagation()}
           >
@@ -4371,9 +4410,9 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
             >
               <X className="w-5 h-5" />
             </button>
-            <img 
-              src={previewImageUrl} 
-              alt="Asset Preview" 
+            <img
+              src={previewImageUrl}
+              alt="Asset Preview"
               className="max-w-full max-h-[80vh] object-contain rounded-lg"
             />
           </div>
@@ -4397,23 +4436,62 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
             </div>
             <div className="p-5 space-y-4">
               <div>
-                <label className="block text-[10px] uppercase tracking-wider font-bold text-slate-500 mb-1.5">
-                  Select Employee
-                </label>
-                <select
-                  value={assignmentUserId}
-                  onChange={(event) => setAssignmentUserId(event.target.value)}
-                  className="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm font-semibold outline-none focus:border-indigo-500"
-                >
-                  <option value="">-- Select Employee --</option>
-                  {[...employees]
-                    .sort((a: any, b: any) => String(a.name || "").localeCompare(String(b.name || "")))
-                    .map((employee: any) => (
-                      <option key={employee.id} value={employee.id}>
-                        {employee.name} {employee.employeeProfile?.employeeId ? `(${employee.employeeProfile.employeeId})` : ""}
-                      </option>
-                    ))}
-                </select>
+                <div className="flex justify-between items-center mb-1.5">
+                  <label className="block text-[10px] uppercase tracking-wider font-bold text-slate-500">
+                    Select Employee *
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsCustomEmployee(!isCustomEmployee);
+                      setAssignmentUserId(isCustomEmployee ? "" : "CUSTOM_OTHER");
+                      setCustomEmployeeName("");
+                    }}
+                    className="text-[10px] font-bold text-indigo-600 hover:underline"
+                  >
+                    {isCustomEmployee ? "📋 Select from DB" : "✏️ Type Custom Name"}
+                  </button>
+                </div>
+
+                {!isCustomEmployee && assignmentUserId !== "CUSTOM_OTHER" ? (
+                  <select
+                    value={assignmentUserId}
+                    onChange={(event) => {
+                      const val = event.target.value;
+                      if (val === "CUSTOM_OTHER") {
+                        setIsCustomEmployee(true);
+                        setAssignmentUserId(val);
+                        setCustomEmployeeName("");
+                      } else {
+                        setAssignmentUserId(val);
+                      }
+                    }}
+                    className="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm font-semibold outline-none focus:border-indigo-500"
+                  >
+                    <option value="">-- Select Employee --</option>
+                    {[...employees]
+                      .sort((a: any, b: any) => String(a.name || "").localeCompare(String(b.name || "")))
+                      .map((employee: any) => (
+                        <option key={employee.id} value={employee.id}>
+                          {employee.name} {employee.employeeProfile?.employeeId ? `(${employee.employeeProfile.employeeId})` : ""}
+                        </option>
+                      ))}
+                    <option value="CUSTOM_OTHER">✏️ Type Custom Employee Name (Not in DB)</option>
+                  </select>
+                ) : (
+                  <input
+                    type="text"
+                    required
+                    value={customEmployeeName}
+                    onChange={(e) => {
+                      setCustomEmployeeName(e.target.value);
+                      setAssignmentUserId("CUSTOM_OTHER");
+                      setIsCustomEmployee(true);
+                    }}
+                    placeholder="Enter full employee name (e.g. Deepak Sharma)..."
+                    className="w-full border border-indigo-500 rounded-lg px-3 py-2.5 text-sm font-semibold outline-none focus:ring-2 focus:ring-indigo-200"
+                  />
+                )}
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>

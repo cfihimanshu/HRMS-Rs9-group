@@ -9,7 +9,7 @@ import Attendance from "@/models/sequelize/Attendance";
 import TaskLog from "@/models/sequelize/TaskLog";
 import { logAudit } from "@/lib/audit";
 import { logHRActivity } from "@/lib/hrAudit";
-import { Op } from "sequelize";
+import { Op, DataTypes } from "sequelize";
 
 import LegalRecoverySchedule from "@/models/sequelize/LegalRecoverySchedule";
 import KanbanTask from "@/models/sequelize/KanbanTask";
@@ -150,6 +150,24 @@ export async function POST(req: Request) {
     if (Array.isArray(legalSchedules) && legalSchedules.length > 0) {
       try {
         await LegalRecoverySchedule.sync();
+        try {
+          const queryInterface = sequelize.getQueryInterface();
+          const tableDesc: any = await queryInterface.describeTable("legal_recovery_schedules");
+          if (tableDesc) {
+            if (!tableDesc.officerName) {
+              await queryInterface.addColumn("legal_recovery_schedules", "officerName", {
+                type: DataTypes.STRING,
+                allowNull: true,
+              });
+            }
+            if (!tableDesc.officerPhone) {
+              await queryInterface.addColumn("legal_recovery_schedules", "officerPhone", {
+                type: DataTypes.STRING,
+                allowNull: true,
+              });
+            }
+          }
+        } catch (e) {}
         await TaskLog.sync();
         await KanbanTask.sync();
 
@@ -181,6 +199,8 @@ export async function POST(req: Request) {
               branchName: item.branchName || null,
               caseDetails: item.caseDetails || null,
               otherType: item.otherType || null,
+              officerName: item.officerName || null,
+              officerPhone: item.officerPhone || null,
               details: item.details || item.remarks || null,
             });
             continue;
@@ -206,13 +226,15 @@ export async function POST(req: Request) {
             branchName: item.branchName || null,
             caseDetails: item.caseDetails || null,
             otherType: item.otherType || null,
+            officerName: item.officerName || null,
+            officerPhone: item.officerPhone || null,
             details: item.details || item.remarks || null,
             taskId: itemTaskId,
           });
 
           // Create individual TaskLog entry so each schedule item appears in My Tasks (Kanban)
           const taskTitle = `[${item.type || 'General'}] ${item.workSection.trim()}${item.bankName ? ' - ' + item.bankName : ''}${item.branchName ? ' (' + item.branchName + ')' : ''}`;
-          const taskDesc = `SOD Scheduled Work\nDate: ${item.date || 'Today'} | Time: ${item.time}\nType: ${item.type || 'General'}${item.subType ? ' (' + item.subType + ')' : ''}\nBank/NBFC: ${item.bankName || 'N/A'} | Branch: ${item.branchName || 'N/A'}\nAO: ${item.aoName || 'N/A'} | RBO: ${item.rboName || 'N/A'}\nDetails: ${item.details || item.remarks || 'N/A'}`;
+          const taskDesc = `SOD Scheduled Work\nDate: ${item.date || 'Today'} | Time: ${item.time}\nType: ${item.type || 'General'}${item.subType ? ' (' + item.subType + ')' : ''}\nBank/NBFC: ${item.bankName || 'N/A'} | Branch: ${item.branchName || 'N/A'}\nAO: ${item.aoName || 'N/A'} | RBO: ${item.rboName || 'N/A'}${item.officerName ? '\nOfficer: ' + item.officerName + (item.officerPhone ? ' (' + item.officerPhone + ')' : '') : ''}\nDetails: ${item.details || item.remarks || 'N/A'}`;
 
           const itemDateObj = item.date ? new Date(item.date + "T00:00:00") : nowTimestamp;
 

@@ -8,12 +8,32 @@ import EmployeeProfile from "@/models/sequelize/EmployeeProfile";
 import TaskLog from "@/models/sequelize/TaskLog";
 import User from "@/models/sequelize/User";
 
+import { DataTypes, Op } from "sequelize";
+
 async function initDB() {
   await sequelize.authenticate();
   await LegalRecoverySchedule.sync();
+  try {
+    const queryInterface = sequelize.getQueryInterface();
+    const tableDesc: any = await queryInterface.describeTable("legal_recovery_schedules");
+    if (tableDesc) {
+      if (!tableDesc.officerName) {
+        await queryInterface.addColumn("legal_recovery_schedules", "officerName", {
+          type: DataTypes.STRING,
+          allowNull: true,
+        });
+      }
+      if (!tableDesc.officerPhone) {
+        await queryInterface.addColumn("legal_recovery_schedules", "officerPhone", {
+          type: DataTypes.STRING,
+          allowNull: true,
+        });
+      }
+    }
+  } catch (err) {
+    console.error("Auto-migration column check error:", err);
+  }
 }
-
-import { Op } from "sequelize";
 
 // GET: Fetch Legal Recovery Schedules
 export async function GET(req: Request) {
@@ -136,17 +156,32 @@ export async function GET(req: Request) {
         if (!matchedTask) {
           matchedTask = empTasks.find((t: any) => {
             if (String(t.employee) !== String(json.employeeId)) return false;
-            if (t.scheduleId && (t.scheduleId === json.id || t.scheduleId === json.taskId)) return true;
-            if (t.id && (t.id === json.id || t.id === json.taskId)) return true;
 
-            const title = (t.taskTitle || "").toLowerCase();
-            const workSec = (json.workSection || "").toLowerCase();
-            const bank = (json.bankName || "").toLowerCase();
+            const tId = String(t.id || "").trim();
+            const sId = String(t.scheduleId || "").trim();
+            const jsonId = String(json.id || "").trim();
+            const jsonTaskId = String(json.taskId || "").trim();
 
-            if (workSec && workSec !== "general" && workSec !== "office" && workSec !== "bank" && workSec !== "field") {
-              if (title.includes(workSec) || workSec.includes(title)) return true;
-            }
-            if (bank && title.includes(bank)) return true;
+            if (sId && (sId === jsonId || sId === jsonTaskId)) return true;
+            if (tId && (tId === jsonId || tId === jsonTaskId)) return true;
+            if (jsonId && tId && jsonId.includes(tId)) return true;
+            if (jsonTaskId && tId && jsonTaskId.includes(tId)) return true;
+
+            const title = (t.taskTitle || "").toLowerCase().trim();
+            const desc = (t.description || "").toLowerCase().trim();
+            const taskType = (t.taskType || "").toLowerCase().trim();
+            const workSec = (json.workSection || "").toLowerCase().trim();
+            const typeStr = (json.type || "").toLowerCase().trim();
+            const bank = (json.bankName || "").toLowerCase().trim();
+
+            const typeMatches = !typeStr || typeStr === "general" || typeStr === "others" ||
+                                taskType === typeStr || title.includes(typeStr) || title.includes(`[${typeStr}]`) || desc.includes(typeStr);
+
+            if (!typeMatches) return false;
+
+            if (workSec && (title.includes(workSec) || desc.includes(workSec) || title === workSec)) return true;
+            if (bank && bank.length > 1 && (title.includes(bank) || desc.includes(bank))) return true;
+
             return false;
           });
         }
@@ -154,12 +189,26 @@ export async function GET(req: Request) {
         const dbStatus = (json.status || "").toLowerCase().trim();
         const taskStatus = (matchedTask?.status || "").toLowerCase().trim();
         const isTimerRunning = matchedTask?.timerState === "Running";
+        const hasProof = !!(matchedTask?.proofAttachment || json.proofAttachment);
 
         let liveStatus = "Pending";
-        if (dbStatus === "completed" || dbStatus === "done" || taskStatus === "completed" || taskStatus === "done") {
+        if (
+          dbStatus === "completed" || dbStatus === "done" ||
+          taskStatus === "completed" || taskStatus === "done" ||
+          (hasProof && !isTimerRunning)
+        ) {
           liveStatus = "Completed";
-        } else if (dbStatus === "in progress" || taskStatus.includes("progress") || taskStatus === "running" || isTimerRunning) {
+        } else if (
+          dbStatus === "in progress" || taskStatus.includes("progress") || taskStatus === "running" || isTimerRunning
+        ) {
           liveStatus = "In Progress";
+        }
+
+        if (json.status !== liveStatus) {
+          LegalRecoverySchedule.update(
+            { status: liveStatus, completedAt: liveStatus === "Completed" ? (json.completedAt || matchedTask?.updatedAt || new Date()) : null },
+            { where: { id: json.id } }
+          ).catch(() => {});
         }
 
         const liveProof = matchedTask?.proofAttachment || json.proofAttachment || null;
@@ -244,7 +293,7 @@ export async function POST(req: Request) {
     const entries = Array.isArray(items) ? items : [body];
 
     for (const item of entries) {
-      const { date, time, workSection, type, subType, remarks } = item;
+      const { date, time, workSection, type, subType, remarks, bankName, branchName, aoName, rboName, caseDetails, officerName, officerPhone, details, otherType } = item;
       if (!workSection || !time) continue;
 
       const scheduleDate = date || new Date().toISOString().split("T")[0];
@@ -258,9 +307,18 @@ export async function POST(req: Request) {
         time: time,
         workSection: workSection.trim(),
         type: type || "General",
-        subType: type === "Bank Related" ? (subType || "AO related") : null,
+        subType: type === "Bank Related" ? (subType || "AO related") : (type === "Call" ? (subType || "Incoming Call") : null),
         status: "Pending",
         remarks: remarks || "",
+        bankName: bankName || null,
+        branchName: branchName || null,
+        aoName: aoName || null,
+        rboName: rboName || null,
+        caseDetails: caseDetails || null,
+        officerName: officerName || null,
+        officerPhone: officerPhone || null,
+        details: details || remarks || null,
+        otherType: otherType || null,
       });
 
       created.push(newRec);

@@ -206,22 +206,102 @@ export default function LegalWorkEntryHistoryView({
   const fetchWorkLogHistory = async () => {
     try {
       setLoading(true);
-      const [workLogRes, noticeRes] = await Promise.all([
+      const [workLogRes, noticeRes, banksRes, branchesRes, mastersRes] = await Promise.all([
         fetch("/api/legal-recovery/work-log"),
-        fetch("/api/legal-recovery/notices")
+        fetch("/api/legal-recovery/notices"),
+        fetch("/api/legal-recovery/banks"),
+        fetch("/api/legal-recovery/branches"),
+        fetch("/api/legal-recovery")
       ]);
 
       const workLogData = await workLogRes.json();
       const noticeData = await noticeRes.json();
+      const banksData = await banksRes.json();
+      const branchesData = await branchesRes.json();
+      const mastersData = await mastersRes.json();
+
+      const banksList = (banksRes.ok && banksData.success) ? (banksData.data || []) : [];
+      const branchesList = (branchesRes.ok && branchesData.success) ? (branchesData.data || []) : [];
+      const mastersList = (mastersRes.ok && mastersData.success) ? (mastersData.data || []) : [];
+
+      const bankMap = new Map<string, any>();
+      banksList.forEach((b: any) => {
+        if (b.id !== undefined && b.id !== null) bankMap.set(String(b.id), b);
+        if (b.bankName) bankMap.set(String(b.bankName).toLowerCase().trim(), b);
+      });
+
+      const branchMap = new Map<string, any>();
+      branchesList.forEach((br: any) => {
+        if (br.id !== undefined && br.id !== null) branchMap.set(String(br.id), br);
+        if (br.branchCode) branchMap.set(String(br.branchCode), br);
+        if (br.branchId) branchMap.set(String(br.branchId), br);
+      });
+      mastersList.forEach((m: any) => {
+        if (m.id !== undefined && m.id !== null) branchMap.set(String(m.id), m);
+        if (m.branchId) branchMap.set(String(m.branchId), m);
+      });
+
+      const resolveBankAndBranch = (itemBankName?: string, itemBranchName?: string, bankId?: any, branchId?: any, masterId?: any, followUpStr?: string) => {
+        let bName = itemBankName;
+        let brName = itemBranchName;
+
+        const idsToTry = [branchId, masterId, bankId].filter(Boolean);
+        for (const idVal of idsToTry) {
+          const brObj = branchMap.get(String(idVal));
+          if (brObj) {
+            if (!brName) brName = brObj.branchName || brObj.branch;
+            if (!bName) bName = brObj.bankName || brObj.bank;
+          }
+        }
+
+        if (!bName && bankId) {
+          const bObj = bankMap.get(String(bankId));
+          if (bObj) bName = bObj.bankName || bObj.name;
+        }
+
+        if ((!bName || !brName) && followUpStr) {
+          try {
+            const followUp = typeof followUpStr === "string" ? JSON.parse(followUpStr) : followUpStr;
+            if (!bName && followUp?.bankId) {
+              const bObj = bankMap.get(String(followUp.bankId));
+              if (bObj) bName = bObj.bankName;
+            }
+            if (!brName && followUp?.branchId) {
+              const brObj = branchMap.get(String(followUp.branchId));
+              if (brObj) brName = brObj.branchName;
+            }
+          } catch {
+            // Ignore JSON parse error
+          }
+        }
+
+        return { bankName: bName || undefined, branchName: brName || undefined };
+      };
 
       let combined: LegalWorkLogItem[] = [];
 
       // 1. Process Legal Work Form Logs
       if (workLogRes.ok && workLogData.success) {
         const rawLogs = workLogData.data || [];
-        const formLogs = rawLogs.filter((item: LegalWorkLogItem) =>
-          item.typeOfWork === "Bank Related" || !!item.businessDevOption
-        );
+        const formLogs = rawLogs
+          .filter((item: LegalWorkLogItem) =>
+            item.typeOfWork === "Bank Related" || !!item.businessDevOption
+          )
+          .map((item: LegalWorkLogItem) => {
+            const { bankName, branchName } = resolveBankAndBranch(
+              item.bankName,
+              item.branchName,
+              (item as any).bankId,
+              (item as any).branchId,
+              (item as any).masterId,
+              item.followUpDetails
+            );
+            return {
+              ...item,
+              bankName,
+              branchName,
+            };
+          });
         combined = [...combined, ...formLogs];
       }
 
@@ -238,6 +318,14 @@ export default function LegalWorkEntryHistoryView({
           else if (n.printedBy) latestStage = "GENERATE NOTICE VIA SOFTWARE/MAIL MERGE";
           else if (n.noticeRenameBy || n.scannedBy) latestStage = "PREPARE NOTICE LIST";
           else if (n.broughtBy) latestStage = "COLLECT NOTICE DATA";
+
+          const { bankName, branchName } = resolveBankAndBranch(
+            n.bankName,
+            n.branchName,
+            n.bankId,
+            n.branchId,
+            n.masterId
+          );
 
           return {
             id: `notice_${n.id}`,
@@ -259,8 +347,8 @@ export default function LegalWorkEntryHistoryView({
             billNo: n.billNo || undefined,
             personName: n.handoverTo || n.handoverBy || undefined,
             uploadedFileName: n.handoverReceiptPhoto || undefined,
-            bankName: n.bankName || undefined,
-            branchName: n.branchName || undefined,
+            bankName,
+            branchName,
             remarks: n.handoverRemarks || `Notice Board Entry (${n.typeOfNotice || 'Advocate Notice'})`,
             employeeName: n.broughtBy || n.printedBy || n.dispatchedBy || n.createdBy || "Notice Staff",
             createdAt: n.createdAt,

@@ -243,26 +243,20 @@ export default function ScheduledWorkPanel({ sessionUser, triggerToast }: Schedu
 
     // 2. Type Filter
     if (typeFilter !== "all") {
-      const itemType = (item.type || "").toLowerCase();
-      const itemSub = (item.subType || "").toLowerCase();
-      const bank = (item.bankName || "").trim();
-      const filterT = typeFilter.toLowerCase();
-
-      const isBank = itemType === "bank related" || itemType === "bank" || bank.length > 0;
-      const isNbfc = itemType === "nbfc" || itemSub === "nbfc";
-      const isField = itemType === "field visit" || itemSub === "field visit";
-      const isCall = itemType === "call" || itemSub.includes("call") || itemSub === "incoming call" || itemSub === "outgoing call";
+      const itemType = (item.type || "").toLowerCase().trim();
+      const itemSub = (item.subType || "").toLowerCase().trim();
+      const filterT = typeFilter.toLowerCase().trim();
 
       if (filterT === "bank related" || filterT === "bank") {
-        if (!isBank) return false;
+        if (itemType !== "bank related" && itemType !== "bank") return false;
       } else if (filterT === "nbfc") {
-        if (!isNbfc) return false;
+        if (itemType !== "nbfc" && itemSub !== "nbfc") return false;
       } else if (filterT === "field visit") {
-        if (!isField) return false;
+        if (itemType !== "field visit" && itemSub !== "field visit") return false;
       } else if (filterT === "call") {
-        if (!isCall) return false;
+        if (itemType !== "call" && !itemSub.includes("call")) return false;
       } else if (filterT === "general") {
-        if (isBank || isNbfc || isField) return false;
+        if (itemType !== "general") return false;
       } else {
         if (itemType !== filterT && itemSub !== filterT) return false;
       }
@@ -304,7 +298,16 @@ export default function ScheduledWorkPanel({ sessionUser, triggerToast }: Schedu
   const pendingCount = schedules.filter(s => (s.status || "Pending").toLowerCase() === "pending").length;
   const inProgressCount = schedules.filter(s => (s.status || "").toLowerCase() === "in progress").length;
   const completedCount = schedules.filter(s => (s.status || "").toLowerCase() === "completed").length;
-  const bankRelatedCount = schedules.filter(s => (s.type || "").toLowerCase() === "bank related" || (s.type || "").toLowerCase() === "nbfc" || (s.bankName || "").trim() !== "").length;
+  const bankCount = schedules.filter(s => {
+    const typeStr = (s.type || "").toLowerCase().trim();
+    return typeStr === "bank related" || typeStr === "bank";
+  }).length;
+
+  const nbfcCount = schedules.filter(s => {
+    const typeStr = (s.type || "").toLowerCase().trim();
+    const subStr = (s.subType || "").toLowerCase().trim();
+    return typeStr === "nbfc" || subStr === "nbfc";
+  }).length;
 
   const cleanCsvCell = (val: any): string => {
     if (val === null || val === undefined) return '""';
@@ -420,7 +423,7 @@ export default function ScheduledWorkPanel({ sessionUser, triggerToast }: Schedu
       </div>
 
       {/* Summary KPI Cards (Clickable Filter Shortcuts) */}
-      <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5">
+      <div className="grid grid-cols-2 sm:grid-cols-6 gap-2.5">
         <div
           onClick={() => { setStatusFilter("all"); setTypeFilter("all"); setCurrentPage(1); }}
           className={`bg-white border p-3 rounded-xl shadow-2xs space-y-1 cursor-pointer transition-all hover:scale-[1.02] hover:shadow-md ${
@@ -471,13 +474,25 @@ export default function ScheduledWorkPanel({ sessionUser, triggerToast }: Schedu
 
         <div
           onClick={() => { setTypeFilter("Bank Related"); setStatusFilter("all"); setCurrentPage(1); }}
-          className={`bg-white border p-3 rounded-xl shadow-2xs space-y-1 col-span-2 sm:col-span-1 cursor-pointer transition-all hover:scale-[1.02] hover:shadow-md ${
+          className={`bg-white border p-3 rounded-xl shadow-2xs space-y-1 cursor-pointer transition-all hover:scale-[1.02] hover:shadow-md ${
             typeFilter.toLowerCase() === "bank related" ? "border-indigo-600 ring-2 ring-indigo-500/20 bg-indigo-50/30" : "border-indigo-100"
           }`}
         >
-          <span className="text-[10px] font-black uppercase text-indigo-600 font-mono tracking-wider">Bank / NBFC</span>
+          <span className="text-[10px] font-black uppercase text-indigo-600 font-mono tracking-wider">Bank</span>
           <div className="text-lg font-black text-indigo-900 flex items-center gap-1.5">
-            <Building2 className="w-4 h-4 text-indigo-600" /> {bankRelatedCount}
+            <Building2 className="w-4 h-4 text-indigo-600" /> {bankCount}
+          </div>
+        </div>
+
+        <div
+          onClick={() => { setTypeFilter("NBFC"); setStatusFilter("all"); setCurrentPage(1); }}
+          className={`bg-white border p-3 rounded-xl shadow-2xs space-y-1 cursor-pointer transition-all hover:scale-[1.02] hover:shadow-md ${
+            typeFilter.toLowerCase() === "nbfc" ? "border-teal-600 ring-2 ring-teal-500/20 bg-teal-50/30" : "border-teal-100"
+          }`}
+        >
+          <span className="text-[10px] font-black uppercase text-teal-600 font-mono tracking-wider">NBFC</span>
+          <div className="text-lg font-black text-teal-900 flex items-center gap-1.5">
+            <Building2 className="w-4 h-4 text-teal-600" /> {nbfcCount}
           </div>
         </div>
       </div>
@@ -585,7 +600,7 @@ export default function ScheduledWorkPanel({ sessionUser, triggerToast }: Schedu
 
       {/* Main Data Table with Compact Padding & Reduced Column Gaps */}
       <div className="bg-white border border-purple-200/80 rounded-xl shadow-2xs overflow-hidden">
-        <div className="overflow-x-auto max-h-[580px] overflow-y-auto">
+        <div className="overflow-x-auto max-h-[750px] overflow-y-auto">
           <table className="w-full text-left text-xs border-collapse">
             <thead className="sticky top-0 z-10 bg-purple-100/90 backdrop-blur-xs border-b border-purple-200">
               <tr className="text-purple-950 text-[10px] uppercase font-mono font-black">
@@ -621,10 +636,10 @@ export default function ScheduledWorkPanel({ sessionUser, triggerToast }: Schedu
                   const globalIdx = (currentPage - 1) * itemsPerPage + idx + 1;
                   return (
                     <tr key={item.id || idx} className="hover:bg-purple-50/40 transition-colors">
-                      <td className="py-2 px-2 font-mono text-slate-400 font-bold">{globalIdx}</td>
+                      <td className="py-1.5 px-2 font-mono text-slate-400 font-bold">{globalIdx}</td>
 
                       {/* Employee Column */}
-                      <td className="py-2 px-2">
+                      <td className="py-1.5 px-2">
                         <div className="space-y-0.5">
                           <div className="font-bold text-slate-900 flex items-center gap-1 truncate">
                             <User className="w-3 h-3 text-purple-700 shrink-0" />
@@ -639,7 +654,7 @@ export default function ScheduledWorkPanel({ sessionUser, triggerToast }: Schedu
                       </td>
 
                       {/* Date & Time Column */}
-                      <td className="py-2 px-2 font-mono whitespace-nowrap">
+                      <td className="py-1.5 px-2 font-mono whitespace-nowrap">
                         <div className="space-y-0.5">
                           <span className="bg-purple-50 border border-purple-200 text-purple-950 font-black px-1.5 py-0.5 rounded text-[10px] block">
                             📅 {item.date}
@@ -651,12 +666,12 @@ export default function ScheduledWorkPanel({ sessionUser, triggerToast }: Schedu
                       </td>
 
                       {/* Work Section Column */}
-                      <td className="py-2 px-2 font-extrabold text-slate-900">
+                      <td className="py-1.5 px-2 font-extrabold text-slate-900">
                         <span className="line-clamp-2">{item.workSection}</span>
                       </td>
 
                       {/* Type Column */}
-                      <td className="py-2 px-2 whitespace-nowrap">
+                      <td className="py-1.5 px-2 whitespace-nowrap">
                         <div className="space-y-0.5">
                           <span className={`px-1.5 py-0.5 rounded text-[9px] font-black inline-block ${
                             item.type === "Bank Related" || item.type === "NBFC"
@@ -677,18 +692,16 @@ export default function ScheduledWorkPanel({ sessionUser, triggerToast }: Schedu
                         </div>
                       </td>
 
-                      {/* Bank / Branch / Visit Details Column */}
-                      <td className="py-2 px-2">
-                        {["Bank Related", "NBFC"].includes(item.type) ? (
+                      {/* Bank / Branch / Officer / Details Column */}
+                      <td className="py-1.5 px-2">
+                        {(item.bankName || item.branchName || item.officerName || item.caseDetails || item.otherType || item.aoName || item.rboName) ? (
                           <div className="flex flex-wrap gap-1 text-[9px]">
                             {item.bankName && <span className="bg-slate-100 px-1 py-0.2 rounded border border-slate-200 font-bold text-slate-800">🏦 {item.bankName}</span>}
+                            {item.branchName && <span className="bg-slate-100 px-1 py-0.2 rounded border border-slate-200 font-bold text-slate-800">🏢 {item.branchName}</span>}
+                            {item.officerName && <span className="bg-purple-50 text-purple-900 px-1 py-0.2 rounded border border-purple-200 font-bold">👤 {item.officerName}{item.officerPhone ? ` (${item.officerPhone})` : ""}</span>}
                             {item.aoName && <span className="bg-slate-100 px-1 py-0.2 rounded border border-slate-200 font-bold text-slate-800">🏛️ {item.aoName}</span>}
                             {item.rboName && <span className="bg-slate-100 px-1 py-0.2 rounded border border-slate-200 font-bold text-slate-800">📍 {item.rboName}</span>}
-                            {item.branchName && <span className="bg-slate-100 px-1 py-0.2 rounded border border-slate-200 font-bold text-slate-800">🏢 {item.branchName}</span>}
                             {item.caseDetails && <span className="bg-rose-50 text-rose-800 px-1 py-0.2 rounded border border-rose-200 font-black">⚖️ {item.caseDetails}</span>}
-                          </div>
-                        ) : item.type === "Field Visit" ? (
-                          <div className="flex flex-wrap gap-1 text-[9px]">
                             {item.otherType && <span className="bg-emerald-50 text-emerald-800 px-1 py-0.2 rounded border border-emerald-200 font-bold">📍 Site: {item.otherType}</span>}
                           </div>
                         ) : (
@@ -697,7 +710,7 @@ export default function ScheduledWorkPanel({ sessionUser, triggerToast }: Schedu
                       </td>
 
                       {/* Remarks Column & Attachment */}
-                      <td className="py-2 px-2">
+                      <td className="py-1.5 px-2">
                         <div className="space-y-1">
                           <span className="text-slate-700 text-[10px] font-medium leading-tight block line-clamp-2">
                             {getCleanRemarks(item)}
@@ -720,7 +733,7 @@ export default function ScheduledWorkPanel({ sessionUser, triggerToast }: Schedu
                       </td>
 
                       {/* Status Column - Read-only badge mapped dynamically from My Tasks */}
-                      <td className="py-2 px-2 whitespace-nowrap">
+                      <td className="py-1.5 px-2 whitespace-nowrap">
                         <span className={`text-[10px] font-black rounded-lg px-2 py-0.5 border inline-flex items-center gap-1 ${
                           item.status === "Completed"
                             ? "bg-emerald-100 text-emerald-800 border-emerald-300"
@@ -733,12 +746,12 @@ export default function ScheduledWorkPanel({ sessionUser, triggerToast }: Schedu
                       </td>
 
                       {/* Completion Time / Duration Column */}
-                      <td className="py-2 px-2 whitespace-nowrap">
+                      <td className="py-1.5 px-2 whitespace-nowrap">
                         {formatTimeTaken(item)}
                       </td>
 
                       {/* Actions Column */}
-                      <td className="py-2 px-2 text-right whitespace-nowrap">
+                      <td className="py-1.5 px-2 text-right whitespace-nowrap">
                         <button
                           onClick={() => handleDeleteSchedule(item.id)}
                           className="text-rose-500 hover:text-rose-700 p-1 hover:bg-rose-50 rounded-lg transition-all"
