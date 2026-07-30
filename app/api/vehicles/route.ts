@@ -2,13 +2,13 @@ import { randomUUID } from "crypto";
 import { NextResponse } from "next/server";
 import { Op } from "sequelize";
 import sequelize from "@/lib/sequelize";
-import { getSessionActor, requireApiSession } from "@/lib/apiAuth";
+import { getSessionActor } from "@/lib/apiAuth";
+import { requireVehicleApiAccess } from "@/lib/vehicleAccess";
 import Vehicle from "@/models/sequelize/Vehicle";
 import VehicleDocument from "@/models/sequelize/VehicleDocument";
 import VehicleAssignment from "@/models/sequelize/VehicleAssignment";
 
 export const dynamic = "force-dynamic";
-const VEHICLE_ROLES = ["Owner", "Director", "HR Head", "HR Executive", "IT Admin", "Department Manager"] as const;
 const clean = (value: unknown) => String(value ?? "").trim();
 const optional = (value: unknown) => clean(value) || null;
 const numberOrNull = (value: unknown) => clean(value) ? Number(value) : null;
@@ -16,7 +16,7 @@ const fail = (error: string, status = 400) => NextResponse.json({ success: false
 
 export async function GET(request: Request) {
   try {
-    const auth = await requireApiSession(VEHICLE_ROLES);
+    const auth = await requireVehicleApiAccess();
     if (auth.response) return auth.response;
     const params = new URL(request.url).searchParams;
     const id = clean(params.get("id"));
@@ -66,7 +66,7 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
-    const auth = await requireApiSession(VEHICLE_ROLES);
+    const auth = await requireVehicleApiAccess();
     if (auth.response) return auth.response;
     const actor = getSessionActor(auth.session);
     const body = await request.json();
@@ -120,7 +120,7 @@ export async function POST(request: Request) {
 
 export async function PATCH(request: Request) {
   try {
-    const auth = await requireApiSession(VEHICLE_ROLES);
+    const auth = await requireVehicleApiAccess();
     if (auth.response) return auth.response;
     const actor = getSessionActor(auth.session);
     const body = await request.json();
@@ -182,7 +182,7 @@ export async function PATCH(request: Request) {
 
 export async function DELETE(request: Request) {
   try {
-    const auth = await requireApiSession(VEHICLE_ROLES);
+    const auth = await requireVehicleApiAccess();
     if (auth.response) return auth.response;
     const params = new URL(request.url).searchParams;
     const documentId = clean(params.get("documentId"));
