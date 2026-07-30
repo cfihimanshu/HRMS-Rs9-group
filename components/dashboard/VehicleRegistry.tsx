@@ -39,7 +39,7 @@ export default function VehicleRegistry({ triggerToast }: { triggerToast?: (m: s
   }, [notify, search, status]);
   useEffect(() => { const t = setTimeout(load, 250); return () => clearTimeout(t); }, [load]);
   useEffect(() => {
-    fetch("/api/document-movement/people").then(r => r.json()).then(p => { if (p.success) setPeople(p.data || []); });
+    fetch("/api/vehicles/people").then(r => r.json()).then(p => { if (p.success) setPeople(p.data || []); });
   }, []);
   const detail = async (v: any) => { const r = await fetch(`/api/vehicles?id=${v.id}`); const j = await r.json(); if (r.ok) setSelected(j.data); else notify(j.error); };
   const upload = async (file?: File) => {
