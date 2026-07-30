@@ -497,6 +497,8 @@ export default function AdministratorAccess({ userRole, triggerToast, sessionUse
         { id: "assets-registry", label: "Assets Registry" },
         { id: "inventory-management", label: "Inventory Management" },
         { id: "admin-access", label: "Administrator Access" },
+        { id: "document-movement", label: "Document Movement" },
+        { id: "vehicle-registry", label: "Vehicle Registry" },
         { id: "legal-recovery", label: "Legal Recovery" }
       ]
     },
@@ -669,6 +671,8 @@ export default function AdministratorAccess({ userRole, triggerToast, sessionUse
       { id: "assets-registry", roles: ["Owner", "Director", "HR Head", "HR Executive"] },
       { id: "inventory-management", roles: ["Owner"] },
       { id: "admin-access", roles: ["Owner"] },
+      { id: "document-movement", roles: ["Owner", "Director", "HR Head", "HR Executive", "Department Manager", "IT Admin", "Accounts"] },
+      { id: "vehicle-registry", roles: ["Owner", "Director", "HR Head", "HR Executive", "Department Manager", "IT Admin"] },
       { id: "legal-recovery", roles: ["Owner"] },
       { id: "screening", roles: ["Owner", "Director", "HR Head", "HR Executive"] },
       { id: "interviews", roles: ["Owner", "Director", "HR Head", "HR Executive", "Trainer"] },

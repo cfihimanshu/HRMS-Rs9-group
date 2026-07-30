@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
-import { useRouter } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import {
   X,
   Loader2,
@@ -63,10 +63,13 @@ import AssignedTaskPopup from "@/components/dashboard/AssignedTaskPopup";
 import PendingTasksModal from "@/components/dashboard/PendingTasksModal";
 import BusinessLeads from "@/components/dashboard/BusinessLeads";
 import AuditTrail from "@/components/dashboard/AuditTrail";
+import DocumentMovement from "@/components/dashboard/DocumentMovement";
+import VehicleRegistry from "@/components/dashboard/VehicleRegistry";
 
 export default function UnifiedEnterpriseDashboard() {
   const { data: session, status } = useSession();
   const router = useRouter();
+  const routeParams = useParams<{ slug?: string[] }>();
 
   const rawRole = (session?.user as any)?.role || "Employee";
   const SYSTEM_ROLES = [
@@ -91,7 +94,7 @@ export default function UnifiedEnterpriseDashboard() {
     : "Employee";
 
   // Active navigation tab matching hr.html panel toggles
-  const [activeTab, setActiveTab] = useState<string>("dashboard");
+  const [activeTab, setActiveTab] = useState<string>(() => routeParams?.slug?.[0] || "dashboard");
   const [businessLeadsFilter, setBusinessLeadsFilter] = useState<string>("All");
   const [kanbanSearchFilter, setKanbanSearchFilter] = useState<string>("");
   const [performanceSubTab, setPerformanceSubTab] = useState<string>("visual-dashboard");
@@ -1269,6 +1272,14 @@ export default function UnifiedEnterpriseDashboard() {
           )}
 
           {activeTab === "audit-trail" && <AuditTrail />}
+
+          {activeTab === "document-movement" && (
+            <DocumentMovement triggerToast={triggerToast} />
+          )}
+
+          {activeTab === "vehicle-registry" && (
+            <VehicleRegistry triggerToast={triggerToast} />
+          )}
 
           {activeTab === "legal-recovery" && (() => {
             const userDept = (session?.user as any)?.department || "";

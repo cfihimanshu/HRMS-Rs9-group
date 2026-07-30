@@ -6,6 +6,11 @@ import { loadDatabaseEnv } from "./db-env.mjs";
 
 const env = loadDatabaseEnv();
 const dryRun = process.argv.includes("--dry-run");
+const baselineIndex = process.argv.indexOf("--baseline");
+const baselineFile = baselineIndex >= 0 ? process.argv[baselineIndex + 1] : "";
+if (baselineIndex >= 0 && (!baselineFile || baselineFile.startsWith("--"))) {
+  throw new Error("--baseline requires an exact migration filename");
+}
 const migrationDir = path.resolve("migrations/sql");
 const files = fs.existsSync(migrationDir)
   ? fs.readdirSync(migrationDir).filter(file => file.endsWith(".sql")).sort()
@@ -45,6 +50,21 @@ try {
       continue;
     }
     pending.push({ file, sql, checksum });
+  }
+  if (baselineFile) {
+    const migration = pending.find(item => item.file === baselineFile);
+    if (!migration) {
+      throw new Error(`Cannot baseline unknown or already-applied migration: ${baselineFile}`);
+    }
+    if (dryRun) {
+      throw new Error("--baseline cannot be combined with --dry-run");
+    }
+    await connection.query(
+      "INSERT INTO codex_schema_migrations (id, checksum) VALUES (?, ?)",
+      [migration.file, migration.checksum]
+    );
+    console.log(JSON.stringify({ baseline: migration.file, recorded: true }, null, 2));
+    process.exit(0);
   }
   console.log(JSON.stringify({ dryRun, applied: applied.size, pending: pending.map(item => item.file) }, null, 2));
   if (dryRun) process.exit(0);
