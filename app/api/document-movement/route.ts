@@ -79,6 +79,7 @@ export async function GET(request: Request) {
     const limit = Math.min(100, Math.max(10, Number(searchParams.get("limit")) || 25));
 
     await sequelize.authenticate();
+    await Promise.all([DocumentRegister.sync(), DocumentMovement.sync()]);
 
     if (documentId) {
       const document = await DocumentRegister.findByPk(documentId);

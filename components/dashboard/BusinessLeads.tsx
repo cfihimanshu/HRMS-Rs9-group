@@ -246,7 +246,7 @@ export default function BusinessLeads({
       const res = await fetch("/api/business-leads/statuses", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           name: newStatusName,
           hasSchedule: newStatusHasSchedule,
           hasScreenshot: newStatusHasScreenshot,
@@ -768,7 +768,7 @@ export default function BusinessLeads({
 
     // 1. Build main sheet rows (Table starts at Row 1!)
     const sheetRows: any[] = [];
-    
+
     // Add headers row (exactly matches frontend visible columns + Call History Timeline)
     const headers = visibleColumns.map((col) => formatHeader(col));
     headers.push("Call History Timeline");
@@ -807,7 +807,7 @@ export default function BusinessLeads({
           if (Array.isArray(parsed)) {
             historyList = parsed;
           }
-        } catch (_) {}
+        } catch (_) { }
       }
       if (historyList.length === 0) {
         const remarksText = lead.call_remarks || lead.remarks;
@@ -843,7 +843,7 @@ export default function BusinessLeads({
         const status = log.status || "-";
         const remarks = log.call_remarks || "-";
         const by = log.updatedBy || "HR System";
-        
+
         let extra = "";
         if (log.followup_date) {
           let fUp = new Date(log.followup_date).toLocaleDateString("en-IN", {
@@ -862,7 +862,7 @@ export default function BusinessLeads({
           })} ${log.interview_time || ""} (${log.interview_mode || "online"})`;
           extra += ` (Interview: ${intv})`;
         }
-        
+
         return `[${dateStr} by ${by}]: ${status} - Remarks: ${remarks}${extra}`;
       }).join("\n");
 
@@ -886,7 +886,7 @@ export default function BusinessLeads({
     sheetRows.push(["System Link Added", computedStats.systemJobLink]);
 
     const ws = XLSX.utils.aoa_to_sheet(sheetRows);
-    
+
     // Set auto widths for HR Leads worksheet
     if (sheetRows.length > 0) {
       const numCols = sheetRows[0].length;
@@ -920,7 +920,7 @@ export default function BusinessLeads({
           if (Array.isArray(parsed)) {
             historyList = parsed;
           }
-        } catch (_) {}
+        } catch (_) { }
       }
       if (historyList.length === 0) {
         const remarksText = lead.call_remarks || lead.remarks;
@@ -1132,9 +1132,6 @@ export default function BusinessLeads({
           <h1 className="text-2xl font-bold tracking-tight bg-gradient-to-r from-[#714B67] to-[#9D688E] bg-clip-text text-transparent">
             HR Leads Directory
           </h1>
-          <p className="text-slate-500 dark:text-gray-400 text-xs font-medium">
-            Manage your sales leads, import lists dynamically from multiple platforms, and evolve schemas automatically.
-          </p>
         </div>
 
         <div className="flex flex-wrap items-center gap-2">

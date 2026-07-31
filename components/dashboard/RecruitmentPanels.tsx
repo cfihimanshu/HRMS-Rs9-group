@@ -29,7 +29,8 @@ import {
   Video,
   Trash,
   Paperclip,
-  Filter
+  Filter,
+  Download
 } from "lucide-react";
 
 interface RecruitmentProps {
@@ -2947,6 +2948,67 @@ export function InterviewsQueue({ triggerToast }: { triggerToast: (msg: string) 
     return true;
   });
 
+  const handleExportInterviewsCSV = async () => {
+    try {
+      const listToExport = filteredInterviews.length > 0 ? filteredInterviews : interviews;
+      if (!listToExport || listToExport.length === 0) {
+        alert("No interview records available to export.");
+        return;
+      }
+
+      const XLSX = await import("xlsx");
+      const exportRows = listToExport.map((item: any, idx: number) => {
+        const cand = item.candidate || {};
+        const job = cand.job || item.job || {};
+        const rawPhone = cand.mobile || cand.phone || item.mobile || item.phone || item.candidatePhone || "";
+        const phoneNum = rawPhone ? `\t${rawPhone}` : "N/A";
+        const vacancyName = item.vacancyName || job.title || cand.jobTitle || item.position || "General Application";
+        const rawNotes = (item.feedback || item.remarks || item.notes || "").replace(/(\r\n|\n|\r)/gm, " ").trim();
+
+        return {
+          "S.No": idx + 1,
+          "Candidate Name": item.candidateName || cand.name || item.name || "N/A",
+          "Phone": phoneNum,
+          "Email": cand.email || item.email || "N/A",
+          "Vacancy / Job Title": vacancyName,
+          "Interview Mode": (item.mode || item.interviewMode || (item.videoLink ? "online" : "offline")).toUpperCase(),
+          "Assessment Round": `Round ${item.round || item.currentRound || 1}`,
+          "Interview Timing": formatInterviewTime(item.scheduleTime || item.timing),
+          "Round Status": item.status || "Pending",
+          "Video / Meet Link": item.videoLink || item.meetUrl || "—",
+          "Interviewer Notes / Feedback": rawNotes || "—"
+        };
+      });
+
+      const ws = XLSX.utils.json_to_sheet(exportRows);
+      if (exportRows.length > 0) {
+        const colKeys = Object.keys(exportRows[0]);
+        ws['!cols'] = colKeys.map(key => {
+          let maxLen = key.length;
+          exportRows.forEach(r => {
+            const valStr = r[key as keyof typeof r] !== undefined && r[key as keyof typeof r] !== null ? String(r[key as keyof typeof r]) : "";
+            if (valStr.length > maxLen) maxLen = valStr.length;
+          });
+          return { wch: Math.max(maxLen + 6, 16) };
+        });
+      }
+
+      const csvString = XLSX.utils.sheet_to_csv(ws);
+      const blob = new Blob([csvString], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.setAttribute("href", url);
+      link.setAttribute("download", `Interviews_Queue_Report_${new Date().toISOString().split("T")[0]}.csv`);
+      link.style.visibility = "hidden";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (err: any) {
+      console.error("Failed to export Interviews Queue CSV:", err);
+      alert("Export failed: " + (err.message || "Unknown error"));
+    }
+  };
+
   return (
     <div className="space-y-8 animate-fadeIn text-slate-800">
 
@@ -2956,23 +3018,32 @@ export function InterviewsQueue({ triggerToast }: { triggerToast: (msg: string) 
           <h1 className="text-xl font-black text-slate-800">Interviews Queue Tab</h1>
           <p className="text-xs text-slate-500 mt-1">Schedules, Google Meet URLs, and AI custom interview question desks</p>
         </div>
-        <button
-          onClick={() => {
-            if (showScheduleForm) {
-              setEditingInterviewId(null);
-              setSchedCandidateId("");
-              setSchedRound("1");
-              setSchedDate("");
-              setSchedTime("");
-              setSchedVideoLink("");
-              setSchedInterviewMode("online");
-            }
-            setShowScheduleForm(!showScheduleForm);
-          }}
-          className="bg-[#714B67] hover:bg-[#5F3F56] text-white px-4 py-2.5 rounded-lg text-xs font-black shadow transition-all flex items-center gap-1.5 self-start"
-        >
-          <Plus className="w-4 h-4" /> {showScheduleForm ? "Close Scheduler" : "Schedule New Interview"}
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={handleExportInterviewsCSV}
+            className="bg-emerald-600 hover:bg-emerald-700 text-white px-3.5 py-2.5 rounded-lg text-xs font-black shadow transition-all flex items-center gap-1.5 active:scale-95 cursor-pointer"
+          >
+            <Download className="w-4 h-4" /> Export CSV
+          </button>
+          <button
+            onClick={() => {
+              if (showScheduleForm) {
+                setEditingInterviewId(null);
+                setSchedCandidateId("");
+                setSchedRound("1");
+                setSchedDate("");
+                setSchedTime("");
+                setSchedVideoLink("");
+                setSchedInterviewMode("online");
+              }
+              setShowScheduleForm(!showScheduleForm);
+            }}
+            className="bg-[#714B67] hover:bg-[#5F3F56] text-white px-4 py-2.5 rounded-lg text-xs font-black shadow transition-all flex items-center gap-1.5 self-start"
+          >
+            <Plus className="w-4 h-4" /> {showScheduleForm ? "Close Scheduler" : "Schedule New Interview"}
+          </button>
+        </div>
       </div>
 
       {/* SCHEDULE FORM MODULE */}

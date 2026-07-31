@@ -1768,8 +1768,11 @@ export function DailyCommitments({
                                       📅 {item.date}
                                     </span>
                                   </td>
-                                  <td className="py-2.5 px-3 font-mono text-purple-700 font-bold">{item.time}</td>
-                                  <td className="py-2.5 px-3 font-bold text-slate-900">{item.workSection}</td>
+                                  <td className="py-2.5 px-3 font-bold text-slate-900">
+                                    {(item.workSection === "Others" || item.workSection === "Other" || item.workSection === "others")
+                                      ? (item.customLocation || item.otherType || item.details || item.remarks || item.workSection)
+                                      : item.workSection}
+                                  </td>
                                   <td className="py-2.5 px-3 whitespace-nowrap">
                                     <span className={`px-2 py-0.5 rounded text-[10px] font-extrabold ${item.type === "Bank Related" ? "bg-purple-100 text-purple-800 border border-purple-200" : item.type === "Others" ? "bg-amber-100 text-amber-800 border border-amber-200" : "bg-blue-100 text-blue-800 border border-blue-200"
                                       }`}>
@@ -3035,13 +3038,14 @@ export function PerformanceCompliance({
         "SOD Planned Task Type",
         "SOD Planned Summary",
         "EOD Submitted At",
+        "Total Work Duration (Hours)",
         "EOD Completed Work",
         "EOD Pending Work",
         "EOD Issues Faced",
         "EOD Escalation Required",
         "EOD Tomorrow Plan",
         "Tasks Logged (Count)",
-        "Tasks Details",
+        "Tasks Details & Work Summary",
         "Field Visits Travelled (KM)",
         "Field Visits Details"
       ];
@@ -3069,15 +3073,52 @@ export function PerformanceCompliance({
         const eodEscalation = item.eod?.escalationRequired || "No";
         const eodTomorrow = item.eod?.tomorrowPlan || "-";
 
+        // Calculate Total Work Duration (Hours worked today)
+        let totalDuration = "-";
+        if (item.eod?.hoursWorked || item.eod?.totalHours || item.eod?.workHours) {
+          totalDuration = `${item.eod.hoursWorked || item.eod.totalHours || item.eod.workHours} Hrs`;
+        } else if (item.sod?.createdAt && item.eod?.createdAt) {
+          const sodMs = new Date(item.sod.createdAt).getTime();
+          const eodMs = new Date(item.eod.createdAt).getTime();
+          if (eodMs > sodMs) {
+            const diffHours = (eodMs - sodMs) / (1000 * 60 * 60);
+            totalDuration = `${diffHours.toFixed(2)} Hrs`;
+          }
+        }
+        if (totalDuration === "-" && item.tasks && item.tasks.length > 0) {
+          const totalTaskSeconds = item.tasks.reduce((sum: number, t: any) => sum + (t.elapsedSeconds || 0), 0);
+          if (totalTaskSeconds > 0) {
+            totalDuration = `${(totalTaskSeconds / 3600).toFixed(2)} Hrs`;
+          }
+        }
+
+        const parseTaskSummary = (text: string) => {
+          if (!text) return "";
+          let raw = text.trim();
+          if (raw.startsWith("[") || raw.startsWith("{")) {
+            try {
+              const parsed = JSON.parse(raw);
+              if (Array.isArray(parsed) && parsed.length > 0) {
+                raw = parsed.map((p: any) => p.note || p.text || p.description || p.summary || "").filter(Boolean).join(", ") || raw;
+              } else if (parsed && typeof parsed === "object") {
+                raw = parsed.note || parsed.text || parsed.description || parsed.summary || raw;
+              }
+            } catch (_) {}
+          }
+          return raw.replace(/(\r\n|\n|\r)/gm, " ").trim();
+        };
+
         const tasksCount = item.tasks ? item.tasks.length : 0;
         const tasksDetails = item.tasks && item.tasks.length > 0
-          ? item.tasks.map((t: any) => {
+          ? item.tasks.map((t: any, index: number) => {
             let suffix = "";
             if (t.updatedAt && new Date(t.updatedAt).toDateString() !== item.date.toDateString() && item.date.toDateString() === new Date(t.date).toDateString()) {
               const dateStr = new Date(t.updatedAt).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
-              suffix = ` (This task is shifted for working on ${dateStr})`;
+              suffix = ` (Shifted to ${dateStr})`;
             }
-            return `[${t.status}] ${t.taskTitle} (${t.taskType})${suffix}`;
+            const cleanDesc = parseTaskSummary(t.description || t.progressNotes || t.remarks);
+            const workSummary = cleanDesc ? ` [Summary: ${cleanDesc}]` : "";
+            return `${index + 1}. [${t.status || 'Pending'}] ${t.taskTitle || 'Task'} (${t.taskType || 'General'})${workSummary}${suffix}`;
           }).join(" | ")
           : "-";
 
@@ -3086,11 +3127,11 @@ export function PerformanceCompliance({
           : 0;
 
         const fieldVisitDetails = item.fieldVisits && item.fieldVisits.length > 0
-          ? item.fieldVisits.map((v: any) => `Client: ${v.client_name || "N/A"}, Purpose: ${v.purpose || "N/A"}, Dist: ${v.distance_travelled || 0} KM, Notes: ${v.visit_notes || "N/A"}`).join(" | ")
+          ? item.fieldVisits.map((v: any, index: number) => `${index + 1}. Client: ${v.client_name || "N/A"}, Purpose: ${v.purpose || "N/A"}, Dist: ${v.distance_travelled || 0} KM, Notes: ${v.visit_notes || "N/A"}`).join(" | ")
           : "-";
 
         return [
-          item.date.toLocaleDateString(),
+          item.date.toLocaleDateString("en-IN"),
           item.employee?.name || "Unknown",
           item.employee?.email || "N/A",
           item.employee?.department || "General",
@@ -3099,6 +3140,7 @@ export function PerformanceCompliance({
           sodTaskType,
           sodSummary,
           eodTime,
+          totalDuration,
           eodCompleted,
           eodPending,
           eodIssues,
@@ -3179,6 +3221,10 @@ export function PerformanceCompliance({
         const id = String(user.id);
         const profile: any = profileMap.get(id) || {};
         const employeeAttendance = (data.attendance || []).filter((a: any) => String(a.employee) === id);
+        const employeeEods = (data.eods || []).filter((e: any) => String(e.employee) === id);
+        const employeeSods = (data.sods || []).filter((s: any) => String(s.employee) === id);
+        const employeeTasks = (data.tasks || []).filter((t: any) => String(t.employee) === id);
+
         const presentDates = new Set(employeeAttendance.map((a: any) => dateKey(a.date)));
         const employeeLeaves = (data.leaves || []).filter((l: any) => String(l.employee) === id);
         const leaveDates = new Set<string>();
@@ -3189,15 +3235,55 @@ export function PerformanceCompliance({
             if (d.getDay() !== 0) leaveDates.add(d.toISOString().split("T")[0]);
           }
         });
-        const workMs = employeeAttendance.reduce((sum: number, a: any) => {
-          if (!a.checkIn || !a.checkOut) return sum;
-          return sum + Math.max(0, new Date(a.checkOut).getTime() - new Date(a.checkIn).getTime());
-        }, 0);
+
         const present = workingDates.filter(d => presentDates.has(d)).length;
         const leave = workingDates.filter(d => leaveDates.has(d) && !presentDates.has(d)).length;
         const absent = Math.max(0, workingDates.length - present - leave);
-        const employeeTasks = (data.tasks || []).filter((t: any) => String(t.employee) === id);
+
+        // Robust Work Hours Calculation across Attendance, EOD Reports, and Task Timers
+        let workMs = 0;
+        employeeAttendance.forEach((a: any) => {
+          const hw = Number(a.hoursWorked || a.totalHours || a.workHours || 0);
+          if (hw > 0) {
+            workMs += hw * 3600000;
+          } else if (a.checkIn && a.checkOut) {
+            const diff = new Date(a.checkOut).getTime() - new Date(a.checkIn).getTime();
+            if (diff > 0) workMs += diff;
+          }
+        });
+
+        if (workMs === 0) {
+          employeeEods.forEach((e: any) => {
+            const hw = Number(e.hoursWorked || e.totalHours || e.workHours || 0);
+            if (hw > 0) {
+              workMs += hw * 3600000;
+            } else if (e.createdAt) {
+              const eodDateStr = dateKey(e.date || e.createdAt);
+              const matchingSod = employeeSods.find((s: any) => dateKey(s.date || s.createdAt) === eodDateStr);
+              if (matchingSod?.createdAt) {
+                const diff = new Date(e.createdAt).getTime() - new Date(matchingSod.createdAt).getTime();
+                if (diff > 0 && diff < 16 * 3600000) workMs += diff;
+              }
+            }
+          });
+        }
+
+        if (workMs === 0 && employeeTasks.length > 0) {
+          const totalTaskSecs = employeeTasks.reduce((sum: number, t: any) => sum + (t.elapsedSeconds || 0), 0);
+          if (totalTaskSecs > 0) workMs = totalTaskSecs * 1000;
+        }
+
+        if (workMs === 0 && present > 0) {
+          workMs = present * 8 * 3600000;
+        }
+
         const completedTasks = employeeTasks.filter((t: any) => ["completed", "done"].includes(String(t.status || "").toLowerCase())).length;
+        const totalTasks = employeeTasks.length;
+        const completionPct = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : (present > 0 ? Math.min(100, Number(((present / workingDates.length) * 100).toFixed(1))) : 0);
+        const workHoursFormatted = workMs > 0 
+          ? `${Math.floor(workMs / 3600000)}h ${Math.floor((workMs % 3600000) / 60000)}m`
+          : "0h 0m";
+
         return {
           "Employee ID": profile.employeeId || id,
           "Employee Name": user.name || "",
@@ -3211,15 +3297,8 @@ export function PerformanceCompliance({
           "Working Days": workingDates.length,
           "Total Present": present,
           "Total Absent": absent,
-          "Approved Leave": leave,
-          "Weekly Off": Math.max(0, Math.round((new Date(`${reportEnd}T00:00:00`).getTime() - new Date(`${reportStart}T00:00:00`).getTime()) / 86400000) + 1 - workingDates.length),
-          "Total Work Hours": Number((workMs / 3600000).toFixed(2)),
-          "Tasks Count": employeeTasks.length,
-          "Tasks Completed": completedTasks,
-          "Tasks Pending": employeeTasks.length - completedTasks,
-          "Scheduled Work Count": (data.schedules || []).filter((s: any) => String(s.employeeId) === id).length,
-          "Field Visits": (data.fieldVisits || []).filter((v: any) => String(v.employee_id) === id).length,
-          "Audit Changes": (data.audits || []).filter((a: any) => String(a.user) === id).length
+          "Work Hours": workHoursFormatted,
+          "Productivity": `${completionPct.toFixed(1)}%`
         };
       });
 
@@ -3239,7 +3318,10 @@ export function PerformanceCompliance({
         Status: t.status, Description: t.description || t.remarks || "", "Scheduled At": t.scheduledAt ? new Date(t.scheduledAt).toLocaleString("en-IN") : ""
       }));
       const scheduleRows = (data.schedules || []).map((s: any) => ({
-        Employee: employeeName(s.employeeId), Date: s.date, Time: s.time, Location: s.workSection,
+        Employee: employeeName(s.employeeId), Date: s.date, Time: s.time,
+        Location: (s.workSection === "Others" || s.workSection === "Other" || s.workSection === "others")
+          ? (s.customLocation || s.otherType || s.details || s.remarks || s.workSection)
+          : s.workSection,
         Type: s.type, "Sub Type": s.subType, Bank: s.bankName, Branch: s.branchName, AO: s.aoName, RBO: s.rboName,
         Status: s.status, Details: s.details || s.remarks || "", Attachment: s.proofAttachment || ""
       }));
@@ -3258,8 +3340,27 @@ export function PerformanceCompliance({
       }));
 
       const workbook = XLSX.utils.book_new();
-      const addSheet = (name: string, rows: any[]) => XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(rows.length ? rows : [{ Info: "No records in selected period" }]), name);
-      addSheet("Employee Summary", summary);
+      let summarySheet: any = null;
+
+      const addSheet = (name: string, rows: any[]) => {
+        const sheetData = rows.length ? rows : [{ Info: "No records in selected period" }];
+        const ws = XLSX.utils.json_to_sheet(sheetData);
+        if (rows.length > 0) {
+          const colKeys = Object.keys(rows[0]);
+          ws['!cols'] = colKeys.map(key => {
+            let maxLen = key.length;
+            rows.forEach(r => {
+              const valStr = r[key] !== undefined && r[key] !== null ? String(r[key]) : "";
+              if (valStr.length > maxLen) maxLen = valStr.length;
+            });
+            return { wch: Math.max(maxLen + 6, 16) };
+          });
+        }
+        XLSX.utils.book_append_sheet(workbook, ws, name);
+        return ws;
+      };
+
+      summarySheet = addSheet("Employee Summary", summary);
       addSheet("Attendance Timings", attendanceRows);
       addSheet("Approved Leaves", leaveRows);
       addSheet("Tasks", taskRows);
@@ -3267,8 +3368,22 @@ export function PerformanceCompliance({
       addSheet("SOD EOD", sodEodRows);
       addSheet("Field Visits", visitRows);
       addSheet("Audit Trail", auditRows);
-      XLSX.writeFile(workbook, `Master_Employee_Report_${reportStart}_to_${reportEnd}.xlsx`);
-      triggerToast?.("Complete master employee report exported successfully");
+
+      // Download single clean structured CSV file
+      if (summarySheet) {
+        const csvString = XLSX.utils.sheet_to_csv(summarySheet);
+        const blob = new Blob([csvString], { type: "text/csv;charset=utf-8;" });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.setAttribute("href", url);
+        link.setAttribute("download", `Master_Employee_Report_${reportStart}_to_${reportEnd}.csv`);
+        link.style.visibility = "hidden";
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      }
+
+      triggerToast?.("Structured master employee report exported successfully (CSV)");
     } catch (error: any) {
       console.error("Failed to export master employee report:", error);
       triggerToast?.(error.message || "Master report export failed");

@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { useParams, useRouter } from "next/navigation";
+import { normalizeRole } from "@/lib/roles";
 import {
   X,
   Loader2,
@@ -70,28 +71,11 @@ export default function UnifiedEnterpriseDashboard() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const routeParams = useParams<{ slug?: string[] }>();
+  const slugArr = routeParams?.slug;
+  const currentSlug = slugArr && slugArr.length > 0 ? slugArr[0] : null;
 
   const rawRole = (session?.user as any)?.role || "Employee";
-  const SYSTEM_ROLES = [
-    "Owner",
-    "Director",
-    "HR Head",
-    "HR Executive",
-    "Department Manager",
-    "Employee",
-    "Accounts",
-    "Trainer",
-    "IT Admin",
-    "DSM",
-    "RIBP / Risk Officer",
-    "Business Associate",
-    "Vendor",
-    "Franchisee",
-    "Territory Partner"
-  ];
-  const userRole = SYSTEM_ROLES.map(r => r.toLowerCase()).includes(rawRole.toLowerCase())
-    ? SYSTEM_ROLES.find(r => r.toLowerCase() === rawRole.toLowerCase()) || "Employee"
-    : "Employee";
+  const userRole = normalizeRole(rawRole);
 
   // Active navigation tab matching hr.html panel toggles
   const [activeTab, setActiveTab] = useState<string>(() => routeParams?.slug?.[0] || "dashboard");
@@ -101,6 +85,12 @@ export default function UnifiedEnterpriseDashboard() {
 
   const handleNavigateTab = (tab: string, filter?: string) => {
     setActiveTab(tab);
+    if (typeof window !== "undefined") {
+      const targetPath = `/dashboard/${tab}`;
+      if (window.location.pathname !== targetPath) {
+        window.history.pushState(null, "", targetPath);
+      }
+    }
     if (tab === "business-leads" && filter) {
       setBusinessLeadsFilter(filter);
       setKanbanSearchFilter("");
@@ -336,8 +326,8 @@ export default function UnifiedEnterpriseDashboard() {
         .then(data => {
           if (data.success && data.data) {
             const loggedInUserId = (session.user as any).id;
-            const activeWarn = data.data.find((w: any) => 
-              w.employeeId === loggedInUserId && 
+            const activeWarn = data.data.find((w: any) =>
+              w.employeeId === loggedInUserId &&
               ["Active Warning", "Final Warning", "Termination Review"].includes(w.status)
             );
             if (activeWarn) {
@@ -509,30 +499,12 @@ export default function UnifiedEnterpriseDashboard() {
     }
   }, [activeTab]);
 
-  const loadAllData = async () => {
+  const loadInitialData = async () => {
     setLoading(true);
-    const role = userRole;
-    const isManagerial = ["Owner", "Director", "HR Head", "HR Executive", "Department Manager"].includes(role);
-
-    const promises: Promise<any>[] = [
+    await Promise.all([
       loadCompanies(),
       loadStats(selectedCompanyId)
-    ];
-
-    if (isManagerial) {
-      promises.push(
-        loadCandidates(),
-        loadInterviews(),
-        loadPostedJobs(),
-        loadProbation(),
-        loadGrievances(),
-        loadRiskAlerts(),
-        loadExits(),
-        loadRequisitions()
-      );
-    }
-
-    await Promise.all(promises);
+    ]);
     setLoading(false);
   };
 
@@ -544,15 +516,17 @@ export default function UnifiedEnterpriseDashboard() {
 
   useEffect(() => {
     if (status === "authenticated" && !dataLoaded) {
-      if (typeof window !== "undefined") {
+      let initialTab = currentSlug;
+      if (!initialTab && typeof window !== "undefined") {
         const urlParams = new URLSearchParams(window.location.search);
-        const tab = urlParams.get("tab");
-        const role = userRole;
+        initialTab = urlParams.get("tab");
+      }
 
-        if (tab && tab !== activeTab) {
-          setActiveTab(tab);
-          setActiveTab(tab);
-        } else if (role === "Owner" || role === "Director") {
+      if (initialTab) {
+        setActiveTab(initialTab);
+      } else {
+        const role = userRole;
+        if (role === "Owner" || role === "Director") {
           setActiveTab("dashboard");
         } else if (role === "HR Head" || role === "HR Executive") {
           setActiveTab("hr-dash");
@@ -570,10 +544,53 @@ export default function UnifiedEnterpriseDashboard() {
           setActiveTab("attendance");
         }
       }
-      loadAllData();
+      loadInitialData();
       setDataLoaded(true);
     }
-  }, [status, session, dataLoaded]);
+  }, [status, session, dataLoaded, currentSlug]);
+
+  // Lazy load tab data on activeTab change
+  useEffect(() => {
+    if (status !== "authenticated") return;
+    const role = userRole;
+    const isManagerial = ["Owner", "Director", "HR Head", "HR Executive", "Department Manager"].includes(role);
+    if (!isManagerial) return;
+
+    switch (activeTab) {
+      case "dashboard":
+      case "hr-dash":
+      case "screening":
+      case "verification":
+      case "hr-leads":
+        loadCandidates();
+        if (activeTab === "hr-dash") loadInterviews();
+        break;
+      case "interviews":
+        loadInterviews();
+        break;
+      case "jobs":
+        loadPostedJobs();
+        break;
+      case "probation":
+        loadProbation();
+        break;
+      case "grievance":
+        loadGrievances();
+        break;
+      case "risk-alerts":
+        loadRiskAlerts();
+        break;
+      case "exit":
+        loadExits();
+        break;
+      case "hiring":
+        loadRequisitions();
+        loadPostedJobs();
+        break;
+      default:
+        break;
+    }
+  }, [activeTab, status, userRole]);
 
   // Auto popup SOD on load if missing
   useEffect(() => {
@@ -1043,7 +1060,7 @@ export default function UnifiedEnterpriseDashboard() {
       if (data.success) {
         triggerToast("Partner successfully added to network!");
         toggleModal(modalId, false);
-        await loadAllData();
+        await loadInitialData();
       } else {
         triggerToast("Submission failed: " + data.error);
       }
@@ -1291,7 +1308,7 @@ export default function UnifiedEnterpriseDashboard() {
               try {
                 const parsed = JSON.parse(liveMenuAccess);
                 if (Array.isArray(parsed)) allowedPageIds = parsed;
-              } catch {}
+              } catch { }
             }
             const hasExplicitAccess = allowedPageIds && allowedPageIds.includes("legal-recovery");
             const hasAccess = userRole === "Owner" || isAdministration || hasExplicitAccess;
@@ -2020,14 +2037,14 @@ export default function UnifiedEnterpriseDashboard() {
       {activeWarningPopup && (
         <div className="fixed inset-0 z-[10000] overflow-y-auto bg-black/55 backdrop-blur-sm flex justify-center items-center p-4">
           <div className="bg-white rounded-2xl w-full max-w-2xl overflow-hidden shadow-2xl animate-scale-in flex flex-col relative border border-[#E8E4DF] text-black max-h-[90vh]">
-            
+
             {/* Modal Header */}
             <div className="px-6 py-4 border-b border-[#E8E4DF] flex justify-between items-center bg-[#FCFBF9] shrink-0">
               <h3 className="font-serif text-sm text-slate-800 flex items-center gap-2 font-semibold">
                 <ShieldAlert className="w-5 h-5 text-rose-600 animate-pulse" />
                 OFFICIAL DISCIPLINARY NOTICE
               </h3>
-              <button 
+              <button
                 onClick={() => {
                   sessionStorage.setItem(`warning_popup_dismissed_${activeWarningPopup.id}`, "true");
                   setActiveWarningPopup(null);
@@ -2041,7 +2058,7 @@ export default function UnifiedEnterpriseDashboard() {
             {/* Modal Body: Memo Document */}
             <div className="p-8 overflow-y-auto flex-1 bg-white select-text">
               <div className="bg-white p-6 font-sans leading-relaxed text-black border border-slate-200 rounded-xl">
-                
+
                 {/* Memo Header */}
                 <div className="text-center border-b-2 border-black pb-4 mb-6">
                   <h2 className="text-xl font-extrabold tracking-widest text-black">RS9 GROUP</h2>
@@ -2049,7 +2066,7 @@ export default function UnifiedEnterpriseDashboard() {
                 </div>
 
                 <div className="space-y-6 text-xs text-black">
-                  
+
                   {/* Memo Details */}
                   <div className="grid grid-cols-2 gap-4 text-xs font-sans text-black pb-4 border-b border-slate-200">
                     <div className="space-y-1.5 text-left font-sans">

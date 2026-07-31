@@ -90,6 +90,8 @@ const STAGE_DEFINITIONS: Record<string, string[]> = {
 
 interface LegalWorkLogItem {
   id: string | number;
+  masterId?: number | string;
+  allLogs?: LegalWorkLogItem[];
   workDate: string;
   workLocation: string;
   customLocation?: string;
@@ -102,6 +104,8 @@ interface LegalWorkLogItem {
   allocationDate?: string;
   finalRate?: string;
   expenses?: string;
+  ownExpense?: number | string;
+  officerContactNo?: string;
   grossProfit?: string;
   followUpDetails?: string;
   stageAmount?: string;
@@ -194,14 +198,175 @@ export default function LegalWorkEntryHistoryView({
   });
   const [activeColumnFilter, setActiveColumnFilter] = useState<string | null>(null);
   const [editEntry, setEditEntry] = useState<LegalWorkLogItem | null>(null);
-  const [editAmount, setEditAmount] = useState("");
+  const [editWorkDate, setEditWorkDate] = useState("");
+  const [editBankName, setEditBankName] = useState("");
+  const [editBranchName, setEditBranchName] = useState("");
+  const [editOption, setEditOption] = useState("");
+  const [editSubOption, setEditSubOption] = useState("");
+  const [editCount, setEditCount] = useState("1");
+  const [editAmount, setEditAmount] = useState("0");
+  const [editBroughtBy, setEditBroughtBy] = useState("");
+  const [editPreparedBy, setEditPreparedBy] = useState("");
+  const [editPrintedBy, setEditPrintedBy] = useState("");
+  const [editDispatchedBy, setEditDispatchedBy] = useState("");
+  const [editPersonName, setEditPersonName] = useState("");
+  const [editOfficerContactNo, setEditOfficerContactNo] = useState("");
+  const [editOwnExpense, setEditOwnExpense] = useState("0");
   const [editRemarks, setEditRemarks] = useState("");
   const [savingEdit, setSavingEdit] = useState(false);
+
+  // Next Step Modal State
+  const [nextStepEntry, setNextStepEntry] = useState<LegalWorkLogItem | null>(null);
+  const [nextStepWorkDate, setNextStepWorkDate] = useState("");
+  const [nextStepBankName, setNextStepBankName] = useState("");
+  const [nextStepBranchName, setNextStepBranchName] = useState("");
+  const [nextStepOption, setNextStepOption] = useState("");
+  const [nextStepSubOption, setNextStepSubOption] = useState("");
+  const [nextStepCount, setNextStepCount] = useState("1");
+  const [nextStepAmount, setNextStepAmount] = useState("0");
+  const [nextStepBroughtBy, setNextStepBroughtBy] = useState("");
+  const [nextStepPreparedBy, setNextStepPreparedBy] = useState("");
+  const [nextStepPrintedBy, setNextStepPrintedBy] = useState("");
+  const [nextStepDispatchedBy, setNextStepDispatchedBy] = useState("");
+  const [nextStepBillDate, setNextStepBillDate] = useState("");
+  const [nextStepBillAmount, setNextStepBillAmount] = useState("");
+  const [nextStepBillNo, setNextStepBillNo] = useState("");
+  const [nextStepRate, setNextStepRate] = useState("");
+  const [nextStepOfficerShare, setNextStepOfficerShare] = useState("");
+  const [nextStepExpenses, setNextStepExpenses] = useState("");
+  const [nextStepAllocationDate, setNextStepAllocationDate] = useState("");
+  const [nextStepUploadedFileName, setNextStepUploadedFileName] = useState("");
+  const [nextStepUploadedFileUrl, setNextStepUploadedFileUrl] = useState("");
+  const [nextStepPersonName, setNextStepPersonName] = useState("");
+  const [nextStepRemarks, setNextStepRemarks] = useState("");
+  const [submittingNextStep, setSubmittingNextStep] = useState(false);
 
   // Detailed Modal State
   const [selectedEntryDetail, setSelectedEntryDetail] = useState<LegalWorkLogItem | null>(null);
   const [selectedStageTab, setSelectedStageTab] = useState<string | null>(null);
-  const [selectedFilePreviewModal, setSelectedFilePreviewModal] = useState<{ fileName: string } | null>(null);
+  const [selectedFilePreviewModal, setSelectedFilePreviewModal] = useState<{ fileName: string; fileUrl?: string } | null>(null);
+  const [previewFileError, setPreviewFileError] = useState(false);
+
+  const getFileNameOnly = (str?: string) => {
+    if (!str) return "";
+    if (str.startsWith("data:")) return "Attached_Document.png";
+    if (str.includes("/")) {
+      const parts = str.split("/");
+      return parts[parts.length - 1] || str;
+    }
+    return str;
+  };
+
+  const openFilePreview = (fileNameOrUrl: string) => {
+    if (!fileNameOrUrl) return;
+    setPreviewFileError(false);
+    let url = fileNameOrUrl;
+    let name = getFileNameOnly(fileNameOrUrl);
+
+    if (fileNameOrUrl.startsWith("data:") || fileNameOrUrl.startsWith("http") || fileNameOrUrl.startsWith("/")) {
+      url = fileNameOrUrl;
+    } else if (fileNameOrUrl.startsWith("doc_")) {
+      url = `/hrms/${fileNameOrUrl}`;
+    } else {
+      url = `/uploads/${fileNameOrUrl}`;
+    }
+    setSelectedFilePreviewModal({ fileName: name, fileUrl: url });
+  };
+
+  const handleStageFileUpload = async (entry: LegalWorkLogItem, stageName: string, file: File) => {
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+      const dataUrl = event.target?.result as string;
+      if (!dataUrl) return;
+
+      let fileUrlToSave = dataUrl;
+
+      try {
+        const formData = new FormData();
+        formData.append("file", file);
+        formData.append("purpose", "task-proof");
+        const res = await fetch("/api/documents/upload", {
+          method: "POST",
+          body: formData,
+        });
+        const data = await res.json();
+        if (res.ok && data.success && data.url) {
+          fileUrlToSave = data.url;
+        }
+      } catch (err) {
+        console.warn("Server upload fallback:", err);
+      }
+
+      const groupLogs = entry.allLogs && entry.allLogs.length > 0 ? entry.allLogs : [entry];
+      const matchingLog = groupLogs.find(l => (l.businessDevSubOption || l.subCategory) === stageName) || entry;
+
+      const isNotice = String(matchingLog.id).startsWith("notice_");
+      const realId = isNotice ? String(matchingLog.id).replace("notice_", "") : matchingLog.id;
+
+      try {
+        const endpoint = isNotice ? "/api/legal-recovery/notices" : "/api/legal-recovery/work-log";
+        const payload = isNotice
+          ? { id: realId, handoverReceiptPhoto: fileUrlToSave }
+          : { id: realId, uploadedFileName: fileUrlToSave };
+
+        const updateRes = await fetch(endpoint, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+
+        const updateData = await updateRes.json();
+        if (updateRes.ok && updateData.success) {
+          triggerToast?.(`Attachment file updated successfully!`);
+          await fetchWorkLogHistory();
+          openFilePreview(fileUrlToSave);
+        } else {
+          alert(updateData.error || "Failed to update attachment");
+        }
+      } catch (e: any) {
+        alert("Error saving attachment: " + e.message);
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+
+
+  const handleNextStepFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setNextStepUploadedFileName(file.name);
+
+    // 1. Read as Data URL so client preview & download ALWAYS work 100%
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const dataUrl = event.target?.result as string;
+      if (dataUrl) {
+        setNextStepUploadedFileUrl(dataUrl);
+      }
+    };
+    reader.readAsDataURL(file);
+
+    // 2. Also attempt upload to server API
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("purpose", "task-proof");
+      const res = await fetch("/api/documents/upload", {
+        method: "POST",
+        body: formData,
+      });
+      const data = await res.json();
+      if (res.ok && data.success && data.url) {
+        setNextStepUploadedFileUrl(data.url);
+      }
+    } catch (err) {
+      console.warn("Server upload warning, using client Data URL fallback:", err);
+    }
+  };
 
   const fetchWorkLogHistory = async () => {
     try {
@@ -359,14 +524,83 @@ export default function LegalWorkEntryHistoryView({
         combined = [...combined, ...mappedNotices];
       }
 
-      // Newly submitted entries must appear first even when an older record has
-      // a future work/allocation date.
-      combined.sort(
+      // 3. Consolidate logs by Bank & Branch & Category (1 case = 1 clean row)
+      const groupedMap = new Map<string, LegalWorkLogItem[]>();
+
+      combined.forEach((item) => {
+        const bKey = (item.bankName || "").toLowerCase().trim();
+        const brKey = (item.branchName || "").toLowerCase().trim();
+        const catKey = (item.businessDevOption || item.category || "").toLowerCase().trim();
+        const key = item.masterId && Number(item.masterId) > 0
+          ? `m_${item.masterId}_${catKey}`
+          : `b_${bKey}_${brKey}_${catKey}`;
+
+        if (!groupedMap.has(key)) {
+          groupedMap.set(key, []);
+        }
+        groupedMap.get(key)!.push(item);
+      });
+
+      const consolidated: LegalWorkLogItem[] = [];
+
+      groupedMap.forEach((groupItems) => {
+        groupItems.sort((a, b) => new Date(a.createdAt || a.workDate).getTime() - new Date(b.createdAt || b.workDate).getTime());
+
+        const latestItem = groupItems[groupItems.length - 1];
+        const catName = latestItem.businessDevOption || latestItem.category || "ADVOCATE NOTICE";
+        const stages = STAGE_DEFINITIONS[catName] || STAGE_DEFINITIONS["ADVOCATE NOTICE"];
+
+        const mergedBroughtBy = groupItems.map(i => i.broughtBy).filter(Boolean).pop() || latestItem.broughtBy;
+        const mergedPreparedBy = groupItems.map(i => i.preparedBy).filter(Boolean).pop() || latestItem.preparedBy;
+        const mergedPrintedBy = groupItems.map(i => i.printedBy).filter(Boolean).pop() || latestItem.printedBy;
+        const mergedDispatchedBy = groupItems.map(i => i.dispatchedBy).filter(Boolean).pop() || latestItem.dispatchedBy;
+        const mergedBillNo = groupItems.map(i => i.billNo).filter(Boolean).pop() || latestItem.billNo;
+        const mergedBillDate = groupItems.map(i => i.billDate).filter(Boolean).pop() || latestItem.billDate;
+        const mergedBillAmount = groupItems.map(i => i.billAmount).filter(Boolean).pop() || latestItem.billAmount;
+        const mergedPersonName = groupItems.map(i => i.personName).filter(Boolean).pop() || latestItem.personName;
+        const mergedUploadedFile = groupItems.map(i => i.uploadedFileName).filter(Boolean).pop() || latestItem.uploadedFileName;
+        const mergedRate = groupItems.map(i => i.finalRate).filter(Boolean).pop() || latestItem.finalRate;
+        const mergedExpenses = groupItems.map(i => i.expenses || i.ownExpense).filter(Boolean).pop() || latestItem.expenses;
+
+        let highestStage = latestItem.businessDevSubOption || latestItem.subCategory || stages[0];
+        let highestIdx = stages.indexOf(highestStage);
+
+        groupItems.forEach(i => {
+          const s = i.businessDevSubOption || i.subCategory || "";
+          const idx = stages.indexOf(s);
+          if (idx > highestIdx) {
+            highestIdx = idx;
+            highestStage = s;
+          }
+        });
+
+        const mergedEntry: LegalWorkLogItem = {
+          ...latestItem,
+          businessDevSubOption: highestStage,
+          subCategory: highestStage,
+          broughtBy: mergedBroughtBy,
+          preparedBy: mergedPreparedBy,
+          printedBy: mergedPrintedBy,
+          dispatchedBy: mergedDispatchedBy,
+          billNo: mergedBillNo,
+          billDate: mergedBillDate,
+          billAmount: mergedBillAmount,
+          personName: mergedPersonName,
+          uploadedFileName: mergedUploadedFile,
+          finalRate: mergedRate,
+          expenses: mergedExpenses ? String(mergedExpenses) : undefined,
+          allLogs: groupItems
+        };
+
+        consolidated.push(mergedEntry);
+      });
+
+      consolidated.sort(
         (a, b) =>
           new Date(b.createdAt || b.workDate).getTime() -
           new Date(a.createdAt || a.workDate).getTime()
       );
-      setLogs(combined);
+      setLogs(consolidated);
     } catch (error) {
       console.error("Error fetching work log history:", error);
     } finally {
@@ -396,7 +630,23 @@ export default function LegalWorkEntryHistoryView({
     };
   }, [selectedEntryDetail, selectedFilePreviewModal]);
 
-  const uniqueBanks = useMemo(() => {
+  // Keep selectedEntryDetail dynamically in sync with updated logs
+  useEffect(() => {
+    if (selectedEntryDetail && logs.length > 0) {
+      const updated = logs.find(l =>
+        String(l.id) === String(selectedEntryDetail.id) ||
+        (l.masterId && selectedEntryDetail.masterId && String(l.masterId) === String(selectedEntryDetail.masterId)) ||
+        ((l.bankName || "").toLowerCase().trim() === (selectedEntryDetail.bankName || "").toLowerCase().trim() &&
+          (l.branchName || "").toLowerCase().trim() === (selectedEntryDetail.branchName || "").toLowerCase().trim() &&
+          (l.businessDevOption || l.category || "").toLowerCase().trim() === (selectedEntryDetail.businessDevOption || selectedEntryDetail.category || "").toLowerCase().trim())
+      );
+      if (updated && updated !== selectedEntryDetail) {
+        setSelectedEntryDetail(updated);
+      }
+    }
+  }, [logs]);
+
+  const allUniqueBanks = useMemo(() => {
     const banks = new Set<string>();
     logs.forEach(l => {
       if (l.bankName) banks.add(l.bankName);
@@ -405,12 +655,17 @@ export default function LegalWorkEntryHistoryView({
   }, [logs]);
 
   const uniqueOptions = useMemo(() => {
-    const opts = new Set<string>();
+    const optsMap = new Map<string, string>();
     logs.forEach(l => {
-      if (l.businessDevOption) opts.add(l.businessDevOption);
-      else if (l.category) opts.add(l.category);
+      const opt = (l.businessDevOption || l.category || "").trim();
+      if (opt) {
+        const cleanKey = opt.toLowerCase();
+        if (!optsMap.has(cleanKey)) {
+          optsMap.set(cleanKey, opt);
+        }
+      }
     });
-    return Array.from(opts);
+    return Array.from(optsMap.values());
   }, [logs]);
 
   const getColumnValue = (item: LegalWorkLogItem, key: string) => {
@@ -447,7 +702,8 @@ export default function LegalWorkEntryHistoryView({
         (item.dispatchedBy || "").toLowerCase().includes(searchQuery.toLowerCase());
 
       const matchesBank = selectedBank === "ALL" || item.bankName === selectedBank;
-      const matchesOption = selectedOption === "ALL" || item.businessDevOption === selectedOption || item.category === selectedOption;
+      const primaryOpt = (item.businessDevOption || item.category || "").trim().toLowerCase();
+      const matchesOption = selectedOption === "ALL" || primaryOpt === selectedOption.trim().toLowerCase();
 
       const itemDateStr = item.workDate ? new Date(item.workDate).toISOString().split('T')[0] : "";
       const matchesDate = !dateFilter || itemDateStr === dateFilter;
@@ -459,12 +715,29 @@ export default function LegalWorkEntryHistoryView({
     });
   }, [logs, searchQuery, selectedBank, selectedOption, dateFilter, columnFilters]);
 
+  const uniqueBanks = useMemo(() => {
+    const bankMap = new Map<string, string>();
+    filteredLogs.forEach(l => {
+      if (l.bankName) {
+        const cleanKey = l.bankName.trim().toLowerCase();
+        if (!bankMap.has(cleanKey)) {
+          bankMap.set(cleanKey, l.bankName.trim());
+        }
+      }
+    });
+    return Array.from(bankMap.values());
+  }, [filteredLogs]);
+
   const totalCounts = useMemo(() => {
     return filteredLogs.reduce((acc, curr) => acc + (parseInt(curr.noOfCount || "1") || 1), 0);
   }, [filteredLogs]);
 
   const totalBillAmount = useMemo(() => {
-    return filteredLogs.reduce((acc, curr) => acc + (parseFloat(curr.billAmount || "0") || 0), 0);
+    return filteredLogs.reduce((acc, curr) => {
+      const finances = parseFollowUpDetails(curr.financialDetails);
+      const amt = Number(curr.billAmount || curr.stageAmount || finances?.totalRevenue || 0);
+      return acc + (isNaN(amt) ? 0 : amt);
+    }, 0);
   }, [filteredLogs]);
 
   const handleOpenDetailModal = (entry: LegalWorkLogItem) => {
@@ -494,7 +767,20 @@ export default function LegalWorkEntryHistoryView({
 
   const openEditEntry = (item: LegalWorkLogItem) => {
     setEditEntry(item);
+    setEditWorkDate(item.workDate ? new Date(item.workDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]);
+    setEditBankName(item.bankName || "");
+    setEditBranchName(item.branchName || "");
+    setEditOption(item.businessDevOption || item.category || "ADVOCATE NOTICE");
+    setEditSubOption(item.businessDevSubOption || item.subCategory || "");
+    setEditCount(item.noOfCount || "1");
     setEditAmount(String(Number(item.billAmount || item.stageAmount || parseFollowUpDetails(item.financialDetails)?.totalRevenue || 0)));
+    setEditBroughtBy(item.broughtBy || "");
+    setEditPreparedBy(item.preparedBy || "");
+    setEditPrintedBy(item.printedBy || "");
+    setEditDispatchedBy(item.dispatchedBy || "");
+    setEditPersonName(item.personName || "");
+    setEditOfficerContactNo(item.officerContactNo || "");
+    setEditOwnExpense(String(item.ownExpense || 0));
     setEditRemarks(item.remarks || "");
   };
 
@@ -502,23 +788,238 @@ export default function LegalWorkEntryHistoryView({
     if (!editEntry) return;
     setSavingEdit(true);
     try {
-      const isNotice = String(editEntry.id).startsWith("notice_");
-      const res = await fetch(isNotice ? "/api/legal-recovery/notices" : "/api/legal-recovery/work-log", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(isNotice
-          ? { id: String(editEntry.id).replace("notice_", ""), billAmount: Math.max(0, Number(editAmount) || 0), handoverRemarks: editRemarks }
-          : { id: editEntry.id, stageAmount: Math.max(0, Number(editAmount) || 0), remarks: editRemarks })
-      });
-      const data = await res.json();
-      if (!res.ok || !data.success) throw new Error(data.error || "Update failed");
+      const logsToUpdate = editEntry.allLogs && editEntry.allLogs.length > 0 ? editEntry.allLogs : [editEntry];
+
+      for (const logItem of logsToUpdate) {
+        const isNotice = String(logItem.id).startsWith("notice_");
+        const realId = isNotice ? String(logItem.id).replace("notice_", "") : logItem.id;
+        const isSelectedStage = (logItem.businessDevSubOption || logItem.subCategory) === editSubOption;
+
+        const payload = isNotice
+          ? {
+            id: realId,
+            bankName: editBankName,
+            branchName: editBranchName,
+            typeOfNotice: editOption,
+            qty: Math.max(1, Number(editCount) || 1),
+            billAmount: isSelectedStage ? Math.max(0, Number(editAmount) || 0) : undefined,
+            broughtBy: editBroughtBy || undefined,
+            noticeRenameBy: editPreparedBy || undefined,
+            printedBy: editPrintedBy || undefined,
+            dispatchedBy: editDispatchedBy || undefined,
+            handoverTo: editPersonName || undefined,
+            handoverRemarks: editRemarks || undefined,
+            noticeDate: editWorkDate
+          }
+          : {
+            id: realId,
+            workDate: editWorkDate,
+            bankName: editBankName,
+            branchName: editBranchName,
+            businessDevOption: editOption,
+            businessDevSubOption: isSelectedStage ? editSubOption : logItem.businessDevSubOption,
+            noOfCount: editCount,
+            stageAmount: isSelectedStage ? Math.max(0, Number(editAmount) || 0) : logItem.stageAmount,
+            broughtBy: editBroughtBy || undefined,
+            preparedBy: editPreparedBy || undefined,
+            printedBy: editPrintedBy || undefined,
+            dispatchedBy: editDispatchedBy || undefined,
+            personName: editPersonName || undefined,
+            officerContactNo: editOfficerContactNo || undefined,
+            ownExpense: Number(editOwnExpense) || 0,
+            remarks: editRemarks || undefined
+          };
+
+        const res = await fetch(isNotice ? "/api/legal-recovery/notices" : "/api/legal-recovery/work-log", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (!res.ok || !data.success) throw new Error(data.error || "Update failed");
+      }
+
       setEditEntry(null);
-      triggerToast?.("Entry updated successfully.");
-      fetchWorkLogHistory();
+      triggerToast?.("Entry updated successfully with all details.");
+      await fetchWorkLogHistory();
     } catch (error: any) {
       alert(error.message || "Unable to update entry");
     } finally {
       setSavingEdit(false);
+    }
+  };
+
+  const handleNextStepStageChange = (newStage: string, entryOverride?: LegalWorkLogItem) => {
+    setNextStepSubOption(newStage);
+    const entry = entryOverride || nextStepEntry;
+    if (!entry) return;
+
+    const stageInfo = getStageFilledDetails(entry, newStage);
+    if (stageInfo.isFilled) {
+      if (stageInfo.count) setNextStepCount(stageInfo.count);
+      if (stageInfo.staff) {
+        setNextStepBroughtBy(stageInfo.staff);
+        setNextStepPreparedBy(stageInfo.staff);
+        setNextStepPrintedBy(stageInfo.staff);
+        setNextStepDispatchedBy(stageInfo.staff);
+        setNextStepPersonName(stageInfo.staff);
+      }
+      if (stageInfo.billDate) setNextStepBillDate(stageInfo.billDate);
+      if (stageInfo.billAmount) setNextStepBillAmount(stageInfo.billAmount);
+      if (stageInfo.billNo) setNextStepBillNo(stageInfo.billNo);
+      if (stageInfo.stageAmount) setNextStepAmount(stageInfo.stageAmount);
+      if (stageInfo.finalRate) setNextStepRate(stageInfo.finalRate);
+      if (stageInfo.expenses) setNextStepExpenses(stageInfo.expenses);
+      if (stageInfo.file) setNextStepUploadedFileName(stageInfo.file);
+      if (stageInfo.remarks) setNextStepRemarks(stageInfo.remarks);
+    }
+  };
+
+  const openNextStepModal = (item: LegalWorkLogItem) => {
+    setNextStepEntry(item);
+    setNextStepWorkDate(new Date().toISOString().split("T")[0]);
+    setNextStepBankName(item.bankName || "");
+    setNextStepBranchName(item.branchName || "");
+
+    const categoryKey = item.businessDevOption || item.category || "ADVOCATE NOTICE";
+    setNextStepOption(categoryKey);
+
+    const currentSub = item.businessDevSubOption || item.subCategory || "";
+    const stages = STAGE_DEFINITIONS[categoryKey] || STAGE_DEFINITIONS["ADVOCATE NOTICE"];
+    const currentIndex = stages.indexOf(currentSub);
+    const calculatedNext = (currentIndex >= 0 && currentIndex < stages.length - 1)
+      ? stages[currentIndex + 1]
+      : (stages[0] || "TAKE NOTICE ASSIGNMENT");
+
+    setNextStepSubOption(calculatedNext);
+    setNextStepCount(item.noOfCount || "1");
+    setNextStepAmount("0");
+    setNextStepBroughtBy(item.broughtBy || item.employeeName || "");
+    setNextStepPreparedBy(item.preparedBy || "");
+    setNextStepPrintedBy(item.printedBy || "");
+    setNextStepDispatchedBy(item.dispatchedBy || "");
+    setNextStepBillDate(new Date().toISOString().split("T")[0]);
+    setNextStepBillAmount("");
+    setNextStepBillNo("");
+    let initRate = item.finalRate || "";
+    let initOfficer = "";
+    let initExpenses = item.expenses || (item.ownExpense ? String(item.ownExpense) : "");
+    if (item.financialDetails) {
+      try {
+        const fin = typeof item.financialDetails === "string" ? JSON.parse(item.financialDetails) : item.financialDetails;
+        if (fin.perNoticeRate) initRate = String(fin.perNoticeRate);
+        if (fin.bankOfficerPerNotice) initOfficer = String(fin.bankOfficerPerNotice);
+        if (fin.ownExpenses) initExpenses = String(fin.ownExpenses);
+      } catch (e) { }
+    }
+    setNextStepRate(initRate);
+    setNextStepOfficerShare(initOfficer);
+    setNextStepExpenses(initExpenses);
+    setNextStepAllocationDate(item.allocationDate || (item.workDate ? new Date(item.workDate).toISOString().split("T")[0] : new Date().toISOString().split("T")[0]));
+    // Pre-fill file from target stage if previously saved
+    const groupLogs = item.allLogs && item.allLogs.length > 0 ? item.allLogs : [item];
+    const targetStageLog = groupLogs.find(gl => (gl.businessDevSubOption || gl.subCategory) === calculatedNext);
+    setNextStepUploadedFileName(targetStageLog?.uploadedFileName || "");
+    setNextStepPersonName(item.personName || "");
+    setNextStepRemarks("");
+
+    // Dynamically load filled stage data
+    handleNextStepStageChange(calculatedNext, item);
+  };
+
+  const handleSaveNextStep = async (proceedToNext: boolean = false) => {
+    if (!nextStepEntry) return;
+    setSubmittingNextStep(true);
+    try {
+      const isNoticeAssessment = nextStepSubOption === "TAKE NOTICE ASSIGNMENT";
+      const isBroughtByStep =
+        nextStepSubOption === "TAKE NOTICE ASSIGNMENT" ||
+        nextStepSubOption === "COLLECT NOTICE DATA";
+      const isPreparedByStep = nextStepSubOption === "PREPARE NOTICE LIST";
+      const isPrintedByStep = nextStepSubOption.includes("GENERATE NOTICE");
+      const isDispatchedByStep = nextStepSubOption.includes("DISPATCH NOTICE");
+      const isBillPreparationStep = nextStepSubOption.includes("PREPARE BILL");
+
+      const assessmentCount = Math.max(0, parseInt(nextStepCount || "0", 10) || 0);
+      const perNoticeRate = parseFloat(nextStepRate) || 0;
+      const officerPerNotice = parseFloat(nextStepOfficerShare) || 0;
+      const ownExpenses = parseFloat(nextStepExpenses) || 0;
+
+      const payload = {
+        masterId: nextStepEntry.masterId || 0,
+        category: nextStepOption,
+        subCategory: nextStepSubOption,
+        workDate: nextStepWorkDate,
+        typeOfWork: "Bank Related",
+        workLocation: "Office",
+        bankName: nextStepBankName,
+        branchName: nextStepBranchName,
+        businessDevOption: nextStepOption,
+        businessDevSubOption: nextStepSubOption,
+        noOfCount: nextStepCount,
+        broughtBy: isBroughtByStep ? (nextStepBroughtBy || undefined) : undefined,
+        preparedBy: isPreparedByStep ? (nextStepPreparedBy || undefined) : undefined,
+        printedBy: isPrintedByStep ? (nextStepPrintedBy || undefined) : undefined,
+        dispatchedBy: isDispatchedByStep ? (nextStepDispatchedBy || undefined) : undefined,
+        stageAmount: isDispatchedByStep ? nextStepAmount : (nextStepSubOption === "TAKE NOTICE ASSIGNMENT" ? String(assessmentCount * perNoticeRate) : undefined),
+        billDate: isBillPreparationStep ? (nextStepBillDate || undefined) : undefined,
+        billAmount: isBillPreparationStep ? (nextStepBillAmount || undefined) : (nextStepSubOption.includes("REQUEST PAYMENT") ? nextStepAmount : undefined),
+        billNo: isBillPreparationStep ? (nextStepBillNo || undefined) : undefined,
+        personName: nextStepPersonName || undefined,
+        finalRate: isNoticeAssessment ? (nextStepRate || "0") : undefined,
+        bankOfficerPerNotice: isNoticeAssessment ? (nextStepOfficerShare || "0") : undefined,
+        expenses: isNoticeAssessment ? (nextStepExpenses || "0") : undefined,
+        financialDetails: isNoticeAssessment
+          ? JSON.stringify({
+            noticeCount: assessmentCount,
+            perNoticeRate,
+            bankOfficerPerNotice: officerPerNotice,
+            ownExpenses,
+          })
+          : undefined,
+        allocationDate: nextStepAllocationDate || nextStepWorkDate,
+        uploadedFileName: nextStepUploadedFileUrl || nextStepUploadedFileName || undefined,
+        remarks: nextStepRemarks || `Next step execution for ${nextStepSubOption}`
+      };
+
+      const res = await fetch("/api/legal-recovery/work-log", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.error || "Failed to submit next step log");
+
+      triggerToast?.(`Stage (${nextStepSubOption}) logged successfully.`);
+      fetchWorkLogHistory();
+
+      if (proceedToNext) {
+        const categoryKey = nextStepOption || "ADVOCATE NOTICE";
+        const stages = STAGE_DEFINITIONS[categoryKey] || STAGE_DEFINITIONS["ADVOCATE NOTICE"];
+        const currentIndex = stages.indexOf(nextStepSubOption);
+        if (currentIndex >= 0 && currentIndex < stages.length - 1) {
+          const nextStage = stages[currentIndex + 1];
+          setNextStepSubOption(nextStage);
+          setNextStepRemarks("");
+          setNextStepAmount("0");
+          // Pre-fill file from next stage's previously saved data if any
+          if (nextStepEntry) {
+            const groupLogs = nextStepEntry.allLogs && nextStepEntry.allLogs.length > 0 ? nextStepEntry.allLogs : [nextStepEntry];
+            const nextStageLog = groupLogs.find(gl => (gl.businessDevSubOption || gl.subCategory) === nextStage);
+            setNextStepUploadedFileName(nextStageLog?.uploadedFileName || "");
+          } else {
+            setNextStepUploadedFileName("");
+          }
+        } else {
+          setNextStepEntry(null);
+        }
+      } else {
+        setNextStepEntry(null);
+      }
+    } catch (error: any) {
+      alert(error.message || "Unable to save next step log");
+    } finally {
+      setSubmittingNextStep(false);
     }
   };
 
@@ -576,143 +1077,118 @@ export default function LegalWorkEntryHistoryView({
   };
 
   const getStageFilledDetails = (entry: LegalWorkLogItem, stageName: string) => {
-    const n = entry.rawNotice;
-    if (!n) {
-      const isLogged = (entry.businessDevSubOption || entry.subCategory) === stageName;
-      const followUp = parseFollowUpDetails(entry.followUpDetails);
-      const finances = parseFollowUpDetails(entry.financialDetails);
-      const relatedDispatch = finances
-        ? logs.find(
-            log =>
-              log.id !== entry.id &&
-              (log.businessDevSubOption || log.subCategory || "").includes("DISPATCH NOTICE") &&
-              log.bankName === entry.bankName &&
-              log.branchName === entry.branchName &&
-              (log.businessDevOption || log.category) ===
-                (entry.businessDevOption || entry.category) &&
-              new Date(log.createdAt).getTime() >= new Date(entry.createdAt).getTime()
-          )
-        : undefined;
-      const dispatchCost = Number(relatedDispatch?.stageAmount || 0);
-      const finalGrossProfit = finances
-        ? Number(finances.totalRevenue || 0) -
-          Number(finances.bankOfficerTotal || 0) -
-          Number(finances.ownExpenses || 0) -
-          dispatchCost
-        : undefined;
-      const stageStaffMap: Record<string, { label: string; value?: string }> = {
-        "TAKE NOTICE ASSIGNMENT": {
-          label: "Brought By",
-          value: entry.broughtBy || entry.employeeName,
-        },
-        "COLLECT NOTICE DATA": { label: "Brought By", value: entry.broughtBy },
-        "PREPARE NOTICE LIST": { label: "Prepared By", value: entry.preparedBy },
-        "GENERATE NOTICE VIA SOFTWARE/MAIL MERGE": {
-          label: "Printed By",
-          value: entry.printedBy,
-        },
-        "DISPATCH NOTICES": {
-          label: "Dispatched By",
-          value: entry.dispatchedBy,
-        },
-        "REQUEST PAYMENT": { label: "Person Name", value: entry.personName },
-        "BILL FOLLOW UP": {
-          label: "Contacted Person",
-          value: followUp?.contactedPerson,
-        },
-      };
-      const stageStaff = stageStaffMap[stageName];
-      return {
-        isFilled: isLogged,
-        staff: stageStaff?.value,
-        staffLabel: stageStaff?.label || "Staff In-Charge",
-        count: entry.noOfCount || "1",
-        date: entry.allocationDate || (entry.workDate ? new Date(entry.workDate).toLocaleDateString("en-IN") : 'N/A'),
-        billNo: entry.billNo,
-        billDate: entry.billDate,
-        billAmount: entry.billAmount,
-        finalRate: entry.finalRate,
-        expenses: entry.expenses,
-        grossProfit: entry.grossProfit,
-        stageAmount: entry.stageAmount,
-        finances,
-        dispatchCost,
-        finalGrossProfit,
-        pendingAmount: followUp?.summary?.totalPendingAmount,
-        callAt:
-          followUp?.callDate && followUp?.callTime
-            ? `${followUp.callDate} ${followUp.callTime}`
-            : followUp?.callDate,
-        file: entry.uploadedFileName,
-        remarks: entry.remarks
-      };
+    const groupLogs = entry.allLogs && entry.allLogs.length > 0 ? entry.allLogs : [entry];
+    const matchingLog = groupLogs.find(l => (l.businessDevSubOption || l.subCategory) === stageName);
+    const activeLog = matchingLog || entry;
+    const n = activeLog.rawNotice || entry.rawNotice;
+
+    const isLogged = !!matchingLog || groupLogs.some(l => (l.businessDevSubOption || l.subCategory) === stageName);
+
+    let isFilled = isLogged;
+    if (!isFilled && n) {
+      if (stageName === "TAKE NOTICE ASSIGNMENT") isFilled = true;
+      else if (stageName === "COLLECT NOTICE DATA") isFilled = !!n.broughtBy;
+      else if (stageName === "PREPARE NOTICE LIST") isFilled = !!(n.noticeRenameBy || n.scannedBy);
+      else if (stageName === "GENERATE NOTICE VIA SOFTWARE/MAIL MERGE") isFilled = !!n.printedBy;
+      else if (stageName === "DISPATCH NOTICES") isFilled = !!n.dispatchedBy;
+      else if (stageName === "PREPARE BILL (BILL BANWANA)") isFilled = !!(n.billNo || n.billAmount);
+      else if (stageName === "REQUEST PAYMENT") isFilled = !!(n.handoverTo || n.paidDate);
     }
 
-    if (stageName === "TAKE NOTICE ASSIGNMENT") {
-      return {
-        isFilled: true,
-        staff: n.createdBy || n.broughtBy || "Notice Department",
-        staffLabel: "Brought By",
-        count: n.qty?.toString() || "1",
-        date: n.noticeOrderDate || n.noticeDate || 'N/A',
-        remarks: `Notice Category: ${n.typeOfNotice || 'Advocate Notice'}`
-      };
-    } else if (stageName === "COLLECT NOTICE DATA") {
-      return {
-        isFilled: !!n.broughtBy,
-        staff: n.broughtBy || undefined,
-        staffLabel: "Brought By",
-        count: n.qty?.toString() || "1",
-        date: n.noticeDate || 'N/A',
-        remarks: n.broughtBy ? `Data collected by ${n.broughtBy}` : undefined
-      };
-    } else if (stageName === "PREPARE NOTICE LIST") {
-      return {
-        isFilled: !!(n.noticeRenameBy || n.scannedBy),
-        staff: n.noticeRenameBy || n.scannedBy || undefined,
-        staffLabel: "Prepared By",
-        count: n.noOfScan ? n.noOfScan.toString() : (n.qty?.toString() || "1"),
-        date: n.noticeDate || 'N/A',
-        remarks: n.noticeRenameBy ? `Notice renamed/prepared by ${n.noticeRenameBy}` : undefined
-      };
-    } else if (stageName === "GENERATE NOTICE VIA SOFTWARE/MAIL MERGE") {
-      return {
-        isFilled: !!n.printedBy,
-        staff: n.printedBy || undefined,
-        staffLabel: "Printed By",
-        count: n.noOfPrint ? n.noOfPrint.toString() : (n.qty?.toString() || "1"),
-        date: n.noticeDate || 'N/A',
-        remarks: n.printedBy ? `Notice printed by ${n.printedBy}` : undefined
-      };
-    } else if (stageName === "DISPATCH NOTICES") {
-      return {
-        isFilled: !!n.dispatchedBy,
-        staff: n.dispatchedBy || undefined,
-        staffLabel: "Dispatched By",
-        count: n.qty?.toString() || "1",
-        date: n.noticeDate || 'N/A',
-        remarks: n.dispatchedBy ? `Dispatched by ${n.dispatchedBy}` : undefined
-      };
-    } else if (stageName === "PREPARE BILL (BILL BANWANA)") {
-      return {
-        isFilled: !!(n.billNo || n.billAmount),
-        billNo: n.billNo || undefined,
-        billDate: n.billDate || undefined,
-        billAmount: n.billAmount ? n.billAmount.toString() : undefined,
-        date: n.billDate || 'N/A',
-        remarks: n.billNo ? `Bill No. ${n.billNo}` : undefined
-      };
-    } else if (stageName === "REQUEST PAYMENT") {
-      return {
-        isFilled: !!(n.handoverTo || n.paidDate),
-        staff: n.handoverTo || n.handoverBy || undefined,
-        date: n.paidDate || n.noticeDate || 'N/A',
-        file: n.handoverReceiptPhoto || undefined,
-        remarks: n.handoverRemarks || (n.paidDate ? `Payment completed on ${n.paidDate}` : undefined)
-      };
-    }
+    const followUp = parseFollowUpDetails(activeLog.followUpDetails || entry.followUpDetails);
+    const finances = parseFollowUpDetails(activeLog.financialDetails || entry.financialDetails);
 
-    return { isFilled: false };
+    const relatedDispatch = finances
+      ? logs.find(
+        log =>
+          log.id !== activeLog.id &&
+          (log.businessDevSubOption || log.subCategory || "").includes("DISPATCH NOTICE") &&
+          log.bankName === activeLog.bankName &&
+          log.branchName === activeLog.branchName &&
+          (log.businessDevOption || log.category) ===
+          (activeLog.businessDevOption || activeLog.category) &&
+          new Date(log.createdAt).getTime() >= new Date(activeLog.createdAt).getTime()
+      )
+      : undefined;
+
+    const dispatchCost = Number(relatedDispatch?.stageAmount || 0);
+    const finalGrossProfit = finances
+      ? Number(finances.totalRevenue || 0) -
+      Number(finances.bankOfficerTotal || 0) -
+      Number(finances.ownExpenses || 0) -
+      dispatchCost
+      : undefined;
+
+    const stageStaffMap: Record<string, { label: string; value?: string }> = {
+      "TAKE NOTICE ASSIGNMENT": {
+        label: "Brought By",
+        value: activeLog.broughtBy || entry.broughtBy || n?.broughtBy || n?.createdBy || activeLog.employeeName || entry.employeeName,
+      },
+      "COLLECT NOTICE DATA": {
+        label: "Brought By",
+        value: activeLog.broughtBy || entry.broughtBy || n?.broughtBy,
+      },
+      "PREPARE NOTICE LIST": {
+        label: "Prepared By",
+        value: activeLog.preparedBy || entry.preparedBy || n?.noticeRenameBy || n?.scannedBy,
+      },
+      "GENERATE NOTICE VIA SOFTWARE/MAIL MERGE": {
+        label: "Printed By",
+        value: activeLog.printedBy || entry.printedBy || n?.printedBy,
+      },
+      "DISPATCH NOTICES": {
+        label: "Dispatched By",
+        value: activeLog.dispatchedBy || entry.dispatchedBy || n?.dispatchedBy,
+      },
+      "REQUEST PAYMENT": {
+        label: "Person Name",
+        value: activeLog.personName || entry.personName || n?.handoverTo || n?.handoverBy,
+      },
+      "BILL FOLLOW UP": {
+        label: "Contacted Person",
+        value: followUp?.contactedPerson,
+      },
+    };
+
+    const stageStaff = stageStaffMap[stageName];
+
+    const count = activeLog.noOfCount || entry.noOfCount || n?.noOfScan?.toString() || n?.noOfPrint?.toString() || n?.qty?.toString() || "1";
+    const date = activeLog.allocationDate || entry.allocationDate || (activeLog.workDate ? new Date(activeLog.workDate).toLocaleDateString("en-IN") : undefined) || n?.noticeDate || n?.noticeOrderDate || 'N/A';
+
+    const billNo = activeLog.billNo || entry.billNo || n?.billNo;
+    const billDate = activeLog.billDate || entry.billDate || n?.billDate;
+    const billAmount = activeLog.billAmount || entry.billAmount || (n?.billAmount ? String(n.billAmount) : undefined);
+    const finalRate = activeLog.finalRate || entry.finalRate;
+    const expenses = activeLog.expenses || (activeLog.ownExpense !== undefined && activeLog.ownExpense !== null ? String(activeLog.ownExpense) : undefined) || entry.expenses || (entry.ownExpense !== undefined && entry.ownExpense !== null ? String(entry.ownExpense) : undefined);
+    const grossProfit = activeLog.grossProfit || entry.grossProfit;
+    const stageAmount = activeLog.stageAmount !== undefined && activeLog.stageAmount !== null ? String(activeLog.stageAmount) : (entry.stageAmount !== undefined && entry.stageAmount !== null ? String(entry.stageAmount) : undefined);
+    const file = activeLog.uploadedFileName || entry.uploadedFileName || n?.handoverReceiptPhoto;
+    const remarks = activeLog.remarks || entry.remarks || n?.handoverRemarks;
+
+    return {
+      isFilled,
+      staff: stageStaff?.value,
+      staffLabel: stageStaff?.label || "Staff In-Charge",
+      count,
+      date,
+      billNo,
+      billDate,
+      billAmount,
+      finalRate,
+      expenses,
+      grossProfit,
+      stageAmount,
+      finances,
+      dispatchCost,
+      finalGrossProfit,
+      pendingAmount: followUp?.summary?.totalPendingAmount,
+      callAt:
+        followUp?.callDate && followUp?.callTime
+          ? `${followUp.callDate} ${followUp.callTime}`
+          : followUp?.callDate,
+      file,
+      remarks
+    };
   };
 
   return (
@@ -811,8 +1287,8 @@ export default function LegalWorkEntryHistoryView({
               onChange={e => setSelectedBank(e.target.value)}
               className="w-full p-2 bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-xl text-xs font-medium text-[#1C1C1A] focus:outline-none cursor-pointer"
             >
-              <option value="ALL">All Banks ({uniqueBanks.length})</option>
-              {uniqueBanks.map((b, i) => (
+              <option value="ALL">All Banks ({allUniqueBanks.length})</option>
+              {allUniqueBanks.map((b, i) => (
                 <option key={i} value={b}>{b}</option>
               ))}
             </select>
@@ -1006,18 +1482,40 @@ export default function LegalWorkEntryHistoryView({
                       </td>
 
                       <td className="py-2 px-2 align-top">
-                        {item.uploadedFileName ? (
-                          <button
-                            type="button"
-                            onClick={() => setSelectedFilePreviewModal({ fileName: item.uploadedFileName! })}
-                            className="px-2 py-1 bg-[#FCFBF9] hover:bg-[#F5F0EA] border border-[#E8E4DF] text-[#1C1C1A] rounded-lg font-semibold text-[10px] flex items-center gap-1 cursor-pointer transition-colors"
-                          >
-                            <Paperclip className="w-3 h-3 text-[#C9A84C]" />
-                            <span className="truncate max-w-[90px]">{item.uploadedFileName}</span>
-                          </button>
-                        ) : (
-                          <span className="text-slate-400 text-[10px]">—</span>
-                        )}
+                        {(() => {
+                          // Collect all unique attachments across all grouped logs
+                          const allAttachments: Array<{ fileName: string; stage: string }> = [];
+                          const seenFiles = new Set<string>();
+                          const groupLogs = item.allLogs && item.allLogs.length > 0 ? item.allLogs : [item];
+                          groupLogs.forEach(gl => {
+                            if (gl.uploadedFileName && !seenFiles.has(gl.uploadedFileName)) {
+                              seenFiles.add(gl.uploadedFileName);
+                              allAttachments.push({
+                                fileName: gl.uploadedFileName,
+                                stage: gl.businessDevSubOption || gl.subCategory || ""
+                              });
+                            }
+                          });
+                          if (allAttachments.length === 0) {
+                            return <span className="text-slate-400 text-[10px]">—</span>;
+                          }
+                          return (
+                            <div className="flex flex-col gap-1">
+                              {allAttachments.map((att, idx) => (
+                                <button
+                                  key={idx}
+                                  type="button"
+                                  onClick={() => openFilePreview(att.fileName)}
+                                  className="px-2 py-1 bg-[#FCFBF9] hover:bg-[#F5F0EA] border border-[#E8E4DF] text-[#1C1C1A] rounded-lg font-semibold text-[10px] flex items-center gap-1 cursor-pointer transition-colors"
+                                  title={att.stage ? `${att.stage}: ${getFileNameOnly(att.fileName)}` : getFileNameOnly(att.fileName)}
+                                >
+                                  <Paperclip className="w-3 h-3 text-[#C9A84C] shrink-0" />
+                                  <span className="truncate max-w-[90px]">{getFileNameOnly(att.fileName)}</span>
+                                </button>
+                              ))}
+                            </div>
+                          );
+                        })()}
                       </td>
 
                       <td className="py-2 px-2 align-top text-right">
@@ -1026,7 +1524,7 @@ export default function LegalWorkEntryHistoryView({
                             type="button"
                             onClick={() => openEditEntry(item)}
                             className="p-1.5 text-indigo-600 hover:bg-indigo-50 border border-indigo-200 rounded transition-colors"
-                            title="Edit amount and remarks"
+                            title="Edit work entry details"
                           >
                             <Edit className="w-3 h-3" />
                           </button>
@@ -1057,31 +1555,342 @@ export default function LegalWorkEntryHistoryView({
         )}
       </div>
 
+      {/* FULL EDIT WORK ENTRY MODAL */}
       {editEntry && createPortal(
         <div className="fixed inset-0 bg-black/50 z-[10000] flex items-center justify-center p-4" onMouseDown={e => e.target === e.currentTarget && setEditEntry(null)}>
-          <div className="bg-white rounded-xl border border-slate-200 shadow-2xl w-full max-w-md overflow-hidden">
-            <div className="px-4 py-3 border-b flex items-center justify-between bg-slate-50">
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]">
+            <div className="px-5 py-3.5 border-b flex items-center justify-between bg-slate-50 shrink-0">
               <div>
-                <h3 className="text-sm font-black text-slate-800">Edit Work Entry</h3>
-                <p className="text-[10px] text-slate-500 truncate max-w-xs">{editEntry.businessDevSubOption || editEntry.subCategory}</p>
+                <h3 className="text-sm font-black text-slate-800">Edit Complete Work Entry Details</h3>
+                <p className="text-[10.5px] text-[#714B67] font-bold truncate max-w-md">{editBankName || 'Bank'} — {editSubOption || editOption}</p>
               </div>
-              <button onClick={() => setEditEntry(null)} className="p-1 text-slate-500 hover:text-slate-900"><X className="w-4 h-4" /></button>
+              <button onClick={() => setEditEntry(null)} className="p-1 text-slate-400 hover:text-slate-900 rounded-lg"><X className="w-4.5 h-4.5" /></button>
             </div>
-            <div className="p-4 space-y-3">
-              <div>
-                <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">Amount (₹)</label>
-                <input type="number" min="0" step="0.01" value={editAmount} onChange={e => setEditAmount(e.target.value)} className="w-full border border-slate-300 rounded-lg px-3 py-2 text-xs font-bold focus:outline-none focus:border-emerald-600" />
+
+            <div className="p-5 space-y-4 overflow-y-auto text-xs font-semibold text-slate-700">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <div>
+                  <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">Work Date</label>
+                  <input type="date" value={editWorkDate} onChange={e => setEditWorkDate(e.target.value)} className="w-full border border-slate-250 rounded-lg px-3 py-1.5 text-xs font-bold text-slate-800 focus:ring-[#714B67] focus:border-[#714B67]" />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">Bank Name</label>
+                  <input type="text" value={editBankName} onChange={e => setEditBankName(e.target.value)} className="w-full border border-slate-250 rounded-lg px-3 py-1.5 text-xs font-bold text-slate-800 focus:ring-[#714B67] focus:border-[#714B67]" />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">Branch Name</label>
+                  <input type="text" value={editBranchName} onChange={e => setEditBranchName(e.target.value)} className="w-full border border-slate-250 rounded-lg px-3 py-1.5 text-xs font-bold text-slate-800 focus:ring-[#714B67] focus:border-[#714B67]" />
+                </div>
               </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">Work Category / Option</label>
+                  <input type="text" value={editOption} onChange={e => setEditOption(e.target.value)} className="w-full border border-slate-250 rounded-lg px-3 py-1.5 text-xs font-bold text-slate-800 focus:ring-[#714B67] focus:border-[#714B67]" />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">Work Step / Sub-Option</label>
+                  <input type="text" value={editSubOption} onChange={e => setEditSubOption(e.target.value)} className="w-full border border-slate-250 rounded-lg px-3 py-1.5 text-xs font-bold text-slate-800 focus:ring-[#714B67] focus:border-[#714B67]" />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <div>
+                  <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">Quantity (Qty)</label>
+                  <input type="number" min="1" value={editCount} onChange={e => setEditCount(e.target.value)} className="w-full border border-slate-250 rounded-lg px-3 py-1.5 text-xs font-bold text-slate-800 focus:ring-[#714B67] focus:border-[#714B67]" />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">Bill / Stage Amount (₹)</label>
+                  <input type="number" min="0" step="0.01" value={editAmount} onChange={e => setEditAmount(e.target.value)} className="w-full border border-slate-250 rounded-lg px-3 py-1.5 text-xs font-bold text-emerald-700 focus:ring-emerald-600 focus:border-emerald-600" />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">Own Expense (₹)</label>
+                  <input type="number" min="0" step="0.01" value={editOwnExpense} onChange={e => setEditOwnExpense(e.target.value)} className="w-full border border-slate-250 rounded-lg px-3 py-1.5 text-xs font-bold text-slate-800 focus:ring-[#714B67] focus:border-[#714B67]" />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1 border-t border-slate-100">
+                <div>
+                  <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">Brought By Staff</label>
+                  <input type="text" value={editBroughtBy} onChange={e => setEditBroughtBy(e.target.value)} placeholder="Staff name" className="w-full border border-slate-250 rounded-lg px-3 py-1.5 text-xs font-bold text-slate-800" />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">Prepared By Staff</label>
+                  <input type="text" value={editPreparedBy} onChange={e => setEditPreparedBy(e.target.value)} placeholder="Staff name" className="w-full border border-slate-250 rounded-lg px-3 py-1.5 text-xs font-bold text-slate-800" />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">Printed By Staff</label>
+                  <input type="text" value={editPrintedBy} onChange={e => setEditPrintedBy(e.target.value)} placeholder="Staff name" className="w-full border border-slate-250 rounded-lg px-3 py-1.5 text-xs font-bold text-slate-800" />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">Dispatched By Staff</label>
+                  <input type="text" value={editDispatchedBy} onChange={e => setEditDispatchedBy(e.target.value)} placeholder="Staff name" className="w-full border border-slate-250 rounded-lg px-3 py-1.5 text-xs font-bold text-slate-800" />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">Bank Officer / Handover Contact</label>
+                  <input type="text" value={editPersonName} onChange={e => setEditPersonName(e.target.value)} placeholder="Officer Name" className="w-full border border-slate-250 rounded-lg px-3 py-1.5 text-xs font-bold text-slate-800" />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">Officer Phone / Contact No</label>
+                  <input type="text" value={editOfficerContactNo} onChange={e => setEditOfficerContactNo(e.target.value)} placeholder="Phone No" className="w-full border border-slate-250 rounded-lg px-3 py-1.5 text-xs font-bold text-slate-800" />
+                </div>
+              </div>
+
               <div>
-                <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">Remarks</label>
-                <textarea rows={3} value={editRemarks} onChange={e => setEditRemarks(e.target.value)} className="w-full border border-slate-300 rounded-lg px-3 py-2 text-xs resize-none focus:outline-none focus:border-indigo-600" />
+                <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">Remarks &amp; Work Execution Notes</label>
+                <textarea rows={3} value={editRemarks} onChange={e => setEditRemarks(e.target.value)} placeholder="Specific instructions or work execution notes..." className="w-full border border-slate-250 rounded-lg px-3 py-2 text-xs resize-none focus:outline-none focus:border-[#714B67]" />
               </div>
             </div>
-            <div className="px-4 py-3 border-t bg-slate-50 flex justify-end gap-2">
-              <button onClick={() => setEditEntry(null)} className="px-3 py-2 text-xs font-bold text-slate-600">Cancel</button>
-              <button disabled={savingEdit} onClick={handleSaveEdit} className="px-4 py-2 rounded-lg bg-indigo-700 text-white text-xs font-bold flex items-center gap-1.5 disabled:opacity-60">
-                <Save className="w-3.5 h-3.5" /> {savingEdit ? "Saving..." : "Save Changes"}
+
+            <div className="px-5 py-3 border-t bg-slate-50 flex justify-end gap-2 shrink-0">
+              <button onClick={() => setEditEntry(null)} className="px-3.5 py-2 text-xs font-bold text-slate-600 hover:bg-slate-200/60 rounded-lg transition-colors">Cancel</button>
+              <button disabled={savingEdit} onClick={handleSaveEdit} className="px-4 py-2 rounded-lg bg-[#714B67] hover:bg-[#5F3F56] text-white text-xs font-bold flex items-center gap-1.5 disabled:opacity-60 shadow-sm cursor-pointer active:scale-95 transition-all">
+                <Save className="w-3.5 h-3.5" /> {savingEdit ? "Saving Changes..." : "Save All Changes"}
               </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* NEXT STEP EXECUTION MODAL */}
+      {nextStepEntry && createPortal(
+        <div className="fixed inset-0 bg-black/50 z-[10000] flex items-center justify-center p-4" onMouseDown={e => e.target === e.currentTarget && setNextStepEntry(null)}>
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-2xl w-full max-w-xl overflow-hidden flex flex-col">
+            <div className="px-5 py-4 border-b flex items-center justify-between bg-[#714B67] text-white">
+              <div>
+                <h3 className="text-sm font-black mt-0.5">Fill Next Step for Notice / Work Log</h3>
+                <p className="text-[10px] text-slate-200 truncate max-w-md mt-0.5">{nextStepBankName} — {nextStepBranchName}</p>
+              </div>
+              <button onClick={() => setNextStepEntry(null)} className="p-1 text-white/80 hover:text-white rounded-lg"><X className="w-5 h-5" /></button>
+            </div>
+
+            <div className="p-5 space-y-4 text-xs font-semibold text-slate-700">
+              <div className="bg-amber-50 border border-amber-250 rounded-xl p-3 text-[11px] text-amber-800 font-bold flex items-center gap-2">
+                <ArrowRight className="w-4 h-4 text-amber-600 shrink-0" />
+                <div>
+                  <strong>Next Stage Target:</strong> Pre-selected sequence step is <span className="underline">{nextStepSubOption}</span>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">Allocation Date *</label>
+                  <input type="date" value={nextStepWorkDate} onChange={e => setNextStepWorkDate(e.target.value)} className="w-full border border-slate-250 rounded-lg px-3 py-2 text-xs font-bold text-slate-800 focus:ring-[#714B67] focus:border-[#714B67]" required />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">Select Next Work Step *</label>
+                  <select value={nextStepSubOption} onChange={e => handleNextStepStageChange(e.target.value)} className="w-full border border-slate-250 rounded-lg px-3 py-2 text-xs font-bold text-slate-800 focus:ring-[#714B67] focus:border-[#714B67]">
+                    {(STAGE_DEFINITIONS[nextStepOption] || STAGE_DEFINITIONS["ADVOCATE NOTICE"]).map((stg) => (
+                      <option key={stg} value={stg}>{stg}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {/* Dynamic Step Fields matching LegalWorkLogsView 100% */}
+              {nextStepSubOption === "TAKE NOTICE ASSIGNMENT" && (
+                <div className="space-y-3 bg-purple-50/70 p-3.5 rounded-xl border border-purple-200 animate-fade-in">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div>
+                      <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">No. of Counts *</label>
+                      <input type="number" min="1" required value={nextStepCount} onChange={e => setNextStepCount(e.target.value)} className="w-full border border-slate-250 rounded-lg px-3 py-2 text-xs font-bold text-slate-800" />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">Brought By *</label>
+                      <input type="text" required value={nextStepBroughtBy} onChange={e => setNextStepBroughtBy(e.target.value)} placeholder="Enter person name..." className="w-full border border-slate-250 rounded-lg px-3 py-2 text-xs font-bold text-slate-800" />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">Allocation Date *</label>
+                      <input type="date" required value={nextStepAllocationDate} onChange={e => setNextStepAllocationDate(e.target.value)} className="w-full border border-slate-250 rounded-lg px-3 py-2 text-xs font-bold text-slate-800" />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div>
+                      <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">Per Notice Rate (₹) *</label>
+                      <input type="number" min="0" step="0.01" value={nextStepRate} onChange={e => setNextStepRate(e.target.value)} placeholder="Rate per notice" className="w-full border border-slate-250 rounded-lg px-3 py-2 text-xs font-bold text-slate-800" />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">Bank Officer / Notice (₹) *</label>
+                      <input type="number" min="0" step="0.01" value={nextStepOfficerShare} onChange={e => setNextStepOfficerShare(e.target.value)} placeholder="Officer share" className="w-full border border-slate-250 rounded-lg px-3 py-2 text-xs font-bold text-slate-800" />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">Own Expenses (₹)</label>
+                      <input type="number" min="0" step="0.01" value={nextStepExpenses} onChange={e => setNextStepExpenses(e.target.value)} placeholder="Enter expenses" className="w-full border border-slate-250 rounded-lg px-3 py-2 text-xs font-bold text-slate-800" />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {nextStepSubOption === "COLLECT NOTICE DATA" && (
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 bg-purple-50/70 p-3.5 rounded-xl border border-purple-200 animate-fade-in">
+                  <div>
+                    <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">No. of Counts *</label>
+                    <input type="number" min="1" required value={nextStepCount} onChange={e => setNextStepCount(e.target.value)} className="w-full border border-slate-250 rounded-lg px-3 py-2 text-xs font-bold text-slate-800" />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">Brought By *</label>
+                    <input type="text" required value={nextStepBroughtBy} onChange={e => setNextStepBroughtBy(e.target.value)} placeholder="Person name who brought data..." className="w-full border border-slate-250 rounded-lg px-3 py-2 text-xs font-bold text-slate-800" />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">Upload Notice Data File (Optional)</label>
+                    <input type="file" accept=".xlsx,.xls,.csv,.pdf,.doc,.docx,.png,.jpg,.jpeg,image/*" onChange={handleNextStepFileChange} className="w-full text-[11px] font-bold text-slate-700 file:mr-2 file:py-1 file:px-2.5 file:rounded-lg file:border-0 file:text-[9.5px] file:font-black file:bg-purple-100 file:text-purple-800 cursor-pointer" />
+                    {nextStepUploadedFileName && (
+                      <div className="flex items-center gap-1.5 mt-1">
+                        <span className="text-[10px] font-bold text-purple-700 truncate">📄 {nextStepUploadedFileName}</span>
+                        <button type="button" onClick={() => openFilePreview(nextStepUploadedFileUrl || nextStepUploadedFileName)} className="shrink-0 px-1.5 py-0.5 bg-[#C9A84C] text-white rounded text-[9px] font-bold cursor-pointer hover:bg-[#b8973b]">Preview</button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {nextStepSubOption === "PREPARE NOTICE LIST" && (
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 bg-purple-50/70 p-3.5 rounded-xl border border-purple-200 animate-fade-in">
+                  <div>
+                    <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">No. of Counts *</label>
+                    <input type="number" min="1" required value={nextStepCount} onChange={e => setNextStepCount(e.target.value)} className="w-full border border-slate-250 rounded-lg px-3 py-2 text-xs font-bold text-slate-800" />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">Prepared By *</label>
+                    <input type="text" required value={nextStepPreparedBy} onChange={e => setNextStepPreparedBy(e.target.value)} placeholder="Person name who prepared list..." className="w-full border border-slate-250 rounded-lg px-3 py-2 text-xs font-bold text-slate-800" />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">Upload Notice List File (Optional)</label>
+                    <input type="file" accept=".xlsx,.xls,.csv,.pdf,.doc,.docx,.png,.jpg,.jpeg,image/*" onChange={handleNextStepFileChange} className="w-full text-[11px] font-bold text-slate-700 file:mr-2 file:py-1 file:px-2.5 file:rounded-lg file:border-0 file:text-[9.5px] file:font-black file:bg-purple-100 file:text-purple-800 cursor-pointer" />
+                    {nextStepUploadedFileName && (
+                      <div className="flex items-center gap-1.5 mt-1">
+                        <span className="text-[10px] font-bold text-purple-700 truncate">📄 {nextStepUploadedFileName}</span>
+                        <button type="button" onClick={() => openFilePreview(nextStepUploadedFileUrl || nextStepUploadedFileName)} className="shrink-0 px-1.5 py-0.5 bg-[#C9A84C] text-white rounded text-[9px] font-bold cursor-pointer hover:bg-[#b8973b]">Preview</button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {nextStepSubOption.includes("GENERATE NOTICE") && (
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 bg-purple-50/70 p-3.5 rounded-xl border border-purple-200 animate-fade-in">
+                  <div>
+                    <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">No. of Counts *</label>
+                    <input type="number" min="1" required value={nextStepCount} onChange={e => setNextStepCount(e.target.value)} className="w-full border border-slate-250 rounded-lg px-3 py-2 text-xs font-bold text-slate-800" />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">Printed By *</label>
+                    <input type="text" required value={nextStepPrintedBy} onChange={e => setNextStepPrintedBy(e.target.value)} placeholder="Person name who printed notices..." className="w-full border border-slate-250 rounded-lg px-3 py-2 text-xs font-bold text-slate-800" />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">Upload Notice File (Optional)</label>
+                    <input type="file" accept=".xlsx,.xls,.csv,.pdf,.doc,.docx,.png,.jpg,.jpeg,image/*" onChange={handleNextStepFileChange} className="w-full text-[11px] font-bold text-slate-700 file:mr-2 file:py-1 file:px-2.5 file:rounded-lg file:border-0 file:text-[9.5px] file:font-black file:bg-purple-100 file:text-purple-800 cursor-pointer" />
+                    {nextStepUploadedFileName && (
+                      <div className="flex items-center gap-1.5 mt-1">
+                        <span className="text-[10px] font-bold text-purple-700 truncate">📄 {nextStepUploadedFileName}</span>
+                        <button type="button" onClick={() => openFilePreview(nextStepUploadedFileUrl || nextStepUploadedFileName)} className="shrink-0 px-1.5 py-0.5 bg-[#C9A84C] text-white rounded text-[9px] font-bold cursor-pointer hover:bg-[#b8973b]">Preview</button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {nextStepSubOption.includes("DISPATCH NOTICE") && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 bg-purple-50/70 p-3.5 rounded-xl border border-purple-200 animate-fade-in">
+                  <div>
+                    <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">No. of Counts *</label>
+                    <input type="number" min="1" required value={nextStepCount} onChange={e => setNextStepCount(e.target.value)} className="w-full border border-slate-250 rounded-lg px-3 py-2 text-xs font-bold text-slate-800" />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">Dispatched By *</label>
+                    <input type="text" required value={nextStepDispatchedBy} onChange={e => setNextStepDispatchedBy(e.target.value)} placeholder="Person name who dispatched..." className="w-full border border-slate-250 rounded-lg px-3 py-2 text-xs font-bold text-slate-800" />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">Amount (₹) *</label>
+                    <input type="number" min="0" step="0.01" required value={nextStepAmount} onChange={e => setNextStepAmount(e.target.value)} placeholder="Enter dispatch amount..." className="w-full border border-slate-250 rounded-lg px-3 py-2 text-xs font-bold text-emerald-700" />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">Upload Dispatch Proof / File (Optional)</label>
+                    <input type="file" accept=".xlsx,.xls,.csv,.pdf,.doc,.docx,.png,.jpg,.jpeg,image/*" onChange={handleNextStepFileChange} className="w-full text-[11px] font-bold text-slate-700 file:mr-2 file:py-1 file:px-2.5 file:rounded-lg file:border-0 file:text-[9.5px] file:font-black file:bg-purple-100 file:text-purple-800 cursor-pointer" />
+                    {nextStepUploadedFileName && (
+                      <div className="flex items-center gap-1.5 mt-1">
+                        <span className="text-[10px] font-bold text-purple-700 truncate">📄 {nextStepUploadedFileName}</span>
+                        <button type="button" onClick={() => openFilePreview(nextStepUploadedFileUrl || nextStepUploadedFileName)} className="shrink-0 px-1.5 py-0.5 bg-[#C9A84C] text-white rounded text-[9px] font-bold cursor-pointer hover:bg-[#b8973b]">Preview</button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {nextStepSubOption.includes("PREPARE BILL") && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 bg-purple-50/70 p-3.5 rounded-xl border border-purple-200 animate-fade-in">
+                  <div>
+                    <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">Bill Date *</label>
+                    <input type="date" required value={nextStepBillDate} onChange={e => setNextStepBillDate(e.target.value)} className="w-full border border-slate-250 rounded-lg px-3 py-2 text-xs font-bold text-slate-800" />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">Bill Amount (₹) *</label>
+                    <input type="number" min="0" step="0.01" required value={nextStepBillAmount} onChange={e => setNextStepBillAmount(e.target.value)} placeholder="Enter amount..." className="w-full border border-slate-250 rounded-lg px-3 py-2 text-xs font-bold text-emerald-700" />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">Bill No. *</label>
+                    <input type="text" required value={nextStepBillNo} onChange={e => setNextStepBillNo(e.target.value)} placeholder="Enter bill number..." className="w-full border border-slate-250 rounded-lg px-3 py-2 text-xs font-bold text-slate-800" />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">Upload Bill File (Optional)</label>
+                    <input type="file" accept=".xlsx,.xls,.csv,.pdf,.doc,.docx,.png,.jpg,.jpeg,image/*" onChange={handleNextStepFileChange} className="w-full text-[11px] font-bold text-slate-700 file:mr-2 file:py-1 file:px-2.5 file:rounded-lg file:border-0 file:text-[9.5px] file:font-black file:bg-purple-100 file:text-purple-800 cursor-pointer" />
+                    {nextStepUploadedFileName && (
+                      <div className="flex items-center gap-1.5 mt-1">
+                        <span className="text-[10px] font-bold text-purple-700 truncate">📄 {nextStepUploadedFileName}</span>
+                        <button type="button" onClick={() => openFilePreview(nextStepUploadedFileUrl || nextStepUploadedFileName)} className="shrink-0 px-1.5 py-0.5 bg-[#C9A84C] text-white rounded text-[9px] font-bold cursor-pointer hover:bg-[#b8973b]">Preview</button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {nextStepSubOption.includes("REQUEST PAYMENT") && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 bg-purple-50/70 p-3.5 rounded-xl border border-purple-200 animate-fade-in">
+                  <div>
+                    <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">Amount (₹) *</label>
+                    <input type="number" min="0" step="0.01" required value={nextStepAmount} onChange={e => setNextStepAmount(e.target.value)} placeholder="Enter amount..." className="w-full border border-slate-250 rounded-lg px-3 py-2 text-xs font-bold text-emerald-700" />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">Person Name (Optional)</label>
+                    <input type="text" value={nextStepPersonName} onChange={e => setNextStepPersonName(e.target.value)} placeholder="Enter person name..." className="w-full border border-slate-250 rounded-lg px-3 py-2 text-xs font-bold text-slate-800" />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">Allocated Date *</label>
+                    <input type="date" required value={nextStepAllocationDate} onChange={e => setNextStepAllocationDate(e.target.value)} className="w-full border border-slate-250 rounded-lg px-3 py-2 text-xs font-bold text-slate-800" />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">Upload File (Optional)</label>
+                    <input type="file" accept=".xlsx,.xls,.csv,.pdf,.doc,.docx,.png,.jpg,.jpeg,image/*" onChange={handleNextStepFileChange} className="w-full text-[11px] font-bold text-slate-700 file:mr-2 file:py-1 file:px-2.5 file:rounded-lg file:border-0 file:text-[9.5px] file:font-black file:bg-purple-100 file:text-purple-800 cursor-pointer" />
+                    {nextStepUploadedFileName && (
+                      <div className="flex items-center gap-1.5 mt-1">
+                        <span className="text-[10px] font-bold text-purple-700 truncate">📄 {nextStepUploadedFileName}</span>
+                        <button type="button" onClick={() => openFilePreview(nextStepUploadedFileUrl || nextStepUploadedFileName)} className="shrink-0 px-1.5 py-0.5 bg-[#C9A84C] text-white rounded text-[9px] font-bold cursor-pointer hover:bg-[#b8973b]">Preview</button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              <div>
+                <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">Remarks &amp; Execution Summary</label>
+                <textarea rows={3} value={nextStepRemarks} onChange={e => setNextStepRemarks(e.target.value)} placeholder="Enter details for this next step execution..." className="w-full border border-slate-250 rounded-lg px-3 py-2 text-xs resize-none focus:outline-none focus:border-[#714B67]" />
+              </div>
+            </div>
+
+            <div className="px-5 py-3 border-t bg-slate-50 flex items-center justify-between gap-2 shrink-0">
+              <button onClick={() => setNextStepEntry(null)} className="px-3.5 py-2 text-xs font-bold text-slate-600 hover:bg-slate-200/60 rounded-lg transition-colors">Cancel</button>
+              <div className="flex items-center gap-2">
+                <button disabled={submittingNextStep} onClick={() => handleSaveNextStep(true)} className="px-4 py-2 rounded-lg bg-amber-600 hover:bg-amber-700 text-white text-xs font-black flex items-center gap-1.5 disabled:opacity-60 shadow-xs cursor-pointer active:scale-95 transition-all">
+                  <ArrowRight className="w-3.5 h-3.5" /> Save &amp; Proceed to Next Stage ➔
+                </button>
+                <button disabled={submittingNextStep} onClick={() => handleSaveNextStep(false)} className="px-5 py-2 rounded-lg bg-[#714B67] hover:bg-[#5F3F56] text-white text-xs font-black flex items-center gap-1.5 disabled:opacity-60 shadow-md cursor-pointer active:scale-95 transition-all">
+                  <CheckCircle2 className="w-3.5 h-3.5" /> {submittingNextStep ? "Saving..." : "Save & Close"}
+                </button>
+              </div>
             </div>
           </div>
         </div>,
@@ -1186,18 +1995,27 @@ export default function LegalWorkEntryHistoryView({
                     const info = getStageFilledDetails(selectedEntryDetail, selectedStageTab);
                     return (
                       <div className="space-y-4 animate-fade-in">
-                        <div className="p-4 bg-[#FCFBF9] rounded-2xl border border-[#E8E4DF] space-y-1">
-                          <span className="text-[9px] font-bold uppercase tracking-wider text-[#9C9890]">Inspect Work Stage</span>
-                          <h3 className="text-sm font-bold text-[#1C1C1A] uppercase">{selectedStageTab}</h3>
-                          {info.isFilled ? (
-                            <span className="inline-block px-2.5 py-0.5 bg-[#C9A84C] text-white rounded-full text-[10px] font-bold uppercase tracking-wider mt-1 shadow-2xs">
-                              Stage Completed / Details Filled
-                            </span>
-                          ) : (
-                            <span className="inline-block px-2.5 py-0.5 bg-[#E8E4DF] text-[#5D5B57] rounded-full text-[10px] font-bold uppercase tracking-wider mt-1">
-                              Stage Pending
-                            </span>
-                          )}
+                        <div className="p-4 bg-[#FCFBF9] rounded-2xl border border-[#E8E4DF] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                          <div className="space-y-1">
+                            <span className="text-[9px] font-bold uppercase tracking-wider text-[#9C9890]">Inspect Work Stage</span>
+                            <h3 className="text-sm font-bold text-[#1C1C1A] uppercase">{selectedStageTab}</h3>
+                            {info.isFilled ? (
+                              <span className="inline-block px-2.5 py-0.5 bg-[#C9A84C] text-white rounded-full text-[10px] font-bold uppercase tracking-wider shadow-2xs">
+                                Stage Completed / Details Filled
+                              </span>
+                            ) : (
+                              <span className="inline-block px-2.5 py-0.5 bg-[#E8E4DF] text-[#5D5B57] rounded-full text-[10px] font-bold uppercase tracking-wider">
+                                Stage Pending
+                              </span>
+                            )}
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => openNextStepModal(selectedEntryDetail)}
+                            className="px-3.5 py-2 bg-[#714B67] hover:bg-[#5F3F56] text-white rounded-xl text-xs font-black flex items-center gap-1.5 cursor-pointer shadow-sm active:scale-95 transition-all self-start sm:self-center"
+                          >
+                            <ArrowRight className="w-3.5 h-3.5" /> + Fill &amp; Execute Stage
+                          </button>
                         </div>
 
                         {/* Stage Fields Breakdown */}
@@ -1303,20 +2121,46 @@ export default function LegalWorkEntryHistoryView({
                             <div className="flex items-center justify-between p-3.5 bg-[#FCFBF9] border border-[#E8E4DF] rounded-xl">
                               <div className="flex items-center gap-2">
                                 <Paperclip className="w-4 h-4 text-[#1C1C1A] shrink-0" />
-                                <span className="text-xs font-bold text-[#1C1C1A] truncate max-w-[220px]">{info.file || selectedEntryDetail.uploadedFileName}</span>
+                                <span className="text-xs font-bold text-[#1C1C1A] truncate max-w-[220px]">{getFileNameOnly(info.file || selectedEntryDetail.uploadedFileName)}</span>
                               </div>
 
-                              <button
-                                type="button"
-                                onClick={() => setSelectedFilePreviewModal({ fileName: (info.file || selectedEntryDetail.uploadedFileName)! })}
-                                className="px-3 py-1.5 bg-[#C9A84C] hover:bg-[#b8973b] text-white font-bold text-xs rounded-lg flex items-center gap-1 shadow-xs cursor-pointer transition-colors"
-                              >
-                                <Eye className="w-3.5 h-3.5" /> Preview Document
-                              </button>
+                              <div className="flex items-center gap-2">
+                                <button
+                                  type="button"
+                                  onClick={() => openFilePreview((info.file || selectedEntryDetail.uploadedFileName)!)}
+                                  className="px-3 py-1.5 bg-[#C9A84C] hover:bg-[#b8973b] text-white font-bold text-xs rounded-lg flex items-center gap-1 shadow-xs cursor-pointer transition-colors"
+                                >
+                                  <Eye className="w-3.5 h-3.5" /> Preview Document
+                                </button>
+                                <label className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-lg flex items-center gap-1 shadow-xs cursor-pointer transition-colors">
+                                  <span>📤 Replace File</span>
+                                  <input
+                                    type="file"
+                                    accept=".xlsx,.xls,.csv,.pdf,.doc,.docx,.png,.jpg,.jpeg,image/*"
+                                    className="hidden"
+                                    onChange={(e) => {
+                                      const file = e.target.files?.[0];
+                                      if (file && selectedStageTab) handleStageFileUpload(selectedEntryDetail, selectedStageTab, file);
+                                    }}
+                                  />
+                                </label>
+                              </div>
                             </div>
                           ) : (
-                            <div className="p-3 bg-[#FCFBF9] border border-[#E8E4DF] rounded-xl text-xs text-slate-400 font-medium italic">
-                              No document file attached for this entry stage.
+                            <div className="p-3.5 bg-[#FCFBF9] border border-[#E8E4DF] rounded-xl flex items-center justify-between">
+                              <span className="text-xs text-slate-400 font-medium italic">No document file attached for this entry stage.</span>
+                              <label className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-lg flex items-center gap-1 shadow-xs cursor-pointer transition-colors">
+                                <span>📤 Upload Document</span>
+                                <input
+                                  type="file"
+                                  accept=".xlsx,.xls,.csv,.pdf,.doc,.docx,.png,.jpg,.jpeg,image/*"
+                                  className="hidden"
+                                  onChange={(e) => {
+                                    const file = e.target.files?.[0];
+                                    if (file && selectedStageTab) handleStageFileUpload(selectedEntryDetail, selectedStageTab, file);
+                                  }}
+                                />
+                              </label>
                             </div>
                           )}
                         </div>
@@ -1340,7 +2184,14 @@ export default function LegalWorkEntryHistoryView({
             </div>
 
             {/* Modal Footer */}
-            <div className="p-4 bg-white border-t border-[#E8E4DF] flex justify-end shrink-0">
+            <div className="p-4 bg-white border-t border-[#E8E4DF] flex items-center justify-between shrink-0">
+              <button
+                type="button"
+                onClick={() => openNextStepModal(selectedEntryDetail)}
+                className="px-4 py-2 bg-[#714B67] hover:bg-[#5F3F56] text-white rounded-xl text-xs font-black flex items-center gap-1.5 cursor-pointer shadow-sm active:scale-95 transition-all"
+              >
+                <ArrowRight className="w-3.5 h-3.5" /> + Fill Next Stage Entry
+              </button>
               <button
                 type="button"
                 onClick={() => setSelectedEntryDetail(null)}
@@ -1366,10 +2217,10 @@ export default function LegalWorkEntryHistoryView({
             role="dialog"
             aria-modal="true"
             aria-label="Attachment preview"
-            className="bg-white rounded-2xl p-5 max-w-md w-full space-y-4 shadow-2xl relative border border-[#E8E4DF] animate-scale-in"
+            className="bg-white rounded-2xl p-5 max-w-lg w-full space-y-4 shadow-2xl relative border border-[#E8E4DF] animate-scale-in"
           >
             <div className="flex justify-between items-center pb-2 border-b border-[#E8E4DF]">
-              <h4 className="text-xs font-bold text-[#1C1C1A] uppercase tracking-wider flex items-center gap-1.5">
+              <h4 className="text-xs font-bold text-[#1C1C1A] uppercase tracking-wider flex items-center gap-1.5 truncate max-w-[85%]">
                 📄 Attachment Preview: {selectedFilePreviewModal.fileName}
               </h4>
               <button
@@ -1380,12 +2231,112 @@ export default function LegalWorkEntryHistoryView({
                 ✕
               </button>
             </div>
-            <div className="text-center py-8 bg-[#FCFBF9] rounded-xl p-4 border border-[#E8E4DF] space-y-2">
-              <FileText className="w-10 h-10 text-[#C9A84C] mx-auto" />
-              <p className="text-xs font-bold text-[#1C1C1A]">{selectedFilePreviewModal.fileName}</p>
-              <p className="text-[10px] text-[#5D5B57] font-medium">Document attached to this work entry stage.</p>
+
+            <div className="min-h-[220px] max-h-[420px] overflow-auto flex flex-col items-center justify-center bg-[#FCFBF9] rounded-xl p-4 border border-[#E8E4DF] space-y-3">
+              {(() => {
+                const displayUrl = selectedFilePreviewModal.fileUrl || selectedFilePreviewModal.fileName;
+                const isImage = selectedFilePreviewModal.fileName.match(/\.(png|jpg|jpeg|gif|webp|bmp|svg)$/i) || displayUrl.startsWith("data:image/");
+                const isPdf = selectedFilePreviewModal.fileName.match(/\.(pdf)$/i) || displayUrl.includes(".pdf");
+
+                if (previewFileError) {
+                  return (
+                    <div className="flex flex-col items-center justify-center text-center space-y-3 py-6">
+                      <FileText className="w-12 h-12 text-amber-500 mx-auto" />
+                      <p className="text-xs font-bold text-[#1C1C1A]">{selectedFilePreviewModal.fileName}</p>
+                      <p className="text-[11px] text-amber-800 font-semibold bg-amber-50 border border-amber-200 px-3 py-1.5 rounded-lg max-w-sm">
+                        ⚠️ File "{selectedFilePreviewModal.fileName}" was missing on server. Select a file below to upload it.
+                      </p>
+                      {selectedEntryDetail && selectedStageTab && (
+                        <label className="mt-1 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs rounded-xl flex items-center gap-2 cursor-pointer shadow-md transition-all active:scale-95">
+                          <span>📤 Select &amp; Upload Document File</span>
+                          <input
+                            type="file"
+                            accept=".xlsx,.xls,.csv,.pdf,.doc,.docx,.png,.jpg,.jpeg,image/*"
+                            className="hidden"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file && selectedStageTab) {
+                                setSelectedFilePreviewModal(null);
+                                handleStageFileUpload(selectedEntryDetail, selectedStageTab, file);
+                              }
+                            }}
+                          />
+                        </label>
+                      )}
+                    </div>
+                  );
+                }
+
+                if (isImage) {
+                  return (
+                    <img
+                      src={displayUrl}
+                      alt={selectedFilePreviewModal.fileName}
+                      className="max-h-[360px] w-auto max-w-full object-contain rounded-lg shadow-md border border-slate-200"
+                      onError={(e) => {
+                        const target = e.target as HTMLImageElement;
+                        if (!target.dataset.retried && !displayUrl.startsWith("data:") && !displayUrl.startsWith("http")) {
+                          target.dataset.retried = "true";
+                          if (displayUrl.startsWith("/uploads/")) {
+                            target.src = displayUrl.replace("/uploads/", "/hrms/");
+                            return;
+                          } else if (displayUrl.startsWith("/hrms/")) {
+                            target.src = displayUrl.replace("/hrms/", "/uploads/");
+                            return;
+                          }
+                        }
+                        setPreviewFileError(true);
+                      }}
+                    />
+                  );
+                }
+
+                if (isPdf) {
+                  return (
+                    <iframe
+                      src={displayUrl}
+                      className="w-full h-[360px] rounded-lg border border-slate-200"
+                      title="PDF Preview"
+                    />
+                  );
+                }
+
+                return (
+                  <div className="text-center py-6 space-y-2">
+                    <FileText className="w-12 h-12 text-[#C9A84C] mx-auto" />
+                    <p className="text-xs font-bold text-[#1C1C1A]">{selectedFilePreviewModal.fileName}</p>
+                    <p className="text-[10px] text-[#5D5B57] font-medium">Document attached to this work entry stage.</p>
+                  </div>
+                );
+              })()}
+
+              <div className="img-fallback hidden flex-col items-center justify-center text-center space-y-2 py-4">
+                <FileText className="w-10 h-10 text-[#C9A84C] mx-auto" />
+                <p className="text-xs font-bold text-[#1C1C1A]">{selectedFilePreviewModal.fileName}</p>
+                <p className="text-[10px] text-amber-700 font-semibold">Attached document file.</p>
+              </div>
             </div>
-            <div className="flex justify-end pt-1">
+
+            <div className="flex items-center justify-between pt-1">
+              {previewFileError ? (
+                <button
+                  type="button"
+                  onClick={() => alert(`The attached document '${selectedFilePreviewModal.fileName}' is not available on the server.`)}
+                  className="text-xs font-bold text-amber-700 bg-amber-50 hover:bg-amber-100 border border-amber-200 px-3 py-1.5 rounded-lg flex items-center gap-1 cursor-pointer"
+                >
+                  ⚠️ File Not Available On Server
+                </button>
+              ) : (
+                <a
+                  href={selectedFilePreviewModal.fileUrl || selectedFilePreviewModal.fileName}
+                  target="_blank"
+                  rel="noreferrer"
+                  download={selectedFilePreviewModal.fileName}
+                  className="text-xs font-bold text-[#714B67] hover:underline flex items-center gap-1 cursor-pointer"
+                >
+                  ⬇️ Open / Download Document
+                </a>
+              )}
               <button
                 type="button"
                 onClick={() => setSelectedFilePreviewModal(null)}

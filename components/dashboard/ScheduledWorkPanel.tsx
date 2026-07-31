@@ -667,7 +667,11 @@ export default function ScheduledWorkPanel({ sessionUser, triggerToast }: Schedu
 
                       {/* Work Section Column */}
                       <td className="py-1.5 px-2 font-extrabold text-slate-900">
-                        <span className="line-clamp-2">{item.workSection}</span>
+                        <span className="line-clamp-2">
+                          {(item.workSection === "Others" || item.workSection === "Other" || item.workSection === "others")
+                            ? (item.customLocation || item.otherType || item.details || item.remarks || item.workSection)
+                            : item.workSection}
+                        </span>
                       </td>
 
                       {/* Type Column */}

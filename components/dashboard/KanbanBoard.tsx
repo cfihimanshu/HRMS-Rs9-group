@@ -1216,40 +1216,207 @@ export default function KanbanBoard({
     return matchUser && matchDate && matchQuery;
   });
 
-  const handleExportTasks = () => {
-    const headers = ["Task ID", "Title", "Type", "Description", "Status", "Created By", "Forwarded To", "Created At", "Progress Notes"];
-    const rows = filteredTasks.map(t => {
-      let notesText = "";
-      if (t.progressNotes) {
-        try {
-          const parsed = JSON.parse(t.progressNotes);
-          if (Array.isArray(parsed)) {
-            notesText = parsed.map(n => `[${n.userName || "System"} at ${new Date(n.createdAt).toLocaleDateString("en-IN")}]: ${n.note}`).join("\n");
+  const parseTaskDescription = (rawDesc: string = "", task: Task) => {
+    let bankName = (task as any).bankName || "";
+    let branchName = (task as any).branchName || "";
+    let staffParts: string[] = [];
+    let billParts: string[] = [];
+    let cleanRemarksParts: string[] = [];
+
+    if (rawDesc) {
+      const segments = rawDesc.split("|").map(s => s.trim()).filter(Boolean);
+      segments.forEach(seg => {
+        // Filter out N/A sub-items
+        const subItems = seg.split(",").map(i => i.trim()).filter(i => {
+          return i && !i.match(/^[\w\s]+:\s*N\/A$/i) && !i.match(/^N\/A$/i);
+        });
+
+        if (subItems.length === 0) return;
+
+        subItems.forEach(item => {
+          if (/^Bank:\s*/i.test(item)) {
+            if (!bankName) bankName = item.replace(/^Bank:\s*/i, "").trim();
+          } else if (/^Branch:\s*/i.test(item)) {
+            if (!branchName) branchName = item.replace(/^Branch:\s*/i, "").trim();
+          } else if (/^(Brought By|Printed By|Dispatched By|Prepared By|Person):\s*/i.test(item)) {
+            staffParts.push(item);
+          } else if (/^(Bill No|Amount|Per Notice Rate|Officer\/Notice|Own Expenses|GP before dispatch):\s*/i.test(item)) {
+            billParts.push(item);
+          } else if (/^Remarks:\s*/i.test(item)) {
+            const remVal = item.replace(/^Remarks:\s*/i, "").trim();
+            if (remVal) cleanRemarksParts.push(remVal);
           } else {
-            notesText = t.progressNotes;
+            cleanRemarksParts.push(item);
           }
-        } catch (e) {
-          notesText = t.progressNotes;
+        });
+      });
+    }
+
+    const fallbackDesc = rawDesc
+      ? rawDesc
+          .replace(/Brought By: N\/A,?\s*/gi, "")
+          .replace(/Printed By: N\/A,?\s*/gi, "")
+          .replace(/Dispatched By: N\/A,?\s*/gi, "")
+          .replace(/Bill No: N\/A,?\s*/gi, "")
+          .replace(/\|\s*\|/g, "|")
+          .replace(/^\|\s*|\s*\|$/g, "")
+          .trim()
+      : "";
+
+    return {
+      bankName: bankName || "-",
+      branchName: branchName || "-",
+      staffInCharge: staffParts.length > 0 ? staffParts.join("; ") : "-",
+      financials: billParts.length > 0 ? billParts.join("; ") : "-",
+      cleanDescription: cleanRemarksParts.length > 0 ? cleanRemarksParts.join(" | ") : (fallbackDesc || "-")
+    };
+  };
+
+  const getFormattedProgressNotes = (t: Task) => {
+    const noteList: string[] = [];
+
+    if (t.progressNotes) {
+      try {
+        const parsed = typeof t.progressNotes === "string" ? JSON.parse(t.progressNotes) : t.progressNotes;
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          parsed.forEach((n: any) => {
+            const author = n.userName || n.author || n.user || "System";
+            const dtStr = n.createdAt
+              ? new Date(n.createdAt).toLocaleString("en-IN", {
+                  day: "2-digit",
+                  month: "short",
+                  year: "numeric",
+                  hour: "2-digit",
+                  minute: "2-digit"
+                })
+              : "";
+            const text = n.note || n.text || n.message || "";
+            if (text) {
+              noteList.push(dtStr ? `[${author} on ${dtStr}]: ${text}` : `[${author}]: ${text}`);
+            }
+          });
+        } else if (typeof parsed === "string" && parsed.trim()) {
+          noteList.push(parsed.trim());
+        } else if (typeof parsed === "object" && parsed !== null && (parsed as any).note) {
+          noteList.push((parsed as any).note);
+        }
+      } catch (e) {
+        if (typeof t.progressNotes === "string" && t.progressNotes.trim()) {
+          noteList.push(t.progressNotes.trim());
         }
       }
-      const createdBy = (t.employee as any)?.name || "Unknown User";
-      const forwardedTo = (t.forwardedUser as any)?.name || "-";
+    }
+
+    if (t.followUpHistory) {
+      try {
+        const parsedFwd = typeof t.followUpHistory === "string" ? JSON.parse(t.followUpHistory) : t.followUpHistory;
+        if (Array.isArray(parsedFwd) && parsedFwd.length > 0) {
+          parsedFwd.forEach((f: any) => {
+            const author = f.userName || f.user || f.callerName || "System";
+            const dtStr = f.createdAt || f.scheduledAt
+              ? new Date(f.createdAt || f.scheduledAt).toLocaleString("en-IN", {
+                  day: "2-digit",
+                  month: "short",
+                  year: "numeric",
+                  hour: "2-digit",
+                  minute: "2-digit"
+                })
+              : "";
+            const details = f.details || f.remarks || f.note || (f.scheduledAt ? `Follow-up scheduled for ${dtStr}` : "");
+            if (details) {
+              noteList.push(dtStr ? `[Follow-Up by ${author} on ${dtStr}]: ${details}` : `[Follow-Up by ${author}]: ${details}`);
+            }
+          });
+        } else if (typeof t.followUpHistory === "string" && t.followUpHistory.trim()) {
+          noteList.push(t.followUpHistory.trim());
+        }
+      } catch (e) {
+        if (typeof t.followUpHistory === "string" && t.followUpHistory.trim()) {
+          noteList.push(t.followUpHistory.trim());
+        }
+      }
+    }
+
+    return noteList.length > 0 ? noteList.join("\n") : "-";
+  };
+
+  const handleExportTasks = () => {
+    const headers = [
+      "Task ID",
+      "Task Title",
+      "Type / Category",
+      "Bank Name",
+      "Branch Name",
+      "Staff In-Charge",
+      "Financial Details",
+      "Description / Remarks",
+      "Status",
+      "Created By",
+      "Forwarded To",
+      "Scheduled Date & Time",
+      "Created Date",
+      "Progress Notes"
+    ];
+
+    const rows = filteredTasks.map(t => {
+      const notesText = getFormattedProgressNotes(t);
+
+      const createdBy = (t.employee as any)?.name || (t.assignedByUser as any)?.name || "System User";
+      
+      let forwardedTo = "-";
+      if ((t.forwardedUser as any)?.name) {
+        forwardedTo = (t.forwardedUser as any).name;
+      } else if (t.forwardedTo) {
+        const matched = companyUsers.find((u: any) =>
+          String(u.id) === String(t.forwardedTo) ||
+          String(u.email || "").toLowerCase() === String(t.forwardedTo).toLowerCase() ||
+          String(u.name || "").toLowerCase() === String(t.forwardedTo).toLowerCase()
+        );
+        if (matched) {
+          forwardedTo = matched.name;
+        } else {
+          const rawFwd = String(t.forwardedTo).trim();
+          if (rawFwd && rawFwd !== "null" && rawFwd !== "undefined") {
+            forwardedTo = rawFwd;
+          }
+        }
+      }
+
+      const parsedDesc = parseTaskDescription(t.description || "", t);
+
+      let scheduledStr = "-";
+      if (t.scheduledAt) {
+        try {
+          scheduledStr = new Date(t.scheduledAt).toLocaleString("en-IN", {
+            day: "2-digit", month: "short", year: "numeric",
+            hour: "2-digit", minute: "2-digit"
+          });
+        } catch (e) {
+          scheduledStr = String(t.scheduledAt);
+        }
+      }
+
       return {
-        "Task ID": t.id,
-        "Title": t.taskTitle,
-        "Type": t.taskType,
-        "Description": t.description || "",
-        "Status": t.status,
+        "Task ID": t.id || "-",
+        "Task Title": t.taskTitle || "-",
+        "Type / Category": t.taskType || "General",
+        "Bank Name": parsedDesc.bankName,
+        "Branch Name": parsedDesc.branchName,
+        "Staff In-Charge": parsedDesc.staffInCharge,
+        "Financial Details": parsedDesc.financials,
+        "Description / Remarks": parsedDesc.cleanDescription,
+        "Status": t.status || "Pending",
         "Created By": createdBy,
         "Forwarded To": forwardedTo,
-        "Created At": t.createdAt ? new Date(t.createdAt).toLocaleDateString("en-IN") : t.date || "",
+        "Scheduled Date & Time": scheduledStr,
+        "Created Date": t.createdAt ? new Date(t.createdAt).toLocaleDateString("en-IN") : (t.date || "-"),
         "Progress Notes": notesText
       };
     });
 
     const worksheet = XLSX.utils.json_to_sheet(rows, { header: headers });
 
-    // Set auto widths based on content
+    // Set auto column widths
     const max_widths = headers.map(h => {
       let max_len = h.length;
       rows.forEach(r => {
@@ -1259,14 +1426,27 @@ export default function KanbanBoard({
           if (l.length > max_len) max_len = l.length;
         });
       });
-      return { wch: Math.min(Math.max(max_len + 2, 10), 60) };
+      return { wch: Math.min(Math.max(max_len + 2, 12), 65) };
     });
     worksheet["!cols"] = max_widths;
 
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Tasks");
+    // Create Summary Sheet
+    const summaryRows = [
+      { Metric: "Total Exported Tasks", Value: filteredTasks.length },
+      { Metric: "Pending Tasks", Value: filteredTasks.filter(t => t.status === "Pending").length },
+      { Metric: "In Progress Tasks", Value: filteredTasks.filter(t => t.status === "In Progress").length },
+      { Metric: "Completed Tasks", Value: filteredTasks.filter(t => t.status === "Completed").length },
+      { Metric: "Export Date", Value: new Date().toLocaleString("en-IN") },
+      { Metric: "Exported By Filter", Value: filterUser === "All" ? "All Users" : filterUser }
+    ];
+    const summaryWorksheet = XLSX.utils.json_to_sheet(summaryRows);
+    summaryWorksheet["!cols"] = [{ wch: 25 }, { wch: 30 }];
 
-    const fileName = `Tasks_Export_${filterUser === "All" ? "All_Users" : filterUser.replace(/\s+/g, "_")}_${new Date().toISOString().slice(0, 10)}.xlsx`;
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Task Details");
+    XLSX.utils.book_append_sheet(workbook, summaryWorksheet, "Report Summary");
+
+    const fileName = `Task_Report_${filterUser === "All" ? "All_Users" : filterUser.replace(/\s+/g, "_")}_${new Date().toISOString().slice(0, 10)}.xlsx`;
     XLSX.writeFile(workbook, fileName);
   };
 
