@@ -13,6 +13,7 @@ import { DataTypes, Op } from "sequelize";
 async function initDB() {
   await sequelize.authenticate();
   await LegalRecoverySchedule.sync();
+  await EmployeeProfile.sync().catch(() => {});
   try {
     const queryInterface = sequelize.getQueryInterface();
     const tableDesc: any = await queryInterface.describeTable("legal_recovery_schedules");
@@ -148,65 +149,100 @@ export async function GET(req: Request) {
 
       enrichedSchedules = enrichedSchedules.map((json: any) => {
         let matchedTask: any =
-          taskByIdMap.get(String(json.taskId)) ||
-          taskBySchMap.get(String(json.id)) ||
-          taskByIdMap.get(String(json.id)) ||
-          taskBySchMap.get(String(json.taskId));
+          taskByIdMap.get(String(json.taskId || "").trim()) ||
+          taskBySchMap.get(String(json.id || "").trim()) ||
+          taskByIdMap.get(String(json.id || "").trim()) ||
+          taskBySchMap.get(String(json.taskId || "").trim());
 
-        if (!matchedTask) {
-          matchedTask = empTasks.find((t: any) => {
-            if (String(t.employee) !== String(json.employeeId)) return false;
+        // Find candidate tasks for this employee on the same date
+        const sameEmpDateTasks = empTasks.filter((t: any) => {
+          const tEmp = String(t.employee || "").trim().toLowerCase();
+          const sEmpId = String(json.employeeId || "").trim().toLowerCase();
+          const sUserEmail = String(json.user?.email || "").trim().toLowerCase();
 
+          const empMatches = tEmp === sEmpId || (sUserEmail && tEmp === sUserEmail);
+          if (!empMatches) return false;
+
+          const taskDateStr = t.date ? new Date(t.date).toISOString().slice(0, 10) : "";
+          const schedDateStr = String(json.date || "").trim();
+          if (taskDateStr && schedDateStr && taskDateStr !== schedDateStr) return false;
+
+          return true;
+        });
+
+        if (!matchedTask && sameEmpDateTasks.length > 0) {
+          // 1. Try matching by exact ID / scheduleId
+          matchedTask = sameEmpDateTasks.find((t: any) => {
             const tId = String(t.id || "").trim();
             const sId = String(t.scheduleId || "").trim();
             const jsonId = String(json.id || "").trim();
             const jsonTaskId = String(json.taskId || "").trim();
 
-            if (sId && (sId === jsonId || sId === jsonTaskId)) return true;
-            if (tId && (tId === jsonId || tId === jsonTaskId)) return true;
-            if (jsonId && tId && jsonId.includes(tId)) return true;
-            if (jsonTaskId && tId && jsonTaskId.includes(tId)) return true;
-
-            const title = (t.taskTitle || "").toLowerCase().trim();
-            const desc = (t.description || "").toLowerCase().trim();
-            const taskType = (t.taskType || "").toLowerCase().trim();
-            const workSec = (json.workSection || "").toLowerCase().trim();
-            const typeStr = (json.type || "").toLowerCase().trim();
-            const bank = (json.bankName || "").toLowerCase().trim();
-
-            const typeMatches = !typeStr || typeStr === "general" || typeStr === "others" ||
-                                taskType === typeStr || title.includes(typeStr) || title.includes(`[${typeStr}]`) || desc.includes(typeStr);
-
-            if (!typeMatches) return false;
-
-            if (workSec && (title.includes(workSec) || desc.includes(workSec) || title === workSec)) return true;
-            if (bank && bank.length > 1 && (title.includes(bank) || desc.includes(bank))) return true;
-
+            if (sId && (sId === jsonId || (jsonTaskId && sId === jsonTaskId))) return true;
+            if (tId && (tId === jsonId || (jsonTaskId && tId === jsonTaskId))) return true;
             return false;
           });
+
+          // 2. Try matching by bankName / workSection / type
+          if (!matchedTask) {
+            const workSec = (json.workSection || "").toLowerCase().trim();
+            const bank = (json.bankName || "").toLowerCase().trim();
+            const type = (json.type || "").toLowerCase().trim();
+
+            matchedTask = sameEmpDateTasks.find((t: any) => {
+              const title = (t.taskTitle || "").toLowerCase().trim();
+              const desc = (t.description || "").toLowerCase().trim();
+
+              if (bank && (title.includes(bank) || desc.includes(bank))) return true;
+              if (workSec && workSec !== "general" && (title.includes(workSec) || desc.includes(workSec))) return true;
+              if (type && type !== "general" && (title.includes(type) || desc.includes(type))) return true;
+              return false;
+            });
+          }
+
+          // 3. Fallback: Take non-completed task or first matching task on that date
+          if (!matchedTask) {
+            matchedTask = sameEmpDateTasks.find((t: any) => (t.status || "").toLowerCase() !== "completed") || sameEmpDateTasks[0];
+          }
         }
 
-        const dbStatus = (json.status || "").toLowerCase().trim();
-        const taskStatus = (matchedTask?.status || "").toLowerCase().trim();
-        const isTimerRunning = matchedTask?.timerState === "Running";
-        const hasProof = !!(matchedTask?.proofAttachment || json.proofAttachment);
-
         let liveStatus = "Pending";
-        if (
-          dbStatus === "completed" || dbStatus === "done" ||
-          taskStatus === "completed" || taskStatus === "done" ||
-          (hasProof && !isTimerRunning)
-        ) {
-          liveStatus = "Completed";
-        } else if (
-          dbStatus === "in progress" || taskStatus.includes("progress") || taskStatus === "running" || isTimerRunning
-        ) {
-          liveStatus = "In Progress";
+        if (matchedTask) {
+          const tStatus = (matchedTask.status || "").toLowerCase().trim();
+
+          if (tStatus === "completed" || tStatus === "done") {
+            liveStatus = "Completed";
+          } else if (tStatus === "pending") {
+            liveStatus = "Pending";
+          } else if (tStatus.includes("progress") || tStatus === "running" || matchedTask.timerState === "Running") {
+            liveStatus = "In Progress";
+          } else {
+            liveStatus = "Pending";
+          }
+        } else if (sameEmpDateTasks.length > 0) {
+          const hasInProgress = sameEmpDateTasks.some((t: any) => (t.status || "").toLowerCase().includes("progress"));
+          const hasPending = sameEmpDateTasks.some((t: any) => (t.status || "").toLowerCase() === "pending");
+
+          if (hasPending) liveStatus = "Pending";
+          else if (hasInProgress) liveStatus = "In Progress";
+          else liveStatus = "Completed";
+        } else {
+          const dbStatus = (json.status || "").toLowerCase().trim();
+          if (dbStatus === "completed" || dbStatus === "done") {
+            liveStatus = "Completed";
+          } else if (dbStatus.includes("progress")) {
+            liveStatus = "In Progress";
+          } else {
+            liveStatus = "Pending";
+          }
         }
 
         if (json.status !== liveStatus) {
           LegalRecoverySchedule.update(
-            { status: liveStatus, completedAt: liveStatus === "Completed" ? (json.completedAt || matchedTask?.updatedAt || new Date()) : null },
+            {
+              status: liveStatus,
+              completedAt: liveStatus === "Completed" ? (json.completedAt || matchedTask?.updatedAt || new Date()) : null
+            },
             { where: { id: json.id } }
           ).catch(() => {});
         }

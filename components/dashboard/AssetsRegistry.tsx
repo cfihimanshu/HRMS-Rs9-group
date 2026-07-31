@@ -1010,13 +1010,9 @@ export default function AssetsRegistry({ userRole, triggerToast, sessionUser }: 
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-[#E8E4DF] pb-5">
         <div>
-          <span className="text-[9px] uppercase tracking-widest text-[#C9A84C] font-bold">IT & Resource Management</span>
           <h2 className="text-xl font-light tracking-wide font-serif" style={{ fontFamily: "'Playfair Display', serif" }}>
             Company Assets & SIM Registry
           </h2>
-          <p className="text-[10px] text-[#9C9890] uppercase tracking-wider mt-1.5 font-semibold">
-            Track devices, numbers, Gmail, and WhatsApp by company and department
-          </p>
         </div>
         <div className="flex items-center gap-2">
           {/* Bulk Delete Button */}

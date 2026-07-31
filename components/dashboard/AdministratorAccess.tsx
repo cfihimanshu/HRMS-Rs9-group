@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import { Search, Shield, ShieldCheck, ShieldAlert, Key, UserCheck, RefreshCw, CheckSquare, Square, CheckCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { normalizeRole } from "@/lib/roles";
 
 interface AdministratorAccessProps {
   userRole?: string;
@@ -623,25 +624,7 @@ export default function AdministratorAccess({ userRole, triggerToast, sessionUse
     }
 
     const role = emp.role || "Employee";
-    const SYSTEM_ROLES = [
-      "Owner",
-      "Director",
-      "HR Head",
-      "HR Executive",
-      "Department Manager",
-      "Accounts",
-      "Trainer",
-      "Employee",
-      "IT Admin",
-      "IT MANAGER",
-      "DSM",
-      "RIBP / Risk Officer",
-      "Business Associate",
-      "Vendor",
-      "Franchisee",
-      "Territory Partner"
-    ];
-    const systemRole = SYSTEM_ROLES.find(r => r.toLowerCase() === role?.toLowerCase()) || "Employee";
+    const systemRole = normalizeRole(role);
     const roleLower = systemRole.toLowerCase();
 
     if (["owner", "director"].includes(roleLower)) {

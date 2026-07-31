@@ -247,8 +247,8 @@ export async function POST(req: Request) {
             taskType: item.type || "Operation",
             description: taskDesc,
             status: "Pending",
-            timerState: "Running",
-            timerStart: nowTimestamp,
+            timerState: "Stopped",
+            timerStart: null,
             elapsedSeconds: 0,
             scheduleId: scheduleId,
           });

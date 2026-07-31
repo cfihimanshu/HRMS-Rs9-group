@@ -10,6 +10,7 @@ import { logAudit } from "./audit";
 import TaskLog from "@/models/sequelize/TaskLog";
 import Notification from "@/models/sequelize/Notification";
 import { Op } from "sequelize";
+import { normalizeRole } from "@/lib/roles";
 
 const LOGIN_WINDOW_MS = 15 * 60 * 1000;
 const LOGIN_MAX_ATTEMPTS = 8;
@@ -207,24 +208,7 @@ export const authOptions: NextAuthOptions = {
           console.error("Error fetching employee profile:", err);
         }
 
-        const SYSTEM_ROLES = [
-          "Owner",
-          "Director",
-          "HR Head",
-          "HR Executive",
-          "Department Manager",
-          "Employee",
-          "Accounts",
-          "Trainer",
-          "IT Admin",
-          "DSM",
-          "RIBP / Risk Officer",
-          "Business Associate",
-          "Vendor",
-          "Franchisee",
-          "Territory Partner"
-        ];
-        const systemRole = SYSTEM_ROLES.find(r => r.toLowerCase() === user.role?.toLowerCase()) || "Employee";
+        const systemRole = normalizeRole(user.role);
 
         return {
           id: user.id?.toString() || user.id.toString(),
@@ -263,24 +247,7 @@ export const authOptions: NextAuthOptions = {
           try {
             const dbUser = await User.findByPk(token.id as string, { raw: true });
             if (dbUser) {
-              const SYSTEM_ROLES = [
-                "Owner",
-                "Director",
-                "HR Head",
-                "HR Executive",
-                "Department Manager",
-                "Employee",
-                "Accounts",
-                "Trainer",
-                "IT Admin",
-                "DSM",
-                "RIBP / Risk Officer",
-                "Business Associate",
-                "Vendor",
-                "Franchisee",
-                "Territory Partner"
-              ];
-              const systemRole = SYSTEM_ROLES.find(r => r.toLowerCase() === dbUser.role?.toLowerCase()) || "Employee";
+              const systemRole = normalizeRole(dbUser.role);
               token.role = systemRole;
               token.lastRefreshed = now;
             }

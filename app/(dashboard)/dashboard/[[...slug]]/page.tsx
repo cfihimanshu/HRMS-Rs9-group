@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { useParams, useRouter } from "next/navigation";
+import { normalizeRole } from "@/lib/roles";
 import {
   X,
   Loader2,
@@ -70,28 +71,11 @@ export default function UnifiedEnterpriseDashboard() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const routeParams = useParams<{ slug?: string[] }>();
+  const slugArr = routeParams?.slug;
+  const currentSlug = slugArr && slugArr.length > 0 ? slugArr[0] : null;
 
   const rawRole = (session?.user as any)?.role || "Employee";
-  const SYSTEM_ROLES = [
-    "Owner",
-    "Director",
-    "HR Head",
-    "HR Executive",
-    "Department Manager",
-    "Employee",
-    "Accounts",
-    "Trainer",
-    "IT Admin",
-    "DSM",
-    "RIBP / Risk Officer",
-    "Business Associate",
-    "Vendor",
-    "Franchisee",
-    "Territory Partner"
-  ];
-  const userRole = SYSTEM_ROLES.map(r => r.toLowerCase()).includes(rawRole.toLowerCase())
-    ? SYSTEM_ROLES.find(r => r.toLowerCase() === rawRole.toLowerCase()) || "Employee"
-    : "Employee";
+  const userRole = normalizeRole(rawRole);
 
   // Active navigation tab matching hr.html panel toggles
   const [activeTab, setActiveTab] = useState<string>(() => routeParams?.slug?.[0] || "dashboard");

@@ -21,6 +21,7 @@ export async function GET(request: Request) {
     const params = new URL(request.url).searchParams;
     const id = clean(params.get("id"));
     await sequelize.authenticate();
+    await Promise.all([Vehicle.sync(), VehicleDocument.sync(), VehicleAssignment.sync()]);
     if (id) {
       const vehicle = await Vehicle.findByPk(id);
       if (!vehicle) return fail("Vehicle not found", 404);

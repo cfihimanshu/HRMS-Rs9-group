@@ -584,11 +584,17 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
         triggerToast("SIM Mobile Number is required");
         return;
       }
-      finalDetail = `${assetFields.simOperator || "Jio"} - ${assetFields.simNetwork || "5G"} Network`;
+      const operator = assetFields.simOperatorCustom || (assetFields.simOperator !== "Other" ? assetFields.simOperator : "") || "Jio";
+      const network = assetFields.simNetworkCustom || (assetFields.simNetwork !== "Other" ? assetFields.simNetwork : "") || "5G";
+      const simStatus = assetFields.simStatus || "Active";
+      finalDetail = `${operator} - ${network} Network (${simStatus})`;
       finalSerial = mobile;
-      if (assetFields.simIccid) {
-        finalNotes = `SIM Number (ICCID): ${assetFields.simIccid}${registerForm.notes ? `\n${registerForm.notes}` : ""}`;
-      }
+      let simNotesInfo = `SIM Status: ${simStatus}\n`;
+      if (assetFields.simIccid) simNotesInfo += `SIM Number (ICCID): ${assetFields.simIccid}\n`;
+      if (assetFields.simPlanType) simNotesInfo += `Plan Type: ${assetFields.simPlanType}\n`;
+      if (assetFields.simPuk) simNotesInfo += `PUC/PIN: ${assetFields.simPuk}\n`;
+      if (assetFields.simKycName) simNotesInfo += `KYC Holder: ${assetFields.simKycName}\n`;
+      finalNotes = `${simNotesInfo}${registerForm.notes ? `\n${registerForm.notes}` : ""}`;
     } else if (typeClean === "laptop") {
       const model = assetFields.laptopModel || "";
       const specs = assetFields.laptopSpecs || "";
@@ -1414,118 +1420,142 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
               <X className="w-4 h-4" />
             </button>
           </div>
-          <form onSubmit={handleRegisterSubmit} className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-              <div>
-                <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Asset ID * (Auto Generated)</label>
-                <input
-                  type="text"
-                  required
-                  readOnly
-                  placeholder="Generating ID..."
-                  value={registerForm.id}
-                  className="w-full bg-slate-50 border border-[#E8E4DF] rounded-lg px-3 py-2 text-xs text-slate-500 font-mono font-semibold focus:outline-none transition-all cursor-not-allowed"
-                />
+          <form onSubmit={handleRegisterSubmit} className="space-y-5">
+            {/* Section 1: Basic Identification */}
+            <div className="bg-[#FCFBF9] border border-[#E8E4DF] rounded-xl p-4 space-y-3">
+              <div className="text-[10px] font-semibold uppercase tracking-wider text-black flex items-center gap-2 border-b border-[#E8E4DF] pb-2">
+                <span className="w-2 h-2 rounded-full bg-indigo-600"></span> 1. Basic Identification & Company Stock
               </div>
-              <div>
-                <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Old Asset ID / Previous ID</label>
-                <input
-                  type="text"
-                  placeholder="e.g. OLD-LAP-01 / PREV-102"
-                  value={registerForm.oldAssetId}
-                  onChange={(e) => setRegisterForm(p => ({ ...p, oldAssetId: e.target.value }))}
-                  className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] placeholder-[#9C9890] font-mono font-semibold focus:outline-none transition-all"
-                />
-              </div>
-              <div>
-                <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Asset Type *</label>
-                {!isCustomRegisterType ? (
-                  <select
+              <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+                <div>
+                  <label className="block text-[9px] uppercase tracking-wider text-black font-normal mb-1">Asset ID * (Auto Generated)</label>
+                  <input
+                    type="text"
                     required
-                    value={registerForm.assetType}
-                    onChange={(e) => {
-                      if (e.target.value === "__ADD_NEW__") {
-                        setIsCustomRegisterType(true);
-                        setRegisterForm(p => ({ ...p, assetType: "" }));
-                      } else {
-                        setRegisterForm(p => ({ ...p, assetType: e.target.value }));
-                      }
-                    }}
-                    className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
-                  >
-                    {dynamicAssetTypes.map(type => (
-                      <option key={type} value={type}>{type}</option>
-                    ))}
-                    <option value="__ADD_NEW__">+ Add New Asset Type</option>
-                  </select>
-                ) : (
-                  <div className="flex gap-2">
-                    <input
-                      type="text"
+                    readOnly
+                    placeholder="Generating ID..."
+                    value={registerForm.id}
+                    className="w-full bg-slate-100/70 border border-[#E8E4DF] rounded-lg px-3 py-2 text-xs text-black font-mono font-normal focus:outline-none transition-all cursor-not-allowed"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[9px] uppercase tracking-wider text-black font-normal mb-1">Old Asset ID / Previous ID</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. OLD-LAP-01 / PREV-102"
+                    value={registerForm.oldAssetId}
+                    onChange={(e) => setRegisterForm(p => ({ ...p, oldAssetId: e.target.value }))}
+                    className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-black placeholder-slate-400 font-mono font-normal focus:outline-none transition-all"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[9px] uppercase tracking-wider text-black font-normal mb-1">Asset Type *</label>
+                  {!isCustomRegisterType ? (
+                    <select
                       required
-                      placeholder="Enter custom type..."
                       value={registerForm.assetType}
-                      onChange={(e) => setRegisterForm(p => ({ ...p, assetType: e.target.value }))}
-                      className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setIsCustomRegisterType(false);
-                        setRegisterForm(p => ({ ...p, assetType: "Laptop" }));
+                      onChange={(e) => {
+                        if (e.target.value === "__ADD_NEW__") {
+                          setIsCustomRegisterType(true);
+                          setRegisterForm(p => ({ ...p, assetType: "" }));
+                        } else {
+                          setRegisterForm(p => ({ ...p, assetType: e.target.value }));
+                        }
                       }}
-                      className="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-[#5D5B57] text-[10px] font-bold rounded-lg transition-all"
+                      className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-black focus:outline-none transition-all font-normal"
                     >
-                      Cancel
-                    </button>
-                  </div>
-                )}
-              </div>
-              <div>
-                <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Condition</label>
-                <select
-                  value={registerForm.condition}
-                  onChange={(e) => setRegisterForm(p => ({ ...p, condition: e.target.value }))}
-                  className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
-                >
-                  <option>New</option>
-                  <option>Good</option>
-                  <option>Fair</option>
-                  <option>Needs Repair</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Company Belonging</label>
-                <select
-                  value={registerForm.companyId}
-                  onChange={(e) => setRegisterForm(p => ({ ...p, companyId: e.target.value }))}
-                  className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
-                >
-                  <option value="">-- General Stock --</option>
-                  {companies.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                </select>
+                      {dynamicAssetTypes.map(type => (
+                        <option key={type} value={type}>{type}</option>
+                      ))}
+                      <option value="__ADD_NEW__">+ Add New Asset Type</option>
+                    </select>
+                  ) : (
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        required
+                        placeholder="Enter custom type..."
+                        value={registerForm.assetType}
+                        onChange={(e) => setRegisterForm(p => ({ ...p, assetType: e.target.value }))}
+                        className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-black focus:outline-none transition-all font-normal"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsCustomRegisterType(false);
+                          setRegisterForm(p => ({ ...p, assetType: "Laptop" }));
+                        }}
+                        className="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-black text-[10px] font-normal rounded-lg transition-all"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  )}
+                </div>
+                <div>
+                  <label className="block text-[9px] uppercase tracking-wider text-black font-normal mb-1">Condition</label>
+                  <select
+                    value={registerForm.condition}
+                    onChange={(e) => setRegisterForm(p => ({ ...p, condition: e.target.value }))}
+                    className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-black focus:outline-none transition-all font-normal"
+                  >
+                    <option>New</option>
+                    <option>Good</option>
+                    <option>Fair</option>
+                    <option>Needs Repair</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-[9px] uppercase tracking-wider text-black font-normal mb-1">Company Belonging</label>
+                  <select
+                    value={registerForm.companyId}
+                    onChange={(e) => setRegisterForm(p => ({ ...p, companyId: e.target.value }))}
+                    className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-black focus:outline-none transition-all font-normal"
+                  >
+                    <option value="">-- General Stock --</option>
+                    {companies.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                  </select>
+                </div>
               </div>
             </div>
+
+            {/* Section 2: Asset Specifications */}
+            <div className="bg-white border border-[#E8E4DF] rounded-xl p-4 space-y-3">
+              <div className="text-[10px] font-semibold uppercase tracking-wider text-black flex items-center gap-2 border-b border-[#E8E4DF] pb-2">
+                <span className="w-2 h-2 rounded-full bg-emerald-500"></span> 2. Specifications ({registerForm.assetType || "General"})
+              </div>
 
             {typeClean === "sim card" || typeClean === "sim" ? (
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <div>
-                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">SIM Mobile Number *</label>
+                  <label className="block text-[9px] uppercase tracking-wider text-black font-normal mb-1">SIM Mobile Number *</label>
                   <input
                     type="text"
                     required
                     placeholder="e.g. 9876543210"
                     value={assetFields.simMobile || ""}
                     onChange={(e) => setAssetFields(p => ({ ...p, simMobile: e.target.value }))}
-                    className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                    className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-black focus:outline-none transition-all font-normal"
                   />
                 </div>
                 <div>
-                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Telecom Operator *</label>
+                  <label className="block text-[9px] uppercase tracking-wider text-black font-normal mb-1">SIM Status (Active / Inactive) *</label>
+                  <select
+                    value={assetFields.simStatus || "Active"}
+                    onChange={(e) => setAssetFields(p => ({ ...p, simStatus: e.target.value }))}
+                    className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-black focus:outline-none transition-all font-normal"
+                  >
+                    <option value="Active">Active</option>
+                    <option value="Inactive">Inactive</option>
+                    <option value="Blocked / Suspended">Blocked / Suspended</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-[9px] uppercase tracking-wider text-black font-normal mb-1">Telecom Operator *</label>
                   <select
                     value={assetFields.simOperator || "Jio"}
                     onChange={(e) => setAssetFields(p => ({ ...p, simOperator: e.target.value }))}
-                    className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                    className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-black focus:outline-none transition-all font-normal"
                   >
                     <option value="Jio">Jio</option>
                     <option value="Airtel">Airtel</option>
@@ -1539,16 +1569,16 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
                       placeholder="Specify custom operator..."
                       value={assetFields.simOperatorCustom || ""}
                       onChange={(e) => setAssetFields(p => ({ ...p, simOperatorCustom: e.target.value }))}
-                      className="mt-1.5 w-full bg-white border border-[#C9A84C] focus:border-[#C9A84C] rounded-lg px-3 py-1.5 text-xs text-[#1C1C1A] font-semibold"
+                      className="mt-1.5 w-full bg-white border border-[#C9A84C] focus:border-[#C9A84C] rounded-lg px-3 py-1.5 text-xs text-black font-normal"
                     />
                   )}
                 </div>
                 <div>
-                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Network Type</label>
+                  <label className="block text-[9px] uppercase tracking-wider text-black font-normal mb-1">Network Type</label>
                   <select
                     value={assetFields.simNetwork || "5G"}
                     onChange={(e) => setAssetFields(p => ({ ...p, simNetwork: e.target.value }))}
-                    className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                    className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-black focus:outline-none transition-all font-normal"
                   >
                     <option value="5G">5G</option>
                     <option value="4G">4G</option>
@@ -1561,26 +1591,26 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
                       placeholder="Specify custom network..."
                       value={assetFields.simNetworkCustom || ""}
                       onChange={(e) => setAssetFields(p => ({ ...p, simNetworkCustom: e.target.value }))}
-                      className="mt-1.5 w-full bg-white border border-[#C9A84C] focus:border-[#C9A84C] rounded-lg px-3 py-1.5 text-xs text-[#1C1C1A] font-semibold"
+                      className="mt-1.5 w-full bg-white border border-[#C9A84C] focus:border-[#C9A84C] rounded-lg px-3 py-1.5 text-xs text-black font-normal"
                     />
                   )}
                 </div>
                 <div>
-                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">SIM Card Number / ICCID</label>
+                  <label className="block text-[9px] uppercase tracking-wider text-black font-normal mb-1">SIM Card Number / ICCID</label>
                   <input
                     type="text"
                     placeholder="e.g. 89910000..."
                     value={assetFields.simIccid || ""}
                     onChange={(e) => setAssetFields(p => ({ ...p, simIccid: e.target.value }))}
-                    className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-mono"
+                    className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-black focus:outline-none transition-all font-mono font-normal"
                   />
                 </div>
                 <div>
-                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Plan Type & Recharge</label>
+                  <label className="block text-[9px] uppercase tracking-wider text-black font-normal mb-1">Plan Type & Recharge</label>
                   <select
                     value={assetFields.simPlanType || "Postpaid (Corporate Plan)"}
                     onChange={(e) => setAssetFields(p => ({ ...p, simPlanType: e.target.value }))}
-                    className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                    className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-black focus:outline-none transition-all font-normal"
                   >
                     <option value="Postpaid (Corporate Plan)">Postpaid (Corporate Plan)</option>
                     <option value="Prepaid (Monthly)">Prepaid (Monthly)</option>
@@ -1594,28 +1624,28 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
                       placeholder="Specify custom plan..."
                       value={assetFields.simPlanTypeCustom || ""}
                       onChange={(e) => setAssetFields(p => ({ ...p, simPlanTypeCustom: e.target.value }))}
-                      className="mt-1.5 w-full bg-white border border-[#C9A84C] focus:border-[#C9A84C] rounded-lg px-3 py-1.5 text-xs text-[#1C1C1A] font-semibold"
+                      className="mt-1.5 w-full bg-white border border-[#C9A84C] focus:border-[#C9A84C] rounded-lg px-3 py-1.5 text-xs text-black font-normal"
                     />
                   )}
                 </div>
                 <div>
-                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">SIM PUK Code / PIN</label>
+                  <label className="block text-[9px] uppercase tracking-wider text-black font-normal mb-1">SIM PUK Code / PIN</label>
                   <input
                     type="text"
                     placeholder="e.g. PUK: 12345678"
                     value={assetFields.simPuk || ""}
                     onChange={(e) => setAssetFields(p => ({ ...p, simPuk: e.target.value }))}
-                    className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-mono"
+                    className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-black focus:outline-none transition-all font-mono font-normal"
                   />
                 </div>
                 <div>
-                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">KYC / Registered Account Holder</label>
+                  <label className="block text-[9px] uppercase tracking-wider text-black font-normal mb-1">KYC / Registered Account Holder</label>
                   <input
                     type="text"
                     placeholder="e.g. CFI Corporate Account"
                     value={assetFields.simKycName || ""}
                     onChange={(e) => setAssetFields(p => ({ ...p, simKycName: e.target.value }))}
-                    className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                    className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-black focus:outline-none transition-all font-normal"
                   />
                 </div>
               </div>
@@ -2424,61 +2454,70 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
               </div>
             )}
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Purchase Date (DD/MM/YYYY)</label>
-                <input
-                  type="date"
-                  placeholder="dd/mm/yyyy"
-                  value={registerForm.purchaseDate}
-                  onChange={(e) => setRegisterForm(p => ({ ...p, purchaseDate: e.target.value }))}
-                  className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
-                />
-              </div>
-              <div>
-                <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Purchase Value / Cost</label>
-                <input
-                  type="text"
-                  placeholder="e.g. ₹45,500"
-                  value={registerForm.purchaseValue}
-                  onChange={(e) => setRegisterForm(p => ({ ...p, purchaseValue: e.target.value }))}
-                  className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
-                />
-              </div>
-              <div>
-                <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Asset Photo</label>
-                <div className="flex gap-4 items-center">
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) => handlePhotoUpload(e, false)}
-                    className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-1.5 text-xs text-[#1C1C1A] focus:outline-none transition-all file:mr-4 file:py-1 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100"
-                  />
-                  {registerForm.photoUrl && (
-                    <div className="relative w-12 h-12 rounded-lg border border-[#E8E4DF] overflow-hidden bg-slate-50 flex-shrink-0 shadow-sm group">
-                      <img src={registerForm.photoUrl} alt="Asset preview" className="w-full h-full object-cover" />
-                      <button
-                        type="button"
-                        onClick={() => setRegisterForm(prev => ({ ...prev, photoUrl: "" }))}
-                        className="absolute inset-0 bg-black/55 text-white text-[8px] font-black uppercase opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
-                      >
-                        Remove
-                      </button>
-                    </div>
-                  )}
-                </div>
-              </div>
             </div>
 
-            <div>
-              <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Internal Notes</label>
-              <textarea
-                value={registerForm.notes}
-                onChange={(e) => setRegisterForm(p => ({ ...p, notes: e.target.value }))}
-                rows={2}
-                placeholder="Any vendor details, warranty information, or storage locations..."
-                className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all resize-none"
-              />
+            {/* Section 3: Financials, Photo & Internal Notes */}
+            <div className="bg-[#FCFBF9] border border-[#E8E4DF] rounded-xl p-4 space-y-3">
+              <div className="text-[10px] font-semibold uppercase tracking-wider text-black flex items-center gap-2 border-b border-[#E8E4DF] pb-2">
+                <span className="w-2 h-2 rounded-full bg-amber-500"></span> 3. Financials, Photo & Internal Notes
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-[9px] uppercase tracking-wider text-black font-normal mb-1">Purchase Date (DD/MM/YYYY)</label>
+                  <input
+                    type="date"
+                    placeholder="dd/mm/yyyy"
+                    value={registerForm.purchaseDate}
+                    onChange={(e) => setRegisterForm(p => ({ ...p, purchaseDate: e.target.value }))}
+                    className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-black focus:outline-none transition-all font-normal"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[9px] uppercase tracking-wider text-black font-normal mb-1">Purchase Value / Cost</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. ₹45,500"
+                    value={registerForm.purchaseValue}
+                    onChange={(e) => setRegisterForm(p => ({ ...p, purchaseValue: e.target.value }))}
+                    className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-black focus:outline-none transition-all font-normal"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[9px] uppercase tracking-wider text-black font-normal mb-1">Asset Photo</label>
+                  <div className="flex gap-4 items-center">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => handlePhotoUpload(e, false)}
+                      className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-1.5 text-xs text-black focus:outline-none transition-all file:mr-4 file:py-1 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 font-normal"
+                    />
+                    {registerForm.photoUrl && (
+                      <div className="relative w-12 h-12 rounded-lg border border-[#E8E4DF] overflow-hidden bg-slate-50 flex-shrink-0 shadow-sm group">
+                        <img src={registerForm.photoUrl} alt="Asset preview" className="w-full h-full object-cover" />
+                        <button
+                          type="button"
+                          onClick={() => setRegisterForm(prev => ({ ...prev, photoUrl: "" }))}
+                          className="absolute inset-0 bg-black/55 text-white text-[8px] font-black uppercase opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[9px] uppercase tracking-wider text-black font-normal mb-1">Internal Notes</label>
+                <textarea
+                  value={registerForm.notes}
+                  onChange={(e) => setRegisterForm(p => ({ ...p, notes: e.target.value }))}
+                  rows={2}
+                  placeholder="Any vendor details, warranty information, or storage locations..."
+                  className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-black focus:outline-none transition-all resize-none font-normal"
+                />
+              </div>
             </div>
 
             <div className="flex gap-2 justify-end pt-2">
