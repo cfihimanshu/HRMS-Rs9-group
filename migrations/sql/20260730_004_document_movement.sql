@@ -1,0 +1,60 @@
+-- Company-wide document custody register and immutable movement ledger.
+
+CREATE TABLE `document_register` (
+  `id` VARCHAR(255) NOT NULL,
+  `documentNumber` VARCHAR(255) NOT NULL,
+  `title` VARCHAR(255) NOT NULL,
+  `documentType` VARCHAR(255) NOT NULL,
+  `documentNature` ENUM('Original','Photocopy','Certified Copy','Digital') NOT NULL DEFAULT 'Original',
+  `sourceName` VARCHAR(255) NOT NULL,
+  `sourceDepartment` VARCHAR(255) NULL,
+  `sourceContact` VARCHAR(255) NULL,
+  `purpose` TEXT NOT NULL,
+  `receivedById` VARCHAR(255) NULL,
+  `receivedByName` VARCHAR(255) NOT NULL,
+  `receivedAt` DATETIME NOT NULL,
+  `currentHolderId` VARCHAR(255) NULL,
+  `currentHolderName` VARCHAR(255) NOT NULL,
+  `currentHolderDepartment` VARCHAR(255) NULL,
+  `status` ENUM('In Custody','Handed Over','Returned','Archived') NOT NULL DEFAULT 'In Custody',
+  `dueDate` DATE NULL,
+  `fileUrl` TEXT NULL,
+  `remarks` TEXT NULL,
+  `createdById` VARCHAR(255) NOT NULL,
+  `createdByName` VARCHAR(255) NOT NULL,
+  `createdAt` DATETIME NOT NULL,
+  `updatedAt` DATETIME NOT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uq_document_register_number` (`documentNumber`),
+  KEY `idx_document_register_status` (`status`),
+  KEY `idx_document_register_holder` (`currentHolderId`),
+  KEY `idx_document_register_received` (`receivedAt`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE `document_movements` (
+  `id` VARCHAR(255) NOT NULL,
+  `documentId` VARCHAR(255) NOT NULL,
+  `sequence` INT NOT NULL,
+  `action` ENUM('RECEIVED','HANDOVER','RETURNED','ARCHIVED','REOPENED') NOT NULL,
+  `fromPersonId` VARCHAR(255) NULL,
+  `fromPersonName` VARCHAR(255) NOT NULL,
+  `toPersonId` VARCHAR(255) NULL,
+  `toPersonName` VARCHAR(255) NOT NULL,
+  `toDepartment` VARCHAR(255) NULL,
+  `purpose` TEXT NOT NULL,
+  `movedAt` DATETIME NOT NULL,
+  `dueDate` DATE NULL,
+  `acknowledgementUrl` TEXT NULL,
+  `remarks` TEXT NULL,
+  `performedById` VARCHAR(255) NOT NULL,
+  `performedByName` VARCHAR(255) NOT NULL,
+  `createdAt` DATETIME NOT NULL,
+  `updatedAt` DATETIME NOT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uq_document_movement_sequence` (`documentId`, `sequence`),
+  KEY `idx_document_movement_date` (`movedAt`),
+  KEY `idx_document_movement_holder` (`toPersonId`),
+  CONSTRAINT `fk_document_movement_register`
+    FOREIGN KEY (`documentId`) REFERENCES `document_register` (`id`)
+    ON UPDATE CASCADE ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

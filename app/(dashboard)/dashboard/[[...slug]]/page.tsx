@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
-import { useRouter, useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import {
   X,
   Loader2,
@@ -63,13 +63,13 @@ import AssignedTaskPopup from "@/components/dashboard/AssignedTaskPopup";
 import PendingTasksModal from "@/components/dashboard/PendingTasksModal";
 import BusinessLeads from "@/components/dashboard/BusinessLeads";
 import AuditTrail from "@/components/dashboard/AuditTrail";
+import DocumentMovement from "@/components/dashboard/DocumentMovement";
+import VehicleRegistry from "@/components/dashboard/VehicleRegistry";
 
 export default function UnifiedEnterpriseDashboard() {
   const { data: session, status } = useSession();
   const router = useRouter();
-  const params = useParams();
-  const slugArr = params?.slug as string[] | undefined;
-  const currentSlug = slugArr && slugArr.length > 0 ? slugArr[0] : null;
+  const routeParams = useParams<{ slug?: string[] }>();
 
   const rawRole = (session?.user as any)?.role || "Employee";
   const SYSTEM_ROLES = [
@@ -94,7 +94,7 @@ export default function UnifiedEnterpriseDashboard() {
     : "Employee";
 
   // Active navigation tab matching hr.html panel toggles
-  const [activeTab, setActiveTab] = useState<string>("dashboard");
+  const [activeTab, setActiveTab] = useState<string>(() => routeParams?.slug?.[0] || "dashboard");
   const [businessLeadsFilter, setBusinessLeadsFilter] = useState<string>("All");
   const [kanbanSearchFilter, setKanbanSearchFilter] = useState<string>("");
   const [performanceSubTab, setPerformanceSubTab] = useState<string>("visual-dashboard");
@@ -342,8 +342,8 @@ export default function UnifiedEnterpriseDashboard() {
         .then(data => {
           if (data.success && data.data) {
             const loggedInUserId = (session.user as any).id;
-            const activeWarn = data.data.find((w: any) => 
-              w.employeeId === loggedInUserId && 
+            const activeWarn = data.data.find((w: any) =>
+              w.employeeId === loggedInUserId &&
               ["Active Warning", "Final Warning", "Termination Review"].includes(w.status)
             );
             if (activeWarn) {
@@ -1306,6 +1306,14 @@ export default function UnifiedEnterpriseDashboard() {
 
           {activeTab === "audit-trail" && <AuditTrail />}
 
+          {activeTab === "document-movement" && (
+            <DocumentMovement triggerToast={triggerToast} />
+          )}
+
+          {activeTab === "vehicle-registry" && (
+            <VehicleRegistry triggerToast={triggerToast} />
+          )}
+
           {activeTab === "legal-recovery" && (() => {
             const userDept = (session?.user as any)?.department || "";
             const isAdministration = userDept.toLowerCase().includes("administration");
@@ -1316,7 +1324,7 @@ export default function UnifiedEnterpriseDashboard() {
               try {
                 const parsed = JSON.parse(liveMenuAccess);
                 if (Array.isArray(parsed)) allowedPageIds = parsed;
-              } catch {}
+              } catch { }
             }
             const hasExplicitAccess = allowedPageIds && allowedPageIds.includes("legal-recovery");
             const hasAccess = userRole === "Owner" || isAdministration || hasExplicitAccess;
@@ -2045,14 +2053,14 @@ export default function UnifiedEnterpriseDashboard() {
       {activeWarningPopup && (
         <div className="fixed inset-0 z-[10000] overflow-y-auto bg-black/55 backdrop-blur-sm flex justify-center items-center p-4">
           <div className="bg-white rounded-2xl w-full max-w-2xl overflow-hidden shadow-2xl animate-scale-in flex flex-col relative border border-[#E8E4DF] text-black max-h-[90vh]">
-            
+
             {/* Modal Header */}
             <div className="px-6 py-4 border-b border-[#E8E4DF] flex justify-between items-center bg-[#FCFBF9] shrink-0">
               <h3 className="font-serif text-sm text-slate-800 flex items-center gap-2 font-semibold">
                 <ShieldAlert className="w-5 h-5 text-rose-600 animate-pulse" />
                 OFFICIAL DISCIPLINARY NOTICE
               </h3>
-              <button 
+              <button
                 onClick={() => {
                   sessionStorage.setItem(`warning_popup_dismissed_${activeWarningPopup.id}`, "true");
                   setActiveWarningPopup(null);
@@ -2066,7 +2074,7 @@ export default function UnifiedEnterpriseDashboard() {
             {/* Modal Body: Memo Document */}
             <div className="p-8 overflow-y-auto flex-1 bg-white select-text">
               <div className="bg-white p-6 font-sans leading-relaxed text-black border border-slate-200 rounded-xl">
-                
+
                 {/* Memo Header */}
                 <div className="text-center border-b-2 border-black pb-4 mb-6">
                   <h2 className="text-xl font-extrabold tracking-widest text-black">RS9 GROUP</h2>
@@ -2074,7 +2082,7 @@ export default function UnifiedEnterpriseDashboard() {
                 </div>
 
                 <div className="space-y-6 text-xs text-black">
-                  
+
                   {/* Memo Details */}
                   <div className="grid grid-cols-2 gap-4 text-xs font-sans text-black pb-4 border-b border-slate-200">
                     <div className="space-y-1.5 text-left font-sans">
