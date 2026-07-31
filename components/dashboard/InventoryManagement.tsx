@@ -1204,194 +1204,79 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
       && matchesStatus && matchesAssignee && matchesAssignedDate && matchesHandoverDate;
   });
 
-  const exportInventoryToCsv = () => {
+  const exportInventoryToCsv = async () => {
     if (filteredInventory.length === 0) {
       triggerToast("No inventory records available to export");
       return;
     }
 
-    const parsedCustomFields = filteredInventory.map((asset) => {
-      try {
-        const parsed = typeof asset.customFields === "string"
-          ? JSON.parse(asset.customFields)
-          : (asset.customFields || {});
-        return {
-          assetFields: parsed?.assetFields && typeof parsed.assetFields === "object"
-            ? parsed.assetFields
-            : {},
-          emailsList: Array.isArray(parsed?.emailsList) ? parsed.emailsList : [],
-        };
-      } catch {
-        return { assetFields: {}, emailsList: [] };
-      }
+    try {
+      const XLSX = await import("xlsx");
+    const exportRows = filteredInventory.map((asset: any) => {
+      const companyObj = companies.find((c) => String(c.id) === String(asset.companyId));
+      const companyName = companyObj ? companyObj.name : (asset.companyId ? "Assigned Company" : "General Stock");
+
+      // Format Notes cleanly without giant vertical newline padding
+      const cleanNotes = (asset.notes || asset.customNotes || "")
+        .replace(/(\r\n|\n|\r)/gm, " | ")
+        .replace(/\s+/g, " ")
+        .trim();
+
+      // Format Assignment History cleanly
+      const historyStr = (asset.assignmentHistory || [])
+        .map((entry: any) => `${entry.action || 'Assign'}: ${entry.fromUserName || "Stock"} -> ${entry.toUserName || "Stock"} (${entry.assignedDate || "-"})`)
+        .join(" | ");
+
+      return {
+        "Asset ID": asset.id || "—",
+        "Old Asset ID": asset.oldAssetId || "—",
+        "Category": asset.assetType || "General",
+        "Asset Description & Model": asset.assetDetail || "—",
+        "Serial Number / IMEI": asset.serialNumber || "—",
+        "Company": companyName,
+        "Condition": asset.condition || "Good",
+        "Inventory Status": asset.status || "Available",
+        "Assigned To": asset.assignedToName || (asset.assignedToUserId ? `User #${asset.assignedToUserId}` : "Unassigned / Stock"),
+        "Assigned Date": asset.assignedAt ? new Date(asset.assignedAt).toLocaleDateString("en-IN") : "—",
+        "Handover Date": asset.handoverDate ? new Date(asset.handoverDate).toLocaleDateString("en-IN") : "—",
+        "Purchase Date": asset.purchaseDate ? new Date(asset.purchaseDate).toLocaleDateString("en-IN") : "—",
+        "Purchase Value (₹)": asset.purchaseValue ? Number(asset.purchaseValue) : 0,
+        "Company / Notes": cleanNotes || "—",
+        "Registered By": asset.registeredBy || "System",
+        "Created At": asset.createdAt ? new Date(asset.createdAt).toLocaleDateString("en-IN") : "—",
+        "Assignment History": historyStr || "—"
+      };
     });
 
-    const fieldSequence = [
-      // Laptop
-      "laptopModel", "laptopSpecs", "laptopSerial", "laptopOs", "laptopOsCustom",
-      "laptopHostName", "laptopCharger", "laptopBag", "laptopPassword",
-      // Mobile phone
-      "phoneModel", "phoneColor", "phoneImei1", "phoneImei2", "phoneSpecs",
-      "phonePassword", "phoneCharger", "phoneSimSlots",
-      "phoneSim1No", "phoneSim1Operator", "phoneSim1OperatorCustom",
-      "phoneSim1Whatsapp", "phoneSim1WhatsappType",
-      "phoneSim2No", "phoneSim2Operator", "phoneSim2OperatorCustom",
-      "phoneSim2Whatsapp", "phoneSim2WhatsappType",
-      "phoneExternalWhatsapp", "phoneExternalWhatsappNo",
-      "phoneExternalWhatsappType", "phoneExternalWhatsappLabel",
-      "phoneSocialMedia", "phoneSocialMediaApp", "phoneSocialMediaAppCustom",
-      "phoneSocialMediaUsername", "phoneSocialMediaPassword",
-      // Standalone SIM
-      "simMobile", "simOperator", "simOperatorCustom", "simNetwork",
-      "simNetworkCustom", "simIccid", "simPlanType", "simPlanTypeCustom",
-      "simPuk", "simKycName",
-      // Router / networking
-      "routerModel", "routerMac", "routerSerial", "routerIp",
-      "routerWifiSsid", "routerAdminPass", "routerIsp",
-      // Printer / scanner
-      "printerType", "printerTypeCustom", "printerModel", "printerSerial",
-      "printerIp", "printerCartridge",
-      // Accessories, ID card and furniture
-      "accType", "accName", "accSerial",
-      "idEmployee", "idBarcode",
-      "furnitureDesc", "furnitureTag", "furnitureLocation",
-    ];
-    const sequenceIndex = new Map(fieldSequence.map((field, index) => [field, index]));
-    const customFieldKeys = Array.from(new Set(
-      parsedCustomFields.flatMap((entry) => Object.keys(entry.assetFields))
-    )).sort((a, b) => {
-      const aIndex = sequenceIndex.get(a) ?? Number.MAX_SAFE_INTEGER;
-      const bIndex = sequenceIndex.get(b) ?? Number.MAX_SAFE_INTEGER;
-      return aIndex === bIndex ? a.localeCompare(b) : aIndex - bIndex;
-    });
-    const maximumEmails = Math.max(
-      0,
-      ...parsedCustomFields.map((entry) => entry.emailsList.length)
-    );
+    const ws = XLSX.utils.json_to_sheet(exportRows);
+    if (exportRows.length > 0) {
+      const colKeys = Object.keys(exportRows[0]);
+      ws['!cols'] = colKeys.map((key) => {
+        let maxLen = key.length;
+        exportRows.forEach((r) => {
+          const valStr = r[key as keyof typeof r] !== undefined && r[key as keyof typeof r] !== null ? String(r[key as keyof typeof r]) : "";
+          if (valStr.length > maxLen) maxLen = valStr.length;
+        });
+        return { wch: Math.min(Math.max(maxLen + 6, 16), 65) };
+      });
+    }
 
-    const identityColumns: Array<{ header: string; value: (asset: any) => unknown }> = [
-      { header: "Asset ID", value: (asset) => asset.id },
-      { header: "Old Asset ID", value: (asset) => asset.oldAssetId },
-      { header: "Asset Type", value: (asset) => asset.assetType },
-      { header: "Asset Detail", value: (asset) => asset.assetDetail },
-      { header: "Serial Number", value: (asset) => asset.serialNumber },
-      { header: "Company ID", value: (asset) => asset.companyId },
-      {
-        header: "Company Name",
-        value: (asset) => companies.find(
-          (company) => String(company.id) === String(asset.companyId)
-        )?.name || "General Stock",
-      },
-      { header: "Condition", value: (asset) => asset.condition },
-      { header: "Inventory Status", value: (asset) => asset.status },
-      { header: "Assigned User ID", value: (asset) => asset.assignedToUserId },
-      { header: "Assigned To", value: (asset) => asset.assignedToName },
-      { header: "Assigned Date", value: (asset) => asset.assignedAt },
-      { header: "Handover Date", value: (asset) => asset.handoverDate },
-      { header: "Assigned By", value: (asset) => asset.assignedBy },
-      { header: "Purchase Date", value: (asset) => asset.purchaseDate },
-      { header: "Purchase Value", value: (asset) => asset.purchaseValue },
-    ];
-
-    const compatibilityColumns: Array<{ header: string; value: (asset: any) => unknown }> = [
-      { header: "Phone / Laptop Password", value: (asset) => asset.phonePassword },
-      { header: "SIM Company", value: (asset) => asset.simCompany },
-      { header: "SIM 1 Number", value: (asset) => asset.sim1Number },
-      { header: "SIM 2 Number", value: (asset) => asset.sim2Number },
-      { header: "External WhatsApp Number", value: (asset) => asset.externalWhatsappNo },
-      { header: "Laptop OS", value: (asset) => asset.laptopOs },
-      { header: "Laptop Host Name", value: (asset) => asset.laptopHostName },
-      { header: "SIM Plan Type", value: (asset) => asset.simPlanType },
-      { header: "Router WiFi SSID", value: (asset) => asset.routerWifiSsid },
-      { header: "Printer Cartridge", value: (asset) => asset.printerCartridge },
-      { header: "Furniture Location", value: (asset) => asset.furnitureLocation },
-      { header: "Social Media App", value: (asset) => asset.socialMediaApp },
-      { header: "Social Media Username", value: (asset) => asset.socialMediaUsername },
-      { header: "Social Media Password", value: (asset) => asset.socialMediaPassword },
-      { header: "Phone Charger", value: (asset) => asset.phoneCharger },
-      { header: "Phone Color", value: (asset) => asset.phoneColor },
-      { header: "Laptop Charger", value: (asset) => asset.laptopCharger },
-      { header: "Laptop Bag / Mouse", value: (asset) => asset.laptopBag },
-      { header: "SIM PUK / PIN", value: (asset) => asset.simPuk },
-      { header: "SIM KYC Name", value: (asset) => asset.simKycName },
-      { header: "Router IP", value: (asset) => asset.routerIp },
-      { header: "Router Admin Password", value: (asset) => asset.routerAdminPass },
-      { header: "Router ISP", value: (asset) => asset.routerIsp },
-      { header: "Printer IP", value: (asset) => asset.printerIp },
-    ];
-
-    const closingColumns: Array<{ header: string; value: (asset: any) => unknown }> = [
-      { header: "Notes", value: (asset) => asset.notes },
-      {
-        header: "Photo Available",
-        value: (asset) => asset.photoUrl ? "Yes" : "No",
-      },
-      {
-        header: "Photo Link / Reference",
-        value: (asset) => {
-          const photo = String(asset.photoUrl || "");
-          if (!photo) return "";
-          if (photo.startsWith("data:image/")) return "Embedded image - view in Asset Management";
-          return photo;
-        },
-      },
-      { header: "Registered By", value: (asset) => asset.registeredBy },
-      { header: "Created At", value: (asset) => asset.createdAt },
-      { header: "Updated At", value: (asset) => asset.updatedAt },
-      {
-        header: "Assignment History",
-        value: (asset) => (asset.assignmentHistory || []).map((entry: any) =>
-          `${entry.action}: ${entry.fromUserName || "Stock"} -> ${entry.toUserName || "Stock"}; assigned ${entry.assignedDate || "-"}; handover ${entry.handoverDate || "-"}; by ${entry.performedBy || "-"}`
-        ).join(" | "),
-      },
-    ];
-
-    const humanizeFieldName = (key: string) => key
-      .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
-      .replace(/[_-]+/g, " ")
-      .replace(/\b\w/g, (letter) => letter.toUpperCase());
-
-    const csvCell = (value: unknown) => {
-      let text = value === null || value === undefined ? "" : String(value);
-      // Prevent spreadsheet applications from interpreting user-entered text as a formula.
-      if (/^[=+\-@]/.test(text)) text = `'${text}`;
-      return `"${text.replace(/"/g, '""')}"`;
-    };
-
-    const headers = [
-      ...identityColumns.map((column) => column.header),
-      ...customFieldKeys.map((key) => `Form - ${humanizeFieldName(key)}`),
-      ...Array.from({ length: maximumEmails }, (_, index) => `Logged-in Email ${index + 1}`),
-      ...compatibilityColumns.map((column) => `Saved - ${column.header}`),
-      ...closingColumns.map((column) => column.header),
-    ];
-
-    const rows = filteredInventory.map((asset, index) => {
-      const custom = parsedCustomFields[index];
-      return [
-        ...identityColumns.map((column) => column.value(asset)),
-        ...customFieldKeys.map((key) => custom.assetFields[key] ?? ""),
-        ...Array.from({ length: maximumEmails }, (_, emailIndex) => custom.emailsList[emailIndex] ?? ""),
-        ...compatibilityColumns.map((column) => column.value(asset)),
-        ...closingColumns.map((column) => column.value(asset)),
-      ];
-    });
-
-    const csv = [
-      headers.map(csvCell).join(","),
-      ...rows.map((row) => row.map(csvCell).join(",")),
-    ].join("\r\n");
-    const blob = new Blob(["\uFEFF", csv], { type: "text/csv;charset=utf-8" });
+    const csvString = XLSX.utils.sheet_to_csv(ws);
+    const blob = new Blob([csvString], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
-    link.href = url;
-    link.download = `Asset_Inventory_Full_Details_${new Date().toISOString().slice(0, 10)}.csv`;
+    link.setAttribute("href", url);
+    link.setAttribute("download", `Asset_Inventory_Report_${new Date().toISOString().split("T")[0]}.csv`);
+    link.style.visibility = "hidden";
     document.body.appendChild(link);
     link.click();
-    link.remove();
-    URL.revokeObjectURL(url);
-    triggerToast(`${filteredInventory.length} asset record(s) exported with separate detail columns`);
-  };
+    document.body.removeChild(link);
+    triggerToast(`${filteredInventory.length} inventory record(s) exported successfully`);
+  } catch (err: any) {
+    console.error("Failed to export Inventory CSV:", err);
+    triggerToast("Inventory export failed: " + (err.message || "Unknown error"));
+  }
+};
 
   // Calculate quick stats
   const totalCount = inventory.length;

@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
-import { useRouter } from "next/navigation";
+import { useRouter, useParams } from "next/navigation";
 import {
   X,
   Loader2,
@@ -67,6 +67,9 @@ import AuditTrail from "@/components/dashboard/AuditTrail";
 export default function UnifiedEnterpriseDashboard() {
   const { data: session, status } = useSession();
   const router = useRouter();
+  const params = useParams();
+  const slugArr = params?.slug as string[] | undefined;
+  const currentSlug = slugArr && slugArr.length > 0 ? slugArr[0] : null;
 
   const rawRole = (session?.user as any)?.role || "Employee";
   const SYSTEM_ROLES = [
@@ -98,6 +101,12 @@ export default function UnifiedEnterpriseDashboard() {
 
   const handleNavigateTab = (tab: string, filter?: string) => {
     setActiveTab(tab);
+    if (typeof window !== "undefined") {
+      const targetPath = `/dashboard/${tab}`;
+      if (window.location.pathname !== targetPath) {
+        window.history.pushState(null, "", targetPath);
+      }
+    }
     if (tab === "business-leads" && filter) {
       setBusinessLeadsFilter(filter);
       setKanbanSearchFilter("");
@@ -506,30 +515,12 @@ export default function UnifiedEnterpriseDashboard() {
     }
   }, [activeTab]);
 
-  const loadAllData = async () => {
+  const loadInitialData = async () => {
     setLoading(true);
-    const role = userRole;
-    const isManagerial = ["Owner", "Director", "HR Head", "HR Executive", "Department Manager"].includes(role);
-
-    const promises: Promise<any>[] = [
+    await Promise.all([
       loadCompanies(),
       loadStats(selectedCompanyId)
-    ];
-
-    if (isManagerial) {
-      promises.push(
-        loadCandidates(),
-        loadInterviews(),
-        loadPostedJobs(),
-        loadProbation(),
-        loadGrievances(),
-        loadRiskAlerts(),
-        loadExits(),
-        loadRequisitions()
-      );
-    }
-
-    await Promise.all(promises);
+    ]);
     setLoading(false);
   };
 
@@ -541,15 +532,17 @@ export default function UnifiedEnterpriseDashboard() {
 
   useEffect(() => {
     if (status === "authenticated" && !dataLoaded) {
-      if (typeof window !== "undefined") {
+      let initialTab = currentSlug;
+      if (!initialTab && typeof window !== "undefined") {
         const urlParams = new URLSearchParams(window.location.search);
-        const tab = urlParams.get("tab");
-        const role = userRole;
+        initialTab = urlParams.get("tab");
+      }
 
-        if (tab && tab !== activeTab) {
-          setActiveTab(tab);
-          setActiveTab(tab);
-        } else if (role === "Owner" || role === "Director") {
+      if (initialTab) {
+        setActiveTab(initialTab);
+      } else {
+        const role = userRole;
+        if (role === "Owner" || role === "Director") {
           setActiveTab("dashboard");
         } else if (role === "HR Head" || role === "HR Executive") {
           setActiveTab("hr-dash");
@@ -567,10 +560,53 @@ export default function UnifiedEnterpriseDashboard() {
           setActiveTab("attendance");
         }
       }
-      loadAllData();
+      loadInitialData();
       setDataLoaded(true);
     }
-  }, [status, session, dataLoaded]);
+  }, [status, session, dataLoaded, currentSlug]);
+
+  // Lazy load tab data on activeTab change
+  useEffect(() => {
+    if (status !== "authenticated") return;
+    const role = userRole;
+    const isManagerial = ["Owner", "Director", "HR Head", "HR Executive", "Department Manager"].includes(role);
+    if (!isManagerial) return;
+
+    switch (activeTab) {
+      case "dashboard":
+      case "hr-dash":
+      case "screening":
+      case "verification":
+      case "hr-leads":
+        loadCandidates();
+        if (activeTab === "hr-dash") loadInterviews();
+        break;
+      case "interviews":
+        loadInterviews();
+        break;
+      case "jobs":
+        loadPostedJobs();
+        break;
+      case "probation":
+        loadProbation();
+        break;
+      case "grievance":
+        loadGrievances();
+        break;
+      case "risk-alerts":
+        loadRiskAlerts();
+        break;
+      case "exit":
+        loadExits();
+        break;
+      case "hiring":
+        loadRequisitions();
+        loadPostedJobs();
+        break;
+      default:
+        break;
+    }
+  }, [activeTab, status, userRole]);
 
   // Auto popup SOD on load if missing
   useEffect(() => {
@@ -1040,7 +1076,7 @@ export default function UnifiedEnterpriseDashboard() {
       if (data.success) {
         triggerToast("Partner successfully added to network!");
         toggleModal(modalId, false);
-        await loadAllData();
+        await loadInitialData();
       } else {
         triggerToast("Submission failed: " + data.error);
       }

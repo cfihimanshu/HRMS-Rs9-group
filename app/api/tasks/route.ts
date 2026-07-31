@@ -431,34 +431,64 @@ export async function GET(req: Request) {
     const empIds = records.map((r: any) => r.employee).filter(Boolean);
     const fwdIds = records.map((r: any) => r.forwardedTo).filter(Boolean);
     const assignerIds = records.map((r: any) => r.assignedBy).filter(Boolean);
-    const allUserIds = Array.from(new Set([...empIds, ...fwdIds, ...assignerIds]));
+    const allocatorIds = records.map((r: any) => r.allocatedBy).filter(Boolean);
+    const allUserIds = Array.from(new Set([...empIds, ...fwdIds, ...assignerIds, ...allocatorIds]));
 
     const employees = await User.findAll({
-      where: { id: { [Op.in]: allUserIds } },
-      attributes: ["id", "name", "role"],
+      where: {
+        [Op.or]: [
+          { id: { [Op.in]: allUserIds } },
+          { email: { [Op.in]: allUserIds } },
+          { name: { [Op.in]: allUserIds } }
+        ]
+      },
+      attributes: ["id", "name", "role", "email"],
       raw: true
     });
-    const empMap = new Map(employees.map((e: any) => [e.id, e]));
+    
+    const empMap = new Map();
+    employees.forEach((e: any) => {
+      if (e.id) empMap.set(String(e.id), e);
+      if (e.email) empMap.set(String(e.email).toLowerCase(), e);
+      if (e.name) empMap.set(String(e.name).toLowerCase(), e);
+    });
+
+    const getEmpDetail = (val: any) => {
+      if (!val) return null;
+      const str = String(val).trim();
+      if (empMap.has(str)) return empMap.get(str);
+      if (empMap.has(str.toLowerCase())) return empMap.get(str.toLowerCase());
+      
+      if (typeof val === "string" && val.trim().length > 0 && val.toLowerCase() !== "unknown") {
+        let cleanName = val.trim();
+        if (cleanName.includes("@")) {
+          cleanName = cleanName.split("@")[0].replace(/[._]/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+        }
+        return { id: val, name: cleanName, role: "Employee" };
+      }
+      return null;
+    };
 
     const hydratedRecords = records.map((r: any) => {
       const plain = r.toJSON();
       plain.id = plain.id ? String(plain.id) : "";
-      if (plain.employee) {
-        const empDetail = empMap.get(plain.employee);
-        plain.employee = empDetail ? { ...empDetail, id: empDetail.id } : { id: plain.employee, name: "Unknown", role: "Employee" };
+      
+      const empDetail = getEmpDetail(plain.employee) || getEmpDetail(plain.allocatedBy) || getEmpDetail(plain.assignedBy);
+      if (empDetail) {
+        plain.employee = { ...empDetail, id: empDetail.id || plain.employee };
       } else {
-        plain.employee = { id: "unknown", name: "Unknown", role: "Employee" };
+        plain.employee = { id: plain.employee || "unknown", name: "System User", role: "Employee" };
       }
 
       if (plain.forwardedTo) {
-        const fwdDetail = empMap.get(plain.forwardedTo);
-        plain.forwardedUser = fwdDetail ? { ...fwdDetail, id: fwdDetail.id } : { id: plain.forwardedTo, name: "Unknown", role: "Employee" };
+        const fwdDetail = getEmpDetail(plain.forwardedTo);
+        plain.forwardedUser = fwdDetail ? { ...fwdDetail, id: fwdDetail.id } : { id: plain.forwardedTo, name: String(plain.forwardedTo), role: "Employee" };
       } else {
         plain.forwardedUser = null;
       }
 
       if (plain.assignedBy) {
-        const assignerDetail = empMap.get(plain.assignedBy);
+        const assignerDetail = getEmpDetail(plain.assignedBy);
         plain.assignedByUser = assignerDetail ? { ...assignerDetail, id: assignerDetail.id } : { id: plain.assignedBy, name: "Owner", role: "Owner" };
       } else {
         plain.assignedByUser = null;

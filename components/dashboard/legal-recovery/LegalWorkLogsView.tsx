@@ -161,6 +161,61 @@ export default function LegalWorkLogsView({ workLogs, branches, banks, loading, 
     };
   }, [bankWorkCategory, selectedBankId, selectedBranchRecord?.id]);
 
+  // Active Notice Session Saved Stages State
+  const [sessionSavedStages, setSessionSavedStages] = useState<Record<string, any>>({});
+
+  // Reset session saved stages when Bank or Branch changes
+  useEffect(() => {
+    setSessionSavedStages({});
+    setBroughtBy("");
+    setPreparedBy("");
+    setPrintedBy("");
+    setDispatchedBy("");
+    setDispatchAmount("");
+    setBillNo("");
+    setBillAmount("");
+    setPersonName("");
+    setUploadedFileName("");
+    setRemarks("");
+  }, [selectedBankId, selectedBranchName]);
+
+  // Handle stage dropdown change: prefill if saved in current session, else clean inputs
+  useEffect(() => {
+    if (typeOfWork !== "Bank Related" || bankWorkCategory !== "Business Development" || !businessDevSubOption) {
+      return;
+    }
+
+    const saved = sessionSavedStages[businessDevSubOption];
+    if (saved) {
+      if (saved.noOfCount) setNoOfCount(String(saved.noOfCount));
+      if (saved.broughtBy) setBroughtBy(saved.broughtBy);
+      if (saved.preparedBy) setPreparedBy(saved.preparedBy);
+      if (saved.printedBy) setPrintedBy(saved.printedBy);
+      if (saved.dispatchedBy) setDispatchedBy(saved.dispatchedBy);
+      if (saved.dispatchAmount) setDispatchAmount(String(saved.dispatchAmount));
+      if (saved.billDate) setBillDate(saved.billDate);
+      if (saved.billAmount) setBillAmount(String(saved.billAmount));
+      if (saved.billNo) setBillNo(saved.billNo);
+      if (saved.personName) setPersonName(saved.personName);
+      if (saved.uploadedFileName) setUploadedFileName(saved.uploadedFileName);
+      if (saved.remarks) setRemarks(saved.remarks);
+      if (saved.finalRate) setFinalRate(String(saved.finalRate));
+      if (saved.bankOfficerPerNotice) setBankOfficerPerNotice(String(saved.bankOfficerPerNotice));
+      if (saved.assessmentExpenses) setAssessmentExpenses(String(saved.assessmentExpenses));
+    } else {
+      setBroughtBy("");
+      setPreparedBy("");
+      setPrintedBy("");
+      setDispatchedBy("");
+      setDispatchAmount("");
+      setBillNo("");
+      setBillAmount("");
+      setPersonName("");
+      setUploadedFileName("");
+      setRemarks("");
+    }
+  }, [businessDevSubOption, sessionSavedStages]);
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -200,7 +255,7 @@ export default function LegalWorkLogsView({ workLogs, branches, banks, loading, 
     setExpandedCategories(prev => ({ ...prev, [cat]: !prev[cat] }));
   };
 
-  const handleMarkTaskDone = async (branchId: number, category: string, subCategory: string, remarks: string) => {
+  const handleMarkTaskDone = async (branchId: number, category: string, subCategory: string, stepRem: string) => {
     const taskKey = `${branchId}-${category}-${subCategory}`;
     setUpdatingTask(taskKey);
     try {
@@ -211,7 +266,7 @@ export default function LegalWorkLogsView({ workLogs, branches, banks, loading, 
           masterId: branchId,
           category,
           subCategory,
-          remarks: remarks || "Marked as completed",
+          remarks: stepRem || "Marked as completed",
           workDate: new Date().toISOString().split('T')[0]
         })
       });
@@ -228,8 +283,8 @@ export default function LegalWorkLogsView({ workLogs, branches, banks, loading, 
     }
   };
 
-  const handleFormSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleFormSubmit = async (e: React.FormEvent, proceedToNext: boolean = false) => {
+    if (e) e.preventDefault();
     if (workLocation === "Other" && !customLocation.trim()) {
       alert("Please specify the custom location.");
       return;
@@ -266,12 +321,8 @@ export default function LegalWorkLogsView({ workLogs, branches, banks, loading, 
         workLocation,
         customLocation: workLocation === "Other" ? customLocation.trim() : "",
         typeOfWork,
-        category: typeOfWork === "Bank Related" ? bankWorkCategory : typeOfWork,
-        subCategory: typeOfWork === "Bank Related"
-          ? (bankWorkCategory === "Business Development"
-              ? (businessDevSubOption || businessDevOption)
-              : "BILL FOLLOW UP")
-          : (workLocation === "Other" ? (customLocation.trim() || "Other") : workLocation),
+        category: typeOfWork === "Bank Related" && bankWorkCategory === "Business Development" ? businessDevOption : (typeOfWork === "Bank Related" ? bankWorkCategory : typeOfWork),
+        subCategory: typeOfWork === "Bank Related" && bankWorkCategory === "Business Development" ? businessDevSubOption : (bankWorkCategory === "Bill Follow Up" ? "BILL FOLLOW UP" : workLocation),
         businessDevOption: typeOfWork === "Bank Related" && bankWorkCategory === "Business Development" ? businessDevOption : undefined,
         businessDevSubOption: typeOfWork === "Bank Related" && bankWorkCategory === "Business Development" ? businessDevSubOption : undefined,
         noOfCount: noOfCount || "1",
@@ -312,7 +363,7 @@ export default function LegalWorkLogsView({ workLogs, branches, banks, loading, 
         bankName: bankObj?.bankName || undefined,
         branchName: selectedBranchName || undefined,
         remarks: remarks.trim(),
-        masterId: selectedBankId ? Number(selectedBankId) : 0,
+        masterId: selectedBranchRecord?.id ? Number(selectedBranchRecord.id) : (selectedBankId ? Number(selectedBankId) : 0),
       };
 
       const res = await fetch("/api/legal-recovery/work-log", {
@@ -323,25 +374,65 @@ export default function LegalWorkLogsView({ workLogs, branches, banks, loading, 
 
       const data = await res.json();
       if (data.success) {
-        setFormSuccessMessage("Legal Work Log entry saved successfully!");
-        setRemarks("");
-        setCustomLocation("");
-        setSelectedBankId("");
-        setSelectedBranchName("");
-        setBroughtBy("");
-        setPreparedBy("");
-        setPrintedBy("");
-        setDispatchedBy("");
-        setDispatchAmount("");
-        setFinalRate("");
-        setBankOfficerPerNotice("");
-        setAssessmentExpenses("");
-        setCallDate(new Date().toISOString().split("T")[0]);
-        setCallTime("");
-        setContactedPerson("");
-        setPendingBills([]);
+        // Record current stage in session memory
+        const stageSnapshot = {
+          noOfCount,
+          broughtBy,
+          preparedBy,
+          printedBy,
+          dispatchedBy,
+          dispatchAmount,
+          billDate,
+          billAmount,
+          billNo,
+          personName,
+          uploadedFileName,
+          remarks,
+          finalRate,
+          bankOfficerPerNotice,
+          assessmentExpenses
+        };
+        setSessionSavedStages(prev => ({
+          ...prev,
+          [businessDevSubOption]: stageSnapshot
+        }));
+
         if (onRefresh) onRefresh();
-        setTimeout(() => setFormSuccessMessage(""), 4000);
+
+        if (proceedToNext && typeOfWork === "Bank Related" && bankWorkCategory === "Business Development") {
+          const steps = WORK_CATEGORIES[businessDevOption] || [];
+          const currentIdx = steps.indexOf(businessDevSubOption);
+          if (currentIdx >= 0 && currentIdx < steps.length - 1) {
+            const nextSub = steps[currentIdx + 1];
+            setBusinessDevSubOption(nextSub);
+            setFormSuccessMessage(`Stage saved! Advanced to next stage: ${nextSub}`);
+          } else {
+            setFormSuccessMessage("Legal Work Log entry saved successfully!");
+          }
+        } else {
+          // Complete Form Reset on "Save Work Log"
+          setSelectedBankId("");
+          setSelectedBranchName("");
+          setBusinessDevSubOption("TAKE NOTICE ASSIGNMENT");
+          setNoOfCount("1");
+          setBroughtBy("");
+          setPreparedBy("");
+          setPrintedBy("");
+          setDispatchedBy("");
+          setDispatchAmount("");
+          setFinalRate("");
+          setBankOfficerPerNotice("");
+          setAssessmentExpenses("");
+          setBillNo("");
+          setBillAmount("");
+          setPersonName("");
+          setUploadedFileName("");
+          setRemarks("");
+          setCustomLocation("");
+          setSessionSavedStages({});
+          setFormSuccessMessage("Legal Work Log entry saved successfully! Form cleared for next notice.");
+        }
+        setTimeout(() => setFormSuccessMessage(""), 5000);
       } else {
         alert(data.error || "Failed to save work log.");
       }
@@ -1353,8 +1444,18 @@ export default function LegalWorkLogsView({ workLogs, branches, banks, loading, 
                 />
               </div>
 
-              {/* Submit Button */}
-              <div className="flex justify-end pt-2">
+              {/* Submit Buttons */}
+              <div className="flex flex-col sm:flex-row justify-end gap-3 pt-2">
+                {typeOfWork === "Bank Related" && bankWorkCategory === "Business Development" && (
+                  <button
+                    type="button"
+                    disabled={submittingForm}
+                    onClick={(e) => handleFormSubmit(e, true)}
+                    className="w-full sm:w-auto px-5 py-2.5 bg-amber-600 hover:bg-amber-700 text-white font-extrabold text-xs rounded-xl shadow-md transition-all flex items-center justify-center gap-1.5 disabled:opacity-60 cursor-pointer active:scale-95"
+                  >
+                    <Send className="w-3.5 h-3.5" /> Save &amp; Proceed to Next Stage ➔
+                  </button>
+                )}
                 <button
                   type="submit"
                   disabled={submittingForm}
@@ -1364,7 +1465,7 @@ export default function LegalWorkLogsView({ workLogs, branches, banks, loading, 
                     <>Saving Work Log...</>
                   ) : (
                     <>
-                      <Send className="w-3.5 h-3.5" /> Submit Work Log
+                      <Send className="w-3.5 h-3.5" /> Save Work Log
                     </>
                   )}
                 </button>

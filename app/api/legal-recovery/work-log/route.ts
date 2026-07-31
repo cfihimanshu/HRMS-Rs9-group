@@ -160,6 +160,10 @@ export async function POST(request: Request) {
     // `undefined` properties can still be included by ORM model mappings, so
     // remove them explicitly before creating the row.
     const cleanData = { ...data };
+    cleanData.category = data.category || data.businessDevOption || "ADVOCATE NOTICE";
+    cleanData.subCategory = data.subCategory || data.businessDevSubOption || "TAKE NOTICE ASSIGNMENT";
+    cleanData.masterId = data.masterId !== undefined && data.masterId !== null ? Number(data.masterId) : 0;
+
     if (!isBillPreparation) {
       delete cleanData.billDate;
       delete cleanData.billAmount;
@@ -273,19 +277,68 @@ export async function POST(request: Request) {
         const dateCompact = taskDate.replace(/-/g, "");
         const generatedTaskId = `TSK-${dateCompact}-${Math.floor(1000 + Math.random() * 9000)}`;
 
-        let extraDetails = `Brought By: ${data.broughtBy || 'N/A'}, Printed By: ${data.printedBy || 'N/A'}, Dispatched By: ${data.dispatchedBy || 'N/A'}`;
-        if (data.billNo || data.billAmount) {
-          extraDetails += ` | Bill No: ${data.billNo || 'N/A'}, Amount: Rs.${data.billAmount || '0'}`;
+        const detailsParts: string[] = [];
+
+        if (data.broughtBy && String(data.broughtBy).trim()) {
+          detailsParts.push(`Brought By: ${String(data.broughtBy).trim()}`);
         }
+        if (data.preparedBy && String(data.preparedBy).trim()) {
+          detailsParts.push(`Prepared By: ${String(data.preparedBy).trim()}`);
+        }
+        if (data.printedBy && String(data.printedBy).trim()) {
+          detailsParts.push(`Printed By: ${String(data.printedBy).trim()}`);
+        }
+        if (data.dispatchedBy && String(data.dispatchedBy).trim()) {
+          detailsParts.push(`Dispatched By: ${String(data.dispatchedBy).trim()}`);
+        }
+        if (data.personName && String(data.personName).trim()) {
+          detailsParts.push(`Person: ${String(data.personName).trim()}`);
+        }
+
+        const billParts: string[] = [];
+        if (data.billNo && String(data.billNo).trim()) {
+          billParts.push(`Bill No: ${String(data.billNo).trim()}`);
+        }
+        if (data.billAmount !== undefined && data.billAmount !== null && String(data.billAmount).trim() !== "") {
+          billParts.push(`Amount: Rs.${data.billAmount}`);
+        }
+        if (billParts.length > 0) {
+          detailsParts.push(billParts.join(", "));
+        }
+
         if (isNoticeAssessment) {
-          extraDetails += ` | Per Notice Rate: Rs.${parsedFinancialDetails?.perNoticeRate || 0}, Officer/Notice: Rs.${parsedFinancialDetails?.bankOfficerPerNotice || 0}, Own Expenses: Rs.${parsedExpenses}, GP before dispatch: Rs.${calculatedAssessmentGp || 0}`;
+          const finParts: string[] = [];
+          if (parsedFinancialDetails?.perNoticeRate !== undefined && parsedFinancialDetails?.perNoticeRate !== null) {
+            finParts.push(`Per Notice Rate: Rs.${parsedFinancialDetails.perNoticeRate}`);
+          }
+          if (parsedFinancialDetails?.bankOfficerPerNotice !== undefined && parsedFinancialDetails?.bankOfficerPerNotice !== null) {
+            finParts.push(`Officer/Notice: Rs.${parsedFinancialDetails.bankOfficerPerNotice}`);
+          }
+          if (parsedExpenses !== undefined && !isNaN(parsedExpenses) && parsedExpenses > 0) {
+            finParts.push(`Own Expenses: Rs.${parsedExpenses}`);
+          }
+          if (calculatedAssessmentGp !== undefined && calculatedAssessmentGp !== null && !isNaN(calculatedAssessmentGp)) {
+            finParts.push(`GP before dispatch: Rs.${calculatedAssessmentGp}`);
+          }
+          if (finParts.length > 0) {
+            detailsParts.push(finParts.join(", "));
+          }
         }
+
+        let taskDescriptionParts: string[] = [];
+        if (detailsParts.length > 0) {
+          taskDescriptionParts.push(detailsParts.join(" | "));
+        }
+        if (data.remarks && String(data.remarks).trim()) {
+          taskDescriptionParts.push(`Remarks: ${String(data.remarks).trim()}`);
+        }
+        const taskDescription = taskDescriptionParts.join(" | ");
 
         await TaskLog.create({
           id: generatedTaskId,
           employee: empId,
           taskTitle: titleStr,
-          description: `${extraDetails} | Remarks: ${data.remarks || ''}`,
+          description: taskDescription,
           status: "Pending",
           allocatedBy: empId,
           date: taskDate,
@@ -347,9 +400,7 @@ export async function PUT(request: Request) {
     const entry = await LegalWorkLog.findByPk(data.id);
     if (!entry) return NextResponse.json({ success: false, error: "Work log not found" }, { status: 404 });
 
-    if (data.stageAmount !== undefined) entry.stageAmount = Math.max(0, Number(data.stageAmount) || 0);
-    if (data.remarks !== undefined) entry.remarks = String(data.remarks || "");
-    await entry.save();
+    await entry.update(data);
     return NextResponse.json({ success: true, data: entry });
   } catch (error: any) {
     console.error("Work Log PUT Error:", error);

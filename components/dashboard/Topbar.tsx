@@ -303,48 +303,75 @@ export default function Topbar({
                   ) : (
                     notifications.map((notif: any) => {
                       const titleLower = (notif.title || "").toLowerCase();
-                      
-                      let IconComponent = Bell;
-                      let iconBg = "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300";
-                      let accentBorder = "border-l-transparent";
+                      const msgLower = (notif.message || "").toLowerCase();
 
-                      if (titleLower.includes("user login") || titleLower.includes("login")) {
-                        IconComponent = User;
-                        iconBg = "bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400";
-                        if (!notif.read) accentBorder = "border-l-4 border-l-amber-400";
-                      } else if (titleLower.includes("task")) {
-                        IconComponent = ClipboardList;
-                        iconBg = "bg-indigo-100 text-indigo-700 dark:bg-indigo-950/40 dark:text-indigo-400";
-                        if (!notif.read) accentBorder = "border-l-4 border-l-indigo-500";
-                      } else if (titleLower.includes("leave") || titleLower.includes("approval") || titleLower.includes("verified")) {
-                        IconComponent = CheckCircle2;
-                        iconBg = "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400";
-                        if (!notif.read) accentBorder = "border-l-4 border-l-emerald-500";
-                      } else if (titleLower.includes("risk") || titleLower.includes("warning") || titleLower.includes("overdue")) {
+                      let IconComponent = Bell;
+                      let iconBg = "bg-purple-500/15 text-purple-700 dark:bg-purple-950/50 dark:text-purple-300 border border-purple-200/80 dark:border-purple-800/50";
+                      let accentBorder = "border-l-purple-500";
+                      let itemBg = notif.read ? "bg-transparent opacity-80" : "bg-purple-50/40 dark:bg-purple-950/20 border-l-4 border-l-purple-500";
+                      let titleColor = notif.read ? "text-slate-700 dark:text-gray-300" : "text-purple-900 dark:text-purple-300 font-bold";
+                      let categoryTag = "INFO";
+                      let categoryTagStyle = "bg-purple-100 text-purple-700 dark:bg-purple-950 dark:text-purple-300 border border-purple-200 dark:border-purple-800/60";
+                      let dotColor = "bg-purple-500";
+
+                      if (titleLower.includes("risk") || titleLower.includes("warning") || titleLower.includes("overdue") || titleLower.includes("critical") || msgLower.includes("warning")) {
                         IconComponent = ShieldAlert;
-                        iconBg = "bg-rose-100 text-rose-700 dark:bg-rose-950/40 dark:text-rose-400";
-                        if (!notif.read) accentBorder = "border-l-4 border-l-rose-500";
+                        iconBg = "bg-rose-500/15 text-rose-700 dark:bg-rose-950/50 dark:text-rose-300 border border-rose-200/80 dark:border-rose-800/50";
+                        itemBg = notif.read ? "bg-transparent opacity-80" : "bg-rose-50/70 dark:bg-rose-950/25 border-l-4 border-l-rose-500";
+                        titleColor = notif.read ? "text-slate-700 dark:text-gray-300" : "text-rose-900 dark:text-rose-300 font-extrabold";
+                        categoryTag = "CRITICAL";
+                        categoryTagStyle = "bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300 border border-rose-200 dark:border-rose-800/60";
+                        dotColor = "bg-rose-500";
+                      } else if (titleLower.includes("leave") || titleLower.includes("approval") || titleLower.includes("expense") || titleLower.includes("request") || titleLower.includes("asset request")) {
+                        IconComponent = Clock;
+                        iconBg = "bg-amber-500/15 text-amber-700 dark:bg-amber-950/50 dark:text-amber-300 border border-amber-200/80 dark:border-amber-800/50";
+                        itemBg = notif.read ? "bg-transparent opacity-80" : "bg-amber-50/60 dark:bg-amber-950/20 border-l-4 border-l-amber-500";
+                        titleColor = notif.read ? "text-slate-700 dark:text-gray-300" : "text-amber-900 dark:text-amber-300 font-bold";
+                        categoryTag = "APPROVAL";
+                        categoryTagStyle = "bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 border border-amber-200 dark:border-amber-800/60";
+                        dotColor = "bg-amber-500";
+                      } else if (titleLower.includes("task") || titleLower.includes("sod") || titleLower.includes("eod") || titleLower.includes("work")) {
+                        IconComponent = ClipboardList;
+                        iconBg = "bg-sky-500/15 text-sky-700 dark:bg-sky-950/50 dark:text-sky-300 border border-sky-200/80 dark:border-sky-800/50";
+                        itemBg = notif.read ? "bg-transparent opacity-80" : "bg-sky-50/60 dark:bg-sky-950/20 border-l-4 border-l-sky-500";
+                        titleColor = notif.read ? "text-slate-700 dark:text-gray-300" : "text-sky-900 dark:text-sky-300 font-bold";
+                        categoryTag = "TASK";
+                        categoryTagStyle = "bg-sky-100 text-sky-800 dark:bg-sky-950 dark:text-sky-300 border border-sky-200 dark:border-sky-800/60";
+                        dotColor = "bg-sky-500";
+                      } else if (titleLower.includes("verified") || titleLower.includes("hiring") || titleLower.includes("interview") || titleLower.includes("onboard") || titleLower.includes("approved")) {
+                        IconComponent = CheckCircle2;
+                        iconBg = "bg-emerald-500/15 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300 border border-emerald-200/80 dark:border-emerald-800/50";
+                        itemBg = notif.read ? "bg-transparent opacity-80" : "bg-emerald-50/60 dark:bg-emerald-950/20 border-l-4 border-l-emerald-500";
+                        titleColor = notif.read ? "text-slate-700 dark:text-gray-300" : "text-emerald-900 dark:text-emerald-300 font-bold";
+                        categoryTag = "SUCCESS";
+                        categoryTagStyle = "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/60";
+                        dotColor = "bg-emerald-500";
+                      } else if (titleLower.includes("login") || titleLower.includes("user")) {
+                        IconComponent = User;
                       }
 
                       return (
                         <div
                           key={notif.id}
                           onClick={() => handleNotificationClick(notif)}
-                          className={`group p-3.5 transition-all hover:bg-slate-50/80 dark:hover:bg-slate-800/40 flex items-start gap-3 cursor-pointer relative ${accentBorder} ${
-                            notif.read ? "bg-transparent opacity-85" : "bg-indigo-50/30 dark:bg-indigo-950/15"
-                          }`}
+                          className={`group p-3.5 transition-all hover:bg-slate-100/70 dark:hover:bg-slate-800/60 flex items-start gap-3 cursor-pointer relative ${itemBg}`}
                         >
-                          <div className={`w-8 h-8 rounded-xl shrink-0 flex items-center justify-center ${iconBg} mt-0.5`}>
+                          <div className={`w-8 h-8 rounded-xl shrink-0 flex items-center justify-center ${iconBg} mt-0.5 shadow-xs`}>
                             <IconComponent className="w-4 h-4" />
                           </div>
 
                           <div className="flex-1 min-w-0 text-left pr-5">
-                            <div className="flex items-center justify-between gap-1 mb-0.5">
-                              <h5 className={`text-xs font-black truncate ${notif.read ? "text-slate-700 dark:text-gray-300" : "text-indigo-600 dark:text-indigo-400"}`}>
-                                {notif.title}
-                              </h5>
+                            <div className="flex items-center justify-between gap-1.5 mb-1">
+                              <div className="flex items-center gap-1.5 truncate">
+                                <span className={`text-[8px] font-black tracking-wider uppercase px-1.5 py-0.5 rounded ${categoryTagStyle}`}>
+                                  {categoryTag}
+                                </span>
+                                <h5 className={`text-xs truncate ${titleColor}`}>
+                                  {notif.title}
+                                </h5>
+                              </div>
                               {!notif.read && (
-                                <span className="w-2 h-2 rounded-full bg-indigo-500 shrink-0" />
+                                <span className={`w-2 h-2 rounded-full ${dotColor} shrink-0 animate-pulse`} />
                               )}
                             </div>
                             <p className={`text-[11px] leading-relaxed mb-1.5 ${notif.read ? "text-slate-500 dark:text-gray-400" : "text-slate-800 dark:text-gray-200 font-semibold"}`}>
@@ -366,7 +393,7 @@ export default function Topbar({
                           <button
                             type="button"
                             onClick={(e) => handleClearSingle(e, notif.id)}
-                            className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 p-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-all"
+                            className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 p-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-lg transition-all"
                             title="Remove notification"
                           >
                             <X className="w-3.5 h-3.5" />
