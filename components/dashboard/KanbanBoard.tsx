@@ -77,16 +77,20 @@ const SearchableCombobox = ({
   label,
   value,
   onChange,
+  onSelectOption,
   options,
   placeholder,
-  required = false
+  required = false,
+  disabled = false
 }: {
   label: string;
   value: string;
   onChange: (val: string) => void;
+  onSelectOption?: (val: string) => void;
   options: string[];
   placeholder: string;
   required?: boolean;
+  disabled?: boolean;
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -106,30 +110,31 @@ const SearchableCombobox = ({
   );
 
   return (
-    <div className="relative font-sans" ref={containerRef}>
+    <div className={`relative font-sans ${isOpen ? "z-[99999]" : "z-1"}`} ref={containerRef}>
       <label className="block text-[9px] uppercase tracking-wider text-emerald-700 font-black mb-1">{label}</label>
       <div className="relative">
         <input
           type="text"
           required={required}
+          disabled={disabled}
           value={value}
-          onFocus={() => setIsOpen(true)}
+          onFocus={() => { if (!disabled) setIsOpen(true); }}
           onChange={e => {
             onChange(e.target.value);
-            setIsOpen(true);
+            if (!disabled) setIsOpen(true);
           }}
           placeholder={placeholder}
-          className="w-full border border-emerald-200 rounded-lg px-2.5 py-2 text-xs font-bold focus:outline-none focus:border-emerald-500 placeholder-slate-400 text-slate-800 bg-white shadow-2xs pr-7"
+          className="w-full border border-emerald-200 rounded-lg px-2.5 py-2 text-xs font-bold focus:outline-none focus:border-emerald-500 placeholder-slate-400 text-slate-800 bg-white shadow-2xs pr-7 disabled:opacity-50 disabled:bg-slate-100"
         />
         <div
-          onClick={() => setIsOpen(prev => !prev)}
+          onClick={() => { if (!disabled) setIsOpen(prev => !prev); }}
           className="absolute right-2 top-2.5 cursor-pointer text-emerald-600 hover:text-emerald-800 text-[10px]"
         >
           ▼
         </div>
       </div>
-      {isOpen && (
-        <div className="absolute z-50 left-0 right-0 mt-1 bg-white border border-emerald-300 rounded-xl shadow-2xl max-h-40 overflow-y-auto divide-y divide-slate-100 font-sans animate-fade-in">
+      {isOpen && !disabled && (
+        <div className="absolute z-[999999] left-0 right-0 mt-1 bg-white border border-emerald-300 rounded-xl shadow-2xl max-h-48 overflow-y-auto divide-y divide-slate-100 font-sans animate-fade-in">
           {filteredOptions.length > 0 ? (
             filteredOptions.map((opt, i) => (
               <div
@@ -137,6 +142,7 @@ const SearchableCombobox = ({
                 onMouseDown={(e) => {
                   e.preventDefault();
                   onChange(opt);
+                  if (onSelectOption) onSelectOption(opt);
                   setIsOpen(false);
                 }}
                 className="px-3 py-2 text-xs font-bold text-slate-800 hover:bg-emerald-50 hover:text-emerald-900 cursor-pointer transition-colors"
@@ -2101,11 +2107,11 @@ export default function KanbanBoard({
 
                         {/* ── Sub-Fields (For Bank, Notice or Interview) ── */}
                         {(selectedTaskCategory === "Bank" || selectedTaskCategory === "Notice" || selectedTaskCategory === "Interview" || isBillFollowUp) && (
-                          <div className="space-y-2 bg-emerald-50 border border-emerald-200 rounded-xl p-3 animate-fade-in text-[#1C1C1A]">
+                          <div className="space-y-2 bg-emerald-50 border border-emerald-200 rounded-xl p-3 animate-fade-in text-[#1C1C1A] relative z-30">
 
                             {/* Bank & Notice — Bank & Branch selection */}
                             {(selectedTaskCategory === "Bank" || selectedTaskCategory === "Notice" || callCategory === "Bank" || isBillFollowUp) && (
-                              <div className="space-y-3 animate-fade-in">
+                              <div className="space-y-3 animate-fade-in relative z-40">
 
                                 {/* Case 1: When Task Mode is a Bank Sub-Type (AO related, RBO related, branch related, case related) */}
                                 {selectedTaskCategory === "Bank" && ["AO related", "RBO related", "branch related", "case related"].includes(type) ? (
@@ -2155,76 +2161,77 @@ export default function KanbanBoard({
                                       }
 
                                       return (
-                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                                          {/* Bank Input */}
-                                          <div>
-                                            <label className="block text-[9px] uppercase tracking-wider text-emerald-700 font-black mb-1">Select Bank *</label>
-                                            <select
-                                              required
-                                              value={selectedBankId}
-                                              onChange={e => {
-                                                const bid = e.target.value;
-                                                const bObj = banksList.find(b => String(b.id) === bid);
-                                                setSelectedBankId(bid);
-                                                setBankName(bObj?.bankName || "");
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 relative z-20">
+                                          {/* Bank Input - Searchable */}
+                                          <SearchableCombobox
+                                            label="Select Bank *"
+                                            value={bankName}
+                                            placeholder="Type to search bank..."
+                                            options={banksList.map(b => b.bankName)}
+                                            required
+                                            onChange={(val) => {
+                                              setBankName(val);
+                                              const bObj = banksList.find(b => b.bankName.toLowerCase() === val.toLowerCase() || String(b.id) === val);
+                                              if (bObj) {
+                                                setSelectedBankId(String(bObj.id));
                                                 setBranchName("");
                                                 setAoName("");
                                                 setRboName("");
                                                 setOfficerName("");
                                                 setOfficerPhone("");
-                                                fetchBranches(bid);
-                                              }}
-                                              className="w-full border border-emerald-200 rounded-lg px-2 py-2 text-xs font-bold focus:outline-none focus:border-emerald-500 text-slate-700 bg-white"
-                                            >
-                                              <option value="">-- Select Bank --</option>
-                                              {banksList.map(b => (
-                                                <option key={String(b.id)} value={String(b.id)}>{b.bankName}</option>
-                                              ))}
-                                            </select>
-                                          </div>
+                                                fetchBranches(String(bObj.id));
+                                              } else {
+                                                setSelectedBankId("");
+                                              }
+                                            }}
+                                            onSelectOption={(val) => {
+                                              const bObj = banksList.find(b => b.bankName.toLowerCase() === val.toLowerCase() || String(b.id) === val);
+                                              if (bObj) {
+                                                setSelectedBankId(String(bObj.id));
+                                                setBankName(bObj.bankName);
+                                                setBranchName("");
+                                                setAoName("");
+                                                setRboName("");
+                                                setOfficerName("");
+                                                setOfficerPhone("");
+                                                fetchBranches(String(bObj.id));
+                                              }
+                                            }}
+                                          />
 
-                                          {/* Branch Input */}
+                                          {/* Branch Input - Searchable */}
                                           {["branch related", "case related"].includes(bankSubType) && (
-                                            <div>
-                                              <label className="block text-[9px] uppercase tracking-wider text-emerald-700 font-black mb-1">Select Branch *</label>
-                                              <select
-                                                required
-                                                value={branchName}
-                                                onChange={e => {
-                                                  const selectedVal = e.target.value;
-                                                  const brObj = bankBranches.find((b: any) => String(b.id) === String(selectedVal) || b.branchName === selectedVal);
-                                                  if (brObj) {
-                                                    setBranchName(brObj.branchName);
-                                                    if ((brObj as any).aoName || (brObj as any).ao) setAoName((brObj as any).aoName || (brObj as any).ao || "");
-                                                    if ((brObj as any).rbo || (brObj as any).rboName) setRboName((brObj as any).rbo || (brObj as any).rboName || "");
-                                                    setOfficerName(
-                                                      brObj.branchManager ||
-                                                      brObj.aoName ||
-                                                      brObj.foName ||
-                                                      ""
-                                                    );
-                                                    setOfficerPhone(
-                                                      brObj.branchManagerContact ||
-                                                      brObj.foContact ||
-                                                      ""
-                                                    );
-                                                  } else {
-                                                    setBranchName(selectedVal);
-                                                    setOfficerName("");
-                                                    setOfficerPhone("");
-                                                  }
-                                                }}
-                                                disabled={!selectedBankId}
-                                                className="w-full border border-emerald-200 rounded-lg px-2 py-2 text-xs font-bold focus:outline-none focus:border-emerald-500 text-slate-700 bg-white disabled:opacity-50"
-                                              >
-                                                <option value="">{selectedBankId ? "-- Select Branch --" : "Select a bank first"}</option>
-                                                {bankBranches.map((br: any) => (
-                                                  <option key={String(br.id)} value={br.branchName}>
-                                                    {br.branchName} {br.branchCode ? `(${br.branchCode})` : ""}
-                                                  </option>
-                                                ))}
-                                              </select>
-                                            </div>
+                                            <SearchableCombobox
+                                              label="Select Branch *"
+                                              value={branchName}
+                                              placeholder={selectedBankId ? "Type to search branch..." : "Select a bank first"}
+                                              options={bankBranches.map((br: any) => br.branchName + (br.branchCode ? ` (${br.branchCode})` : ""))}
+                                              disabled={!selectedBankId}
+                                              required
+                                              onChange={(val) => {
+                                                setBranchName(val);
+                                                const cleanVal = val.split(" (")[0].trim();
+                                                const brObj = bankBranches.find((b: any) => String(b.id) === val || b.branchName === cleanVal || b.branchName === val);
+                                                if (brObj) {
+                                                  setBranchName(brObj.branchName);
+                                                  if ((brObj as any).aoName || (brObj as any).ao) setAoName((brObj as any).aoName || (brObj as any).ao || "");
+                                                  if ((brObj as any).rbo || (brObj as any).rboName) setRboName((brObj as any).rbo || (brObj as any).rboName || "");
+                                                  setOfficerName(brObj.branchManager || brObj.aoName || brObj.foName || "");
+                                                  setOfficerPhone(brObj.branchManagerContact || brObj.foContact || "");
+                                                }
+                                              }}
+                                              onSelectOption={(val) => {
+                                                const cleanVal = val.split(" (")[0].trim();
+                                                const brObj = bankBranches.find((b: any) => String(b.id) === val || b.branchName === cleanVal || b.branchName === val);
+                                                if (brObj) {
+                                                  setBranchName(brObj.branchName);
+                                                  if ((brObj as any).aoName || (brObj as any).ao) setAoName((brObj as any).aoName || (brObj as any).ao || "");
+                                                  if ((brObj as any).rbo || (brObj as any).rboName) setRboName((brObj as any).rbo || (brObj as any).rboName || "");
+                                                  setOfficerName(brObj.branchManager || brObj.aoName || brObj.foName || "");
+                                                  setOfficerPhone(brObj.branchManagerContact || brObj.foContact || "");
+                                                }
+                                              }}
+                                            />
                                           )}
 
                                           {/* AO Input */}
@@ -2272,67 +2279,70 @@ export default function KanbanBoard({
                                 ) : (
                                   /* Case 2: For all other Task Modes (Call, SMS, Email, Meeting, WhatsApp, Field Visit, etc.) -> Original Bank Fields */
                                   <div className="space-y-2 animate-fade-in">
-                                    <div className="grid grid-cols-2 gap-2">
-                                      <div>
-                                        <label className="block text-[9px] uppercase tracking-wider text-emerald-700 font-black mb-1">Select Bank *</label>
-                                        <select
-                                          required
-                                          value={selectedBankId}
-                                          onChange={e => {
-                                            const bid = e.target.value;
-                                            const bObj = banksList.find(b => String(b.id) === bid);
-                                            setSelectedBankId(bid);
-                                            setBankName(bObj?.bankName || "");
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 relative z-20">
+                                      {/* Bank Input - Searchable */}
+                                      <SearchableCombobox
+                                        label="Select Bank *"
+                                        value={bankName}
+                                        placeholder="Type to search bank..."
+                                        options={banksList.map(b => b.bankName)}
+                                        required
+                                        onChange={(val) => {
+                                          setBankName(val);
+                                          const bObj = banksList.find(b => b.bankName.toLowerCase() === val.toLowerCase() || String(b.id) === val);
+                                          if (bObj) {
+                                            setSelectedBankId(String(bObj.id));
                                             setBranchName("");
                                             setOfficerName("");
                                             setOfficerPhone("");
-                                            fetchBranches(bid);
-                                          }}
-                                          className="w-full border border-emerald-200 rounded-lg px-2 py-2 text-xs font-bold focus:outline-none focus:border-emerald-500 text-slate-700 bg-white"
-                                        >
-                                          <option value="">-- Select Bank --</option>
-                                          {banksList.map(b => (
-                                            <option key={String(b.id)} value={String(b.id)}>{b.bankName}</option>
-                                          ))}
-                                        </select>
-                                      </div>
-                                      <div>
-                                        <label className="block text-[9px] uppercase tracking-wider text-emerald-700 font-black mb-1">Select Branch *</label>
-                                        <select
-                                          required
-                                          value={branchName}
-                                          onChange={e => {
-                                            const selectedBranchName = e.target.value;
-                                            const selectedBranch = branchesList.find(
-                                              branch => branch.branchName === selectedBranchName
-                                            );
-                                            setBranchName(selectedBranchName);
-                                            setRboName(
-                                              selectedBranch?.rbo ||
-                                              selectedBranch?.rboName ||
-                                              ""
-                                            );
-                                            setOfficerName(
-                                              selectedBranch?.branchManager ||
-                                              selectedBranch?.aoName ||
-                                              selectedBranch?.foName ||
-                                              ""
-                                            );
-                                            setOfficerPhone(
-                                              selectedBranch?.branchManagerContact ||
-                                              selectedBranch?.foContact ||
-                                              ""
-                                            );
-                                          }}
-                                          disabled={!selectedBankId}
-                                          className="w-full border border-emerald-200 rounded-lg px-2 py-2 text-xs font-bold focus:outline-none focus:border-emerald-500 text-slate-700 bg-white disabled:opacity-50"
-                                        >
-                                          <option value="">{selectedBankId ? "-- Select Branch --" : "Select a bank first"}</option>
-                                          {branchesList.map(br => (
-                                            <option key={String(br.id)} value={br.branchName}>{br.branchName}</option>
-                                          ))}
-                                        </select>
-                                      </div>
+                                            fetchBranches(String(bObj.id));
+                                          } else {
+                                            setSelectedBankId("");
+                                          }
+                                        }}
+                                        onSelectOption={(val) => {
+                                          const bObj = banksList.find(b => b.bankName.toLowerCase() === val.toLowerCase() || String(b.id) === val);
+                                          if (bObj) {
+                                            setSelectedBankId(String(bObj.id));
+                                            setBankName(bObj.bankName);
+                                            setBranchName("");
+                                            setOfficerName("");
+                                            setOfficerPhone("");
+                                            fetchBranches(String(bObj.id));
+                                          }
+                                        }}
+                                      />
+
+                                      {/* Branch Input - Searchable */}
+                                      <SearchableCombobox
+                                        label="Select Branch *"
+                                        value={branchName}
+                                        placeholder={selectedBankId ? "Type to search branch..." : "Select a bank first"}
+                                        options={branchesList.map((br: any) => br.branchName + (br.branchCode ? ` (${br.branchCode})` : ""))}
+                                        disabled={!selectedBankId}
+                                        required
+                                        onChange={(val) => {
+                                          setBranchName(val);
+                                          const cleanVal = val.split(" (")[0].trim();
+                                          const brObj = branchesList.find((b: any) => String(b.id) === val || b.branchName === cleanVal || b.branchName === val);
+                                          if (brObj) {
+                                            setBranchName(brObj.branchName);
+                                            if ((brObj as any).rbo || (brObj as any).rboName) setRboName((brObj as any).rbo || (brObj as any).rboName || "");
+                                            setOfficerName(brObj.branchManager || brObj.aoName || brObj.foName || "");
+                                            setOfficerPhone(brObj.branchManagerContact || brObj.foContact || "");
+                                          }
+                                        }}
+                                        onSelectOption={(val) => {
+                                          const cleanVal = val.split(" (")[0].trim();
+                                          const brObj = branchesList.find((b: any) => String(b.id) === val || b.branchName === cleanVal || b.branchName === val);
+                                          if (brObj) {
+                                            setBranchName(brObj.branchName);
+                                            if ((brObj as any).rbo || (brObj as any).rboName) setRboName((brObj as any).rbo || (brObj as any).rboName || "");
+                                            setOfficerName(brObj.branchManager || brObj.aoName || brObj.foName || "");
+                                            setOfficerPhone(brObj.branchManagerContact || brObj.foContact || "");
+                                          }
+                                        }}
+                                      />
                                     </div>
 
                                     {isBillFollowUp && (
@@ -2385,7 +2395,7 @@ export default function KanbanBoard({
                             )}
 
                             {/* Remark / Task Details */}
-                            <div className="animate-fade-in">
+                            <div className="animate-fade-in relative z-0">
                               <label className="block text-[9px] uppercase tracking-wider text-emerald-700 font-black mb-1">Remark / Task Details</label>
                               <textarea
                                 className="w-full border border-emerald-200 rounded-lg px-3 py-2 text-xs font-bold focus:outline-none focus:border-emerald-500 placeholder-slate-400 text-slate-800 bg-white"

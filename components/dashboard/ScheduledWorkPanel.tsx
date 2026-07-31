@@ -14,7 +14,9 @@ import {
   FileSpreadsheet,
   Trash2,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Eye,
+  X
 } from "lucide-react";
 
 interface ScheduledWorkPanelProps {
@@ -73,9 +75,45 @@ const getCleanRemarks = (item: any): string => {
   return text;
 };
 
+const getCleanProgressNoteText = (rawNotes: any): string => {
+  if (!rawNotes) return "";
+
+  if (typeof rawNotes === "string") {
+    const trimmed = rawNotes.trim();
+    if (trimmed.startsWith("[") || trimmed.startsWith("{")) {
+      try {
+        const parsed = JSON.parse(trimmed);
+        if (Array.isArray(parsed)) {
+          const texts = parsed
+            .map((n: any) => (typeof n === "string" ? n : n?.text || n?.note || n?.message || n?.comment || "").trim())
+            .filter(Boolean);
+          if (texts.length > 0) return texts.join("\n• ");
+        } else if (parsed && typeof parsed === "object") {
+          const text = (parsed.text || parsed.note || parsed.message || parsed.comment || "").trim();
+          if (text) return text;
+        }
+      } catch (e) {}
+    }
+
+    // Clean JSON metadata strings like {"createdAt":"...", "userName":"..."}
+    let cleaned = trimmed
+      .replace(/\[\s*\{\s*"text"\s*:\s*"/g, "")
+      .replace(/"\s*,\s*"createdAt"\s*:[^\]\}]*/gi, "")
+      .replace(/\{\s*"text"\s*:\s*"/g, "")
+      .replace(/"\s*,\s*"userName"\s*:[^\]\}]*/gi, "")
+      .replace(/[\{\}\[\]"]/g, "")
+      .trim();
+
+    return cleaned;
+  }
+
+  return String(rawNotes);
+};
+
 export default function ScheduledWorkPanel({ sessionUser, triggerToast }: ScheduledWorkPanelProps) {
   const [schedules, setSchedules] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedDetailItem, setSelectedDetailItem] = useState<any | null>(null);
 
   // Filter States
   const [searchTerm, setSearchTerm] = useState("");
@@ -273,6 +311,7 @@ export default function ScheduledWorkPanel({ sessionUser, triggerToast }: Schedu
     const rbo = item.rboName || "";
     const cases = item.caseDetails || "";
     const remarks = item.remarks || item.details || "";
+    const notes = item.progressNotes || item.taskLog?.progressNotes || item.taskLog?.followUpHistory || "";
 
     return (
       empName.toLowerCase().includes(term) ||
@@ -282,7 +321,8 @@ export default function ScheduledWorkPanel({ sessionUser, triggerToast }: Schedu
       ao.toLowerCase().includes(term) ||
       rbo.toLowerCase().includes(term) ||
       cases.toLowerCase().includes(term) ||
-      remarks.toLowerCase().includes(term)
+      remarks.toLowerCase().includes(term) ||
+      notes.toLowerCase().includes(term)
     );
   });
 
@@ -667,11 +707,22 @@ export default function ScheduledWorkPanel({ sessionUser, triggerToast }: Schedu
 
                       {/* Work Section Column */}
                       <td className="py-1.5 px-2 font-extrabold text-slate-900">
-                        <span className="line-clamp-2">
-                          {(item.workSection === "Others" || item.workSection === "Other" || item.workSection === "others")
-                            ? (item.customLocation || item.otherType || item.details || item.remarks || item.workSection)
-                            : item.workSection}
-                        </span>
+                        <div className="space-y-1">
+                          <span className="line-clamp-2 block">
+                            {(item.workSection === "Others" || item.workSection === "Other" || item.workSection === "others")
+                              ? (item.customLocation || item.otherType || item.details || item.remarks || item.workSection)
+                              : item.workSection}
+                          </span>
+                          {item.sodId ? (
+                            <span className="bg-indigo-50 border border-indigo-200 text-indigo-700 text-[8.5px] font-black px-1.5 py-0.3 rounded inline-flex items-center gap-0.5 w-fit">
+                              ✨ SOD Scheduled
+                            </span>
+                          ) : (
+                            <span className="bg-slate-100 border border-slate-200 text-slate-600 text-[8.5px] font-bold px-1.5 py-0.3 rounded inline-flex items-center gap-0.5 w-fit">
+                              📌 Direct Task
+                            </span>
+                          )}
+                        </div>
                       </td>
 
                       {/* Type Column */}
@@ -720,6 +771,27 @@ export default function ScheduledWorkPanel({ sessionUser, triggerToast }: Schedu
                             {getCleanRemarks(item)}
                           </span>
                           {(() => {
+                            const cleanNote = getCleanProgressNoteText(item.progressNotes || item.taskLog?.progressNotes || item.taskLog?.followUpHistory);
+                            if (!cleanNote) return null;
+                            return (
+                              <div
+                                onClick={() => setSelectedDetailItem(item)}
+                                className="bg-amber-50 hover:bg-amber-100/90 border border-amber-200/90 text-amber-900 rounded p-1 text-[9px] font-medium leading-tight space-y-0.5 shadow-2xs cursor-pointer transition-colors group"
+                                title="Click to open full task details & full progress note"
+                              >
+                                <div className="flex items-center justify-between">
+                                  <span className="font-bold text-amber-800 block">📝 Progress Note:</span>
+                                  <span className="text-[8px] font-black text-purple-700 opacity-70 group-hover:opacity-100 flex items-center gap-0.5">
+                                    <Eye className="w-2.5 h-2.5" /> Tap to expand
+                                  </span>
+                                </div>
+                                <span className="text-slate-800 block line-clamp-2 whitespace-pre-line">
+                                  {cleanNote}
+                                </span>
+                              </div>
+                            );
+                          })()}
+                          {(() => {
                             const url = getCleanAttachmentUrl(item.proofAttachment || item.taskLog?.proofAttachment);
                             if (!url) return null;
                             return (
@@ -756,13 +828,22 @@ export default function ScheduledWorkPanel({ sessionUser, triggerToast }: Schedu
 
                       {/* Actions Column */}
                       <td className="py-1.5 px-2 text-right whitespace-nowrap">
-                        <button
-                          onClick={() => handleDeleteSchedule(item.id)}
-                          className="text-rose-500 hover:text-rose-700 p-1 hover:bg-rose-50 rounded-lg transition-all"
-                          title="Delete Scheduled Entry"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
+                        <div className="flex items-center justify-end gap-1">
+                          <button
+                            onClick={() => setSelectedDetailItem(item)}
+                            className="text-purple-600 hover:text-purple-800 p-1 hover:bg-purple-100 rounded-lg transition-all"
+                            title="View Full Task & Progress Note Details"
+                          >
+                            <Eye className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteSchedule(item.id)}
+                            className="text-rose-500 hover:text-rose-700 p-1 hover:bg-rose-50 rounded-lg transition-all"
+                            title="Delete Scheduled Entry"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   );
@@ -798,6 +879,165 @@ export default function ScheduledWorkPanel({ sessionUser, triggerToast }: Schedu
           </div>
         )}
       </div>
+
+      {/* Task & Full Progress Note Detail Modal */}
+      {selectedDetailItem && (
+        <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="bg-white rounded-2xl border border-purple-200 shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
+            {/* Modal Header */}
+            <div className="bg-gradient-to-r from-purple-900 via-indigo-900 to-slate-900 text-white p-4 flex items-center justify-between">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-mono font-bold bg-white/20 px-2 py-0.5 rounded text-purple-100">
+                    📅 {selectedDetailItem.date} {selectedDetailItem.time}
+                  </span>
+                  {selectedDetailItem.sodId ? (
+                    <span className="bg-indigo-500/30 text-indigo-200 border border-indigo-400/40 text-[10px] font-black px-2 py-0.5 rounded">
+                      ✨ SOD Scheduled Task
+                    </span>
+                  ) : (
+                    <span className="bg-slate-700/50 text-slate-300 border border-slate-600/40 text-[10px] font-bold px-2 py-0.5 rounded">
+                      📌 Direct Task
+                    </span>
+                  )}
+                </div>
+                <h2 className="text-lg font-black tracking-tight text-white flex items-center gap-2">
+                  <span>{selectedDetailItem.workSection}</span>
+                </h2>
+                <div className="text-xs text-purple-200 flex items-center gap-1 font-medium">
+                  <User className="w-3.5 h-3.5 text-purple-300" />
+                  <span>{selectedDetailItem.user?.name || selectedDetailItem.employeeId}</span>
+                  {selectedDetailItem.user?.role && (
+                    <span className="bg-purple-800/80 text-purple-100 text-[9px] font-bold px-1.5 py-0.2 rounded font-mono ml-1">
+                      {selectedDetailItem.user.role}
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              <button
+                onClick={() => setSelectedDetailItem(null)}
+                className="p-1.5 rounded-full hover:bg-white/20 text-white/80 hover:text-white transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-5 overflow-y-auto space-y-4 flex-1 text-slate-800 text-xs">
+              {/* Status & Category Info */}
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 bg-purple-50/60 p-3 rounded-xl border border-purple-100">
+                <div>
+                  <span className="text-[10px] font-bold uppercase text-slate-500 block">Status</span>
+                  <span className={`inline-block px-2 py-0.5 rounded text-[10px] font-black mt-0.5 ${
+                    selectedDetailItem.status === "Completed"
+                      ? "bg-emerald-100 text-emerald-800 border border-emerald-300"
+                      : selectedDetailItem.status === "In Progress"
+                      ? "bg-blue-100 text-blue-800 border border-blue-300"
+                      : "bg-amber-100 text-amber-800 border border-amber-300"
+                  }`}>
+                    {selectedDetailItem.status || "Pending"}
+                  </span>
+                </div>
+
+                <div>
+                  <span className="text-[10px] font-bold uppercase text-slate-500 block">Type</span>
+                  <span className="font-bold text-slate-900 text-xs mt-0.5 block">
+                    {selectedDetailItem.type} {selectedDetailItem.subType ? `(${selectedDetailItem.subType})` : ""}
+                  </span>
+                </div>
+
+                {(selectedDetailItem.bankName || selectedDetailItem.branchName) && (
+                  <div>
+                    <span className="text-[10px] font-bold uppercase text-slate-500 block">Bank / Branch</span>
+                    <span className="font-bold text-purple-900 text-xs mt-0.5 block truncate">
+                      {selectedDetailItem.bankName || "—"} {selectedDetailItem.branchName ? `(${selectedDetailItem.branchName})` : ""}
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              {/* Bank & Officer Extra Meta if available */}
+              {(selectedDetailItem.aoName || selectedDetailItem.rboName || selectedDetailItem.officerName || selectedDetailItem.caseDetails) && (
+                <div className="space-y-1.5 bg-slate-50 p-3 rounded-xl border border-slate-200">
+                  <span className="text-[10px] font-black uppercase tracking-wider text-slate-500 block">Additional Details</span>
+                  <div className="flex flex-wrap gap-2 text-xs font-bold">
+                    {selectedDetailItem.aoName && <span className="bg-white px-2 py-1 rounded border border-slate-300">🏛️ AO: {selectedDetailItem.aoName}</span>}
+                    {selectedDetailItem.rboName && <span className="bg-white px-2 py-1 rounded border border-slate-300">📍 RBO: {selectedDetailItem.rboName}</span>}
+                    {selectedDetailItem.officerName && <span className="bg-purple-50 text-purple-900 px-2 py-1 rounded border border-purple-200">👤 Officer: {selectedDetailItem.officerName}{selectedDetailItem.officerPhone ? ` (${selectedDetailItem.officerPhone})` : ""}</span>}
+                    {selectedDetailItem.caseDetails && <span className="bg-rose-50 text-rose-800 px-2 py-1 rounded border border-rose-200">⚖️ Case: {selectedDetailItem.caseDetails}</span>}
+                  </div>
+                </div>
+              )}
+
+              {/* Initial Remarks / Details */}
+              {getCleanRemarks(selectedDetailItem) !== "—" && (
+                <div className="space-y-1">
+                  <span className="text-[10px] font-bold uppercase text-slate-500 block">Task Description / Remarks</span>
+                  <div className="bg-slate-100/80 p-3 rounded-xl border border-slate-200 text-slate-800 font-medium whitespace-pre-line leading-relaxed">
+                    {getCleanRemarks(selectedDetailItem)}
+                  </div>
+                </div>
+              )}
+
+              {/* Full Progress Notes & Updates Section */}
+              <div className="space-y-1.5">
+                <span className="text-[10px] font-black uppercase tracking-wider text-amber-800 block flex items-center gap-1">
+                  📝 Full Progress Notes & History
+                </span>
+                {(() => {
+                  const fullNote = getCleanProgressNoteText(
+                    selectedDetailItem.progressNotes ||
+                    selectedDetailItem.taskLog?.progressNotes ||
+                    selectedDetailItem.taskLog?.followUpHistory
+                  );
+                  if (!fullNote) {
+                    return (
+                      <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 text-slate-400 italic">
+                        No progress notes added for this task yet.
+                      </div>
+                    );
+                  }
+                  return (
+                    <div className="bg-amber-50/90 border border-amber-200/90 p-4 rounded-xl text-slate-900 text-xs font-normal leading-relaxed whitespace-pre-line shadow-2xs">
+                      {fullNote}
+                    </div>
+                  );
+                })()}
+              </div>
+
+              {/* Proof Attachment if available */}
+              {(() => {
+                const url = getCleanAttachmentUrl(selectedDetailItem.proofAttachment || selectedDetailItem.taskLog?.proofAttachment);
+                if (!url) return null;
+                return (
+                  <div className="space-y-1.5 pt-1">
+                    <span className="text-[10px] font-bold uppercase text-slate-500 block">Proof Attachment</span>
+                    <a
+                      href={url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-2 bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs px-3 py-2 rounded-xl transition-colors shadow-2xs"
+                    >
+                      📎 View Full Proof Attachment / Document
+                    </a>
+                  </div>
+                );
+              })()}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="bg-slate-50 p-3 border-t border-slate-200 flex justify-end">
+              <button
+                onClick={() => setSelectedDetailItem(null)}
+                className="bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold px-4 py-2 rounded-xl transition-colors"
+              >
+                Close Detail View
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
