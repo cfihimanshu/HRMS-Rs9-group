@@ -422,11 +422,64 @@ export async function GET(req: Request) {
       ? parseInt(limitParam, 10)
       : undefined;
 
-    const records = await TaskLog.findAll({
+    let records = await TaskLog.findAll({
       where: query,
       order: [["createdAt", "DESC"]],
       limit: fetchLimit
     });
+
+    // ALSO merge any LegalRecoverySchedule entries that may not be in TaskLog yet
+    try {
+      const LegalRecoverySchedule = (sequelize.models as any).LegalRecoverySchedule || (await import("@/models/sequelize/LegalRecoverySchedule")).default;
+      await LegalRecoverySchedule.sync();
+      
+      const schQuery: any = {};
+      if (userRole !== "Owner") {
+        schQuery.employeeId = { [Op.in]: query[Op.or] ? (query[Op.or][0]?.employee?.[Op.in] || [userId]) : [userId] };
+      }
+      
+      const schRecords = await LegalRecoverySchedule.findAll({ where: schQuery, raw: true });
+      const existingTaskIds = new Set(records.map((r: any) => String(r.id || "").trim()));
+      const existingSchIds = new Set(records.map((r: any) => String(r.scheduleId || "").trim()).filter(Boolean));
+
+      const missingSchs = schRecords.filter((s: any) => {
+        const sId = String(s.id || "").trim();
+        const tId = String(s.taskId || "").trim();
+        if (sId && (existingTaskIds.has(sId) || existingSchIds.has(sId))) return false;
+        if (tId && (existingTaskIds.has(tId) || existingSchIds.has(tId))) return false;
+        return true;
+      });
+
+      if (missingSchs.length > 0) {
+        const syntheticTasks = missingSchs.map((s: any) => {
+          const taskTitle = `[${s.type || 'General'}] ${s.workSection || 'Scheduled Work'}${s.bankName ? ' - ' + s.bankName : ''}${s.branchName ? ' (' + s.branchName + ')' : ''}`;
+          const taskDesc = `SOD Scheduled Work\nDate: ${s.date} | Time: ${s.time || '09:00 AM'}\nType: ${s.type || 'General'}${s.subType ? ' (' + s.subType + ')' : ''}\nBank/NBFC: ${s.bankName || 'N/A'} | Branch: ${s.branchName || 'N/A'}\nAO: ${s.aoName || 'N/A'} | RBO: ${s.rboName || 'N/A'}${s.officerName ? '\nOfficer: ' + s.officerName + (s.officerPhone ? ' (' + s.officerPhone + ')' : '') : ''}\nDetails: ${s.details || s.remarks || 'N/A'}`;
+          
+          return {
+            id: s.taskId || s.id,
+            employee: s.employeeId,
+            date: s.date ? new Date(s.date + "T00:00:00") : new Date(),
+            scheduledAt: s.date ? new Date(s.date + "T00:00:00") : new Date(),
+            taskTitle: taskTitle,
+            taskType: s.type || "General",
+            description: taskDesc,
+            status: s.status || "Pending",
+            timerState: "Stopped",
+            timerStart: null,
+            elapsedSeconds: 0,
+            scheduleId: s.id,
+            proofAttachment: s.proofAttachment || null,
+            progressNotes: s.progressNotes || null,
+            createdAt: s.createdAt || new Date(),
+            updatedAt: s.updatedAt || new Date()
+          };
+        });
+
+        records = [...records, ...syntheticTasks as any];
+      }
+    } catch (schErr) {
+      console.error("Error merging LegalRecoverySchedule into GET /api/tasks:", schErr);
+    }
 
     const empIds = records.map((r: any) => r.employee).filter(Boolean);
     const fwdIds = records.map((r: any) => r.forwardedTo).filter(Boolean);
@@ -470,7 +523,7 @@ export async function GET(req: Request) {
     };
 
     const hydratedRecords = records.map((r: any) => {
-      const plain = r.toJSON();
+      const plain = typeof r.toJSON === "function" ? r.toJSON() : { ...r };
       plain.id = plain.id ? String(plain.id) : "";
       
       const empDetail = getEmpDetail(plain.employee) || getEmpDetail(plain.allocatedBy) || getEmpDetail(plain.assignedBy);
@@ -563,9 +616,9 @@ export async function POST(req: Request) {
       status: status || "Pending",
       proofAttachment: body.proofAttachment || body.attachmentUrl || null,
       scheduledAt: scheduledAt ? new Date(scheduledAt) : null,
-      // Auto-start timer when task is created unless scheduled for future
-      timerState: scheduledAt ? "Stopped" : "Running",
-      timerStart: scheduledAt ? null : now,
+      // Auto-set timerState to Stopped when task is created
+      timerState: "Stopped",
+      timerStart: null,
       elapsedSeconds: 0,
     });
 

@@ -251,15 +251,14 @@ export default function DashboardSidebar({
                       <button
                         key={item.id}
                         onClick={() => {
-                          if (userRole === "Employee" && stats?.currentUserCompliance && !stats.currentUserCompliance.hasSod) {
-                            if (item.id !== "attendance" && item.id !== "ess-dashboard") {
+                          const isOwner = user?.role === "Owner" || String(user?.role || "").toLowerCase() === "owner";
+                          if (!isOwner && stats?.currentUserCompliance && !stats.currentUserCompliance.hasSod) {
+                            if (item.id !== "attendance" && item.id !== "ess-dashboard" && item.id !== "dashboard" && item.id !== "ess") {
                               if (triggerToast) {
                                 triggerToast("⚠️ Please submit your Start of Day (SOD) declaration first to unlock other modules.");
                               }
                               if (toggleModal) {
                                 toggleModal("sodModal", true);
-                              } else {
-                                setActiveTab("attendance");
                               }
                               return;
                             }

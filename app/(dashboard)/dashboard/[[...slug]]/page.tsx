@@ -84,6 +84,14 @@ export default function UnifiedEnterpriseDashboard() {
   const [performanceSubTab, setPerformanceSubTab] = useState<string>("visual-dashboard");
 
   const handleNavigateTab = (tab: string, filter?: string) => {
+    const isOwner = userRole === "Owner" || rawRole === "Owner" || rawRole?.toLowerCase() === "owner" || userRole?.toLowerCase() === "owner";
+    const isHomeTab = tab === "dashboard" || tab === "ess" || tab === "ess-dashboard" || tab === "attendance";
+    if (!isOwner && stats?.currentUserCompliance && !stats.currentUserCompliance.hasSod && !isHomeTab) {
+      triggerToast("⚠️ Please submit your Start of Day (SOD) declaration first to unlock other modules.");
+      toggleModal("sodModal", true);
+      return;
+    }
+
     setActiveTab(tab);
     if (typeof window !== "undefined") {
       const targetPath = `/dashboard/${tab}`;
@@ -380,13 +388,11 @@ export default function UnifiedEnterpriseDashboard() {
       if (data.success) {
         setStats(data.stats);
 
-        if (data.stats?.currentUserCompliance) {
+        const isOwner = userRole === "Owner" || rawRole === "Owner" || rawRole?.toLowerCase() === "owner" || userRole?.toLowerCase() === "owner";
+        if (!isOwner && data.stats?.currentUserCompliance) {
           if (!data.stats.currentUserCompliance.hasSod) {
-            if (userRole === "Employee") {
-              setActiveTab("ess-dashboard");
-              toggleModal("sodModal", true);
-              triggerToast("⚠️ Please submit your Start of Day (SOD) declaration first.");
-            }
+            toggleModal("sodModal", true);
+            triggerToast("⚠️ Please submit your Start of Day (SOD) declaration first.");
           } else {
             const todayKey = new Date().toISOString().slice(0, 10);
             const shownKey = `pending_tasks_popup_shown_${todayKey}`;
@@ -592,14 +598,15 @@ export default function UnifiedEnterpriseDashboard() {
     }
   }, [activeTab, status, userRole]);
 
-  // Auto popup SOD on load if missing
+  // Auto popup SOD on load if missing for non-Owner users
   useEffect(() => {
-    if (stats?.currentUserCompliance && userRole === "Employee") {
+    const isOwner = userRole === "Owner" || rawRole === "Owner" || rawRole?.toLowerCase() === "owner" || userRole?.toLowerCase() === "owner";
+    if (!isOwner && stats?.currentUserCompliance) {
       if (!stats.currentUserCompliance.hasSod && !modals.sodModal && activeTab !== "attendance") {
         toggleModal("sodModal", true);
       }
     }
-  }, [stats]);
+  }, [stats, userRole, rawRole]);
 
   // Form Handlers
   const handleAttendancePunch = async () => {

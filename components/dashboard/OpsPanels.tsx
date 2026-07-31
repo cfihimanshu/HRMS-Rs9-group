@@ -58,14 +58,18 @@ const SearchableCombobox = ({
   label,
   value,
   onChange,
+  onSelectOption,
   options,
-  placeholder
+  placeholder,
+  disabled = false
 }: {
   label: string;
   value: string;
   onChange: (val: string) => void;
+  onSelectOption?: (val: string) => void;
   options: string[];
   placeholder: string;
+  disabled?: boolean;
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -85,21 +89,30 @@ const SearchableCombobox = ({
   );
 
   return (
-    <div className="relative" ref={containerRef}>
+    <div className={`relative font-sans ${isOpen ? "z-[9999]" : "z-0"}`} ref={containerRef}>
       <label className="block text-[9px] font-bold uppercase text-slate-600 mb-1">{label}</label>
-      <input
-        type="text"
-        value={value}
-        onFocus={() => setIsOpen(true)}
-        onChange={e => {
-          onChange(e.target.value);
-          setIsOpen(true);
-        }}
-        placeholder={placeholder}
-        className="w-full p-2 border border-slate-300 rounded-lg text-xs font-bold text-slate-800 bg-white focus:outline-none focus:border-purple-600 h-[38px]"
-      />
-      {isOpen && (
-        <div className="absolute z-50 left-0 right-0 mt-1 bg-white border border-purple-200 rounded-lg shadow-xl max-h-36 overflow-y-auto divide-y divide-slate-100">
+      <div className="relative">
+        <input
+          type="text"
+          disabled={disabled}
+          value={value}
+          onFocus={() => { if (!disabled) setIsOpen(true); }}
+          onChange={e => {
+            onChange(e.target.value);
+            if (!disabled) setIsOpen(true);
+          }}
+          placeholder={placeholder}
+          className="w-full p-2 border border-slate-300 rounded-lg text-xs font-bold text-slate-800 bg-white focus:outline-none focus:border-purple-600 h-[38px] disabled:opacity-50 disabled:bg-slate-100 pr-7"
+        />
+        <div
+          onClick={() => { if (!disabled) setIsOpen(prev => !prev); }}
+          className="absolute right-2.5 top-2.5 cursor-pointer text-purple-600 hover:text-purple-800 text-[10px]"
+        >
+          ▼
+        </div>
+      </div>
+      {isOpen && !disabled && (
+        <div className="absolute z-[99999] left-0 right-0 mt-1 bg-white border border-purple-300 rounded-xl shadow-2xl max-h-48 overflow-y-auto divide-y divide-slate-100 font-sans animate-fade-in">
           {filteredOptions.length > 0 ? (
             filteredOptions.map((opt, i) => (
               <div
@@ -107,15 +120,16 @@ const SearchableCombobox = ({
                 onMouseDown={(e) => {
                   e.preventDefault();
                   onChange(opt);
+                  if (onSelectOption) onSelectOption(opt);
                   setIsOpen(false);
                 }}
-                className="p-2 text-xs font-bold text-slate-700 hover:bg-purple-50 hover:text-purple-900 cursor-pointer transition-colors"
+                className="px-3 py-2 text-xs font-bold text-slate-800 hover:bg-purple-50 hover:text-purple-900 cursor-pointer transition-colors"
               >
                 {opt}
               </div>
             ))
           ) : (
-            <div className="p-2 text-xs text-slate-400 italic">No matching options found (keep typing for custom)</div>
+            <div className="px-3 py-2 text-xs text-slate-400 italic">No matching options found (keep typing for custom)</div>
           )}
         </div>
       )}
@@ -1263,68 +1277,53 @@ export function DailyCommitments({
 
                           {/* Bank, Branch & Officer Selection */}
                           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 bg-purple-50/50 p-3 rounded-lg border border-purple-200">
+                            {/* Bank Name - Searchable */}
                             <div>
-                              <label className="block text-[9px] font-bold uppercase text-slate-600 mb-1">Bank Name *</label>
-                              <select
+                              <SearchableCombobox
+                                label="Bank Name *"
                                 value={legalInputBankName}
-                                onChange={e => {
-                                  const selectedName = e.target.value;
-                                  setLegalInputBankName(selectedName);
+                                placeholder="Type or select Bank..."
+                                options={banksList.map(b => b.bankName)}
+                                onChange={val => {
+                                  setLegalInputBankName(val);
                                   setLegalInputBranchName("");
                                   setLegalInputAoName("");
                                   setLegalInputRboName("");
                                 }}
-                                className="w-full p-2 border border-slate-300 rounded-lg text-xs font-bold text-slate-800 bg-white focus:outline-none focus:border-purple-600 h-[38px]"
-                              >
-                                <option value="">-- Select Bank * --</option>
-                                {banksList.map(b => (
-                                  <option key={String(b.id)} value={b.bankName}>{b.bankName}</option>
-                                ))}
-                              </select>
+                              />
                             </div>
+                            {/* Branch - Searchable */}
                             <div>
-                              <label className="block text-[9px] font-bold uppercase text-slate-600 mb-1">Branch *</label>
-                              <select
-                                value={
-                                  (() => {
-                                    const selectedBankObj = banksList.find(b => b.bankName?.toLowerCase().trim() === legalInputBankName?.toLowerCase().trim());
-                                    const bankBranches = selectedBankObj
-                                      ? branchesList.filter((br: any) => String(br.bankId) === String(selectedBankObj.id))
-                                      : branchesList;
-                                    const match = bankBranches.find((b: any) => String(b.id) === String(legalInputBranchName) || b.branchName === legalInputBranchName);
-                                    return match ? String(match.id) : legalInputBranchName;
-                                  })()
-                                }
-                                onChange={e => {
-                                  const selectedVal = e.target.value;
+                              <SearchableCombobox
+                                label="Branch *"
+                                value={legalInputBranchName}
+                                placeholder={legalInputBankName ? "Type or select Branch..." : "Select Bank First"}
+                                disabled={!legalInputBankName}
+                                options={(() => {
                                   const selectedBankObj = banksList.find(b => b.bankName?.toLowerCase().trim() === legalInputBankName?.toLowerCase().trim());
                                   const bankBranches = selectedBankObj
                                     ? branchesList.filter((br: any) => String(br.bankId) === String(selectedBankObj.id))
                                     : branchesList;
-                                  const brObj = bankBranches.find((b: any) => String(b.id) === String(selectedVal) || b.branchName === selectedVal);
+                                  return bankBranches.map((br: any) => br.branchName + (br.branchCode ? ` (${br.branchCode})` : ""));
+                                })()}
+                                onChange={val => {
+                                  const cleanVal = val.split(" (")[0].trim();
+                                  const selectedBankObj = banksList.find(b => b.bankName?.toLowerCase().trim() === legalInputBankName?.toLowerCase().trim());
+                                  const bankBranches = selectedBankObj
+                                    ? branchesList.filter((br: any) => String(br.bankId) === String(selectedBankObj.id))
+                                    : branchesList;
+                                  const brObj: any = bankBranches.find((b: any) => String(b.id) === val || b.branchName === cleanVal || b.branchName === val);
                                   if (brObj) {
                                     setLegalInputBranchName(brObj.branchName);
                                     if (brObj.aoName || brObj.ao) setLegalInputAoName(brObj.aoName || brObj.ao || "");
                                     if (brObj.rbo || brObj.rboName) setLegalInputRboName(brObj.rbo || brObj.rboName || "");
+                                    if (brObj.branchManager || brObj.aoName || brObj.foName) setLegalInputOfficerName(brObj.branchManager || brObj.aoName || brObj.foName);
+                                    if (brObj.branchManagerContact || brObj.foContact) setLegalInputOfficerPhone(brObj.branchManagerContact || brObj.foContact);
                                   } else {
-                                    setLegalInputBranchName(selectedVal);
+                                    setLegalInputBranchName(val);
                                   }
                                 }}
-                                className="w-full p-2 border border-slate-300 rounded-lg text-xs font-bold text-slate-800 bg-white focus:outline-none focus:border-purple-600 h-[38px]"
-                              >
-                                <option value="">-- Select Branch * --</option>
-                                {(() => {
-                                  const selectedBankObj = banksList.find(b => b.bankName?.toLowerCase().trim() === legalInputBankName?.toLowerCase().trim());
-                                  const bankBranches = selectedBankObj
-                                    ? branchesList.filter((br: any) => String(br.bankId) === String(selectedBankObj.id))
-                                    : branchesList;
-                                  return bankBranches.map((br: any) => (
-                                    <option key={String(br.id)} value={String(br.id)}>
-                                      {br.branchName} {br.branchCode ? `(${br.branchCode})` : ""}
-                                    </option>
-                                  ));
-                                })()}
-                              </select>
+                              />
                             </div>
                             <div>
                               <label className="block text-[9px] font-bold uppercase text-slate-600 mb-1">Officer Name</label>
@@ -1369,68 +1368,53 @@ export function DailyCommitments({
                         <div className="space-y-3 animate-fade-in pt-1">
                           {/* Bank, Branch & Officer Selection */}
                           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 bg-purple-50/50 p-3 rounded-lg border border-purple-200">
+                            {/* Bank Name - Searchable */}
                             <div>
-                              <label className="block text-[9px] font-bold uppercase text-slate-600 mb-1">Bank Name *</label>
-                              <select
+                              <SearchableCombobox
+                                label="Bank Name *"
                                 value={legalInputBankName}
-                                onChange={e => {
-                                  const selectedName = e.target.value;
-                                  setLegalInputBankName(selectedName);
+                                placeholder="Type or select Bank..."
+                                options={banksList.map(b => b.bankName)}
+                                onChange={val => {
+                                  setLegalInputBankName(val);
                                   setLegalInputBranchName("");
                                   setLegalInputAoName("");
                                   setLegalInputRboName("");
                                 }}
-                                className="w-full p-2 border border-slate-300 rounded-lg text-xs font-bold text-slate-800 bg-white focus:outline-none focus:border-purple-600 h-[38px]"
-                              >
-                                <option value="">-- Select Bank * --</option>
-                                {banksList.map(b => (
-                                  <option key={String(b.id)} value={b.bankName}>{b.bankName}</option>
-                                ))}
-                              </select>
+                              />
                             </div>
+                            {/* Branch - Searchable */}
                             <div>
-                              <label className="block text-[9px] font-bold uppercase text-slate-600 mb-1">Branch *</label>
-                              <select
-                                value={
-                                  (() => {
-                                    const selectedBankObj = banksList.find(b => b.bankName?.toLowerCase().trim() === legalInputBankName?.toLowerCase().trim());
-                                    const bankBranches = selectedBankObj
-                                      ? branchesList.filter((br: any) => String(br.bankId) === String(selectedBankObj.id))
-                                      : branchesList;
-                                    const match = bankBranches.find((b: any) => String(b.id) === String(legalInputBranchName) || b.branchName === legalInputBranchName);
-                                    return match ? String(match.id) : legalInputBranchName;
-                                  })()
-                                }
-                                onChange={e => {
-                                  const selectedVal = e.target.value;
+                              <SearchableCombobox
+                                label="Branch *"
+                                value={legalInputBranchName}
+                                placeholder={legalInputBankName ? "Type or select Branch..." : "Select Bank First"}
+                                disabled={!legalInputBankName}
+                                options={(() => {
                                   const selectedBankObj = banksList.find(b => b.bankName?.toLowerCase().trim() === legalInputBankName?.toLowerCase().trim());
                                   const bankBranches = selectedBankObj
                                     ? branchesList.filter((br: any) => String(br.bankId) === String(selectedBankObj.id))
                                     : branchesList;
-                                  const brObj = bankBranches.find((b: any) => String(b.id) === String(selectedVal) || b.branchName === selectedVal);
+                                  return bankBranches.map((br: any) => br.branchName + (br.branchCode ? ` (${br.branchCode})` : ""));
+                                })()}
+                                onChange={val => {
+                                  const cleanVal = val.split(" (")[0].trim();
+                                  const selectedBankObj = banksList.find(b => b.bankName?.toLowerCase().trim() === legalInputBankName?.toLowerCase().trim());
+                                  const bankBranches = selectedBankObj
+                                    ? branchesList.filter((br: any) => String(br.bankId) === String(selectedBankObj.id))
+                                    : branchesList;
+                                  const brObj: any = bankBranches.find((b: any) => String(b.id) === val || b.branchName === cleanVal || b.branchName === val);
                                   if (brObj) {
                                     setLegalInputBranchName(brObj.branchName);
                                     if (brObj.aoName || brObj.ao) setLegalInputAoName(brObj.aoName || brObj.ao || "");
                                     if (brObj.rbo || brObj.rboName) setLegalInputRboName(brObj.rbo || brObj.rboName || "");
+                                    if (brObj.branchManager || brObj.aoName || brObj.foName) setLegalInputOfficerName(brObj.branchManager || brObj.aoName || brObj.foName);
+                                    if (brObj.branchManagerContact || brObj.foContact) setLegalInputOfficerPhone(brObj.branchManagerContact || brObj.foContact);
                                   } else {
-                                    setLegalInputBranchName(selectedVal);
+                                    setLegalInputBranchName(val);
                                   }
                                 }}
-                                className="w-full p-2 border border-slate-300 rounded-lg text-xs font-bold text-slate-800 bg-white focus:outline-none focus:border-purple-600 h-[38px]"
-                              >
-                                <option value="">-- Select Branch * --</option>
-                                {(() => {
-                                  const selectedBankObj = banksList.find(b => b.bankName?.toLowerCase().trim() === legalInputBankName?.toLowerCase().trim());
-                                  const bankBranches = selectedBankObj
-                                    ? branchesList.filter((br: any) => String(br.bankId) === String(selectedBankObj.id))
-                                    : branchesList;
-                                  return bankBranches.map((br: any) => (
-                                    <option key={String(br.id)} value={String(br.id)}>
-                                      {br.branchName} {br.branchCode ? `(${br.branchCode})` : ""}
-                                    </option>
-                                  ));
-                                })()}
-                              </select>
+                              />
                             </div>
                             <div>
                               <label className="block text-[9px] font-bold uppercase text-slate-600 mb-1">Officer Name</label>
@@ -1541,51 +1525,41 @@ export function DailyCommitments({
                               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 bg-purple-50/40 p-3 rounded-lg border border-purple-200">
                                 {/* 1. Bank Input (from bank_masters) */}
                                 <div>
-                                  <label className="block text-[9px] font-bold uppercase text-slate-600 mb-1">Bank Name * (from bank_masters)</label>
-                                  <select
+                                  <SearchableCombobox
+                                    label="Bank Name * (from bank_masters)"
                                     value={legalInputBankName}
-                                    onChange={e => {
-                                      const selectedName = e.target.value;
-                                      setLegalInputBankName(selectedName);
+                                    placeholder="Type or select Bank..."
+                                    options={banksList.map(b => b.bankName)}
+                                    onChange={val => {
+                                      setLegalInputBankName(val);
                                       setLegalInputBranchName("");
                                       setLegalInputAoName("");
                                       setLegalInputRboName("");
                                     }}
-                                    className="w-full p-2 border border-slate-300 rounded-lg text-xs font-bold text-slate-800 bg-white focus:outline-none focus:border-purple-600 h-[38px]"
-                                  >
-                                    <option value="">-- Select Bank --</option>
-                                    {banksList.map(b => (
-                                      <option key={String(b.id)} value={b.bankName}>{b.bankName}</option>
-                                    ))}
-                                  </select>
+                                  />
                                 </div>
 
                                 {/* 2. Branch Input (Right after Bank for branch related & case related) */}
                                 {["branch related", "case related"].includes(legalInputSubType) && (
                                   <div>
-                                    <label className="block text-[9px] font-bold uppercase text-slate-600 mb-1">Branch * (from branch_masters)</label>
-                                    <select
-                                      value={currentSelectedBranchObj ? String(currentSelectedBranchObj.id) : legalInputBranchName}
-                                      onChange={e => {
-                                        const selectedVal = e.target.value;
-                                        const brObj = bankBranches.find((b: any) => String(b.id) === String(selectedVal) || b.branchName === selectedVal);
+                                    <SearchableCombobox
+                                      label="Branch * (from branch_masters)"
+                                      value={legalInputBranchName}
+                                      placeholder={legalInputBankName ? "Type or select Branch..." : "Select Bank First"}
+                                      disabled={!legalInputBankName}
+                                      options={bankBranches.map((br: any) => br.branchName + (br.branchCode ? ` (${br.branchCode})` : ""))}
+                                      onChange={val => {
+                                        const cleanVal = val.split(" (")[0].trim();
+                                        const brObj = bankBranches.find((b: any) => String(b.id) === val || b.branchName === cleanVal || b.branchName === val);
                                         if (brObj) {
                                           setLegalInputBranchName(brObj.branchName);
                                           if (brObj.aoName || brObj.ao) setLegalInputAoName(brObj.aoName || brObj.ao || "");
                                           if (brObj.rbo || brObj.rboName) setLegalInputRboName(brObj.rbo || brObj.rboName || "");
                                         } else {
-                                          setLegalInputBranchName(selectedVal);
+                                          setLegalInputBranchName(val);
                                         }
                                       }}
-                                      className="w-full p-2 border border-slate-300 rounded-lg text-xs font-bold text-slate-800 bg-white focus:outline-none focus:border-purple-600 h-[38px]"
-                                    >
-                                      <option value="">-- Select Branch --</option>
-                                      {bankBranches.map((br: any) => (
-                                        <option key={String(br.id)} value={String(br.id)}>
-                                          {br.branchName} {br.branchCode ? `(${br.branchCode})` : ""}
-                                        </option>
-                                      ))}
-                                    </select>
+                                    />
                                   </div>
                                 )}
 

@@ -174,48 +174,24 @@ export async function POST(req: Request) {
         const nowTimestamp = new Date();
 
         for (const item of legalSchedules) {
-          if (!item.workSection || !item.time) continue;
-
           const itemDate = item.date || new Date().toISOString().split("T")[0];
-          const cleanWorkSection = item.workSection.trim();
-
-          const existingSch = await LegalRecoverySchedule.findOne({
-            where: {
-              employeeId: userId,
-              date: itemDate,
-              time: item.time,
-              workSection: cleanWorkSection
-            }
-          });
-
-          if (existingSch) {
-            await existingSch.update({
-              type: item.type || "General",
-              subType: item.type === "Bank Related" ? (item.subType || "AO related") : null,
-              remarks: item.remarks || item.details || "",
-              bankName: item.bankName || null,
-              aoName: item.aoName || null,
-              rboName: item.rboName || null,
-              branchName: item.branchName || null,
-              caseDetails: item.caseDetails || null,
-              otherType: item.otherType || null,
-              officerName: item.officerName || null,
-              officerPhone: item.officerPhone || null,
-              details: item.details || item.remarks || null,
-            });
-            continue;
-          }
+          const itemTime = item.time || "09:00 AM";
+          const cleanWorkSection = (item.workSection || item.type || item.bankName || item.remarks || item.details || "Scheduled Work").trim();
 
           const scheduleId = "lrs_" + Date.now() + "_" + Math.random().toString(36).substr(2, 5);
           const itemTaskId = await TaskLog.generateNextTaskId(userId);
+
+          const taskTitle = `[${item.type || 'General'}] ${cleanWorkSection}${item.bankName ? ' - ' + item.bankName : ''}${item.branchName ? ' (' + item.branchName + ')' : ''}`;
+          const taskDesc = `SOD Scheduled Work\nDate: ${itemDate} | Time: ${item.time}\nType: ${item.type || 'General'}${item.subType ? ' (' + item.subType + ')' : ''}\nBank/NBFC: ${item.bankName || 'N/A'} | Branch: ${item.branchName || 'N/A'}\nAO: ${item.aoName || 'N/A'} | RBO: ${item.rboName || 'N/A'}${item.officerName ? '\nOfficer: ' + item.officerName + (item.officerPhone ? ' (' + item.officerPhone + ')' : '') : ''}\nDetails: ${item.details || item.remarks || 'N/A'}`;
+          const itemDateObj = item.date ? new Date(item.date + "T00:00:00") : nowTimestamp;
 
           await LegalRecoverySchedule.create({
             id: scheduleId,
             employeeId: userId,
             sodId: (record as any).id.toString(),
-            date: item.date || new Date().toISOString().split("T")[0],
-            time: item.time,
-            workSection: item.workSection.trim(),
+            date: itemDate,
+            time: itemTime,
+            workSection: cleanWorkSection,
             type: item.type || "General",
             subType: item.type === "Bank Related" ? (item.subType || "AO related") : null,
             status: "Pending",
@@ -233,11 +209,6 @@ export async function POST(req: Request) {
           });
 
           // Create individual TaskLog entry so each schedule item appears in My Tasks (Kanban)
-          const taskTitle = `[${item.type || 'General'}] ${item.workSection.trim()}${item.bankName ? ' - ' + item.bankName : ''}${item.branchName ? ' (' + item.branchName + ')' : ''}`;
-          const taskDesc = `SOD Scheduled Work\nDate: ${item.date || 'Today'} | Time: ${item.time}\nType: ${item.type || 'General'}${item.subType ? ' (' + item.subType + ')' : ''}\nBank/NBFC: ${item.bankName || 'N/A'} | Branch: ${item.branchName || 'N/A'}\nAO: ${item.aoName || 'N/A'} | RBO: ${item.rboName || 'N/A'}${item.officerName ? '\nOfficer: ' + item.officerName + (item.officerPhone ? ' (' + item.officerPhone + ')' : '') : ''}\nDetails: ${item.details || item.remarks || 'N/A'}`;
-
-          const itemDateObj = item.date ? new Date(item.date + "T00:00:00") : nowTimestamp;
-
           await TaskLog.create({
             id: itemTaskId,
             employee: userId,
