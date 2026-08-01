@@ -60,6 +60,8 @@ interface Task {
   deadlineHours?: number | null;
   deadlineAt?: string | null;
   updatedAt?: string | null;
+  completedAt?: string | null;
+  scheduleId?: string | null;
 }
 
 const TYPE_COLORS: Record<string, string> = {
@@ -719,16 +721,20 @@ export default function KanbanBoard({
   };
 
   const getLiveElapsed = (task: Task): number => {
-    if (task.status === "Completed" || task.timerState === "Stopped" || task.timerState === "Paused") {
+    if (!task) return 0;
+    const startISO = task.createdAt || task.date;
+    const startTime = startISO ? new Date(startISO).getTime() : 0;
+    if (task.status === "Completed") {
+      if (task.completedAt && startTime > 0) {
+        const compTime = new Date(task.completedAt).getTime();
+        const diff = Math.floor((compTime - startTime) / 1000);
+        if (diff > 0) return diff;
+      }
       return task.elapsedSeconds || 0;
     }
-    const startISO = task.timerStart || task.createdAt || task.date;
-    if ((task.timerState === "Running" || !task.timerState) && startISO) {
-      const startTime = new Date(startISO).getTime();
-      if (!isNaN(startTime)) {
-        const elapsed = Math.floor((Date.now() - startTime) / 1000);
-        return Math.max(0, (task.elapsedSeconds || 0) + elapsed);
-      }
+    if (startTime > 0) {
+      const elapsed = Math.floor((Date.now() - startTime) / 1000);
+      return Math.max(0, elapsed);
     }
     return task.elapsedSeconds || 0;
   };
@@ -999,19 +1005,25 @@ export default function KanbanBoard({
     }
   };
 
-  const handleDeleteTask = async (taskId: string) => {
+  const handleDeleteTask = async (taskId: string, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
     if (!confirm("Are you sure you want to delete this task?")) return;
     try {
-      const res = await fetch(`/api/tasks?taskId=${taskId}`, {
+      const res = await fetch(`/api/tasks?taskId=${encodeURIComponent(taskId)}`, {
         method: "DELETE",
       });
       const data = await res.json();
       if (data.success) {
-        setTasks(prev => prev.filter(t => t.id !== taskId));
-        setSelectedTask(null);
+        setTasks(prev => prev.filter(t => String(t.id) !== String(taskId) && String(t.scheduleId || "") !== String(taskId)));
+        if (selectedTask?.id === taskId) {
+          setSelectedTask(null);
+        }
+      } else {
+        alert(data.error || "Failed to delete task");
       }
-    } catch (err) {
-      console.error(err);
+    } catch (err: any) {
+      console.error("Failed to delete task:", err);
+      alert("Failed to delete task: " + (err.message || err));
     }
   };
 
@@ -1260,13 +1272,13 @@ export default function KanbanBoard({
 
     const fallbackDesc = rawDesc
       ? rawDesc
-          .replace(/Brought By: N\/A,?\s*/gi, "")
-          .replace(/Printed By: N\/A,?\s*/gi, "")
-          .replace(/Dispatched By: N\/A,?\s*/gi, "")
-          .replace(/Bill No: N\/A,?\s*/gi, "")
-          .replace(/\|\s*\|/g, "|")
-          .replace(/^\|\s*|\s*\|$/g, "")
-          .trim()
+        .replace(/Brought By: N\/A,?\s*/gi, "")
+        .replace(/Printed By: N\/A,?\s*/gi, "")
+        .replace(/Dispatched By: N\/A,?\s*/gi, "")
+        .replace(/Bill No: N\/A,?\s*/gi, "")
+        .replace(/\|\s*\|/g, "|")
+        .replace(/^\|\s*|\s*\|$/g, "")
+        .trim()
       : "";
 
     return {
@@ -1289,12 +1301,12 @@ export default function KanbanBoard({
             const author = n.userName || n.author || n.user || "System";
             const dtStr = n.createdAt
               ? new Date(n.createdAt).toLocaleString("en-IN", {
-                  day: "2-digit",
-                  month: "short",
-                  year: "numeric",
-                  hour: "2-digit",
-                  minute: "2-digit"
-                })
+                day: "2-digit",
+                month: "short",
+                year: "numeric",
+                hour: "2-digit",
+                minute: "2-digit"
+              })
               : "";
             const text = n.note || n.text || n.message || "";
             if (text) {
@@ -1321,12 +1333,12 @@ export default function KanbanBoard({
             const author = f.userName || f.user || f.callerName || "System";
             const dtStr = f.createdAt || f.scheduledAt
               ? new Date(f.createdAt || f.scheduledAt).toLocaleString("en-IN", {
-                  day: "2-digit",
-                  month: "short",
-                  year: "numeric",
-                  hour: "2-digit",
-                  minute: "2-digit"
-                })
+                day: "2-digit",
+                month: "short",
+                year: "numeric",
+                hour: "2-digit",
+                minute: "2-digit"
+              })
               : "";
             const details = f.details || f.remarks || f.note || (f.scheduledAt ? `Follow-up scheduled for ${dtStr}` : "");
             if (details) {
@@ -1368,7 +1380,7 @@ export default function KanbanBoard({
       const notesText = getFormattedProgressNotes(t);
 
       const createdBy = (t.employee as any)?.name || (t.assignedByUser as any)?.name || "System User";
-      
+
       let forwardedTo = "-";
       if ((t.forwardedUser as any)?.name) {
         forwardedTo = (t.forwardedUser as any).name;
@@ -1656,60 +1668,38 @@ export default function KanbanBoard({
               </div>
             </div>
 
-            {/* Timer Next to Date/Time */}
-            {task.status !== "Completed" && !task.scheduledAt && task.timerState === "Running" && (
-              <span className="flex items-center gap-1 text-[10px] font-mono font-black px-2 py-1 rounded-lg border bg-green-50 text-green-700 border-green-200">
-                <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse inline-block" />
-                {formatTimer(getLiveElapsed(task))}
-              </span>
-            )}
-            {task.status !== "Completed" && (task.scheduledAt || task.timerState !== "Running") && getLiveElapsed(task) > 0 && (
-              <span className="flex items-center gap-1 text-[10px] font-mono font-black px-2 py-1 rounded-lg border bg-slate-50 text-slate-500 border-slate-200">
-                <span className="w-1.5 h-1.5 rounded-full bg-slate-400 inline-block" />
-                {formatTimer(getLiveElapsed(task))}
-              </span>
-            )}
-            {task.status === "Completed" && getLiveElapsed(task) > 0 && (
-              <span className="flex items-center gap-1 text-[10px] font-mono font-black px-2 py-1 rounded-lg border bg-slate-50 text-slate-400 border-slate-200">
+            {/* Timer Badge (Always Visible on every task card) */}
+            <span className={cn(
+              "flex items-center gap-1 text-[10px] font-mono font-black px-2 py-1 rounded-lg border transition-all",
+              task.timerState === "Running"
+                ? "bg-emerald-50 text-emerald-700 border-emerald-300"
+                : task.status === "Completed"
+                  ? "bg-slate-50 text-slate-400 border-slate-200"
+                  : "bg-slate-50 text-slate-600 border-slate-200"
+            )}>
+              {task.timerState === "Running" ? (
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse inline-block" />
+              ) : (
                 <Timer className="w-3 h-3 text-slate-400" />
-                {formatTimer(getLiveElapsed(task))}
-              </span>
-            )}
+              )}
+              {formatTimer(getLiveElapsed(task))}
+            </span>
           </div>
 
-          {/* Mobile move buttons */}
-          <div className="flex lg:hidden gap-1" onClick={e => e.stopPropagation()}>
-            {task.status !== "In Progress" && task.status !== "Completed" && (
-              <button
-                onClick={() => updateStatus(task.id, "In Progress")}
-                className="p-1.5 bg-amber-50 text-amber-600 rounded-lg hover:bg-amber-100 transition-all"
-                title="Move to In Progress"
-              >
-                <ArrowRight className="w-3 h-3" />
-              </button>
-            )}
-            {task.status === "In Progress" && (
-              <button
-                onClick={() => updateStatus(task.id, "Pending")}
-                className="p-1.5 bg-slate-50 text-slate-600 rounded-lg hover:bg-slate-100 transition-all"
-                title="Move to Pending"
-              >
-                <AlertCircle className="w-3 h-3" />
-              </button>
-            )}
+          {/* Card Action Button: Complete & Click to open */}
+          <div className="flex items-center gap-1.5" onClick={e => e.stopPropagation()}>
             {task.status !== "Completed" && (
               <button
+                type="button"
                 onClick={() => updateStatus(task.id, "Completed")}
-                className="p-1.5 bg-emerald-50 text-emerald-600 rounded-lg hover:bg-emerald-100 transition-all"
+                className="p-1.5 bg-emerald-50 text-emerald-600 border border-emerald-200 rounded-lg hover:bg-emerald-100 transition-all shadow-sm flex items-center gap-1 text-[9px] font-bold"
                 title="Mark Complete"
               >
                 <CheckCircle2 className="w-3 h-3" />
               </button>
             )}
+            <span className="hidden lg:block text-[9px] text-slate-300 font-bold uppercase tracking-wider ml-1">click to open</span>
           </div>
-
-          {/* Desktop hint */}
-          <span className="hidden lg:block text-[9px] text-slate-300 font-bold uppercase tracking-wider">click to open</span>
         </div>
       </div>
     );
@@ -2966,18 +2956,25 @@ export default function KanbanBoard({
                 </div>
 
 
-                {/* Timer Display (read-only — auto-starts on create, stops on complete) */}
+                {/* Automatic Live Task Timer Display (Auto-starts on creation, stops on completion) */}
                 <div className="px-6 py-3 border-b border-slate-100 bg-slate-50/50">
-                  <div className="flex items-center gap-2">
-                    <Timer className="w-3.5 h-3.5 text-slate-400" />
-                    <span className="text-[9px] uppercase font-black text-slate-400 tracking-wider">Time Elapsed</span>
-                    <span className={`ml-auto text-[11px] font-black px-3 py-1 rounded-full border font-mono ${selectedTask.timerState === "Running"
-                      ? "bg-green-100 text-green-700 border-green-200"
-                      : "bg-slate-100 text-slate-500 border-slate-200"
-                      }`}>
-                      {selectedTask.timerState === "Running" && <span className="inline-block w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse mr-1.5" />}
-                      {formatTimer(getLiveElapsed(selectedTask))}
-                    </span>
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-2">
+                      <Timer className="w-4 h-4 text-slate-500" />
+                      <span className="text-[10px] uppercase font-black text-slate-600 tracking-wider">Time Elapsed</span>
+                      <span className={`text-[12px] font-black px-3 py-1 rounded-full border font-mono ${selectedTask.status === "Completed"
+                        ? "bg-slate-100 text-slate-700 border-slate-300"
+                        : "bg-emerald-100 text-emerald-700 border-emerald-300"
+                        }`}>
+                        {selectedTask.status !== "Completed" && (
+                          <span className="inline-block w-2 h-2 rounded-full bg-emerald-500 animate-pulse mr-1.5" />
+                        )}
+                        {selectedTask.status === "Completed" ? "✓ " : ""}
+                        {formatTimer(getLiveElapsed(selectedTask))}
+                      </span>
+                    </div>
+
+
                   </div>
                 </div>
 

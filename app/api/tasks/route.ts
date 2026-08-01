@@ -428,9 +428,10 @@ export async function GET(req: Request) {
       limit: fetchLimit
     });
 
-    // ALSO merge any LegalRecoverySchedule entries that may not be in TaskLog yet
+    // ALSO merge any LegalRecoverySchedule entries for Legal Recovery & Security vertical users
     try {
       const LegalRecoverySchedule = (sequelize.models as any).LegalRecoverySchedule || (await import("@/models/sequelize/LegalRecoverySchedule")).default;
+      const EmployeeProfile = (sequelize.models as any).EmployeeProfile || (await import("@/models/sequelize/EmployeeProfile")).default;
       await LegalRecoverySchedule.sync();
       
       const schQuery: any = {};
@@ -442,7 +443,26 @@ export async function GET(req: Request) {
       const existingTaskIds = new Set(records.map((r: any) => String(r.id || "").trim()));
       const existingSchIds = new Set(records.map((r: any) => String(r.scheduleId || "").trim()).filter(Boolean));
 
+      // Find user IDs belonging to Legal Recovery or Security vertical/department
+      const legalUserProfiles = await EmployeeProfile.findAll({
+        where: {
+          [Op.or]: [
+            { vertical: { [Op.like]: "%legal%" } },
+            { vertical: { [Op.like]: "%security%" } },
+            { department: { [Op.like]: "%legal%" } },
+            { department: { [Op.like]: "%security%" } }
+          ]
+        },
+        attributes: ["user"],
+        raw: true
+      });
+      const legalUserIds = new Set(legalUserProfiles.map((p: any) => String(p.user)));
+
       const missingSchs = schRecords.filter((s: any) => {
+        const empIdStr = String(s.employeeId || "").trim();
+        // Only merge LegalRecoverySchedule entries for Legal Recovery / Security staff
+        if (!legalUserIds.has(empIdStr)) return false;
+
         const sId = String(s.id || "").trim();
         const tId = String(s.taskId || "").trim();
         if (sId && (existingTaskIds.has(sId) || existingSchIds.has(sId))) return false;
@@ -616,9 +636,9 @@ export async function POST(req: Request) {
       status: status || "Pending",
       proofAttachment: body.proofAttachment || body.attachmentUrl || null,
       scheduledAt: scheduledAt ? new Date(scheduledAt) : null,
-      // Auto-set timerState to Stopped when task is created
-      timerState: "Stopped",
-      timerStart: null,
+      // Auto-start timer when task is created
+      timerState: (status === "Completed") ? "Stopped" : "Running",
+      timerStart: (status === "Completed") ? null : now,
       elapsedSeconds: 0,
     });
 
@@ -764,19 +784,55 @@ export async function PUT(req: Request) {
 
     await sequelize.authenticate();
 
+    const userRoleLower = (userRole || "").toLowerCase().trim();
+    const isOwnerOrAdmin = ["owner", "director", "hr head", "hr executive", "department manager", "it admin"].includes(userRoleLower);
+
     let query: any = { id: taskId };
-    // Only the "Owner" role has full access to edit any task. Other roles can only edit tasks they own or tasks forwarded to them.
-    if (userRole !== "Owner") {
+    // Privileged roles can edit any task. Other roles can edit tasks assigned to them, forwarded to them, or created by them.
+    if (!isOwnerOrAdmin) {
       query[Op.or] = [
         { employee: userId },
-        { forwardedTo: userId }
+        { forwardedTo: userId },
+        { assignedBy: userId }
       ];
     }
 
-    const task = await TaskLog.findOne({ where: query });
+    let task = await TaskLog.findOne({ where: query });
+    const LegalRecoverySchedule = (sequelize.models as any).LegalRecoverySchedule || (await import("@/models/sequelize/LegalRecoverySchedule")).default;
+    await LegalRecoverySchedule.sync();
+
+    let schRecord: any = null;
     if (!task) {
-      return NextResponse.json({ success: false, error: "Task not found" }, { status: 404 });
+      let schQuery: any = { [Op.or]: [{ id: taskId }, { taskId: taskId }] };
+      if (!isOwnerOrAdmin) {
+        schQuery.employeeId = userId;
+      }
+      schRecord = await LegalRecoverySchedule.findOne({ where: schQuery });
+      if (!schRecord) {
+        return NextResponse.json({ success: false, error: "Task not found or unauthorized to edit" }, { status: 404 });
+      }
     }
+
+    if (schRecord && !task) {
+      if (status !== undefined) schRecord.status = status;
+      if (progressNotes !== undefined) schRecord.progressNotes = progressNotes;
+      if (proofAttachment !== undefined) schRecord.proofAttachment = proofAttachment;
+      if (timerState !== undefined) schRecord.timerState = timerState;
+      if (timerStart !== undefined) schRecord.timerStart = timerStart ? new Date(timerStart) : null;
+      if (elapsedSeconds !== undefined) schRecord.elapsedSeconds = elapsedSeconds;
+      await schRecord.save();
+
+      return NextResponse.json({
+        success: true,
+        message: "Task updated successfully",
+        data: schRecord
+      });
+    }
+
+    if (!task) {
+      return NextResponse.json({ success: false, error: "Task not found or unauthorized to edit" }, { status: 404 });
+    }
+
     const taskBeforeUpdate = task.toJSON();
 
     // Forward task date to a future date (preserves original date so task remains visible in today's list)
@@ -788,17 +844,15 @@ export async function PUT(req: Request) {
       task.timerStart = null;
     }
 
-    // Validation: To complete a task, progressNotes and proofAttachment must be filled
+    // Validation: To complete a task, progressNotes must be filled
     if (status === "Completed") {
       const notesToCheck = progressNotes !== undefined ? progressNotes : task.progressNotes;
       if (!notesToCheck || !notesToCheck.trim()) {
-        return NextResponse.json({ success: false, error: "Please write Progress Notes before marking this task as Completed." }, { status: 400 });
-      }
-
-      // Enforce Proof of Work
-      const proofToCheck = proofAttachment !== undefined ? proofAttachment : task.proofAttachment;
-      if (!proofToCheck || !proofToCheck.trim()) {
-        return NextResponse.json({ success: false, error: "Upload Proof of Work (Screenshot/Photo) is mandatory to mark this task as Completed." }, { status: 400 });
+        if (isOwnerOrAdmin) {
+          task.progressNotes = "Task completed by management";
+        } else {
+          return NextResponse.json({ success: false, error: "Please write Progress Notes before marking this task as Completed." }, { status: 400 });
+        }
       }
     }
 
@@ -830,10 +884,13 @@ export async function PUT(req: Request) {
 
     // Auto-stop timer when task is completed
     if (status === "Completed" && prevStatus !== "Completed") {
-      const start = task.timerStart || task.createdAt || task.date;
-      const startTime = start ? new Date(start).getTime() : Date.now();
-      const elapsed = Math.floor((Date.now() - startTime) / 1000);
-      task.elapsedSeconds = Math.max(0, elapsed);
+      if (task.timerStart && task.timerState === "Running") {
+        const startTime = new Date(task.timerStart).getTime();
+        if (!isNaN(startTime)) {
+          const elapsed = Math.floor((Date.now() - startTime) / 1000);
+          task.elapsedSeconds = Math.max(0, (task.elapsedSeconds || 0) + elapsed);
+        }
+      }
       task.timerState = "Stopped";
       task.timerStart = null;
     }
@@ -1022,18 +1079,38 @@ export async function DELETE(req: Request) {
 
     await sequelize.authenticate();
 
-    let query: any = { id: taskId };
-    // Only the "Owner" role can delete any task. Other roles can only delete tasks they created.
-    if (userRole !== "Owner") {
-      query.employee = userId;
+    const userRoleLower = (userRole || "").toLowerCase().trim();
+    const isOwnerOrAdmin = ["owner", "director", "hr head", "hr executive", "department manager", "it admin"].includes(userRoleLower);
+
+    let query: any = { [Op.or]: [{ id: taskId }, { scheduleId: taskId }] };
+    // Privileged roles can delete any task. Other roles can delete tasks assigned to them or created by them.
+    if (!isOwnerOrAdmin) {
+      query[Op.and] = [
+        { [Op.or]: [{ id: taskId }, { scheduleId: taskId }] },
+        { [Op.or]: [{ employee: userId }, { assignedBy: userId }] }
+      ];
     }
 
     const task = await TaskLog.findOne({ where: query });
-    if (!task) {
+    const LegalRecoverySchedule = (sequelize.models as any).LegalRecoverySchedule || (await import("@/models/sequelize/LegalRecoverySchedule")).default;
+    await LegalRecoverySchedule.sync();
+
+    let schQuery: any = { [Op.or]: [{ id: taskId }, { taskId: taskId }] };
+    if (!isOwnerOrAdmin) {
+      schQuery.employeeId = userId;
+    }
+    const schRecord = await LegalRecoverySchedule.findOne({ where: schQuery });
+
+    if (!task && !schRecord) {
       return NextResponse.json({ success: false, error: "Task not found or unauthorized to delete" }, { status: 404 });
     }
 
-    await task.destroy();
+    if (task) {
+      await task.destroy();
+    }
+    if (schRecord) {
+      await schRecord.destroy();
+    }
 
     return NextResponse.json({ success: true, message: "Task deleted successfully" });
   } catch (error: any) {

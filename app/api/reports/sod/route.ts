@@ -13,6 +13,7 @@ import { Op, DataTypes } from "sequelize";
 
 import LegalRecoverySchedule from "@/models/sequelize/LegalRecoverySchedule";
 import KanbanTask from "@/models/sequelize/KanbanTask";
+import EmployeeProfile from "@/models/sequelize/EmployeeProfile";
 
 // GET: Fetch today's SOD for the logged-in user
 export async function GET(req: Request) {
@@ -171,11 +172,17 @@ export async function POST(req: Request) {
         await TaskLog.sync();
         await KanbanTask.sync();
 
+        const empProfile = await EmployeeProfile.findOne({ where: { user: userId }, attributes: ['vertical', 'department'] });
+        const userVert = ((empProfile as any)?.vertical || "").toLowerCase();
+        const userDept = ((empProfile as any)?.department || "").toLowerCase();
+        const isLegalOrSecurityUser = userVert.includes("legal") || userVert.includes("security") || userDept.includes("legal") || userDept.includes("security");
+
         const nowTimestamp = new Date();
 
         for (const item of legalSchedules) {
           const itemDate = item.date || new Date().toISOString().split("T")[0];
-          const itemTime = item.time || "09:00 AM";
+          const currentTimeFormatted = new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: true });
+          const itemTime = item.time && item.time.trim() ? item.time : currentTimeFormatted;
           const cleanWorkSection = (item.workSection || item.type || item.bankName || item.remarks || item.details || "Scheduled Work").trim();
 
           const scheduleId = "lrs_" + Date.now() + "_" + Math.random().toString(36).substr(2, 5);
@@ -185,28 +192,30 @@ export async function POST(req: Request) {
           const taskDesc = `SOD Scheduled Work\nDate: ${itemDate} | Time: ${item.time}\nType: ${item.type || 'General'}${item.subType ? ' (' + item.subType + ')' : ''}\nBank/NBFC: ${item.bankName || 'N/A'} | Branch: ${item.branchName || 'N/A'}\nAO: ${item.aoName || 'N/A'} | RBO: ${item.rboName || 'N/A'}${item.officerName ? '\nOfficer: ' + item.officerName + (item.officerPhone ? ' (' + item.officerPhone + ')' : '') : ''}\nDetails: ${item.details || item.remarks || 'N/A'}`;
           const itemDateObj = item.date ? new Date(item.date + "T00:00:00") : nowTimestamp;
 
-          await LegalRecoverySchedule.create({
-            id: scheduleId,
-            employeeId: userId,
-            sodId: (record as any).id.toString(),
-            date: itemDate,
-            time: itemTime,
-            workSection: cleanWorkSection,
-            type: item.type || "General",
-            subType: item.type === "Bank Related" ? (item.subType || "AO related") : null,
-            status: "Pending",
-            remarks: item.remarks || item.details || "",
-            bankName: item.bankName || null,
-            aoName: item.aoName || null,
-            rboName: item.rboName || null,
-            branchName: item.branchName || null,
-            caseDetails: item.caseDetails || null,
-            otherType: item.otherType || null,
-            officerName: item.officerName || null,
-            officerPhone: item.officerPhone || null,
-            details: item.details || item.remarks || null,
-            taskId: itemTaskId,
-          });
+          if (isLegalOrSecurityUser) {
+            await LegalRecoverySchedule.create({
+              id: scheduleId,
+              employeeId: userId,
+              sodId: (record as any).id.toString(),
+              date: itemDate,
+              time: itemTime,
+              workSection: cleanWorkSection,
+              type: item.type || "General",
+              subType: item.type === "Bank Related" ? (item.subType || "AO related") : null,
+              status: "Pending",
+              remarks: item.remarks || item.details || "",
+              bankName: item.bankName || null,
+              aoName: item.aoName || null,
+              rboName: item.rboName || null,
+              branchName: item.branchName || null,
+              caseDetails: item.caseDetails || null,
+              otherType: item.otherType || null,
+              officerName: item.officerName || null,
+              officerPhone: item.officerPhone || null,
+              details: item.details || item.remarks || null,
+              taskId: itemTaskId,
+            });
+          }
 
           // Create individual TaskLog entry so each schedule item appears in My Tasks (Kanban)
           await TaskLog.create({
@@ -218,8 +227,8 @@ export async function POST(req: Request) {
             taskType: item.type || "Operation",
             description: taskDesc,
             status: "Pending",
-            timerState: "Stopped",
-            timerStart: null,
+            timerState: "Running",
+            timerStart: nowTimestamp,
             elapsedSeconds: 0,
             scheduleId: scheduleId,
           });

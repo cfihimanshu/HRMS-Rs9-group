@@ -83,8 +83,7 @@ export async function GET(req: Request) {
     if (isGlobalManager) {
       companies = await Company.findAll({ where: { status: "active" } });
       users = await User.findAll({ 
-        where: { status: "active" },
-        attributes: ["id", "name", "email", "role", "companies"],
+        attributes: ["id", "name", "email", "role", "status", "companies"],
         include: [
           {
             model: EmployeeProfile,
@@ -121,8 +120,8 @@ export async function GET(req: Request) {
       }
 
       users = await User.findAll({
-        where: { id: { [Op.in]: managedUserIds }, status: "active" },
-        attributes: ["id", "name", "email", "role", "companies"],
+        where: { id: { [Op.in]: managedUserIds } },
+        attributes: ["id", "name", "email", "role", "status", "companies"],
         include: [
           {
             model: EmployeeProfile,

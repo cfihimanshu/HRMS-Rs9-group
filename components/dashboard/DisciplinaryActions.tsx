@@ -147,10 +147,11 @@ export default function DisciplinaryActions({ sessionUser, triggerToast }: Disci
     }
   }, []);
 
-  // Filtered employees for warning issue form autocomplete
+  // Filtered employees for warning issue form autocomplete (Active staff only)
   const filteredEmployees = useMemo(() => {
-    if (!empSearch.trim()) return employees;
-    return employees.filter(emp =>
+    const activeStaff = employees.filter(emp => (emp.status || "active").toLowerCase() !== "inactive");
+    if (!empSearch.trim()) return activeStaff;
+    return activeStaff.filter(emp =>
       emp.name?.toLowerCase().includes(empSearch.toLowerCase()) ||
       emp.email?.toLowerCase().includes(empSearch.toLowerCase())
     );

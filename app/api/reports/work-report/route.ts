@@ -178,47 +178,59 @@ export async function GET(req: Request) {
     }, {});
 
     const employees = await User.findAll({
-      where: { id: employeeIds },
-      attributes: ['id', 'name', 'email', 'role', 'companies']
+      attributes: ['id', 'name', 'email', 'role', 'status', 'companies'],
+      raw: true
     });
 
-    const employeeMap = employees.reduce((acc: any, emp: any) => {
-      const empJson = emp.toJSON();
-      empJson.department = userProfileMap[emp.id]?.department || "General";
-      empJson.vertical = userProfileMap[emp.id]?.vertical || "";
-      acc[emp.id] = empJson;
-      return acc;
-    }, {});
+    const employeeMap: Record<string, any> = {};
+    employees.forEach((emp: any) => {
+      const dept = userProfileMap[emp.id]?.department || "General";
+      const vert = userProfileMap[emp.id]?.vertical || "";
+      const empObj = { ...emp, department: dept, vertical: vert };
+      if (emp.id) {
+        employeeMap[emp.id] = empObj;
+        employeeMap[String(emp.id).trim()] = empObj;
+      }
+      if (emp.email) {
+        employeeMap[emp.email.toLowerCase().trim()] = empObj;
+      }
+    });
+
+    const findEmp = (empKey: any) => {
+      if (!empKey) return null;
+      const keyStr = String(empKey).trim();
+      return employeeMap[keyStr] || employeeMap[keyStr.toLowerCase()] || null;
+    };
 
     const mappedSods = sods.map(s => {
       const json = s.toJSON() as any;
       json.id = json.id ? json.id.toString() : "";
-      const empObj = employeeMap[json.employee];
-      json.employee = empObj ? { ...empObj, id: empObj.id } : { id: json.employee, name: "Unknown", role: "Employee" };
+      const empObj = findEmp(json.employee);
+      json.employee = empObj ? { ...empObj, id: empObj.id } : { id: json.employee, name: empObj?.name || `Employee ${json.employee}`, role: "Employee" };
       return json;
     });
 
     const mappedEods = eods.map(e => {
       const json = e.toJSON() as any;
       json.id = json.id ? json.id.toString() : "";
-      const empObj = employeeMap[json.employee];
-      json.employee = empObj ? { ...empObj, id: empObj.id } : { id: json.employee, name: "Unknown", role: "Employee" };
+      const empObj = findEmp(json.employee);
+      json.employee = empObj ? { ...empObj, id: empObj.id } : { id: json.employee, name: empObj?.name || `Employee ${json.employee}`, role: "Employee" };
       return json;
     });
 
     const mappedTasks = tasks.map(t => {
       const json = t.toJSON() as any;
       json.id = json.id ? json.id.toString() : "";
-      const empObj = employeeMap[json.employee];
-      json.employee = empObj ? { ...empObj, id: empObj.id } : { id: json.employee, name: "Unknown", role: "Employee" };
+      const empObj = findEmp(json.employee);
+      json.employee = empObj ? { ...empObj, id: empObj.id } : { id: json.employee, name: empObj?.name || `Employee ${json.employee}`, role: "Employee" };
       return json;
     });
 
     const mappedFieldVisits = fieldVisits.map(v => {
       const json = v.toJSON() as any;
       json.id = json.id ? json.id.toString() : "";
-      const empObj = employeeMap[json.employee_id];
-      json.employee = empObj ? { ...empObj, id: empObj.id } : { id: json.employee_id, name: "Unknown", role: "Employee" };
+      const empObj = findEmp(json.employee_id);
+      json.employee = empObj ? { ...empObj, id: empObj.id } : { id: json.employee_id, name: empObj?.name || `Employee ${json.employee_id}`, role: "Employee" };
       return json;
     });
 

@@ -5,7 +5,7 @@ class User extends Model {
   public id!: string;
   public name!: string;
   public email!: string;
-  public password!: string;
+  public password!: string | null;
   public mobile!: string;
   public role!: string;
   public status!: string;

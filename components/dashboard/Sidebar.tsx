@@ -116,7 +116,7 @@ export default function DashboardSidebar({
   const userDept = user?.department || "";
   const isAdministration = userDept.toLowerCase().includes("administration");
 
-  const isOwnerOrDirector = ["Owner", "Director"].includes(userRole);
+  const isOwnerOrDirector = ["Owner", "Director"].some(r => userRole.toLowerCase().includes(r.toLowerCase()));
   let allowedPageIds: string[] | null = null;
   if (Array.isArray(user?.menuAccess)) {
     allowedPageIds = user.menuAccess;
@@ -128,47 +128,58 @@ export default function DashboardSidebar({
   }
 
   const menuItems = allMenuItems.filter(item => {
-    if (item.id === "disciplinary-warnings") {
-      return item.roles.map(r => r.toLowerCase()).includes(userRole.toLowerCase());
-    }
-    if (item.id === "scheduled-work") {
-      const userVert = user?.vertical || "";
-      const isLegalOrSecVert = ["Legal Recovery", "Security", "Legal & Security"].includes(userVert);
-      const isManagerialRole = ["Owner", "Director", "HR Head", "HR Executive", "Department Manager"].includes(userRole);
-      const hasExplicitAccess = allowedPageIds && allowedPageIds.includes("scheduled-work");
-      return isManagerialRole || isLegalOrSecVert || !!hasExplicitAccess;
-    }
-    if (item.id === "legal-recovery") {
-      const hasExplicitAccess = allowedPageIds && allowedPageIds.includes("legal-recovery");
-      return userRole === "Owner" || isAdministration || !!hasExplicitAccess;
-    }
-    if (!isOwnerOrDirector && allowedPageIds && allowedPageIds.length > 0) {
+    // 1. OWNER / DIRECTOR: Unconditional access to ALL pages & categories
+    if (isOwnerOrDirector) return true;
+
+    // 2. NON-OWNER USERS: Filter strictly by assigned menuAccess permissions & role rules
+    const roleLower = userRole.toLowerCase();
+
+    if (allowedPageIds && allowedPageIds.length > 0) {
       const hasPageLevelPermissions = allowedPageIds.some(p => 
         !["Core Workspace", "Employee Self Service", "AI & Vetting Hub", "Training & Probation", "Daily Operations", "Network Partners", "Compliance & Exit"].includes(p)
       );
       if (hasPageLevelPermissions) {
-        // Page-level override: if the page ID is checkmarked, show it!
         return allowedPageIds.includes(item.id);
       } else {
-        // Fallback to old category-level permissions
         if (!allowedPageIds.includes(item.category)) {
           return false;
         }
       }
     }
+
+    if (item.id === "disciplinary-warnings") {
+      return item.roles.some(r => r.toLowerCase() === roleLower || (roleLower.includes("manager") && r.toLowerCase().includes("manager")));
+    }
+    if (item.id === "scheduled-work") {
+      const userVert = user?.vertical || "";
+      const isLegalOrSecVert = ["Legal Recovery", "Security", "Legal & Security"].includes(userVert);
+      const isManagerialRole = roleLower.includes("manager") || roleLower.includes("hr") || roleLower.includes("head");
+      return isManagerialRole || isLegalOrSecVert;
+    }
+    if (item.id === "legal-recovery") {
+      return isAdministration;
+    }
     if (item.id === "inventory-management") {
-      return item.roles.includes(userRole) || isAdministration;
+      return isAdministration;
     }
     if (item.id === "assets-registry") {
-      return item.roles.includes(userRole) || isAdministration;
+      return isAdministration || roleLower.includes("manager") || roleLower.includes("hr");
     }
     if (item.id === "bda-directory") {
-      const isITManager = (userRole === "Department Manager" &&
+      const isITManager = (roleLower.includes("manager") &&
         ((user?.department || "").toLowerCase().includes("information technology") ||
           (user?.department || "").toLowerCase().includes("it")));
       if (isITManager) return false;
     }
-    return item.roles.includes(userRole);
+
+    // Role-based matching for non-owner users
+    return item.roles.some(r => {
+      const rLower = r.toLowerCase();
+      if (rLower === roleLower) return true;
+      if (roleLower.includes("manager") && (rLower === "department manager" || rLower.includes("manager"))) return true;
+      if (roleLower.includes("hr") && rLower.includes("hr")) return true;
+      return false;
+    });
   });
 
   const groupedMenu = menuItems.reduce((acc, item) => {

@@ -195,7 +195,9 @@ export function DailyCommitments({
   const [userVertical, setUserVertical] = useState<string>(sessionUser?.vertical || "");
   const [legalScheduleItems, setLegalScheduleItems] = useState<any[]>([]);
   const [legalInputDate, setLegalInputDate] = useState(new Date().toISOString().split("T")[0]);
-  const [legalInputTime, setLegalInputTime] = useState("10:00 AM");
+  const [legalInputTime, setLegalInputTime] = useState(() => 
+    new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: true })
+  );
   const [legalInputWorkSection, setLegalInputWorkSection] = useState("");
   const [legalWorkLocation, setLegalWorkLocation] = useState<string>("Office"); // Office | Bank | Field | Other
   const [legalCustomLocation, setLegalCustomLocation] = useState<string>("");
@@ -2937,7 +2939,7 @@ export function PerformanceCompliance({
     const role = sessionUser?.role || "Employee";
     const userId = (sessionUser?.id || "").toString();
 
-    const userMap = new Map<string, { id: string; name: string; email: string; role: string }>();
+    const userMap = new Map<string, { id: string; name: string; email: string; role: string; status: string }>();
 
     let addSelf = true;
     if (selectedCompany) {
@@ -2951,49 +2953,64 @@ export function PerformanceCompliance({
         id: userId,
         name: `${sessionUser.name || "Self"} (Self)`,
         email: sessionUser.email || "",
-        role: sessionUser.role || "Employee"
+        role: sessionUser.role || "Employee",
+        status: (sessionUser.status || "active").toLowerCase()
       });
     }
 
-    // Add employees from mergedList
+    // Add users from system users list (both active and inactive)
+    users.forEach((u: any) => {
+      const empId = (u.id || "").toString();
+      if (!empId) return;
+      if (!isOwner && empId !== userId) return;
+      if (selectedCompany && !isUserInCompany(u, selectedCompany)) return;
+      if (selectedDept && u.department !== selectedDept) return;
+
+      if (!userMap.has(empId)) {
+        userMap.set(empId, {
+          id: empId,
+          name: u.name,
+          email: u.email || "",
+          role: u.role || "Employee",
+          status: (u.status || "active").toLowerCase()
+        });
+      }
+    });
+
+    // Add employees from mergedList (past SOD/EOD/Task reports)
     mergedList.forEach((item: any) => {
       if (item.employee && item.employee.id) {
         const empId = item.employee.id.toString();
         const empRole = item.employee.role || "Employee";
+        const empStatus = (item.employee.status || "active").toLowerCase();
 
-        // 1. If not Manager/Owner, they only see themselves
-        if (!isOwner) {
-          if (empId !== userId) return;
-        }
-
-        // 2. Filter by selectedCompany
-        if (selectedCompany) {
-          if (!isUserInCompany(item.employee, selectedCompany)) return;
-        }
-
-        // 3. Filter by selectedDept
-        if (selectedDept) {
-          if (item.employee.department !== selectedDept) return;
-        }
+        if (!isOwner && empId !== userId) return;
+        if (selectedCompany && !isUserInCompany(item.employee, selectedCompany)) return;
+        if (selectedDept && item.employee.department !== selectedDept) return;
 
         if (!userMap.has(empId)) {
           userMap.set(empId, {
             id: empId,
             name: item.employee.name,
             email: item.employee.email || "",
-            role: empRole
+            role: empRole,
+            status: empStatus
           });
         }
       }
     });
 
-    return Array.from(userMap.values());
-  }, [mergedList, sessionUser, selectedCompany, selectedDept]);
+    const allList = Array.from(userMap.values()).filter(u => u.name && u.name.trim() !== "" && !u.name.toLowerCase().includes("unknown"));
+    const activeList = allList.filter(u => u.status !== "inactive").sort((a, b) => a.name.localeCompare(b.name));
+    const inactiveList = allList.filter(u => u.status === "inactive").sort((a, b) => a.name.localeCompare(b.name));
+
+    return { activeList, inactiveList, allUsers: allList };
+  }, [mergedList, users, sessionUser, selectedCompany, selectedDept]);
 
   // Synchronize selection
   useEffect(() => {
     if (selectedUser) {
-      const userExists = uniqueUsersFromReports.some((u) => u.id === selectedUser);
+      const userExists = uniqueUsersFromReports.allUsers.some((u) => u.id === selectedUser);
       if (!userExists) {
         setSelectedUser("");
       }
@@ -4031,11 +4048,18 @@ export function PerformanceCompliance({
                   className="bg-slate-50 hover:bg-slate-100 border border-slate-200 focus:border-[#714B67] rounded-lg px-3 py-1.5 text-xs text-slate-800 focus:outline-none font-bold transition-all shadow-sm"
                 >
                   <option value="">All Employees</option>
-                  {uniqueUsersFromReports
-                    .map((u: any) => (
+                  <optgroup label="Active Employees">
+                    {uniqueUsersFromReports.activeList.map((u: any) => (
                       <option key={u.id} value={u.id}>{u.name}</option>
-                    ))
-                  }
+                    ))}
+                  </optgroup>
+                  {uniqueUsersFromReports.inactiveList.length > 0 && (
+                    <optgroup label="Inactive / Archived Employees">
+                      {uniqueUsersFromReports.inactiveList.map((u: any) => (
+                        <option key={u.id} value={u.id}>{u.name} (Archived / Inactive)</option>
+                      ))}
+                    </optgroup>
+                  )}
                 </select>
               </div>
             </div>
@@ -5663,11 +5687,18 @@ export function PerformanceCompliance({
                         {isOwner && (
                           <option value="">All Employees</option>
                         )}
-                        {uniqueUsersFromReports.map((u) => (
-                          <option key={u.id} value={u.id}>
-                            {u.name}
-                          </option>
-                        ))}
+                        <optgroup label="Active Employees">
+                          {uniqueUsersFromReports.activeList.map((u: any) => (
+                            <option key={u.id} value={u.id}>{u.name}</option>
+                          ))}
+                        </optgroup>
+                        {uniqueUsersFromReports.inactiveList.length > 0 && (
+                          <optgroup label="Inactive / Archived Employees">
+                            {uniqueUsersFromReports.inactiveList.map((u: any) => (
+                              <option key={u.id} value={u.id}>{u.name} (Archived / Inactive)</option>
+                            ))}
+                          </optgroup>
+                        )}
                       </select>
                     </div>
 
