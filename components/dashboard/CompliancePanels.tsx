@@ -1103,6 +1103,60 @@ export function SystemRiskAlerts({ toggleModal, triggerToast, riskAlertList, onR
                 </div>
               </div>
 
+              {/* Submitted Exit Application Details Card */}
+              <div className="mb-6 bg-slate-50 border border-purple-200/80 rounded-xl p-4 space-y-3 shadow-2xs">
+                <div className="flex items-center justify-between border-b border-purple-100 pb-2">
+                  <h4 className="text-[10px] font-black uppercase tracking-widest text-[#714B67] font-mono flex items-center gap-1.5">
+                    <FileText className="w-3.5 h-3.5 text-purple-700" /> Submitted Exit Application Details
+                  </h4>
+                  <span className="text-[9px] font-bold bg-purple-100 text-purple-800 px-2 py-0.5 rounded font-mono">
+                    {selectedRecord.category || "Employee"}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs font-semibold text-slate-800">
+                  <div className="bg-white p-2.5 rounded-lg border border-slate-200/80 space-y-0.5 shadow-2xs">
+                    <span className="text-[9px] font-black uppercase text-slate-400 block font-mono">Employee Name</span>
+                    <span className="font-bold text-slate-900 text-xs block truncate">{selectedRecord.name}</span>
+                  </div>
+
+                  <div className="bg-white p-2.5 rounded-lg border border-slate-200/80 space-y-0.5 shadow-2xs">
+                    <span className="text-[9px] font-black uppercase text-slate-400 block font-mono">Department / Role</span>
+                    <span className="font-bold text-slate-900 text-xs block truncate">{selectedRecord.department || selectedRecord.submittedByUser?.role || "Staff"}</span>
+                  </div>
+
+                  <div className="bg-white p-2.5 rounded-lg border border-slate-200/80 space-y-0.5 shadow-2xs">
+                    <span className="text-[9px] font-black uppercase text-slate-400 block font-mono">Resignation Date</span>
+                    <span className="font-bold text-indigo-700 text-xs block">📅 {selectedRecord.resignationDate || "N/A"}</span>
+                  </div>
+
+                  <div className="bg-white p-2.5 rounded-lg border border-slate-200/80 space-y-0.5 shadow-2xs">
+                    <span className="text-[9px] font-black uppercase text-slate-400 block font-mono">Proposed LWD</span>
+                    <span className="font-bold text-purple-700 text-xs block">🗓️ {selectedRecord.lastWorkingDay || "N/A"}</span>
+                  </div>
+
+                  <div className="bg-white p-2.5 rounded-lg border border-slate-200/80 space-y-0.5 col-span-2 shadow-2xs">
+                    <span className="text-[9px] font-black uppercase text-slate-400 block font-mono">Handover / KT Person</span>
+                    <span className="font-bold text-slate-900 text-xs block truncate">👤 {selectedRecord.handoverTo || "Not Specified"}</span>
+                  </div>
+
+                  <div className="bg-white p-2.5 rounded-lg border border-slate-200/80 space-y-0.5 col-span-2 shadow-2xs">
+                    <span className="text-[9px] font-black uppercase text-slate-400 block font-mono">Personal Contact / Email</span>
+                    <span className="font-bold text-slate-900 text-xs block truncate">📞 {selectedRecord.personalMobile || "N/A"} | ✉️ {selectedRecord.personalEmail || selectedRecord.submittedByUser?.email || "N/A"}</span>
+                  </div>
+                </div>
+
+                <div className="bg-white p-3 rounded-lg border border-slate-200/80 space-y-1 shadow-2xs">
+                  <span className="text-[9px] font-black uppercase text-slate-400 block font-mono">Exit Reason & Remarks</span>
+                  <p className="text-xs font-bold text-slate-800 leading-normal">{selectedRecord.exitReason || "N/A"}</p>
+                  {selectedRecord.exitFeedback && (
+                    <p className="text-[11px] font-medium text-slate-600 border-t border-slate-100 pt-1 mt-1">
+                      <strong>Feedback:</strong> {selectedRecord.exitFeedback}
+                    </p>
+                  )}
+                </div>
+              </div>
+
               {/* EMPLOYEE STATUS VIEW FOR SUBMITTER */}
               {isSubmitter ? (
                 <div className="bg-indigo-50/50 border border-indigo-200 rounded-xl p-5 mb-6">
@@ -1366,111 +1420,117 @@ export function SystemRiskAlerts({ toggleModal, triggerToast, riskAlertList, onR
 
       {/* FORM-13 Exit Form Modal */}
       {showForm13 && (
-        <div className="fixed inset-0 bg-slate-900/20 backdrop-blur-md z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-            <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-indigo-50/50 rounded-t-2xl">
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-md z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto border border-slate-100">
+            <div className="p-5 border-b border-slate-100 flex justify-between items-center bg-gradient-to-r from-indigo-900 via-indigo-800 to-purple-900 text-white rounded-t-2xl">
               <div>
-                <h2 className="text-lg font-black text-indigo-900 tracking-tight">FORM-13 Exit Request</h2>
-                <p className="text-xs text-indigo-600 font-bold mt-1">Submit formal exit request for multi-stage approval workflow</p>
+                <h2 className="text-lg font-black tracking-tight flex items-center gap-2">
+                  <FileText className="w-5 h-5 text-indigo-300" /> FORM-13 Exit Request
+                </h2>
+                <p className="text-xs text-indigo-200 font-medium mt-0.5">Formal employee separation & clearance workflow submission</p>
               </div>
-              <button onClick={() => setShowForm13(false)} className="w-8 h-8 rounded-full bg-white border border-slate-200 flex items-center justify-center hover:bg-slate-50 transition-all text-slate-500 hover:text-indigo-500">
+              <button onClick={() => setShowForm13(false)} className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-all text-white">
                 <AlertCircle className="w-4 h-4" />
               </button>
             </div>
 
-            <div className="p-6">
+            <div className="p-6 space-y-6">
               <form onSubmit={handleForm13Submit} className="space-y-6">
                 {/* Basic Details & Dates */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="text-[10px] uppercase font-black text-slate-500 tracking-widest">1. Name *</label>
-                    <input required className="w-full bg-white border border-slate-300 focus:border-indigo-500 rounded-lg p-2.5 text-xs font-bold text-slate-800 mt-1.5 focus:outline-none" value={form13.name} onChange={e => setForm13({...form13, name: e.target.value})} placeholder="Full Name" />
+                    <label className="text-[10px] uppercase font-black text-slate-500 tracking-wider">1. Employee Name *</label>
+                    <input required className="w-full bg-slate-50 border border-slate-300 focus:border-indigo-600 focus:bg-white rounded-lg p-2.5 text-xs font-bold text-slate-800 mt-1 focus:outline-none transition-all" value={form13.name} onChange={e => setForm13({...form13, name: e.target.value})} placeholder="Full Name" />
                   </div>
 
                   <div>
-                    <label className="text-[10px] uppercase font-black text-slate-500 tracking-widest">2. Category *</label>
-                    <select required className="w-full bg-white border border-slate-300 focus:border-indigo-500 rounded-lg p-2.5 text-xs font-bold text-slate-800 mt-1.5 focus:outline-none" value={form13.category} onChange={e => setForm13({...form13, category: e.target.value as any})}>
-                      <option value="Employee">Employee</option>
+                    <label className="text-[10px] uppercase font-black text-slate-500 tracking-wider">2. Employment Category *</label>
+                    <select required className="w-full bg-slate-50 border border-slate-300 focus:border-indigo-600 focus:bg-white rounded-lg p-2.5 text-xs font-bold text-slate-800 mt-1 focus:outline-none transition-all" value={form13.category} onChange={e => setForm13({...form13, category: e.target.value as any})}>
+                      <option value="Employee">Full-time Employee</option>
                       <option value="Associate">Business Associate</option>
-                      <option value="Vendor">Vendor</option>
+                      <option value="Vendor">Vendor / Contractor</option>
                     </select>
                   </div>
 
                   <div>
-                    <label className="text-[10px] uppercase font-black text-slate-500 tracking-widest">3. Resignation Date *</label>
-                    <input type="date" required className="w-full bg-white border border-slate-300 focus:border-indigo-500 rounded-lg p-2.5 text-xs font-bold text-slate-800 mt-1.5 focus:outline-none" value={form13.resignationDate} onChange={e => setForm13({...form13, resignationDate: e.target.value})} />
+                    <label className="text-[10px] uppercase font-black text-slate-500 tracking-wider">3. Resignation Date *</label>
+                    <input type="date" required className="w-full bg-slate-50 border border-slate-300 focus:border-indigo-600 focus:bg-white rounded-lg p-2.5 text-xs font-bold text-slate-800 mt-1 focus:outline-none transition-all" value={form13.resignationDate} onChange={e => setForm13({...form13, resignationDate: e.target.value})} />
                   </div>
 
                   <div>
-                    <label className="text-[10px] uppercase font-black text-slate-500 tracking-widest">4. Proposed Last Working Day (LWD)</label>
-                    <input type="date" className="w-full bg-white border border-slate-300 focus:border-indigo-500 rounded-lg p-2.5 text-xs font-bold text-slate-800 mt-1.5 focus:outline-none" value={form13.lastWorkingDay} onChange={e => setForm13({...form13, lastWorkingDay: e.target.value})} />
+                    <label className="text-[10px] uppercase font-black text-slate-500 tracking-wider">4. Proposed Last Working Day (LWD)</label>
+                    <input type="date" className="w-full bg-slate-50 border border-slate-300 focus:border-indigo-600 focus:bg-white rounded-lg p-2.5 text-xs font-bold text-slate-800 mt-1 focus:outline-none transition-all" value={form13.lastWorkingDay} onChange={e => setForm13({...form13, lastWorkingDay: e.target.value})} />
                   </div>
 
                   <div>
-                    <label className="text-[10px] uppercase font-black text-slate-500 tracking-widest">5. Department</label>
-                    <input className="w-full bg-white border border-slate-300 focus:border-indigo-500 rounded-lg p-2.5 text-xs font-bold text-slate-800 mt-1.5 focus:outline-none" value={form13.department} onChange={e => setForm13({...form13, department: e.target.value})} placeholder="e.g. Technology / HR / Legal" />
+                    <label className="text-[10px] uppercase font-black text-slate-500 tracking-wider">5. Department</label>
+                    <input className="w-full bg-slate-50 border border-slate-300 focus:border-indigo-600 focus:bg-white rounded-lg p-2.5 text-xs font-bold text-slate-800 mt-1 focus:outline-none transition-all" value={form13.department} onChange={e => setForm13({...form13, department: e.target.value})} placeholder="e.g. Operations / Technology / HR" />
                   </div>
 
                   <div>
-                    <label className="text-[10px] uppercase font-black text-slate-500 tracking-widest">6. Handover Replacement Person</label>
-                    <input className="w-full bg-white border border-slate-300 focus:border-indigo-500 rounded-lg p-2.5 text-xs font-bold text-slate-800 mt-1.5 focus:outline-none" value={form13.handoverTo} onChange={e => setForm13({...form13, handoverTo: e.target.value})} placeholder="Name of team member receiving KT" />
+                    <label className="text-[10px] uppercase font-black text-slate-500 tracking-wider">6. Handover / KT Replacement Person</label>
+                    <input className="w-full bg-slate-50 border border-slate-300 focus:border-indigo-600 focus:bg-white rounded-lg p-2.5 text-xs font-bold text-slate-800 mt-1 focus:outline-none transition-all" value={form13.handoverTo} onChange={e => setForm13({...form13, handoverTo: e.target.value})} placeholder="Name of team member receiving KT" />
+                  </div>
+
+                  <div>
+                    <label className="text-[10px] uppercase font-black text-slate-500 tracking-wider">7. Personal Contact Mobile (Post-Exit)</label>
+                    <input className="w-full bg-slate-50 border border-slate-300 focus:border-indigo-600 focus:bg-white rounded-lg p-2.5 text-xs font-bold text-slate-800 mt-1 focus:outline-none transition-all" value={(form13 as any).personalMobile || ""} onChange={e => setForm13({...form13, personalMobile: e.target.value} as any)} placeholder="+91 98765 43210" />
+                  </div>
+
+                  <div>
+                    <label className="text-[10px] uppercase font-black text-slate-500 tracking-wider">8. Personal Email (For F&F & Experience Letter)</label>
+                    <input type="email" className="w-full bg-slate-50 border border-slate-300 focus:border-indigo-600 focus:bg-white rounded-lg p-2.5 text-xs font-bold text-slate-800 mt-1 focus:outline-none transition-all" value={(form13 as any).personalEmail || ""} onChange={e => setForm13({...form13, personalEmail: e.target.value} as any)} placeholder="personal@gmail.com" />
                   </div>
 
                   <div className="md:col-span-2">
-                    <label className="text-[10px] uppercase font-black text-slate-500 tracking-widest">7. Exit Reason *</label>
-                    <textarea required rows={2} className="w-full bg-white border border-slate-300 focus:border-indigo-500 rounded-lg p-2.5 text-xs font-bold text-slate-800 mt-1.5 focus:outline-none resize-none" value={form13.exitReason} onChange={e => setForm13({...form13, exitReason: e.target.value})} placeholder="Reason for exit (Resignation, Career Switch, Contract End, etc.)" />
+                    <label className="text-[10px] uppercase font-black text-slate-500 tracking-wider">9. Exit Reason *</label>
+                    <textarea required rows={2} className="w-full bg-slate-50 border border-slate-300 focus:border-indigo-600 focus:bg-white rounded-lg p-2.5 text-xs font-bold text-slate-800 mt-1 focus:outline-none resize-none transition-all" value={form13.exitReason} onChange={e => setForm13({...form13, exitReason: e.target.value})} placeholder="Reason for exit (Resignation, Career Switch, Contract End, Personal Reasons, etc.)" />
                   </div>
                 </div>
 
-                {/* IT & Compliance Clearance Checklist Section (All 6 Items) */}
-                <div className="bg-indigo-50/40 border border-indigo-200 rounded-xl p-5">
-                  <h4 className="text-[10px] font-black tracking-widest text-indigo-700 uppercase mb-4 pb-2 border-b border-indigo-100">IT & Compliance Clearance Checklist</h4>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {/* IT & Compliance Clearance Checklist Section */}
+                <div className="bg-indigo-50/50 border border-indigo-200 rounded-xl p-4 space-y-3">
+                  <h4 className="text-[10px] font-black tracking-widest text-indigo-900 uppercase pb-2 border-b border-indigo-200/60 flex items-center justify-between">
+                    <span>IT & Compliance Clearance Checklist</span>
+                    <span className="text-[9px] font-bold text-indigo-600">Verification Items</span>
+                  </h4>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                     {[
                       { key: "accessRevoke", label: "1. System & CRM Access Revoked" },
                       { key: "assetReturn", label: "2. Company Assets Returned" },
-                      { key: "dataAudit", label: "3. Final Data Security Audit Passed" },
-                      { key: "clientTransfer", label: "4. Client Handovers / Transfer Complete" },
-                      { key: "ndaReminder", label: "5. Signed NDA & Non-Compete Reminder Sent" },
-                      { key: "postExitWatch", label: "6. Active Post-Exit Tracking / Watchlist" },
+                      { key: "dataAudit", label: "3. Data Security Audit Passed" },
+                      { key: "clientTransfer", label: "4. Client Handovers Complete" },
+                      { key: "ndaReminder", label: "5. Signed NDA & Non-Compete Sent" },
+                      { key: "postExitWatch", label: "6. Active Post-Exit Tracking" },
                     ].map(({ key, label }) => (
-                      <label key={key} className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all ${
-                        (form13 as any)[key] ? "bg-emerald-50 border-emerald-300 text-emerald-800" : "bg-white border-indigo-100 text-slate-600 hover:bg-indigo-50/50"
+                      <label key={key} className={`flex items-center gap-2.5 p-2.5 rounded-lg border cursor-pointer transition-all ${
+                        (form13 as any)[key] ? "bg-emerald-50 border-emerald-300 text-emerald-800" : "bg-white border-slate-200 text-slate-700 hover:bg-indigo-50/40"
                       }`}>
                         <input
                           type="checkbox"
-                          className="accent-indigo-600 w-4 h-4"
+                          className="accent-indigo-600 w-4 h-4 rounded"
                           checked={(form13 as any)[key]}
                           onChange={e => setForm13({...form13, [key]: e.target.checked})}
                         />
-                        <span className="text-[10px] font-black uppercase tracking-wider">{label}</span>
+                        <span className="text-[10px] font-extrabold uppercase tracking-wider">{label}</span>
                       </label>
                     ))}
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                  <div>
-                    <label className="text-[10px] uppercase font-black text-slate-500 tracking-widest">Final Settlement Status (F&F)</label>
-                    <select className="w-full bg-white border border-slate-300 focus:border-indigo-500 rounded-lg p-2.5 text-xs font-bold text-slate-800 mt-1.5 focus:outline-none" value={form13.finalSettlementStatus} onChange={e => setForm13({...form13, finalSettlementStatus: e.target.value})}>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="md:col-span-2">
+                    <label className="text-[10px] uppercase font-black text-slate-500 tracking-wider">Final Settlement Status (F&F)</label>
+                    <select className="w-full bg-slate-50 border border-slate-300 focus:border-indigo-600 focus:bg-white rounded-lg p-2.5 text-xs font-bold text-slate-800 mt-1 focus:outline-none transition-all" value={form13.finalSettlementStatus} onChange={e => setForm13({...form13, finalSettlementStatus: e.target.value})}>
                       <option value="Pending Audit">Pending Audit</option>
                       <option value="On Hold">On Hold (Issues Found)</option>
                       <option value="Completed & Paid">Completed & Paid</option>
                     </select>
                   </div>
 
-                  <div>
-                    <label className="text-[10px] uppercase font-black text-slate-500 tracking-widest">Post-Exit Risk *</label>
-                    <select className="w-full bg-white border border-slate-300 focus:border-indigo-500 rounded-lg p-2.5 text-xs font-bold text-slate-800 mt-1.5 focus:outline-none" value={form13.postExitRisk} onChange={e => setForm13({...form13, postExitRisk: e.target.value})}>
-                      <option value="Low">Low — No concern</option>
-                      <option value="Medium">Medium — Watch for 30 days</option>
-                      <option value="High">High — Immediate escalation required</option>
-                    </select>
-                  </div>
-
                   <div className="md:col-span-2">
-                    <label className="text-[10px] uppercase font-black text-slate-500 tracking-widest">Exit Feedback (Optional)</label>
-                    <textarea rows={2} className="w-full bg-white border border-slate-300 focus:border-indigo-500 rounded-lg p-2.5 text-xs font-bold text-slate-800 mt-1.5 focus:outline-none resize-none" value={form13.exitFeedback} onChange={e => setForm13({...form13, exitFeedback: e.target.value})} placeholder="Feedback from the exiting person (optional)..." />
+                    <label className="text-[10px] uppercase font-black text-slate-500 tracking-wider">Exit Feedback (Optional)</label>
+                    <textarea rows={2} className="w-full bg-slate-50 border border-slate-300 focus:border-indigo-600 focus:bg-white rounded-lg p-2.5 text-xs font-bold text-slate-800 mt-1 focus:outline-none resize-none transition-all" value={form13.exitFeedback} onChange={e => setForm13({...form13, exitFeedback: e.target.value})} placeholder="Feedback from the exiting person (optional)..." />
                   </div>
                 </div>
 

@@ -195,7 +195,9 @@ export function DailyCommitments({
   const [userVertical, setUserVertical] = useState<string>(sessionUser?.vertical || "");
   const [legalScheduleItems, setLegalScheduleItems] = useState<any[]>([]);
   const [legalInputDate, setLegalInputDate] = useState(new Date().toISOString().split("T")[0]);
-  const [legalInputTime, setLegalInputTime] = useState("10:00 AM");
+  const [legalInputTime, setLegalInputTime] = useState(() => 
+    new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: true })
+  );
   const [legalInputWorkSection, setLegalInputWorkSection] = useState("");
   const [legalWorkLocation, setLegalWorkLocation] = useState<string>("Office"); // Office | Bank | Field | Other
   const [legalCustomLocation, setLegalCustomLocation] = useState<string>("");

@@ -181,7 +181,8 @@ export async function POST(req: Request) {
 
         for (const item of legalSchedules) {
           const itemDate = item.date || new Date().toISOString().split("T")[0];
-          const itemTime = item.time || "09:00 AM";
+          const currentTimeFormatted = new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: true });
+          const itemTime = item.time && item.time.trim() ? item.time : currentTimeFormatted;
           const cleanWorkSection = (item.workSection || item.type || item.bankName || item.remarks || item.details || "Scheduled Work").trim();
 
           const scheduleId = "lrs_" + Date.now() + "_" + Math.random().toString(36).substr(2, 5);
