@@ -1,6 +1,7 @@
 "use client";
 import React, { useState, useEffect } from "react";
-import { Users, Plus, Building2, Mail, Phone, ShieldCheck, FileText, Trash2, Search, ShieldAlert, UserCheck, UserPlus, Edit3, X } from "lucide-react";
+import { createPortal } from "react-dom";
+import { Users, Plus, Building2, Mail, Phone, ShieldCheck, FileText, Trash2, Search, ShieldAlert, UserCheck, UserPlus, Edit3, X, RotateCcw } from "lucide-react";
 
 interface EmployeeDirectoryProps {
   userRole: string;
@@ -35,8 +36,14 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
   const [filterRole, setFilterRole] = useState<string>("All");
   const [filterCompany, setFilterCompany] = useState<string>("All");
   const [filterVertical, setFilterVertical] = useState<string>("All");
+  const [filterStatus, setFilterStatus] = useState<string>("Active");
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
+  const [mounted, setMounted] = useState<boolean>(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const toggleRow = (id: string) => {
     setExpandedRow(prev => prev === id ? null : id);
@@ -982,6 +989,17 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
       matchesVerticalFilter = empVert === filterVertical;
     }
 
+    // Status filter from UI dropdown
+    let matchesStatusFilter = true;
+    const empStatusLower = (emp.status || "active").toLowerCase();
+    if (filterStatus === "Active") {
+      matchesStatusFilter = empStatusLower === "active" || empStatusLower === "probation" || empStatusLower === "on notice";
+    } else if (filterStatus === "Inactive") {
+      matchesStatusFilter = empStatusLower === "inactive";
+    } else if (filterStatus !== "All") {
+      matchesStatusFilter = empStatusLower === filterStatus.toLowerCase();
+    }
+
     // Role-based visibility check
     let matchesCompany = true;
     const normalizedRole = (userRole || "").trim().toLowerCase();
@@ -997,7 +1015,7 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
       }
     }
 
-    return matchesSearch && matchesFilter && matchesCompanyFilter && matchesVerticalFilter && matchesCompany;
+    return matchesSearch && matchesFilter && matchesCompanyFilter && matchesVerticalFilter && matchesCompany && matchesStatusFilter;
   });
 
   // Filter top company dropdown options based on role
@@ -1040,6 +1058,7 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
 
   // Employees in the same company (for Department Manager dropdown, showing all departments of the company)
   const deptEmployeesForManager = employees.filter((emp: any) => {
+    if ((emp.status || "").toLowerCase() === "inactive") return false;
     let compMatch = true;
     if (formData.companyId) {
       let empComps: any[] = [];
@@ -1053,6 +1072,7 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
   // Manager-role users in selected company (for Assign Manager dropdown)
   const managerRoleKeywords = ["manager", "head", "director", "ceo", "coo", "cfo", "cto", "vp", "owner", "lead"];
   const companyManagersList = employees.filter((emp: any) => {
+    if ((emp.status || "").toLowerCase() === "inactive") return false;
     const roleLower = (emp.role || "").toLowerCase();
     const isManagerRole = managerRoleKeywords.some(kw => roleLower.includes(kw));
     if (!isManagerRole) return false;
@@ -1649,6 +1669,20 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
                   ))}
                 </select>
               </div>
+              <div className="flex items-center gap-2">
+                <span className={`text-xs font-bold font-mono ${isDark ? "text-gray-400" : "text-slate-500"}`}>Status Filter:</span>
+                <select
+                  className={`border rounded-lg px-3 py-2 text-xs font-semibold focus:outline-none focus:border-indigo-500 ${isDark ? "bg-gray-800 border-gray-700 text-gray-300" : "bg-slate-50 border-slate-200 text-slate-700"}`}
+                  value={filterStatus}
+                  onChange={e => setFilterStatus(e.target.value)}
+                >
+                  <option value="Active">Active Staff</option>
+                  <option value="Inactive">Inactive / Archived</option>
+                  <option value="All">All Statuses</option>
+                  <option value="on notice">On Notice</option>
+                  <option value="probation">Probation</option>
+                </select>
+              </div>
             </div>
           </div>
 
@@ -1885,17 +1919,17 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
         </>
       )}
 
-      {/* TERMINATION MODAL */}
+      {/* DEACTIVATION MODAL */}
       {deleteTarget && (
         <div className="fixed inset-0 bg-black/20 z-50 flex items-center justify-center p-4 backdrop-blur-md">
           <div className={`border w-full max-w-sm rounded-xl p-6 relative shadow-2xl animate-fade-in ${isDark ? "bg-gray-900 border-gray-800 text-white" : "bg-white border-slate-200 text-slate-800"}`}>
             <div className="flex items-center gap-3 text-rose-600 mb-4">
               <ShieldAlert className="w-6 h-6 shrink-0" />
-              <h3 className="text-sm font-black uppercase tracking-wider font-mono">Terminate Staff Member</h3>
+              <h3 className="text-sm font-black uppercase tracking-wider font-mono">Deactivate Staff Member</h3>
             </div>
 
             <p className={`text-xs leading-relaxed ${isDark ? "text-gray-400" : "text-slate-600"}`}>
-              Are you absolutely sure you want to terminate <strong>{deleteTarget.name}</strong> from the active corporate staff database? This action is permanent and cannot be undone.
+              Are you sure you want to set <strong>{deleteTarget.name}</strong> to <strong>Inactive</strong>? The employee record and historical data will be preserved safely in the database, and their login password will be deleted.
             </p>
 
             <div className="flex gap-3 mt-6">
@@ -1909,7 +1943,7 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
                 onClick={confirmDelete}
                 className="flex-1 bg-rose-600 hover:bg-rose-700 text-white py-2.5 rounded-lg text-xs font-bold transition-all shadow-md"
               >
-                Confirm Termination
+                Confirm Deactivation
               </button>
             </div>
           </div>
@@ -1917,24 +1951,26 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
       )}
 
       {/* EDIT EMPLOYEE MODAL */}
-      {showEditModal && (
-        <div className="fixed inset-0 bg-black/20 z-50 flex items-center justify-center p-4 backdrop-blur-md overflow-y-auto">
-          <div className={`border w-full max-w-2xl rounded-2xl p-6 relative shadow-2xl animate-fade-in ${isDark ? "bg-gray-900 border-gray-800 text-white" : "bg-white border-slate-200 text-slate-800"}`}>
+      {mounted && showEditModal && createPortal(
+        <div className="fixed inset-0 bg-black/60 z-[99999] backdrop-blur-sm p-4 flex items-center justify-center">
+          <div className={`border w-full max-w-4xl max-h-[88vh] rounded-2xl p-6 sm:p-8 relative shadow-2xl flex flex-col my-auto ${isDark ? "bg-gray-900 border-gray-800 text-white" : "bg-white border-slate-200 text-slate-800"}`}>
             <button
               onClick={() => setShowEditModal(false)}
-              className={`absolute top-4 right-4 p-1.5 rounded-lg border transition-all ${isDark ? "bg-gray-800 border-gray-700 text-gray-400 hover:text-white" : "bg-slate-50 border-slate-200 text-slate-500 hover:text-slate-700"}`}
+              className={`absolute top-4 right-4 p-2 rounded-xl border transition-all z-10 ${isDark ? "bg-gray-800 border-gray-700 text-gray-400 hover:text-white" : "bg-slate-100 border-slate-200 text-slate-600 hover:bg-slate-200"}`}
             >
-              <X className="w-4 h-4" />
+              <X className="w-5 h-5" />
             </button>
 
-            <div className="flex items-center gap-3 mb-6 border-b pb-3 border-slate-200 dark:border-gray-800">
-              <Edit3 className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
-              <h3 className="text-base font-bold uppercase tracking-wider font-mono">Edit Employee Details</h3>
+            <div className="flex items-center gap-3 pb-4 border-b border-slate-200 dark:border-gray-800 shrink-0">
+              <Edit3 className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
+              <div>
+                <h3 className="text-base font-bold uppercase tracking-wider font-mono">Employee Profile & System Details</h3>
+                <p className="text-xs text-slate-500 dark:text-gray-400 mt-0.5">View and update complete staff record, status & assigned details.</p>
+              </div>
             </div>
 
-            <form onSubmit={handleEditEmployeeSubmit} className="flex flex-col h-full max-h-[85vh] text-left">
-              {/* Scrollable inputs */}
-              <div className="flex-1 overflow-y-auto pr-2 space-y-6 max-h-[55vh]">
+            <form onSubmit={handleEditEmployeeSubmit} className="flex flex-col flex-1 min-h-0 text-left mt-4">
+              <div className="flex-1 overflow-y-auto space-y-6 pr-2 custom-scrollbar">
                 {/* Photo Upload Area in Edit Form */}
                 <div className="flex flex-col sm:flex-row gap-4 items-center sm:items-start p-4 rounded-xl border border-indigo-50/50 dark:border-gray-800 bg-slate-50/30 dark:bg-gray-800/10">
                   <div className="flex flex-col items-center justify-center p-2 border-2 border-dashed rounded-xl w-24 h-24 text-center cursor-pointer relative group transition-all hover:border-indigo-500 hover:bg-indigo-50/5 dark:hover:bg-indigo-950/10">
@@ -2254,9 +2290,25 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
                       className={`w-full p-2.5 rounded-lg border text-sm focus:border-indigo-500 focus:outline-none ${isDark ? "bg-gray-800 border-gray-700 text-white" : "bg-slate-50 border-slate-200 font-semibold"}`}
                     >
                       <option value="active">Active</option>
-                      <option value="inactive">Inactive</option>
+                      <option value="inactive">Inactive (Delete Password & Revoke Access)</option>
+                      <option value="on notice">On Notice</option>
+                      <option value="probation">Probation</option>
                     </select>
                   </div>
+
+                  {/* Password Reset / Restore Field */}
+                  {editForm.status === "active" && (
+                    <div>
+                      <label className="block text-xs font-bold mb-1.5 text-indigo-600 dark:text-indigo-400">Set / Reset Password (Re-hire)</label>
+                      <input
+                        type="password"
+                        value={(editForm as any).password || ""}
+                        onChange={(e) => setEditForm(prev => ({ ...prev, password: e.target.value }))}
+                        placeholder="Enter new password to restore access"
+                        className={`w-full p-2.5 rounded-lg border text-sm focus:border-indigo-500 focus:outline-none ${isDark ? "bg-gray-800 border-gray-700 text-white" : "bg-slate-50 border-slate-200"}`}
+                      />
+                    </div>
+                  )}
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -2341,7 +2393,8 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

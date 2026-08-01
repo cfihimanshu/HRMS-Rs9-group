@@ -1067,6 +1067,11 @@ export default function AdministratorAccess({ userRole, triggerToast, sessionUse
                                       Admin
                                     </span>
                                   )}
+                                  {(emp.status || "").toLowerCase() === "inactive" && (
+                                    <span className="px-1.5 py-0.5 rounded bg-rose-50 border border-rose-200 text-rose-600 text-[8px] uppercase tracking-wider font-bold">
+                                      Inactive
+                                    </span>
+                                  )}
                                 </div>
                                 <div className="text-[10px] text-[#9C9890]">{emp.email}</div>
                                 <div className="text-[9px] text-[#5D5B57] mt-0.5 uppercase tracking-wider font-medium">

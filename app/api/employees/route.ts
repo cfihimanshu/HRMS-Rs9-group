@@ -790,7 +790,12 @@ export async function PUT(req: Request) {
         if (email !== undefined) userRec.email = email;
         if (mobile !== undefined) userRec.mobile = mobile;
         if (role !== undefined) userRec.role = role;
-        if (status !== undefined) userRec.status = status;
+        if (status !== undefined) {
+          userRec.status = status;
+          if (status === "inactive") {
+            userRec.password = null; // Wipe password on deactivation to revoke access completely
+          }
+        }
         if (body.password) {
           userRec.password = await bcrypt.hash(body.password, 10);
         }
@@ -830,7 +835,7 @@ export async function PUT(req: Request) {
   }
 }
 
-// DELETE /api/employees - Remove or deactivate a staff member
+// DELETE /api/employees - Deactivate a staff member (Soft delete: retains DB record, wipes password)
 export async function DELETE(req: Request) {
   try {
     await sequelize.authenticate();
@@ -849,11 +854,30 @@ export async function DELETE(req: Request) {
 
     // Do not allow deleting yourself
     if (id === (session.user as any).id) {
-      return NextResponse.json({ success: false, error: "You cannot remove yourself" }, { status: 400 });
+      return NextResponse.json({ success: false, error: "You cannot deactivate yourself" }, { status: 400 });
     }
 
-    await User.destroy({ where: { id } });
-    return NextResponse.json({ success: true, message: "User deleted successfully" });
+    const userRec = await User.findByPk(id);
+    if (!userRec) {
+      return NextResponse.json({ success: false, error: "User not found" }, { status: 404 });
+    }
+
+    userRec.status = "inactive";
+    userRec.password = null;
+    await userRec.save();
+
+    await logAudit({
+      userId: (session.user as any).id,
+      userName: session.user.name,
+      userRole: (session.user as any).role,
+      action: "DEACTIVATE_EMPLOYEE",
+      entity: "User",
+      entityId: id,
+      details: `Deactivated employee ${userRec.name} (${userRec.email}). Retained DB record and wiped password.`,
+      ipAddress: getRequestIp(req),
+    });
+
+    return NextResponse.json({ success: true, message: "User deactivated successfully. Profile and data retained in database." });
   } catch (err: any) {
     return NextResponse.json({ success: false, error: err.message }, { status: 500 });
   }

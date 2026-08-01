@@ -16,17 +16,17 @@ export async function GET(req: Request) {
       return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
     }
 
-    const role = (session.user as any).role;
-    const permitted = ["Owner", "Director", "IT Admin", "HR Head", "HR Executive"];
+    const userId = (session.user as any).id;
+    const dbUser: any = await User.findByPk(userId, { raw: true });
+    const role = dbUser?.role || (session.user as any).role || "Employee";
+    const roleLower = role.toLowerCase();
+    
+    const isManagerOrAdmin = role !== "Employee" || 
+      ["manager", "owner", "director", "hr", "admin", "head"].some(r => roleLower.includes(r));
     
     let whereClause: any = { status: "active" };
-    if (!permitted.includes(role)) {
-      if (role === "Employee") {
-        const userId = (session.user as any).id;
-        whereClause = { employee: userId, status: "active" };
-      } else {
-        return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 });
-      }
+    if (!isManagerOrAdmin) {
+      whereClause = { employee: userId, status: "active" };
     }
 
     await sequelize.authenticate();

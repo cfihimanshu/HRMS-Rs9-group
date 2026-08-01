@@ -1,5 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { useSession } from "next-auth/react";
 import { Search, Plus, Edit2, Trash2, Mail, Phone, Building2, Briefcase, Layers, X, Check, ShieldAlert, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -91,10 +92,14 @@ export default function AllEmployees() {
     vertical: "",
     department: "",
     baseSalary: 30000,
-    dateOfJoining: new Date().toISOString().split("T")[0]
+    dateOfJoining: new Date().toISOString().split("T")[0],
+    status: "active"
   });
 
+  const [mounted, setMounted] = useState(false);
+
   useEffect(() => {
+    setMounted(true);
     fetchInitialData();
   }, []);
 
@@ -177,7 +182,7 @@ export default function AllEmployees() {
         let empComps: any[] = [];
         if (Array.isArray(emp.companies)) empComps = emp.companies;
         else if (typeof emp.companies === "string") {
-          try { empComps = JSON.parse(emp.companies); } catch (e) {}
+          try { empComps = JSON.parse(emp.companies); } catch (e) { }
         }
         return empComps.some((c: any) => (typeof c === "object" ? c.id : c) === companyFilter);
       });
@@ -214,7 +219,8 @@ export default function AllEmployees() {
       vertical: verticals[0]?.name || "",
       department: departments[0]?.name || "Operations",
       baseSalary: 35000,
-      dateOfJoining: new Date().toISOString().split("T")[0]
+      dateOfJoining: new Date().toISOString().split("T")[0],
+      status: "active"
     });
     setIsEmployeeModalOpen(true);
   };
@@ -240,7 +246,8 @@ export default function AllEmployees() {
       vertical: currentVert,
       department: currentDeptName,
       baseSalary: emp.employeeProfile?.baseSalary || 35000,
-      dateOfJoining: emp.dateOfJoining ? new Date(emp.dateOfJoining).toISOString().split("T")[0] : new Date().toISOString().split("T")[0]
+      dateOfJoining: emp.dateOfJoining ? new Date(emp.dateOfJoining).toISOString().split("T")[0] : new Date().toISOString().split("T")[0],
+      status: emp.status || "active"
     });
     setIsEmployeeModalOpen(true);
   };
@@ -264,7 +271,8 @@ export default function AllEmployees() {
             vertical: formData.vertical,
             department: formData.department,
             companies: [formData.companyId],
-            dateOfJoining: formData.dateOfJoining
+            dateOfJoining: formData.dateOfJoining,
+            status: formData.status
           })
         });
 
@@ -360,7 +368,7 @@ export default function AllEmployees() {
 
   return (
     <div className="space-y-8 animate-fade-in text-[#1C1C1A]">
-      
+
       {/* Header */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-[#E8E4DF] pb-5">
         <div>
@@ -383,7 +391,7 @@ export default function AllEmployees() {
             <Layers className="w-4 h-4 text-[#C9A84C]" /> Manage Verticals Master
           </button>
 
-          <button 
+          <button
             onClick={handleOpenAddEmployee}
             className="px-4 py-2.5 bg-[#C9A84C] hover:bg-[#B3923E] text-white rounded-lg text-xs font-semibold tracking-wider uppercase transition-all shadow-[0_2px_15px_rgba(201,168,76,0.2)] flex items-center gap-2"
           >
@@ -514,8 +522,8 @@ export default function AllEmployees() {
             const empDeptName = employee.department?.name || (typeof employee.employeeProfile?.department === 'object' ? employee.employeeProfile?.department?.name : employee.employeeProfile?.department) || "Operations";
 
             return (
-              <div 
-                key={employee.id} 
+              <div
+                key={employee.id}
                 className="bg-[#FCFBF9] border border-[#E8E4DF] hover:border-[#C9A84C] hover:shadow-[0_4px_25px_rgba(0,0,0,0.06)] rounded-xl p-6 transition-all duration-300 relative flex flex-col justify-between"
               >
                 <div>
@@ -551,7 +559,7 @@ export default function AllEmployees() {
 
                     {/* Actions */}
                     <div className="flex gap-1">
-                      <button 
+                      <button
                         onClick={() => handleOpenEditEmployee(employee)}
                         title="Edit Employee"
                         className="p-1.5 hover:bg-[#F0EAE4] text-[#9C9890] hover:text-[#1C1C1A] rounded-lg transition-colors"
@@ -605,7 +613,7 @@ export default function AllEmployees() {
                     <span className="font-semibold text-[#8C6D23]">{employee.role}</span>
                   </div>
 
-                  <button 
+                  <button
                     onClick={() => handleOpenEditEmployee(employee)}
                     className="w-full text-center py-2 border border-[#E8E4DF] hover:border-[#C9A84C] text-[#1C1C1A] hover:bg-[#FAFAF7] rounded-lg transition-colors uppercase tracking-widest text-[9px] font-semibold mt-2"
                   >
@@ -643,17 +651,17 @@ export default function AllEmployees() {
       {/* ========================================================================= */}
       {/* MODAL 1: ADD / EDIT EMPLOYEE MODAL WITH VERTICAL & COMPANY SELECTION      */}
       {/* ========================================================================= */}
-      {isEmployeeModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white border border-[#E8E4DF] rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl p-6 animate-scale-up">
-            <div className="flex justify-between items-center border-b border-[#E8E4DF] pb-4 mb-6">
+      {mounted && isEmployeeModalOpen && createPortal(
+        <div className="fixed inset-0 z-[99999] bg-black/60 backdrop-blur-sm p-4 flex items-center justify-center">
+          <div className="bg-white border border-[#E8E4DF] rounded-2xl max-w-4xl w-full max-h-[88vh] shadow-2xl p-6 sm:p-8 flex flex-col my-auto relative">
+            <div className="flex justify-between items-center border-b border-[#E8E4DF] pb-4 shrink-0">
               <div>
                 <span className="text-[9px] uppercase tracking-widest text-[#C9A84C] font-bold">Personnel Record</span>
                 <h3 className="text-xl font-serif font-light text-[#1C1C1A]" style={{ fontFamily: "'Playfair Display', serif" }}>
                   {editingEmployee ? `Update Profile: ${editingEmployee.name}` : "Onboard New Employee"}
                 </h3>
               </div>
-              <button 
+              <button
                 onClick={() => setIsEmployeeModalOpen(false)}
                 className="p-2 text-[#9C9890] hover:text-[#1C1C1A] hover:bg-[#F5F0EA] rounded-full transition-colors"
               >
@@ -661,7 +669,8 @@ export default function AllEmployees() {
               </button>
             </div>
 
-            <form onSubmit={handleSaveEmployee} className="space-y-4 text-xs">
+            <form onSubmit={handleSaveEmployee} className="flex flex-col flex-1 min-h-0 text-xs mt-4">
+              <div className="flex-1 overflow-y-auto pr-2 space-y-4 custom-scrollbar">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-[10px] font-bold uppercase tracking-wider text-[#5D5B57] mb-1">
@@ -837,9 +846,26 @@ export default function AllEmployees() {
                     className="w-full bg-[#FCFBF9] border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] outline-none"
                   />
                 </div>
-              </div>
 
-              <div className="flex justify-end gap-3 border-t border-[#E8E4DF] pt-5 mt-6">
+                <div>
+                  <label className="block text-[10px] font-bold uppercase tracking-wider text-[#5D5B57] mb-1">
+                    Employee Status *
+                  </label>
+                  <select
+                    value={formData.status}
+                    onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+                    className="w-full bg-[#FCFBF9] border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] font-bold outline-none cursor-pointer"
+                  >
+                    <option value="active">Active</option>
+                    <option value="inactive">Inactive / Deactivated</option>
+                    <option value="on notice">On Notice</option>
+                    <option value="probation">Probation</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+              <div className="flex justify-end gap-3 border-t border-[#E8E4DF] pt-4 mt-4 shrink-0">
                 <button
                   type="button"
                   onClick={() => setIsEmployeeModalOpen(false)}
@@ -856,7 +882,8 @@ export default function AllEmployees() {
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* ========================================================================= */}
@@ -872,7 +899,7 @@ export default function AllEmployees() {
                   Business Verticals Master Management
                 </h3>
               </div>
-              <button 
+              <button
                 onClick={() => setIsVerticalModalOpen(false)}
                 className="p-2 text-[#9C9890] hover:text-[#1C1C1A] hover:bg-[#F5F0EA] rounded-full transition-colors"
               >

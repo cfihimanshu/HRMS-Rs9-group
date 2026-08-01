@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Plus, Search, AlertCircle, ShieldAlert, CheckCircle, RefreshCw, EyeOff, FileText } from "lucide-react";
+import { Plus, Search, AlertCircle, ShieldAlert, CheckCircle, RefreshCw, EyeOff, FileText, UserCheck, ShieldCheck, Building2 } from "lucide-react";
 
 interface ComplianceProps {
   riskAlertList: any[];
@@ -626,28 +626,48 @@ export function SystemRiskAlerts({ toggleModal, triggerToast, riskAlertList, onR
       </div>
     </div>
   );
-}
-
-export function ExitSeparation({ sessionUser, triggerToast }: { sessionUser?: any; triggerToast: (msg: string) => void; }) {
-  const isEmployee = sessionUser?.role === "Employee";
+}export function ExitSeparation({ sessionUser, triggerToast }: { sessionUser?: any; triggerToast: (msg: string) => void; }) {
   const [employees, setEmployees] = useState<any[]>([]);
   const [exits, setExits] = useState<any[]>([]);
+  const [form13Records, setForm13Records] = useState<any[]>([]);
+  const [selectedRecord, setSelectedRecord] = useState<any>(null);
   const [selectedEmployee, setSelectedEmployee] = useState<any>(null);
+
+  const userRole = (sessionUser?.role || "Employee").toLowerCase();
+  const isSubmitter = Boolean(selectedRecord && (selectedRecord.submittedBy === sessionUser?.id || selectedRecord.name === sessionUser?.name));
+  const isManagerOrAbove = !isSubmitter && (
+    sessionUser?.role !== "Employee" ||
+    userRole.includes("manager") ||
+    userRole.includes("owner") ||
+    userRole.includes("director") ||
+    userRole.includes("hr") ||
+    userRole.includes("admin") ||
+    userRole.includes("head")
+  );
   const [searchQuery, setSearchQuery] = useState("");
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
-  // Form State
-  const [formState, setFormState] = useState({
-    exitReason: "",
-    assetsReturned: false,
-    accessRevoked: false,
-    ndaReminder: false,
-    dataAudit: false,
-    clientTransfer: false,
-    postExitWatch: false,
-    finalSettlementStatus: "Pending",
-    exitInterviewNotes: ""
+  // Manager Decision Form State
+  const [managerDecision, setManagerDecision] = useState({
+    exitType: "Direct Exit" as "Direct Exit" | "Notice Period",
+    noticePeriodDays: 30,
+    lastWorkingDay: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
+    remarks: ""
+  });
+
+  // Owner Decision Form State
+  const [ownerDecision, setOwnerDecision] = useState({
+    remarks: ""
+  });
+
+  // HR Decision Form State
+  const [hrDecision, setHrDecision] = useState({
+    remarks: "",
+    assetReturn: false,
+    accessRevoke: false,
+    handover: false,
+    finalSettlement: false
   });
 
   // FORM-13 State
@@ -655,86 +675,87 @@ export function ExitSeparation({ sessionUser, triggerToast }: { sessionUser?: an
   const [form13, setForm13] = useState({
     name: sessionUser?.name || "",
     category: "Employee" as "Employee" | "Associate" | "Vendor",
+    resignationDate: new Date().toISOString().split("T")[0],
+    lastWorkingDay: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
+    handoverTo: "",
+    department: "",
     exitReason: "",
     assetReturn: false,
     accessRevoke: false,
     handover: false,
     finalSettlement: false,
+    dataAudit: false,
+    clientTransfer: false,
+    ndaReminder: false,
+    postExitWatch: false,
+    finalSettlementStatus: "Pending Audit",
     exitFeedback: "",
     postExitRisk: "Low"
   });
 
   useEffect(() => {
-    if (sessionUser?.name) {
-      setForm13(prev => ({ ...prev, name: sessionUser.name }));
+    if (sessionUser) {
+      setForm13(prev => ({
+        ...prev,
+        name: sessionUser.name || prev.name,
+        category: (sessionUser.category || "Employee") as any,
+        department: sessionUser.department || sessionUser.role || prev.department
+      }));
     }
   }, [sessionUser]);
-
-  const handleForm13Submit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    try {
-      setSubmitting(true);
-      const res = await fetch("/api/reports/form13", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form13)
-      });
-      const data = await res.json();
-      if (data.success) {
-        triggerToast("FORM-13 Exit Form Submitted Successfully!");
-        setShowForm13(false);
-        setForm13({ name: "", category: "Employee", exitReason: "", assetReturn: false, accessRevoke: false, handover: false, finalSettlement: false, exitFeedback: "", postExitRisk: "Low" });
-      } else {
-        triggerToast("Failed to submit FORM-13: " + data.error);
-      }
-    } catch (err) {
-      triggerToast("Error submitting FORM-13");
-    } finally {
-      setSubmitting(false);
-    }
-  };
 
   const loadData = async () => {
     try {
       setLoading(true);
-      
-      if (isEmployee && sessionUser) {
-        // If employee, only load their own exit record
-        const exitRes = await fetch("/api/exits");
-        const exitData = await exitRes.json();
-        
-        const empData = {
-          success: true,
-          data: [
-            {
-              id: sessionUser.id,
-              name: sessionUser.name,
-              email: sessionUser.email,
-              role: sessionUser.role,
-              companyName: sessionUser.company || ""
-            }
-          ]
-        };
-        
-        setEmployees(empData.data);
-        if (exitData.success) {
-          setExits(exitData.data);
-          handleSelectEmployee(empData.data[0], exitData.data);
-        }
-      } else {
-        // Management loads all employees and all exit records
-        const [empRes, exitRes] = await Promise.all([
-          fetch("/api/employees"),
-          fetch("/api/exits")
-        ]);
-        const empData = await empRes.json();
-        const exitData = await exitRes.json();
-        
-        if (empData.success) setEmployees(empData.data);
-        if (exitData.success) setExits(exitData.data);
+      const [empRes, exitRes, form13Res] = await Promise.all([
+        fetch("/api/employees"),
+        fetch("/api/exits"),
+        fetch("/api/reports/form13")
+      ]);
 
-        if (!selectedEmployee && empData.data?.length > 0) {
-          handleSelectEmployee(empData.data[0], exitData.data);
+      const empData = await empRes.json();
+      const exitData = await exitRes.json();
+      const form13Data = await form13Res.json();
+
+      if (empData.success) {
+        setEmployees(empData.data || []);
+        if (sessionUser) {
+          const myEmpProfile = (empData.data || []).find((e: any) => e.id === sessionUser.id || e.email === sessionUser.email);
+          if (myEmpProfile) {
+            setForm13(prev => ({
+              ...prev,
+              department: myEmpProfile.department || myEmpProfile.role || prev.department
+            }));
+          }
+        }
+      }
+      if (exitData.success) setExits(exitData.data || []);
+      if (form13Data.success) {
+        const recordsList = form13Data.data || [];
+        setForm13Records(recordsList);
+        if (recordsList.length > 0) {
+          setSelectedRecord((prevRec: any) => {
+            const fresh = prevRec ? recordsList.find((r: any) => r.id === prevRec.id) : null;
+            const recordToUse = fresh || recordsList[0];
+            // Update decision form values
+            setManagerDecision({
+              exitType: recordToUse.exitType || "Direct Exit",
+              noticePeriodDays: recordToUse.noticePeriodDays || 30,
+              lastWorkingDay: recordToUse.lastWorkingDay || new Date().toISOString().split("T")[0],
+              remarks: recordToUse.managerRemarks || ""
+            });
+            setOwnerDecision({
+              remarks: recordToUse.ownerRemarks || ""
+            });
+            setHrDecision({
+              remarks: recordToUse.hrRemarks || "",
+              assetReturn: recordToUse.assetReturn || false,
+              accessRevoke: recordToUse.accessRevoke || false,
+              handover: recordToUse.handover || false,
+              finalSettlement: recordToUse.finalSettlement || false
+            });
+            return recordToUse;
+          });
         }
       }
     } catch (err) {
@@ -748,81 +769,194 @@ export function ExitSeparation({ sessionUser, triggerToast }: { sessionUser?: an
     loadData();
   }, []);
 
-  const handleSelectEmployee = (employee: any, currentExits: any[] = exits) => {
-    setSelectedEmployee(employee);
-    const existingExit = currentExits.find((ex: any) => ex.employee?.id === employee.id || ex.employee === employee.id);
-    
-    if (existingExit) {
-      setFormState({
-        exitReason: existingExit.exitReason || "",
-        assetsReturned: existingExit.assetsReturned || false,
-        accessRevoked: existingExit.accessRevoked || false,
-        ndaReminder: existingExit.ndaReminder || false,
-        dataAudit: existingExit.dataAudit || false,
-        clientTransfer: existingExit.clientTransfer || false,
-        postExitWatch: existingExit.postExitWatch || false,
-        finalSettlementStatus: existingExit.finalSettlementStatus || "Pending",
-        exitInterviewNotes: existingExit.exitInterviewNotes || ""
-      });
-    } else {
-      setFormState({
-        exitReason: "",
-        assetsReturned: false,
-        accessRevoked: false,
-        ndaReminder: false,
-        dataAudit: false,
-        clientTransfer: false,
-        postExitWatch: false,
-        finalSettlementStatus: "Pending",
-        exitInterviewNotes: ""
-      });
-    }
+  const handleSelectRecord = (record: any) => {
+    setSelectedRecord(record);
+    const emp = employees.find((e: any) => e.id === record.submittedBy || e.name === record.name);
+    setSelectedEmployee(emp || { name: record.name, email: record.submittedByUser?.email || "N/A", role: record.submittedByUser?.role || "Staff" });
+
+    // Pre-populate forms
+    setManagerDecision({
+      exitType: record.exitType || "Direct Exit",
+      noticePeriodDays: record.noticePeriodDays || 30,
+      lastWorkingDay: record.lastWorkingDay || new Date().toISOString().split("T")[0],
+      remarks: record.managerRemarks || ""
+    });
+
+    setOwnerDecision({
+      remarks: record.ownerRemarks || ""
+    });
+
+    setHrDecision({
+      remarks: record.hrRemarks || "",
+      assetReturn: record.assetReturn || false,
+      accessRevoke: record.accessRevoke || false,
+      handover: record.handover || false,
+      finalSettlement: record.finalSettlement || false
+    });
   };
 
-  const handleSaveExit = async (e: React.FormEvent) => {
+  const handleForm13Submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedEmployee) return;
-    if (!formState.exitReason) {
-      triggerToast("Please provide an exit reason");
-      return;
-    }
-
     try {
       setSubmitting(true);
-      const res = await fetch("/api/exits", {
+      const res = await fetch("/api/reports/form13", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          employeeId: selectedEmployee.id,
-          ...formState
-        })
+        body: JSON.stringify(form13)
       });
       const data = await res.json();
       if (data.success) {
-        triggerToast(`Exit separation checklist for ${selectedEmployee.name} updated!`);
+        triggerToast("FORM-13 Exit Request Submitted! Notification email sent to Department Reporting Manager.");
+        setShowForm13(false);
+        setForm13({
+          name: sessionUser?.name || "",
+          category: "Employee",
+          resignationDate: new Date().toISOString().split("T")[0],
+          lastWorkingDay: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
+          handoverTo: "",
+          department: "",
+          exitReason: "",
+          assetReturn: false,
+          accessRevoke: false,
+          handover: false,
+          finalSettlement: false,
+          dataAudit: false,
+          clientTransfer: false,
+          ndaReminder: false,
+          postExitWatch: false,
+          finalSettlementStatus: "Pending Audit",
+          exitFeedback: "",
+          postExitRisk: "Low"
+        });
         loadData();
       } else {
-        triggerToast("Error: " + data.error);
+        triggerToast("Failed to submit FORM-13: " + data.error);
       }
     } catch (err) {
-      triggerToast("Failed to update exit record");
+      triggerToast("Error submitting FORM-13");
     } finally {
       setSubmitting(false);
     }
   };
 
-  const filteredEmployees = employees.filter(emp => 
-    emp.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    emp.email?.toLowerCase().includes(searchQuery.toLowerCase())
+  // Submit Manager Decision (Stage 1)
+  const handleProcessManagerDecision = async (decision: "approve" | "reject") => {
+    if (!selectedRecord) return;
+    try {
+      setSubmitting(true);
+      const res = await fetch("/api/reports/form13", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          formId: selectedRecord.id,
+          action: "manager_decision",
+          decision,
+          exitType: managerDecision.exitType,
+          noticePeriodDays: managerDecision.noticePeriodDays,
+          lastWorkingDay: managerDecision.lastWorkingDay,
+          remarks: managerDecision.remarks
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        triggerToast(decision === "approve" ? "Approved by Manager! Forwarded to Owner for Executive Approval & Notification Email Sent to Employee." : "Exit request rejected by Manager & Notification Email Sent to Employee.");
+        if (data.data) {
+          handleSelectRecord(data.data);
+        }
+        await loadData();
+      } else {
+        triggerToast("Error: " + data.error);
+      }
+    } catch (err) {
+      triggerToast("Failed to process manager decision");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  // Submit Owner Decision (Stage 2)
+  const handleProcessOwnerDecision = async (decision: "approve" | "reject") => {
+    if (!selectedRecord) return;
+    try {
+      setSubmitting(true);
+      const res = await fetch("/api/reports/form13", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          formId: selectedRecord.id,
+          action: "owner_decision",
+          decision,
+          remarks: ownerDecision.remarks
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        triggerToast(decision === "approve" ? "Approved by Executive Management! Forwarded to HR for Final Clearance & Notification Email Sent to Employee." : "Exit request rejected by Management & Notification Email Sent to Employee.");
+        if (data.data) {
+          handleSelectRecord(data.data);
+        }
+        await loadData();
+      } else {
+        triggerToast("Error: " + data.error);
+      }
+    } catch (err) {
+      triggerToast("Failed to process owner decision");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  // Submit HR Decision (Stage 3)
+  const handleProcessHrDecision = async (decision: "approve" | "reject") => {
+    if (!selectedRecord) return;
+    try {
+      setSubmitting(true);
+      const res = await fetch("/api/reports/form13", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          formId: selectedRecord.id,
+          action: "hr_decision",
+          decision,
+          remarks: hrDecision.remarks,
+          assetReturn: hrDecision.assetReturn,
+          accessRevoke: hrDecision.accessRevoke,
+          handover: hrDecision.handover,
+          finalSettlement: hrDecision.finalSettlement
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        triggerToast(decision === "approve" ? "Exit Clearance Fully Approved & Completed by HR! Notification Email Sent to Employee." : "Exit clearance rejected by HR & Notification Email Sent to Employee.");
+        if (data.data) {
+          handleSelectRecord(data.data);
+        }
+        await loadData();
+      } else {
+        triggerToast("Error: " + data.error);
+      }
+    } catch (err) {
+      triggerToast("Failed to process HR decision");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const filteredRecords = form13Records.filter(rec => 
+    rec.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    rec.submittedByUser?.email?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   return (
     <div className="space-y-8 animate-fadeIn text-slate-800">
       
-      <div className="flex justify-between items-center">
+      {/* Page Header */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b pb-4 border-slate-200">
         <div>
-          <h1 className="text-xl font-black text-slate-800">Exit & Separation Clearance</h1>
-          <p className="text-xs text-slate-500 mt-1">Manage final checklists for voluntary and probation exit separations</p>
+          <h1 className="text-xl font-black text-slate-800 flex items-center gap-2">
+            Exit & Separation Clearance
+          </h1>
+          <p className="text-xs text-slate-500 mt-1">Multi-Stage Exit Approval Workflow (Manager → Owner → HR) with Automated Email Alerts</p>
         </div>
         <div className="flex items-center gap-2">
           <button
@@ -839,186 +973,390 @@ export function ExitSeparation({ sessionUser, triggerToast }: { sessionUser?: an
             <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
           </button>
         </div>
-      </div>      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         
-        {/* Left Side: Employee List */}
-        {!isEmployee && (
-          <div className="lg:col-span-4 bg-white border border-slate-200 rounded-xl p-4 flex flex-col h-[750px] shadow-sm">
-            <h3 className="text-xs font-black tracking-widest text-[#714B67] uppercase font-mono mb-3">Personnel Directory</h3>
-            
-            <div className="relative mb-3">
-              <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
-              <input 
-                type="text" 
-                placeholder="Search employee..." 
-                value={searchQuery}
-                onChange={e => setSearchQuery(e.target.value)}
-                className="w-full bg-slate-50 border border-slate-200 rounded-lg pl-9 pr-4 py-2 text-xs font-semibold focus:outline-none focus:border-[#714B67] text-slate-800"
-              />
-            </div>
-
-            <div className="flex-1 overflow-y-auto space-y-2 pr-1 scrollbar-thin">
-              {loading ? (
-                <div className="text-center py-10 font-bold text-slate-400 text-[10px] animate-pulse">Loading personnel...</div>
-              ) : filteredEmployees.length === 0 ? (
-                <div className="text-center py-10 text-slate-400 font-bold text-[10px]">No employees found</div>
-              ) : (
-                filteredEmployees.map((emp, i) => {
-                  const isSelected = selectedEmployee && selectedEmployee.id === emp.id;
-                  const hasExitRecord = exits.some(ex => ex.employee?.id === emp.id || ex.employee === emp.id);
-                  
-                  return (
-                    <button
-                      key={i}
-                      onClick={() => handleSelectEmployee(emp)}
-                      className={`w-full text-left p-3 rounded-lg border transition-all flex flex-col gap-2 ${
-                        isSelected 
-                          ? "bg-[#714B67]/5 border-[#714B67] shadow-sm" 
-                          : "bg-white border-slate-100 hover:border-slate-350 hover:bg-slate-50/50"
-                      }`}
-                    >
-                      <div className="flex items-center justify-between">
-                        <div className="font-bold text-slate-800 text-xs truncate flex items-center gap-2">
-                          {emp.name}
-                        </div>
-                        {hasExitRecord && <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse"></span>}
-                      </div>
-                      <div className="flex items-center justify-between mt-1 text-[10px] text-slate-500 font-mono">
-                        <span className="truncate">{emp.role}</span>
-                        {hasExitRecord && <span className="font-bold text-rose-600 bg-rose-50 px-1 rounded">Exit Initiated</span>}
-                      </div>
-                    </button>
-                  );
-                })
-              )}
-            </div>
+        {/* Left Side: Exit Requests Directory */}
+        <div className="lg:col-span-4 bg-white border border-slate-200 rounded-xl p-4 flex flex-col h-[750px] shadow-sm">
+          <h3 className="text-xs font-black tracking-widest text-[#714B67] uppercase font-mono mb-3">Exit Requests Directory</h3>
+          
+          <div className="relative mb-3">
+            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+            <input 
+              type="text" 
+              placeholder="Search by employee name..." 
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              className="w-full bg-slate-50 border border-slate-200 rounded-lg pl-9 pr-4 py-2 text-xs font-semibold focus:outline-none focus:border-[#714B67] text-slate-800"
+            />
           </div>
-        )}
 
-        {/* Right Side: Exit Workspace */}
-        <div className={isEmployee ? "lg:col-span-12" : "lg:col-span-8"}>
-          {selectedEmployee ? (
-            <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm flex flex-col h-[750px]">
+          <div className="flex-1 overflow-y-auto space-y-2 pr-1 scrollbar-thin">
+            {loading ? (
+              <div className="text-center py-10 font-bold text-slate-400 text-[10px] animate-pulse">Loading exit requests...</div>
+            ) : filteredRecords.length === 0 ? (
+              <div className="text-center py-10 text-slate-400 font-bold text-[10px]">No exit clearance requests found</div>
+            ) : (
+              filteredRecords.map((rec, i) => {
+                const isSelected = selectedRecord && selectedRecord.id === rec.id;
+                const stage = rec.approvalStage || "Pending Manager";
+                
+                return (
+                  <button
+                    key={i}
+                    onClick={() => handleSelectRecord(rec)}
+                    className={`w-full text-left p-3 rounded-xl border transition-all flex flex-col gap-2 ${
+                      isSelected 
+                        ? "bg-indigo-50/50 border-indigo-600 shadow-sm" 
+                        : "bg-white border-slate-100 hover:border-slate-300 hover:bg-slate-50/50"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="font-bold text-slate-800 text-xs truncate flex items-center gap-2">
+                        {rec.name}
+                      </div>
+                      <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full ${
+                        stage === "Approved" ? "bg-emerald-100 text-emerald-800" :
+                        stage === "Rejected" ? "bg-rose-100 text-rose-800" :
+                        stage === "Pending Manager" ? "bg-amber-100 text-amber-800" :
+                        stage === "Pending Owner" ? "bg-blue-100 text-blue-800" : "bg-purple-100 text-purple-800"
+                      }`}>
+                        {stage}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between mt-1 text-[10px] text-slate-500 font-mono">
+                      <span className="truncate">{rec.submittedByUser?.email || "Staff"}</span>
+                      <span className="font-bold text-slate-600">{rec.exitType || "Exit Requested"}</span>
+                    </div>
+                  </button>
+                );
+              })
+            )}
+          </div>
+        </div>
+
+        {/* Right Side: Exit Clearance Workspace & Multi-Stage Approvals */}
+        <div className="lg:col-span-8">
+          {selectedRecord ? (
+            <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm flex flex-col h-[750px] overflow-y-auto">
               
-              {/* Profile Header */}
+              {/* Header Info */}
               <div className="flex justify-between items-start gap-4 pb-4 border-b border-slate-150 shrink-0">
                 <div>
                   <h2 className="text-lg font-black text-slate-850 flex items-center gap-2">
-                    Exit Clearance — {selectedEmployee.name}
+                    Exit Clearance — {selectedRecord.name}
                   </h2>
-                  <div className="text-slate-500 text-[10px] mt-1.5 flex flex-wrap gap-4">
-                    <span>Email: <strong className="text-slate-700">{selectedEmployee.email}</strong></span>
-                    <span>Role: <strong className="text-slate-700">{selectedEmployee.role}</strong></span>
-                    <span>Company: <strong className="text-slate-700">{selectedEmployee.companyName || selectedEmployee.companies?.[0]?.name || "N/A"}</strong></span>
+                  <div className="text-slate-500 text-[10px] mt-1.5 flex flex-wrap gap-4 font-mono">
+                    <span>Form ID: <strong className="text-slate-700">{selectedRecord.id}</strong></span>
+                    <span>Submitter: <strong className="text-slate-700">{selectedRecord.submittedByUser?.email || "Employee"}</strong></span>
+                    <span>Dept Manager: <strong className="text-slate-700">{selectedRecord.managerName || "Department Manager"}</strong></span>
                   </div>
                 </div>
                 
-                <div className={`px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-center min-w-28`}>
-                  <span className="text-[9px] uppercase font-black tracking-widest text-slate-500 block mb-0.5">Final Settlement</span>
-                  <span className={`text-xs font-bold ${formState.finalSettlementStatus === 'Completed' ? 'text-emerald-600' : formState.finalSettlementStatus === 'Hold' ? 'text-rose-600' : 'text-amber-600'}`}>
-                    {formState.finalSettlementStatus}
+                <div className={`px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-center min-w-32`}>
+                  <span className="text-[9px] uppercase font-black tracking-widest text-slate-500 block mb-0.5">Approval Stage</span>
+                  <span className={`text-xs font-bold ${
+                    selectedRecord.approvalStage === 'Approved' ? 'text-emerald-600' :
+                    selectedRecord.approvalStage === 'Rejected' ? 'text-rose-600' : 'text-amber-600'
+                  }`}>
+                    {selectedRecord.approvalStage || "Pending Manager"}
                   </span>
                 </div>
               </div>
 
-              {isEmployee && (
-                <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 mt-4 text-xs font-semibold text-slate-600 flex items-center gap-2.5">
-                  <AlertCircle className="w-4 h-4 text-[#714B67]" />
-                  <span>Your offboarding checklist is managed by the HR/Management department. You can log FORM-13 (Exit Request) using the button at the top right.</span>
+              {/* 3-Stage Progress Timeline */}
+              <div className="my-6 bg-slate-50 p-4 rounded-xl border border-slate-200">
+                <h4 className="text-[10px] font-black uppercase tracking-widest text-[#714B67] mb-3 font-mono">Multi-Stage Approval Pipeline</h4>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-center text-xs font-bold">
+                  
+                  {/* Stage 1 */}
+                  <div className={`p-3 rounded-lg border flex flex-col items-center justify-center ${
+                    selectedRecord.managerApprovalStatus === 'Approved' ? 'bg-emerald-50 border-emerald-300 text-emerald-900' :
+                    selectedRecord.managerApprovalStatus === 'Rejected' ? 'bg-rose-50 border-rose-300 text-rose-900' : 'bg-white border-amber-300 text-amber-900'
+                  }`}>
+                    <span className="text-[9px] uppercase tracking-wider text-slate-500 font-mono">Stage 1: Dept Manager</span>
+                    <span className="mt-1 font-extrabold">{selectedRecord.managerApprovalStatus === 'Approved' ? `Approved (${selectedRecord.exitType || 'Direct Exit'})` : selectedRecord.managerApprovalStatus === 'Rejected' ? 'Rejected' : 'Pending Review'}</span>
+                    {selectedRecord.exitType === 'Notice Period' && (
+                      <span className="text-[10px] text-slate-600 font-normal mt-0.5">Notice: {selectedRecord.noticePeriodDays || 30} days (LWD: {selectedRecord.lastWorkingDay || 'N/A'})</span>
+                    )}
+                  </div>
+
+                  {/* Stage 2 */}
+                  <div className={`p-3 rounded-lg border flex flex-col items-center justify-center ${
+                    selectedRecord.ownerApprovalStatus === 'Approved' ? 'bg-emerald-50 border-emerald-300 text-emerald-900' :
+                    selectedRecord.ownerApprovalStatus === 'Rejected' ? 'bg-rose-50 border-rose-300 text-rose-900' : 'bg-white border-slate-200 text-slate-600'
+                  }`}>
+                    <span className="text-[9px] uppercase tracking-wider text-slate-500 font-mono">Stage 2: Owner / Management</span>
+                    <span className="mt-1 font-extrabold">{selectedRecord.ownerApprovalStatus === 'Approved' ? 'Executive Approved' : selectedRecord.ownerApprovalStatus === 'Rejected' ? 'Executive Rejected' : 'Pending Stage 1'}</span>
+                  </div>
+
+                  {/* Stage 3 */}
+                  <div className={`p-3 rounded-lg border flex flex-col items-center justify-center ${
+                    selectedRecord.hrApprovalStatus === 'Approved' ? 'bg-emerald-50 border-emerald-300 text-emerald-900' :
+                    selectedRecord.hrApprovalStatus === 'Rejected' ? 'bg-rose-50 border-rose-300 text-rose-900' : 'bg-white border-slate-200 text-slate-600'
+                  }`}>
+                    <span className="text-[9px] uppercase tracking-wider text-slate-500 font-mono">Stage 3: HR Final Clearance</span>
+                    <span className="mt-1 font-extrabold">{selectedRecord.hrApprovalStatus === 'Approved' ? 'Fully Cleared' : selectedRecord.hrApprovalStatus === 'Rejected' ? 'Clearance Rejected' : 'Pending Stage 2'}</span>
+                  </div>
+
+                </div>
+              </div>
+
+              {/* EMPLOYEE STATUS VIEW FOR SUBMITTER */}
+              {isSubmitter ? (
+                <div className="bg-indigo-50/50 border border-indigo-200 rounded-xl p-5 mb-6">
+                  <div className="flex items-center gap-2 mb-2">
+                    <AlertCircle className="w-5 h-5 text-indigo-700" />
+                    <h4 className="text-xs font-black uppercase tracking-wider text-indigo-900 font-mono">Your Exit Request Status</h4>
+                  </div>
+                  <div className="text-xs text-indigo-900 space-y-1">
+                    {selectedRecord.approvalStage === "Pending Manager" && (
+                      <p>⏳ Your request has been submitted and is currently <strong>Pending Review by your Department Reporting Manager</strong> ({selectedRecord.managerName || "Manager"}). An automated email notification has been sent.</p>
+                    )}
+                    {selectedRecord.approvalStage === "Pending Owner" && (
+                      <p>✅ Approved by Department Manager (<strong>{selectedRecord.exitType || "Direct Exit"}</strong>{selectedRecord.exitType === "Notice Period" ? ` — ${selectedRecord.noticePeriodDays} Days, Last Working Day: ${selectedRecord.lastWorkingDay}` : ""}). Currently <strong>Pending Stage 2 Executive Approval by Owner</strong>.</p>
+                    )}
+                    {selectedRecord.approvalStage === "Pending HR" && (
+                      <p>✅ Executive Approval Granted by Management! Currently <strong>Pending Stage 3 HR Final Clearance & Asset Handovers</strong>.</p>
+                    )}
+                    {selectedRecord.approvalStage === "Approved" && (
+                      <p>🎉 Your Exit & Separation Clearance is <strong>FULLY APPROVED & COMPLETED</strong> by HR Department.</p>
+                    )}
+                    {selectedRecord.approvalStage === "Rejected" && (
+                      <p className="text-rose-700">❌ Your exit request was rejected. Remarks: {selectedRecord.rejectionReason || selectedRecord.managerRemarks || selectedRecord.ownerRemarks || selectedRecord.hrRemarks || "Request rejected."}</p>
+                    )}
+                  </div>
+                </div>
+              ) : null}
+
+              {/* STAGE 1: DEPARTMENT REPORTING MANAGER DECISION PANEL */}
+              {(isManagerOrAbove && selectedRecord.approvalStage === "Pending Manager") && (
+                <div className="bg-amber-50/50 border border-amber-200 rounded-xl p-5 mb-6">
+                  <div className="flex items-center gap-2 mb-3">
+                    <UserCheck className="w-5 h-5 text-amber-700" />
+                    <h4 className="text-xs font-black uppercase tracking-wider text-amber-900 font-mono">Stage 1 — Department Reporting Manager Decision</h4>
+                  </div>
+                  <p className="text-xs text-amber-800 mb-4">
+                    As the Department Reporting Manager, please review this exit request and choose whether to grant an <strong>Immediate Direct Exit</strong> or put the employee on a <strong>Notice Period</strong>.
+                  </p>
+
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <label className={`p-3 rounded-xl border cursor-pointer flex items-center gap-3 transition-all ${
+                        managerDecision.exitType === "Direct Exit" ? "bg-white border-indigo-600 shadow-sm" : "bg-white/50 border-slate-200"
+                      }`}>
+                        <input
+                          type="radio"
+                          name="exitType"
+                          checked={managerDecision.exitType === "Direct Exit"}
+                          onChange={() => setManagerDecision({ ...managerDecision, exitType: "Direct Exit" })}
+                          className="accent-indigo-600"
+                        />
+                        <div>
+                          <div className="text-xs font-bold text-slate-800">Direct Exit (Immediate)</div>
+                          <div className="text-[10px] text-slate-500">Employee leaves immediately without serving notice period.</div>
+                        </div>
+                      </label>
+
+                      <label className={`p-3 rounded-xl border cursor-pointer flex items-center gap-3 transition-all ${
+                        managerDecision.exitType === "Notice Period" ? "bg-white border-indigo-600 shadow-sm" : "bg-white/50 border-slate-200"
+                      }`}>
+                        <input
+                          type="radio"
+                          name="exitType"
+                          checked={managerDecision.exitType === "Notice Period"}
+                          onChange={() => setManagerDecision({ ...managerDecision, exitType: "Notice Period" })}
+                          className="accent-indigo-600"
+                        />
+                        <div>
+                          <div className="text-xs font-bold text-slate-800">Notice Period</div>
+                          <div className="text-[10px] text-slate-500">Employee serves mandatory notice period days.</div>
+                        </div>
+                      </label>
+                    </div>
+
+                    {managerDecision.exitType === "Notice Period" && (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-white p-4 rounded-xl border border-slate-200">
+                        <div>
+                          <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 font-mono">Notice Period Days *</label>
+                          <input
+                            type="text"
+                            inputMode="numeric"
+                            value={managerDecision.noticePeriodDays || ""}
+                            onChange={e => {
+                              const val = e.target.value.replace(/\D/g, "");
+                              setManagerDecision({ ...managerDecision, noticePeriodDays: val ? Number(val) : 0 });
+                            }}
+                            className="w-full bg-slate-50 border border-slate-200 rounded p-2 text-xs font-bold text-slate-800 mt-1 focus:outline-none focus:border-indigo-500"
+                            placeholder="Enter notice period days (e.g. 30)"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 font-mono">Last Working Day (LWD) *</label>
+                          <input
+                            type="date"
+                            value={managerDecision.lastWorkingDay}
+                            onChange={e => setManagerDecision({ ...managerDecision, lastWorkingDay: e.target.value })}
+                            className="w-full bg-slate-50 border border-slate-200 rounded p-2 text-xs font-bold text-slate-800 mt-1"
+                          />
+                        </div>
+                      </div>
+                    )}
+
+                    <div>
+                      <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 font-mono">Manager Remarks / Feedback</label>
+                      <textarea
+                        rows={2}
+                        value={managerDecision.remarks}
+                        onChange={e => setManagerDecision({ ...managerDecision, remarks: e.target.value })}
+                        className="w-full bg-white border border-slate-200 rounded p-2.5 text-xs font-medium text-slate-800 mt-1 focus:outline-none focus:border-amber-600"
+                        placeholder="Add manager remarks regarding the exit..."
+                      />
+                    </div>
+
+                    <div className="flex gap-3 pt-2">
+                      <button
+                        onClick={() => handleProcessManagerDecision("approve")}
+                        disabled={submitting}
+                        className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white py-2.5 rounded-lg text-xs font-bold transition-all shadow-sm flex items-center justify-center gap-1.5 disabled:opacity-50"
+                      >
+                        <CheckCircle className="w-4 h-4" /> Approve & Forward to Owner
+                      </button>
+                      <button
+                        onClick={() => handleProcessManagerDecision("reject")}
+                        disabled={submitting}
+                        className="px-5 bg-rose-600 hover:bg-rose-700 text-white py-2.5 rounded-lg text-xs font-bold transition-all shadow-sm disabled:opacity-50"
+                      >
+                        Reject Exit Request
+                      </button>
+                    </div>
+                  </div>
                 </div>
               )}
 
-              {/* Scrollable Form Content */}
-              <div className="flex-1 overflow-y-auto py-5 pr-2 scrollbar-thin">
-                <form onSubmit={handleSaveExit} className="space-y-8">
-                  
-                  <div>
-                    <h4 className="text-[10px] font-black tracking-widest text-[#714B67] uppercase font-mono mb-4 border-b border-slate-100 pb-2">Separation Details</h4>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div className="md:col-span-2">
-                        <label className="text-[10px] uppercase font-black text-slate-500 font-mono tracking-wider">Resignation / Exit Reason</label>
-                        <input className="w-full bg-slate-50 border border-slate-200 rounded p-2.5 text-xs font-bold text-slate-900 mt-1.5 focus:outline-none focus:border-[#714B67] disabled:opacity-75" 
-                          placeholder={isEmployee ? "Exit record not yet initiated by HR/Manager" : "e.g. Voluntary Resignation, Career Switch..."}
-                          value={formState.exitReason} onChange={e => setFormState({...formState, exitReason: e.target.value})} required disabled={isEmployee} />
-                      </div>
+              {/* STAGE 2: OWNER / EXECUTIVE BOARD DECISION PANEL */}
+              {(isManagerOrAbove && selectedRecord.approvalStage === "Pending Owner") && (
+                <div className="bg-blue-50/50 border border-blue-200 rounded-xl p-5 mb-6">
+                  <div className="flex items-center gap-2 mb-3">
+                    <ShieldCheck className="w-5 h-5 text-blue-700" />
+                    <h4 className="text-xs font-black uppercase tracking-wider text-blue-900 font-mono">Stage 2 — Owner / Executive Management Approval</h4>
+                  </div>
+                  <p className="text-xs text-blue-800 mb-4">
+                    Department Manager has approved this request for <strong>{selectedRecord.exitType || 'Direct Exit'}</strong>. Executive Board approval is required before forwarding to HR.
+                  </p>
+
+                  <div className="space-y-4">
+                    <div>
+                      <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 font-mono">Executive Remarks</label>
+                      <textarea
+                        rows={2}
+                        value={ownerDecision.remarks}
+                        onChange={e => setOwnerDecision({ ...ownerDecision, remarks: e.target.value })}
+                        className="w-full bg-white border border-slate-200 rounded p-2.5 text-xs font-medium text-slate-800 mt-1 focus:outline-none focus:border-blue-600"
+                        placeholder="Add executive management notes..."
+                      />
+                    </div>
+
+                    <div className="flex gap-3 pt-2">
+                      <button
+                        onClick={() => handleProcessOwnerDecision("approve")}
+                        disabled={submitting}
+                        className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2.5 rounded-lg text-xs font-bold transition-all shadow-sm flex items-center justify-center gap-1.5 disabled:opacity-50"
+                      >
+                        <CheckCircle className="w-4 h-4" /> Approve & Forward to HR
+                      </button>
+                      <button
+                        onClick={() => handleProcessOwnerDecision("reject")}
+                        disabled={submitting}
+                        className="px-5 bg-rose-600 hover:bg-rose-700 text-white py-2.5 rounded-lg text-xs font-bold transition-all shadow-sm disabled:opacity-50"
+                      >
+                        Reject Exit Request
+                      </button>
                     </div>
                   </div>
+                </div>
+              )}
 
-                  {/* IT & Compliance Checklist */}
-                  <div className="bg-slate-50 border border-slate-200 rounded-xl p-5 shadow-sm">
-                    <h4 className="text-[10px] font-black tracking-widest text-[#714B67] uppercase font-mono mb-4 border-b border-slate-200 pb-2">IT & Compliance Clearance Checklist</h4>
-                    
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <label className="flex items-center gap-3 p-3 bg-white border border-slate-200 rounded cursor-pointer hover:border-[#714B67] transition-all disabled:opacity-75">
-                        <input type="checkbox" className="w-4 h-4 accent-[#714B67]" checked={formState.accessRevoked} onChange={e => setFormState({...formState, accessRevoked: e.target.checked})} disabled={isEmployee} />
-                        <span className="text-xs font-bold text-slate-700">1. System & CRM Access Revoked</span>
-                      </label>
-                      <label className="flex items-center gap-3 p-3 bg-white border border-slate-200 rounded cursor-pointer hover:border-[#714B67] transition-all disabled:opacity-75">
-                        <input type="checkbox" className="w-4 h-4 accent-[#714B67]" checked={formState.assetsReturned} onChange={e => setFormState({...formState, assetsReturned: e.target.checked})} disabled={isEmployee} />
-                        <span className="text-xs font-bold text-slate-700">2. Company Assets Returned</span>
-                      </label>
-                      <label className="flex items-center gap-3 p-3 bg-white border border-slate-200 rounded cursor-pointer hover:border-[#714B67] transition-all disabled:opacity-75">
-                        <input type="checkbox" className="w-4 h-4 accent-[#714B67]" checked={formState.dataAudit} onChange={e => setFormState({...formState, dataAudit: e.target.checked})} disabled={isEmployee} />
-                        <span className="text-xs font-bold text-slate-700">3. Final Data Security Audit Passed</span>
-                      </label>
-                      <label className="flex items-center gap-3 p-3 bg-white border border-slate-200 rounded cursor-pointer hover:border-[#714B67] transition-all disabled:opacity-75">
-                        <input type="checkbox" className="w-4 h-4 accent-[#714B67]" checked={formState.clientTransfer} onChange={e => setFormState({...formState, clientTransfer: e.target.checked})} disabled={isEmployee} />
-                        <span className="text-xs font-bold text-slate-700">4. Client Handovers / Transfer Complete</span>
-                      </label>
-                      <label className="flex items-center gap-3 p-3 bg-white border border-slate-200 rounded cursor-pointer hover:border-[#714B67] transition-all disabled:opacity-75">
-                        <input type="checkbox" className="w-4 h-4 accent-[#714B67]" checked={formState.ndaReminder} onChange={e => setFormState({...formState, ndaReminder: e.target.checked})} disabled={isEmployee} />
-                        <span className="text-xs font-bold text-slate-700">5. Signed NDA & Non-Compete Reminder Sent</span>
-                      </label>
-                      <label className="flex items-center gap-3 p-3 bg-white border border-slate-200 rounded cursor-pointer hover:border-[#714B67] transition-all disabled:opacity-75">
-                        <input type="checkbox" className="w-4 h-4 accent-[#714B67]" checked={formState.postExitWatch} onChange={e => setFormState({...formState, postExitWatch: e.target.checked})} disabled={isEmployee} />
-                        <span className="text-xs font-bold text-slate-700">6. Active Post-Exit Tracking / Watchlist</span>
-                      </label>
-                    </div>
+              {/* STAGE 3: HR DEPARTMENT FINAL CLEARANCE PANEL */}
+              {(isManagerOrAbove && (selectedRecord.approvalStage === "Pending HR" || selectedRecord.approvalStage === "Approved")) && (
+                <div className="bg-purple-50/50 border border-purple-200 rounded-xl p-5 mb-6">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Building2 className="w-5 h-5 text-purple-700" />
+                    <h4 className="text-xs font-black uppercase tracking-wider text-purple-900 font-mono">Stage 3 — HR Department Final Clearance & Handovers</h4>
                   </div>
 
-                  {/* Exit Interview & Settlement */}
-                  <div>
-                    <h4 className="text-[10px] font-black tracking-widest text-[#714B67] uppercase font-mono mb-4 border-b border-slate-100 pb-2">Exit Interview & Settlement</h4>
-                    
-                    <div className="grid grid-cols-1 gap-6">
-                      <div>
-                        <label className="text-[10px] uppercase font-black text-slate-500 font-mono tracking-wider">Final Settlement Status (F&F)</label>
-                        <select className="w-full bg-slate-50 border border-slate-200 rounded p-2.5 text-xs font-bold text-slate-900 mt-1.5 focus:outline-none focus:border-[#714B67] disabled:opacity-75" 
-                          value={formState.finalSettlementStatus} onChange={e => setFormState({...formState, finalSettlementStatus: e.target.value})} disabled={isEmployee}>
-                          <option value="Pending">Pending Audit</option>
-                          <option value="Hold">On Hold (Issues Found)</option>
-                          <option value="Completed">Completed & Paid</option>
-                        </select>
-                      </div>
-
-                      <div>
-                        <label className="text-[10px] uppercase font-black text-slate-500 font-mono tracking-wider">Exit Interview Notes / Feedback</label>
-                        <textarea className="w-full bg-slate-50 border border-slate-200 rounded p-3 text-xs font-medium text-slate-800 mt-1.5 h-24 focus:outline-none focus:border-[#714B67] leading-relaxed disabled:opacity-75" 
-                          placeholder={isEmployee ? "Clearance review feedback will appear here once processed by HR." : "Document feedback from the exit interview..."}
-                          value={formState.exitInterviewNotes} onChange={e => setFormState({...formState, exitInterviewNotes: e.target.value})} disabled={isEmployee} />
-                      </div>
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 bg-white p-4 rounded-xl border border-slate-200">
+                      {[
+                        { key: "assetReturn", label: "Company Assets Returned" },
+                        { key: "accessRevoke", label: "System & Email Access Revoked" },
+                        { key: "handover", label: "Work & Client Handovers Complete" },
+                        { key: "finalSettlement", label: "Final Financial Settlement (F&F)" },
+                      ].map(({ key, label }) => (
+                        <label key={key} className="flex items-center gap-3 p-2.5 rounded-lg border border-slate-150 cursor-pointer hover:bg-purple-50/30">
+                          <input
+                            type="checkbox"
+                            className="accent-purple-600 w-4 h-4"
+                            checked={(hrDecision as any)[key]}
+                            onChange={e => setHrDecision({ ...hrDecision, [key]: e.target.checked })}
+                          />
+                          <span className="text-xs font-bold text-slate-700">{label}</span>
+                        </label>
+                      ))}
                     </div>
+
+                    <div>
+                      <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 font-mono">HR Final Clearance Remarks</label>
+                      <textarea
+                        rows={2}
+                        value={hrDecision.remarks}
+                        onChange={e => setHrDecision({ ...hrDecision, remarks: e.target.value })}
+                        className="w-full bg-white border border-slate-200 rounded p-2.5 text-xs font-medium text-slate-800 mt-1 focus:outline-none focus:border-purple-600"
+                        placeholder="Document final settlement details or HR clearance notes..."
+                      />
+                    </div>
+
+                    {selectedRecord.approvalStage === "Pending HR" && (
+                      <div className="flex gap-3 pt-2">
+                        <button
+                          onClick={() => handleProcessHrDecision("approve")}
+                          disabled={submitting}
+                          className="flex-1 bg-purple-600 hover:bg-purple-700 text-white py-2.5 rounded-lg text-xs font-bold transition-all shadow-sm flex items-center justify-center gap-1.5 disabled:opacity-50"
+                        >
+                          <CheckCircle className="w-4 h-4" /> Final Approve & Complete Exit
+                        </button>
+                        <button
+                          onClick={() => handleProcessHrDecision("reject")}
+                          disabled={submitting}
+                          className="px-5 bg-rose-600 hover:bg-rose-700 text-white py-2.5 rounded-lg text-xs font-bold transition-all shadow-sm disabled:opacity-50"
+                        >
+                          Reject Clearance
+                        </button>
+                      </div>
+                    )}
                   </div>
+                </div>
+              )}
 
-                  {!isEmployee && (
-                    <button 
-                      type="submit"
-                      disabled={submitting}
-                      className="w-full bg-[#714B67] hover:bg-[#5F3F56] text-white py-3.5 rounded-xl text-xs font-black tracking-widest uppercase transition-all shadow-md flex items-center justify-center gap-2 mt-4"
-                    >
-                      <CheckCircle className="w-4 h-4" /> Save Exit Checklist
-                    </button>
-                  )}
-
-                </form>
+              {/* Separation Details */}
+              <div className="space-y-6">
+                <div>
+                  <h4 className="text-[10px] font-black tracking-widest text-[#714B67] uppercase font-mono mb-2 border-b border-slate-100 pb-2">Exit Request Reason & Feedback</h4>
+                  <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 text-xs font-semibold text-slate-800">
+                    <p><strong>Reason:</strong> {selectedRecord.exitReason || "N/A"}</p>
+                    {selectedRecord.exitFeedback && <p className="mt-2 text-slate-600"><strong>Feedback:</strong> {selectedRecord.exitFeedback}</p>}
+                  </div>
+                </div>
               </div>
+
             </div>
           ) : (
             <div className="text-center py-32 bg-white rounded-xl border border-slate-200 shadow-sm flex flex-col justify-center items-center h-[750px]">
               <FileText className="w-12 h-12 text-slate-300 mb-4 animate-bounce" />
-              <h4 className="text-sm font-black text-slate-800 uppercase tracking-wide">No Employee Selected</h4>
+              <h4 className="text-sm font-black text-slate-800 uppercase tracking-wide">No Exit Request Selected</h4>
               <p className="text-xs text-slate-400 mt-2 max-w-xs leading-normal">
-                Select an employee from the directory to manage their clearance checklist and exit separation.
+                Select an exit request from the directory to process manager decisions, executive approvals, and HR clearance.
               </p>
             </div>
           )}
@@ -1030,56 +1368,80 @@ export function ExitSeparation({ sessionUser, triggerToast }: { sessionUser?: an
       {showForm13 && (
         <div className="fixed inset-0 bg-slate-900/20 backdrop-blur-md z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-            <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-rose-50/50 rounded-t-2xl">
+            <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-indigo-50/50 rounded-t-2xl">
               <div>
-                <h2 className="text-lg font-black text-rose-900 tracking-tight">FORM-13 Exit / Offboarding</h2>
-                <p className="text-xs text-rose-600 font-bold mt-1">Process the formal exit for an Employee, Associate, or Vendor</p>
+                <h2 className="text-lg font-black text-indigo-900 tracking-tight">FORM-13 Exit Request</h2>
+                <p className="text-xs text-indigo-600 font-bold mt-1">Submit formal exit request for multi-stage approval workflow</p>
               </div>
-              <button onClick={() => setShowForm13(false)} className="w-8 h-8 rounded-full bg-white border border-slate-200 flex items-center justify-center hover:bg-slate-50 transition-all text-slate-500 hover:text-rose-500">
+              <button onClick={() => setShowForm13(false)} className="w-8 h-8 rounded-full bg-white border border-slate-200 flex items-center justify-center hover:bg-slate-50 transition-all text-slate-500 hover:text-indigo-500">
                 <AlertCircle className="w-4 h-4" />
               </button>
             </div>
 
             <div className="p-6">
               <form onSubmit={handleForm13Submit} className="space-y-6">
+                {/* Basic Details & Dates */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                   <div>
                     <label className="text-[10px] uppercase font-black text-slate-500 tracking-widest">1. Name *</label>
-                    <input required className="w-full bg-white border border-slate-300 focus:border-rose-500 rounded-lg p-2.5 text-xs font-bold text-slate-800 mt-1.5 focus:outline-none disabled:opacity-75" value={form13.name} onChange={e => setForm13({...form13, name: e.target.value})} placeholder="Full Name" readOnly={isEmployee} disabled={isEmployee} />
+                    <input required className="w-full bg-white border border-slate-300 focus:border-indigo-500 rounded-lg p-2.5 text-xs font-bold text-slate-800 mt-1.5 focus:outline-none" value={form13.name} onChange={e => setForm13({...form13, name: e.target.value})} placeholder="Full Name" />
                   </div>
+
                   <div>
                     <label className="text-[10px] uppercase font-black text-slate-500 tracking-widest">2. Category *</label>
-                    <select required className="w-full bg-white border border-slate-300 focus:border-rose-500 rounded-lg p-2.5 text-xs font-bold text-slate-800 mt-1.5 focus:outline-none disabled:opacity-75" value={form13.category} onChange={e => setForm13({...form13, category: e.target.value as any})} disabled={isEmployee}>
+                    <select required className="w-full bg-white border border-slate-300 focus:border-indigo-500 rounded-lg p-2.5 text-xs font-bold text-slate-800 mt-1.5 focus:outline-none" value={form13.category} onChange={e => setForm13({...form13, category: e.target.value as any})}>
                       <option value="Employee">Employee</option>
                       <option value="Associate">Business Associate</option>
                       <option value="Vendor">Vendor</option>
                     </select>
                   </div>
+
+                  <div>
+                    <label className="text-[10px] uppercase font-black text-slate-500 tracking-widest">3. Resignation Date *</label>
+                    <input type="date" required className="w-full bg-white border border-slate-300 focus:border-indigo-500 rounded-lg p-2.5 text-xs font-bold text-slate-800 mt-1.5 focus:outline-none" value={form13.resignationDate} onChange={e => setForm13({...form13, resignationDate: e.target.value})} />
+                  </div>
+
+                  <div>
+                    <label className="text-[10px] uppercase font-black text-slate-500 tracking-widest">4. Proposed Last Working Day (LWD)</label>
+                    <input type="date" className="w-full bg-white border border-slate-300 focus:border-indigo-500 rounded-lg p-2.5 text-xs font-bold text-slate-800 mt-1.5 focus:outline-none" value={form13.lastWorkingDay} onChange={e => setForm13({...form13, lastWorkingDay: e.target.value})} />
+                  </div>
+
+                  <div>
+                    <label className="text-[10px] uppercase font-black text-slate-500 tracking-widest">5. Department</label>
+                    <input className="w-full bg-white border border-slate-300 focus:border-indigo-500 rounded-lg p-2.5 text-xs font-bold text-slate-800 mt-1.5 focus:outline-none" value={form13.department} onChange={e => setForm13({...form13, department: e.target.value})} placeholder="e.g. Technology / HR / Legal" />
+                  </div>
+
+                  <div>
+                    <label className="text-[10px] uppercase font-black text-slate-500 tracking-widest">6. Handover Replacement Person</label>
+                    <input className="w-full bg-white border border-slate-300 focus:border-indigo-500 rounded-lg p-2.5 text-xs font-bold text-slate-800 mt-1.5 focus:outline-none" value={form13.handoverTo} onChange={e => setForm13({...form13, handoverTo: e.target.value})} placeholder="Name of team member receiving KT" />
+                  </div>
+
                   <div className="md:col-span-2">
-                    <label className="text-[10px] uppercase font-black text-slate-500 tracking-widest">3. Exit Reason *</label>
-                    <textarea required rows={2} className="w-full bg-white border border-slate-300 focus:border-rose-500 rounded-lg p-2.5 text-xs font-bold text-slate-800 mt-1.5 focus:outline-none resize-none" value={form13.exitReason} onChange={e => setForm13({...form13, exitReason: e.target.value})} placeholder="Reason for exit (Resignation, Termination, Contract End, etc.)" />
+                    <label className="text-[10px] uppercase font-black text-slate-500 tracking-widest">7. Exit Reason *</label>
+                    <textarea required rows={2} className="w-full bg-white border border-slate-300 focus:border-indigo-500 rounded-lg p-2.5 text-xs font-bold text-slate-800 mt-1.5 focus:outline-none resize-none" value={form13.exitReason} onChange={e => setForm13({...form13, exitReason: e.target.value})} placeholder="Reason for exit (Resignation, Career Switch, Contract End, etc.)" />
                   </div>
                 </div>
 
-                {/* Checklist Section */}
-                <div className="bg-rose-50/40 border border-rose-200 rounded-xl p-5">
-                  <h4 className="text-[10px] font-black tracking-widest text-rose-700 uppercase mb-4 pb-2 border-b border-rose-100">Offboarding Checklist</h4>
+                {/* IT & Compliance Clearance Checklist Section (All 6 Items) */}
+                <div className="bg-indigo-50/40 border border-indigo-200 rounded-xl p-5">
+                  <h4 className="text-[10px] font-black tracking-widest text-indigo-700 uppercase mb-4 pb-2 border-b border-indigo-100">IT & Compliance Clearance Checklist</h4>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     {[
-                      { key: "assetReturn", label: "4. Asset Return Completed" },
-                      { key: "accessRevoke", label: "5. System Access Revoked" },
-                      { key: "handover", label: "6. Work Handover Done" },
-                      { key: "finalSettlement", label: "7. Final Settlement Cleared" },
+                      { key: "accessRevoke", label: "1. System & CRM Access Revoked" },
+                      { key: "assetReturn", label: "2. Company Assets Returned" },
+                      { key: "dataAudit", label: "3. Final Data Security Audit Passed" },
+                      { key: "clientTransfer", label: "4. Client Handovers / Transfer Complete" },
+                      { key: "ndaReminder", label: "5. Signed NDA & Non-Compete Reminder Sent" },
+                      { key: "postExitWatch", label: "6. Active Post-Exit Tracking / Watchlist" },
                     ].map(({ key, label }) => (
-                      <label key={key} className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all disabled:opacity-75 ${
-                        (form13 as any)[key] ? "bg-emerald-50 border-emerald-300 text-emerald-800" : "bg-white border-rose-100 text-slate-600 hover:bg-rose-50"
+                      <label key={key} className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all ${
+                        (form13 as any)[key] ? "bg-emerald-50 border-emerald-300 text-emerald-800" : "bg-white border-indigo-100 text-slate-600 hover:bg-indigo-50/50"
                       }`}>
                         <input
                           type="checkbox"
-                          className="accent-emerald-600 w-4 h-4"
+                          className="accent-indigo-600 w-4 h-4"
                           checked={(form13 as any)[key]}
                           onChange={e => setForm13({...form13, [key]: e.target.checked})}
-                          disabled={isEmployee}
                         />
                         <span className="text-[10px] font-black uppercase tracking-wider">{label}</span>
                       </label>
@@ -1088,24 +1450,34 @@ export function ExitSeparation({ sessionUser, triggerToast }: { sessionUser?: an
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                  <div className="md:col-span-2">
-                    <label className="text-[10px] uppercase font-black text-slate-500 tracking-widest">8. Exit Feedback</label>
-                    <textarea rows={3} className="w-full bg-white border border-slate-300 focus:border-rose-500 rounded-lg p-2.5 text-xs font-bold text-slate-800 mt-1.5 focus:outline-none resize-none" value={form13.exitFeedback} onChange={e => setForm13({...form13, exitFeedback: e.target.value})} placeholder="Feedback from the exiting person (optional)..." />
-                  </div>
                   <div>
-                    <label className="text-[10px] uppercase font-black text-slate-500 tracking-widest">9. Post-Exit Risk *</label>
-                    <select className="w-full bg-white border border-slate-300 focus:border-rose-500 rounded-lg p-2.5 text-xs font-bold text-slate-800 mt-1.5 focus:outline-none disabled:opacity-75" value={form13.postExitRisk} onChange={e => setForm13({...form13, postExitRisk: e.target.value})} disabled={isEmployee}>
+                    <label className="text-[10px] uppercase font-black text-slate-500 tracking-widest">Final Settlement Status (F&F)</label>
+                    <select className="w-full bg-white border border-slate-300 focus:border-indigo-500 rounded-lg p-2.5 text-xs font-bold text-slate-800 mt-1.5 focus:outline-none" value={form13.finalSettlementStatus} onChange={e => setForm13({...form13, finalSettlementStatus: e.target.value})}>
+                      <option value="Pending Audit">Pending Audit</option>
+                      <option value="On Hold">On Hold (Issues Found)</option>
+                      <option value="Completed & Paid">Completed & Paid</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="text-[10px] uppercase font-black text-slate-500 tracking-widest">Post-Exit Risk *</label>
+                    <select className="w-full bg-white border border-slate-300 focus:border-indigo-500 rounded-lg p-2.5 text-xs font-bold text-slate-800 mt-1.5 focus:outline-none" value={form13.postExitRisk} onChange={e => setForm13({...form13, postExitRisk: e.target.value})}>
                       <option value="Low">Low — No concern</option>
                       <option value="Medium">Medium — Watch for 30 days</option>
                       <option value="High">High — Immediate escalation required</option>
                     </select>
                   </div>
+
+                  <div className="md:col-span-2">
+                    <label className="text-[10px] uppercase font-black text-slate-500 tracking-widest">Exit Feedback (Optional)</label>
+                    <textarea rows={2} className="w-full bg-white border border-slate-300 focus:border-indigo-500 rounded-lg p-2.5 text-xs font-bold text-slate-800 mt-1.5 focus:outline-none resize-none" value={form13.exitFeedback} onChange={e => setForm13({...form13, exitFeedback: e.target.value})} placeholder="Feedback from the exiting person (optional)..." />
+                  </div>
                 </div>
 
                 <div className="pt-4 border-t border-slate-100 flex justify-end gap-3">
                   <button type="button" onClick={() => setShowForm13(false)} className="px-5 py-2.5 rounded-lg text-xs font-black uppercase text-slate-500 hover:bg-slate-100 transition-all">Cancel</button>
-                  <button type="submit" disabled={submitting} className="px-6 py-2.5 rounded-lg text-xs font-black uppercase text-white bg-rose-600 hover:bg-rose-700 shadow-md transition-all flex items-center gap-2 disabled:opacity-50">
-                    <CheckCircle className="w-4 h-4" /> Submit FORM-13
+                  <button type="submit" disabled={submitting} className="px-6 py-2.5 rounded-lg text-xs font-black uppercase text-white bg-indigo-600 hover:bg-indigo-700 shadow-md transition-all flex items-center justify-center gap-2 disabled:opacity-50">
+                    <CheckCircle className="w-4 h-4" /> Submit FORM-13 Exit Request
                   </button>
                 </div>
               </form>

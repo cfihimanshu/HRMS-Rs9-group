@@ -538,16 +538,13 @@ export default function UnifiedEnterpriseDashboard() {
           setActiveTab("hr-dash");
         } else if (role === "Trainer") {
           setActiveTab("training");
-        } else if (role === "Employee") {
-          setActiveTab("ess-dashboard"); // Stay on ESS dashboard
         } else if (role === "Vendor") {
           setActiveTab("vendors");
         } else if (role === "Franchisee" || role === "Territory Partner") {
           setActiveTab("franchise");
-        } else if (role === "Accounts") {
-          setActiveTab("hiring");
         } else {
-          setActiveTab("attendance");
+          // For all employee users, land on ESS Dashboard (Employee Self Service) first upon login
+          setActiveTab("ess-dashboard");
         }
       }
       loadInitialData();

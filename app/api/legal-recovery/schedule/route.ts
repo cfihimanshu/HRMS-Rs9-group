@@ -506,8 +506,8 @@ export async function POST(req: Request) {
         taskType: type || "Operation",
         description: taskDesc,
         status: "Pending",
-        timerState: "Stopped",
-        timerStart: null,
+        timerState: "Running",
+        timerStart: new Date(),
         elapsedSeconds: 0,
         scheduleId: entryId,
       }).catch(() => {});
