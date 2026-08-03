@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import LegalWorkLog from "@/models/sequelize/LegalWorkLog";
 import TaskLog from "@/models/sequelize/TaskLog";
+import LegalNotice from "@/models/sequelize/LegalNotice";
 import sequelize, { safeAuthenticate } from "@/lib/sequelize";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
@@ -81,6 +82,50 @@ export async function GET(request: Request) {
     let whereClause = {};
     if (masterId) {
       whereClause = { masterId };
+    }
+
+    // Auto-backfill existing LegalNotice rows into legal_work_logs if missing
+    try {
+      const allNotices = await LegalNotice.findAll();
+      const existingLogs = await LegalWorkLog.findAll({ attributes: ["bankName", "branchName", "businessDevOption", "category"] });
+
+      for (const n of allNotices) {
+        const bName = (n.bankName || "").toLowerCase().trim();
+        const brName = (n.branchName || "").toLowerCase().trim();
+        const exists = existingLogs.some(
+          (l: any) =>
+            (l.bankName || "").toLowerCase().trim() === bName &&
+            (l.branchName || "").toLowerCase().trim() === brName &&
+            ((l.businessDevOption || l.category || "").toLowerCase().includes("notice"))
+        );
+
+        if (!exists && bName) {
+          await LegalWorkLog.create({
+            masterId: n.masterId || null,
+            bankId: n.bankId || null,
+            branchId: n.branchId || null,
+            workDate: n.noticeDate || n.noticeOrderDate || new Date().toISOString().split("T")[0],
+            typeOfWork: "Bank Related",
+            workLocation: "Office",
+            bankName: n.bankName || undefined,
+            branchName: n.branchName || undefined,
+            category: "Business Development",
+            subCategory: "TAKE NOTICE ASSIGNMENT",
+            businessDevOption: n.typeOfNotice || "ADVOCATE NOTICE",
+            businessDevSubOption: "TAKE NOTICE ASSIGNMENT",
+            noOfCount: n.quantity || 1,
+            broughtBy: n.broughtBy || undefined,
+            preparedBy: n.noticeRenameBy || n.scannedBy || undefined,
+            printedBy: n.printedBy || undefined,
+            dispatchedBy: n.dispatchedBy || undefined,
+            uploadedFileName: n.handoverReceiptUrl || n.documentUrl || undefined,
+            remarks: n.handoverRemarks || `Notice Board Entry (${n.typeOfNotice || 'Advocate Notice'})`,
+            employeeName: n.broughtBy || n.createdBy || "Notice Staff"
+          });
+        }
+      }
+    } catch (bfErr) {
+      console.warn("Backfill notice to legal_work_logs warning:", bfErr);
     }
 
     // The live legacy table may not yet contain every optional field declared
