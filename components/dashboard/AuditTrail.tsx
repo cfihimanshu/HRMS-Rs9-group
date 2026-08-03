@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { Fragment, useCallback, useEffect, useState } from "react";
 import {
   ChevronDown,
   ChevronLeft,
@@ -199,8 +199,8 @@ export default function AuditTrail() {
               </tr>
             ) : (
               logs.map((log) => (
-                <>
-                  <tr key={log.id}>
+                <Fragment key={log.id}>
+                  <tr>
                     <td className="whitespace-nowrap">
                       {new Date(log.timestamp).toLocaleString("en-IN")}
                     </td>
@@ -282,7 +282,7 @@ export default function AuditTrail() {
                       </td>
                     </tr>
                   )}
-                </>
+                </Fragment>
               ))
             )}
           </tbody>

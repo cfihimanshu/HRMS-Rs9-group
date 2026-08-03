@@ -1,17 +1,14 @@
-import { NextResponse } from "next/server";
-import LegalNotice from "@/models/sequelize/LegalNotice";
-import LegalWorkLog from "@/models/sequelize/LegalWorkLog";
-import LegalWorkHistory from "@/models/sequelize/LegalWorkHistory";
-import BankMaster from "@/models/sequelize/BankMaster";
-import BranchMaster from "@/models/sequelize/BranchMaster";
-import sequelize, { safeAuthenticate } from "@/lib/sequelize";
+import sequelize from "../lib/sequelize";
+import LegalNotice from "../models/sequelize/LegalNotice";
+import LegalWorkLog from "../models/sequelize/LegalWorkLog";
+import LegalWorkHistory from "../models/sequelize/LegalWorkHistory";
+import BankMaster from "../models/sequelize/BankMaster";
+import BranchMaster from "../models/sequelize/BranchMaster";
 
-export async function GET() {
+async function runSync() {
   try {
-    const isDbConnected = await safeAuthenticate(6000);
-    if (!isDbConnected) {
-      return NextResponse.json({ success: false, error: "Database connection timeout" }, { status: 503 });
-    }
+    await sequelize.authenticate();
+    console.log("Database connected successfully.");
 
     await LegalNotice.sync();
     await LegalWorkLog.sync();
@@ -39,7 +36,6 @@ export async function GET() {
 
     let workLogsCreated = 0;
     let workHistoriesCreated = 0;
-    const errors: string[] = [];
 
     for (const n of notices) {
       const resolvedBank = n.bankName || (n.bankId ? bankMap.get(String(n.bankId)) : undefined) || "Bank";
@@ -78,9 +74,12 @@ export async function GET() {
             employeeName: staffVal
           });
           workLogsCreated++;
+          console.log(`[SYNC SUCCESS] Inserted Notice #${n.id} (${resolvedBank} - ${resolvedBranch}) into legal_work_logs`);
         } catch (e: any) {
-          errors.push(`LegalWorkLog Notice #${n.id}: ${e.message}`);
+          console.error(`[SYNC ERROR] LegalWorkLog Notice #${n.id}:`, e.message);
         }
+      } else {
+        console.log(`Notice #${n.id} already exists in legal_work_logs.`);
       }
 
       // 2. Sync into legal_work_history
@@ -97,24 +96,24 @@ export async function GET() {
             employeeName: staffVal,
             attachmentUrl: fileVal,
             remarks: remarkVal,
-            status: "Completed",
-            amount: 0
+            status: "Completed"
           });
           workHistoriesCreated++;
+          console.log(`[SYNC SUCCESS] Inserted Notice #${n.id} (${resolvedBank} - ${resolvedBranch}) into legal_work_history`);
         } catch (e: any) {
-          errors.push(`LegalWorkHistory Notice #${n.id}: ${e.message}`);
+          console.error(`[SYNC ERROR] LegalWorkHistory Notice #${n.id}:`, e.message);
         }
+      } else {
+        console.log(`Notice #${n.id} already exists in legal_work_history.`);
       }
     }
 
-    return NextResponse.json({
-      success: true,
-      totalNoticesChecked: notices.length,
-      workLogsCreated,
-      workHistoriesCreated,
-      errors
-    });
+    console.log(`\n=== SYNC SUMMARY ===\nTotal Notices: ${notices.length}\nCreated in legal_work_logs: ${workLogsCreated}\nCreated in legal_work_history: ${workHistoriesCreated}`);
   } catch (err: any) {
-    return NextResponse.json({ success: false, error: err.message }, { status: 500 });
+    console.error("Sync script failed:", err);
+  } finally {
+    process.exit(0);
   }
 }
+
+runSync();

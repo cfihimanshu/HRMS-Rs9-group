@@ -549,11 +549,6 @@ export default function KanbanBoard({
         setSubmitting(false);
         return;
       }
-      if (!deadlineDate) {
-        alert("Please select a deadline date.");
-        setSubmitting(false);
-        return;
-      }
     }
 
     // Build structured description for Bank or Call tasks
@@ -2433,20 +2428,18 @@ export default function KanbanBoard({
                             <div>
                               <div className="grid grid-cols-2 gap-2">
                                 <div>
-                                  <label className="block text-[9px] uppercase tracking-wider text-slate-500 font-black mb-1">Deadline Date *</label>
+                                  <label className="block text-[9px] uppercase tracking-wider text-slate-500 font-black mb-1">Deadline Date</label>
                                   <input
                                     type="date"
-                                    required
                                     className="w-full border border-slate-200 rounded-lg px-2 py-2 text-xs font-bold focus:outline-none focus:border-[#714B67] text-slate-800 bg-white"
                                     value={deadlineDate}
                                     onChange={e => setDeadlineDate(e.target.value)}
                                   />
                                 </div>
                                 <div>
-                                  <label className="block text-[9px] uppercase tracking-wider text-slate-500 font-black mb-1">Deadline Time *</label>
+                                  <label className="block text-[9px] uppercase tracking-wider text-slate-500 font-black mb-1">Deadline Time</label>
                                   <input
                                     type="time"
-                                    required
                                     className="w-full border border-slate-200 rounded-lg px-2 py-2 text-xs font-bold focus:outline-none focus:border-[#714B67] text-slate-800 bg-white"
                                     value={deadlineTime}
                                     onChange={e => setDeadlineTime(e.target.value)}

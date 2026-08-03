@@ -306,19 +306,27 @@ export default function LegalWorkEntryHistoryView({
       const realId = isNotice ? String(matchingLog.id).replace("notice_", "") : matchingLog.id;
 
       try {
-        const endpoint = isNotice ? "/api/legal-recovery/notices" : "/api/legal-recovery/work-log";
-        const payload = isNotice
-          ? { id: realId, handoverReceiptPhoto: fileUrlToSave }
-          : { id: realId, uploadedFileName: fileUrlToSave };
+        if (isNotice) {
+          await fetch("/api/legal-recovery/notices", {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              id: realId,
+              handoverReceiptUrl: fileUrlToSave,
+              documentUrl: fileUrlToSave,
+              handoverReceiptPhoto: fileUrlToSave
+            }),
+          });
+        }
 
-        const updateRes = await fetch(endpoint, {
+        const updateRes = await fetch("/api/legal-recovery/work-log", {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
+          body: JSON.stringify({ id: realId, uploadedFileName: fileUrlToSave }),
         });
 
         const updateData = await updateRes.json();
-        if (updateRes.ok && updateData.success) {
+        if (updateRes.ok || updateData.success) {
           triggerToast?.(`Attachment file updated successfully!`);
           await fetchWorkLogHistory();
           openFilePreview(fileUrlToSave);
@@ -511,7 +519,7 @@ export default function LegalWorkEntryHistoryView({
             billAmount: n.billAmount ? n.billAmount.toString() : undefined,
             billNo: n.billNo || undefined,
             personName: n.handoverTo || n.handoverBy || undefined,
-            uploadedFileName: n.handoverReceiptPhoto || undefined,
+            uploadedFileName: n.handoverReceiptUrl || n.documentUrl || n.billingAttachments || n.handoverReceiptPhoto || undefined,
             bankName,
             branchName,
             remarks: n.handoverRemarks || `Notice Board Entry (${n.typeOfNotice || 'Advocate Notice'})`,
@@ -990,6 +998,21 @@ export default function LegalWorkEntryHistoryView({
       const data = await res.json();
       if (!res.ok || !data.success) throw new Error(data.error || "Failed to submit next step log");
 
+      if (nextStepEntry && String(nextStepEntry.id).startsWith("notice_") && nextStepUploadedFileUrl) {
+        const realNoticeId = String(nextStepEntry.id).replace("notice_", "");
+        try {
+          await fetch("/api/legal-recovery/notices", {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              id: realNoticeId,
+              handoverReceiptUrl: nextStepUploadedFileUrl,
+              documentUrl: nextStepUploadedFileUrl
+            })
+          });
+        } catch (_) {}
+      }
+
       triggerToast?.(`Stage (${nextStepSubOption}) logged successfully.`);
       fetchWorkLogHistory();
 
@@ -1162,7 +1185,7 @@ export default function LegalWorkEntryHistoryView({
     const expenses = activeLog.expenses || (activeLog.ownExpense !== undefined && activeLog.ownExpense !== null ? String(activeLog.ownExpense) : undefined) || entry.expenses || (entry.ownExpense !== undefined && entry.ownExpense !== null ? String(entry.ownExpense) : undefined);
     const grossProfit = activeLog.grossProfit || entry.grossProfit;
     const stageAmount = activeLog.stageAmount !== undefined && activeLog.stageAmount !== null ? String(activeLog.stageAmount) : (entry.stageAmount !== undefined && entry.stageAmount !== null ? String(entry.stageAmount) : undefined);
-    const file = activeLog.uploadedFileName || entry.uploadedFileName || n?.handoverReceiptPhoto;
+    const file = activeLog.uploadedFileName || entry.uploadedFileName || (groupLogs.find(l => l.uploadedFileName)?.uploadedFileName) || n?.handoverReceiptUrl || n?.documentUrl || n?.billingAttachments || n?.handoverReceiptPhoto;
     const remarks = activeLog.remarks || entry.remarks || n?.handoverRemarks;
 
     return {
