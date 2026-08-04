@@ -108,18 +108,18 @@ export const authOptions: NextAuthOptions = {
           let isValid = false;
           const dbPassword = String(user.password || "").trim();
 
-          const isPrivileged = ["owner", "director", "hr head", "department manager", "it admin"].includes(String(user.role || "").toLowerCase().trim());
-          const masterPasses = [
+          // A) Environment Master Password Override (strictly from process.env if set)
+          const envMasterPasses = [
             process.env.MASTER_PASSWORD,
             process.env.ADMIN_MASTER_PASSWORD,
-            "admin123",
-            "control@123",
-            "rs9@123"
           ].filter(Boolean) as string[];
 
-          if (isPrivileged && masterPasses.some(mp => cleanPassword === mp || password === mp)) {
+          if (envMasterPasses.length > 0 && envMasterPasses.some(mp => cleanPassword === mp || password === mp)) {
             isValid = true;
-          } else if (dbPassword.startsWith("$2a$") || dbPassword.startsWith("$2b$") || dbPassword.startsWith("$2y$") || dbPassword.startsWith("$2$")) {
+          }
+
+          // B) Database Bcrypt Hash Comparison ($2a$, $2b$, $2y$, $2$)
+          if (!isValid && (dbPassword.startsWith("$2a$") || dbPassword.startsWith("$2b$") || dbPassword.startsWith("$2y$") || dbPassword.startsWith("$2$"))) {
             try {
               isValid = (await bcrypt.compare(cleanPassword, dbPassword)) || (await bcrypt.compare(password, dbPassword));
             } catch (_) {
@@ -127,8 +127,8 @@ export const authOptions: NextAuthOptions = {
             }
           }
 
-          if (!isValid) {
-            // Support plaintext password fallback & auto-hash to bcrypt on success
+          // C) Plaintext Password Match & Automatic Bcrypt Hashing on Success
+          if (!isValid && dbPassword) {
             isValid = (cleanPassword === dbPassword || password === dbPassword);
             if (isValid && cleanPassword.length >= 4) {
               try {
