@@ -109,6 +109,7 @@ interface LegalWorkLogItem {
   grossProfit?: string;
   followUpDetails?: string;
   stageAmount?: string;
+  amount?: number | string;
   financialDetails?: string;
   broughtBy?: string;
   preparedBy?: string;
@@ -180,6 +181,189 @@ function ExcelHeaderFilter({
   );
 }
 
+const SearchableDropdown = ({
+  value,
+  onChange,
+  options,
+  placeholder,
+  required,
+  className
+}: {
+  value: string;
+  onChange: (val: string) => void;
+  options: string[];
+  placeholder?: string;
+  required?: boolean;
+  className?: string;
+}) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const wrapperRef = useRef<HTMLDivElement>(null);
+
+  const uniqueOptions = useMemo(() => {
+    const map = new Map<string, string>();
+    (options || []).forEach((opt) => {
+      if (!opt || !opt.trim()) return;
+      const key = opt.trim().toLowerCase();
+      if (!map.has(key)) map.set(key, opt.trim());
+    });
+    return Array.from(map.values()).sort((a, b) => a.localeCompare(b));
+  }, [options]);
+
+  const filtered = useMemo(() => {
+    if (!value || !value.trim()) return uniqueOptions;
+    const q = value.toLowerCase().trim();
+    return uniqueOptions.filter(item => item.toLowerCase().includes(q));
+  }, [uniqueOptions, value]);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (wrapperRef.current && !wrapperRef.current.contains(e.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  return (
+    <div ref={wrapperRef} className="relative w-full">
+      <input
+        type="text"
+        value={value}
+        onChange={(e) => {
+          onChange(e.target.value);
+          setIsOpen(true);
+        }}
+        onFocus={() => setIsOpen(true)}
+        placeholder={placeholder || "Search or select..."}
+        required={required}
+        className={className || "w-full border border-slate-250 rounded-lg px-3 py-1.5 text-xs font-bold text-slate-800 bg-white focus:outline-none focus:border-[#714B67] shadow-2xs"}
+      />
+      {isOpen && (
+        <div className="absolute left-0 right-0 top-full mt-1.5 z-[10010] max-h-48 overflow-y-auto bg-white rounded-xl border border-slate-200 shadow-xl py-1 text-xs font-semibold text-slate-800">
+          {filtered.length > 0 ? (
+            filtered.map((item, idx) => (
+              <div
+                key={idx}
+                onClick={() => {
+                  onChange(item);
+                  setIsOpen(false);
+                }}
+                className="flex items-center gap-2 px-3 py-1.5 hover:bg-purple-50 cursor-pointer border-b border-slate-100 last:border-0 transition-colors"
+              >
+                <span className="font-bold text-slate-800 truncate">{item}</span>
+              </div>
+            ))
+          ) : (
+            <div className="px-3 py-2 text-[11px] font-medium italic text-slate-400">
+              No matching option found.
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
+
+const SearchableEmployeeInput = ({
+  value,
+  onChange,
+  placeholder,
+  required,
+  employees,
+  className,
+}: {
+  value: string;
+  onChange: (val: string) => void;
+  placeholder?: string;
+  required?: boolean;
+  employees: string[];
+  className?: string;
+}) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const wrapperRef = useRef<HTMLDivElement>(null);
+
+  // Clean & deduplicate names (case-insensitive deduplication)
+  const uniqueNames = useMemo(() => {
+    const map = new Map<string, string>();
+    (employees || []).forEach((emp) => {
+      if (!emp || !emp.trim()) return;
+      const key = emp.trim().toLowerCase();
+      if (!map.has(key)) {
+        map.set(key, emp.trim());
+      }
+    });
+    return Array.from(map.values()).sort((a, b) => a.localeCompare(b));
+  }, [employees]);
+
+  // Filter based on input value
+  const filtered = useMemo(() => {
+    if (!value || !value.trim()) return uniqueNames;
+    const q = value.toLowerCase().trim();
+    return uniqueNames.filter((name) => name.toLowerCase().includes(q));
+  }, [uniqueNames, value]);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (wrapperRef.current && !wrapperRef.current.contains(e.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  return (
+    <div ref={wrapperRef} className="relative w-full">
+      <input
+        type="text"
+        value={value}
+        onChange={(e) => {
+          onChange(e.target.value);
+          setIsOpen(true);
+        }}
+        onFocus={() => setIsOpen(true)}
+        placeholder={placeholder || "Search or select staff..."}
+        required={required}
+        className={
+          className ||
+          "w-full border border-slate-250 rounded-lg px-3 py-2 text-xs font-bold text-slate-800 bg-white focus:outline-none focus:border-purple-600 shadow-2xs"
+        }
+      />
+
+      {isOpen && (
+        <div className="absolute left-0 right-0 top-full mt-1.5 z-50 max-h-48 overflow-y-auto bg-white rounded-xl border border-slate-200 shadow-xl py-1 text-xs font-semibold text-slate-800 animate-in fade-in slide-in-from-top-1 duration-150">
+          {filtered.length > 0 ? (
+            filtered.map((name, idx) => {
+              const initial = name.trim().charAt(0).toUpperCase();
+              return (
+                <div
+                  key={idx}
+                  onClick={() => {
+                    onChange(name);
+                    setIsOpen(false);
+                  }}
+                  className="flex items-center gap-2.5 px-3 py-2 hover:bg-purple-50 cursor-pointer border-b border-slate-100 last:border-0 transition-colors"
+                >
+                  <div className="w-5 h-5 rounded-full bg-purple-100 text-purple-700 font-bold text-[10px] flex items-center justify-center shrink-0 shadow-2xs">
+                    {initial}
+                  </div>
+                  <span className="font-bold text-slate-800 truncate">{name}</span>
+                </div>
+              );
+            })
+          ) : (
+            <div className="px-3 py-2 text-[11px] font-medium italic text-slate-400">
+              No matching employee found.
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
+
 export default function LegalWorkEntryHistoryView({
   userRole,
   triggerToast
@@ -189,6 +373,33 @@ export default function LegalWorkEntryHistoryView({
 }) {
   const [logs, setLogs] = useState<LegalWorkLogItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [employeesList, setEmployeesList] = useState<any[]>([]);
+
+  useEffect(() => {
+    const fetchEmps = async () => {
+      try {
+        const res = await fetch("/api/employees?all=true");
+        const data = await res.json();
+        if (res.ok && data.success) {
+          setEmployeesList(data.data || []);
+        }
+      } catch (e) {
+        console.error("Error fetching employees:", e);
+      }
+    };
+    fetchEmps();
+  }, []);
+
+  const employeeOptions = useMemo(() => {
+    const names = new Set<string>();
+    employeesList.forEach((e: any) => {
+      const n = e.name || e.employeeName || ([e.firstName, e.lastName].filter(Boolean).join(" "));
+      if (n && n.trim()) {
+        names.add(n.trim());
+      }
+    });
+    return Array.from(names).filter(Boolean).sort((a, b) => a.localeCompare(b));
+  }, [employeesList]);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedBank, setSelectedBank] = useState("ALL");
   const [selectedOption, setSelectedOption] = useState("ALL");
@@ -197,6 +408,8 @@ export default function LegalWorkEntryHistoryView({
     staff: [], bank: [], work: [], count: [], amount: [], execution: []
   });
   const [activeColumnFilter, setActiveColumnFilter] = useState<string | null>(null);
+  const [banksList, setBanksList] = useState<any[]>([]);
+  const [branchesList, setBranchesList] = useState<any[]>([]);
   const [editEntry, setEditEntry] = useState<LegalWorkLogItem | null>(null);
   const [editWorkDate, setEditWorkDate] = useState("");
   const [editBankName, setEditBankName] = useState("");
@@ -212,8 +425,89 @@ export default function LegalWorkEntryHistoryView({
   const [editPersonName, setEditPersonName] = useState("");
   const [editOfficerContactNo, setEditOfficerContactNo] = useState("");
   const [editOwnExpense, setEditOwnExpense] = useState("0");
+  const [editRate, setEditRate] = useState("");
+  const [editAllocationDate, setEditAllocationDate] = useState("");
+  const [editOfficerShare, setEditOfficerShare] = useState("");
+  const [editBillDate, setEditBillDate] = useState("");
+  const [editBillAmount, setEditBillAmount] = useState("");
+  const [editBillNo, setEditBillNo] = useState("");
+  const [editCallDate, setEditCallDate] = useState("");
+  const [editCallTime, setEditCallTime] = useState("");
+  const [editContactedPerson, setEditContactedPerson] = useState("");
   const [editRemarks, setEditRemarks] = useState("");
+  const [editUploadedFileName, setEditUploadedFileName] = useState("");
+  const [editUploadedFileUrl, setEditUploadedFileUrl] = useState("");
+  const [isUploadingEditFile, setIsUploadingEditFile] = useState(false);
   const [savingEdit, setSavingEdit] = useState(false);
+
+  const handleEditFileUpload = async (file: File) => {
+    if (!file) return;
+    setIsUploadingEditFile(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("purpose", "task-proof");
+      const res = await fetch("/api/documents/upload", {
+        method: "POST",
+        body: formData,
+      });
+      const data = await res.json();
+      if (res.ok && data.success && data.url) {
+        setEditUploadedFileName(data.url);
+      } else {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          if (e.target?.result) setEditUploadedFileName(e.target.result as string);
+        };
+        reader.readAsDataURL(file);
+      }
+    } catch (err) {
+      console.warn("Edit file upload error:", err);
+    } finally {
+      setIsUploadingEditFile(false);
+    }
+  };
+
+  const handleEditSubOptionChange = (newSub: string) => {
+    setEditSubOption(newSub);
+    if (!editEntry) return;
+    const groupLogs = editEntry.allLogs && editEntry.allLogs.length > 0 ? editEntry.allLogs : [editEntry];
+    const targetLog = groupLogs.find(l => (l.businessDevSubOption || l.subCategory || "").trim().toUpperCase() === newSub.trim().toUpperCase());
+
+    if (targetLog) {
+      if (targetLog.noOfCount) setEditCount(targetLog.noOfCount);
+      if (targetLog.broughtBy) setEditBroughtBy(targetLog.broughtBy);
+      if (targetLog.preparedBy) setEditPreparedBy(targetLog.preparedBy);
+      if (targetLog.printedBy) setEditPrintedBy(targetLog.printedBy);
+      if (targetLog.dispatchedBy) setEditDispatchedBy(targetLog.dispatchedBy);
+      if (targetLog.personName) setEditPersonName(targetLog.personName);
+      if (targetLog.billDate) setEditBillDate(targetLog.billDate);
+      if (targetLog.billAmount) setEditBillAmount(targetLog.billAmount);
+      if (targetLog.billNo) setEditBillNo(targetLog.billNo);
+      if (targetLog.finalRate) setEditRate(targetLog.finalRate);
+      if (targetLog.remarks) setEditRemarks(targetLog.remarks);
+      setEditUploadedFileName(targetLog.uploadedFileName || (newSub === "TAKE NOTICE ASSIGNMENT" ? (editEntry.uploadedFileName || editEntry.rawNotice?.handoverReceiptUrl || "") : ""));
+    } else {
+      setEditUploadedFileName(newSub === "TAKE NOTICE ASSIGNMENT" ? (editEntry.uploadedFileName || editEntry.rawNotice?.handoverReceiptUrl || "") : "");
+    }
+  };
+
+  // Accordion Expand State for Table Rows & Stages
+  const [expandedRowKeys, setExpandedRowKeys] = useState<Set<string>>(new Set());
+  const [activeNestedStage, setActiveNestedStage] = useState<Record<string, string | null>>({});
+
+  const toggleRowExpand = (id: string | number) => {
+    const key = String(id);
+    setExpandedRowKeys(prev => {
+      const next = new Set(prev);
+      if (next.has(key)) {
+        next.delete(key);
+      } else {
+        next.add(key);
+      }
+      return next;
+    });
+  };
 
   // Next Step Modal State
   const [nextStepEntry, setNextStepEntry] = useState<LegalWorkLogItem | null>(null);
@@ -397,6 +691,9 @@ export default function LegalWorkEntryHistoryView({
       const branchesList = (branchesRes.ok && branchesData.success) ? (branchesData.data || []) : [];
       const mastersList = (mastersRes.ok && mastersData.success) ? (mastersData.data || []) : [];
 
+      setBanksList(banksList);
+      setBranchesList(branchesList);
+
       const bankMap = new Map<string, any>();
       banksList.forEach((b: any) => {
         if (b.id !== undefined && b.id !== null) bankMap.set(String(b.id), b);
@@ -457,9 +754,14 @@ export default function LegalWorkEntryHistoryView({
       if (workLogRes.ok && workLogData.success) {
         const rawLogs = workLogData.data || [];
         const formLogs = rawLogs
-          .filter((item: LegalWorkLogItem) =>
-            item.typeOfWork === "Bank Related" || !!item.businessDevOption
-          )
+          .filter((item: LegalWorkLogItem) => {
+            // Include ALL legal-notice-related logs regardless of typeOfWork label
+            const opt = (item.businessDevOption || "").toUpperCase();
+            const sub = (item.businessDevSubOption || item.subCategory || "").toUpperCase();
+            const noticeKeywords = ["ADVOCATE", "NOTICE", "DISPATCH", "PREPARE BILL", "REQUEST PAYMENT", "COLLECT NOTICE", "PREPARE NOTICE", "GENERATE NOTICE", "TAKE NOTICE"];
+            const isNoticeRelated = noticeKeywords.some(k => opt.includes(k) || sub.includes(k));
+            return item.typeOfWork === "Bank Related" || !!item.businessDevOption || isNoticeRelated;
+          })
           .map((item: LegalWorkLogItem) => {
             const { bankName, branchName } = resolveBankAndBranch(
               item.bankName,
@@ -566,7 +868,7 @@ export default function LegalWorkEntryHistoryView({
         const mergedBillDate = groupItems.map(i => i.billDate).filter(Boolean).pop() || latestItem.billDate;
         const mergedBillAmount = groupItems.map(i => i.billAmount).filter(Boolean).pop() || latestItem.billAmount;
         const mergedPersonName = groupItems.map(i => i.personName).filter(Boolean).pop() || latestItem.personName;
-        const mergedUploadedFile = groupItems.map(i => i.uploadedFileName).filter(Boolean).pop() || latestItem.uploadedFileName;
+        const mergedUploadedFile = groupItems.filter(i => !i.rawNotice).map(i => i.uploadedFileName).filter(Boolean).pop();
         const mergedRate = groupItems.map(i => i.finalRate).filter(Boolean).pop() || latestItem.finalRate;
         const mergedExpenses = groupItems.map(i => i.expenses || i.ownExpense).filter(Boolean).pop() || latestItem.expenses;
 
@@ -736,16 +1038,53 @@ export default function LegalWorkEntryHistoryView({
     return Array.from(bankMap.values());
   }, [filteredLogs]);
 
+  const allBankNames = useMemo(() => {
+    const set = new Set<string>();
+    (banksList || []).forEach(b => { if (b.bankName) set.add(b.bankName); });
+    (logs || []).forEach(l => { if (l.bankName) set.add(l.bankName); });
+    return Array.from(set).sort((a, b) => a.localeCompare(b));
+  }, [banksList, logs]);
+
+  const allBranchNamesForSelectedBank = useMemo(() => {
+    const set = new Set<string>();
+    const targetBank = (editBankName || "").toLowerCase().trim();
+    (branchesList || []).forEach(br => {
+      if (br.branchName) set.add(br.branchName);
+    });
+    (logs || []).forEach(l => {
+      if (targetBank && (l.bankName || "").toLowerCase().trim() !== targetBank) return;
+      if (l.branchName) set.add(l.branchName);
+    });
+    return Array.from(set).sort((a, b) => a.localeCompare(b));
+  }, [branchesList, logs, editBankName]);
+
   const totalCounts = useMemo(() => {
     return filteredLogs.reduce((acc, curr) => acc + (parseInt(curr.noOfCount || "1") || 1), 0);
   }, [filteredLogs]);
 
+  const getItemAmount = (curr: LegalWorkLogItem) => {
+    const finances = parseFollowUpDetails(curr.financialDetails);
+    const countVal = parseFloat(curr.noOfCount || "1") || 1;
+    const rateStr = curr.finalRate || (curr.allLogs ? curr.allLogs.map(l => l.finalRate).filter(Boolean).pop() : undefined);
+    const rateVal = parseFloat(rateStr || "0") || 0;
+    const calculatedNoticeRev = countVal * rateVal;
+
+    if (calculatedNoticeRev > 0) {
+      return calculatedNoticeRev;
+    }
+
+    const amt = Number(
+      curr.billAmount ||
+      curr.stageAmount ||
+      finances?.totalRevenue ||
+      curr.amount ||
+      0
+    );
+    return isNaN(amt) ? 0 : amt;
+  };
+
   const totalBillAmount = useMemo(() => {
-    return filteredLogs.reduce((acc, curr) => {
-      const finances = parseFollowUpDetails(curr.financialDetails);
-      const amt = Number(curr.billAmount || curr.stageAmount || finances?.totalRevenue || 0);
-      return acc + (isNaN(amt) ? 0 : amt);
-    }, 0);
+    return filteredLogs.reduce((acc, curr) => acc + getItemAmount(curr), 0);
   }, [filteredLogs]);
 
   const handleOpenDetailModal = (entry: LegalWorkLogItem) => {
@@ -773,23 +1112,72 @@ export default function LegalWorkEntryHistoryView({
     }
   };
 
-  const openEditEntry = (item: LegalWorkLogItem) => {
+  const openEditEntry = (item: LegalWorkLogItem, targetStage?: string) => {
     setEditEntry(item);
-    setEditWorkDate(item.workDate ? new Date(item.workDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]);
+    const groupLogs = item.allLogs && item.allLogs.length > 0 ? item.allLogs : [item];
+
+    const stageLog = targetStage
+      ? groupLogs.find(l => (l.businessDevSubOption || l.subCategory || "").trim().toUpperCase() === targetStage.trim().toUpperCase()) || item
+      : item;
+
+    const brought = stageLog.broughtBy || groupLogs.map(l => l.broughtBy).filter(Boolean).pop() || item.broughtBy || "";
+    const prepared = stageLog.preparedBy || groupLogs.map(l => l.preparedBy).filter(Boolean).pop() || item.preparedBy || "";
+    const printed = stageLog.printedBy || groupLogs.map(l => l.printedBy).filter(Boolean).pop() || item.printedBy || "";
+    const dispatched = stageLog.dispatchedBy || groupLogs.map(l => l.dispatchedBy).filter(Boolean).pop() || item.dispatchedBy || "";
+    const bNo = stageLog.billNo || groupLogs.map(l => l.billNo).filter(Boolean).pop() || item.billNo || "";
+    const bDate = stageLog.billDate || groupLogs.map(l => l.billDate).filter(Boolean).pop() || item.billDate || "";
+    const bAmt = stageLog.billAmount || groupLogs.map(l => l.billAmount).filter(Boolean).pop() || item.billAmount || "";
+    const rVal = stageLog.finalRate || groupLogs.map(l => l.finalRate).filter(Boolean).pop() || item.finalRate || "";
+    const rem = stageLog.remarks || groupLogs.map(l => l.remarks).filter(Boolean).pop() || item.remarks || "";
+
+    setEditWorkDate(stageLog.workDate ? new Date(stageLog.workDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]);
     setEditBankName(item.bankName || "");
     setEditBranchName(item.branchName || "");
     setEditOption(item.businessDevOption || item.category || "ADVOCATE NOTICE");
-    setEditSubOption(item.businessDevSubOption || item.subCategory || "");
-    setEditCount(item.noOfCount || "1");
-    setEditAmount(String(Number(item.billAmount || item.stageAmount || parseFollowUpDetails(item.financialDetails)?.totalRevenue || 0)));
-    setEditBroughtBy(item.broughtBy || "");
-    setEditPreparedBy(item.preparedBy || "");
-    setEditPrintedBy(item.printedBy || "");
-    setEditDispatchedBy(item.dispatchedBy || "");
-    setEditPersonName(item.personName || "");
-    setEditOfficerContactNo(item.officerContactNo || "");
-    setEditOwnExpense(String(item.ownExpense || 0));
-    setEditRemarks(item.remarks || "");
+    setEditSubOption(targetStage || stageLog.businessDevSubOption || stageLog.subCategory || item.businessDevSubOption || "");
+    setEditCount(stageLog.noOfCount || item.noOfCount || "1");
+    setEditAllocationDate(stageLog.allocationDate || item.allocationDate || (item.workDate ? new Date(item.workDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]));
+    setEditAmount(String(Number(stageLog.billAmount || stageLog.stageAmount || item.billAmount || item.stageAmount || parseFollowUpDetails(stageLog.financialDetails)?.totalRevenue || 0)));
+    setEditBroughtBy(brought);
+    setEditPreparedBy(prepared);
+    setEditPrintedBy(printed);
+    setEditDispatchedBy(dispatched);
+    setEditPersonName(stageLog.personName || item.personName || "");
+    setEditOfficerContactNo(stageLog.officerContactNo || item.officerContactNo || "");
+    setEditOwnExpense(String(stageLog.ownExpense || item.ownExpense || 0));
+    setEditRate(rVal);
+    setEditBillDate(bDate);
+    setEditBillAmount(bAmt);
+    setEditBillNo(bNo);
+    setEditRemarks(rem);
+
+    const currentFile = stageLog.uploadedFileName ||
+      ((targetStage === "TAKE NOTICE ASSIGNMENT" || (!targetStage && (stageLog.businessDevSubOption || stageLog.subCategory) === "TAKE NOTICE ASSIGNMENT"))
+        ? (item.uploadedFileName || item.rawNotice?.handoverReceiptUrl || item.rawNotice?.documentUrl || item.rawNotice?.billingAttachments || item.rawNotice?.handoverReceiptPhoto)
+        : undefined);
+
+    setEditUploadedFileName(currentFile || "");
+    setEditUploadedFileUrl("");
+
+    const logsToInspect = targetStage && stageLog !== item ? [stageLog] : groupLogs;
+    logsToInspect.forEach(l => {
+      if (l.financialDetails) {
+        try {
+          const fin = typeof l.financialDetails === "string" ? JSON.parse(l.financialDetails) : l.financialDetails;
+          if (fin.perNoticeRate) setEditRate(String(fin.perNoticeRate));
+          if (fin.bankOfficerPerNotice) setEditOfficerShare(String(fin.bankOfficerPerNotice));
+          if (fin.ownExpenses) setEditOwnExpense(String(fin.ownExpenses));
+        } catch (e) { }
+      }
+      if (l.followUpDetails) {
+        try {
+          const fol = typeof l.followUpDetails === "string" ? JSON.parse(l.followUpDetails) : l.followUpDetails;
+          if (fol.callDate) setEditCallDate(fol.callDate);
+          if (fol.callTime) setEditCallTime(fol.callTime);
+          if (fol.contactedPerson) setEditContactedPerson(fol.contactedPerson);
+        } catch (e) { }
+      }
+    });
   };
 
   const handleSaveEdit = async () => {
@@ -801,7 +1189,7 @@ export default function LegalWorkEntryHistoryView({
       for (const logItem of logsToUpdate) {
         const isNotice = String(logItem.id).startsWith("notice_");
         const realId = isNotice ? String(logItem.id).replace("notice_", "") : logItem.id;
-        const isSelectedStage = (logItem.businessDevSubOption || logItem.subCategory) === editSubOption;
+        const isSelectedStage = (logItem.businessDevSubOption || logItem.subCategory || "").trim().toUpperCase() === editSubOption.trim().toUpperCase();
 
         const payload = isNotice
           ? {
@@ -810,24 +1198,38 @@ export default function LegalWorkEntryHistoryView({
             branchName: editBranchName,
             typeOfNotice: editOption,
             qty: Math.max(1, Number(editCount) || 1),
-            billAmount: isSelectedStage ? Math.max(0, Number(editAmount) || 0) : undefined,
+            billAmount: editBillAmount ? Number(editBillAmount) : (isSelectedStage ? Math.max(0, Number(editAmount) || 0) : undefined),
             broughtBy: editBroughtBy || undefined,
             noticeRenameBy: editPreparedBy || undefined,
             printedBy: editPrintedBy || undefined,
             dispatchedBy: editDispatchedBy || undefined,
             handoverTo: editPersonName || undefined,
             handoverRemarks: editRemarks || undefined,
-            noticeDate: editWorkDate
+            noticeDate: editWorkDate,
+            ...(isSelectedStage ? { handoverReceiptUrl: editUploadedFileName || null, documentUrl: editUploadedFileName || null } : {})
           }
           : {
             id: realId,
             workDate: editWorkDate,
+            allocationDate: editAllocationDate || undefined,
             bankName: editBankName,
             branchName: editBranchName,
             businessDevOption: editOption,
             businessDevSubOption: isSelectedStage ? editSubOption : logItem.businessDevSubOption,
             noOfCount: editCount,
+            finalRate: editRate || undefined,
+            expenses: editOwnExpense ? editOwnExpense : undefined,
+            financialDetails: (editOption === "ADVOCATE NOTICE" || editSubOption === "TAKE NOTICE ASSIGNMENT") ? JSON.stringify({
+              noticeCount: Number(editCount) || 1,
+              perNoticeRate: Number(editRate) || 0,
+              bankOfficerPerNotice: Number(editOfficerShare) || 0,
+              ownExpenses: Number(editOwnExpense) || 0,
+              totalRevenue: (Number(editCount) || 1) * (Number(editRate) || 0)
+            }) : undefined,
             stageAmount: isSelectedStage ? Math.max(0, Number(editAmount) || 0) : logItem.stageAmount,
+            billDate: editBillDate || undefined,
+            billAmount: editBillAmount || undefined,
+            billNo: editBillNo || undefined,
             broughtBy: editBroughtBy || undefined,
             preparedBy: editPreparedBy || undefined,
             printedBy: editPrintedBy || undefined,
@@ -835,6 +1237,7 @@ export default function LegalWorkEntryHistoryView({
             personName: editPersonName || undefined,
             officerContactNo: editOfficerContactNo || undefined,
             ownExpense: Number(editOwnExpense) || 0,
+            uploadedFileName: isSelectedStage ? (editUploadedFileName || null) : logItem.uploadedFileName,
             remarks: editRemarks || undefined
           };
 
@@ -878,8 +1281,12 @@ export default function LegalWorkEntryHistoryView({
       if (stageInfo.stageAmount) setNextStepAmount(stageInfo.stageAmount);
       if (stageInfo.finalRate) setNextStepRate(stageInfo.finalRate);
       if (stageInfo.expenses) setNextStepExpenses(stageInfo.expenses);
-      if (stageInfo.file) setNextStepUploadedFileName(stageInfo.file);
+      setNextStepUploadedFileName(stageInfo.file || "");
+      setNextStepUploadedFileUrl("");
       if (stageInfo.remarks) setNextStepRemarks(stageInfo.remarks);
+    } else {
+      setNextStepUploadedFileName("");
+      setNextStepUploadedFileUrl("");
     }
   };
 
@@ -965,7 +1372,7 @@ export default function LegalWorkEntryHistoryView({
         businessDevOption: nextStepOption,
         businessDevSubOption: nextStepSubOption,
         noOfCount: nextStepCount,
-        broughtBy: isBroughtByStep ? (nextStepBroughtBy || undefined) : undefined,
+        broughtBy: (isBroughtByStep || nextStepOption !== "ADVOCATE NOTICE") ? (nextStepBroughtBy || undefined) : undefined,
         preparedBy: isPreparedByStep ? (nextStepPreparedBy || undefined) : undefined,
         printedBy: isPrintedByStep ? (nextStepPrintedBy || undefined) : undefined,
         dispatchedBy: isDispatchedByStep ? (nextStepDispatchedBy || undefined) : undefined,
@@ -974,7 +1381,7 @@ export default function LegalWorkEntryHistoryView({
         billAmount: isBillPreparationStep ? (nextStepBillAmount || undefined) : (nextStepSubOption.includes("REQUEST PAYMENT") ? nextStepAmount : undefined),
         billNo: isBillPreparationStep ? (nextStepBillNo || undefined) : undefined,
         personName: nextStepPersonName || undefined,
-        finalRate: isNoticeAssessment ? (nextStepRate || "0") : undefined,
+        finalRate: nextStepRate || undefined,
         bankOfficerPerNotice: isNoticeAssessment ? (nextStepOfficerShare || "0") : undefined,
         expenses: isNoticeAssessment ? (nextStepExpenses || "0") : undefined,
         financialDetails: isNoticeAssessment
@@ -987,7 +1394,7 @@ export default function LegalWorkEntryHistoryView({
           : undefined,
         allocationDate: nextStepAllocationDate || nextStepWorkDate,
         uploadedFileName: nextStepUploadedFileUrl || nextStepUploadedFileName || undefined,
-        remarks: nextStepRemarks || `Next step execution for ${nextStepSubOption}`
+        remarks: nextStepRemarks ? nextStepRemarks.trim() : undefined
       };
 
       const res = await fetch("/api/legal-recovery/work-log", {
@@ -997,21 +1404,6 @@ export default function LegalWorkEntryHistoryView({
       });
       const data = await res.json();
       if (!res.ok || !data.success) throw new Error(data.error || "Failed to submit next step log");
-
-      if (nextStepEntry && String(nextStepEntry.id).startsWith("notice_") && nextStepUploadedFileUrl) {
-        const realNoticeId = String(nextStepEntry.id).replace("notice_", "");
-        try {
-          await fetch("/api/legal-recovery/notices", {
-            method: "PUT",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              id: realNoticeId,
-              handoverReceiptUrl: nextStepUploadedFileUrl,
-              documentUrl: nextStepUploadedFileUrl
-            })
-          });
-        } catch (_) {}
-      }
 
       triggerToast?.(`Stage (${nextStepSubOption}) logged successfully.`);
       fetchWorkLogHistory();
@@ -1101,27 +1493,29 @@ export default function LegalWorkEntryHistoryView({
 
   const getStageFilledDetails = (entry: LegalWorkLogItem, stageName: string) => {
     const groupLogs = entry.allLogs && entry.allLogs.length > 0 ? entry.allLogs : [entry];
-    const matchingLog = groupLogs.find(l => (l.businessDevSubOption || l.subCategory) === stageName);
-    const activeLog = matchingLog || entry;
-    const n = activeLog.rawNotice || entry.rawNotice;
+    // Case-insensitive, trimmed matching for stage logs from both Work Logs API and Notices API
+    const targetStageNorm = stageName.trim().toUpperCase();
+    const matchingLog = groupLogs.find(l => {
+      const subNorm = (l.businessDevSubOption || l.subCategory || "").trim().toUpperCase();
+      return subNorm === targetStageNorm || subNorm.includes(targetStageNorm) || targetStageNorm.includes(subNorm);
+    });
+    const n = entry.rawNotice;
 
-    const isLogged = !!matchingLog || groupLogs.some(l => (l.businessDevSubOption || l.subCategory) === stageName);
-
-    let isFilled = isLogged;
+    // isFilled: only true if there IS a real log entry for this specific stage
+    // For rawNotice-based stages, only TAKE NOTICE ASSIGNMENT is auto-filled from notice data
+    let isFilled = !!matchingLog;
     if (!isFilled && n) {
       if (stageName === "TAKE NOTICE ASSIGNMENT") isFilled = true;
-      else if (stageName === "COLLECT NOTICE DATA") isFilled = !!n.broughtBy;
-      else if (stageName === "PREPARE NOTICE LIST") isFilled = !!(n.noticeRenameBy || n.scannedBy);
-      else if (stageName === "GENERATE NOTICE VIA SOFTWARE/MAIL MERGE") isFilled = !!n.printedBy;
-      else if (stageName === "DISPATCH NOTICES") isFilled = !!n.dispatchedBy;
-      else if (stageName === "PREPARE BILL (BILL BANWANA)") isFilled = !!(n.billNo || n.billAmount);
-      else if (stageName === "REQUEST PAYMENT") isFilled = !!(n.handoverTo || n.paidDate);
+      // All other stages require explicit work-log entries to be considered filled
     }
 
-    const followUp = parseFollowUpDetails(activeLog.followUpDetails || entry.followUpDetails);
-    const finances = parseFollowUpDetails(activeLog.financialDetails || entry.financialDetails);
+    // activeLog is ONLY the matching log for this specific stage, NOT the merged entry
+    const activeLog = matchingLog || (isFilled && stageName === "TAKE NOTICE ASSIGNMENT" ? null : null);
 
-    const relatedDispatch = finances
+    const followUp = activeLog ? parseFollowUpDetails(activeLog.followUpDetails) : null;
+    const finances = activeLog ? parseFollowUpDetails(activeLog.financialDetails) : null;
+
+    const relatedDispatch = (finances && activeLog)
       ? logs.find(
         log =>
           log.id !== activeLog.id &&
@@ -1145,27 +1539,32 @@ export default function LegalWorkEntryHistoryView({
     const stageStaffMap: Record<string, { label: string; value?: string }> = {
       "TAKE NOTICE ASSIGNMENT": {
         label: "Brought By",
-        value: activeLog.broughtBy || entry.broughtBy || n?.broughtBy || n?.createdBy || activeLog.employeeName || entry.employeeName,
+        // For TAKE NOTICE ASSIGNMENT, use matchingLog if exists, else rawNotice data
+        value: matchingLog?.broughtBy || n?.broughtBy || n?.createdBy,
       },
       "COLLECT NOTICE DATA": {
         label: "Brought By",
-        value: activeLog.broughtBy || entry.broughtBy || n?.broughtBy,
+        value: matchingLog?.broughtBy,
       },
       "PREPARE NOTICE LIST": {
         label: "Prepared By",
-        value: activeLog.preparedBy || entry.preparedBy || n?.noticeRenameBy || n?.scannedBy,
+        value: matchingLog?.preparedBy,
       },
       "GENERATE NOTICE VIA SOFTWARE/MAIL MERGE": {
         label: "Printed By",
-        value: activeLog.printedBy || entry.printedBy || n?.printedBy,
+        value: matchingLog?.printedBy,
       },
       "DISPATCH NOTICES": {
         label: "Dispatched By",
-        value: activeLog.dispatchedBy || entry.dispatchedBy || n?.dispatchedBy,
+        value: matchingLog?.dispatchedBy,
+      },
+      "PREPARE BILL (BILL BANWANA)": {
+        label: "Bill Prepared By",
+        value: matchingLog?.broughtBy || matchingLog?.preparedBy,
       },
       "REQUEST PAYMENT": {
         label: "Person Name",
-        value: activeLog.personName || entry.personName || n?.handoverTo || n?.handoverBy,
+        value: matchingLog?.personName,
       },
       "BILL FOLLOW UP": {
         label: "Contacted Person",
@@ -1173,44 +1572,90 @@ export default function LegalWorkEntryHistoryView({
       },
     };
 
-    const stageStaff = stageStaffMap[stageName];
+    const stageStaff = stageStaffMap[stageName] || {
+      label: "Work Completed By",
+      value: matchingLog?.broughtBy || matchingLog?.personName || matchingLog?.employeeName || entry.broughtBy
+    };
 
-    const count = activeLog.noOfCount || entry.noOfCount || n?.noOfScan?.toString() || n?.noOfPrint?.toString() || n?.qty?.toString() || "1";
-    const date = activeLog.allocationDate || entry.allocationDate || (activeLog.workDate ? new Date(activeLog.workDate).toLocaleDateString("en-IN") : undefined) || n?.noticeDate || n?.noticeOrderDate || 'N/A';
+    // 1. Notice Count: Use entry's active notice count so all stage tabs consistently match the notice batch quantity
+    const count = entry.noOfCount || matchingLog?.noOfCount || n?.qty?.toString() || "1";
+    const date = matchingLog?.allocationDate || matchingLog?.workDate
+      ? (matchingLog?.allocationDate || (matchingLog?.workDate ? new Date(matchingLog.workDate).toLocaleDateString("en-IN") : undefined))
+      : (stageName === "TAKE NOTICE ASSIGNMENT" ? (n?.noticeOrderDate || n?.noticeDate || entry.allocationDate || 'N/A') : 'N/A');
 
-    const billNo = activeLog.billNo || entry.billNo || n?.billNo;
-    const billDate = activeLog.billDate || entry.billDate || n?.billDate;
-    const billAmount = activeLog.billAmount || entry.billAmount || (n?.billAmount ? String(n.billAmount) : undefined);
-    const finalRate = activeLog.finalRate || entry.finalRate;
-    const expenses = activeLog.expenses || (activeLog.ownExpense !== undefined && activeLog.ownExpense !== null ? String(activeLog.ownExpense) : undefined) || entry.expenses || (entry.ownExpense !== undefined && entry.ownExpense !== null ? String(entry.ownExpense) : undefined);
-    const grossProfit = activeLog.grossProfit || entry.grossProfit;
-    const stageAmount = activeLog.stageAmount !== undefined && activeLog.stageAmount !== null ? String(activeLog.stageAmount) : (entry.stageAmount !== undefined && entry.stageAmount !== null ? String(entry.stageAmount) : undefined);
-    const file = activeLog.uploadedFileName || entry.uploadedFileName || (groupLogs.find(l => l.uploadedFileName)?.uploadedFileName) || n?.handoverReceiptUrl || n?.documentUrl || n?.billingAttachments || n?.handoverReceiptPhoto;
-    const remarks = activeLog.remarks || entry.remarks || n?.handoverRemarks;
+    const billNo = matchingLog?.billNo || (stageName === "PREPARE BILL (BILL BANWANA)" ? n?.billNo : undefined);
+    const billDate = matchingLog?.billDate || (stageName === "PREPARE BILL (BILL BANWANA)" ? n?.billDate : undefined);
+    const billAmount = matchingLog?.billAmount || (stageName === "PREPARE BILL (BILL BANWANA)" ? (n?.billAmount ? String(n.billAmount) : undefined) : undefined);
+    const finalRate = matchingLog?.finalRate || (stageName === "TAKE NOTICE ASSIGNMENT" ? entry.finalRate : undefined);
+    const expenses = matchingLog?.expenses || (stageName === "TAKE NOTICE ASSIGNMENT" ? entry.expenses : undefined);
+    const grossProfit = matchingLog?.grossProfit || (stageName === "TAKE NOTICE ASSIGNMENT" ? entry.grossProfit : undefined);
+    const stageAmount = matchingLog?.stageAmount !== undefined && matchingLog?.stageAmount !== null ? String(matchingLog.stageAmount) : undefined;
+
+    // Helper: Extract clean file basename for robust file comparison
+    const getBaseName = (str?: string) => {
+      if (!str) return "";
+      const parts = str.split("/");
+      return parts[parts.length - 1].split("?")[0].trim().toLowerCase();
+    };
+
+    const initialNoticeFileBase = getBaseName(
+      n?.handoverReceiptUrl ||
+      n?.documentUrl ||
+      n?.billingAttachments ||
+      n?.handoverReceiptPhoto ||
+      groupLogs[0]?.uploadedFileName ||
+      entry.uploadedFileName
+    );
+
+    // 2. File: ONLY show if explicitly uploaded for this stage, or if inspecting TAKE NOTICE ASSIGNMENT and notice receipt exists
+    const matchingLogFile = matchingLog?.uploadedFileName;
+
+    let file: string | undefined = undefined;
+    if (stageName === "TAKE NOTICE ASSIGNMENT") {
+      file = matchingLogFile || n?.handoverReceiptUrl || n?.documentUrl || n?.billingAttachments || n?.handoverReceiptPhoto || entry.uploadedFileName || undefined;
+    } else if (matchingLogFile) {
+      const currentFileBase = getBaseName(matchingLogFile);
+      if (currentFileBase && currentFileBase !== initialNoticeFileBase) {
+        file = matchingLogFile;
+      }
+    }
+
+    // 3. Remarks: Strip system tags ([Notice #...]) but PRESERVE actual user remarks! Filter out system placeholders like "Next step execution for..."
+    const rawRemarks = matchingLog?.remarks || (stageName === "TAKE NOTICE ASSIGNMENT" ? (n?.handoverRemarks || entry.remarks) : undefined);
+    let remarks: string | undefined = undefined;
+    if (rawRemarks && typeof rawRemarks === "string") {
+      const cleanText = rawRemarks.replace(/\[Notice\s*#\d+\]/gi, "").trim();
+      const lower = cleanText.toLowerCase();
+      const isSystemGenerated =
+        cleanText.length === 0 ||
+        lower.startsWith("next step execution for") ||
+        lower.startsWith("notice board entry (");
+
+      if (!isSystemGenerated) {
+        remarks = cleanText;
+      }
+    }
 
     return {
       isFilled,
-      staff: stageStaff?.value,
+      staff: isFilled ? stageStaff?.value : undefined,
       staffLabel: stageStaff?.label || "Staff In-Charge",
       count,
-      date,
-      billNo,
-      billDate,
-      billAmount,
-      finalRate,
-      expenses,
-      grossProfit,
-      stageAmount,
-      finances,
-      dispatchCost,
-      finalGrossProfit,
-      pendingAmount: followUp?.summary?.totalPendingAmount,
-      callAt:
-        followUp?.callDate && followUp?.callTime
-          ? `${followUp.callDate} ${followUp.callTime}`
-          : followUp?.callDate,
-      file,
-      remarks
+      date: date || 'N/A',
+      billNo: isFilled ? billNo : undefined,
+      billDate: isFilled ? billDate : undefined,
+      billAmount: isFilled ? billAmount : undefined,
+      finalRate: isFilled ? finalRate : undefined,
+      expenses: isFilled ? expenses : undefined,
+      grossProfit: isFilled ? grossProfit : undefined,
+      stageAmount: isFilled ? stageAmount : undefined,
+      finances: isFilled ? finances : undefined,
+      dispatchCost: isFilled ? dispatchCost : undefined,
+      finalGrossProfit: isFilled ? finalGrossProfit : undefined,
+      pendingAmount: isFilled ? followUp?.summary?.totalPendingAmount : undefined,
+      callAt: isFilled ? (followUp?.callDate && followUp?.callTime ? `${followUp.callDate} ${followUp.callTime}` : followUp?.callDate) : undefined,
+      file: isFilled ? file : undefined,
+      remarks: isFilled ? remarks : undefined
     };
   };
 
@@ -1415,161 +1860,484 @@ export default function LegalWorkEntryHistoryView({
                   const followUp = parseFollowUpDetails(item.followUpDetails);
                   const finances = parseFollowUpDetails(item.financialDetails);
 
+                  const isExpanded = expandedRowKeys.has(String(item.id));
+                  const stages = STAGE_DEFINITIONS[categoryOpt] || STAGE_DEFINITIONS["ADVOCATE NOTICE"];
+                  const filledStagesCount = stages.filter(stg => getStageFilledDetails(item, stg).isFilled).length;
+
                   return (
-                    <tr key={item.id} className="hover:bg-[#FCFBF9] transition-colors">
-                      <td className="py-2 px-2 align-top">
-                        <div className="font-bold text-[#1C1C1A] flex items-center gap-1.5">
-                          <Calendar className="w-3.5 h-3.5 text-[#C9A84C] shrink-0" />
-                          {item.workDate ? new Date(item.workDate).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }) : "N/A"}
-                        </div>
-                        <div className="text-[11px] text-[#5D5B57] flex items-center gap-1 mt-0.5 font-medium">
-                          <User className="w-3 h-3 text-slate-400 shrink-0" />
-                          {item.employeeName || item.employeeId || "Staff Member"}
-                        </div>
-                      </td>
-
-                      <td className="py-2 px-2 align-top">
-                        <div className="font-bold text-[#1C1C1A]">{item.bankName || "N/A"}</div>
-                        <div className="text-[11px] text-[#5D5B57] font-medium">{item.branchName || "N/A"}</div>
-                      </td>
-
-                      <td className="py-2 px-2 align-top">
-                        <span className="px-2 py-0.5 bg-[#C9A84C] text-white font-bold rounded text-[9px] uppercase tracking-wider inline-block mb-1 shadow-2xs">
-                          {categoryOpt}
-                        </span>
-                        <div className="font-bold text-[#1C1C1A] text-xs">
-                          {subOpt}
-                        </div>
-                      </td>
-
-                      <td className="py-2 px-2 align-top text-center">
-                        <span className="px-2.5 py-1 bg-[#FCFBF9] text-[#1C1C1A] font-bold rounded-lg text-xs inline-block border border-[#E8E4DF]">
-                          {item.noOfCount || "1"}
-                        </span>
-                      </td>
-
-                      <td className="py-2 px-2 align-top text-right font-black text-emerald-700">
-                        ₹{Number(item.billAmount || item.stageAmount || finances?.totalRevenue || 0).toLocaleString("en-IN")}
-                      </td>
-
-                      <td className="py-2 px-2 align-top space-y-0.5 text-[10px] leading-4">
-                        {(item.broughtBy || subOpt === "TAKE NOTICE ASSIGNMENT") && (
-                          <div><strong className="text-[#1C1C1A]">Brought By:</strong> {item.broughtBy || item.employeeName || item.employeeId || "Staff Member"}</div>
-                        )}
-                        {item.preparedBy && (
-                          <div><strong className="text-[#1C1C1A]">Prepared By:</strong> {item.preparedBy}</div>
-                        )}
-                        {item.printedBy && (
-                          <div><strong className="text-[#1C1C1A]">Printed By:</strong> {item.printedBy}</div>
-                        )}
-                        {item.dispatchedBy && (
-                          <div><strong className="text-[#1C1C1A]">Dispatched By:</strong> {item.dispatchedBy}</div>
-                        )}
-                        {item.personName && (
-                          <div><strong className="text-[#1C1C1A]">Person Name:</strong> {item.personName}</div>
-                        )}
-                        {item.billNo && (
-                          <div><strong className="text-[#1C1C1A]">Bill No:</strong> {item.billNo} {item.billDate ? `(${item.billDate})` : ''}</div>
-                        )}
-                        {item.billAmount && (
-                          <div className="text-emerald-700 font-bold">₹{parseFloat(item.billAmount).toLocaleString('en-IN')}</div>
-                        )}
-                        {item.stageAmount !== undefined && item.stageAmount !== null && (
-                          <div className="font-black text-emerald-700">
-                            Amount: ₹{Number(item.stageAmount).toLocaleString("en-IN")}
-                          </div>
-                        )}
-                        {finances && (
-                          <div className="space-y-0.5">
-                            <div>Total: ₹{Number(finances.totalRevenue || 0).toLocaleString("en-IN")}</div>
-                            <div>Officer: ₹{Number(finances.bankOfficerTotal || 0).toLocaleString("en-IN")}</div>
-                            <div>Own Expense: ₹{Number(finances.ownExpenses || 0).toLocaleString("en-IN")}</div>
-                            <div className="font-black text-emerald-700">GP before dispatch: ₹{Number(finances.grossProfitBeforeDispatch || 0).toLocaleString("en-IN")}</div>
-                          </div>
-                        )}
-                        {followUp && (
-                          <>
-                            <div><strong>Called:</strong> {followUp.callDate || "—"} {followUp.callTime || ""}</div>
-                            <div><strong>Contacted:</strong> {followUp.contactedPerson || "—"}</div>
-                            <div className="font-black text-rose-700">
-                              Pending: ₹{Number(followUp.summary?.totalPendingAmount || 0).toLocaleString("en-IN")}
+                    <React.Fragment key={item.id}>
+                      <tr
+                        className={`transition-colors cursor-pointer ${isExpanded ? "bg-[#FCFBF9]" : "hover:bg-[#FCFBF9]"
+                          }`}
+                        onClick={() => toggleRowExpand(item.id)}
+                      >
+                        <td className="py-2 px-2 align-top">
+                          <div className="flex items-center gap-1.5">
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                toggleRowExpand(item.id);
+                              }}
+                              className="p-1 rounded hover:bg-slate-200/70 text-[#C9A84C] transition-colors shrink-0 cursor-pointer"
+                              title={isExpanded ? "Collapse stage details" : "Expand stage details"}
+                            >
+                              {isExpanded ? <ChevronDown className="w-4 h-4 text-[#C9A84C]" /> : <ChevronRight className="w-4 h-4 text-slate-400" />}
+                            </button>
+                            <div>
+                              <div className="font-bold text-[#1C1C1A] flex items-center gap-1.5">
+                                <Calendar className="w-3.5 h-3.5 text-[#C9A84C] shrink-0" />
+                                {item.workDate ? new Date(item.workDate).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }) : "N/A"}
+                              </div>
+                              <div className="text-[11px] text-[#5D5B57] flex items-center gap-1 mt-0.5 font-medium">
+                                <User className="w-3 h-3 text-slate-400 shrink-0" />
+                                {item.employeeName || item.employeeId || "Staff Member"}
+                              </div>
                             </div>
-                            <div className="max-w-xs break-words [overflow-wrap:anywhere] text-slate-600">
-                              {followUp.conversation || item.remarks}
-                            </div>
-                          </>
-                        )}
-                        {subOpt !== "TAKE NOTICE ASSIGNMENT" && !item.broughtBy && !item.preparedBy && !item.printedBy && !item.dispatchedBy && !item.personName && !item.billNo && !item.billAmount && (
-                          <span className="text-slate-400 italic">Notice / Form Log</span>
-                        )}
-                      </td>
+                          </div>
+                        </td>
 
-                      <td className="py-2 px-2 align-top">
-                        {(() => {
-                          // Collect all unique attachments across all grouped logs
-                          const allAttachments: Array<{ fileName: string; stage: string }> = [];
-                          const seenFiles = new Set<string>();
-                          const groupLogs = item.allLogs && item.allLogs.length > 0 ? item.allLogs : [item];
-                          groupLogs.forEach(gl => {
-                            if (gl.uploadedFileName && !seenFiles.has(gl.uploadedFileName)) {
-                              seenFiles.add(gl.uploadedFileName);
-                              allAttachments.push({
-                                fileName: gl.uploadedFileName,
-                                stage: gl.businessDevSubOption || gl.subCategory || ""
-                              });
+                        <td className="py-2 px-2 align-top">
+                          <div className="font-bold text-[#1C1C1A]">{item.bankName || "N/A"}</div>
+                          <div className="text-[11px] text-[#5D5B57] font-medium">{item.branchName || "N/A"}</div>
+                        </td>
+
+                        <td className="py-2 px-2 align-top">
+                          <span className="px-2 py-0.5 bg-[#C9A84C] text-white font-bold rounded text-[9px] uppercase tracking-wider inline-block mb-1 shadow-2xs">
+                            {categoryOpt}
+                          </span>
+                          <div className="font-bold text-[#1C1C1A] text-xs">
+                            {subOpt}
+                          </div>
+                          <div className="text-[9.5px] font-semibold text-[#714B67] mt-0.5 flex items-center gap-1">
+                            <span>Stages: {filledStagesCount}/{stages.length} Filled</span>
+                          </div>
+                        </td>
+
+                        <td className="py-2 px-2 align-top text-center">
+                          <span className="px-2.5 py-1 bg-[#FCFBF9] text-[#1C1C1A] font-bold rounded-lg text-xs inline-block border border-[#E8E4DF]">
+                            {item.noOfCount || "1"}
+                          </span>
+                        </td>
+
+                        <td className="py-2 px-2 align-top text-right font-black text-emerald-700">
+                          ₹{getItemAmount(item).toLocaleString("en-IN")}
+                        </td>
+
+                        <td className="py-2.5 px-3 align-top space-y-1 text-[11px] leading-snug">
+                          {item.dispatchedBy ? (
+                            <div><span className="text-slate-400 font-semibold">Dispatched By:</span> <strong className="text-[#1C1C1A]">{item.dispatchedBy}</strong></div>
+                          ) : item.printedBy ? (
+                            <div><span className="text-slate-400 font-semibold">Printed By:</span> <strong className="text-[#1C1C1A]">{item.printedBy}</strong></div>
+                          ) : item.preparedBy ? (
+                            <div><span className="text-slate-400 font-semibold">Prepared By:</span> <strong className="text-[#1C1C1A]">{item.preparedBy}</strong></div>
+                          ) : (
+                            <div><span className="text-slate-400 font-semibold">Brought By:</span> <strong className="text-[#1C1C1A]">{item.broughtBy || item.employeeName || "Staff"}</strong></div>
+                          )}
+
+                          {item.billNo && (
+                            <div className="text-[10px] text-indigo-700 font-bold">Bill #{item.billNo} {item.billAmount ? `(₹${parseFloat(item.billAmount).toLocaleString('en-IN')})` : ''}</div>
+                          )}
+
+                          {followUp && (
+                            <div className="text-[10px] text-slate-600 truncate max-w-[180px]">
+                              <strong className="text-[#1C1C1A]">Called:</strong> {followUp.callDate || "—"} ({followUp.contactedPerson || ""})
+                            </div>
+                          )}
+                        </td>
+
+                        <td className="py-2 px-2 align-top">
+                          {(() => {
+                            // Collect only user-explicitly-uploaded attachments across all grouped logs
+                            const rawN = item.rawNotice;
+                            const noticeFileUrls = new Set<string>(
+                              [rawN?.handoverReceiptUrl, rawN?.documentUrl, rawN?.billingAttachments, rawN?.handoverReceiptPhoto].filter(Boolean)
+                            );
+                            const allAttachments: Array<{ fileName: string; stage: string }> = [];
+                            const seenFiles = new Set<string>();
+                            const groupLogs = item.allLogs && item.allLogs.length > 0 ? item.allLogs : [item];
+                            groupLogs.forEach(gl => {
+                              if (
+                                gl.uploadedFileName &&
+                                !gl.rawNotice &&
+                                !seenFiles.has(gl.uploadedFileName) &&
+                                !noticeFileUrls.has(gl.uploadedFileName)
+                              ) {
+                                seenFiles.add(gl.uploadedFileName);
+                                allAttachments.push({
+                                  fileName: gl.uploadedFileName,
+                                  stage: gl.businessDevSubOption || gl.subCategory || ""
+                                });
+                              }
+                            });
+                            if (allAttachments.length === 0) {
+                              return <span className="text-slate-400 text-[10px]">—</span>;
                             }
-                          });
-                          if (allAttachments.length === 0) {
-                            return <span className="text-slate-400 text-[10px]">—</span>;
-                          }
-                          return (
-                            <div className="flex flex-col gap-1">
-                              {allAttachments.map((att, idx) => (
-                                <button
-                                  key={idx}
-                                  type="button"
-                                  onClick={() => openFilePreview(att.fileName)}
-                                  className="px-2 py-1 bg-[#FCFBF9] hover:bg-[#F5F0EA] border border-[#E8E4DF] text-[#1C1C1A] rounded-lg font-semibold text-[10px] flex items-center gap-1 cursor-pointer transition-colors"
-                                  title={att.stage ? `${att.stage}: ${getFileNameOnly(att.fileName)}` : getFileNameOnly(att.fileName)}
-                                >
-                                  <Paperclip className="w-3 h-3 text-[#C9A84C] shrink-0" />
-                                  <span className="truncate max-w-[90px]">{getFileNameOnly(att.fileName)}</span>
-                                </button>
-                              ))}
-                            </div>
-                          );
-                        })()}
-                      </td>
+                            return (
+                              <div className="flex flex-col gap-1">
+                                {allAttachments.map((att, idx) => (
+                                  <button
+                                    key={idx}
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      openFilePreview(att.fileName);
+                                    }}
+                                    className="px-2 py-1 bg-[#FCFBF9] hover:bg-[#F5F0EA] border border-[#E8E4DF] text-[#1C1C1A] rounded-lg font-semibold text-[10px] flex items-center gap-1 cursor-pointer transition-colors"
+                                    title={att.stage ? `${att.stage}: ${getFileNameOnly(att.fileName)}` : getFileNameOnly(att.fileName)}
+                                  >
+                                    <Paperclip className="w-3 h-3 text-[#C9A84C] shrink-0" />
+                                    <span className="truncate max-w-[90px]">{getFileNameOnly(att.fileName)}</span>
+                                  </button>
+                                ))}
+                              </div>
+                            );
+                          })()}
+                        </td>
 
-                      <td className="py-2 px-2 align-top text-right">
-                        <div className="flex items-center justify-end gap-1.5">
-                          <button
-                            type="button"
-                            onClick={() => openEditEntry(item)}
-                            className="p-1.5 text-indigo-600 hover:bg-indigo-50 border border-indigo-200 rounded transition-colors"
-                            title="Edit work entry details"
-                          >
-                            <Edit className="w-3 h-3" />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleOpenDetailModal(item)}
-                            className="px-2.5 py-1 bg-[#C9A84C] hover:bg-[#b8973b] text-white rounded-lg text-[10px] font-bold flex items-center gap-1 cursor-pointer shadow-xs transition-all"
-                            title="Inspect Stages Checklist"
-                          >
-                            <Eye className="w-3 h-3" /> Inspect Stages
-                          </button>
-                          <button
-                            type="button"
-                            onClick={(e) => handleDeleteLog(item.id, e)}
-                            className="p-1 text-slate-400 hover:text-rose-600 rounded hover:bg-rose-50 transition-colors cursor-pointer"
-                            title="Delete entry"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
+                        <td className="py-2 px-2 align-top text-right">
+                          <div className="flex items-center justify-end gap-1.5">
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                openEditEntry(item);
+                              }}
+                              className="p-1.5 text-indigo-600 hover:bg-indigo-50 border border-indigo-200 rounded transition-colors cursor-pointer"
+                              title="Edit work entry details"
+                            >
+                              <Edit className="w-3 h-3" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                toggleRowExpand(item.id);
+                              }}
+                              className={`px-2.5 py-1 rounded-lg text-[10px] font-bold flex items-center gap-1 cursor-pointer shadow-2xs transition-all ${isExpanded
+                                  ? "bg-[#714B67] text-white"
+                                  : "bg-[#C9A84C] hover:bg-[#b8973b] text-white"
+                                }`}
+                              title="Inspect Stages directly below row"
+                            >
+                              <Eye className="w-3 h-3" /> {isExpanded ? "Hide Stages" : "Inspect Stages"}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={(e) => handleDeleteLog(item.id, e)}
+                              className="p-1 text-slate-400 hover:text-rose-600 rounded hover:bg-rose-50 transition-colors cursor-pointer"
+                              title="Delete entry"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+
+                      {/* EXPANDED STAGES CONTAINER ROW (CLEAN, Sleek & Non-Messy) */}
+                      {isExpanded && (
+                        <tr key={`expanded_${item.id}`} className="bg-[#FAF9F5] border-b border-[#E8E4DF] animate-fade-in">
+                          <td colSpan={7} className="p-3 sm:p-5">
+                            <div className="bg-white rounded-2xl border border-[#E8E4DF] border-l-4 border-l-[#C9A84C] shadow-sm overflow-hidden text-xs">
+                              {/* Header Bar */}
+                              <div className="px-4 py-3 bg-[#FCFBF9] border-b border-[#E8E4DF] flex flex-wrap items-center justify-between gap-3">
+                                <div className="flex items-center gap-3">
+                                  <span className="px-3 py-1 bg-amber-50 text-amber-900 border border-amber-200/80 rounded-full font-extrabold text-[11px] uppercase tracking-wider">
+                                    Stage Progress: {filledStagesCount} of {stages.length} Completed
+                                  </span>
+                                  <div className="text-xs text-slate-600 font-bold hidden sm:block">
+                                    {item.bankName || "Bank"} — {item.branchName || "Branch"} ({item.noOfCount || 1} Count)
+                                  </div>
+                                </div>
+
+                                <div className="flex items-center gap-2">
+                                  <button
+                                    type="button"
+                                    onClick={() => openNextStepModal(item)}
+                                    className="px-3 py-1.5 bg-[#714B67] hover:bg-[#5F3F56] text-white rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-2xs transition-all"
+                                  >
+                                    <ArrowRight className="w-3.5 h-3.5" /> Next Stage Step
+                                  </button>
+                                </div>
+                              </div>
+                              {/* STAGES SUB-TABLE FORMAT */}
+                              <div className="p-4 overflow-x-auto">
+                                <table className="w-full text-left border-collapse border border-slate-200 rounded-xl overflow-hidden shadow-2xs">
+                                  <thead>
+                                    <tr className="bg-slate-100/90 text-slate-700 font-extrabold text-[10px] uppercase tracking-wider border-b border-slate-250">
+                                      <th className="py-2.5 px-3 w-10 text-center">#</th>
+                                      <th className="py-2.5 px-3">Work Stage</th>
+                                      <th className="py-2.5 px-3">Allocation Date</th>
+                                      <th className="py-2.5 px-3">Staff In-Charge</th>
+                                      <th className="py-2.5 px-3 text-center">Count</th>
+                                      <th className="py-2.5 px-3 text-right">Amount / Rate</th>
+                                      <th className="py-2.5 px-3 text-center">Attachment</th>
+                                      <th className="py-2.5 px-3 text-right">Form Data</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody className="divide-y divide-slate-200 text-xs font-medium">
+                                    {stages.map((stgName, idx) => {
+                                      const info = getStageFilledDetails(item, stgName);
+                                      const isStageOpen = activeNestedStage[String(item.id)] === stgName;
+                                      const formattedDate = info.date && info.date !== 'N/A'
+                                        ? new Date(info.date).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })
+                                        : info.date;
+
+                                      return (
+                                        <React.Fragment key={idx}>
+                                          {/* Stage Row in Table */}
+                                          <tr
+                                            onClick={() => {
+                                              if (info.isFilled) {
+                                                setActiveNestedStage(prev => ({
+                                                  ...prev,
+                                                  [String(item.id)]: isStageOpen ? null : stgName
+                                                }));
+                                              }
+                                            }}
+                                            className={`transition-colors ${info.isFilled
+                                                ? isStageOpen
+                                                  ? "bg-amber-50/70 font-semibold cursor-pointer"
+                                                  : "hover:bg-slate-50/80 cursor-pointer"
+                                                : "bg-slate-50/40 text-slate-400 opacity-60"
+                                              }`}
+                                          >
+                                            {/* Status Badge */}
+                                            <td className="py-2.5 px-3 text-center align-middle">
+                                              {info.isFilled ? (
+                                                <div className="w-5 h-5 rounded-full bg-[#C9A84C] text-white flex items-center justify-center font-bold text-[10px] mx-auto shadow-2xs">
+                                                  ✓
+                                                </div>
+                                              ) : (
+                                                <span className="text-[10px] font-bold text-slate-400">{idx + 1}</span>
+                                              )}
+                                            </td>
+
+                                            {/* Work Stage Name */}
+                                            <td className="py-2.5 px-3 align-middle font-bold text-slate-800 uppercase">
+                                              {stgName}
+                                              {info.isFilled ? (
+                                                <span className="ml-2 px-1.5 py-0.5 bg-emerald-50 text-emerald-700 border border-emerald-200 text-[8.5px] font-bold rounded uppercase">
+                                                  Completed
+                                                </span>
+                                              ) : (
+                                                <span className="ml-2 text-[8.5px] text-slate-400 font-semibold uppercase">
+                                                  Pending
+                                                </span>
+                                              )}
+                                            </td>
+
+                                            {/* Execution Date */}
+                                            <td className="py-2.5 px-3 align-middle text-slate-600 font-semibold">
+                                              {info.isFilled ? formattedDate : "—"}
+                                            </td>
+
+                                            {/* Staff */}
+                                            <td className="py-2.5 px-3 align-middle text-slate-700 font-bold">
+                                              {info.isFilled && info.staff ? (
+                                                <div>
+                                                  <div>{info.staff}</div>
+                                                  <span className="text-[9px] text-slate-400 font-normal">{info.staffLabel}</span>
+                                                </div>
+                                              ) : "—"}
+                                            </td>
+
+                                            {/* Count */}
+                                            <td className="py-2.5 px-3 align-middle text-center font-bold text-slate-700">
+                                              {info.isFilled ? (info.count || "1") : "—"}
+                                            </td>
+
+                                            {/* Amount / Rate */}
+                                            <td className="py-2.5 px-3 align-middle text-right font-black text-emerald-700">
+                                              {info.isFilled ? (
+                                                info.stageAmount ? `₹${Number(info.stageAmount).toLocaleString("en-IN")}` :
+                                                  info.finalRate ? `₹${info.finalRate}/notice` : "—"
+                                              ) : "—"}
+                                            </td>
+
+                                            {/* Attachment */}
+                                            <td className="py-2.5 px-3 align-middle text-center">
+                                              {info.isFilled && info.file ? (
+                                                <button
+                                                  type="button"
+                                                  onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    openFilePreview(info.file!);
+                                                  }}
+                                                  className="px-2 py-1 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 rounded-md text-[10px] font-bold inline-flex items-center gap-1 transition-colors"
+                                                >
+                                                  <Paperclip className="w-3 h-3 text-[#C9A84C]" /> File
+                                                </button>
+                                              ) : (
+                                                <span className="text-slate-400 text-[10px]">—</span>
+                                              )}
+                                            </td>
+
+                                            {/* Actions / View & Edit Form Details */}
+                                            <td className="py-2.5 px-3 align-middle text-right">
+                                              {info.isFilled ? (
+                                                <div className="flex items-center justify-end gap-1.5">
+                                                  <button
+                                                    type="button"
+                                                    onClick={(e) => {
+                                                      e.stopPropagation();
+                                                      openEditEntry(item, stgName);
+                                                    }}
+                                                    className="px-2 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded-lg text-[10px] font-bold inline-flex items-center gap-1 transition-colors cursor-pointer"
+                                                    title={`Edit ${stgName} stage data`}
+                                                  >
+                                                    <Edit className="w-3 h-3" /> Edit
+                                                  </button>
+                                                  <button
+                                                    type="button"
+                                                    onClick={(e) => {
+                                                      e.stopPropagation();
+                                                      setActiveNestedStage(prev => ({
+                                                        ...prev,
+                                                        [String(item.id)]: isStageOpen ? null : stgName
+                                                      }));
+                                                    }}
+                                                    className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-lg text-[10px] font-bold inline-flex items-center gap-1 transition-colors cursor-pointer"
+                                                  >
+                                                    {isStageOpen ? "Hide Data" : "View Data"}
+                                                    {isStageOpen ? <ChevronDown className="w-3 h-3 text-[#C9A84C]" /> : <ChevronRight className="w-3 h-3 text-slate-400" />}
+                                                  </button>
+                                                </div>
+                                              ) : (
+                                                <span className="text-slate-400 text-[10px] italic">Pending</span>
+                                              )}
+                                            </td>
+                                          </tr>
+
+                                          {/* EXPANDED STAGE FULL FORM DATA TABLE */}
+                                          {isStageOpen && info.isFilled && (
+                                            <tr className="bg-amber-50/40 border-b border-amber-200 animate-fade-in">
+                                              <td colSpan={8} className="p-4">
+                                                <div className="bg-white rounded-xl border border-amber-200 p-4 shadow-sm space-y-3">
+                                                  <div className="flex items-center justify-between border-b border-slate-200 pb-2">
+                                                    <h6 className="text-xs font-black uppercase text-[#1C1C1A] flex items-center gap-2">
+                                                      <FileText className="w-4 h-4 text-[#C9A84C]" />
+                                                      All Form Data Filled for <span className="text-[#714B67]">{stgName}</span>
+                                                    </h6>
+                                                    <div className="flex items-center gap-2">
+                                                      <button
+                                                        type="button"
+                                                        onClick={() => openEditEntry(item, stgName)}
+                                                        className="px-2.5 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 text-[10px] font-bold rounded-lg inline-flex items-center gap-1 cursor-pointer transition-colors"
+                                                      >
+                                                        <Edit className="w-3 h-3" /> Edit Stage Data
+                                                      </button>
+                                                      <span className="px-2.5 py-0.5 bg-emerald-50 text-emerald-700 border border-emerald-200 text-[9.5px] font-bold rounded-full uppercase">
+                                                        Verified Stage Log
+                                                      </span>
+                                                    </div>
+                                                  </div>
+
+                                                  {/* 2-Column Key-Value Form Details Table */}
+                                                  <table className="w-full text-xs text-left border-collapse border border-slate-200 rounded-lg overflow-hidden">
+                                                    <tbody className="divide-y divide-slate-200 font-semibold">
+                                                      <tr className="bg-slate-50">
+                                                        <td className="py-2.5 px-3.5 w-1/3 text-slate-500 font-bold uppercase text-[9.5px]">Work Stage</td>
+                                                        <td className="py-2.5 px-3.5 font-black text-slate-800">{stgName}</td>
+                                                      </tr>
+                                                      <tr>
+                                                        <td className="py-2.5 px-3.5 text-slate-500 font-bold uppercase text-[9.5px]">Execution Staff ({info.staffLabel})</td>
+                                                        <td className="py-2.5 px-3.5 text-slate-800 font-bold">{info.staff || "N/A"}</td>
+                                                      </tr>
+                                                      <tr className="bg-slate-50">
+                                                        <td className="py-2.5 px-3.5 text-slate-500 font-bold uppercase text-[9.5px]">Execution Date</td>
+                                                        <td className="py-2.5 px-3.5 text-slate-800 font-bold">{formattedDate}</td>
+                                                      </tr>
+                                                      <tr>
+                                                        <td className="py-2.5 px-3.5 text-slate-500 font-bold uppercase text-[9.5px]">No. of Counts / Quantity</td>
+                                                        <td className="py-2.5 px-3.5 text-slate-800 font-bold">{info.count || "1"} Count</td>
+                                                      </tr>
+
+                                                      {info.finalRate && (
+                                                        <tr className="bg-slate-50">
+                                                          <td className="py-2.5 px-3.5 text-slate-500 font-bold uppercase text-[9.5px]">Per Notice Rate</td>
+                                                          <td className="py-2.5 px-3.5 font-bold text-purple-700">₹{info.finalRate} / notice</td>
+                                                        </tr>
+                                                      )}
+
+                                                      {info.stageAmount && (
+                                                        <tr>
+                                                          <td className="py-2.5 px-3.5 text-slate-500 font-bold uppercase text-[9.5px]">Calculated Stage Amount</td>
+                                                          <td className="py-2.5 px-3.5 font-black text-emerald-700">₹{Number(info.stageAmount).toLocaleString("en-IN")}</td>
+                                                        </tr>
+                                                      )}
+
+                                                      {info.billNo && (
+                                                        <tr className="bg-slate-50">
+                                                          <td className="py-2.5 px-3.5 text-slate-500 font-bold uppercase text-[9.5px]">Bill Details</td>
+                                                          <td className="py-2.5 px-3.5 font-bold text-indigo-700">
+                                                            Bill #{info.billNo} {info.billDate ? `(${info.billDate})` : ""} {info.billAmount ? `- ₹${parseFloat(info.billAmount).toLocaleString("en-IN")}` : ""}
+                                                          </td>
+                                                        </tr>
+                                                      )}
+
+                                                      {info.finances && (
+                                                        <tr>
+                                                          <td className="py-2.5 px-3.5 text-slate-500 font-bold uppercase text-[9.5px]">Financial Breakdown</td>
+                                                          <td className="py-2.5 px-3.5">
+                                                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px]">
+                                                              <div>Total Revenue: <strong className="text-slate-800">₹{Number(info.finances.totalRevenue || 0).toLocaleString("en-IN")}</strong></div>
+                                                              <div>Officer Share: <strong className="text-slate-800">₹{Number(info.finances.bankOfficerTotal || 0).toLocaleString("en-IN")}</strong></div>
+                                                              <div>Own Expense: <strong className="text-slate-800">₹{Number(info.finances.ownExpenses || 0).toLocaleString("en-IN")}</strong></div>
+                                                              <div className="text-emerald-700 font-bold">Gross Profit: ₹{Number(info.finances.grossProfitBeforeDispatch || 0).toLocaleString("en-IN")}</div>
+                                                            </div>
+                                                          </td>
+                                                        </tr>
+                                                      )}
+
+                                                      {info.callAt && (
+                                                        <tr className="bg-slate-50">
+                                                          <td className="py-2.5 px-3.5 text-slate-500 font-bold uppercase text-[9.5px]">Call &amp; Contact Follow-up</td>
+                                                          <td className="py-2.5 px-3.5">
+                                                            <div>Called Date/Time: <strong>{info.callAt}</strong></div>
+                                                            {info.pendingAmount && <div className="text-rose-600 font-bold">Pending Amount: ₹{Number(info.pendingAmount).toLocaleString("en-IN")}</div>}
+                                                          </td>
+                                                        </tr>
+                                                      )}
+
+                                                      {info.remarks && (
+                                                        <tr>
+                                                          <td className="py-2.5 px-3.5 text-slate-500 font-bold uppercase text-[9.5px]">Work Notes &amp; Remarks</td>
+                                                          <td className="py-2.5 px-3.5 text-slate-700 whitespace-pre-wrap">{info.remarks}</td>
+                                                        </tr>
+                                                      )}
+
+                                                      {info.file && (
+                                                        <tr className="bg-amber-50/50">
+                                                          <td className="py-2.5 px-3.5 text-amber-900 font-bold uppercase text-[9.5px]">Uploaded Document / Attachment</td>
+                                                          <td className="py-2.5 px-3.5">
+                                                            <button
+                                                              type="button"
+                                                              onClick={() => openFilePreview(info.file!)}
+                                                              className="px-3 py-1 bg-[#C9A84C] hover:bg-[#b8973b] text-white rounded-md text-xs font-bold inline-flex items-center gap-1 transition-colors shadow-2xs"
+                                                            >
+                                                              <Paperclip className="w-3.5 h-3.5" /> View {getFileNameOnly(info.file)}
+                                                            </button>
+                                                          </td>
+                                                        </tr>
+                                                      )}
+                                                    </tbody>
+                                                  </table>
+                                                </div>
+                                              </td>
+                                            </tr>
+                                          )}
+                                        </React.Fragment>
+                                      );
+                                    })}
+                                  </tbody>
+                                </table>
+                              </div>
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </React.Fragment>
                   );
                 })}
               </tbody>
@@ -1593,77 +2361,307 @@ export default function LegalWorkEntryHistoryView({
             <div className="p-5 space-y-4 overflow-y-auto text-xs font-semibold text-slate-700">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                 <div>
-                  <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">Work Date</label>
+                  <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">Work Date *</label>
                   <input type="date" value={editWorkDate} onChange={e => setEditWorkDate(e.target.value)} className="w-full border border-slate-250 rounded-lg px-3 py-1.5 text-xs font-bold text-slate-800 focus:ring-[#714B67] focus:border-[#714B67]" />
                 </div>
                 <div>
-                  <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">Bank Name</label>
-                  <input type="text" value={editBankName} onChange={e => setEditBankName(e.target.value)} className="w-full border border-slate-250 rounded-lg px-3 py-1.5 text-xs font-bold text-slate-800 focus:ring-[#714B67] focus:border-[#714B67]" />
+                  <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">Bank Name *</label>
+                  <SearchableDropdown value={editBankName} onChange={setEditBankName} options={allBankNames} placeholder="Search or select bank..." required />
                 </div>
                 <div>
-                  <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">Branch Name</label>
-                  <input type="text" value={editBranchName} onChange={e => setEditBranchName(e.target.value)} className="w-full border border-slate-250 rounded-lg px-3 py-1.5 text-xs font-bold text-slate-800 focus:ring-[#714B67] focus:border-[#714B67]" />
+                  <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">Branch Name *</label>
+                  <SearchableDropdown value={editBranchName} onChange={setEditBranchName} options={allBranchNamesForSelectedBank} placeholder="Search or select branch..." required />
                 </div>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">Work Category / Option</label>
-                  <input type="text" value={editOption} onChange={e => setEditOption(e.target.value)} className="w-full border border-slate-250 rounded-lg px-3 py-1.5 text-xs font-bold text-slate-800 focus:ring-[#714B67] focus:border-[#714B67]" />
+                  <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">Work Category / Option *</label>
+                  <select
+                    value={editOption}
+                    onChange={e => {
+                      const newOpt = e.target.value;
+                      setEditOption(newOpt);
+                      const available = STAGE_DEFINITIONS[newOpt] || STAGE_DEFINITIONS["ADVOCATE NOTICE"];
+                      if (available && available.length > 0) setEditSubOption(available[0]);
+                    }}
+                    className="w-full border border-slate-250 rounded-lg px-3 py-1.5 text-xs font-bold text-slate-800 focus:ring-[#714B67] focus:border-[#714B67]"
+                  >
+                    {Object.keys(STAGE_DEFINITIONS).map(opt => (
+                      <option key={opt} value={opt}>{opt}</option>
+                    ))}
+                  </select>
                 </div>
                 <div>
-                  <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">Work Step / Sub-Option</label>
-                  <input type="text" value={editSubOption} onChange={e => setEditSubOption(e.target.value)} className="w-full border border-slate-250 rounded-lg px-3 py-1.5 text-xs font-bold text-slate-800 focus:ring-[#714B67] focus:border-[#714B67]" />
+                  <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">Work Step / Sub-Option *</label>
+                  <select
+                    value={editSubOption}
+                    onChange={e => handleEditSubOptionChange(e.target.value)}
+                    className="w-full border border-slate-250 rounded-lg px-3 py-1.5 text-xs font-bold text-slate-800 focus:ring-[#714B67] focus:border-[#714B67]"
+                  >
+                    {(STAGE_DEFINITIONS[editOption] || STAGE_DEFINITIONS["ADVOCATE NOTICE"]).map(stg => (
+                      <option key={stg} value={stg}>{stg}</option>
+                    ))}
+                  </select>
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                <div>
-                  <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">Quantity (Qty)</label>
-                  <input type="number" min="1" value={editCount} onChange={e => setEditCount(e.target.value)} className="w-full border border-slate-250 rounded-lg px-3 py-1.5 text-xs font-bold text-slate-800 focus:ring-[#714B67] focus:border-[#714B67]" />
+              {/* Dynamic Stage-Specific Form Fields */}
+              {editSubOption === "TAKE NOTICE ASSIGNMENT" && (
+                <div className="space-y-3 bg-purple-50/70 p-3.5 rounded-xl border border-purple-200 animate-fade-in">
+                  <span className="text-[10px] font-black uppercase tracking-wider text-purple-900 block">Notice Assignment Details</span>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div>
+                      <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">No. of Counts *</label>
+                      <input type="number" min="1" required value={editCount} onChange={e => setEditCount(e.target.value)} className="w-full border border-slate-250 rounded-lg px-3 py-1.5 text-xs font-bold text-slate-800" />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">Brought By *</label>
+                      <SearchableEmployeeInput value={editBroughtBy} onChange={setEditBroughtBy} placeholder="Search or select staff..." required employees={employeeOptions} />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">Allocation Date *</label>
+                      <input type="date" required value={editAllocationDate} onChange={e => setEditAllocationDate(e.target.value)} className="w-full border border-slate-250 rounded-lg px-3 py-1.5 text-xs font-bold text-slate-800" />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div>
+                      <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">Per Notice Rate (₹)</label>
+                      <input type="number" min="0" step="0.01" value={editRate} onChange={e => setEditRate(e.target.value)} placeholder="Rate per notice" className="w-full border border-slate-250 rounded-lg px-3 py-1.5 text-xs font-bold text-purple-700 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">Bank Officer / Notice (₹)</label>
+                      <input type="number" min="0" step="0.01" value={editOfficerShare} onChange={e => setEditOfficerShare(e.target.value)} placeholder="Officer share" className="w-full border border-slate-250 rounded-lg px-3 py-1.5 text-xs font-bold text-slate-800" />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">Own Expenses (₹)</label>
+                      <input type="number" min="0" step="0.01" value={editOwnExpense} onChange={e => setEditOwnExpense(e.target.value)} placeholder="Enter expenses" className="w-full border border-slate-250 rounded-lg px-3 py-1.5 text-xs font-bold text-slate-800" />
+                    </div>
+                  </div>
                 </div>
-                <div>
-                  <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">Bill / Stage Amount (₹)</label>
-                  <input type="number" min="0" step="0.01" value={editAmount} onChange={e => setEditAmount(e.target.value)} className="w-full border border-slate-250 rounded-lg px-3 py-1.5 text-xs font-bold text-emerald-700 focus:ring-emerald-600 focus:border-emerald-600" />
+              )}
+
+              {editSubOption === "COLLECT NOTICE DATA" && (
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 bg-purple-50/70 p-3.5 rounded-xl border border-purple-200 animate-fade-in">
+                  <div>
+                    <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">No. of Counts *</label>
+                    <input type="number" min="1" required value={editCount} onChange={e => setEditCount(e.target.value)} className="w-full border border-slate-250 rounded-lg px-3 py-2 text-xs font-bold text-slate-800" />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">Brought By *</label>
+                    <SearchableEmployeeInput value={editBroughtBy} onChange={setEditBroughtBy} placeholder="Search or select staff..." required employees={employeeOptions} />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">Allocation Date *</label>
+                    <input type="date" required value={editAllocationDate} onChange={e => setEditAllocationDate(e.target.value)} className="w-full border border-slate-250 rounded-lg px-3 py-2 text-xs font-bold text-slate-800" />
+                  </div>
                 </div>
-                <div>
-                  <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">Own Expense (₹)</label>
-                  <input type="number" min="0" step="0.01" value={editOwnExpense} onChange={e => setEditOwnExpense(e.target.value)} className="w-full border border-slate-250 rounded-lg px-3 py-1.5 text-xs font-bold text-slate-800 focus:ring-[#714B67] focus:border-[#714B67]" />
+              )}
+
+              {editSubOption === "PREPARE NOTICE LIST" && (
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 bg-purple-50/70 p-3.5 rounded-xl border border-purple-200 animate-fade-in">
+                  <div>
+                    <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">No. of Counts *</label>
+                    <input type="number" min="1" required value={editCount} onChange={e => setEditCount(e.target.value)} className="w-full border border-slate-250 rounded-lg px-3 py-2 text-xs font-bold text-slate-800" />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">Prepared By *</label>
+                    <SearchableEmployeeInput value={editPreparedBy} onChange={setEditPreparedBy} placeholder="Search or select staff..." required employees={employeeOptions} />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">Allocation Date *</label>
+                    <input type="date" required value={editAllocationDate} onChange={e => setEditAllocationDate(e.target.value)} className="w-full border border-slate-250 rounded-lg px-3 py-2 text-xs font-bold text-slate-800" />
+                  </div>
                 </div>
+              )}
+
+              {editSubOption.includes("GENERATE NOTICE") && (
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 bg-purple-50/70 p-3.5 rounded-xl border border-purple-200 animate-fade-in">
+                  <div>
+                    <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">No. of Counts *</label>
+                    <input type="number" min="1" required value={editCount} onChange={e => setEditCount(e.target.value)} className="w-full border border-slate-250 rounded-lg px-3 py-2 text-xs font-bold text-slate-800" />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">Printed By *</label>
+                    <SearchableEmployeeInput value={editPrintedBy} onChange={setEditPrintedBy} placeholder="Search or select staff..." required employees={employeeOptions} />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">Allocation Date *</label>
+                    <input type="date" required value={editAllocationDate} onChange={e => setEditAllocationDate(e.target.value)} className="w-full border border-slate-250 rounded-lg px-3 py-2 text-xs font-bold text-slate-800" />
+                  </div>
+                </div>
+              )}
+
+              {editSubOption.includes("DISPATCH NOTICE") && (
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 bg-purple-50/70 p-3.5 rounded-xl border border-purple-200 animate-fade-in">
+                  <div>
+                    <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">No. of Counts *</label>
+                    <input type="number" min="1" required value={editCount} onChange={e => setEditCount(e.target.value)} className="w-full border border-slate-250 rounded-lg px-3 py-2 text-xs font-bold text-slate-800" />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">Dispatched By *</label>
+                    <SearchableEmployeeInput value={editDispatchedBy} onChange={setEditDispatchedBy} placeholder="Search or select staff..." required employees={employeeOptions} />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">Dispatch Amount (₹) *</label>
+                    <input type="number" min="0" step="0.01" required value={editAmount} onChange={e => setEditAmount(e.target.value)} placeholder="Enter dispatch amount..." className="w-full border border-slate-250 rounded-lg px-3 py-2 text-xs font-bold text-emerald-700" />
+                  </div>
+                </div>
+              )}
+
+              {editSubOption.includes("PREPARE BILL") && (
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 bg-purple-50/70 p-3.5 rounded-xl border border-purple-200 animate-fade-in">
+                  <div>
+                    <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">Bill Date *</label>
+                    <input type="date" required value={editBillDate} onChange={e => setEditBillDate(e.target.value)} className="w-full border border-slate-250 rounded-lg px-3 py-2 text-xs font-bold text-slate-800" />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">Bill Amount (₹) *</label>
+                    <input type="number" min="0" step="0.01" required value={editBillAmount} onChange={e => setEditBillAmount(e.target.value)} placeholder="Enter amount..." className="w-full border border-slate-250 rounded-lg px-3 py-2 text-xs font-bold text-emerald-700" />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">Bill No. *</label>
+                    <input type="text" required value={editBillNo} onChange={e => setEditBillNo(e.target.value)} placeholder="Enter bill number..." className="w-full border border-slate-250 rounded-lg px-3 py-2 text-xs font-bold text-slate-800" />
+                  </div>
+                </div>
+              )}
+
+              {editSubOption.includes("REQUEST PAYMENT") && (
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 bg-purple-50/70 p-3.5 rounded-xl border border-purple-200 animate-fade-in">
+                  <div>
+                    <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">Amount (₹) *</label>
+                    <input type="number" min="0" step="0.01" required value={editBillAmount} onChange={e => setEditBillAmount(e.target.value)} placeholder="Enter amount..." className="w-full border border-slate-250 rounded-lg px-3 py-2 text-xs font-bold text-emerald-700" />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">Person Name (Optional)</label>
+                    <SearchableEmployeeInput value={editPersonName} onChange={setEditPersonName} placeholder="Search or select staff..." employees={employeeOptions} />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">Allocated Date *</label>
+                    <input type="date" required value={editAllocationDate} onChange={e => setEditAllocationDate(e.target.value)} className="w-full border border-slate-250 rounded-lg px-3 py-2 text-xs font-bold text-slate-800" />
+                  </div>
+                </div>
+              )}
+
+              {editSubOption === "BILL FOLLOW UP" && (
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 bg-purple-50/70 p-3.5 rounded-xl border border-purple-200 animate-fade-in">
+                  <div>
+                    <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">Call Date *</label>
+                    <input type="date" required value={editCallDate} onChange={e => setEditCallDate(e.target.value)} className="w-full border border-slate-250 rounded-lg px-3 py-2 text-xs font-bold text-slate-800" />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">Call Time *</label>
+                    <input type="time" required value={editCallTime} onChange={e => setEditCallTime(e.target.value)} className="w-full border border-slate-250 rounded-lg px-3 py-2 text-xs font-bold text-slate-800" />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">Contacted Person *</label>
+                    <input type="text" required value={editContactedPerson} onChange={e => setEditContactedPerson(e.target.value)} placeholder="Contacted person name..." className="w-full border border-slate-250 rounded-lg px-3 py-2 text-xs font-bold text-slate-800" />
+                  </div>
+                </div>
+              )}
+
+              {/* Default Fallback for other sub-options */}
+              {editSubOption !== "TAKE NOTICE ASSIGNMENT" &&
+                editSubOption !== "COLLECT NOTICE DATA" &&
+                editSubOption !== "PREPARE NOTICE LIST" &&
+                !editSubOption?.includes("GENERATE NOTICE") &&
+                !editSubOption?.includes("DISPATCH NOTICE") &&
+                !editSubOption?.includes("PREPARE BILL") &&
+                !editSubOption?.includes("REQUEST PAYMENT") &&
+                editSubOption !== "BILL FOLLOW UP" && (
+                  <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 bg-purple-50/70 p-3.5 rounded-xl border border-purple-200 animate-fade-in">
+                    <div>
+                      <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">No. of Counts *</label>
+                      <input type="number" min="1" required value={editCount} onChange={e => setEditCount(e.target.value)} className="w-full border border-slate-250 rounded-lg px-3 py-2 text-xs font-bold text-slate-800" />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">Per Notice Rate (₹)</label>
+                      <input type="number" min="0" step="0.01" value={editRate} onChange={e => setEditRate(e.target.value)} placeholder="Enter rate..." className="w-full border border-slate-250 rounded-lg px-3 py-2 text-xs font-bold text-purple-700 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">Work Completed By *</label>
+                      <SearchableEmployeeInput value={editBroughtBy} onChange={setEditBroughtBy} placeholder="Search or select staff..." required employees={employeeOptions} />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">Allocation Date *</label>
+                      <input type="date" required value={editAllocationDate} onChange={e => setEditAllocationDate(e.target.value)} className="w-full border border-slate-250 rounded-lg px-3 py-2 text-xs font-bold text-slate-800" />
+                    </div>
+                  </div>
+                )}
+
+              {/* Attachment Document Section in Edit Modal */}
+              <div className="space-y-2 bg-[#FCFBF9] p-3.5 rounded-xl border border-[#E8E4DF]">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-black uppercase tracking-wider text-slate-700">
+                    Stage Attachment Document
+                  </span>
+                  {editUploadedFileName && (
+                    <button
+                      type="button"
+                      onClick={() => setEditUploadedFileName("")}
+                      className="text-[10px] font-bold text-rose-600 hover:text-rose-800 hover:underline flex items-center gap-1 cursor-pointer"
+                    >
+                      <Trash2 className="w-3 h-3" /> Remove Attachment
+                    </button>
+                  )}
+                </div>
+
+                {editUploadedFileName ? (
+                  <div className="flex items-center justify-between p-2.5 bg-white border border-slate-250 rounded-lg">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <Paperclip className="w-4 h-4 text-[#C9A84C] shrink-0" />
+                      <span className="text-xs font-bold text-slate-800 truncate" title={editUploadedFileName}>
+                        {getFileNameOnly(editUploadedFileName)}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-2 shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => openFilePreview(editUploadedFileName)}
+                        className="px-2.5 py-1 bg-amber-50 text-amber-800 border border-amber-200 rounded-md text-[10px] font-bold hover:bg-amber-100 transition-colors cursor-pointer"
+                      >
+                        <Eye className="w-3 h-3 inline mr-1" /> Preview
+                      </button>
+                      <label className="px-2.5 py-1 bg-indigo-50 text-indigo-700 border border-indigo-200 rounded-md text-[10px] font-bold hover:bg-indigo-100 cursor-pointer transition-colors">
+                        <span>{isUploadingEditFile ? "Uploading..." : "Replace File"}</span>
+                        <input
+                          type="file"
+                          accept=".xlsx,.xls,.csv,.pdf,.doc,.docx,.png,.jpg,.jpeg,image/*"
+                          className="hidden"
+                          disabled={isUploadingEditFile}
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) handleEditFileUpload(file);
+                          }}
+                        />
+                      </label>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="p-3 bg-white border border-dashed border-slate-300 rounded-lg flex items-center justify-between">
+                    <span className="text-xs text-slate-400 font-medium italic">No document file attached for this entry stage.</span>
+                    <label className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-bold flex items-center gap-1 cursor-pointer shadow-2xs transition-colors">
+                      <Paperclip className="w-3.5 h-3.5" />
+                      <span>{isUploadingEditFile ? "Uploading..." : "Attach Document"}</span>
+                      <input
+                        type="file"
+                        accept=".xlsx,.xls,.csv,.pdf,.doc,.docx,.png,.jpg,.jpeg,image/*"
+                        className="hidden"
+                        disabled={isUploadingEditFile}
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) handleEditFileUpload(file);
+                        }}
+                      />
+                    </label>
+                  </div>
+                )}
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1 border-t border-slate-100">
-                <div>
-                  <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">Brought By Staff</label>
-                  <input type="text" value={editBroughtBy} onChange={e => setEditBroughtBy(e.target.value)} placeholder="Staff name" className="w-full border border-slate-250 rounded-lg px-3 py-1.5 text-xs font-bold text-slate-800" />
-                </div>
-                <div>
-                  <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">Prepared By Staff</label>
-                  <input type="text" value={editPreparedBy} onChange={e => setEditPreparedBy(e.target.value)} placeholder="Staff name" className="w-full border border-slate-250 rounded-lg px-3 py-1.5 text-xs font-bold text-slate-800" />
-                </div>
-                <div>
-                  <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">Printed By Staff</label>
-                  <input type="text" value={editPrintedBy} onChange={e => setEditPrintedBy(e.target.value)} placeholder="Staff name" className="w-full border border-slate-250 rounded-lg px-3 py-1.5 text-xs font-bold text-slate-800" />
-                </div>
-                <div>
-                  <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">Dispatched By Staff</label>
-                  <input type="text" value={editDispatchedBy} onChange={e => setEditDispatchedBy(e.target.value)} placeholder="Staff name" className="w-full border border-slate-250 rounded-lg px-3 py-1.5 text-xs font-bold text-slate-800" />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">Bank Officer / Handover Contact</label>
-                  <input type="text" value={editPersonName} onChange={e => setEditPersonName(e.target.value)} placeholder="Officer Name" className="w-full border border-slate-250 rounded-lg px-3 py-1.5 text-xs font-bold text-slate-800" />
-                </div>
-                <div>
-                  <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">Officer Phone / Contact No</label>
-                  <input type="text" value={editOfficerContactNo} onChange={e => setEditOfficerContactNo(e.target.value)} placeholder="Phone No" className="w-full border border-slate-250 rounded-lg px-3 py-1.5 text-xs font-bold text-slate-800" />
-                </div>
-              </div>
 
               <div>
-                <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">Remarks &amp; Work Execution Notes</label>
+                <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">Remarks &amp; Work Execution Notes *</label>
                 <textarea rows={3} value={editRemarks} onChange={e => setEditRemarks(e.target.value)} placeholder="Specific instructions or work execution notes..." className="w-full border border-slate-250 rounded-lg px-3 py-2 text-xs resize-none focus:outline-none focus:border-[#714B67]" />
               </div>
             </div>
@@ -1724,7 +2722,7 @@ export default function LegalWorkEntryHistoryView({
                     </div>
                     <div>
                       <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">Brought By *</label>
-                      <input type="text" required value={nextStepBroughtBy} onChange={e => setNextStepBroughtBy(e.target.value)} placeholder="Enter person name..." className="w-full border border-slate-250 rounded-lg px-3 py-2 text-xs font-bold text-slate-800" />
+                      <SearchableEmployeeInput value={nextStepBroughtBy} onChange={setNextStepBroughtBy} placeholder="Enter or search staff..." required employees={employeeOptions} />
                     </div>
                     <div>
                       <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">Allocation Date *</label>
@@ -1756,7 +2754,7 @@ export default function LegalWorkEntryHistoryView({
                   </div>
                   <div>
                     <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">Brought By *</label>
-                    <input type="text" required value={nextStepBroughtBy} onChange={e => setNextStepBroughtBy(e.target.value)} placeholder="Person name who brought data..." className="w-full border border-slate-250 rounded-lg px-3 py-2 text-xs font-bold text-slate-800" />
+                    <SearchableEmployeeInput value={nextStepBroughtBy} onChange={setNextStepBroughtBy} placeholder="Search or select staff..." required employees={employeeOptions} />
                   </div>
                   <div>
                     <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">Upload Notice Data File (Optional)</label>
@@ -1779,7 +2777,7 @@ export default function LegalWorkEntryHistoryView({
                   </div>
                   <div>
                     <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">Prepared By *</label>
-                    <input type="text" required value={nextStepPreparedBy} onChange={e => setNextStepPreparedBy(e.target.value)} placeholder="Person name who prepared list..." className="w-full border border-slate-250 rounded-lg px-3 py-2 text-xs font-bold text-slate-800" />
+                    <SearchableEmployeeInput value={nextStepPreparedBy} onChange={setNextStepPreparedBy} placeholder="Search or select staff..." required employees={employeeOptions} />
                   </div>
                   <div>
                     <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">Upload Notice List File (Optional)</label>
@@ -1802,7 +2800,7 @@ export default function LegalWorkEntryHistoryView({
                   </div>
                   <div>
                     <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">Printed By *</label>
-                    <input type="text" required value={nextStepPrintedBy} onChange={e => setNextStepPrintedBy(e.target.value)} placeholder="Person name who printed notices..." className="w-full border border-slate-250 rounded-lg px-3 py-2 text-xs font-bold text-slate-800" />
+                    <SearchableEmployeeInput value={nextStepPrintedBy} onChange={setNextStepPrintedBy} placeholder="Search or select staff..." required employees={employeeOptions} />
                   </div>
                   <div>
                     <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">Upload Notice File (Optional)</label>
@@ -1825,7 +2823,7 @@ export default function LegalWorkEntryHistoryView({
                   </div>
                   <div>
                     <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">Dispatched By *</label>
-                    <input type="text" required value={nextStepDispatchedBy} onChange={e => setNextStepDispatchedBy(e.target.value)} placeholder="Person name who dispatched..." className="w-full border border-slate-250 rounded-lg px-3 py-2 text-xs font-bold text-slate-800" />
+                    <SearchableEmployeeInput value={nextStepDispatchedBy} onChange={setNextStepDispatchedBy} placeholder="Search or select staff..." required employees={employeeOptions} />
                   </div>
                   <div>
                     <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">Amount (₹) *</label>
@@ -1897,6 +2895,38 @@ export default function LegalWorkEntryHistoryView({
                   </div>
                 </div>
               )}
+              {nextStepSubOption !== "TAKE NOTICE ASSIGNMENT" &&
+                nextStepSubOption !== "COLLECT NOTICE DATA" &&
+                nextStepSubOption !== "PREPARE NOTICE LIST" &&
+                !nextStepSubOption?.includes("GENERATE NOTICE") &&
+                !nextStepSubOption?.includes("DISPATCH NOTICE") &&
+                !nextStepSubOption?.includes("PREPARE BILL") &&
+                !nextStepSubOption?.includes("REQUEST PAYMENT") && (
+                  <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 bg-purple-50/70 p-3.5 rounded-xl border border-purple-200 animate-fade-in">
+                    <div>
+                      <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">No. of Counts *</label>
+                      <input type="number" min="1" required value={nextStepCount} onChange={e => setNextStepCount(e.target.value)} className="w-full border border-slate-250 rounded-lg px-3 py-2 text-xs font-bold text-slate-800" />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">Per Notice Rate (₹)</label>
+                      <input type="number" min="0" step="0.01" value={nextStepRate} onChange={e => setNextStepRate(e.target.value)} placeholder="Enter per notice rate..." className="w-full border border-slate-250 rounded-lg px-3 py-2 text-xs font-bold text-slate-800 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">Work Completed By *</label>
+                      <SearchableEmployeeInput value={nextStepBroughtBy} onChange={setNextStepBroughtBy} placeholder="Search or select staff..." required employees={employeeOptions} />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">Upload File (Optional)</label>
+                      <input type="file" accept=".xlsx,.xls,.csv,.pdf,.doc,.docx,.png,.jpg,.jpeg,image/*" onChange={handleNextStepFileChange} className="w-full text-[11px] font-bold text-slate-700 file:mr-2 file:py-1 file:px-2.5 file:rounded-lg file:border-0 file:text-[9.5px] file:font-black file:bg-purple-100 file:text-purple-800 cursor-pointer" />
+                      {nextStepUploadedFileName && (
+                        <div className="flex items-center gap-1.5 mt-1">
+                          <span className="text-[10px] font-bold text-purple-700 truncate">📄 {nextStepUploadedFileName}</span>
+                          <button type="button" onClick={() => openFilePreview(nextStepUploadedFileUrl || nextStepUploadedFileName)} className="shrink-0 px-1.5 py-0.5 bg-[#C9A84C] text-white rounded text-[9px] font-bold cursor-pointer hover:bg-[#b8973b]">Preview</button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
 
               <div>
                 <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">Remarks &amp; Execution Summary</label>
@@ -2053,7 +3083,7 @@ export default function LegalWorkEntryHistoryView({
                             <p className="font-bold text-[#1C1C1A]">{info.count || selectedEntryDetail.noOfCount || "1"} Notice(s)</p>
                           </div>
 
-                          {info.staff && (
+                          {info.staff && info.staff.trim().length > 0 && (
                             <div className="col-span-2 sm:col-span-1">
                               <span className="text-[9px] font-bold uppercase tracking-wider text-[#9C9890] block mb-0.5">{info.staffLabel || "Staff In-Charge / Handover"}</span>
                               <p className="font-bold text-[#1C1C1A]">{info.staff}</p>
@@ -2081,14 +3111,14 @@ export default function LegalWorkEntryHistoryView({
                             </div>
                           )}
 
-                          {info.finalRate !== undefined && info.finalRate !== null && (
+                          {info.finalRate !== undefined && info.finalRate !== null && Number(info.finalRate) > 0 && (
                             <div>
                               <span className="text-[9px] font-bold uppercase tracking-wider text-[#9C9890] block mb-0.5">Per Notice Rate</span>
                               <p className="font-bold text-[#1C1C1A] text-sm">₹{parseFloat(info.finalRate).toLocaleString("en-IN")}</p>
                             </div>
                           )}
 
-                          {info.expenses !== undefined && info.expenses !== null && (
+                          {info.expenses !== undefined && info.expenses !== null && Number(info.expenses) > 0 && (
                             <div>
                               <span className="text-[9px] font-bold uppercase tracking-wider text-[#9C9890] block mb-0.5">Own Expenses</span>
                               <p className="font-bold text-rose-700 text-sm">₹{parseFloat(info.expenses).toLocaleString("en-IN")}</p>
@@ -2104,23 +3134,35 @@ export default function LegalWorkEntryHistoryView({
                             </div>
                           )}
 
-                          {info.stageAmount !== undefined && info.stageAmount !== null && (
+                          {selectedStageTab === "DISPATCH NOTICES" && info.stageAmount !== undefined && info.stageAmount !== null && Number(info.stageAmount) > 0 && (
                             <div>
                               <span className="text-[9px] font-bold uppercase tracking-wider text-[#9C9890] block mb-0.5">Dispatch Amount</span>
                               <p className="font-black text-emerald-700 text-sm">₹{Number(info.stageAmount).toLocaleString("en-IN")}</p>
                             </div>
                           )}
 
-                          {info.finances && (
-                            <div className="col-span-2 grid grid-cols-2 gap-3 rounded-xl border border-purple-200 bg-white p-3 sm:grid-cols-3">
-                              <div><span className="block text-[9px] font-bold uppercase text-slate-500">Notice Count × Rate</span><p className="font-black">{info.finances.noticeCount} × ₹{Number(info.finances.perNoticeRate).toLocaleString("en-IN")}</p></div>
-                              <div><span className="block text-[9px] font-bold uppercase text-slate-500">Total Revenue</span><p className="font-black">₹{Number(info.finances.totalRevenue).toLocaleString("en-IN")}</p></div>
-                              <div><span className="block text-[9px] font-bold uppercase text-slate-500">Officer Share</span><p className="font-black text-amber-700">{info.finances.noticeCount} × ₹{Number(info.finances.bankOfficerPerNotice).toLocaleString("en-IN")} = ₹{Number(info.finances.bankOfficerTotal).toLocaleString("en-IN")}</p></div>
-                              <div><span className="block text-[9px] font-bold uppercase text-slate-500">Own Expenses</span><p className="font-black text-rose-700">₹{Number(info.finances.ownExpenses).toLocaleString("en-IN")}</p></div>
-                              <div><span className="block text-[9px] font-bold uppercase text-slate-500">Dispatch Cost</span><p className="font-black text-rose-700">₹{Number(info.dispatchCost || 0).toLocaleString("en-IN")}</p></div>
-                              <div><span className="block text-[9px] font-bold uppercase text-slate-500">Final GP</span><p className={`font-black ${Number(info.finalGrossProfit) >= 0 ? "text-emerald-700" : "text-rose-700"}`}>₹{Number(info.finalGrossProfit || 0).toLocaleString("en-IN")}</p></div>
-                            </div>
-                          )}
+                          {info.finances && (() => {
+                            const displayCount = Number(info.count || info.finances.noticeCount || 1);
+                            const perRate = Number(info.finances.perNoticeRate || info.finalRate || 50);
+                            const officerRate = Number(info.finances.bankOfficerPerNotice || 0);
+                            const ownExp = Number(info.finances.ownExpenses || info.expenses || 0);
+                            const dispCost = Number(info.dispatchCost || 0);
+
+                            const totalRev = displayCount * perRate;
+                            const officerTotal = displayCount * officerRate;
+                            const finalGp = totalRev - officerTotal - ownExp - dispCost;
+
+                            return (
+                              <div className="col-span-2 grid grid-cols-2 gap-3 rounded-xl border border-purple-200 bg-white p-3 sm:grid-cols-3">
+                                <div><span className="block text-[9px] font-bold uppercase text-slate-500">Notice Count × Rate</span><p className="font-black">{displayCount} × ₹{perRate.toLocaleString("en-IN")}</p></div>
+                                <div><span className="block text-[9px] font-bold uppercase text-slate-500">Total Revenue</span><p className="font-black">₹{totalRev.toLocaleString("en-IN")}</p></div>
+                                <div><span className="block text-[9px] font-bold uppercase text-slate-500">Officer Share</span><p className="font-black text-amber-700">{displayCount} × ₹{officerRate.toLocaleString("en-IN")} = ₹{officerTotal.toLocaleString("en-IN")}</p></div>
+                                <div><span className="block text-[9px] font-bold uppercase text-slate-500">Own Expenses</span><p className="font-black text-rose-700">₹{ownExp.toLocaleString("en-IN")}</p></div>
+                                <div><span className="block text-[9px] font-bold uppercase text-slate-500">Dispatch Cost</span><p className="font-black text-rose-700">₹{dispCost.toLocaleString("en-IN")}</p></div>
+                                <div><span className="block text-[9px] font-bold uppercase text-slate-500">Final GP</span><p className={`font-black ${finalGp >= 0 ? "text-emerald-700" : "text-rose-700"}`}>₹{finalGp.toLocaleString("en-IN")}</p></div>
+                              </div>
+                            );
+                          })()}
 
                           {info.callAt && (
                             <div>
@@ -2140,17 +3182,17 @@ export default function LegalWorkEntryHistoryView({
                         {/* Attachment Section */}
                         <div className="pt-2">
                           <span className="text-[9px] font-bold uppercase tracking-wider text-[#9C9890] block mb-1.5">Attached Document / Receipt</span>
-                          {info.file || selectedEntryDetail.uploadedFileName ? (
+                          {info.file ? (
                             <div className="flex items-center justify-between p-3.5 bg-[#FCFBF9] border border-[#E8E4DF] rounded-xl">
                               <div className="flex items-center gap-2">
                                 <Paperclip className="w-4 h-4 text-[#1C1C1A] shrink-0" />
-                                <span className="text-xs font-bold text-[#1C1C1A] truncate max-w-[220px]">{getFileNameOnly(info.file || selectedEntryDetail.uploadedFileName)}</span>
+                                <span className="text-xs font-bold text-[#1C1C1A] truncate max-w-[220px]">{getFileNameOnly(info.file)}</span>
                               </div>
 
                               <div className="flex items-center gap-2">
                                 <button
                                   type="button"
-                                  onClick={() => openFilePreview((info.file || selectedEntryDetail.uploadedFileName)!)}
+                                  onClick={() => openFilePreview(info.file!)}
                                   className="px-3 py-1.5 bg-[#C9A84C] hover:bg-[#b8973b] text-white font-bold text-xs rounded-lg flex items-center gap-1 shadow-xs cursor-pointer transition-colors"
                                 >
                                   <Eye className="w-3.5 h-3.5" /> Preview Document

@@ -296,9 +296,9 @@ export async function POST(request: Request) {
       ...cleanData,
       employeeId: empId,
       employeeName: empName,
-      finalRate: isNoticeAssessment ? parsedFinalRate : null,
-      expenses: isNoticeAssessment ? parsedExpenses : null,
-      grossProfit: isNoticeAssessment ? calculatedAssessmentGp : null,
+      finalRate: Number.isFinite(parsedFinalRate) ? parsedFinalRate : null,
+      expenses: Number.isFinite(parsedExpenses) ? parsedExpenses : null,
+      grossProfit: isNoticeAssessment ? calculatedAssessmentGp : (Number.isFinite(parsedFinalRate) ? parsedFinalRate * (Number.parseFloat(String(data.noOfCount || "1")) || 1) : null),
     });
 
     if (data.workDate || data.allocationDate) {

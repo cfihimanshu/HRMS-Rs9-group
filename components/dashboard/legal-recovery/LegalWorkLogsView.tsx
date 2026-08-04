@@ -49,6 +49,105 @@ const WORK_CATEGORIES: Record<string, string[]> = {
   ]
 };
 
+function SearchableEmployeeInput({
+  value,
+  onChange,
+  placeholder,
+  required,
+  employees,
+  className,
+}: {
+  value: string;
+  onChange: (val: string) => void;
+  placeholder?: string;
+  required?: boolean;
+  employees: string[];
+  className?: string;
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  const wrapperRef = React.useRef<HTMLDivElement>(null);
+
+  // Clean & deduplicate names (case-insensitive deduplication)
+  const uniqueNames = React.useMemo(() => {
+    const map = new Map<string, string>();
+    (employees || []).forEach((emp) => {
+      if (!emp || !emp.trim()) return;
+      const key = emp.trim().toLowerCase();
+      if (!map.has(key)) {
+        map.set(key, emp.trim());
+      }
+    });
+    return Array.from(map.values()).sort((a, b) => a.localeCompare(b));
+  }, [employees]);
+
+  // Filter based on input value
+  const filtered = React.useMemo(() => {
+    if (!value || !value.trim()) return uniqueNames;
+    const q = value.toLowerCase().trim();
+    return uniqueNames.filter((name) => name.toLowerCase().includes(q));
+  }, [uniqueNames, value]);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (wrapperRef.current && !wrapperRef.current.contains(e.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  return (
+    <div ref={wrapperRef} className="relative w-full">
+      <input
+        type="text"
+        value={value}
+        onChange={(e) => {
+          onChange(e.target.value);
+          setIsOpen(true);
+        }}
+        onFocus={() => setIsOpen(true)}
+        placeholder={placeholder || "Search or select staff..."}
+        required={required}
+        className={
+          className ||
+          "w-full p-2 border border-purple-300 rounded-lg text-xs font-black text-slate-950 bg-white focus:outline-none focus:border-purple-600"
+        }
+      />
+
+      {isOpen && (
+        <div className="absolute left-0 right-0 top-full mt-1 z-50 max-h-48 overflow-y-auto bg-white rounded-xl border border-slate-200 shadow-xl py-1 text-xs font-semibold text-slate-800">
+          {filtered.length > 0 ? (
+            filtered.map((name, idx) => {
+              const initial = name.trim().charAt(0).toUpperCase();
+              return (
+                <div
+                  key={idx}
+                  onClick={() => {
+                    onChange(name);
+                    setIsOpen(false);
+                  }}
+                  className="flex items-center gap-2.5 px-3 py-2 hover:bg-purple-50 cursor-pointer border-b border-slate-100 last:border-0 transition-colors"
+                >
+                  <div className="w-5 h-5 rounded-full bg-purple-100 text-purple-700 font-bold text-[10px] flex items-center justify-center shrink-0 shadow-2xs">
+                    {initial}
+                  </div>
+                  <span className="font-bold text-slate-800 truncate">{name}</span>
+                </div>
+              );
+            })
+          ) : (
+            <div className="px-3 py-2 text-[11px] font-medium italic text-slate-400">
+              No matching employee found.
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function LegalWorkLogsView({ workLogs, branches, banks, loading, onRefresh }: { workLogs: any[], branches: any[], banks: any[], loading: boolean, onRefresh?: () => void }) {
   const [viewMode, setViewMode] = useState<"form" | "checklist">("form");
   
@@ -94,6 +193,34 @@ export default function LegalWorkLogsView({ workLogs, branches, banks, loading, 
   const [callDate, setCallDate] = useState(new Date().toISOString().split("T")[0]);
   const [callTime, setCallTime] = useState("");
   const [contactedPerson, setContactedPerson] = useState("");
+  const [employeesList, setEmployeesList] = useState<any[]>([]);
+
+  useEffect(() => {
+    const fetchEmps = async () => {
+      try {
+        const res = await fetch("/api/employees?all=true");
+        const data = await res.json();
+        if (res.ok && data.success) {
+          setEmployeesList(data.data || []);
+        }
+      } catch (e) {
+        console.error("Error fetching employees:", e);
+      }
+    };
+    fetchEmps();
+  }, []);
+
+  const employeeOptions = React.useMemo(() => {
+    const names = new Set<string>();
+    employeesList.forEach((e: any) => {
+      const n = e.name || e.employeeName || ([e.firstName, e.lastName].filter(Boolean).join(" "));
+      if (n && n.trim()) {
+        names.add(n.trim());
+      }
+    });
+    return Array.from(names).filter(Boolean).sort((a, b) => a.localeCompare(b));
+  }, [employeesList]);
+
   const assessmentCount = Math.max(0, Number.parseInt(noOfCount || "0", 10) || 0);
   const perNoticeRate = Number.parseFloat(finalRate) || 0;
   const officerPerNotice = Number.parseFloat(bankOfficerPerNotice) || 0;
@@ -197,7 +324,13 @@ export default function LegalWorkLogsView({ workLogs, branches, banks, loading, 
       if (saved.billAmount) setBillAmount(String(saved.billAmount));
       if (saved.billNo) setBillNo(saved.billNo);
       if (saved.personName) setPersonName(saved.personName);
-      if (saved.uploadedFileName) setUploadedFileName(saved.uploadedFileName);
+      if (saved.uploadedFileName) {
+        setUploadedFileName(saved.uploadedFileName);
+      } else {
+        setUploadedFileName("");
+        setUploadedFilePreview("");
+        setUploadedFileType("");
+      }
       if (saved.remarks) setRemarks(saved.remarks);
       if (saved.finalRate) setFinalRate(String(saved.finalRate));
       if (saved.bankOfficerPerNotice) setBankOfficerPerNotice(String(saved.bankOfficerPerNotice));
@@ -212,6 +345,8 @@ export default function LegalWorkLogsView({ workLogs, branches, banks, loading, 
       setBillAmount("");
       setPersonName("");
       setUploadedFileName("");
+      setUploadedFilePreview("");
+      setUploadedFileType("");
       setRemarks("");
     }
   }, [businessDevSubOption, sessionSavedStages]);
@@ -327,7 +462,7 @@ export default function LegalWorkLogsView({ workLogs, branches, banks, loading, 
         businessDevSubOption: typeOfWork === "Bank Related" && bankWorkCategory === "Business Development" ? businessDevSubOption : undefined,
         noOfCount: noOfCount || "1",
         allocationDate: allocationDate || workDate,
-        finalRate: businessDevSubOption === "TAKE NOTICE ASSIGNMENT" ? finalRate : undefined,
+        finalRate: finalRate ? finalRate : undefined,
         expenses: businessDevSubOption === "TAKE NOTICE ASSIGNMENT" ? (assessmentExpenses || "0") : undefined,
         financialDetails: businessDevSubOption === "TAKE NOTICE ASSIGNMENT"
           ? JSON.stringify({
@@ -350,7 +485,7 @@ export default function LegalWorkLogsView({ workLogs, branches, banks, loading, 
               summary: pendingBillSummary,
             })
           : undefined,
-        broughtBy: isBroughtByStep ? (broughtBy || undefined) : undefined,
+        broughtBy: (isBroughtByStep || businessDevOption !== "ADVOCATE NOTICE") ? (broughtBy || undefined) : undefined,
         preparedBy: isPreparedByStep ? (preparedBy || undefined) : undefined,
         printedBy: isPrintedByStep ? (printedBy || undefined) : undefined,
         dispatchedBy: isDispatchedByStep ? (dispatchedBy || undefined) : undefined,
@@ -405,6 +540,9 @@ export default function LegalWorkLogsView({ workLogs, branches, banks, loading, 
           if (currentIdx >= 0 && currentIdx < steps.length - 1) {
             const nextSub = steps[currentIdx + 1];
             setBusinessDevSubOption(nextSub);
+            setUploadedFileName("");
+            setUploadedFilePreview("");
+            setUploadedFileType("");
             setFormSuccessMessage(`Stage saved! Advanced to next stage: ${nextSub}`);
           } else {
             setFormSuccessMessage("Legal Work Log entry saved successfully!");
@@ -750,13 +888,12 @@ export default function LegalWorkLogsView({ workLogs, branches, banks, loading, 
                               <Briefcase className="w-3.5 h-3.5 text-purple-600" />
                               Brought By *
                             </label>
-                            <input
-                              type="text"
-                              required
+                            <SearchableEmployeeInput
                               value={broughtBy}
-                              onChange={e => setBroughtBy(e.target.value)}
-                              placeholder="Enter person name..."
-                              className="w-full p-2 border border-purple-300 rounded-lg text-xs font-black text-slate-950 bg-white focus:outline-none focus:border-purple-600"
+                              onChange={setBroughtBy}
+                              placeholder="Search or select employee..."
+                              required
+                              employees={employeeOptions}
                             />
                           </div>
 
@@ -839,13 +976,12 @@ export default function LegalWorkLogsView({ workLogs, branches, banks, loading, 
                               <Briefcase className="w-3.5 h-3.5 text-purple-600" />
                               Brought By *
                             </label>
-                            <input
-                              type="text"
-                              required
-                              placeholder="Person name who brought data..."
+                            <SearchableEmployeeInput
                               value={broughtBy}
-                              onChange={e => setBroughtBy(e.target.value)}
-                              className="w-full p-2 border border-purple-300 rounded-lg text-xs font-black text-slate-950 bg-white focus:outline-none focus:border-purple-600"
+                              onChange={setBroughtBy}
+                              placeholder="Search or select employee..."
+                              required
+                              employees={employeeOptions}
                             />
                           </div>
 
@@ -903,13 +1039,12 @@ export default function LegalWorkLogsView({ workLogs, branches, banks, loading, 
                               <Briefcase className="w-3.5 h-3.5 text-purple-600" />
                               Prepared By *
                             </label>
-                            <input
-                              type="text"
-                              required
-                              placeholder="Person name who prepared list..."
+                            <SearchableEmployeeInput
                               value={preparedBy}
-                              onChange={e => setPreparedBy(e.target.value)}
-                              className="w-full p-2 border border-purple-300 rounded-lg text-xs font-black text-slate-950 bg-white focus:outline-none focus:border-purple-600"
+                              onChange={setPreparedBy}
+                              placeholder="Search or select employee..."
+                              required
+                              employees={employeeOptions}
                             />
                           </div>
 
@@ -967,13 +1102,12 @@ export default function LegalWorkLogsView({ workLogs, branches, banks, loading, 
                               <Briefcase className="w-3.5 h-3.5 text-purple-600" />
                               Printed By *
                             </label>
-                            <input
-                              type="text"
-                              required
-                              placeholder="Person name who printed notices..."
+                            <SearchableEmployeeInput
                               value={printedBy}
-                              onChange={e => setPrintedBy(e.target.value)}
-                              className="w-full p-2 border border-purple-300 rounded-lg text-xs font-black text-slate-950 bg-white focus:outline-none focus:border-purple-600"
+                              onChange={setPrintedBy}
+                              placeholder="Search or select employee..."
+                              required
+                              employees={employeeOptions}
                             />
                           </div>
 
@@ -1031,13 +1165,12 @@ export default function LegalWorkLogsView({ workLogs, branches, banks, loading, 
                               <Briefcase className="w-3.5 h-3.5 text-purple-600" />
                               Dispatched By *
                             </label>
-                            <input
-                              type="text"
-                              required
-                              placeholder="Person name who dispatched..."
+                            <SearchableEmployeeInput
                               value={dispatchedBy}
-                              onChange={e => setDispatchedBy(e.target.value)}
-                              className="w-full p-2 border border-purple-300 rounded-lg text-xs font-black text-slate-950 bg-white focus:outline-none focus:border-purple-600"
+                              onChange={setDispatchedBy}
+                              placeholder="Search or select employee..."
+                              required
+                              employees={employeeOptions}
                             />
                           </div>
 
@@ -1186,15 +1319,14 @@ export default function LegalWorkLogsView({ workLogs, branches, banks, loading, 
 
                           <div>
                             <label className="block text-[10px] font-black uppercase tracking-wider text-black mb-1.5 flex items-center gap-1">
-                              <Layers className="w-3.5 h-3.5 text-purple-600" />
-                              Person Name (Optional)
+                              <Briefcase className="w-3.5 h-3.5 text-purple-600" />
+                              Work Completed By / Person Name
                             </label>
-                            <input
-                              type="text"
-                              placeholder="Enter person name..."
+                            <SearchableEmployeeInput
                               value={personName}
-                              onChange={e => setPersonName(e.target.value)}
-                              className="w-full p-2 border border-purple-300 rounded-lg text-xs font-black text-slate-950 bg-white focus:outline-none focus:border-purple-600"
+                              onChange={setPersonName}
+                              placeholder="Search or select employee..."
+                              employees={employeeOptions}
                             />
                           </div>
 
@@ -1251,7 +1383,7 @@ export default function LegalWorkLogsView({ workLogs, branches, banks, loading, 
                        !businessDevSubOption?.includes("DISPATCH NOTICE") &&
                        !businessDevSubOption?.includes("PREPARE BILL") &&
                        !businessDevSubOption?.includes("REQUEST PAYMENT") && (
-                        <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 bg-white p-3.5 rounded-xl border border-purple-200 shadow-2xs animate-fade-in">
+                        <div className="grid grid-cols-1 sm:grid-cols-5 gap-4 bg-white p-3.5 rounded-xl border border-purple-200 shadow-2xs animate-fade-in">
                           <div>
                             <label className="block text-[10px] font-black uppercase tracking-wider text-black mb-1.5 flex items-center gap-1">
                               <Layers className="w-3.5 h-3.5 text-purple-600" />
@@ -1271,15 +1403,30 @@ export default function LegalWorkLogsView({ workLogs, branches, banks, loading, 
                           <div>
                             <label className="block text-[10px] font-black uppercase tracking-wider text-black mb-1.5 flex items-center gap-1">
                               <Briefcase className="w-3.5 h-3.5 text-purple-600" />
-                              Branch Name *
+                              Per Notice Rate (₹)
                             </label>
                             <input
-                              type="text"
+                              type="number"
+                              min="0"
+                              step="0.01"
+                              value={finalRate}
+                              onChange={e => setFinalRate(e.target.value)}
+                              placeholder="Enter per notice rate..."
+                              className="w-full p-2 border border-purple-300 rounded-lg text-xs font-black text-slate-950 bg-white focus:outline-none focus:border-purple-600 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="block text-[10px] font-black uppercase tracking-wider text-black mb-1.5 flex items-center gap-1">
+                              <Briefcase className="w-3.5 h-3.5 text-purple-600" />
+                              Work Completed By *
+                            </label>
+                            <SearchableEmployeeInput
+                              value={broughtBy}
+                              onChange={setBroughtBy}
+                              placeholder="Search or select employee..."
                               required
-                              value={selectedBranchName}
-                              onChange={e => setSelectedBranchName(e.target.value)}
-                              placeholder="Enter branch name..."
-                              className="w-full p-2 border border-purple-300 rounded-lg text-xs font-black text-slate-950 bg-white focus:outline-none focus:border-purple-600"
+                              employees={employeeOptions}
                             />
                           </div>
 

@@ -67,35 +67,50 @@ export function ESSDashboard({ user, triggerToast, setActiveTab, toggleModal, st
     fetchTasks();
   }, []);
 
-  const currentUserId = user?.id;
+  const userIdentifiers = React.useMemo(() => {
+    const ids = new Set<string>();
+    if (user?.id) ids.add(String(user.id).toLowerCase().trim());
+    if (user?.email) ids.add(String(user.email).toLowerCase().trim());
+    if (user?.employeeId) ids.add(String(user.employeeId).toLowerCase().trim());
+    if (user?.name) ids.add(String(user.name).toLowerCase().trim());
+    return ids;
+  }, [user]);
+
+  const isMatchUser = (target: any) => {
+    if (!target) return false;
+    if (typeof target === "object") {
+      const vals = [target.id, target.email, target.employeeId, target.name].filter(Boolean);
+      return vals.some(v => userIdentifiers.has(String(v).toLowerCase().trim()));
+    }
+    return userIdentifiers.has(String(target).toLowerCase().trim());
+  };
 
   const pendingTasks = React.useMemo(() => {
     return tasks.filter((t: any) => {
-      const empId = typeof t.employee === "object" ? t.employee?.id : t.employee;
-      const isMyTask = !currentUserId || String(empId) === String(currentUserId) || String(t.forwardedTo) === String(currentUserId);
-      const isPending = t.status !== "Completed";
+      const isMyTask = isMatchUser(t.employee) || isMatchUser(t.employeeId) || isMatchUser(t.assignedTo) || isMatchUser(t.forwardedTo);
+      const isPending = t.status !== "Completed" && t.status !== "Done" && t.status !== "Approved";
       return isMyTask && isPending;
     });
-  }, [tasks, currentUserId]);
+  }, [tasks, userIdentifiers]);
 
   const assignedOwnerTasks = React.useMemo(() => {
     return tasks.filter((t: any) => {
-      const assignerId = t.assignedBy || t.assignedByUser?.id;
+      const isMyTask = isMatchUser(t.employee) || isMatchUser(t.employeeId) || isMatchUser(t.assignedTo) || isMatchUser(t.forwardedTo);
       const assignerRole = (t.assignedByUser?.role || t.assignedByRole || "").toLowerCase();
       const assignerName = (t.assignedByUser?.name || t.assignedByName || "").toLowerCase();
 
-      return (
-        (assignerId && String(assignerId) !== String(currentUserId)) ||
-        Boolean(t.forwardedTo) ||
+      const isAssignedByOwnerOrManager =
         Boolean(t.isAssignedByOwner) ||
+        (t.assignedBy && !isMatchUser(t.assignedBy)) ||
         assignerRole.includes("owner") ||
         assignerRole.includes("director") ||
         assignerRole.includes("manager") ||
         assignerName.includes("owner") ||
-        assignerName.includes("director")
-      );
+        assignerName.includes("director");
+
+      return isMyTask && isAssignedByOwnerOrManager;
     });
-  }, [tasks, currentUserId]);
+  }, [tasks, userIdentifiers]);
 
   const dynamicStats = stats?.currentUserStats || {
     presentDays: 0,
@@ -106,7 +121,7 @@ export function ESSDashboard({ user, triggerToast, setActiveTab, toggleModal, st
     earnedLeave: 0,
   };
 
-  const pendingCountDisplay = stats?.currentUserStats?.pendingTasksCount ?? pendingTasks.length;
+  const pendingCountDisplay = pendingTasks.length;
 
   return (
     <div className="space-y-7 animate-fade-in text-[#1C1C1A]">

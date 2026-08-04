@@ -64,7 +64,7 @@ export async function GET(req: Request) {
           description: assignedTask.description
         };
       }
-    } catch (_) {}
+    } catch (_) { }
 
     if (!record) {
       // Fetch the last submitted EOD to get the tomorrowPlan
@@ -100,19 +100,19 @@ export async function POST(req: Request) {
     const { taskSummary, taskType, remarks, selfieUrl, location, projectName, legalSchedules } = body;
 
     if (!taskSummary || !taskType) {
-       return NextResponse.json({ success: false, error: "Missing required fields (Task Summary, Type)" }, { status: 400 });
+      return NextResponse.json({ success: false, error: "Missing required fields (Task Summary, Type)" }, { status: 400 });
     }
 
     if (!selfieUrl && (!legalSchedules || legalSchedules.length === 0)) {
-       return NextResponse.json({ success: false, error: "Missing strict required fields (Task Summary, Type, or Selfie)" }, { status: 400 });
+      return NextResponse.json({ success: false, error: "Missing strict required fields (Task Summary, Type, or Selfie)" }, { status: 400 });
     }
 
     if (taskType === "Development" && !projectName) {
-       return NextResponse.json({ success: false, error: "Project name is required for Development task type" }, { status: 400 });
+      return NextResponse.json({ success: false, error: "Project name is required for Development task type" }, { status: 400 });
     }
 
     if ((!location || !location.latitude || !location.longitude) && (!legalSchedules || legalSchedules.length === 0)) {
-       return NextResponse.json({ success: false, error: "Strict Rule: Device's live GPS location is mandatory to declare SOD. Fake or static locations are not allowed." }, { status: 400 });
+      return NextResponse.json({ success: false, error: "Strict Rule: Device's live GPS location is mandatory to declare SOD. Fake or static locations are not allowed." }, { status: 400 });
     }
 
     await sequelize.authenticate();
@@ -168,7 +168,7 @@ export async function POST(req: Request) {
               });
             }
           }
-        } catch (e) {}
+        } catch (e) { }
         await TaskLog.sync();
         await KanbanTask.sync();
 
