@@ -306,20 +306,27 @@ export async function GET(req: Request) {
       where: { ...candidateFilter, status: { [Op.ne]: "inactive" } }
     });
 
-    const eligibleCandIds = allCands.filter((cand: any) => {
-      const cid = cand.id.toString();
-      const rounds = candidateInterviewsMap[cid] || new Set();
-      const hasAllThree = rounds.has(1) && rounds.has(2) && rounds.has(3);
-      const isDirectlyHired = cand.status === "Selected" && cand.currentRound === 3;
-      return hasAllThree || isDirectlyHired;
-    }).map((c: any) => c.id.toString());
+    const eligibleCandIds = allCands
+      .filter((cand: any) => {
+        if (!cand || !cand.id) return false;
+        const cid = String(cand.id);
+        const rounds = candidateInterviewsMap[cid] || new Set();
+        const hasAllThree = rounds.has(1) && rounds.has(2) && rounds.has(3);
+        const isDirectlyHired = cand.status === "Selected" && cand.currentRound === 3;
+        return hasAllThree || isDirectlyHired;
+      })
+      .map((c: any) => String(c.id));
     const verifiedDocs = await Verification.findAll({
       where: {
         candidate: { [Op.in]: eligibleCandIds },
         status: "Verified"
       }
     });
-    const verifiedIds = new Set(verifiedDocs.map(v => v.candidate.toString()));
+    const verifiedIds = new Set(
+      verifiedDocs
+        .filter((v: any) => v && v.candidate)
+        .map((v: any) => String(v.candidate))
+    );
     const pendingVerificationsCount = eligibleCandIds.filter(cid => !verifiedIds.has(cid)).length;
 
     const rejectedCandidatesCount = await Candidate.count({ where: { ...candidateFilter, status: "Rejected" } });
@@ -372,7 +379,7 @@ export async function GET(req: Request) {
     let userMap: Record<string, { name: string; role: string }> = {};
     if (allActorIds.length > 0) {
       const users = await User.findAll({ where: { id: { [Op.in]: allActorIds } }, raw: true });
-      users.forEach((u: any) => { userMap[u.id.toString()] = { name: u.name, role: u.role }; });
+      users.forEach((u: any) => { if (u && u.id) userMap[String(u.id)] = { name: u.name || "User", role: u.role || "Staff" }; });
     }
 
     const actList: any[] = dbHrActivities.map((a: any) => {
@@ -820,24 +827,29 @@ export async function GET(req: Request) {
         }
       });
 
-      const deptTeamList = teamUsers.map((u: any) => ({
-        id: u.id,
-        name: u.name || "Unnamed",
-        role: u.role || "Employee",
-        status: u.status || "active",
-        department: teamProfilesMap[u.id]?.department || "N/A",
-        designation: teamProfilesMap[u.id]?.designation || "N/A",
-        sodTime: sodMap[u.id.toString()] || null,
-        eodTime: eodMap[u.id.toString()] || null,
-        attendanceStatus: leaveUserIds.has(String(u.id))
-          ? "On Leave"
-          : presentUserIds.has(String(u.id))
-            ? "Present"
-            : "Absent",
-        tasksTotal: memberTaskSummary[String(u.id)]?.total || 0,
-        tasksCompleted: memberTaskSummary[String(u.id)]?.completed || 0,
-        tasksOverdue: memberTaskSummary[String(u.id)]?.overdue || 0
-      }));
+      const deptTeamList = teamUsers
+        .filter((u: any) => u && u.id)
+        .map((u: any) => {
+          const uidStr = String(u.id);
+          return {
+            id: u.id,
+            name: u.name || "Unnamed",
+            role: u.role || "Employee",
+            status: u.status || "active",
+            department: teamProfilesMap[u.id]?.department || "N/A",
+            designation: teamProfilesMap[u.id]?.designation || "N/A",
+            sodTime: sodMap[uidStr] || null,
+            eodTime: eodMap[uidStr] || null,
+            attendanceStatus: leaveUserIds.has(uidStr)
+              ? "On Leave"
+              : presentUserIds.has(uidStr)
+                ? "Present"
+                : "Absent",
+            tasksTotal: memberTaskSummary[uidStr]?.total || 0,
+            tasksCompleted: memberTaskSummary[uidStr]?.completed || 0,
+            tasksOverdue: memberTaskSummary[uidStr]?.overdue || 0
+          };
+        });
 
       // Get team activities (HRRecentActivity + SodReports + EodReports for department members)
       const [dbTeamActivities, teamSods, teamEods] = await Promise.all([
@@ -1047,19 +1059,24 @@ export async function GET(req: Request) {
 
 
 
-    const staffList = staffUsers.map((u: any) => ({
-      id: u.id,
-      name: u.name || 'Unnamed',
-      email: u.email || '',
-      role: u.role || 'Employee',
-      status: u.status || 'active',
-      companies: Array.isArray(u.companies) ? u.companies.join(', ') : (u.companies || 'N/A'),
-      department: staffProfilesMap[u.id]?.department || 'N/A',
-      designation: staffProfilesMap[u.id]?.designation || 'N/A',
-      isPresent: finalPresentIds.includes(u.id.toString()),
-      sodTime: sodMap[u.id.toString()] || null,
-      eodTime: eodMap[u.id.toString()] || null
-    }));
+    const staffList = staffUsers
+      .filter((u: any) => u && u.id)
+      .map((u: any) => {
+        const uidStr = String(u.id);
+        return {
+          id: u.id,
+          name: u.name || 'Unnamed',
+          email: u.email || '',
+          role: u.role || 'Employee',
+          status: u.status || 'active',
+          companies: Array.isArray(u.companies) ? u.companies.join(', ') : (u.companies || 'N/A'),
+          department: staffProfilesMap[u.id]?.department || 'N/A',
+          designation: staffProfilesMap[u.id]?.designation || 'N/A',
+          isPresent: finalPresentIds.includes(uidStr),
+          sodTime: sodMap[uidStr] || null,
+          eodTime: eodMap[uidStr] || null
+        };
+      });
 
     const possibleUserKeys = [
       sessionUser.id,

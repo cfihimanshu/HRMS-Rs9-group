@@ -8,9 +8,10 @@ import { logAudit } from "@/lib/audit";
 // PUT: Update Candidate Status (HR + Management override)
 export async function PUT(
   req: Request,
-  { params }: { params: { id: string } }
+  props: { params: Promise<{ id: string }> }
 ) {
   try {
+    const params = await props.params;
     const session = await getServerSession(authOptions);
 
     if (!session || !session.user) {

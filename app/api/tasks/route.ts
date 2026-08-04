@@ -880,16 +880,37 @@ export async function PUT(req: Request) {
     // Manual timer updates if sent from client
     if (timerStart !== undefined) task.timerStart = timerStart ? new Date(timerStart) : null;
     if (timerState !== undefined) task.timerState = timerState;
-    if (elapsedSeconds !== undefined) task.elapsedSeconds = elapsedSeconds;
+    if (elapsedSeconds !== undefined && elapsedSeconds !== null) task.elapsedSeconds = Number(elapsedSeconds);
+    if (body.completedAt) task.completedAt = new Date(body.completedAt);
 
-    // Auto-stop timer when task is completed
-    if (status === "Completed" && prevStatus !== "Completed") {
-      if (task.timerStart && task.timerState === "Running") {
-        const startTime = new Date(task.timerStart).getTime();
-        if (!isNaN(startTime)) {
-          const elapsed = Math.floor((Date.now() - startTime) / 1000);
-          task.elapsedSeconds = Math.max(0, (task.elapsedSeconds || 0) + elapsed);
+    // Auto-stop timer when task is completed and preserve total completion duration
+    if (status === "Completed") {
+      const nowMs = Date.now();
+      if (!task.completedAt) {
+        task.completedAt = body.completedAt ? new Date(body.completedAt) : new Date(nowMs);
+      }
+
+      let accumulated = Number(task.elapsedSeconds) || 0;
+      if (prevStatus !== "Completed") {
+        if (task.timerStart && task.timerState === "Running") {
+          const startTime = new Date(task.timerStart).getTime();
+          if (!isNaN(startTime)) {
+            const elapsed = Math.floor((nowMs - startTime) / 1000);
+            accumulated = Math.max(0, accumulated + elapsed);
+          }
         }
+        // Fallback: If accumulated is still 0, calculate time difference from creation to completion
+        if (accumulated <= 0) {
+          const creationDate = task.createdAt || task.date;
+          if (creationDate) {
+            const creationMs = new Date(creationDate).getTime();
+            if (!isNaN(creationMs) && creationMs > 0) {
+              const diffSec = Math.floor((nowMs - creationMs) / 1000);
+              if (diffSec > 0) accumulated = diffSec;
+            }
+          }
+        }
+        task.elapsedSeconds = accumulated;
       }
       task.timerState = "Stopped";
       task.timerStart = null;

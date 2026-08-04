@@ -648,11 +648,13 @@ export default function KanbanBoard({
   };
 
   const updateStatus = async (taskId: string, newStatus: string) => {
+    const task = tasks.find(t => t.id === taskId);
+    if (!task) return;
+
     // Guard: cannot complete without progressNotes and proofAttachment
     if (newStatus === "Completed") {
-      const task = tasks.find(t => t.id === taskId);
       let proofUrls: string[] = [];
-      if (task?.proofAttachment) {
+      if (task.proofAttachment) {
         if (task.proofAttachment.startsWith('[') && task.proofAttachment.endsWith(']')) {
           try {
             proofUrls = JSON.parse(task.proofAttachment);
@@ -665,25 +667,69 @@ export default function KanbanBoard({
       }
       const hasProof = proofUrls.length > 0;
 
-      if (!task?.progressNotes?.trim() || !hasProof) {
+      if (!task.progressNotes?.trim() || !hasProof) {
         alert("To complete this task, you must provide Progress Notes AND upload Proof of Work (Screenshot/Photo). Please open the task to do this.");
-        if (task) {
-          openTask(task);
-        }
+        openTask(task);
         return;
       }
     }
+
     setUpdatingId(taskId);
-    // Optimistic UI
-    setTasks(prev => prev.map(t => t.id === taskId ? { ...t, status: newStatus as Task["status"] } : t));
-    if (selectedTask?.id === taskId) {
-      setSelectedTask(prev => prev ? { ...prev, status: newStatus as Task["status"] } : null);
+
+    // Calculate current live elapsed BEFORE status changes to Completed
+    let finalElapsed = getLiveElapsed(task);
+    const nowISO = new Date().toISOString();
+
+    // If finalElapsed is 0 or uncounted, compute from creation/start date as a fallback
+    if (newStatus === "Completed" && finalElapsed <= 0) {
+      const createMs = new Date(task.createdAt || task.date).getTime();
+      if (!isNaN(createMs) && createMs > 0) {
+        finalElapsed = Math.max(1, Math.floor((Date.now() - createMs) / 1000));
+      }
     }
+
+    const payloadFields: any = {
+      taskId,
+      status: newStatus
+    };
+
+    if (newStatus === "Completed") {
+      payloadFields.elapsedSeconds = finalElapsed;
+      payloadFields.completedAt = nowISO;
+      payloadFields.timerState = "Stopped";
+      payloadFields.timerStart = null;
+    }
+
+    // Optimistic UI update
+    setTasks(prev => prev.map(t => t.id === taskId ? {
+      ...t,
+      status: newStatus as Task["status"],
+      ...(newStatus === "Completed" ? {
+        elapsedSeconds: finalElapsed,
+        completedAt: nowISO,
+        timerState: "Stopped",
+        timerStart: null
+      } : {})
+    } : t));
+
+    if (selectedTask?.id === taskId) {
+      setSelectedTask(prev => prev ? {
+        ...prev,
+        status: newStatus as Task["status"],
+        ...(newStatus === "Completed" ? {
+          elapsedSeconds: finalElapsed,
+          completedAt: nowISO,
+          timerState: "Stopped",
+          timerStart: null
+        } : {})
+      } : null);
+    }
+
     try {
       const res = await fetch("/api/tasks", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ taskId, status: newStatus }),
+        body: JSON.stringify(payloadFields),
       });
       const data = await res.json();
       if (!data.success) {
@@ -717,21 +763,40 @@ export default function KanbanBoard({
 
   const getLiveElapsed = (task: Task): number => {
     if (!task) return 0;
-    const startISO = task.createdAt || task.date;
+
+    const baseSeconds = task.elapsedSeconds || 0;
+    const startISO = task.timerStart || task.createdAt || task.date;
     const startTime = startISO ? new Date(startISO).getTime() : 0;
+
     if (task.status === "Completed") {
+      if (baseSeconds > 0) return baseSeconds;
       if (task.completedAt && startTime > 0) {
         const compTime = new Date(task.completedAt).getTime();
         const diff = Math.floor((compTime - startTime) / 1000);
         if (diff > 0) return diff;
       }
-      return task.elapsedSeconds || 0;
+      if (startTime > 0 && task.updatedAt) {
+        const updatedTime = new Date(task.updatedAt).getTime();
+        const diff = Math.floor((updatedTime - startTime) / 1000);
+        if (diff > 0) return diff;
+      }
+      return baseSeconds;
     }
+
+    if (task.timerState === "Running" && task.timerStart) {
+      const timerStartMs = new Date(task.timerStart).getTime();
+      if (!isNaN(timerStartMs) && timerStartMs > 0) {
+        const liveDiff = Math.floor((Date.now() - timerStartMs) / 1000);
+        return baseSeconds + Math.max(0, liveDiff);
+      }
+    }
+
+    if (baseSeconds > 0) return baseSeconds;
     if (startTime > 0) {
       const elapsed = Math.floor((Date.now() - startTime) / 1000);
       return Math.max(0, elapsed);
     }
-    return task.elapsedSeconds || 0;
+    return 0;
   };
 
   const timerAction = async (task: Task, action: "start" | "pause" | "stop") => {
@@ -1665,15 +1730,21 @@ export default function KanbanBoard({
 
             {/* Timer Badge (Always Visible on every task card) */}
             <span className={cn(
-              "flex items-center gap-1 text-[10px] font-mono font-black px-2 py-1 rounded-lg border transition-all",
-              task.timerState === "Running"
-                ? "bg-emerald-50 text-emerald-700 border-emerald-300"
-                : task.status === "Completed"
-                  ? "bg-slate-50 text-slate-400 border-slate-200"
-                  : "bg-slate-50 text-slate-600 border-slate-200"
+              "flex items-center gap-1 text-[10px] font-mono font-black px-2 py-1 rounded-lg border transition-all shadow-2xs",
+              task.status === "Completed"
+                ? "bg-slate-100 text-slate-500 border-slate-200 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-700"
+                : task.timerState === "Running"
+                  ? "bg-emerald-100 text-emerald-800 border-emerald-400 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-700"
+                  : task.timerState === "Paused"
+                    ? "bg-amber-100 text-amber-800 border-amber-400 dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-700"
+                    : "bg-indigo-100 text-indigo-800 border-indigo-300 dark:bg-indigo-950/60 dark:text-indigo-300 dark:border-indigo-700"
             )}>
-              {task.timerState === "Running" ? (
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse inline-block" />
+              {task.status !== "Completed" && task.timerState === "Running" ? (
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse inline-block" />
+              ) : task.status !== "Completed" && task.timerState === "Paused" ? (
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-600 inline-block" />
+              ) : task.status !== "Completed" ? (
+                <Timer className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
               ) : (
                 <Timer className="w-3 h-3 text-slate-400" />
               )}
