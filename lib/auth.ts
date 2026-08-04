@@ -84,7 +84,7 @@ export const authOptions: NextAuthOptions = {
 
           user = await User.findOne({
             where: {
-              email: sequelize.where(sequelize.fn("LOWER", sequelize.col("User.email")), cleanEmail),
+              email: sequelize.where(sequelize.fn("LOWER", sequelize.col("email")), cleanEmail),
               status: { [Op.in]: ["active", "Active", "probation", "Probation", "on notice", "On Notice"] }
             }
           });
@@ -93,7 +93,7 @@ export const authOptions: NextAuthOptions = {
             // Check if user exists with inactive/archived status to give clear error
             const anyUser = await User.findOne({
               where: {
-                email: sequelize.where(sequelize.fn("LOWER", sequelize.col("User.email")), cleanEmail)
+                email: sequelize.where(sequelize.fn("LOWER", sequelize.col("email")), cleanEmail)
               }
             });
             if (anyUser) {
