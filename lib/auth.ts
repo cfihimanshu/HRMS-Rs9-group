@@ -79,15 +79,45 @@ export const authOptions: NextAuthOptions = {
             throw new Error("Email and password are required");
           }
 
-          user = await User.findOne({ where: { email, status: "active" } });
+          const cleanEmail = String(email || "").trim().toLowerCase();
+          const cleanPassword = String(password || "").trim();
+
+          user = await User.findOne({
+            where: {
+              email: sequelize.where(sequelize.fn("LOWER", sequelize.col("User.email")), cleanEmail),
+              status: { [Op.in]: ["active", "Active", "probation", "Probation", "on notice", "On Notice"] }
+            }
+          });
+
           if (!user) {
-            throw new Error("Active or probation user with this email not found");
+            // Check if user exists with inactive/archived status to give clear error
+            const anyUser = await User.findOne({
+              where: {
+                email: sequelize.where(sequelize.fn("LOWER", sequelize.col("User.email")), cleanEmail)
+              }
+            });
+            if (anyUser) {
+              throw new Error(`Your account status is currently '${anyUser.status}'. Please contact HR/Admin.`);
+            }
+            throw new Error("User account with this email not found");
           }
 
           let isValid = false;
-          if (user.password && (user.password.startsWith("$2a$") || user.password.startsWith("$2b$"))) {
-            isValid = await bcrypt.compare(password, user.password);
+          const dbPassword = String(user.password || "").trim();
+
+          if (dbPassword.startsWith("$2a$") || dbPassword.startsWith("$2b$") || dbPassword.startsWith("$2y$")) {
+            isValid = (await bcrypt.compare(cleanPassword, dbPassword)) || (await bcrypt.compare(password, dbPassword));
+          } else {
+            // Support plaintext password fallback & auto-hash to bcrypt on success
+            isValid = (cleanPassword === dbPassword || password === dbPassword);
+            if (isValid && cleanPassword.length >= 4) {
+              try {
+                user.password = await bcrypt.hash(cleanPassword, 10);
+                await user.save();
+              } catch (_) {}
+            }
           }
+
           if (!isValid) {
             throw new Error("Invalid password");
           }
