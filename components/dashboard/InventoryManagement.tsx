@@ -101,6 +101,11 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
 
   const defaultTypes = [
     "Laptop",
+    "Computer",
+    "Mouse",
+    "CPU",
+    "Keyboard",
+    "Monitor / Display",
     "Mobile Phone",
     "SIM Card",
     "Headset / Accessories",
@@ -113,7 +118,14 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
   const dynamicAssetTypes = React.useMemo(() => {
     const existingTypes = inventory.map(item => item.assetType).filter(Boolean);
     const combined = Array.from(new Set([...defaultTypes, ...existingTypes]));
-    return combined.sort();
+    return combined.sort((a, b) => {
+      const indexA = defaultTypes.indexOf(a);
+      const indexB = defaultTypes.indexOf(b);
+      if (indexA !== -1 && indexB !== -1) return indexA - indexB;
+      if (indexA !== -1) return -1;
+      if (indexB !== -1) return 1;
+      return a.localeCompare(b);
+    });
   }, [inventory]);
 
   // Delete confirmation
@@ -163,6 +175,16 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
     let prefix = "AST";
     if (typeClean.startsWith("laptop")) {
       prefix = "LAP";
+    } else if (typeClean.startsWith("computer") || typeClean.startsWith("desktop") || typeClean === "pc") {
+      prefix = "COM";
+    } else if (typeClean.startsWith("cpu")) {
+      prefix = "CPU";
+    } else if (typeClean.startsWith("mouse")) {
+      prefix = "MOU";
+    } else if (typeClean.startsWith("keyboard")) {
+      prefix = "KBD";
+    } else if (typeClean.startsWith("monitor") || typeClean.startsWith("display")) {
+      prefix = "MON";
     } else if (typeClean.startsWith("mobile") || typeClean.includes("phone")) {
       prefix = "MOB";
     } else if (typeClean.startsWith("sim")) {
@@ -247,6 +269,43 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
         laptopModel: "",
         laptopSpecs: "",
         laptopSerial: ""
+      });
+    } else if (typeClean === "computer" || typeClean === "desktop computer" || typeClean === "pc") {
+      setAssetFields({
+        compModel: "",
+        compSpecs: "",
+        compSerial: "",
+        compOs: "Windows 11 Pro",
+        compHostName: "",
+        compMonitor: "",
+        compPassword: ""
+      });
+    } else if (typeClean === "cpu" || typeClean === "cpu tower" || typeClean === "cabinet") {
+      setAssetFields({
+        cpuModel: "",
+        cpuSpecs: "",
+        cpuSerial: "",
+        cpuGraphics: "",
+        cpuPassword: ""
+      });
+    } else if (typeClean === "mouse") {
+      setAssetFields({
+        mouseBrand: "",
+        mouseType: "Wired USB",
+        mouseSerial: ""
+      });
+    } else if (typeClean === "keyboard") {
+      setAssetFields({
+        kbBrand: "",
+        kbType: "Wired USB",
+        kbSerial: ""
+      });
+    } else if (typeClean === "monitor / display" || typeClean === "monitor" || typeClean === "display") {
+      setAssetFields({
+        monBrand: "",
+        monSize: "21.5 Inch",
+        monResolution: "Full HD (1080p)",
+        monSerial: ""
       });
     } else if (typeClean === "mobile phone") {
       setAssetFields({
@@ -621,6 +680,72 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
       if (laptopInfo) {
         finalNotes = `${laptopInfo}${registerForm.notes ? `\n${registerForm.notes}` : ""}`;
       }
+    } else if (typeClean === "computer" || typeClean === "desktop computer" || typeClean === "pc") {
+      const model = assetFields.compModel || "";
+      const specs = assetFields.compSpecs || "";
+      const serial = assetFields.compSerial || "";
+      if (!model) {
+        triggerToast("Computer Brand & Model is required");
+        return;
+      }
+      finalDetail = `${model}${specs ? ` (${specs})` : ""}`;
+      finalSerial = serial;
+      let compInfo = "";
+      if (assetFields.compOs) compInfo += `OS: ${assetFields.compOs}\n`;
+      if (assetFields.compHostName) compInfo += `Host Name: ${assetFields.compHostName}\n`;
+      if (assetFields.compPeripherals) compInfo += `Peripherals: ${assetFields.compPeripherals}\n`;
+      if (assetFields.compPassword) compInfo += `Computer Lock Passcode: ${assetFields.compPassword}\n`;
+      const filteredEmails = emailsList.map(e => e.trim()).filter(Boolean);
+      if (filteredEmails.length > 0) {
+        compInfo += `Logged-in Emails: ${filteredEmails.join(", ")}\n`;
+      }
+      if (compInfo) {
+        finalNotes = `${compInfo}${registerForm.notes ? `\n${registerForm.notes}` : ""}`;
+      }
+    } else if (typeClean === "cpu" || typeClean === "cpu tower" || typeClean === "cabinet") {
+      const model = assetFields.cpuModel || "";
+      const specs = assetFields.cpuSpecs || "";
+      const serial = assetFields.cpuSerial || "";
+      if (!model) {
+        triggerToast("CPU Brand & Cabinet Model is required");
+        return;
+      }
+      finalDetail = `${model}${specs ? ` (${specs})` : ""}`;
+      finalSerial = serial;
+      if (assetFields.cpuGraphics) {
+        finalNotes = `Graphics: ${assetFields.cpuGraphics}${registerForm.notes ? `\n${registerForm.notes}` : ""}`;
+      }
+    } else if (typeClean === "mouse") {
+      const brand = assetFields.mouseBrand || "";
+      const type = assetFields.mouseType || "Wired USB";
+      const serial = assetFields.mouseSerial || "";
+      if (!brand) {
+        triggerToast("Mouse Brand & Model is required");
+        return;
+      }
+      finalDetail = `${brand} (${type})`;
+      finalSerial = serial;
+    } else if (typeClean === "keyboard") {
+      const brand = assetFields.kbBrand || "";
+      const type = assetFields.kbType || "Wired USB";
+      const serial = assetFields.kbSerial || "";
+      if (!brand) {
+        triggerToast("Keyboard Brand & Model is required");
+        return;
+      }
+      finalDetail = `${brand} (${type})`;
+      finalSerial = serial;
+    } else if (typeClean === "monitor / display" || typeClean === "monitor" || typeClean === "display") {
+      const brand = assetFields.monBrand || "";
+      const size = assetFields.monSize || "";
+      const res = assetFields.monResolution || "";
+      const serial = assetFields.monSerial || "";
+      if (!brand) {
+        triggerToast("Monitor Brand & Model is required");
+        return;
+      }
+      finalDetail = `${brand}${size ? ` (${size}${res ? `, ${res}` : ""})` : ""}`;
+      finalSerial = serial;
     } else if (typeClean === "mobile phone") {
       const model = assetFields.phoneModel || "";
       const imei1 = assetFields.phoneImei1 || "";
@@ -873,6 +998,32 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
         if (emailsMatch) {
           emails = emailsMatch[1].split(", ").map((e: string) => e.trim());
         }
+      } else if (typeClean === "computer" || typeClean === "desktop computer" || typeClean === "pc") {
+        const detail = asset.assetDetail || "";
+        const openParen = detail.indexOf("(");
+        const closeParen = detail.indexOf(")");
+        const passMatch = asset.notes?.match(/Computer Lock Passcode: ([^\n]*)/);
+        fields = {
+          compModel: openParen > -1 ? detail.substring(0, openParen).trim() : detail,
+          compSpecs: openParen > -1 && closeParen > openParen ? detail.substring(openParen + 1, closeParen).trim() : "",
+          compSerial: asset.serialNumber || "",
+          compPassword: passMatch ? passMatch[1] : ""
+        };
+        const emailsMatch = asset.notes?.match(/Logged-in Emails: ([^\n]*)/);
+        if (emailsMatch) {
+          emails = emailsMatch[1].split(", ").map((e: string) => e.trim());
+        }
+      } else if (typeClean === "cpu" || typeClean === "cpu tower" || typeClean === "cabinet") {
+        const detail = asset.assetDetail || "";
+        const openParen = detail.indexOf("(");
+        const closeParen = detail.indexOf(")");
+        const passMatch = asset.notes?.match(/CPU Lock Passcode: ([^\n]*)/);
+        fields = {
+          cpuModel: openParen > -1 ? detail.substring(0, openParen).trim() : detail,
+          cpuSpecs: openParen > -1 && closeParen > openParen ? detail.substring(openParen + 1, closeParen).trim() : "",
+          cpuSerial: asset.serialNumber || "",
+          cpuPassword: passMatch ? passMatch[1] : ""
+        };
       } else if (typeClean === "headset / accessories") {
         const detail = asset.assetDetail || "";
         const openParen = detail.indexOf("(");
@@ -982,6 +1133,72 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
       if (laptopInfo) {
         finalNotes = `${laptopInfo}${editForm.notes ? `\n${editForm.notes}` : ""}`;
       }
+    } else if (typeClean === "computer" || typeClean === "desktop computer" || typeClean === "pc") {
+      const model = editAssetFields.compModel || "";
+      const specs = editAssetFields.compSpecs || "";
+      const serial = editAssetFields.compSerial || "";
+      if (!model) {
+        triggerToast("Computer Brand & Model is required");
+        return;
+      }
+      finalDetail = `${model}${specs ? ` (${specs})` : ""}`;
+      finalSerial = serial;
+      let compInfo = "";
+      if (editAssetFields.compOs) compInfo += `OS: ${editAssetFields.compOs}\n`;
+      if (editAssetFields.compHostName) compInfo += `Host Name: ${editAssetFields.compHostName}\n`;
+      if (editAssetFields.compPeripherals) compInfo += `Peripherals: ${editAssetFields.compPeripherals}\n`;
+      if (editAssetFields.compPassword) compInfo += `Computer Lock Passcode: ${editAssetFields.compPassword}\n`;
+      const filteredEmails = editEmailsList.map(e => e.trim()).filter(Boolean);
+      if (filteredEmails.length > 0) {
+        compInfo += `Logged-in Emails: ${filteredEmails.join(", ")}\n`;
+      }
+      if (compInfo) {
+        finalNotes = `${compInfo}${editForm.notes ? `\n${editForm.notes}` : ""}`;
+      }
+    } else if (typeClean === "cpu" || typeClean === "cpu tower" || typeClean === "cabinet") {
+      const model = editAssetFields.cpuModel || "";
+      const specs = editAssetFields.cpuSpecs || "";
+      const serial = editAssetFields.cpuSerial || "";
+      if (!model) {
+        triggerToast("CPU Brand & Cabinet Model is required");
+        return;
+      }
+      finalDetail = `${model}${specs ? ` (${specs})` : ""}`;
+      finalSerial = serial;
+      if (editAssetFields.cpuGraphics) {
+        finalNotes = `Graphics: ${editAssetFields.cpuGraphics}${editForm.notes ? `\n${editForm.notes}` : ""}`;
+      }
+    } else if (typeClean === "mouse") {
+      const brand = editAssetFields.mouseBrand || "";
+      const type = editAssetFields.mouseType || "Wired USB";
+      const serial = editAssetFields.mouseSerial || "";
+      if (!brand) {
+        triggerToast("Mouse Brand & Model is required");
+        return;
+      }
+      finalDetail = `${brand} (${type})`;
+      finalSerial = serial;
+    } else if (typeClean === "keyboard") {
+      const brand = editAssetFields.kbBrand || "";
+      const type = editAssetFields.kbType || "Wired USB";
+      const serial = editAssetFields.kbSerial || "";
+      if (!brand) {
+        triggerToast("Keyboard Brand & Model is required");
+        return;
+      }
+      finalDetail = `${brand} (${type})`;
+      finalSerial = serial;
+    } else if (typeClean === "monitor / display" || typeClean === "monitor" || typeClean === "display") {
+      const brand = editAssetFields.monBrand || "";
+      const size = editAssetFields.monSize || "";
+      const res = editAssetFields.monResolution || "";
+      const serial = editAssetFields.monSerial || "";
+      if (!brand) {
+        triggerToast("Monitor Brand & Model is required");
+        return;
+      }
+      finalDetail = `${brand}${size ? ` (${size}${res ? `, ${res}` : ""})` : ""}`;
+      finalSerial = serial;
     } else if (typeClean === "mobile phone") {
       const model = editAssetFields.phoneModel || "";
       const imei1 = editAssetFields.phoneImei1 || "";
@@ -1796,6 +2013,296 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
                       + Add Email ID
                     </button>
                   </div>
+                </div>
+              </div>
+            ) : typeClean === "computer" || typeClean === "desktop computer" || typeClean === "pc" ? (
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Computer Brand & Model *</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. Dell OptiPlex 7090 / Custom Assembled PC"
+                      value={assetFields.compModel || ""}
+                      onChange={(e) => setAssetFields(p => ({ ...p, compModel: e.target.value }))}
+                      className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Processor / RAM / Storage *</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. Intel i5 12th Gen, 16GB RAM, 512GB SSD"
+                      value={assetFields.compSpecs || ""}
+                      onChange={(e) => setAssetFields(p => ({ ...p, compSpecs: e.target.value }))}
+                      className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Serial Number / Asset Tag</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. SN-COM9982"
+                      value={assetFields.compSerial || ""}
+                      onChange={(e) => setAssetFields(p => ({ ...p, compSerial: e.target.value }))}
+                      className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-mono"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                  <div>
+                    <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Operating System (OS)</label>
+                    <select
+                      value={assetFields.compOs || "Windows 11 Pro"}
+                      onChange={(e) => setAssetFields(p => ({ ...p, compOs: e.target.value }))}
+                      className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                    >
+                      <option value="Windows 11 Pro">Windows 11 Pro</option>
+                      <option value="Windows 10 Pro">Windows 10 Pro</option>
+                      <option value="macOS / Mac mini">macOS / Mac mini</option>
+                      <option value="Ubuntu / Linux">Ubuntu / Linux</option>
+                      <option value="Other">Other</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Host Name / Computer Name</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. PC-DESK-001"
+                      value={assetFields.compHostName || ""}
+                      onChange={(e) => setAssetFields(p => ({ ...p, compHostName: e.target.value }))}
+                      className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-mono"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Computer Password / Passcode</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Admin@123 / 4492"
+                      value={assetFields.compPassword || ""}
+                      onChange={(e) => setAssetFields(p => ({ ...p, compPassword: e.target.value }))}
+                      className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-mono font-semibold"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Monitor & Peripherals Included</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Dell 22 Inch Monitor + USB Keyboard & Mouse"
+                      value={assetFields.compPeripherals || ""}
+                      onChange={(e) => setAssetFields(p => ({ ...p, compPeripherals: e.target.value }))}
+                      className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                    />
+                  </div>
+                </div>
+
+                <div className="max-w-md">
+                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Logged-in Email IDs</label>
+                  <div className="space-y-2">
+                    {emailsList.map((email, index) => (
+                      <div key={index} className="flex gap-2 items-center">
+                        <input
+                          type="email"
+                          placeholder="e.g. user@company.com"
+                          value={email}
+                          onChange={(e) => {
+                            const newList = [...emailsList];
+                            newList[index] = e.target.value;
+                            setEmailsList(newList);
+                          }}
+                          className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                        />
+                        {emailsList.length > 1 && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const newList = emailsList.filter((_, i) => i !== index);
+                              setEmailsList(newList);
+                            }}
+                            className="px-2.5 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-lg text-xs font-bold transition-all border border-rose-100 animate-fade-in"
+                          >
+                            Remove
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                    <button
+                      type="button"
+                      onClick={() => setEmailsList([...emailsList, ""])}
+                      className="mt-1 px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-[10px] font-bold rounded-lg transition-all border border-indigo-150 flex items-center gap-1.5 w-fit"
+                    >
+                      + Add Email ID
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ) : typeClean === "cpu" || typeClean === "cpu tower" || typeClean === "cabinet" ? (
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div>
+                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">CPU Brand & Cabinet Model *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. HP ProDesk / Custom Assembled"
+                    value={assetFields.cpuModel || ""}
+                    onChange={(e) => setAssetFields(p => ({ ...p, cpuModel: e.target.value }))}
+                    className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Processor / RAM / SSD *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. Core i5 12th Gen, 16GB RAM, 512GB SSD"
+                    value={assetFields.cpuSpecs || ""}
+                    onChange={(e) => setAssetFields(p => ({ ...p, cpuSpecs: e.target.value }))}
+                    className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Graphics Card (GPU)</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. NVIDIA GTX 1650 / Integrated"
+                    value={assetFields.cpuGraphics || ""}
+                    onChange={(e) => setAssetFields(p => ({ ...p, cpuGraphics: e.target.value }))}
+                    className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Serial Number / Cabinet Tag</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. CPU-SN-8812"
+                    value={assetFields.cpuSerial || ""}
+                    onChange={(e) => setAssetFields(p => ({ ...p, cpuSerial: e.target.value }))}
+                    className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-mono"
+                  />
+                </div>
+              </div>
+            ) : typeClean === "mouse" ? (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Mouse Brand & Model *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. Logitech B100 / HP Wireless Mouse"
+                    value={assetFields.mouseBrand || ""}
+                    onChange={(e) => setAssetFields(p => ({ ...p, mouseBrand: e.target.value }))}
+                    className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Connectivity Type *</label>
+                  <select
+                    value={assetFields.mouseType || "Wired USB"}
+                    onChange={(e) => setAssetFields(p => ({ ...p, mouseType: e.target.value }))}
+                    className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                  >
+                    <option value="Wired USB">Wired USB</option>
+                    <option value="Wireless (USB Dongle)">Wireless (USB Dongle)</option>
+                    <option value="Bluetooth">Bluetooth</option>
+                    <option value="Optical Gaming Mouse">Optical Gaming Mouse</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Serial Number / Tag (Optional)</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. S/N: MS-9918"
+                    value={assetFields.mouseSerial || ""}
+                    onChange={(e) => setAssetFields(p => ({ ...p, mouseSerial: e.target.value }))}
+                    className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-mono"
+                  />
+                </div>
+              </div>
+            ) : typeClean === "keyboard" ? (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Keyboard Brand & Model *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. Logitech K120 / Dell Multimedia"
+                    value={assetFields.kbBrand || ""}
+                    onChange={(e) => setAssetFields(p => ({ ...p, kbBrand: e.target.value }))}
+                    className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Connectivity / Key Type *</label>
+                  <select
+                    value={assetFields.kbType || "Wired USB"}
+                    onChange={(e) => setAssetFields(p => ({ ...p, kbType: e.target.value }))}
+                    className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                  >
+                    <option value="Wired USB">Wired USB</option>
+                    <option value="Wireless (USB Dongle)">Wireless (USB Dongle)</option>
+                    <option value="Bluetooth">Bluetooth</option>
+                    <option value="Mechanical Keyboard">Mechanical Keyboard</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Serial Number / Tag (Optional)</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. S/N: KB-4412"
+                    value={assetFields.kbSerial || ""}
+                    onChange={(e) => setAssetFields(p => ({ ...p, kbSerial: e.target.value }))}
+                    className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-mono"
+                  />
+                </div>
+              </div>
+            ) : typeClean === "monitor / display" || typeClean === "monitor" || typeClean === "display" ? (
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div>
+                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Monitor Brand & Model *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. Dell P2419H / LG IPS Monitor"
+                    value={assetFields.monBrand || ""}
+                    onChange={(e) => setAssetFields(p => ({ ...p, monBrand: e.target.value }))}
+                    className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Display Size (Inches) *</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. 21.5 Inch / 24 Inch / 27 Inch"
+                    value={assetFields.monSize || ""}
+                    onChange={(e) => setAssetFields(p => ({ ...p, monSize: e.target.value }))}
+                    className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Resolution & Panel</label>
+                  <select
+                    value={assetFields.monResolution || "Full HD (1080p)"}
+                    onChange={(e) => setAssetFields(p => ({ ...p, monResolution: e.target.value }))}
+                    className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                  >
+                    <option value="Full HD (1080p)">Full HD (1080p)</option>
+                    <option value="2K (1440p)">2K (1440p)</option>
+                    <option value="4K UHD">4K UHD</option>
+                    <option value="HD (720p)">HD (720p)</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Serial Number *</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. CN-0V11X-9901"
+                    value={assetFields.monSerial || ""}
+                    onChange={(e) => setAssetFields(p => ({ ...p, monSerial: e.target.value }))}
+                    className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-mono"
+                  />
                 </div>
               </div>
             ) : typeClean === "mobile phone" ? (
@@ -3540,6 +4047,296 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
                     </div>
                   </div>
                 </div>
+              ) : editForm.assetType?.toLowerCase().trim() === "computer" || editForm.assetType?.toLowerCase().trim() === "desktop computer" || editForm.assetType?.toLowerCase().trim() === "pc" ? (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Computer Brand & Model *</label>
+                      <input
+                        type="text"
+                        required
+                        placeholder="e.g. Dell OptiPlex 7090 / Custom Assembled PC"
+                        value={editAssetFields.compModel || ""}
+                        onChange={(e) => setEditAssetFields(p => ({ ...p, compModel: e.target.value }))}
+                        className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Processor / RAM / Storage *</label>
+                      <input
+                        type="text"
+                        required
+                        placeholder="e.g. Intel i5 12th Gen, 16GB RAM, 512GB SSD"
+                        value={editAssetFields.compSpecs || ""}
+                        onChange={(e) => setEditAssetFields(p => ({ ...p, compSpecs: e.target.value }))}
+                        className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Serial Number / Asset Tag</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. SN-COM9982"
+                        value={editAssetFields.compSerial || ""}
+                        onChange={(e) => setEditAssetFields(p => ({ ...p, compSerial: e.target.value }))}
+                        className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-mono"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div>
+                      <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Operating System (OS)</label>
+                      <select
+                        value={editAssetFields.compOs || "Windows 11 Pro"}
+                        onChange={(e) => setEditAssetFields(p => ({ ...p, compOs: e.target.value }))}
+                        className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                      >
+                        <option value="Windows 11 Pro">Windows 11 Pro</option>
+                        <option value="Windows 10 Pro">Windows 10 Pro</option>
+                        <option value="macOS / Mac mini">macOS / Mac mini</option>
+                        <option value="Ubuntu / Linux">Ubuntu / Linux</option>
+                        <option value="Other">Other</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Host Name / Computer Name</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. PC-DESK-001"
+                        value={editAssetFields.compHostName || ""}
+                        onChange={(e) => setEditAssetFields(p => ({ ...p, compHostName: e.target.value }))}
+                        className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-mono"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Computer Password / Passcode</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. Admin@123 / 4492"
+                        value={editAssetFields.compPassword || ""}
+                        onChange={(e) => setEditAssetFields(p => ({ ...p, compPassword: e.target.value }))}
+                        className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-mono font-semibold"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Monitor & Peripherals Included</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. Dell 22 Inch Monitor + USB Keyboard & Mouse"
+                        value={editAssetFields.compPeripherals || ""}
+                        onChange={(e) => setEditAssetFields(p => ({ ...p, compPeripherals: e.target.value }))}
+                        className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="max-w-md">
+                    <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Logged-in Email IDs</label>
+                    <div className="space-y-2">
+                      {editEmailsList.map((email, index) => (
+                        <div key={index} className="flex gap-2 items-center">
+                          <input
+                            type="email"
+                            placeholder="e.g. user@company.com"
+                            value={email}
+                            onChange={(e) => {
+                              const newList = [...editEmailsList];
+                              newList[index] = e.target.value;
+                              setEditEmailsList(newList);
+                            }}
+                            className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                          />
+                          {editEmailsList.length > 1 && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const newList = editEmailsList.filter((_, i) => i !== index);
+                                setEditEmailsList(newList);
+                              }}
+                              className="px-2.5 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-lg text-xs font-bold transition-all border border-rose-100"
+                            >
+                              Remove
+                            </button>
+                          )}
+                        </div>
+                      ))}
+                      <button
+                        type="button"
+                        onClick={() => setEditEmailsList([...editEmailsList, ""])}
+                        className="mt-1 px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-[10px] font-bold rounded-lg transition-all border border-indigo-150 flex items-center gap-1.5 w-fit"
+                      >
+                        + Add Email ID
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ) : editForm.assetType?.toLowerCase().trim() === "cpu" || editForm.assetType?.toLowerCase().trim() === "cpu tower" || editForm.assetType?.toLowerCase().trim() === "cabinet" ? (
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                  <div>
+                    <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">CPU Brand & Cabinet Model *</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. HP ProDesk / Custom Assembled"
+                      value={editAssetFields.cpuModel || ""}
+                      onChange={(e) => setEditAssetFields(p => ({ ...p, cpuModel: e.target.value }))}
+                      className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Processor / RAM / SSD *</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. Core i5 12th Gen, 16GB RAM, 512GB SSD"
+                      value={editAssetFields.cpuSpecs || ""}
+                      onChange={(e) => setEditAssetFields(p => ({ ...p, cpuSpecs: e.target.value }))}
+                      className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Graphics Card (GPU)</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. NVIDIA GTX 1650 / Integrated"
+                      value={editAssetFields.cpuGraphics || ""}
+                      onChange={(e) => setEditAssetFields(p => ({ ...p, cpuGraphics: e.target.value }))}
+                      className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Serial Number / Cabinet Tag</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. CPU-SN-8812"
+                      value={editAssetFields.cpuSerial || ""}
+                      onChange={(e) => setEditAssetFields(p => ({ ...p, cpuSerial: e.target.value }))}
+                      className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-mono"
+                    />
+                  </div>
+                </div>
+              ) : editForm.assetType?.toLowerCase().trim() === "mouse" ? (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Mouse Brand & Model *</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. Logitech B100 / HP Wireless Mouse"
+                      value={editAssetFields.mouseBrand || ""}
+                      onChange={(e) => setEditAssetFields(p => ({ ...p, mouseBrand: e.target.value }))}
+                      className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Connectivity Type *</label>
+                    <select
+                      value={editAssetFields.mouseType || "Wired USB"}
+                      onChange={(e) => setEditAssetFields(p => ({ ...p, mouseType: e.target.value }))}
+                      className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                    >
+                      <option value="Wired USB">Wired USB</option>
+                      <option value="Wireless (USB Dongle)">Wireless (USB Dongle)</option>
+                      <option value="Bluetooth">Bluetooth</option>
+                      <option value="Optical Gaming Mouse">Optical Gaming Mouse</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Serial Number / Tag (Optional)</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. S/N: MS-9918"
+                      value={editAssetFields.mouseSerial || ""}
+                      onChange={(e) => setEditAssetFields(p => ({ ...p, mouseSerial: e.target.value }))}
+                      className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-mono"
+                    />
+                  </div>
+                </div>
+              ) : editForm.assetType?.toLowerCase().trim() === "keyboard" ? (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Keyboard Brand & Model *</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. Logitech K120 / Dell Multimedia"
+                      value={editAssetFields.kbBrand || ""}
+                      onChange={(e) => setEditAssetFields(p => ({ ...p, kbBrand: e.target.value }))}
+                      className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Connectivity / Key Type *</label>
+                    <select
+                      value={editAssetFields.kbType || "Wired USB"}
+                      onChange={(e) => setEditAssetFields(p => ({ ...p, kbType: e.target.value }))}
+                      className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                    >
+                      <option value="Wired USB">Wired USB</option>
+                      <option value="Wireless (USB Dongle)">Wireless (USB Dongle)</option>
+                      <option value="Bluetooth">Bluetooth</option>
+                      <option value="Mechanical Keyboard">Mechanical Keyboard</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Serial Number / Tag (Optional)</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. S/N: KB-4412"
+                      value={editAssetFields.kbSerial || ""}
+                      onChange={(e) => setEditAssetFields(p => ({ ...p, kbSerial: e.target.value }))}
+                      className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-mono"
+                    />
+                  </div>
+                </div>
+              ) : editForm.assetType?.toLowerCase().trim() === "monitor / display" || editForm.assetType?.toLowerCase().trim() === "monitor" || editForm.assetType?.toLowerCase().trim() === "display" ? (
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                  <div>
+                    <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Monitor Brand & Model *</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. Dell P2419H / LG IPS Monitor"
+                      value={editAssetFields.monBrand || ""}
+                      onChange={(e) => setEditAssetFields(p => ({ ...p, monBrand: e.target.value }))}
+                      className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Display Size (Inches) *</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. 21.5 Inch / 24 Inch / 27 Inch"
+                      value={editAssetFields.monSize || ""}
+                      onChange={(e) => setEditAssetFields(p => ({ ...p, monSize: e.target.value }))}
+                      className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Resolution & Panel</label>
+                    <select
+                      value={editAssetFields.monResolution || "Full HD (1080p)"}
+                      onChange={(e) => setEditAssetFields(p => ({ ...p, monResolution: e.target.value }))}
+                      className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                    >
+                      <option value="Full HD (1080p)">Full HD (1080p)</option>
+                      <option value="2K (1440p)">2K (1440p)</option>
+                      <option value="4K UHD">4K UHD</option>
+                      <option value="HD (720p)">HD (720p)</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Serial Number *</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. CN-0V11X-9901"
+                      value={editAssetFields.monSerial || ""}
+                      onChange={(e) => setEditAssetFields(p => ({ ...p, monSerial: e.target.value }))}
+                      className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-mono"
+                    />
+                  </div>
+                </div>
               ) : editForm.assetType?.toLowerCase().trim() === "mobile phone" ? (
                 <div className="space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
@@ -4180,7 +4977,7 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
                     </div>
 
                     {/* Passwords & Access */}
-                    {(fields.phonePassword || fields.laptopPassword || emails.length > 0) && (
+                    {(fields.phonePassword || fields.laptopPassword || fields.compPassword || emails.length > 0) && (
                       <div className="bg-amber-50/50 border border-amber-200/60 rounded-xl p-4 space-y-2">
                         <h4 className="text-[10px] font-bold text-amber-800 uppercase tracking-wider">Passwords & Accounts</h4>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-3 font-semibold text-slate-700">
@@ -4189,6 +4986,9 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
                           )}
                           {fields.laptopPassword && (
                             <div><span className="text-amber-900/60 block text-[9px]">LAPTOP ADMIN PASSCODE:</span> <span className="font-mono bg-white px-2 py-0.5 rounded border border-amber-200 font-bold text-amber-900">{fields.laptopPassword}</span></div>
+                          )}
+                          {fields.compPassword && (
+                            <div><span className="text-amber-900/60 block text-[9px]">COMPUTER LOCK PASSCODE / PASSWORD:</span> <span className="font-mono bg-white px-2 py-0.5 rounded border border-amber-200 font-bold text-amber-900">{fields.compPassword}</span></div>
                           )}
                           {emails.length > 0 && (
                             <div className="col-span-2"><span className="text-amber-900/60 block text-[9px]">LOGGED-IN EMAIL ACCOUNTS:</span> {emails.filter(Boolean).join(", ")}</div>

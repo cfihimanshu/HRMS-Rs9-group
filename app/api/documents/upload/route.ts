@@ -7,22 +7,46 @@ import { requireApiSession } from "@/lib/apiAuth";
 
 const MAX_UPLOAD_BYTES = 20 * 1024 * 1024;
 const MAX_TASK_UPLOAD_BYTES = 100 * 1024 * 1024;
+
 const ALLOWED_UPLOAD_TYPES = new Set([
   "application/pdf",
   "image/jpeg",
+  "image/pjpeg",
+  "image/jpg",
   "image/png",
+  "image/x-png",
   "image/webp",
+  "image/gif",
+  "image/bmp",
   "text/csv",
+  "text/plain",
+  "application/msword",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
   "application/vnd.ms-excel",
   "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  "application/zip",
+  "application/x-zip-compressed",
+  "application/x-rar-compressed",
+  "application/vnd.rar",
   "audio/mpeg",
+  "audio/mp3",
   "audio/wav",
+  "audio/m4a",
   "video/mp4",
+  "video/quicktime",
+  "video/x-msvideo",
 ]);
+
+const SAFE_EXTENSIONS = new Set([
+  ".pdf", ".jpg", ".jpeg", ".png", ".webp", ".gif", ".bmp", ".tif", ".tiff",
+  ".csv", ".txt", ".rtf", ".doc", ".docx", ".xls", ".xlsx", ".odt",
+  ".zip", ".rar", ".7z", ".mp3", ".wav", ".m4a", ".mp4", ".mov", ".avi"
+]);
+
 const UNSAFE_TASK_EXTENSIONS = new Set([
   ".asp", ".aspx", ".bat", ".cgi", ".cmd", ".com", ".cpl", ".dll", ".exe",
   ".htm", ".html", ".jar", ".js", ".jsp", ".mjs", ".msi", ".php", ".phtml",
-  ".phar", ".pl", ".ps1", ".py", ".sh", ".svg", ".xhtml", ".xml"
+  ".phar", ".pl", ".ps1", ".py", ".sh", ".svg", ".xhtml", ".xml", ".vbs", ".scr"
 ]);
 
 export async function POST(request: Request) {
@@ -45,14 +69,21 @@ export async function POST(request: Request) {
       }, { status: 413 });
     }
     const originalExtension = path.extname(file.name || "").toLowerCase();
-    if (isTaskProof && UNSAFE_TASK_EXTENSIONS.has(originalExtension)) {
+    if (UNSAFE_TASK_EXTENSIONS.has(originalExtension)) {
       return NextResponse.json({
         success: false,
-        error: "This executable or active-script file is blocked for security."
+        error: "This file type is blocked for security."
       }, { status: 415 });
     }
-    if (!isTaskProof && !ALLOWED_UPLOAD_TYPES.has(file.type)) {
-      return NextResponse.json({ success: false, error: "Unsupported file type" }, { status: 415 });
+
+    const isAllowedMime = ALLOWED_UPLOAD_TYPES.has(file.type);
+    const isSafeExtension = SAFE_EXTENSIONS.has(originalExtension);
+
+    if (!isTaskProof && !isAllowedMime && !isSafeExtension) {
+      return NextResponse.json({
+        success: false,
+        error: `Unsupported file type (${file.type || originalExtension || "unknown"})`
+      }, { status: 415 });
     }
 
     const fileName = file.name.toLowerCase();

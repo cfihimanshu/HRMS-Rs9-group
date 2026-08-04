@@ -493,27 +493,88 @@ export async function GET(req: Request) {
     const startOfMonth = new Date(Date.UTC(year, month, 1, 0, 0, 0, 0));
     const endOfMonth = new Date(Date.UTC(year, month + 1, 0, 23, 59, 59, 999));
 
-    const presentDaysCount = await Attendance.count({
-      where: {
-        employee: userId,
-        status: "Present",
-        date: {
-          [Op.gte]: startOfMonth,
-          [Op.lte]: endOfMonth
-        }
+    const userKeysForStats = [
+      userId,
+      sessionUser.id,
+      sessionUser.email,
+      sessionUser.name,
+      (dbUser as any)?.email,
+      (dbUser as any)?.name,
+      (dbUser as any)?.employeeId
+    ].filter(Boolean);
+
+    const [userSods, userEods, userAttendances] = await Promise.all([
+      SodReport.findAll({
+        where: {
+          employee: { [Op.in]: userKeysForStats },
+          [Op.or]: [
+            { date: { [Op.gte]: startOfMonth, [Op.lte]: endOfMonth } },
+            { createdAt: { [Op.gte]: startOfMonth, [Op.lte]: endOfMonth } }
+          ]
+        },
+        raw: true
+      }).catch(() => []),
+      EodReport.findAll({
+        where: {
+          employee: { [Op.in]: userKeysForStats },
+          [Op.or]: [
+            { date: { [Op.gte]: startOfMonth, [Op.lte]: endOfMonth } },
+            { createdAt: { [Op.gte]: startOfMonth, [Op.lte]: endOfMonth } }
+          ]
+        },
+        raw: true
+      }).catch(() => []),
+      Attendance.findAll({
+        where: {
+          employee: { [Op.in]: userKeysForStats },
+          status: { [Op.or]: ["Present", "Late", "On Duty", "Half Day"] },
+          date: { [Op.gte]: startOfMonth, [Op.lte]: endOfMonth }
+        },
+        raw: true
+      }).catch(() => [])
+    ]);
+
+    const distinctPresentDates = new Set<string>();
+
+    const getFormattedDateKey = (raw: any) => {
+      if (!raw) return null;
+      if (raw instanceof Date) return raw.toISOString().substring(0, 10);
+      const str = String(raw).trim();
+      if (str.includes("T")) return str.substring(0, 10);
+      const parsed = new Date(str);
+      if (!isNaN(parsed.getTime())) {
+        const y = parsed.getFullYear();
+        const m = String(parsed.getMonth() + 1).padStart(2, "0");
+        const day = String(parsed.getDate()).padStart(2, "0");
+        return `${y}-${m}-${day}`;
       }
+      return str;
+    };
+
+    userSods.forEach((s: any) => {
+      const dKey = getFormattedDateKey(s.date || s.createdAt);
+      if (dKey) distinctPresentDates.add(dKey);
+    });
+    userEods.forEach((e: any) => {
+      const dKey = getFormattedDateKey(e.date || e.createdAt);
+      if (dKey) distinctPresentDates.add(dKey);
+    });
+    userAttendances.forEach((a: any) => {
+      const dKey = getFormattedDateKey(a.date || a.createdAt);
+      if (dKey) distinctPresentDates.add(dKey);
     });
 
+    const presentDaysCount = distinctPresentDates.size;
+
     let workingDaysInMonth = 0;
-    const endLimit = new Date();
-    const limitDate = endLimit > endOfMonth ? endOfMonth.getDate() : endLimit.getDate();
-    for (let d = 1; d <= limitDate; d++) {
+    const daysInFullMonth = endOfMonth.getDate();
+    for (let d = 1; d <= daysInFullMonth; d++) {
       const checkDate = new Date(year, month, d);
       if (checkDate.getDay() !== 0) { // Exclude Sundays
         workingDaysInMonth++;
       }
     }
-    if (workingDaysInMonth === 0) workingDaysInMonth = 22;
+    if (workingDaysInMonth === 0) workingDaysInMonth = 26;
 
     const holidaysList = [
       { name: "New Year's Day", date: new Date(year, 0, 1) },
@@ -533,27 +594,23 @@ export async function GET(req: Request) {
     const upcomingHoliday = holidaysList.find(h => h.date >= todayDate) || holidaysList[holidaysList.length - 1];
     const holidayDateStr = upcomingHoliday.date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 
-    // Fetch all approved leaves for this employee in the current month to calculate Casual and Sick Leave taken
+    // Fetch leaves for this employee to calculate Casual and Sick Leave taken
     const userLeavesThisMonth = await Leave.findAll({
       where: {
-        employee: userId,
-        status: "Approved",
-        startDate: {
-          [Op.gte]: startOfMonth,
-          [Op.lte]: endOfMonth
-        }
-      }
-    });
+        employee: { [Op.in]: userKeysForStats }
+      },
+      raw: true
+    }).catch(() => []);
 
     let casualLeaveTaken = 0;
     let sickLeaveTaken = 0;
 
     userLeavesThisMonth.forEach((l: any) => {
-      const lType = l.type || "Casual Leave";
-      const lDays = l.days || 0;
-      if (lType === "Casual Leave") {
+      const lType = String(l.type || l.leaveType || "").toLowerCase();
+      const lDays = Number(l.days || 1) || 1;
+      if (lType.includes("casual") || lType.includes("cl")) {
         casualLeaveTaken += lDays;
-      } else if (lType === "Sick Leave") {
+      } else if (lType.includes("sick") || lType.includes("sl") || lType.includes("medical")) {
         sickLeaveTaken += lDays;
       }
     });
@@ -1004,11 +1061,20 @@ export async function GET(req: Request) {
       eodTime: eodMap[u.id.toString()] || null
     }));
 
+    const possibleUserKeys = [
+      sessionUser.id,
+      sessionUser.email,
+      sessionUser.name,
+      dbUser?.email,
+      dbUser?.name,
+      (dbUser as any)?.employeeId
+    ].filter(Boolean);
+
     const userPendingTasksCount = await TaskLog.count({
       where: {
         [Op.or]: [
-          { employee: sessionUser.id },
-          { forwardedTo: sessionUser.id }
+          { employee: { [Op.in]: possibleUserKeys } },
+          { forwardedTo: { [Op.in]: possibleUserKeys } }
         ],
         status: { [Op.ne]: "Completed" }
       }

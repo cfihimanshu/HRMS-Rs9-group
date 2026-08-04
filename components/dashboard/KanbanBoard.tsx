@@ -1681,18 +1681,8 @@ export default function KanbanBoard({
             </span>
           </div>
 
-          {/* Card Action Button: Complete & Click to open */}
+          {/* Card Action Button: Click to open */}
           <div className="flex items-center gap-1.5" onClick={e => e.stopPropagation()}>
-            {task.status !== "Completed" && (
-              <button
-                type="button"
-                onClick={() => updateStatus(task.id, "Completed")}
-                className="p-1.5 bg-emerald-50 text-emerald-600 border border-emerald-200 rounded-lg hover:bg-emerald-100 transition-all shadow-sm flex items-center gap-1 text-[9px] font-bold"
-                title="Mark Complete"
-              >
-                <CheckCircle2 className="w-3 h-3" />
-              </button>
-            )}
             <span className="hidden lg:block text-[9px] text-slate-300 font-bold uppercase tracking-wider ml-1">click to open</span>
           </div>
         </div>
