@@ -2,14 +2,14 @@ import { DataTypes, Model } from "sequelize";
 import sequelize from "../../lib/sequelize";
 
 class Onboarding extends Model {
-  public id!: string;
-  public candidate!: string;
-  public category!: string;
-  public generatedDocs!: any;
-  public signedDocs!: any;
-  public status!: string;
-  public createdAt!: Date;
-  public updatedAt!: Date;
+  declare id: string;
+  declare candidate: string;
+  declare category: string;
+  declare generatedDocs: any;
+  declare signedDocs: any;
+  declare status: string;
+  declare createdAt: Date;
+  declare updatedAt: Date;
 }
 
 Onboarding.init(

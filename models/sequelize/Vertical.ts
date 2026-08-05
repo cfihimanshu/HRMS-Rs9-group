@@ -2,11 +2,11 @@ import { DataTypes, Model } from "sequelize";
 import sequelize from "../../lib/sequelize";
 
 class Vertical extends Model {
-  public id!: string;
-  public name!: string;
-  public code!: string;
-  public description!: string;
-  public status!: string;
+  declare id: string;
+  declare name: string;
+  declare code: string;
+  declare description: string;
+  declare status: string;
 }
 
 Vertical.init(

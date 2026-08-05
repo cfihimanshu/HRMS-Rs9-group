@@ -2,12 +2,12 @@ import { DataTypes, Model } from "sequelize";
 import sequelize from "../../lib/sequelize";
 
 class Attendance extends Model {
-  public id!: string;
-  public employee!: string;
-  public date!: Date;
-  public status!: string;
-  public checkIn!: Date;
-  public checkOut!: Date;
+  declare id: string;
+  declare employee: string;
+  declare date: Date;
+  declare status: string;
+  declare checkIn: Date;
+  declare checkOut: Date;
 }
 
 Attendance.init(

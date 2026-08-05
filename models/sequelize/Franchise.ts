@@ -2,18 +2,18 @@ import { DataTypes, Model } from "sequelize";
 import sequelize from "../../lib/sequelize";
 
 class Franchise extends Model {
-  public id!: string;
-  public user!: string;
-  public territory!: string;
-  public agreementUrl!: string;
-  public revenueSharing!: string;
-  public leadsGenerated!: number;
-  public reportsSubmitted!: number;
-  public brandingCompliance!: string;
-  public territoryRisk!: string;
-  public complaintsCount!: number;
-  public escalationsCount!: number;
-  public status!: string;
+  declare id: string;
+  declare user: string;
+  declare territory: string;
+  declare agreementUrl: string;
+  declare revenueSharing: string;
+  declare leadsGenerated: number;
+  declare reportsSubmitted: number;
+  declare brandingCompliance: string;
+  declare territoryRisk: string;
+  declare complaintsCount: number;
+  declare escalationsCount: number;
+  declare status: string;
 }
 
 Franchise.init(

@@ -2,25 +2,25 @@ import { DataTypes, Model } from "sequelize";
 import sequelize from "../../lib/sequelize";
 
 class Verification extends Model {
-  public id!: string;
-  public candidate!: string;
-  public aadhaarStatus!: string;
-  public panStatus!: string;
-  public addressStatus!: string;
-  public employerStatus!: string;
-  public referencesStatus!: string;
-  public cibilStatus!: string;
-  public bankStatus!: string;
-  public policeStatus!: string;
-  public socialMediaStatus!: string;
-  public remarks!: string;
-  public status!: string;
-  public aadhaarUrl!: string;
-  public panUrl!: string;
-  public salarySlipUrl!: string;
-  public bankStatementUrl!: string;
-  public createdAt!: Date;
-  public updatedAt!: Date;
+  declare id: string;
+  declare candidate: string;
+  declare aadhaarStatus: string;
+  declare panStatus: string;
+  declare addressStatus: string;
+  declare employerStatus: string;
+  declare referencesStatus: string;
+  declare cibilStatus: string;
+  declare bankStatus: string;
+  declare policeStatus: string;
+  declare socialMediaStatus: string;
+  declare remarks: string;
+  declare status: string;
+  declare aadhaarUrl: string;
+  declare panUrl: string;
+  declare salarySlipUrl: string;
+  declare bankStatementUrl: string;
+  declare createdAt: Date;
+  declare updatedAt: Date;
 }
 
 Verification.init(
