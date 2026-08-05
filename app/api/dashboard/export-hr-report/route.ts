@@ -18,9 +18,9 @@ export async function GET(req: Request) {
       return new NextResponse("Unauthorized", { status: 401 });
     }
 
-    const role = (session.user as any).role;
-    const permitted = ["Owner", "Director", "HR Head", "HR Executive", "Department Manager"];
-    if (!permitted.includes(role)) {
+    const normRole = ((session.user as any).role || "").toString().trim().toLowerCase();
+    const permitted = ["owner", "director", "hr head", "hr-head", "hr executive", "hr-executive", "department manager", "cfo", "legal head", "it admin"];
+    if (!permitted.includes(normRole)) {
       return new NextResponse("Forbidden", { status: 403 });
     }
 

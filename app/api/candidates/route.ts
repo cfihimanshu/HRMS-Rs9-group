@@ -498,9 +498,13 @@ export async function GET(req: Request) {
       return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
     }
 
-    const role = (session.user as any).role;
-    const permitted = ["Owner", "Director", "HR Head", "HR Executive", "Department Manager"];
-    if (!permitted.includes(role)) {
+    const { checkUserAccess } = await import("@/lib/roles");
+    const isAuth = await checkUserAccess(
+      session.user,
+      ["Owner", "Director", "HR Head", "HR Executive", "Department Manager"],
+      ["hiring", "screening", "interviews", "jobs", "verification", "candidates"]
+    );
+    if (!isAuth) {
       return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 });
     }
 

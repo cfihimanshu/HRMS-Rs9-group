@@ -53,7 +53,7 @@ export async function GET(req: Request) {
     const dbUser = await User.findByPk(userId, { raw: true });
     const userRole = (dbUser?.role || "Employee").toLowerCase();
 
-    const isOwnerOrDirector = ["owner", "director"].includes(userRole);
+    const isOwnerOrDirector = ["owner", "director", "cfo", "legal head", "it admin"].includes(userRole);
     const isHR = ["hr head", "hr-head", "hr executive", "hr-executive"].includes(userRole);
 
     let isAdministration = false;
@@ -79,8 +79,8 @@ export async function GET(req: Request) {
       } catch (e) {}
     }
 
-    const isManager = userRole === "department manager" || userRole.includes("manager") || userRole === "dsm" ||
-                      designation === "department manager" || designation.includes("manager") || designation === "dsm";
+    const isManager = userRole === "department manager" || userRole.includes("manager") || userRole.includes("head") || userRole === "dsm" ||
+                      designation === "department manager" || designation.includes("manager") || designation.includes("head") || designation === "dsm";
 
     if (!isOwnerOrDirector && !isHR && !isAdministration && !isLegalRecoveryUser && !isManager) {
       return NextResponse.json({ success: false, error: "Unauthorized access" }, { status: 401 });

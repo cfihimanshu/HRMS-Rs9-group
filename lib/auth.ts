@@ -10,7 +10,7 @@ import { logAudit } from "./audit";
 import TaskLog from "@/models/sequelize/TaskLog";
 import Notification from "@/models/sequelize/Notification";
 import { Op } from "sequelize";
-import { normalizeRole } from "@/lib/roles";
+import { normalizeRole } from "./roles";
 
 const LOGIN_WINDOW_MS = 15 * 60 * 1000;
 const LOGIN_MAX_ATTEMPTS = 8;
@@ -274,6 +274,8 @@ export const authOptions: NextAuthOptions = {
           company: companyName,
           vertical: verticalName,
           profilePhoto: (user as any)._profilePhoto || null,
+          menuAccess: user.menuAccess || null,
+          companies: user.companies || null,
         };
       },
     }),
@@ -289,6 +291,8 @@ export const authOptions: NextAuthOptions = {
         token.company = (user as any).company;
         token.vertical = (user as any).vertical || null;
         token.profilePhoto = (user as any).profilePhoto || null;
+        token.menuAccess = (user as any).menuAccess || null;
+        token.companies = (user as any).companies || null;
         token.lastRefreshed = Date.now();
       } else if (token.id) {
         // Only refresh the live role from the DB if 5 minutes have passed since the last query
@@ -302,6 +306,8 @@ export const authOptions: NextAuthOptions = {
             if (dbUser) {
               const systemRole = normalizeRole(dbUser.role);
               token.role = systemRole;
+              token.menuAccess = dbUser.menuAccess || null;
+              token.companies = dbUser.companies || null;
               token.lastRefreshed = now;
             }
           } catch (err) {
@@ -323,6 +329,8 @@ export const authOptions: NextAuthOptions = {
           company: token.company as string,
           vertical: token.vertical as string | null,
           profilePhoto: token.profilePhoto as string | null,
+          menuAccess: token.menuAccess || null,
+          companies: token.companies || null,
         } as any;
       }
       return session;

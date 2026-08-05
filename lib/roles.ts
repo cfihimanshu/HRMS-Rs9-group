@@ -41,3 +41,53 @@ export function normalizeRole(rawRole: unknown, customRoles: string[] = []): str
   // Preserve dynamic custom role as-is
   return trimmed;
 }
+
+/**
+ * Client & Server safe permission checker.
+ * Checks if a user object has access based on:
+ * 1. Owner / Director role
+ * 2. Case-insensitive allowed roles list
+ * 3. Administration department membership
+ * 4. Explicit menuAccess attached to user session
+ */
+export function checkUserAccess(
+  sessionUser: any,
+  allowedRoles: string[] = [],
+  menuSlugs: string[] = []
+): boolean {
+  if (!sessionUser) return false;
+  const role = (sessionUser.role || "").toString().trim().toLowerCase();
+  const dept = (sessionUser.department || "").toString().trim().toLowerCase();
+
+  // 1. Owner & Director always have full access
+  if (["owner", "director"].includes(role)) {
+    return true;
+  }
+
+  // 2. Check case-insensitive allowed roles
+  const normAllowed = allowedRoles.map(r => r.toLowerCase());
+  if (normAllowed.includes(role)) {
+    return true;
+  }
+
+  // 3. Administration department members have full access
+  if (dept.includes("administration")) {
+    return true;
+  }
+
+  // 4. Check explicitly granted menuAccess from sessionUser object
+  if (sessionUser.menuAccess && menuSlugs.length > 0) {
+    try {
+      const parsed = typeof sessionUser.menuAccess === "string" ? JSON.parse(sessionUser.menuAccess) : sessionUser.menuAccess;
+      if (Array.isArray(parsed)) {
+        const normParsed = parsed.map((s: string) => String(s).toLowerCase().trim());
+        const normSlugs = menuSlugs.map(s => String(s).toLowerCase().trim());
+        if (normSlugs.some(slug => normParsed.includes(slug))) {
+          return true;
+        }
+      }
+    } catch (_) {}
+  }
+
+  return false;
+}

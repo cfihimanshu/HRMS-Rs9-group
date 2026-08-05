@@ -2449,7 +2449,9 @@ export function PerformanceCompliance({
   initialSubTab?: "visual-dashboard" | "sod" | "eod" | "attendance-calendar" | "legal-recovery-schedule";
   triggerToast?: (msg: string) => void;
 }) {
-  const isOwnerOrDirector = ["Owner", "Director", "HR Head", "HR Executive", "Department Manager"].includes(sessionUser?.role || "");
+  const userRoleNorm = (sessionUser?.role || "").toString().trim().toLowerCase();
+  const isGlobalRole = ["owner", "director", "hr head", "hr-head", "hr executive", "hr-executive", "cfo", "legal head", "it admin"].includes(userRoleNorm);
+  const isOwnerOrDirector = isGlobalRole || userRoleNorm.includes("manager") || userRoleNorm === "dsm";
   const [loading, setLoading] = useState(true);
   const [reports, setReports] = useState<{ sod: any[]; eod: any[]; tasks?: any[]; fieldVisits?: any[] }>({ sod: [], eod: [], tasks: [], fieldVisits: [] });
   const [activeSubTab, setActiveSubTab] = useState<"visual-dashboard" | "sod" | "eod" | "attendance-calendar" | "legal-recovery-schedule">(
@@ -2510,24 +2512,24 @@ export function PerformanceCompliance({
   }, [loggedInDbUser, sessionUser]);
 
   const visibleCompanies = React.useMemo(() => {
-    if (sessionUser?.role === "Owner") {
+    if (isGlobalRole || sessionUser?.role === "Owner") {
       return companies;
     }
     return companies.filter((c: any) => {
       const cid = (c.id || "").toString();
       return userCompanyIds.includes(cid);
     });
-  }, [companies, sessionUser, userCompanyIds]);
+  }, [companies, sessionUser, userCompanyIds, isGlobalRole]);
 
   // Set default company for non-owners
   useEffect(() => {
-    if (sessionUser?.role !== "Owner" && visibleCompanies.length > 0) {
+    if (!isGlobalRole && sessionUser?.role !== "Owner" && visibleCompanies.length > 0) {
       const isValid = visibleCompanies.some((c: any) => c.id?.toString() === selectedCompany);
       if (!isValid) {
         setSelectedCompany(visibleCompanies[0].id.toString());
       }
     }
-  }, [visibleCompanies, sessionUser, selectedCompany]);
+  }, [visibleCompanies, sessionUser, selectedCompany, isGlobalRole]);
 
   // Calendar states
   const [calendarAttendance, setCalendarAttendance] = useState<any[]>([]);
@@ -2537,7 +2539,7 @@ export function PerformanceCompliance({
   const [calendarMonth, setCalendarMonth] = useState(new Date().getMonth()); // 0-11
   const [loadingCalendar, setLoadingCalendar] = useState(false);
 
-  const isOwner = ["Owner", "Director", "HR Head", "HR Executive", "Department Manager"].includes(sessionUser?.role) || users.length > 1;
+  const isOwner = isOwnerOrDirector || users.length > 1;
 
   const fetchUserCalendarData = async (userId: string) => {
     if (!userId) return;

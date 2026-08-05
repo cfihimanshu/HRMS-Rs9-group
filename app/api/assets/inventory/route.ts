@@ -78,6 +78,28 @@ async function ensureColumns() {
   try { await sequelize.query(`ALTER TABLE asset_inventory ADD handoverRemarks TEXT NULL;`); } catch (_) {}
 }
 
+import { checkUserAccess } from "@/lib/roles";
+
+const isInventoryAuthorized = async (sessionUser: any): Promise<boolean> => {
+  const allowedRoles = [
+    "owner", "director", "hr head", "hr-head", "hr executive", "hr-executive",
+    "cfo", "legal head", "it admin", "department manager", "dsm",
+    "office administrator", "facility manager", "admin executive", "asset manager"
+  ];
+  const menuSlugs = ["inventory", "assets", "asset-inventory", "inventory-management", "assets-registry", "document-movement", "vehicle-registry"];
+  if (checkUserAccess(sessionUser, allowedRoles, menuSlugs)) return true;
+
+  if (sessionUser?.id) {
+    try {
+      const dbUser = await User.findByPk(sessionUser.id, { attributes: ["menuAccess", "role"], raw: true });
+      if (dbUser && checkUserAccess({ ...sessionUser, ...dbUser }, allowedRoles, menuSlugs)) {
+        return true;
+      }
+    } catch (_) {}
+  }
+  return false;
+};
+
 // ─── GET: Fetch all inventory assets ──────────────────────────────────────────
 export async function GET(req: Request) {
   try {
@@ -85,11 +107,8 @@ export async function GET(req: Request) {
     if (!session || !session.user) {
       return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
     }
-    const userRole = (session.user as any).role || "Employee";
-    const userDept = (session.user as any).department || "";
-    const isOwner = userRole === "Owner";
-    const isAdministration = userDept.toLowerCase().includes("administration");
-    if (!isOwner && !isAdministration) {
+    const isAuth = await isInventoryAuthorized(session.user);
+    if (!isAuth) {
       return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 });
     }
 
@@ -195,12 +214,9 @@ export async function POST(req: Request) {
     if (!session || !session.user) {
       return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
     }
-    const userRole = (session.user as any).role || "Employee";
-    const userDept = (session.user as any).department || "";
     const userName = session.user.name || "Owner";
-    const isOwner = userRole === "Owner";
-    const isAdministration = userDept.toLowerCase().includes("administration");
-    if (!isOwner && !isAdministration) {
+    const isAuth = await isInventoryAuthorized(session.user);
+    if (!isAuth) {
       return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 });
     }
 
@@ -398,11 +414,8 @@ export async function PATCH(req: Request) {
           raw: true
         })
       : null;
-    const isOwner = ["owner", "director"].includes(role);
-    const isAdministration = String(actorDepartment?.name || actorProfile?.department || (session.user as any).department || "")
-      .toLowerCase()
-      .includes("administration");
-    if (!isOwner && !isAdministration) {
+    const isAuth = await isInventoryAuthorized(session.user);
+    if (!isAuth) {
       await transaction.rollback();
       return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 });
     }
@@ -579,11 +592,8 @@ export async function DELETE(req: Request) {
     if (!session || !session.user) {
       return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
     }
-    const userRole = (session.user as any).role || "Employee";
-    const userDept = (session.user as any).department || "";
-    const isOwner = userRole === "Owner";
-    const isAdministration = userDept.toLowerCase().includes("administration");
-    if (!isOwner && !isAdministration) {
+    const isAuth = await isInventoryAuthorized(session.user);
+    if (!isAuth) {
       return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 });
     }
 
