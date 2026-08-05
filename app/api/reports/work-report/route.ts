@@ -30,7 +30,8 @@ export async function GET(req: Request) {
     let fieldVisitFilter: any = {};
     let managedUserIds: any[] = [userId];
 
-    const isGlobalManager = ["Owner", "Director", "HR Head", "HR Executive"].includes(role);
+    const normRole = (role || "").toString().trim().toLowerCase();
+    const isGlobalManager = ["owner", "director", "hr head", "hr-head", "hr executive", "hr-executive", "cfo", "legal head", "it admin"].includes(normRole);
 
     if (!isGlobalManager) {
       // 1. Get logged-in user's profile to check department

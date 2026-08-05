@@ -9,20 +9,7 @@ interface EmployeeDirectoryProps {
   sessionUser?: any;
 }
 
-const departmentRoles: Record<string, string[]> = {
-  "Management": ["CEO", "Managing Director", "COO", "CTO", "CFO", "CIO", "VP", "General Manager", "Business Head"],
-  "Human Resources (HR)": ["HR Executive", "HR Recruiter", "HR Generalist", "HR Manager", "HR Business Partner", "Payroll Executive", "Training Executive"],
-  "Information Technology (IT)": ["Software Developer", "Frontend Developer", "Backend Developer", "Full Stack Developer", "Mobile Developer", "QA Tester", "DevOps Engineer", "System Administrator", "Network Engineer", "Database Administrator", "IT Support Engineer", "Cyber Security Analyst", "UI/UX Designer"],
-  "Sales": ["Sales Executive", "Sales Representative", "Sales Manager", "Area Sales Manager", "Regional Sales Manager", "Business Development Executive (BDE)", "Business Development Manager (BDM)", "Key Account Manager"],
-  "Marketing": ["Marketing Executive", "Digital Marketing Executive", "SEO Executive", "SEM Specialist", "Social Media Manager", "Content Writer", "Graphic Designer", "Brand Manager", "Marketing Manager"],
-  "Accounts": ["Accounts Assistant", "Accounts Executive", "Senior Accountant", "Billing Executive", "GST Executive", "Audit Executive"],
-  "Administration (Admin)": ["Admin Executive", "Office Administrator", "Office Manager", "Facility Manager", "Receptionist"],
-  "Operations": ["Operation Executive", "Operation Coordinator", "Operation Manager", "Process Manager", "Logistics Coordinator"],
-  "Customer Support": ["Customer Support Executive", "Customer Success Executive", "Customer Relationship Manager (CRM)", "Helpdesk Executive", "Technical Support Engineer"],
-  "Legal": ["Legal Executive", "Legal Advisor", "Compliance Officer", "Corporate Lawyer", "Legal Manager"],
-  "Data Entry": ["Data Entry Operator", "Documentation Executive", "MIS Executive", "Data Processing Executive"],
-  "Business Analyst": ["Business Analyst", "Senior Business Analyst", "Product Analyst"]
-};
+
 
 export default function EmployeeDirectory({ userRole, triggerToast, sessionUser }: EmployeeDirectoryProps) {
   const [employees, setEmployees] = useState<any[]>([]);
@@ -309,9 +296,7 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
 
   // Synchronize topRole and formData.role when department or dbRoles changes
   useEffect(() => {
-    const currentList = dbRoles.length > 0
-      ? Array.from(new Set(dbRoles.filter((r: any) => (r.department || "").toLowerCase() === (formData.department || "Human Resources (HR)").toLowerCase()).map((r: any) => r.name)))
-      : (departmentRoles[formData.department || "Human Resources (HR)"] || ["Employee"]);
+    const currentList = Array.from(new Set(dbRoles.filter((r: any) => (r.department || "").toLowerCase() === (formData.department || "Human Resources (HR)").toLowerCase()).map((r: any) => r.name)));
 
     const finalRoles = currentList.length > 0 ? currentList : ["Employee"];
     if (!finalRoles.includes(formData.role)) {
@@ -405,9 +390,7 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
         setShowCustomDeptInput(true);
         return;
       }
-      const currentList = dbRoles.length > 0
-        ? Array.from(new Set(dbRoles.filter((r: any) => (r.department || "").toLowerCase() === newDept.toLowerCase()).map((r: any) => r.name)))
-        : (departmentRoles[newDept] || ["Employee"]);
+      const currentList = Array.from(new Set(dbRoles.filter((r: any) => (r.department || "").toLowerCase() === newDept.toLowerCase()).map((r: any) => r.name)));
 
       const finalRoles = currentList.length > 0 ? currentList : ["Employee"];
       const defaultRole = finalRoles[0];
@@ -1013,8 +996,8 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
     // Role-based visibility check
     let matchesCompany = true;
     const normalizedRole = (userRole || "").trim().toLowerCase();
-    const isHrRole = normalizedRole === "hr head" || normalizedRole === "hr executive";
-    if (isHrRole) {
+    const isSingleCompanyHr = normalizedRole === "hr executive";
+    if (isSingleCompanyHr) {
       if (hrCompany) {
         matchesCompany = empComps.some((c: any) => {
           const cid = typeof c === 'string' ? c : c?.id?.toString();
@@ -1059,9 +1042,12 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
   }, [showAddForm, visibleCompanyOptions.join(','), companies, userRole]);
 
 
-  const finalRolesList = dbRoles.length > 0
-    ? Array.from(new Set(dbRoles.filter((r: any) => (r.department || "").toLowerCase() === (formData.department || "Human Resources (HR)").toLowerCase()).map((r: any) => r.name)))
-    : (departmentRoles[formData.department || "Human Resources (HR)"] || ["Employee"]);
+  const getRolesForDept = (deptName: string) => {
+    const roles = Array.from(new Set(dbRoles.filter((r: any) => (r.department || "").toLowerCase().trim() === (deptName || "Human Resources (HR)").toLowerCase().trim()).map((r: any) => r.name)));
+    return roles.length > 0 ? roles : ["Employee"];
+  };
+
+  const finalRolesList = getRolesForDept(formData.department);
 
   // Get all unique roles of actually created users/employees across all companies
   const uniqueRoleNames = Array.from(new Set(employees.map((emp: any) => emp.role).filter(Boolean))).sort();
@@ -1129,9 +1115,7 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
     editDisplayDesignations.push({ id: "desig_employee_default", name: "Employee" });
   }
 
-  const editRolesList = dbRoles.length > 0
-    ? Array.from(new Set(dbRoles.filter((r: any) => (r.department || "").toLowerCase() === (editForm.department || "Human Resources (HR)").toLowerCase()).map((r: any) => r.name)))
-    : (departmentRoles[editForm.department || "Human Resources (HR)"] || ["Employee"]);
+  const editRolesList = getRolesForDept(editForm.department);
 
   const editDeptEmployees = employees.filter((emp: any) => {
     if (emp.employeeProfile?.employeeId === editForm.employeeId) return false;
@@ -2270,9 +2254,7 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
                           return;
                         }
                         setShowEditCustomDeptInput(false);
-                        const currentList = dbRoles.length > 0
-                          ? Array.from(new Set(dbRoles.filter((r: any) => (r.department || "").toLowerCase() === newDept.toLowerCase()).map((r: any) => r.name)))
-                          : (departmentRoles[newDept] || ["Employee"]);
+                        const currentList = Array.from(new Set(dbRoles.filter((r: any) => (r.department || "").toLowerCase() === newDept.toLowerCase()).map((r: any) => r.name)));
                         const defaultRole = currentList[0] || "Employee";
                         setEditForm(prev => ({
                           ...prev,

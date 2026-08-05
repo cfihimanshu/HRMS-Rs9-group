@@ -29,7 +29,7 @@ export async function GET(req: Request) {
     const rawRole = dbUser?.role || "Employee";
     const userRole = rawRole.toLowerCase();
 
-    const isOwnerOrDirector = ["owner", "director"].includes(userRole);
+    const isOwnerOrDirector = ["owner", "director", "hr head", "hr-head", "hr executive", "hr-executive", "cfo", "legal head", "it admin", "department manager"].includes(userRole);
 
     let whereClause: any = {};
     if (!isOwnerOrDirector) {

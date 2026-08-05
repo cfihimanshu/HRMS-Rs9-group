@@ -18,6 +18,7 @@ const defaultRoles = [
   { id: "role_mgmt_bh", name: "Business Head", department: "Management" },
 
   // HR
+  { id: "role_hr_head", name: "HR Head", department: "Human Resources (HR)" },
   { id: "role_hr_exec", name: "HR Executive", department: "Human Resources (HR)" },
   { id: "role_hr_recruiter", name: "HR Recruiter", department: "Human Resources (HR)" },
   { id: "role_hr_generalist", name: "HR Generalist", department: "Human Resources (HR)" },
@@ -115,15 +116,10 @@ export async function GET(req: Request) {
     await sequelize.authenticate();
     await Role.sync();
 
-    // Seed default roles if they do not exist
-    for (const dr of defaultRoles) {
-      const exists = await Role.findOne({
-        where: {
-          name: dr.name,
-          department: dr.department
-        }
-      });
-      if (!exists) {
+    // Seed default roles ONLY if Role table is empty
+    const roleCount = await Role.count();
+    if (roleCount === 0) {
+      for (const dr of defaultRoles) {
         await Role.create({
           id: dr.id,
           name: dr.name,
