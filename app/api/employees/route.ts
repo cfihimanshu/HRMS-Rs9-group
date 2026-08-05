@@ -610,6 +610,7 @@ export async function PUT(req: Request) {
       uanNumber,
       esiNumber,
       companies,
+      companyId,
       menuAccess,
       dailyWorkingHours,
       workingDays,
@@ -620,19 +621,28 @@ export async function PUT(req: Request) {
     const targetUserId = body.userId;
 
     let profile = null;
-    if (employeeId) {
+    if (targetUserId) {
+      profile = await EmployeeProfile.findOne({ where: { user: targetUserId } });
+    }
+    if (!profile && employeeId) {
       profile = await EmployeeProfile.findOne({ where: { employeeId } });
     }
     if (!profile && (targetUserId || employeeId)) {
       profile = await EmployeeProfile.findOne({ where: { user: targetUserId || employeeId } });
     }
+    if (!profile && email) {
+      const uDoc = await User.findOne({ where: { email } });
+      if (uDoc) {
+        profile = await EmployeeProfile.findOne({ where: { user: uDoc.id } });
+      }
+    }
     if (!profile) {
       const searchId = targetUserId || employeeId;
-      if (searchId) {
+      if (searchId || email) {
         const userDoc = await User.findOne({
           where: {
             [Op.or]: [
-              { id: searchId },
+              ...(searchId ? [{ id: searchId }] : []),
               ...(email ? [{ email }] : [])
             ]
           }
@@ -659,7 +669,7 @@ export async function PUT(req: Request) {
         password: "TempPassword123!",
         role: "Employee",
         status: "active",
-        companies: body.companyId ? [body.companyId] : []
+        companies: companyId ? [companyId] : (body.companyId ? [body.companyId] : [])
       });
       profile = await EmployeeProfile.create({
         id: `EP_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
@@ -727,6 +737,7 @@ export async function PUT(req: Request) {
     if (allocatedSim !== undefined) profile.allocatedSim = allocatedSim;
     if (allocatedGmail !== undefined) profile.allocatedGmail = allocatedGmail;
     if (allocatedWhatsapp !== undefined) profile.allocatedWhatsapp = allocatedWhatsapp;
+    if (employeeId !== undefined && employeeId !== "") profile.employeeId = employeeId;
     if (designation !== undefined) profile.designation = designation;
     if (baseSalary !== undefined) profile.baseSalary = baseSalary;
     if (vertical !== undefined) profile.vertical = vertical;
@@ -741,19 +752,19 @@ export async function PUT(req: Request) {
           } else if (typeof targetUser.companies === "string") {
             try { userComps = JSON.parse(targetUser.companies); } catch (e) { }
           }
-          const companyId = userComps[0];
-          if (companyId) {
+          const companyIdToUse = companyId || userComps[0];
+          if (companyIdToUse) {
             let deptDoc = await Department.findOne({
               where: {
                 name: department,
-                company: companyId
+                company: companyIdToUse
               }
             });
             if (!deptDoc) {
               deptDoc = await Department.create({
                 id: Date.now().toString(),
                 name: department,
-                company: companyId,
+                company: companyIdToUse,
                 status: "active"
               });
             }
@@ -783,8 +794,16 @@ export async function PUT(req: Request) {
     await profile.save();
 
     // Update user record if linked
-    if (profile.user) {
-      const userRec = await User.findOne({ where: { id: profile.user } });
+    const userIdToFind = profile?.user || targetUserId;
+    if (userIdToFind || email) {
+      const userRec = await User.findOne({
+        where: {
+          [Op.or]: [
+            ...(userIdToFind ? [{ id: userIdToFind }] : []),
+            ...(email ? [{ email }] : [])
+          ]
+        }
+      });
       if (userRec) {
         if (name !== undefined) userRec.name = name;
         if (email !== undefined) userRec.email = email;
@@ -792,15 +811,16 @@ export async function PUT(req: Request) {
         if (role !== undefined) userRec.role = role;
         if (status !== undefined) {
           userRec.status = status;
-          if (status === "inactive") {
-            userRec.password = null; // Wipe password on deactivation to revoke access completely
+          if (status === "inactive" || status === "archived") {
+            userRec.password = null; // Wipe password on deactivation/archiving to revoke access completely
           }
         }
         if (body.password) {
           userRec.password = await bcrypt.hash(body.password, 10);
         }
-        if (companies !== undefined) {
-          // If companies is passed as a string or array, save it
+        if (companyId !== undefined && companyId !== "") {
+          userRec.companies = [companyId];
+        } else if (companies !== undefined) {
           userRec.companies = Array.isArray(companies) ? companies : JSON.parse(companies);
         }
         if (menuAccess !== undefined) {

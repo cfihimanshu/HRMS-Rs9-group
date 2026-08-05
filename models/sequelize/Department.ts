@@ -2,10 +2,10 @@ import { DataTypes, Model } from "sequelize";
 import sequelize from "../../lib/sequelize";
 
 class Department extends Model {
-  public id!: string;
-  public name!: string;
-  public company!: string;
-  public status!: string;
+  declare id: string;
+  declare name: string;
+  declare company: string;
+  declare status: string;
 }
 
 Department.init(

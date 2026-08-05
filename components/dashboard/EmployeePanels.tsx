@@ -857,7 +857,13 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
       });
       const data = await res.json();
       if (data.success) {
-        triggerToast("Employee details updated successfully!");
+        const newStatus = editForm.status;
+        const msg = newStatus === "archived"
+          ? "Employee status updated to Archived! (Switch filter to 'Archived Only' or 'Inactive/Archived All' to view)"
+          : newStatus === "inactive"
+            ? "Employee status updated to Inactive!"
+            : "Employee details updated successfully!";
+        triggerToast(msg);
         setShowEditModal(false);
         fetchData();
       } else {
@@ -995,6 +1001,10 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
     if (filterStatus === "Active") {
       matchesStatusFilter = empStatusLower === "active" || empStatusLower === "probation" || empStatusLower === "on notice";
     } else if (filterStatus === "Inactive") {
+      matchesStatusFilter = empStatusLower === "inactive" || empStatusLower === "archived";
+    } else if (filterStatus === "archived_only") {
+      matchesStatusFilter = empStatusLower === "archived";
+    } else if (filterStatus === "inactive_only") {
       matchesStatusFilter = empStatusLower === "inactive";
     } else if (filterStatus !== "All") {
       matchesStatusFilter = empStatusLower === filterStatus.toLowerCase();
@@ -1048,7 +1058,7 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showAddForm, visibleCompanyOptions.join(','), companies, userRole]);
 
-  // Filter roles based on selected department for display
+
   const finalRolesList = dbRoles.length > 0
     ? Array.from(new Set(dbRoles.filter((r: any) => (r.department || "").toLowerCase() === (formData.department || "Human Resources (HR)").toLowerCase()).map((r: any) => r.name)))
     : (departmentRoles[formData.department || "Human Resources (HR)"] || ["Employee"]);
@@ -1568,8 +1578,8 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
                                   setFormData(prev => ({ ...prev, workingDays: newDays.join(",") }));
                                 }}
                                 className={`w-8 h-8 rounded-lg text-[10px] font-black uppercase transition-all shadow-sm border ${isWorking
-                                    ? "bg-blue-600 border-blue-600 text-white hover:bg-blue-700"
-                                    : "bg-white dark:bg-gray-850 border-slate-250 dark:border-gray-750 text-slate-500 dark:text-gray-450 hover:bg-slate-50"
+                                  ? "bg-blue-600 border-blue-600 text-white hover:bg-blue-700"
+                                  : "bg-white dark:bg-gray-850 border-slate-250 dark:border-gray-750 text-slate-500 dark:text-gray-450 hover:bg-slate-50"
                                   }`}
                               >
                                 {day.slice(0, 1)}
@@ -1677,7 +1687,9 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
                   onChange={e => setFilterStatus(e.target.value)}
                 >
                   <option value="Active">Active Staff</option>
-                  <option value="Inactive">Inactive / Archived</option>
+                  <option value="Inactive">Inactive / Archived (All)</option>
+                  <option value="inactive_only">Inactive Only</option>
+                  <option value="archived_only">Archived Only</option>
                   <option value="All">All Statuses</option>
                   <option value="on notice">On Notice</option>
                   <option value="probation">Probation</option>
@@ -1710,24 +1722,65 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
                       filteredEmployees.map(emp => (
                         <React.Fragment key={emp.id}>
                           <tr
-                            className={`cursor-pointer transition-colors ${isDark ? "hover:bg-gray-800/50" : "hover:bg-slate-50"} ${expandedRow === emp.id ? (isDark ? "bg-gray-800/30" : "bg-indigo-50/30") : ""}`}
+                            className={`cursor-pointer transition-colors ${["inactive", "archived"].includes((emp.status || "").toLowerCase())
+                                ? isDark
+                                  ? "bg-rose-950/30 hover:bg-rose-950/50 border-l-2 border-rose-800"
+                                  : "bg-rose-50/70 hover:bg-rose-100/60 border-l-2 border-rose-300"
+                                : isDark ? "hover:bg-gray-800/50" : "hover:bg-slate-50"
+                              } ${expandedRow === emp.id ? (isDark ? "bg-gray-800/30" : "bg-indigo-50/30") : ""}`}
                             onClick={() => toggleRow(emp.id)}
                           >
                             <td className="px-6 py-4">
                               <div className="flex items-center gap-3">
-                                {emp.profilePhoto || emp.employeeProfile?.profilePhoto ? (
-                                  <img
-                                    src={emp.profilePhoto || emp.employeeProfile.profilePhoto}
-                                    alt={emp.name}
-                                    className="w-9 h-9 rounded-full object-cover border border-indigo-200 dark:border-gray-700 shadow-sm"
-                                  />
-                                ) : (
-                                  <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-indigo-500 to-violet-600 text-white font-black text-xs flex items-center justify-center shadow-sm border border-indigo-400">
-                                    {(emp.name || "E").split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2)}
-                                  </div>
-                                )}
+                                {/* Avatar with inactive/archived badge */}
+                                {(() => {
+                                  const empStatusNorm = (emp.status || "").toLowerCase();
+                                  const isInactiveOrArchived = ["inactive", "archived"].includes(empStatusNorm);
+                                  const badgeLabel = empStatusNorm === "archived" ? "ARCHIVED" : isInactiveOrArchived ? "INACTIVE" : null;
+                                  return (
+                                    <div className="relative flex-shrink-0">
+                                      {emp.profilePhoto || emp.employeeProfile?.profilePhoto ? (
+                                        <img
+                                          src={emp.profilePhoto || emp.employeeProfile.profilePhoto}
+                                          alt={emp.name}
+                                          className={`w-9 h-9 rounded-full object-cover border shadow-sm ${isInactiveOrArchived
+                                              ? "border-rose-300 dark:border-rose-700 opacity-70 grayscale-[40%]"
+                                              : "border-indigo-200 dark:border-gray-700"
+                                            }`}
+                                        />
+                                      ) : (
+                                        <div className={`w-9 h-9 rounded-full font-black text-xs flex items-center justify-center shadow-sm border ${isInactiveOrArchived
+                                            ? "bg-gradient-to-tr from-slate-400 to-slate-500 text-white border-rose-300 dark:border-rose-700 opacity-80"
+                                            : "bg-gradient-to-tr from-indigo-500 to-violet-600 text-white border-indigo-400"
+                                          }`}>
+                                          {(emp.name || "E").split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2)}
+                                        </div>
+                                      )}
+                                      {/* Tilted badge for inactive/archived */}
+                                      {badgeLabel && (
+                                        <span
+                                          className="absolute -bottom-1 -left-1 text-[7px] font-black tracking-tight uppercase px-1 py-0.5 rounded leading-none shadow-md"
+                                          style={{
+                                            transform: "rotate(-20deg)",
+                                            background: "#dc2626",
+                                            color: "#fff",
+                                            whiteSpace: "nowrap",
+                                            letterSpacing: "0.04em",
+                                            zIndex: 10,
+                                            border: "1px solid rgba(255,255,255,0.4)"
+                                          }}
+                                        >
+                                          {badgeLabel}
+                                        </span>
+                                      )}
+                                    </div>
+                                  );
+                                })()}
                                 <div>
-                                  <div className="font-bold text-slate-800 dark:text-slate-200">{emp.name}</div>
+                                  <div className={`font-bold ${["inactive", "archived"].includes((emp.status || "").toLowerCase())
+                                      ? "text-slate-500 dark:text-slate-400"
+                                      : "text-slate-800 dark:text-slate-200"
+                                    }`}>{emp.name}</div>
                                   <div className={`text-xs mt-0.5 flex items-center gap-1 ${isDark ? "text-gray-500" : "text-slate-500"}`}>
                                     <Mail className="w-3 h-3 text-slate-400" /> {emp.email}
                                   </div>
@@ -1765,19 +1818,39 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
                               )}
                             </td>
                             <td className="px-6 py-4">
-                              {emp.isOnProbation ? (
-                                <span className="px-2.5 py-1 text-[10px] font-black tracking-wider uppercase font-mono rounded bg-amber-100 text-amber-800 dark:bg-amber-950/50 dark:text-amber-300">
-                                  Probation
-                                </span>
-                              ) : emp.status === "on notice" ? (
-                                <span className="px-2.5 py-1 text-[10px] font-black tracking-wider uppercase font-mono rounded bg-orange-100 text-orange-800 dark:bg-orange-950/50 dark:text-orange-300">
-                                  On Notice
-                                </span>
-                              ) : (
-                                <span className={`px-2.5 py-1 text-[10px] font-black tracking-wider uppercase font-mono rounded ${emp.status === "active" ? "badge-active" : "badge-inactive"}`}>
-                                  {emp.status}
-                                </span>
-                              )}
+                              {(() => {
+                                const st = (emp.status || "").toLowerCase();
+                                if (emp.isOnProbation) return (
+                                  <span className="px-2.5 py-1 text-[10px] font-black tracking-wider uppercase font-mono rounded bg-amber-100 text-amber-800 dark:bg-amber-950/50 dark:text-amber-300">
+                                    Probation
+                                  </span>
+                                );
+                                if (st === "on notice") return (
+                                  <span className="px-2.5 py-1 text-[10px] font-black tracking-wider uppercase font-mono rounded bg-orange-100 text-orange-800 dark:bg-orange-950/50 dark:text-orange-300">
+                                    On Notice
+                                  </span>
+                                );
+                                if (st === "archived") return (
+                                  <span className="inline-flex items-center gap-1 px-2.5 py-1 text-[10px] font-black tracking-wider uppercase font-mono rounded bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-300 border border-rose-400/60 shadow-sm">
+                                    <span className="text-[10px]">🗃️</span> Archived
+                                  </span>
+                                );
+                                if (st === "inactive") return (
+                                  <span className="inline-flex items-center gap-1 px-2.5 py-1 text-[10px] font-black tracking-wider uppercase font-mono rounded bg-rose-100 text-rose-700 dark:bg-rose-950/50 dark:text-rose-400 border border-rose-300/50">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-rose-500 inline-block"></span> Inactive
+                                  </span>
+                                );
+                                if (st === "active") return (
+                                  <span className="badge-active px-2.5 py-1 text-[10px] font-black tracking-wider uppercase font-mono rounded">
+                                    Active
+                                  </span>
+                                );
+                                return (
+                                  <span className="badge-inactive px-2.5 py-1 text-[10px] font-black tracking-wider uppercase font-mono rounded">
+                                    {emp.status || "Unknown"}
+                                  </span>
+                                );
+                              })()}
                             </td>
                             {isManagement && (
                               <td className="px-6 py-4 text-right flex justify-end gap-2">
@@ -1809,21 +1882,67 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
 
                                   <div className="flex flex-col lg:flex-row gap-6">
                                     {/* Left Profile Card */}
-                                    <div className="flex flex-col items-center justify-center p-4 border rounded-xl bg-slate-50/50 dark:bg-gray-800/30 w-full lg:w-48 text-center shrink-0">
-                                      {emp.profilePhoto || emp.employeeProfile?.profilePhoto ? (
-                                        <img
-                                          src={emp.profilePhoto || emp.employeeProfile.profilePhoto}
-                                          alt={emp.name}
-                                          className="w-20 h-20 rounded-full object-cover border-4 border-white dark:border-gray-800 shadow-md mb-3"
-                                        />
-                                      ) : (
-                                        <div className="w-20 h-20 rounded-full bg-gradient-to-tr from-indigo-500 to-violet-600 text-white font-black text-2xl flex items-center justify-center shadow-md border-4 border-white dark:border-gray-800 mb-3">
-                                          {(emp.name || "E").split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2)}
+                                    {(() => {
+                                      const profileStatus = (emp.status || "").toLowerCase();
+                                      const isProfileInactive = ["inactive", "archived"].includes(profileStatus);
+                                      const profileBadgeLabel = profileStatus === "archived" ? "ARCHIVED" : profileStatus === "inactive" ? "INACTIVE" : null;
+                                      return (
+                                        <div className={`flex flex-col items-center justify-center p-4 border rounded-xl w-full lg:w-48 text-center shrink-0 ${isProfileInactive
+                                            ? "bg-rose-50/60 dark:bg-rose-950/20 border-rose-200 dark:border-rose-800"
+                                            : "bg-slate-50/50 dark:bg-gray-800/30"
+                                          }`}>
+                                          {/* Profile photo with badge overlay */}
+                                          <div className="relative mb-3">
+                                            {emp.profilePhoto || emp.employeeProfile?.profilePhoto ? (
+                                              <img
+                                                src={emp.profilePhoto || emp.employeeProfile.profilePhoto}
+                                                alt={emp.name}
+                                                className={`w-20 h-20 rounded-full object-cover border-4 shadow-md ${isProfileInactive
+                                                    ? "border-rose-300 dark:border-rose-700 opacity-70 grayscale-[30%]"
+                                                    : "border-white dark:border-gray-800"
+                                                  }`}
+                                              />
+                                            ) : (
+                                              <div className={`w-20 h-20 rounded-full font-black text-2xl flex items-center justify-center shadow-md border-4 ${isProfileInactive
+                                                  ? "bg-gradient-to-tr from-slate-400 to-slate-500 text-white border-rose-300 dark:border-rose-700 opacity-80"
+                                                  : "bg-gradient-to-tr from-indigo-500 to-violet-600 text-white border-white dark:border-gray-800"
+                                                }`}>
+                                                {(emp.name || "E").split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2)}
+                                              </div>
+                                            )}
+                                            {/* Tilted ARCHIVED / INACTIVE badge on photo */}
+                                            {profileBadgeLabel && (
+                                              <span
+                                                className="absolute bottom-0 left-0 text-[8px] font-black uppercase px-1.5 py-0.5 rounded shadow-lg leading-none"
+                                                style={{
+                                                  transform: "rotate(-22deg) translate(-4px, 4px)",
+                                                  background: "#dc2626",
+                                                  color: "#fff",
+                                                  border: "1.5px solid rgba(255,255,255,0.5)",
+                                                  letterSpacing: "0.05em",
+                                                  zIndex: 20
+                                                }}
+                                              >
+                                                {profileBadgeLabel}
+                                              </span>
+                                            )}
+                                          </div>
+                                          <h5 className={`font-bold text-sm line-clamp-1 ${isProfileInactive
+                                              ? "text-slate-500 dark:text-slate-400"
+                                              : "text-slate-800 dark:text-slate-100"
+                                            }`}>{emp.name}</h5>
+                                          <p className="text-[10px] text-slate-450 dark:text-gray-400 mt-1 font-mono uppercase tracking-wider">{emp.employeeProfile?.employeeId || "No ID"}</p>
+                                          {/* Status ribbon below name */}
+                                          {profileBadgeLabel && (
+                                            <span
+                                              className="mt-2 px-2.5 py-0.5 text-[9px] font-black uppercase tracking-widest rounded-full bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-300 border border-rose-300/50 shadow-sm"
+                                            >
+                                              {profileBadgeLabel}
+                                            </span>
+                                          )}
                                         </div>
-                                      )}
-                                      <h5 className="font-bold text-slate-800 dark:text-slate-100 text-sm line-clamp-1">{emp.name}</h5>
-                                      <p className="text-[10px] text-slate-450 dark:text-gray-400 mt-1 font-mono uppercase tracking-wider">{emp.employeeProfile?.employeeId || "No ID"}</p>
-                                    </div>
+                                      );
+                                    })()}
 
                                     {/* Right Grid Details */}
                                     <div className="flex-1 grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -1865,8 +1984,8 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
                                                 <span
                                                   key={day}
                                                   className={`px-1.5 py-0.5 rounded text-[8px] font-black uppercase border ${isWorking
-                                                      ? "bg-blue-600 border-blue-600 text-white"
-                                                      : "bg-white dark:bg-gray-800 border-slate-200 dark:border-gray-700 text-slate-400"
+                                                    ? "bg-blue-600 border-blue-600 text-white"
+                                                    : "bg-white dark:bg-gray-800 border-slate-200 dark:border-gray-700 text-slate-400"
                                                     }`}
                                                 >
                                                   {day.slice(0, 1)}
@@ -2291,6 +2410,7 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
                     >
                       <option value="active">Active</option>
                       <option value="inactive">Inactive (Delete Password & Revoke Access)</option>
+                      <option value="archived">Archived (Revoke Access & Preserve Historic Record)</option>
                       <option value="on notice">On Notice</option>
                       <option value="probation">Probation</option>
                     </select>
@@ -2361,8 +2481,8 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
                               setEditForm(prev => ({ ...prev, workingDays: newDays.join(",") }));
                             }}
                             className={`w-8 h-8 rounded-lg text-[10px] font-black uppercase transition-all shadow-sm border ${isWorking
-                                ? "bg-blue-600 border-blue-600 text-white hover:bg-blue-700"
-                                : "bg-white dark:bg-gray-850 border-slate-250 dark:border-gray-750 text-slate-500 dark:text-gray-450 hover:bg-slate-50"
+                              ? "bg-blue-600 border-blue-600 text-white hover:bg-blue-700"
+                              : "bg-white dark:bg-gray-850 border-slate-250 dark:border-gray-750 text-slate-500 dark:text-gray-450 hover:bg-slate-50"
                               }`}
                           >
                             {day.slice(0, 1)}

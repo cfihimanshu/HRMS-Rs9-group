@@ -85,8 +85,57 @@ const STAGE_DEFINITIONS: Record<string, string[]> = {
     "TRACK POSTAL DELIVERY",
     "PREPARE BILL (BILL BANWANA)",
     "REQUEST PAYMENT"
+  ],
+  "New RC file case": [
+    "FILE PREPARATION",
+    "COLLECT DOCUMENTS FROM BANK",
+    "DRAFT CASE",
+    "SUBMIT FILE TO COURT",
+    "PREPARE BILL (BILL BANWANA)",
+    "REQUEST PAYMENT"
+  ],
+  "New PSSA": [
+    "APPLICATION PREPARATION",
+    "COLLECT DOCUMENTS",
+    "DRAFT PSSA APPLICATION",
+    "SUBMIT APPLICATION",
+    "PREPARE BILL (BILL BANWANA)",
+    "REQUEST PAYMENT"
+  ],
+  "138 case": [
+    "NOTICE ISSUED",
+    "CHEQUE BOUNCE COMPLAINT DRAFTING",
+    "FILE COMPLAINT IN COURT",
+    "OBTAIN SUMMONS",
+    "PREPARE BILL (BILL BANWANA)",
+    "REQUEST PAYMENT"
   ]
 };
+
+function getCategoryAndStages(category?: string, subCategory?: string): { category: string; stages: string[] } {
+  const normCat = (category || "").trim().toUpperCase();
+  const normSub = (subCategory || "").trim().toUpperCase();
+
+  const catKeys = Object.keys(STAGE_DEFINITIONS);
+  const matchedKey = catKeys.find(k => k.trim().toUpperCase() === normCat);
+
+  if (matchedKey && matchedKey !== "ADVOCATE NOTICE") {
+    return { category: matchedKey, stages: STAGE_DEFINITIONS[matchedKey] };
+  }
+
+  if (normSub) {
+    for (const [catName, stgList] of Object.entries(STAGE_DEFINITIONS)) {
+      if (catName === "ADVOCATE NOTICE" || catName === "Bill Follow Up") continue;
+      const hasStage = stgList.some(s => s.trim().toUpperCase() === normSub);
+      if (hasStage) {
+        return { category: catName, stages: stgList };
+      }
+    }
+  }
+
+  const fallbackKey = matchedKey || "ADVOCATE NOTICE";
+  return { category: fallbackKey, stages: STAGE_DEFINITIONS[fallbackKey] || STAGE_DEFINITIONS["ADVOCATE NOTICE"] };
+}
 
 interface LegalWorkLogItem {
   id: string | number;
@@ -393,6 +442,10 @@ export default function LegalWorkEntryHistoryView({
   const employeeOptions = useMemo(() => {
     const names = new Set<string>();
     employeesList.forEach((e: any) => {
+      const st = String(e.status || e.employeeStatus || e.employmentStatus || "").trim().toLowerCase();
+      if (st === "inactive" || st === "resigned" || st === "terminated" || st === "0" || st === "false" || e.isActive === false) {
+        return;
+      }
       const n = e.name || e.employeeName || ([e.firstName, e.lastName].filter(Boolean).join(" "));
       if (n && n.trim()) {
         names.add(n.trim());
@@ -402,6 +455,7 @@ export default function LegalWorkEntryHistoryView({
   }, [employeesList]);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedBank, setSelectedBank] = useState("ALL");
+  const [showBanksModal, setShowBanksModal] = useState(false);
   const [selectedOption, setSelectedOption] = useState("ALL");
   const [dateFilter, setDateFilter] = useState("");
   const [columnFilters, setColumnFilters] = useState<Record<string, string[]>>({
@@ -1011,7 +1065,11 @@ export default function LegalWorkEntryHistoryView({
         (item.printedBy || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
         (item.dispatchedBy || "").toLowerCase().includes(searchQuery.toLowerCase());
 
-      const matchesBank = selectedBank === "ALL" || item.bankName === selectedBank;
+      const targetBankNorm = (selectedBank || "ALL").trim().toLowerCase();
+      const itemBankNorm = (item.bankName || "").trim().toLowerCase();
+      const matchesBank = targetBankNorm === "all" ||
+        itemBankNorm === targetBankNorm ||
+        (targetBankNorm.length > 2 && (itemBankNorm.includes(targetBankNorm) || targetBankNorm.includes(itemBankNorm)));
       const primaryOpt = (item.businessDevOption || item.category || "").trim().toLowerCase();
       const matchesOption = selectedOption === "ALL" || primaryOpt === selectedOption.trim().toLowerCase();
 
@@ -1037,6 +1095,23 @@ export default function LegalWorkEntryHistoryView({
     });
     return Array.from(bankMap.values());
   }, [filteredLogs]);
+
+  const uniqueBankDetails = useMemo(() => {
+    const map = new Map<string, { bankName: string; count: number; totalQty: number; totalAmount: number; branches: Set<string> }>();
+    logs.forEach(l => {
+      const bName = l.bankName?.trim() || "Unknown Bank";
+      if (!map.has(bName)) {
+        map.set(bName, { bankName: bName, count: 0, totalQty: 0, totalAmount: 0, branches: new Set() });
+      }
+      const item = map.get(bName)!;
+      item.count += 1;
+      item.totalQty += parseInt(l.noOfCount || "1", 10) || 1;
+      if (l.branchName) item.branches.add(l.branchName.trim());
+      const amt = parseFloat(l.billAmount || l.stageAmount || "0") || 0;
+      item.totalAmount += amt;
+    });
+    return Array.from(map.values()).sort((a, b) => b.count - a.count);
+  }, [logs]);
 
   const allBankNames = useMemo(() => {
     const set = new Set<string>();
@@ -1120,15 +1195,15 @@ export default function LegalWorkEntryHistoryView({
       ? groupLogs.find(l => (l.businessDevSubOption || l.subCategory || "").trim().toUpperCase() === targetStage.trim().toUpperCase()) || item
       : item;
 
-    const brought = stageLog.broughtBy || groupLogs.map(l => l.broughtBy).filter(Boolean).pop() || item.broughtBy || "";
-    const prepared = stageLog.preparedBy || groupLogs.map(l => l.preparedBy).filter(Boolean).pop() || item.preparedBy || "";
-    const printed = stageLog.printedBy || groupLogs.map(l => l.printedBy).filter(Boolean).pop() || item.printedBy || "";
-    const dispatched = stageLog.dispatchedBy || groupLogs.map(l => l.dispatchedBy).filter(Boolean).pop() || item.dispatchedBy || "";
-    const bNo = stageLog.billNo || groupLogs.map(l => l.billNo).filter(Boolean).pop() || item.billNo || "";
-    const bDate = stageLog.billDate || groupLogs.map(l => l.billDate).filter(Boolean).pop() || item.billDate || "";
-    const bAmt = stageLog.billAmount || groupLogs.map(l => l.billAmount).filter(Boolean).pop() || item.billAmount || "";
-    const rVal = stageLog.finalRate || groupLogs.map(l => l.finalRate).filter(Boolean).pop() || item.finalRate || "";
-    const rem = stageLog.remarks || groupLogs.map(l => l.remarks).filter(Boolean).pop() || item.remarks || "";
+    const brought = stageLog.broughtBy || (stageLog === item ? item.broughtBy : "") || "";
+    const prepared = stageLog.preparedBy || (stageLog === item ? item.preparedBy : "") || "";
+    const printed = stageLog.printedBy || (stageLog === item ? item.printedBy : "") || "";
+    const dispatched = stageLog.dispatchedBy || (stageLog === item ? item.dispatchedBy : "") || "";
+    const bNo = stageLog.billNo || (stageLog === item ? item.billNo : "") || "";
+    const bDate = stageLog.billDate || (stageLog === item ? item.billDate : "") || "";
+    const bAmt = stageLog.billAmount || (stageLog === item ? item.billAmount : "") || "";
+    const rVal = stageLog.finalRate || (stageLog === item ? item.finalRate : "") || "";
+    const rem = stageLog.remarks || (stageLog === item ? item.remarks : "") || "";
 
     setEditWorkDate(stageLog.workDate ? new Date(stageLog.workDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]);
     setEditBankName(item.bankName || "");
@@ -1198,24 +1273,24 @@ export default function LegalWorkEntryHistoryView({
             branchName: editBranchName,
             typeOfNotice: editOption,
             qty: Math.max(1, Number(editCount) || 1),
-            billAmount: editBillAmount ? Number(editBillAmount) : (isSelectedStage ? Math.max(0, Number(editAmount) || 0) : undefined),
-            broughtBy: editBroughtBy || undefined,
-            noticeRenameBy: editPreparedBy || undefined,
-            printedBy: editPrintedBy || undefined,
-            dispatchedBy: editDispatchedBy || undefined,
-            handoverTo: editPersonName || undefined,
-            handoverRemarks: editRemarks || undefined,
-            noticeDate: editWorkDate,
+            billAmount: editBillAmount ? Number(editBillAmount) : (isSelectedStage ? Math.max(0, Number(editAmount) || 0) : logItem.billAmount),
+            broughtBy: isSelectedStage ? (editBroughtBy || undefined) : logItem.broughtBy,
+            noticeRenameBy: isSelectedStage ? (editPreparedBy || undefined) : (logItem.preparedBy || logItem.rawNotice?.noticeRenameBy),
+            printedBy: isSelectedStage ? (editPrintedBy || undefined) : logItem.printedBy,
+            dispatchedBy: isSelectedStage ? (editDispatchedBy || undefined) : logItem.dispatchedBy,
+            handoverTo: isSelectedStage ? (editPersonName || undefined) : (logItem.personName || logItem.rawNotice?.handoverTo),
+            handoverRemarks: isSelectedStage ? (editRemarks || undefined) : (logItem.remarks || logItem.rawNotice?.handoverRemarks),
+            noticeDate: isSelectedStage ? editWorkDate : logItem.workDate,
             ...(isSelectedStage ? { handoverReceiptUrl: editUploadedFileName || null, documentUrl: editUploadedFileName || null } : {})
           }
           : {
             id: realId,
-            workDate: editWorkDate,
+            workDate: isSelectedStage ? editWorkDate : logItem.workDate,
             allocationDate: editAllocationDate || undefined,
             bankName: editBankName,
             branchName: editBranchName,
             businessDevOption: editOption,
-            businessDevSubOption: isSelectedStage ? editSubOption : logItem.businessDevSubOption,
+            businessDevSubOption: logItem.businessDevSubOption,
             noOfCount: editCount,
             finalRate: editRate || undefined,
             expenses: editOwnExpense ? editOwnExpense : undefined,
@@ -1230,15 +1305,15 @@ export default function LegalWorkEntryHistoryView({
             billDate: editBillDate || undefined,
             billAmount: editBillAmount || undefined,
             billNo: editBillNo || undefined,
-            broughtBy: editBroughtBy || undefined,
-            preparedBy: editPreparedBy || undefined,
-            printedBy: editPrintedBy || undefined,
-            dispatchedBy: editDispatchedBy || undefined,
-            personName: editPersonName || undefined,
+            broughtBy: isSelectedStage ? (editBroughtBy || undefined) : logItem.broughtBy,
+            preparedBy: isSelectedStage ? (editPreparedBy || undefined) : logItem.preparedBy,
+            printedBy: isSelectedStage ? (editPrintedBy || undefined) : logItem.printedBy,
+            dispatchedBy: isSelectedStage ? (editDispatchedBy || undefined) : logItem.dispatchedBy,
+            personName: isSelectedStage ? (editPersonName || undefined) : logItem.personName,
             officerContactNo: editOfficerContactNo || undefined,
             ownExpense: Number(editOwnExpense) || 0,
             uploadedFileName: isSelectedStage ? (editUploadedFileName || null) : logItem.uploadedFileName,
-            remarks: editRemarks || undefined
+            remarks: isSelectedStage ? (editRemarks || undefined) : logItem.remarks
           };
 
         const res = await fetch(isNotice ? "/api/legal-recovery/notices" : "/api/legal-recovery/work-log", {
@@ -1287,6 +1362,7 @@ export default function LegalWorkEntryHistoryView({
     } else {
       setNextStepUploadedFileName("");
       setNextStepUploadedFileUrl("");
+      setNextStepRemarks("");
     }
   };
 
@@ -1296,11 +1372,11 @@ export default function LegalWorkEntryHistoryView({
     setNextStepBankName(item.bankName || "");
     setNextStepBranchName(item.branchName || "");
 
-    const categoryKey = item.businessDevOption || item.category || "ADVOCATE NOTICE";
-    setNextStepOption(categoryKey);
-
+    const rawCategoryKey = item.businessDevOption || item.category || "ADVOCATE NOTICE";
     const currentSub = item.businessDevSubOption || item.subCategory || "";
-    const stages = STAGE_DEFINITIONS[categoryKey] || STAGE_DEFINITIONS["ADVOCATE NOTICE"];
+    const { category: resolvedCat, stages } = getCategoryAndStages(rawCategoryKey, currentSub);
+    setNextStepOption(resolvedCat);
+
     const currentIndex = stages.indexOf(currentSub);
     const calculatedNext = (currentIndex >= 0 && currentIndex < stages.length - 1)
       ? stages[currentIndex + 1]
@@ -1586,7 +1662,7 @@ export default function LegalWorkEntryHistoryView({
     const billNo = matchingLog?.billNo || (stageName === "PREPARE BILL (BILL BANWANA)" ? n?.billNo : undefined);
     const billDate = matchingLog?.billDate || (stageName === "PREPARE BILL (BILL BANWANA)" ? n?.billDate : undefined);
     const billAmount = matchingLog?.billAmount || (stageName === "PREPARE BILL (BILL BANWANA)" ? (n?.billAmount ? String(n.billAmount) : undefined) : undefined);
-    const finalRate = matchingLog?.finalRate || (stageName === "TAKE NOTICE ASSIGNMENT" ? entry.finalRate : undefined);
+    const finalRate = matchingLog?.finalRate || entry.finalRate;
     const expenses = matchingLog?.expenses || (stageName === "TAKE NOTICE ASSIGNMENT" ? entry.expenses : undefined);
     const grossProfit = matchingLog?.grossProfit || (stageName === "TAKE NOTICE ASSIGNMENT" ? entry.grossProfit : undefined);
     const stageAmount = matchingLog?.stageAmount !== undefined && matchingLog?.stageAmount !== null ? String(matchingLog.stageAmount) : undefined;
@@ -1714,14 +1790,23 @@ export default function LegalWorkEntryHistoryView({
           </div>
         </div>
 
-        <div className="bg-white p-5 rounded-2xl border border-[#E8E4DF] shadow-xs flex items-center gap-3">
-          <div className="w-12 h-12 bg-[#FCFBF9] border border-[#E8E4DF] rounded-2xl flex items-center justify-center text-[#1C1C1A]">
-            <Landmark className="w-5 h-5" />
+        <div
+          onClick={() => setShowBanksModal(true)}
+          className="bg-white p-5 rounded-2xl border border-[#E8E4DF] hover:border-[#C9A84C] shadow-xs flex items-center justify-between gap-3 cursor-pointer transition-all hover:shadow-md group"
+          title="Click to view all unique banks & filter history table"
+        >
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 bg-[#FCFBF9] group-hover:bg-amber-50 border border-[#E8E4DF] group-hover:border-amber-200 rounded-2xl flex items-center justify-center text-[#1C1C1A] group-hover:text-amber-800 transition-colors">
+              <Landmark className="w-5 h-5" />
+            </div>
+            <div>
+              <p className="text-[9px] uppercase tracking-wider text-[#9C9890] font-bold">Unique Banks</p>
+              <p className="text-xl font-semibold text-[#1C1C1A] mt-0.5">{uniqueBanks.length}</p>
+            </div>
           </div>
-          <div>
-            <p className="text-[9px] uppercase tracking-wider text-[#9C9890] font-bold">Unique Banks</p>
-            <p className="text-xl font-semibold text-[#1C1C1A] mt-0.5">{uniqueBanks.length}</p>
-          </div>
+          <span className="text-[9px] font-bold uppercase tracking-wider px-2 py-1 bg-amber-50 text-amber-800 border border-amber-200 rounded-lg group-hover:bg-amber-600 group-hover:text-white transition-all">
+            View &amp; Filter ➔
+          </span>
         </div>
 
         <div className="bg-white p-5 rounded-2xl border border-[#E8E4DF] shadow-xs flex items-center gap-3">
@@ -1855,13 +1940,13 @@ export default function LegalWorkEntryHistoryView({
               </thead>
               <tbody className="divide-y divide-[#E8E4DF] font-medium text-[#1C1C1A]">
                 {filteredLogs.map(item => {
-                  const categoryOpt = item.businessDevOption || item.category || "ADVOCATE NOTICE";
+                  const rawCategoryOpt = item.businessDevOption || item.category || "ADVOCATE NOTICE";
                   const subOpt = item.businessDevSubOption || item.subCategory || "TAKE NOTICE ASSIGNMENT";
+                  const { category: categoryOpt, stages } = getCategoryAndStages(rawCategoryOpt, subOpt);
                   const followUp = parseFollowUpDetails(item.followUpDetails);
                   const finances = parseFollowUpDetails(item.financialDetails);
 
                   const isExpanded = expandedRowKeys.has(String(item.id));
-                  const stages = STAGE_DEFINITIONS[categoryOpt] || STAGE_DEFINITIONS["ADVOCATE NOTICE"];
                   const filledStagesCount = stages.filter(stg => getStageFilledDetails(item, stg).isFilled).length;
 
                   return (
@@ -1948,28 +2033,21 @@ export default function LegalWorkEntryHistoryView({
 
                         <td className="py-2 px-2 align-top">
                           {(() => {
-                            // Collect only user-explicitly-uploaded attachments across all grouped logs
-                            const rawN = item.rawNotice;
-                            const noticeFileUrls = new Set<string>(
-                              [rawN?.handoverReceiptUrl, rawN?.documentUrl, rawN?.billingAttachments, rawN?.handoverReceiptPhoto].filter(Boolean)
-                            );
+                            const { stages: catStages } = getCategoryAndStages(rawCategoryOpt, subOpt);
                             const allAttachments: Array<{ fileName: string; stage: string }> = [];
                             const seenFiles = new Set<string>();
-                            const groupLogs = item.allLogs && item.allLogs.length > 0 ? item.allLogs : [item];
-                            groupLogs.forEach(gl => {
-                              if (
-                                gl.uploadedFileName &&
-                                !gl.rawNotice &&
-                                !seenFiles.has(gl.uploadedFileName) &&
-                                !noticeFileUrls.has(gl.uploadedFileName)
-                              ) {
-                                seenFiles.add(gl.uploadedFileName);
+
+                            catStages.forEach(stg => {
+                              const stgInfo = getStageFilledDetails(item, stg);
+                              if (stgInfo.isFilled && stgInfo.file && !seenFiles.has(stgInfo.file)) {
+                                seenFiles.add(stgInfo.file);
                                 allAttachments.push({
-                                  fileName: gl.uploadedFileName,
-                                  stage: gl.businessDevSubOption || gl.subCategory || ""
+                                  fileName: stgInfo.file,
+                                  stage: stg
                                 });
                               }
                             });
+
                             if (allAttachments.length === 0) {
                               return <span className="text-slate-400 text-[10px]">—</span>;
                             }
@@ -2150,8 +2228,17 @@ export default function LegalWorkEntryHistoryView({
                                             {/* Amount / Rate */}
                                             <td className="py-2.5 px-3 align-middle text-right font-black text-emerald-700">
                                               {info.isFilled ? (
-                                                info.stageAmount ? `₹${Number(info.stageAmount).toLocaleString("en-IN")}` :
-                                                  info.finalRate ? `₹${info.finalRate}/notice` : "—"
+                                                (info.stageAmount && Number(info.stageAmount) > 0)
+                                                  ? `₹${Number(info.stageAmount).toLocaleString("en-IN")}`
+                                                  : (info.billAmount && Number(info.billAmount) > 0)
+                                                    ? `₹${Number(info.billAmount).toLocaleString("en-IN")}`
+                                                    : (info.finalRate && Number(info.finalRate) > 0)
+                                                      ? `₹${info.finalRate}/notice`
+                                                      : (item.finalRate && Number(item.finalRate) > 0)
+                                                        ? `₹${item.finalRate}/notice`
+                                                        : (info.stageAmount !== undefined && info.stageAmount !== null && Number(info.stageAmount) === 0)
+                                                          ? `₹0`
+                                                          : "—"
                                               ) : "—"}
                                             </td>
 
@@ -3408,6 +3495,124 @@ export default function LegalWorkEntryHistoryView({
                 className="px-4 py-1.5 bg-[#C9A84C] hover:bg-[#b8973b] text-white rounded-xl text-xs font-bold transition-all cursor-pointer shadow-xs"
               >
                 Close Preview
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* UNIQUE BANKS AUDIT & FILTER POPUP MODAL */}
+      {showBanksModal && createPortal(
+        <div
+          className="fixed inset-0 bg-black/50 backdrop-blur-xs z-[9999] flex items-center justify-center p-4"
+          onMouseDown={(e) => e.target === e.currentTarget && setShowBanksModal(false)}
+        >
+          <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[85vh] overflow-hidden shadow-2xl relative border border-[#E8E4DF] flex flex-col animate-fade-in">
+            {/* Header */}
+            <div className="p-5 bg-[#FCFBF9] border-b border-[#E8E4DF] flex justify-between items-center shrink-0">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-amber-50 border border-amber-200 rounded-xl flex items-center justify-center text-amber-800 font-bold">
+                  <Landmark className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold font-serif text-[#1C1C1A]">Unique Associated Banks ({uniqueBankDetails.length})</h3>
+                  <p className="text-xs text-[#5D5B57] font-medium">Tap any bank below to filter the history table for that bank.</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowBanksModal(false)}
+                className="p-1.5 text-slate-400 hover:text-[#1C1C1A] rounded-xl hover:bg-slate-100 transition-colors font-bold text-sm cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Bank List Body */}
+            <div className="p-5 overflow-y-auto space-y-3 bg-[#FCFBF9]/30">
+              <div className="flex justify-between items-center text-[10px] uppercase font-bold text-slate-500 tracking-wider px-1">
+                <span>Bank &amp; Associated Branches</span>
+                <span>Records &amp; Financials</span>
+              </div>
+
+              {uniqueBankDetails.map((b, idx) => {
+                const handleSelectBank = (e?: React.MouseEvent) => {
+                  if (e) e.stopPropagation();
+                  setSelectedBank(b.bankName);
+                  setSearchQuery("");
+                  setDateFilter("");
+                  setColumnFilters({ staff: [], bank: [], work: [], count: [], amount: [], execution: [] });
+                  setShowBanksModal(false);
+                  triggerToast?.(`Filtered table by: ${b.bankName}`);
+                };
+
+                const isSelected = (selectedBank || "").trim().toLowerCase() === (b.bankName || "").trim().toLowerCase();
+
+                return (
+                  <div
+                    key={idx}
+                    onClick={handleSelectBank}
+                    className={`p-4 rounded-xl border transition-all cursor-pointer flex items-center justify-between gap-3 ${
+                      isSelected
+                        ? "bg-amber-50 border-amber-300 ring-2 ring-amber-400/40 shadow-xs"
+                        : "bg-white border-[#E8E4DF] hover:border-[#C9A84C] hover:bg-amber-50/40 hover:shadow-md"
+                    }`}
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="w-9 h-9 rounded-lg bg-amber-100/60 text-amber-900 font-black text-xs flex items-center justify-center shrink-0 border border-amber-200">
+                        {idx + 1}
+                      </div>
+                      <div className="min-w-0">
+                        <h4 className="text-sm font-bold text-[#1C1C1A] truncate">{b.bankName}</h4>
+                        <p className="text-[10px] text-slate-500 font-semibold mt-0.5 truncate">
+                          {b.branches.size > 0 ? `${b.branches.size} Branch(es): ${Array.from(b.branches).slice(0, 3).join(", ")}${b.branches.size > 3 ? "..." : ""}` : "All Branches"}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="text-right flex items-center gap-3 shrink-0">
+                      <div>
+                        <span className="px-2 py-0.5 bg-slate-100 text-slate-800 font-extrabold rounded text-[10px] border border-slate-200 block text-center">
+                          {b.count} Records ({b.totalQty} Count)
+                        </span>
+                        {b.totalAmount > 0 && (
+                          <span className="text-xs font-bold text-emerald-700 block mt-1">
+                            ₹{b.totalAmount.toLocaleString("en-IN")}
+                          </span>
+                        )}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={handleSelectBank}
+                        className="px-3.5 py-1.5 bg-[#714B67] hover:bg-[#5F3F56] text-white text-xs font-bold rounded-lg transition-colors cursor-pointer shadow-2xs"
+                      >
+                        {isSelected ? "Active" : "Filter ➔"}
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="p-3.5 border-t bg-slate-50 flex justify-between items-center text-xs font-semibold text-slate-600">
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedBank("ALL");
+                  setShowBanksModal(false);
+                }}
+                className="px-3 py-1.5 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-lg text-xs font-bold transition-colors cursor-pointer"
+              >
+                Clear Filter (Show All Banks)
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowBanksModal(false)}
+                className="px-4 py-1.5 bg-[#C9A84C] hover:bg-[#b8973b] text-white rounded-lg text-xs font-bold transition-colors cursor-pointer"
+              >
+                Close
               </button>
             </div>
           </div>

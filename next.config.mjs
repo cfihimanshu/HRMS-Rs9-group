@@ -2,9 +2,7 @@
 const nextConfig = {
   // Prevent production builds from replacing chunks used by a running dev server.
   distDir: process.env.NODE_ENV === 'development' ? '.next-dev' : '.next',
-  experimental: {
-    serverComponentsExternalPackages: ['sequelize', 'mysql2'],
-  },
+  serverExternalPackages: ['sequelize', 'mysql2'],
   async redirects() {
     return [
       {

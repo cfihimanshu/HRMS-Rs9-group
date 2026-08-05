@@ -2,16 +2,16 @@ import { DataTypes, Model } from "sequelize";
 import sequelize from "../../lib/sequelize";
 
 class User extends Model {
-  public id!: string;
-  public name!: string;
-  public email!: string;
-  public password!: string | null;
-  public mobile!: string;
-  public role!: string;
-  public status!: string;
-  public companies!: any;
-  public loginHistory!: any;
-  public menuAccess!: any;
+  declare id: string;
+  declare name: string;
+  declare email: string;
+  declare password: string | null;
+  declare mobile: string;
+  declare role: string;
+  declare status: string;
+  declare companies: any;
+  declare loginHistory: any;
+  declare menuAccess: any;
 }
 
 User.init(

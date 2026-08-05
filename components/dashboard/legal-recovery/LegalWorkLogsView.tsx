@@ -213,6 +213,10 @@ export default function LegalWorkLogsView({ workLogs, branches, banks, loading, 
   const employeeOptions = React.useMemo(() => {
     const names = new Set<string>();
     employeesList.forEach((e: any) => {
+      const st = String(e.status || e.employeeStatus || e.employmentStatus || "").trim().toLowerCase();
+      if (st === "inactive" || st === "resigned" || st === "terminated" || st === "0" || st === "false" || e.isActive === false) {
+        return;
+      }
       const n = e.name || e.employeeName || ([e.firstName, e.lastName].filter(Boolean).join(" "));
       if (n && n.trim()) {
         names.add(n.trim());

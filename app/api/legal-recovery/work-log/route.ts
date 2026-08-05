@@ -84,26 +84,50 @@ export async function GET(request: Request) {
       whereClause = { masterId };
     }
 
-    // Auto-backfill existing LegalNotice rows into legal_work_logs if missing
+    // Auto-backfill existing LegalNotice rows into legal_work_logs if missing.
+    // IMPORTANT: Match by masterId OR bank+branch name to prevent recreating
+    // manually deleted entries. Only select columns that actually exist in DB.
     try {
       const allNotices = await LegalNotice.findAll();
-      const existingLogs = await LegalWorkLog.findAll({ attributes: ["bankName", "branchName", "businessDevOption", "category"] });
+
+      // Use only columns that actually exist in the live DB table
+      const availableAttrs = await getExistingWorkLogAttributes();
+      const safeBackfillAttrs = ["bankName", "branchName", "businessDevOption", "category", "masterId", "remarks"].filter(
+        col => availableAttrs.includes(col)
+      );
+
+      const existingLogs = await LegalWorkLog.findAll({ attributes: safeBackfillAttrs });
+
+      // Build a lookup of already-backfilled notice markers
+      const backfilledSet = new Set<string>();
+      existingLogs.forEach((l: any) => {
+        // Key by masterId if available
+        if (l.masterId) backfilledSet.add(`m_${l.masterId}`);
+        // Key by bank+branch+remarks (notice board origin marker)
+        const remarkStr = (l.remarks || "").toLowerCase();
+        if (remarkStr.includes("notice board entry")) {
+          const bName = (l.bankName || "").toLowerCase().trim();
+          const brName = (l.branchName || "").toLowerCase().trim();
+          backfilledSet.add(`nb_${bName}_${brName}`);
+        }
+      });
 
       for (const n of allNotices) {
         const bName = (n.bankName || "").toLowerCase().trim();
-        const brName = (n.branchName || "").toLowerCase().trim();
-        const exists = existingLogs.some(
-          (l: any) =>
-            (l.bankName || "").toLowerCase().trim() === bName &&
-            (l.branchName || "").toLowerCase().trim() === brName &&
-            ((l.businessDevOption || l.category || "").toLowerCase().includes("notice"))
-        );
+        if (!bName) continue;
 
-        if (!exists && bName) {
-          await LegalWorkLog.create({
-            masterId: n.masterId || null,
-            bankId: n.bankId || null,
-            branchId: n.branchId || null,
+        // Check if this notice has already been backfilled
+        const noticeKey = n.masterId ? `m_${n.masterId}` : null;
+        const brName = (n.branchName || "").toLowerCase().trim();
+        const nameKey = `nb_${bName}_${brName}`;
+
+        const alreadyExists =
+          (noticeKey && backfilledSet.has(noticeKey)) ||
+          backfilledSet.has(nameKey);
+
+        if (!alreadyExists) {
+          // Build create payload with only safe columns
+          const createPayload: Record<string, any> = {
             workDate: n.noticeDate || n.noticeOrderDate || new Date().toISOString().split("T")[0],
             typeOfWork: "Bank Related",
             workLocation: "Office",
@@ -121,7 +145,12 @@ export async function GET(request: Request) {
             uploadedFileName: n.handoverReceiptUrl || n.documentUrl || undefined,
             remarks: n.handoverRemarks || `Notice Board Entry (${n.typeOfNotice || 'Advocate Notice'})`,
             employeeName: n.broughtBy || n.createdBy || "Notice Staff"
-          });
+          };
+          // Only include masterId if column exists
+          if (availableAttrs.includes("masterId") && n.masterId) {
+            createPayload.masterId = n.masterId;
+          }
+          await LegalWorkLog.create(createPayload);
         }
       }
     } catch (bfErr) {
@@ -188,6 +217,7 @@ export async function POST(request: Request) {
     const isBillPreparation =
       data.businessDevSubOption === "PREPARE BILL (BILL BANWANA)";
     const stageName = String(data.businessDevSubOption || data.subCategory || "");
+    const isAdvocateNotice = (data.category || data.businessDevOption || "ADVOCATE NOTICE") === "ADVOCATE NOTICE";
     const stagePersonField: Record<string, string> = {
       "TAKE NOTICE ASSIGNMENT": "broughtBy",
       "COLLECT NOTICE DATA": "broughtBy",
@@ -196,9 +226,11 @@ export async function POST(request: Request) {
       "DISPATCH NOTICES": "dispatchedBy",
     };
     const isDispatchStage = stageName.includes("DISPATCH NOTICE");
-    const requiredPersonField = isDispatchStage
-      ? "dispatchedBy"
-      : stagePersonField[stageName];
+    const requiredPersonField = !isAdvocateNotice
+      ? "broughtBy"
+      : (isDispatchStage
+        ? "dispatchedBy"
+        : stagePersonField[stageName]);
     const parsedStageAmount = Number.parseFloat(data.stageAmount);
 
     // Prevent fields from unrelated workflow stages reaching legacy columns.
@@ -214,8 +246,10 @@ export async function POST(request: Request) {
       delete cleanData.billAmount;
       delete cleanData.billNo;
     }
-    for (const field of ["broughtBy", "preparedBy", "printedBy", "dispatchedBy"]) {
-      if (field !== requiredPersonField) delete cleanData[field];
+    if (isAdvocateNotice) {
+      for (const field of ["broughtBy", "preparedBy", "printedBy", "dispatchedBy"]) {
+        if (requiredPersonField && field !== requiredPersonField) delete cleanData[field];
+      }
     }
     if (!isDispatchStage) delete cleanData.stageAmount;
 

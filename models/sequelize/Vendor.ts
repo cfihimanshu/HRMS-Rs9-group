@@ -2,17 +2,17 @@ import { DataTypes, Model } from "sequelize";
 import sequelize from "../../lib/sequelize";
 
 class Vendor extends Model {
-  public id!: string;
-  public user!: string;
-  public category!: string;
-  public agreementUrl!: string;
-  public serviceType!: string;
-  public paymentTerms!: string;
-  public riskCategory!: string;
-  public performanceScore!: number;
-  public complaintsCount!: number;
-  public renewalDate!: Date;
-  public status!: string;
+  declare id: string;
+  declare user: string;
+  declare category: string;
+  declare agreementUrl: string;
+  declare serviceType: string;
+  declare paymentTerms: string;
+  declare riskCategory: string;
+  declare performanceScore: number;
+  declare complaintsCount: number;
+  declare renewalDate: Date;
+  declare status: string;
 }
 
 Vendor.init(
