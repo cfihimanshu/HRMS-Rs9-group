@@ -73,6 +73,6 @@ export const config = {
     "/associate/:path*",
     "/vendor/:path*",
     "/franchise/:path*",
-    "/api/:path*",
+    "/api/((?!auth).*)"
   ],
 };
