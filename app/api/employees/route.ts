@@ -830,6 +830,33 @@ export async function PUT(req: Request) {
       }
     }
 
+    let changeDetailsList: string[] = [];
+    const targetName = name || userBeforeUpdate?.name || "Employee";
+
+    if (role !== undefined && userBeforeUpdate && role !== userBeforeUpdate.role) {
+      changeDetailsList.push(`Role changed from '${userBeforeUpdate.role || "None"}' to '${role}'`);
+    }
+    if (department !== undefined) {
+      changeDetailsList.push(`Department updated to '${department}'`);
+    }
+    if (designation !== undefined && profile.designation !== designation) {
+      changeDetailsList.push(`Designation changed to '${designation}'`);
+    }
+    if (status !== undefined && userBeforeUpdate && status !== userBeforeUpdate.status) {
+      changeDetailsList.push(`Status changed to '${status}'`);
+    }
+
+    let activityDetails = changeDetailsList.length > 0
+      ? `Updated ${targetName}: ${changeDetailsList.join(", ")}.`
+      : `Updated employee directory profile for ${targetName}.`;
+
+    await logHRActivity({
+      userId: (session.user as any).id,
+      userRole: (session.user as any).role,
+      action: "EMPLOYEE_UPDATED",
+      details: activityDetails
+    });
+
     // Log Audit Entry
     await logAudit({
       userId: (session.user as any).id,
@@ -838,7 +865,7 @@ export async function PUT(req: Request) {
       action: "UPDATE_EMPLOYEE",
       entity: "EmployeeProfile",
       entityId: profile.id,
-      details: `Updated employee profile ${profile.employeeId || employeeId || profile.id}.`,
+      details: activityDetails,
       ipAddress: getRequestIp(req),
       before: beforeSnapshot,
       after: {
@@ -885,6 +912,13 @@ export async function DELETE(req: Request) {
     userRec.status = "inactive";
     userRec.password = null;
     await userRec.save();
+
+    await logHRActivity({
+      userId: (session.user as any).id,
+      userRole: (session.user as any).role,
+      action: "DEACTIVATE_EMPLOYEE",
+      details: `Deactivated employee ${userRec.name} (${userRec.email}).`
+    });
 
     await logAudit({
       userId: (session.user as any).id,

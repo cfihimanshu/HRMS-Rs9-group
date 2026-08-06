@@ -241,12 +241,14 @@ export async function POST(request: Request) {
     cleanData.subCategory = data.subCategory || data.businessDevSubOption || "TAKE NOTICE ASSIGNMENT";
     cleanData.masterId = data.masterId !== undefined && data.masterId !== null ? Number(data.masterId) : 0;
 
-    if (!isBillPreparation) {
+    const isBillFollowUp = data.category === "Bill Follow Up" || data.subCategory === "BILL FOLLOW UP";
+
+    if (!isBillPreparation && !isBillFollowUp) {
       delete cleanData.billDate;
       delete cleanData.billAmount;
       delete cleanData.billNo;
     }
-    if (isAdvocateNotice) {
+    if (isAdvocateNotice && !isBillFollowUp) {
       for (const field of ["broughtBy", "preparedBy", "printedBy", "dispatchedBy"]) {
         if (requiredPersonField && field !== requiredPersonField) delete cleanData[field];
       }
@@ -309,7 +311,7 @@ export async function POST(request: Request) {
     } else {
       delete cleanData.financialDetails;
     }
-    if (requiredPersonField && !String(data[requiredPersonField] || "").trim()) {
+    if (requiredPersonField && !isBillFollowUp && !String(data[requiredPersonField] || "").trim()) {
       const fieldLabel = requiredPersonField.replace(/([A-Z])/g, " $1").replace(/^./, c => c.toUpperCase());
       return NextResponse.json(
         { success: false, error: `${fieldLabel} person name is required.` },
@@ -342,11 +344,21 @@ export async function POST(request: Request) {
         const countStr = data.noOfCount || "1";
         const categoryStr = data.businessDevOption || data.category || "Legal Recovery Work";
         const subCatStr = data.businessDevSubOption || data.subCategory || "Notice Execution";
-        const titleStr = `${categoryStr}: ${subCatStr} (${countStr} Count)`;
+        
+        const followUpDetailsObj = data.followUpDetails ? (typeof data.followUpDetails === "string" ? JSON.parse(data.followUpDetails) : data.followUpDetails) : null;
+        const contactedPersonStr = followUpDetailsObj?.contactedPerson || data.personName || "";
+        const billNoStr = data.billNo || followUpDetailsObj?.billNo || "";
+
+        const titleStr = isBillFollowUp
+          ? `Bill Follow Up: ${data.bankName || 'Bank'} (${data.branchName || 'Branch'}) - Call with ${contactedPersonStr || 'Officer'} ${billNoStr ? `(Bill #${billNoStr})` : ''}`.trim()
+          : `${categoryStr}: ${subCatStr} (${countStr} Count)`;
+
         const taskDate = data.workDate || new Date().toISOString().split('T')[0];
         
         let taskTime = "10:00 AM";
-        if (data.allocationDate) {
+        if (isBillFollowUp && followUpDetailsObj?.callTime) {
+          taskTime = followUpDetailsObj.callTime;
+        } else if (data.allocationDate) {
           const dt = new Date(data.allocationDate);
           if (!isNaN(dt.getTime())) {
             taskTime = dt.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" });
@@ -404,12 +416,17 @@ export async function POST(request: Request) {
           }
         }
 
+        const attachmentFile = data.uploadedFileName || followUpDetailsObj?.attachment || null;
+
         let taskDescriptionParts: string[] = [];
         if (detailsParts.length > 0) {
           taskDescriptionParts.push(detailsParts.join(" | "));
         }
         if (data.remarks && String(data.remarks).trim()) {
           taskDescriptionParts.push(`Remarks: ${String(data.remarks).trim()}`);
+        }
+        if (attachmentFile && String(attachmentFile).trim()) {
+          taskDescriptionParts.push(`Attachment File: ${String(attachmentFile).trim()}`);
         }
         const taskDescription = taskDescriptionParts.join(" | ");
 
@@ -425,7 +442,11 @@ export async function POST(request: Request) {
           time: taskTime,
           workSection: data.workLocation || "Bank",
           bankName: data.bankName || null,
-          branchName: data.branchName || null
+          branchName: data.branchName || null,
+          proofAttachment: attachmentFile || null,
+          proofUrl: attachmentFile || null,
+          attachmentUrl: attachmentFile || null,
+          attachment: attachmentFile || null
         });
       } catch (tErr) {
         console.warn("TaskLog creation warning in work-log route:", tErr);

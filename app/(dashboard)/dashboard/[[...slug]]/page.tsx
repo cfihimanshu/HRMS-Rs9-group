@@ -66,6 +66,7 @@ import BusinessLeads from "@/components/dashboard/BusinessLeads";
 import AuditTrail from "@/components/dashboard/AuditTrail";
 import DocumentMovement from "@/components/dashboard/DocumentMovement";
 import VehicleRegistry from "@/components/dashboard/VehicleRegistry";
+import DomainRecordPanels from "@/components/dashboard/DomainRecordPanels";
 
 export default function UnifiedEnterpriseDashboard() {
   const { data: session, status } = useSession();
@@ -1278,6 +1279,14 @@ export default function UnifiedEnterpriseDashboard() {
 
           {activeTab === "inventory-management" && (
             <InventoryManagement
+              userRole={userRole}
+              triggerToast={triggerToast}
+              sessionUser={session?.user}
+            />
+          )}
+
+          {activeTab === "domain-record" && (
+            <DomainRecordPanels
               userRole={userRole}
               triggerToast={triggerToast}
               sessionUser={session?.user}

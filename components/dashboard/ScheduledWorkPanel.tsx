@@ -115,10 +115,18 @@ export default function ScheduledWorkPanel({ sessionUser, triggerToast }: Schedu
   const [loading, setLoading] = useState(true);
   const [selectedDetailItem, setSelectedDetailItem] = useState<any | null>(null);
 
-  // Filter States
+  // Helper to calculate current month start & end dates
+  const getCurrentMonthDates = () => {
+    const now = new Date();
+    const firstDay = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split("T")[0];
+    const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split("T")[0];
+    return { firstDay, lastDay };
+  };
+
+  // Filter States (Default to Current Month)
   const [searchTerm, setSearchTerm] = useState("");
-  const [fromDate, setFromDate] = useState("");
-  const [toDate, setToDate] = useState("");
+  const [fromDate, setFromDate] = useState(() => getCurrentMonthDates().firstDay);
+  const [toDate, setToDate] = useState(() => getCurrentMonthDates().lastDay);
   const [typeFilter, setTypeFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
 
@@ -588,17 +596,20 @@ export default function ScheduledWorkPanel({ sessionUser, triggerToast }: Schedu
               </button>
               <button
                 onClick={() => setQuickDateRange("month")}
-                className="text-[9px] font-extrabold bg-purple-100 text-purple-900 px-1.5 py-0.5 rounded hover:bg-purple-200"
+                className="text-[9px] font-extrabold bg-purple-700 text-white px-2 py-0.5 rounded shadow-2xs"
               >
-                Month
+                Current Month
               </button>
-              {(fromDate || toDate) && (
+              {(fromDate || toDate) ? (
                 <button
                   onClick={() => setQuickDateRange("clear")}
-                  className="text-[9px] font-extrabold text-rose-600 hover:underline px-1"
+                  className="text-[9px] font-extrabold bg-slate-100 text-slate-700 hover:bg-slate-200 px-2 py-0.5 rounded border border-slate-200"
+                  title="View All Time / Past Months Data"
                 >
-                  Clear
+                  All Time
                 </button>
+              ) : (
+                <span className="text-[9px] font-extrabold bg-emerald-100 text-emerald-800 px-1.5 py-0.5 rounded">All Time</span>
               )}
             </div>
           </div>

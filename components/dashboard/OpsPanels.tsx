@@ -2472,7 +2472,7 @@ export function PerformanceCompliance({
   const [activeDetailsTab, setActiveDetailsTab] = useState<"tasks" | "attendance">("tasks");
   const [selectedDashboardCategory, setSelectedDashboardCategory] = useState<"staff" | "calls" | "tasks" | "payments" | "pendingTasks" | "hrCalls" | null>(null);
   const [loadingExtra, setLoadingExtra] = useState(false);
-  const [dateFilterType, setDateFilterType] = useState<"overall" | "current-month" | "custom">("overall");
+  const [dateFilterType, setDateFilterType] = useState<"overall" | "current-month" | "custom">("current-month");
   const [startDateFilter, setStartDateFilter] = useState("");
   const [endDateFilter, setEndDateFilter] = useState("");
   const [selectedSelfie, setSelectedSelfie] = useState<string | null>(null);
@@ -2487,6 +2487,8 @@ export function PerformanceCompliance({
   const [expandedUserRows, setExpandedUserRows] = useState<Record<string, boolean>>({});
   const [showFilters, setShowFilters] = useState(false);
   const [exportingMasterReport, setExportingMasterReport] = useState(false);
+  // User status filter: 'active' (default), 'inactive', 'all'
+  const [userStatusFilter, setUserStatusFilter] = useState<"active" | "inactive" | "all">("active");
 
   const loggedInDbUser = React.useMemo(() => {
     if (!sessionUser?.id || users.length === 0) return null;
@@ -3003,18 +3005,20 @@ export function PerformanceCompliance({
     });
 
     const allList = Array.from(userMap.values()).filter(u => u.name && u.name.trim() !== "" && !u.name.toLowerCase().includes("unknown"));
-    const activeList = allList.filter(u => u.status !== "inactive").sort((a, b) => a.name.localeCompare(b.name));
-    const inactiveList = allList.filter(u => u.status === "inactive").sort((a, b) => a.name.localeCompare(b.name));
+    const activeList = allList.filter(u => u.status !== "inactive" && u.status !== "archived").sort((a, b) => a.name.localeCompare(b.name));
+    const inactiveList = allList.filter(u => u.status === "inactive" || u.status === "archived").sort((a, b) => a.name.localeCompare(b.name));
 
     return { activeList, inactiveList, allUsers: allList };
   }, [mergedList, users, sessionUser, selectedCompany, selectedDept]);
 
-  // Synchronize selection
+  // Synchronize selection — auto-switch filter when inactive user is selected
   useEffect(() => {
     if (selectedUser) {
-      const userExists = uniqueUsersFromReports.allUsers.some((u) => u.id === selectedUser);
-      if (!userExists) {
+      const userObj = uniqueUsersFromReports.allUsers.find((u) => u.id === selectedUser);
+      if (!userObj) {
         setSelectedUser("");
+      } else if ((userObj.status === "inactive" || userObj.status === "archived") && userStatusFilter === "active") {
+        setUserStatusFilter("all");
       }
     }
   }, [selectedCompany, selectedDept, uniqueUsersFromReports, selectedUser]);
@@ -3560,6 +3564,16 @@ export function PerformanceCompliance({
       : "";
     const fullUser = users.find((u: any) => u.id?.toString() === empId);
 
+    // Status filter: by default only show active/non-inactive users
+    // If a specific user is selected OR status filter is not 'active', allow inactive through
+    const empStatus = (fullUser?.status || item.employee?.status || "active").toLowerCase();
+    const isInactiveEmp = empStatus === "inactive" || empStatus === "archived";
+    let matchStatus = true;
+    if (!selectedUser) {
+      if (userStatusFilter === "active" && isInactiveEmp) matchStatus = false;
+      if (userStatusFilter === "inactive" && !isInactiveEmp) matchStatus = false;
+    }
+
     let matchCompany = true;
     if (isOwner && selectedCompany) {
       matchCompany = isUserInCompany(fullUser || item.employee, selectedCompany);
@@ -3585,7 +3599,7 @@ export function PerformanceCompliance({
       matchSubTab = !!item.eod;
     }
 
-    return matchSearch && matchDate && matchCompany && matchUser && matchSubTab && matchDept;
+    return matchSearch && matchDate && matchCompany && matchUser && matchSubTab && matchDept && matchStatus;
   });
 
   const visualStats = React.useMemo(() => {
@@ -3612,6 +3626,14 @@ export function PerformanceCompliance({
       const empId = u.id?.toString() || "";
       if (selectedCompany && !isUserInCompany(u, selectedCompany)) return;
       if (selectedDept && u.department !== selectedDept) return;
+      // Exclude inactive from default view unless filter or specific user selected
+      const empStatus = (u.status || "active").toLowerCase();
+      const isInactiveU = empStatus === "inactive" || empStatus === "archived";
+      if (isInactiveU && !selectedUser && userStatusFilter === "active") return;
+      if (isInactiveU && !selectedUser && userStatusFilter === "inactive") {
+        // Only include inactive users in visualStats when filter is set to inactive/all
+      }
+      if (!isInactiveU && !selectedUser && userStatusFilter === "inactive") return;
 
       employeeMap.set(empId, {
         id: empId,
@@ -3628,6 +3650,38 @@ export function PerformanceCompliance({
         totalWorkMs: 0,
         profilePhoto: u.profile?.profilePhoto || "",
         role: u.role || ""
+      });
+    });
+
+    // Also ensure employees with past reports are included in employeeMap even if inactive
+    mergedList.forEach((item: any) => {
+      if (!item.employee?.id) return;
+      const empId = item.employee.id.toString();
+      if (employeeMap.has(empId)) return; // Already added
+      if (selectedCompany && !isUserInCompany(item.employee, selectedCompany)) return;
+      if (selectedDept && item.employee.department !== selectedDept) return;
+      // Only add if the user filter asks for them
+      const empStatus = (item.employee.status || "active").toLowerCase();
+      const isInactiveRep = empStatus === "inactive" || empStatus === "archived";
+      if (!selectedUser && userStatusFilter === "active" && isInactiveRep) return;
+      if (!selectedUser && userStatusFilter === "inactive" && !isInactiveRep) return;
+
+      const dbUser = users.find((u: any) => u.id?.toString() === empId);
+      employeeMap.set(empId, {
+        id: empId,
+        name: item.employee.name || "Unknown",
+        email: item.employee.email || "",
+        department: item.employee.department || dbUser?.department || "General",
+        callsCount: 0,
+        tasksDone: 0,
+        tasksPending: 0,
+        leadsSelected: 0,
+        leadsRejected: 0,
+        sodCount: 0,
+        eodCount: 0,
+        totalWorkMs: 0,
+        profilePhoto: dbUser?.profile?.profilePhoto || "",
+        role: item.employee.role || dbUser?.role || ""
       });
     });
 
@@ -4064,19 +4118,34 @@ export function PerformanceCompliance({
                   )}
                 </select>
               </div>
+
+              {/* User Status Filter */}
+              <div>
+                <label className="block text-[9px] uppercase tracking-wider text-slate-400 font-black mb-1 font-mono">User Status</label>
+                <select
+                  value={userStatusFilter}
+                  onChange={(e) => setUserStatusFilter(e.target.value as "active" | "inactive" | "all")}
+                  className="bg-slate-50 hover:bg-slate-100 border border-slate-200 focus:border-[#714B67] rounded-lg px-3 py-1.5 text-xs text-slate-800 focus:outline-none font-bold transition-all shadow-sm"
+                >
+                  <option value="active">Active Staff Only</option>
+                  <option value="inactive">Inactive / Archived Staff</option>
+                  <option value="all">All Staff (Active + Inactive)</option>
+                </select>
+              </div>
             </div>
 
             {/* Clear Filters Button */}
-            {(searchTerm || selectedCompany || selectedDept || selectedUser || dateFilterType !== "overall") && (
+            {(searchTerm || selectedCompany || selectedDept || selectedUser || dateFilterType !== "current-month" || userStatusFilter !== "active") && (
               <button
                 onClick={() => {
                   setSearchTerm("");
                   setSelectedCompany("");
                   setSelectedDept("");
                   setSelectedUser("");
-                  setDateFilterType("overall");
+                  setDateFilterType("current-month");
                   setStartDateFilter("");
                   setEndDateFilter("");
+                  setUserStatusFilter("active");
                 }}
                 className="mt-4 md:mt-0 flex items-center gap-1.5 border border-rose-250 hover:bg-rose-50 text-rose-600 px-3 py-1.5 rounded-lg text-xs font-bold transition-all shadow-sm"
               >
@@ -4292,6 +4361,12 @@ export function PerformanceCompliance({
                         return `${hrs}h ${mins}m`;
                       };
 
+                      const isInactiveEmpRow = (() => {
+                            const dbU = users.find((u: any) => u.id?.toString() === emp.id.toString());
+                            const st = (dbU?.status || emp.role || "active").toLowerCase();
+                            return st === "inactive" || st === "archived";
+                          })();
+
                       return (
                         <React.Fragment key={emp.id}>
                           <tr
@@ -4301,7 +4376,10 @@ export function PerformanceCompliance({
                                 [emp.id]: !prev[emp.id]
                               }));
                             }}
-                            className={`hover:bg-indigo-50/15 cursor-pointer transition-colors ${expandedUserRows[emp.id] ? "bg-indigo-50/10 font-bold" : ""
+                            className={`hover:bg-indigo-50/15 cursor-pointer transition-colors ${
+                              isInactiveEmpRow
+                                ? "bg-rose-50/70 border-l-2 border-l-rose-400"
+                                : expandedUserRows[emp.id] ? "bg-indigo-50/10 font-bold" : ""
                               }`}
                           >
                             <td className="py-3.5 px-4 whitespace-nowrap">
@@ -4323,6 +4401,9 @@ export function PerformanceCompliance({
                                 <div>
                                   <span className="font-bold text-slate-800 text-xs block">{emp.name}</span>
                                   <span className="text-[10px] text-slate-400 font-mono font-medium block mt-0.5">{emp.email}</span>
+                                  {isInactiveEmpRow && (
+                                    <span className="inline-block mt-0.5 px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-wide bg-rose-100 text-rose-700 border border-rose-200">INACTIVE</span>
+                                  )}
                                 </div>
                               </div>
                             </td>
@@ -5619,7 +5700,7 @@ export function PerformanceCompliance({
               >
                 <Filter className="w-3.5 h-3.5" />
                 <span>Filter Reports</span>
-                {(searchTerm || selectedCompany || selectedDept || selectedUser || dateFilterType !== "overall") && (
+                {(searchTerm || selectedCompany || selectedDept || selectedUser || dateFilterType !== "overall" || userStatusFilter !== "active") && (
                   <span className="w-1.5 h-1.5 rounded-full bg-[#C9A84C] animate-pulse" />
                 )}
               </button>
@@ -5747,6 +5828,19 @@ export function PerformanceCompliance({
                         </div>
                       </div>
                     )}
+                    {/* User Status Filter */}
+                    <div>
+                      <label className="text-[9px] uppercase font-bold text-[#9C9890] font-mono tracking-widest block mb-1">User Status</label>
+                      <select
+                        className="w-full bg-white border border-[#E8E4DF] rounded-xl p-2.5 text-xs font-bold text-[#1C1C1A] focus:outline-none focus:border-[#C9A84C] focus:ring-1 focus:ring-[#C9A84C]"
+                        value={userStatusFilter}
+                        onChange={(e) => setUserStatusFilter(e.target.value as "active" | "inactive" | "all")}
+                      >
+                        <option value="active">Active Staff Only</option>
+                        <option value="inactive">Inactive / Archived Staff</option>
+                        <option value="all">All Staff (Active + Inactive)</option>
+                      </select>
+                    </div>
                   </div>
 
                   <div className="pt-2 flex gap-3">
@@ -5760,6 +5854,7 @@ export function PerformanceCompliance({
                         setDateFilterType("overall");
                         setStartDateFilter("");
                         setEndDateFilter("");
+                        setUserStatusFilter("active");
                         setShowFilters(false);
                       }}
                       className="flex-1 bg-[#FCFBF9] hover:bg-[#F5F2EC] text-[#6B665E] py-2.5 rounded-xl text-[10px] font-bold transition-all border border-[#E8E4DF]"
@@ -5828,11 +5923,20 @@ export function PerformanceCompliance({
                         }));
                       };
 
+                      const empId2 = item.employee?.id?.toString() || "";
+                      const dbUser2 = users.find((u: any) => u.id?.toString() === empId2);
+                      const empSt = (dbUser2?.status || item.employee?.status || "active").toLowerCase();
+                      const isInactiveRow = empSt === "inactive" || empSt === "archived";
+
                       return (
                         <React.Fragment key={rowKey}>
                           <tr
                             onClick={toggleRow}
-                            className={`hover:bg-slate-50/50 cursor-pointer transition-all ${isExpanded ? "bg-slate-50/30 font-bold" : ""}`}
+                            className={`hover:bg-slate-50/50 cursor-pointer transition-all ${
+                              isInactiveRow
+                                ? "bg-rose-50/70 border-l-2 border-l-rose-400"
+                                : isExpanded ? "bg-slate-50/30 font-bold" : ""
+                            }`}
                           >
                             {isOwner && (
                               <td className="py-3.5 px-4">
@@ -5841,6 +5945,14 @@ export function PerformanceCompliance({
                                   <span className="text-[10px] text-slate-400 font-mono font-bold">
                                     {item.employee?.email || ""} {item.employee?.department ? `| ${item.employee.department}` : ""}
                                   </span>
+                                  {(() => {
+                                    const empId3 = item.employee?.id?.toString() || "";
+                                    const dbUser3 = users.find((u: any) => u.id?.toString() === empId3);
+                                    const st3 = (dbUser3?.status || item.employee?.status || "active").toLowerCase();
+                                    return (st3 === "inactive" || st3 === "archived") ? (
+                                      <span className="inline-block mt-0.5 px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-wide bg-rose-100 text-rose-700 border border-rose-200">INACTIVE</span>
+                                    ) : null;
+                                  })()}
                                 </div>
                               </td>
                             )}
@@ -5918,6 +6030,8 @@ export function PerformanceCompliance({
                               </div>
                             </td>
                           </tr>
+
+
 
                           {isExpanded && (
                             <tr className="bg-slate-50/50">

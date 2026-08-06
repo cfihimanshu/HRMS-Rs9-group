@@ -190,9 +190,12 @@ export default function LegalWorkLogsView({ workLogs, branches, banks, loading, 
     totalPendingAmount: 0,
   });
   const [loadingPendingBills, setLoadingPendingBills] = useState(false);
+  const [selectedBillId, setSelectedBillId] = useState<string>("");
+  const [selectedBillCategory, setSelectedBillCategory] = useState<string>("ADVOCATE NOTICE");
   const [callDate, setCallDate] = useState(new Date().toISOString().split("T")[0]);
   const [callTime, setCallTime] = useState("");
   const [contactedPerson, setContactedPerson] = useState("");
+  const [uploadedFileDisplayName, setUploadedFileDisplayName] = useState("");
   const [employeesList, setEmployeesList] = useState<any[]>([]);
 
   useEffect(() => {
@@ -250,8 +253,7 @@ export default function LegalWorkLogsView({ workLogs, branches, banks, loading, 
   useEffect(() => {
     if (
       bankWorkCategory !== "Bill Follow Up" ||
-      !selectedBankId ||
-      !selectedBranchRecord?.id
+      (!selectedBankId && !selectedBranchName)
     ) {
       setPendingBills([]);
       setPendingBillSummary({
@@ -260,6 +262,8 @@ export default function LegalWorkLogsView({ workLogs, branches, banks, loading, 
         totalReceivedAmount: 0,
         totalPendingAmount: 0,
       });
+      setSelectedBillId("");
+      setSelectedBillCategory("ADVOCATE NOTICE");
       return;
     }
 
@@ -267,15 +271,25 @@ export default function LegalWorkLogsView({ workLogs, branches, banks, loading, 
     const loadPendingBills = async () => {
       setLoadingPendingBills(true);
       try {
+        const bankObj = banks.find((b: any) => String(b.id) === String(selectedBankId));
         const params = new URLSearchParams({
-          bankId: selectedBankId,
-          branchId: String(selectedBranchRecord.id),
+          bankId: selectedBankId || "",
+          branchId: String(selectedBranchRecord?.id || ""),
+          bankName: bankObj?.bankName || "",
+          branchName: selectedBranchName || "",
         });
         const response = await fetch(`/api/legal-recovery/bill-follow-up?${params}`);
         const result = await response.json();
         if (!cancelled && response.ok && result.success) {
-          setPendingBills(result.data || []);
+          const list = result.data || [];
+          setPendingBills(list);
           setPendingBillSummary(result.summary);
+          if (list.length > 0) {
+            setSelectedBillId(list[0].id);
+            setSelectedBillCategory(list[0].category || "ADVOCATE NOTICE");
+            if (list[0].billNo) setBillNo(list[0].billNo);
+            if (list[0].billAmount) setBillAmount(String(list[0].billAmount));
+          }
         } else if (!cancelled) {
           setPendingBills([]);
         }
@@ -290,7 +304,7 @@ export default function LegalWorkLogsView({ workLogs, branches, banks, loading, 
     return () => {
       cancelled = true;
     };
-  }, [bankWorkCategory, selectedBankId, selectedBranchRecord?.id]);
+  }, [bankWorkCategory, selectedBankId, selectedBranchName, selectedBranchRecord?.id]);
 
   // Active Notice Session Saved Stages State
   const [sessionSavedStages, setSessionSavedStages] = useState<Record<string, any>>({});
@@ -355,17 +369,42 @@ export default function LegalWorkLogsView({ workLogs, branches, banks, loading, 
     }
   }, [businessDevSubOption, sessionSavedStages]);
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      setUploadedFileName(file.name);
-      setUploadedFileType(file.type);
-      if (file.type.startsWith("image/") || file.type.startsWith("audio/") || file.name.endsWith(".aac") || file.name.endsWith(".mp3") || file.name.endsWith(".wav") || file.name.endsWith(".m4a")) {
-        const previewUrl = URL.createObjectURL(file);
-        setUploadedFilePreview(previewUrl);
-      } else {
-        setUploadedFilePreview("");
+    if (!file) return;
+
+    setUploadedFileType(file.type);
+    setUploadedFileName(file.name);
+    setUploadedFileDisplayName(file.name);
+
+    // 1. Convert to Data URL so client preview, audio play & download work 100% immediately
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const dataUrl = event.target?.result as string;
+      if (dataUrl) {
+        setUploadedFileName(dataUrl);
+        if (file.type.startsWith("image/") || file.type.startsWith("audio/") || file.name.match(/\.(aac|mp3|wav|m4a|ogg|png|jpg|jpeg|pdf)$/i)) {
+          setUploadedFilePreview(dataUrl);
+        }
       }
+    };
+    reader.readAsDataURL(file);
+
+    // 2. Also attempt upload to server API
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("purpose", "task-proof");
+      const res = await fetch("/api/documents/upload", {
+        method: "POST",
+        body: formData,
+      });
+      const data = await res.json();
+      if (res.ok && data.success && data.url) {
+        setUploadedFileName(data.url);
+      }
+    } catch (err) {
+      console.warn("Server upload warning, using Data URL fallback:", err);
     }
   };
 
@@ -460,10 +499,10 @@ export default function LegalWorkLogsView({ workLogs, branches, banks, loading, 
         workLocation,
         customLocation: workLocation === "Other" ? customLocation.trim() : "",
         typeOfWork,
-        category: typeOfWork === "Bank Related" && bankWorkCategory === "Business Development" ? businessDevOption : (typeOfWork === "Bank Related" ? bankWorkCategory : typeOfWork),
+        category: typeOfWork === "Bank Related" && bankWorkCategory === "Business Development" ? businessDevOption : (bankWorkCategory === "Bill Follow Up" ? (selectedBillCategory || "ADVOCATE NOTICE") : typeOfWork),
         subCategory: typeOfWork === "Bank Related" && bankWorkCategory === "Business Development" ? businessDevSubOption : (bankWorkCategory === "Bill Follow Up" ? "BILL FOLLOW UP" : workLocation),
-        businessDevOption: typeOfWork === "Bank Related" && bankWorkCategory === "Business Development" ? businessDevOption : undefined,
-        businessDevSubOption: typeOfWork === "Bank Related" && bankWorkCategory === "Business Development" ? businessDevSubOption : undefined,
+        businessDevOption: typeOfWork === "Bank Related" && bankWorkCategory === "Business Development" ? businessDevOption : (bankWorkCategory === "Bill Follow Up" ? (selectedBillCategory || "ADVOCATE NOTICE") : undefined),
+        businessDevSubOption: typeOfWork === "Bank Related" && bankWorkCategory === "Business Development" ? businessDevSubOption : (bankWorkCategory === "Bill Follow Up" ? "BILL FOLLOW UP" : undefined),
         noOfCount: noOfCount || "1",
         allocationDate: allocationDate || workDate,
         finalRate: finalRate ? finalRate : undefined,
@@ -1506,30 +1545,66 @@ export default function LegalWorkLogsView({ workLogs, branches, banks, loading, 
                       </div>
 
                       <div className="overflow-x-auto rounded-lg border border-purple-200 bg-white">
-                        <table className="min-w-[620px] text-xs">
+                        <table className="min-w-[620px] text-xs w-full">
                           <thead>
-                            <tr>
-                              <th>Bill No.</th>
-                              <th>Bill Date</th>
-                              <th>Bill Amount</th>
-                              <th>Received</th>
-                              <th>Pending</th>
+                            <tr className="bg-purple-50/80 text-slate-700 text-[10px] font-black uppercase border-b border-purple-200">
+                              <th className="py-2.5 px-3 text-center w-12">Select</th>
+                              <th className="py-2.5 px-3 text-left">Bill No.</th>
+                              <th className="py-2.5 px-3 text-left">Work Category</th>
+                              <th className="py-2.5 px-3 text-left">Bill Date</th>
+                              <th className="py-2.5 px-3 text-right">Bill Amount</th>
+                              <th className="py-2.5 px-3 text-right">Received</th>
+                              <th className="py-2.5 px-3 text-right">Pending</th>
                             </tr>
                           </thead>
                           <tbody>
                             {loadingPendingBills ? (
-                              <tr><td colSpan={5} className="text-center text-slate-500">Loading pending bills...</td></tr>
+                              <tr><td colSpan={7} className="py-4 text-center text-slate-500 font-bold">Loading saved bills...</td></tr>
                             ) : pendingBills.length === 0 ? (
-                              <tr><td colSpan={5} className="text-center text-slate-500">No pending bill found for selected branch.</td></tr>
-                            ) : pendingBills.map(bill => (
-                              <tr key={bill.id}>
-                                <td className="font-bold">{bill.billNo || `#${bill.id}`}</td>
-                                <td>{bill.billDate || "—"}</td>
-                                <td>₹{Number(bill.billAmount).toLocaleString("en-IN")}</td>
-                                <td className="text-emerald-700">₹{Number(bill.receivedAmount).toLocaleString("en-IN")}</td>
-                                <td className="font-black text-rose-700">₹{Number(bill.pendingAmount).toLocaleString("en-IN")}</td>
-                              </tr>
-                            ))}
+                              <tr><td colSpan={7} className="py-4 text-center text-slate-500 font-bold">No saved bill found for selected bank / branch.</td></tr>
+                            ) : pendingBills.map(bill => {
+                              const isSelected = selectedBillId === bill.id;
+                              const billCat = bill.category || "ADVOCATE NOTICE";
+                              return (
+                                <tr
+                                  key={bill.id}
+                                  onClick={() => {
+                                    setSelectedBillId(bill.id);
+                                    setSelectedBillCategory(billCat);
+                                    if (bill.billNo) setBillNo(bill.billNo);
+                                    if (bill.billAmount) setBillAmount(String(bill.billAmount));
+                                  }}
+                                  className={`cursor-pointer transition-colors border-b border-slate-100 ${
+                                    isSelected ? "bg-purple-100/70 font-bold" : "hover:bg-slate-50"
+                                  }`}
+                                >
+                                  <td className="py-2.5 px-3 text-center">
+                                    <input
+                                      type="radio"
+                                      name="selectedBill"
+                                      checked={isSelected}
+                                      onChange={() => {
+                                        setSelectedBillId(bill.id);
+                                        setSelectedBillCategory(billCat);
+                                        if (bill.billNo) setBillNo(bill.billNo);
+                                        if (bill.billAmount) setBillAmount(String(bill.billAmount));
+                                      }}
+                                      className="accent-purple-700 cursor-pointer w-3.5 h-3.5"
+                                    />
+                                  </td>
+                                  <td className="py-2.5 px-3 font-bold text-slate-900">{bill.billNo || `#${bill.id}`}</td>
+                                  <td className="py-2.5 px-3 font-bold">
+                                    <span className="px-2 py-0.5 bg-purple-100 text-purple-900 border border-purple-200 rounded text-[9.5px] font-black uppercase inline-block">
+                                      {billCat}
+                                    </span>
+                                  </td>
+                                  <td className="py-2.5 px-3 font-semibold text-slate-600">{bill.billDate || "—"}</td>
+                                  <td className="py-2.5 px-3 text-right font-black text-slate-900">₹{Number(bill.billAmount).toLocaleString("en-IN")}</td>
+                                  <td className="py-2.5 px-3 text-right font-bold text-emerald-700">₹{Number(bill.receivedAmount).toLocaleString("en-IN")}</td>
+                                  <td className="py-2.5 px-3 text-right font-black text-rose-700">₹{Number(bill.pendingAmount).toLocaleString("en-IN")}</td>
+                                </tr>
+                              );
+                            })}
                           </tbody>
                         </table>
                       </div>
@@ -1555,7 +1630,7 @@ export default function LegalWorkLogsView({ workLogs, branches, banks, loading, 
                             onChange={handleFileChange}
                             className="w-full text-xs font-bold file:mr-2 file:rounded-lg file:border-0 file:bg-purple-100 file:px-3 file:py-1.5 file:text-[10px] file:font-black file:text-purple-800"
                           />
-                          {uploadedFileName && <span className="mt-1 block text-[10px] font-bold text-purple-700">📎 {uploadedFileName}</span>}
+                          {uploadedFileDisplayName && <span className="mt-1 block text-[10px] font-bold text-purple-700 truncate max-w-md">📎 {uploadedFileDisplayName}</span>}
                         </div>
                       </div>
                     </div>
