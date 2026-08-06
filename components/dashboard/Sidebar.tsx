@@ -5,7 +5,7 @@ import {
   LayoutDashboard, UserSquare2, FileEdit, Briefcase, Users2, ScanLine,
   Video, ShieldCheck, FileText, FileSpreadsheet, GraduationCap, Clock, CalendarCheck, CalendarClock,
   TrendingUp, BriefcaseIcon, Building2, Coins, HelpCircle, AlertTriangle, ShieldAlert,
-  LogOut, ChevronDown, ChevronRight, MapPin, Cpu, Package, Key, Scale, History, FolderKanban, Car
+  LogOut, ChevronDown, ChevronRight, MapPin, Cpu, Package, Key, Scale, History, FolderKanban, Car, Globe
 } from "lucide-react";
 import { signOut } from "next-auth/react";
 
@@ -80,6 +80,7 @@ export default function DashboardSidebar({
     { id: "employees", label: "Employees Directory", icon: Users2, category: "Core Workspace", roles: ["Owner", "Director", "HR Head", "HR Executive"] },
     { id: "bda-directory", label: "BDA Network (Sales)", icon: Users2, category: "Core Workspace", roles: ["Owner", "Director", "HR Head", "HR Executive", "Department Manager"] },
     { id: "assets-registry", label: "Assets Registry", icon: Cpu, category: "Core Workspace", roles: ["Owner", "Director", "HR Head", "HR Executive"] },
+    { id: "domain-record", label: "Domain Record", icon: Globe, category: "Core Workspace", roles: ["Owner", "Director", "HR Head", "HR Executive", "IT Admin"] },
     { id: "inventory-management", label: "Inventory Management", icon: Package, category: "Core Workspace", roles: ["Owner"] },
     { id: "admin-access", label: "Administrator Access", icon: Key, category: "Core Workspace", roles: ["Owner"] },
     { id: "audit-trail", label: "System Audit Trail", icon: History, category: "Core Workspace", roles: ["Owner", "Director", "HR Head"] },

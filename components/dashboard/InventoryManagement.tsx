@@ -1,11 +1,13 @@
 "use client";
-import React, { useState, useEffect, useCallback, useMemo } from "react";
+import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import ReactDOM from "react-dom";
+import QRCode from "qrcode";
 import {
   Search, Edit3, Check, X, RefreshCw, Cpu, Layers, Building2,
   Trash2, AlertTriangle, PlusCircle, PackagePlus, Package,
   Sparkles, Filter, Calendar, Coins, CheckCircle, HelpCircle, Download,
-  UserPlus, UserMinus, History, ArrowRightLeft
+  UserPlus, UserMinus, History, ArrowRightLeft, QrCode, Printer, Camera,
+  FileCheck, ExternalLink, Copy
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -55,6 +57,21 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
   // Viewing state (tap any asset to view full details)
   const [viewingAsset, setViewingAsset] = useState<any>(null);
 
+  // QR Code & Scanner states
+  const [qrModalAsset, setQrModalAsset] = useState<any>(null);
+  const [qrDataUrl, setQrDataUrl] = useState<string>("");
+  const [showScannerModal, setShowScannerModal] = useState<boolean>(false);
+  const [scanInputValue, setScanInputValue] = useState<string>("");
+  const [scannerCameraActive, setScannerCameraActive] = useState<boolean>(false);
+  const [printableMode, setPrintableMode] = useState<"label" | "pdf">("label");
+  const scannerVideoRef = useRef<HTMLVideoElement | null>(null);
+
+  // Multi-selection for Bulk QR Code Printing
+  const [isBulkSelectMode, setIsBulkSelectMode] = useState<boolean>(false);
+  const [selectedAssetIds, setSelectedAssetIds] = useState<string[]>([]);
+  const [bulkQrDataMap, setBulkQrDataMap] = useState<Record<string, string>>({});
+  const [isBulkPrinting, setIsBulkPrinting] = useState<boolean>(false);
+
   // Editing state
   const [editingAssetId, setEditingAssetId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState({
@@ -101,6 +118,7 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
 
   const defaultTypes = [
     "Laptop",
+    "Air Conditioner (AC)",
     "Computer",
     "Mouse",
     "CPU",
@@ -330,6 +348,23 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
         routerMac: "",
         routerSerial: ""
       });
+    } else if (typeClean?.includes("ac") || typeClean?.includes("air conditioner")) {
+      setAssetFields({
+        acModel: "",
+        acTypeTonnage: "1.5 Ton Split AC",
+        acLocation: "",
+        acIndoorSerial: "",
+        acOutdoorSerial: "",
+        acCondition: "Excellent Cooling",
+        acServicingStatus: "Done (Serviced)",
+        acLastServicingDate: "",
+        acServicingCost: "",
+        acServicingVendor: "",
+        acInsuranceStatus: "Not Insured",
+        acInsuranceDetails: "",
+        acInsuranceExpiry: "",
+        acWarrantyDetails: ""
+      });
     } else {
       setAssetFields({});
     }
@@ -375,6 +410,478 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
       triggerToast("Failed to load inventory data");
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Helper to build enriched concise plain-text QR payload (scans in 0.1s on any camera app)
+  const getAssetQrPayloadText = (asset: any) => {
+    if (!asset) return "";
+
+    let parsedCustom: any = {};
+    try {
+      parsedCustom = asset.customFields ? JSON.parse(asset.customFields) : {};
+    } catch (_) {}
+
+    const fields = parsedCustom.assetFields || {};
+    const companyName = companies.find(c => String(c.id) === String(asset.companyId))?.name || "General Stock";
+
+    const lines = [
+      `ASSET: ${asset.id || ""}${asset.oldAssetId ? ` (${asset.oldAssetId})` : ""}`,
+      `TYPE: ${asset.assetType || "N/A"}`,
+      `MODEL: ${String(asset.assetDetail || "N/A").slice(0, 28)}`,
+      asset.serialNumber ? `SN: ${String(asset.serialNumber).slice(0, 22)}` : "",
+      fields.phoneImei2 ? `IMEI2: ${String(fields.phoneImei2).slice(0, 20)}` : "",
+      `USER: ${asset.assignedToName || "In Stock"}`,
+      `COMPANY: ${companyName}`,
+      `STATUS: ${asset.status || "Available"} (Cond: ${asset.condition || "Good"})`,
+      asset.purchaseValue ? `COST: Rs ${asset.purchaseValue}` : ""
+    ];
+
+    return lines.filter(Boolean).join("\n");
+  };
+
+  // Helper to format ISO date strings cleanly as DD/MM/YYYY
+  const formatCleanPdfDate = (dateVal: any) => {
+    if (!dateVal) return "N/A";
+    try {
+      const raw = String(dateVal).trim();
+      const parsed = new Date(raw);
+      if (!isNaN(parsed.getTime())) {
+        const day = String(parsed.getDate()).padStart(2, "0");
+        const month = String(parsed.getMonth() + 1).padStart(2, "0");
+        const year = parsed.getFullYear();
+        return `${day}/${month}/${year}`;
+      }
+      return raw;
+    } catch (_) {
+      return String(dateVal);
+    }
+  };
+
+  // Generate High-Definition Base64 QR Code image data URL when viewing an asset
+  useEffect(() => {
+    const targetAsset = qrModalAsset || viewingAsset;
+    if (targetAsset?.id) {
+      const payloadText = getAssetQrPayloadText(targetAsset);
+      QRCode.toDataURL(payloadText, {
+        width: 1000,
+        margin: 1,
+        errorCorrectionLevel: "H",
+        color: { dark: "#0f172a", light: "#ffffff" }
+      })
+        .then((url: string) => setQrDataUrl(url))
+        .catch((err: any) => console.error("QR Code generation error:", err));
+    } else {
+      setQrDataUrl("");
+    }
+  }, [qrModalAsset, viewingAsset]);
+
+  // Handle URL query param assetId=... on initial page load (guarded to run once and clean URL to prevent infinite loops)
+  const initialParamCheckedRef = useRef(false);
+  useEffect(() => {
+    if (typeof window !== "undefined" && inventory.length > 0 && !initialParamCheckedRef.current) {
+      initialParamCheckedRef.current = true;
+      const params = new URLSearchParams(window.location.search);
+      const targetAssetId = params.get("assetId");
+      if (targetAssetId) {
+        const match = inventory.find(
+          a => String(a.id).toLowerCase().trim() === targetAssetId.toLowerCase().trim() ||
+               String(a.oldAssetId || "").toLowerCase().trim() === targetAssetId.toLowerCase().trim()
+        );
+        if (match) {
+          setViewingAsset(match);
+        }
+        // Clean URL to prevent infinite re-fetching loops
+        try {
+          window.history.replaceState({}, "", window.location.pathname);
+        } catch (_) {}
+      }
+    }
+  }, [inventory]);
+
+  // Handle QR code scanning or text input resolution
+  const handleScanQrResult = (scannedText: string) => {
+    if (!scannedText || !scannedText.trim()) return;
+    let targetId = scannedText.trim();
+
+    // Extract assetId if text contains "ASSET ID: XXX"
+    const matchId = targetId.match(/ASSET ID:\s*([^\s\n]+)/i);
+    if (matchId && matchId[1]) {
+      targetId = matchId[1].trim();
+    } else if (targetId.startsWith("http://") || targetId.startsWith("https://")) {
+      try {
+        const parsedUrl = new URL(targetId);
+        const paramId = parsedUrl.searchParams.get("assetId");
+        if (paramId) targetId = paramId;
+      } catch (_) {}
+    }
+
+    const queryLower = targetId.toLowerCase().trim();
+
+    // Search matching asset by ID, oldAssetId, or serialNumber
+    const matchedAsset = inventory.find(asset => {
+      const idMatch = String(asset.id || "").toLowerCase().trim() === queryLower;
+      const oldIdMatch = String(asset.oldAssetId || "").toLowerCase().trim() === queryLower;
+      const serialMatch = String(asset.serialNumber || "").toLowerCase().trim() === queryLower;
+      return idMatch || oldIdMatch || serialMatch;
+    });
+
+    if (matchedAsset) {
+      setViewingAsset(matchedAsset);
+      setShowScannerModal(false);
+      setScanInputValue("");
+      triggerToast(`Asset found: ${matchedAsset.assetType} (${matchedAsset.id})`);
+    } else {
+      triggerToast(`No asset found matching scanned QR code: "${scannedText}"`);
+    }
+  };
+
+  const handlePrintAssetTag = async (asset: any, mode: "label" | "pdf") => {
+    setPrintableMode(mode);
+    setQrModalAsset(asset);
+    setViewingAsset(asset);
+    try {
+      const payloadText = getAssetQrPayloadText(asset);
+      const url = await QRCode.toDataURL(payloadText, {
+        width: 1000,
+        margin: 1,
+        errorCorrectionLevel: "H",
+        color: { dark: "#0f172a", light: "#ffffff" }
+      });
+      setQrDataUrl(url);
+    } catch (_) {}
+
+    setTimeout(() => {
+      window.print();
+    }, 300);
+  };
+
+  const toggleSelectAsset = (assetId: string) => {
+    setSelectedAssetIds(prev =>
+      prev.includes(assetId) ? prev.filter(id => id !== assetId) : [...prev, assetId]
+    );
+  };
+
+  const toggleSelectAllAssets = (filteredItems: any[]) => {
+    const allFilteredIds = filteredItems.map(a => String(a.id));
+    const allSelected = allFilteredIds.length > 0 && allFilteredIds.every(id => selectedAssetIds.includes(id));
+    if (allSelected) {
+      setSelectedAssetIds(prev => prev.filter(id => !allFilteredIds.includes(id)));
+    } else {
+      setSelectedAssetIds(prev => Array.from(new Set([...prev, ...allFilteredIds])));
+    }
+  };
+
+  const handleBulkPrintQrTags = async (mode: "label" | "pdf") => {
+    if (selectedAssetIds.length === 0) {
+      triggerToast("Please select at least 1 asset to print QR tags");
+      return;
+    }
+
+    try {
+      setIsBulkPrinting(true);
+      triggerToast(`Generating high-definition QR codes for ${selectedAssetIds.length} assets...`);
+
+      // Preserve exact sequence of user selection
+      const selectedAssetsInSequence = selectedAssetIds
+        .map(id => inventory.find(a => String(a.id) === String(id)))
+        .filter(Boolean);
+
+      const qrPromises = selectedAssetsInSequence.map(async (asset: any) => {
+        const payloadText = getAssetQrPayloadText(asset);
+        const dataUrl = await QRCode.toDataURL(payloadText, {
+          width: 1000,
+          margin: 1,
+          errorCorrectionLevel: "H",
+          color: { dark: "#0f172a", light: "#ffffff" }
+        });
+        return { id: String(asset.id), dataUrl };
+      });
+
+      const results = await Promise.all(qrPromises);
+      const qrMap: Record<string, string> = {};
+      results.forEach(r => { qrMap[r.id] = r.dataUrl; });
+
+      setBulkQrDataMap(qrMap);
+      setPrintableMode(mode);
+
+      setTimeout(() => {
+        window.print();
+        setIsBulkPrinting(false);
+      }, 400);
+    } catch (err: any) {
+      console.error("Bulk QR generation failed:", err);
+      triggerToast("Bulk QR printing error: " + (err.message || "Unknown error"));
+      setIsBulkPrinting(false);
+    }
+  };
+
+  // Direct PDF Download Handler (Saves a real .pdf file in exact selection order)
+  const handleDownloadDirectPdf = async (mode: "label" | "pdf", singleAsset?: any) => {
+    try {
+      setIsBulkPrinting(true);
+      triggerToast("Generating high-definition PDF document...");
+
+      // Preserve exact sequence of user selection
+      const targetAssets = singleAsset
+        ? [singleAsset]
+        : selectedAssetIds
+            .map(id => inventory.find(a => String(a.id) === String(id)))
+            .filter(Boolean);
+
+      if (targetAssets.length === 0) {
+        triggerToast("No assets selected for PDF download");
+        setIsBulkPrinting(false);
+        return;
+      }
+
+      // Generate ultra high-res Base64 QR code images in exact selection order
+      const qrPromises = targetAssets.map(async (asset: any) => {
+        const payloadText = getAssetQrPayloadText(asset);
+        const dataUrl = await QRCode.toDataURL(payloadText, {
+          width: 1000,
+          margin: 1,
+          errorCorrectionLevel: "H",
+          color: { dark: "#0f172a", light: "#ffffff" }
+        });
+        return { id: String(asset.id), dataUrl };
+      });
+
+      const qrResults = await Promise.all(qrPromises);
+      const qrMap: Record<string, string> = {};
+      qrResults.forEach(r => { qrMap[r.id] = r.dataUrl; });
+
+      // Dynamically import jsPDF
+      const { default: jsPDF } = await import("jspdf");
+      const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+
+      if (mode === "label") {
+        // Render 2 columns x 5 rows = 10 Sticker Labels per page
+        const colWidth = 88;
+        const rowHeight = 50;
+        const startX = 12;
+        const startY = 20;
+        const marginX = 10;
+        const marginY = 5;
+
+        targetAssets.forEach((asset: any, index: number) => {
+          if (index > 0 && index % 10 === 0) {
+            doc.addPage();
+          }
+
+          const itemIndex = index % 10;
+          const col = itemIndex % 2;
+          const row = Math.floor(itemIndex / 2);
+
+          const x = startX + col * (colWidth + marginX);
+          const y = startY + row * (rowHeight + marginY);
+
+          const companyObj = companies.find(c => String(c.id) === String(asset.companyId));
+          const companyName = companyObj?.name || "OFFICIAL ASSET TAG";
+
+          // Border box
+          doc.setLineWidth(0.5);
+          doc.setDrawColor(30, 27, 75); // Dark purple border
+          doc.roundedRect(x, y, colWidth, rowHeight, 3, 3, "S");
+
+          // Header line
+          doc.setFont("helvetica", "bold");
+          doc.setFontSize(7);
+          doc.setTextColor(51, 65, 85);
+          doc.text(companyName.toUpperCase().slice(0, 30), x + 3, y + 5);
+
+          doc.setFontSize(9);
+          doc.setTextColor(30, 27, 75);
+          doc.text(String(asset.assetType || "ASSET").toUpperCase().slice(0, 22), x + 3, y + 9.5);
+
+          // ID Badge
+          doc.setFillColor(30, 27, 75);
+          doc.roundedRect(x + colWidth - 25, y + 3, 22, 6, 1, 1, "F");
+          doc.setFont("courier", "bold");
+          doc.setFontSize(7.5);
+          doc.setTextColor(255, 255, 255);
+          doc.text(String(asset.id), x + colWidth - 14, y + 7, { align: "center" });
+
+          // Divider
+          doc.setDrawColor(203, 213, 225);
+          doc.setLineWidth(0.2);
+          doc.line(x + 3, y + 11, x + colWidth - 3, y + 11);
+
+          // Add High-Res QR Code Image
+          const qrData = qrMap[String(asset.id)];
+          if (qrData) {
+            doc.addImage(qrData, "PNG", x + 3, y + 13, 24, 24);
+          }
+
+          // Details next to QR code
+          doc.setFont("helvetica", "bold");
+          doc.setFontSize(8);
+          doc.setTextColor(15, 23, 42);
+          const desc = String(asset.assetDetail || "No Description").slice(0, 32);
+          doc.text(desc, x + 29, y + 16);
+
+          doc.setFont("helvetica", "normal");
+          doc.setFontSize(7);
+          doc.setTextColor(71, 85, 105);
+          if (asset.serialNumber) {
+            doc.text(`S/N: ${String(asset.serialNumber).slice(0, 25)}`, x + 29, y + 21);
+          }
+
+          if (asset.assignedToName) {
+            doc.setFont("helvetica", "bold");
+            doc.setTextColor(30, 27, 75);
+            doc.text(`User: ${String(asset.assignedToName).slice(0, 25)}`, x + 29, y + 26);
+          }
+
+          doc.setFont("helvetica", "normal");
+          doc.setTextColor(100, 116, 139);
+          doc.text(`Status: ${asset.status || "Available"}`, x + 29, y + 31);
+
+          // Bottom line
+          doc.setDrawColor(203, 213, 225);
+          doc.line(x + 3, y + 43, x + colWidth - 3, y + 43);
+          doc.setFont("helvetica", "bold");
+          doc.setFontSize(5.5);
+          doc.setTextColor(100, 116, 139);
+          doc.text("PROPERTY OF COMPANY", x + 4, y + 46.5);
+          doc.text("DO NOT REMOVE", x + colWidth - 4, y + 46.5, { align: "right" });
+        });
+
+        doc.save(singleAsset ? `Asset_QR_Sticker_${singleAsset.id}.pdf` : `Assets_QR_Stickers_Sheet_${new Date().toISOString().slice(0,10)}.pdf`);
+      } else {
+        // Full Specification Sheets (1 Page per Asset) with Pristine Corporate UI
+        targetAssets.forEach((asset: any, index: number) => {
+          if (index > 0) doc.addPage();
+
+          const companyObj = companies.find(c => String(c.id) === String(asset.companyId));
+          const companyName = companyObj?.name || "Official Company Inventory";
+
+          // Top Corporate Dark Navy Banner Box
+          doc.setFillColor(15, 23, 42); // slate-900
+          doc.roundedRect(14, 12, 182, 28, 3, 3, "F");
+
+          doc.setFont("helvetica", "bold");
+          doc.setFontSize(14);
+          doc.setTextColor(255, 255, 255);
+          doc.text("ASSET SPECIFICATION & AUDIT CARD", 20, 22);
+
+          doc.setFont("helvetica", "normal");
+          doc.setFontSize(9);
+          doc.setTextColor(148, 163, 184); // slate-400
+          doc.text(`${companyName} · Asset Control Record`, 20, 28);
+
+          doc.setFont("courier", "normal");
+          doc.setFontSize(7.5);
+          doc.setTextColor(203, 213, 225);
+          doc.text(`Generated: ${new Date().toLocaleDateString("en-IN")} · Page ${index + 1} of ${targetAssets.length}`, 20, 34);
+
+          // Top Right QR Badge inside header banner
+          const qrData = qrMap[String(asset.id)];
+          if (qrData) {
+            doc.setFillColor(255, 255, 255);
+            doc.roundedRect(165, 14, 24, 24, 2, 2, "F");
+            doc.addImage(qrData, "PNG", 166, 15, 22, 22);
+          }
+
+          // Asset Specs Card Container
+          let startY = 48;
+          const rows = [
+            ["Asset ID", String(asset.id)],
+            ["Category / Type", String(asset.assetType || "N/A")],
+            ["Description / Model", String(asset.assetDetail || "N/A")],
+            ["Serial Number / IMEI", String(asset.serialNumber || "N/A")],
+            ["Condition Status", String(asset.condition || "Good")],
+            ["Inventory Status", String(asset.status || "Available")],
+            ["Company Belonging", companyName],
+            ["Purchase Date", formatCleanPdfDate(asset.purchaseDate)],
+            ["Purchase Value", asset.purchaseValue ? `₹ ${Number(asset.purchaseValue).toLocaleString("en-IN")}` : "N/A"],
+            ["Assigned Staff", String(asset.assignedToName || "Unallocated (In Stock)")],
+            ["Handover Date", formatCleanPdfDate(asset.handoverDate || asset.assignedAt)]
+          ];
+
+          // Asset photo if available
+          const hasPhoto = asset.photoUrl && asset.photoUrl.startsWith("data:image");
+          if (hasPhoto) {
+            try {
+              doc.setLineWidth(0.4);
+              doc.setDrawColor(203, 213, 225);
+              doc.roundedRect(14, startY, 48, 48, 2, 2, "S");
+              doc.addImage(asset.photoUrl, "JPEG", 15, startY + 1, 46, 46);
+            } catch (_) {}
+          }
+
+          const tableX = hasPhoto ? 66 : 14;
+          const tableW = hasPhoto ? 130 : 182;
+          const rowH = 8.5;
+
+          // Draw Outer Table Border Box
+          doc.setLineWidth(0.4);
+          doc.setDrawColor(203, 213, 225); // slate-300
+          doc.roundedRect(tableX, startY, tableW, rows.length * rowH, 2, 2, "S");
+
+          rows.forEach(([label, value], idx) => {
+            const currentY = startY + idx * rowH;
+
+            // Alternating Row Fills
+            if (idx % 2 === 0) {
+              doc.setFillColor(248, 250, 252); // slate-50
+              doc.rect(tableX + 0.2, currentY + 0.2, tableW - 0.4, rowH - 0.4, "F");
+            }
+
+            // Horizontal Separator
+            if (idx > 0) {
+              doc.setLineWidth(0.2);
+              doc.setDrawColor(226, 232, 240); // slate-200
+              doc.line(tableX, currentY, tableX + tableW, currentY);
+            }
+
+            // Label
+            doc.setFont("helvetica", "bold");
+            doc.setFontSize(8);
+            doc.setTextColor(51, 65, 85); // slate-700
+            doc.text(label, tableX + 4, currentY + 5.5);
+
+            // Vertical Column Separator Line
+            doc.setLineWidth(0.2);
+            doc.setDrawColor(226, 232, 240);
+            doc.line(tableX + 44, currentY, tableX + 44, currentY + rowH);
+
+            // Value
+            doc.setFont("helvetica", "normal");
+            doc.setFontSize(8.5);
+            doc.setTextColor(15, 23, 42); // slate-900
+            doc.text(String(value).slice(0, 60), tableX + 48, currentY + 5.5);
+          });
+
+          // Signatures Section
+          const sigY = 225;
+          doc.setLineWidth(0.5);
+          doc.setDrawColor(15, 23, 42);
+          doc.line(25, sigY, 90, sigY);
+          doc.line(120, sigY, 185, sigY);
+
+          doc.setFont("helvetica", "bold");
+          doc.setFontSize(8.5);
+          doc.setTextColor(15, 23, 42);
+          doc.text("Employee Acknowledgment & Signature", 57.5, sigY + 5, { align: "center" });
+          doc.text("Admin / IT Clearance Signature", 152.5, sigY + 5, { align: "center" });
+
+          doc.setFont("helvetica", "normal");
+          doc.setFontSize(7.5);
+          doc.setTextColor(100, 116, 139);
+          doc.text("Received asset in verified working condition", 57.5, sigY + 9, { align: "center" });
+          doc.text("Authorized HRMS System Record", 152.5, sigY + 9, { align: "center" });
+        });
+
+        doc.save(singleAsset ? `Asset_Specification_${singleAsset.id}.pdf` : `Assets_Specification_Sheets_${new Date().toISOString().slice(0,10)}.pdf`);
+      }
+
+      triggerToast("PDF document downloaded successfully!");
+    } catch (err: any) {
+      console.error("Error generating PDF download:", err);
+      triggerToast("PDF Download error: " + (err.message || "Failed to build PDF"));
+    } finally {
+      setIsBulkPrinting(false);
     }
   };
 
@@ -851,12 +1358,37 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
       const model = assetFields.printerModel || "";
       const type = assetFields.printerType || "Laser Printer";
       const serial = assetFields.printerSerial || "";
-      if (!model || !serial) {
-        triggerToast("Printer Brand & Model and Serial Number are required");
+      if (!model) {
+        triggerToast("Printer Brand & Model is required");
         return;
       }
       finalDetail = `${model} (${type})`;
       finalSerial = serial;
+    } else if (typeClean?.includes("ac") || typeClean?.includes("air conditioner")) {
+      const model = assetFields.acModel || "";
+      const tonnage = assetFields.acTypeTonnageCustom || assetFields.acTypeTonnage || "1.5 Ton Split AC";
+      const location = assetFields.acLocation || "";
+      if (!model || !location) {
+        triggerToast("AC Brand/Model and Installation Location are required");
+        return;
+      }
+      finalDetail = `${model} - ${tonnage} [Location: ${location}]`;
+      finalSerial = "";
+
+      let acInfo = `AC Location: ${location}\n`;
+      if (assetFields.acCondition) acInfo += `Cooling Condition: ${assetFields.acCondition}\n`;
+      if (assetFields.acServicingStatus) acInfo += `Servicing Status: ${assetFields.acServicingStatus}\n`;
+      if (assetFields.acLastServicingDate) acInfo += `Last Servicing Date: ${assetFields.acLastServicingDate}\n`;
+      if (assetFields.acServicingCost) acInfo += `Servicing Cost: ₹${assetFields.acServicingCost}\n`;
+      if (assetFields.acServicingVendor) acInfo += `Servicing Details: ${assetFields.acServicingVendor}\n`;
+      if (assetFields.acInsuranceStatus) acInfo += `Insurance Status: ${assetFields.acInsuranceStatus}\n`;
+      if (assetFields.acInsuranceDetails) acInfo += `Insurance Policy/Details: ${assetFields.acInsuranceDetails}\n`;
+      if (assetFields.acInsuranceExpiry) acInfo += `Insurance Expiry: ${assetFields.acInsuranceExpiry}\n`;
+      if (assetFields.acWarrantyDetails) acInfo += `Warranty Details: ${assetFields.acWarrantyDetails}\n`;
+
+      if (acInfo) {
+        finalNotes = `${acInfo}${registerForm.notes ? `\n${registerForm.notes}` : ""}`;
+      }
     }
 
     try {
@@ -1297,12 +1829,37 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
       const model = editAssetFields.printerModel || "";
       const type = editAssetFields.printerType || "Laser Printer";
       const serial = editAssetFields.printerSerial || "";
-      if (!model || !serial) {
-        triggerToast("Printer Brand & Model and Serial Number are required");
+      if (!model) {
+        triggerToast("Printer Brand & Model is required");
         return;
       }
       finalDetail = `${model} (${type})`;
       finalSerial = serial;
+    } else if (typeClean?.includes("ac") || typeClean?.includes("air conditioner")) {
+      const model = editAssetFields.acModel || "";
+      const tonnage = editAssetFields.acTypeTonnageCustom || editAssetFields.acTypeTonnage || "1.5 Ton Split AC";
+      const location = editAssetFields.acLocation || "";
+      if (!model || !location) {
+        triggerToast("AC Brand/Model and Installation Location are required");
+        return;
+      }
+      finalDetail = `${model} - ${tonnage} [Location: ${location}]`;
+      finalSerial = "";
+
+      let acInfo = `AC Location: ${location}\n`;
+      if (editAssetFields.acCondition) acInfo += `Cooling Condition: ${editAssetFields.acCondition}\n`;
+      if (editAssetFields.acServicingStatus) acInfo += `Servicing Status: ${editAssetFields.acServicingStatus}\n`;
+      if (editAssetFields.acLastServicingDate) acInfo += `Last Servicing Date: ${editAssetFields.acLastServicingDate}\n`;
+      if (editAssetFields.acServicingCost) acInfo += `Servicing Cost: ₹${editAssetFields.acServicingCost}\n`;
+      if (editAssetFields.acServicingVendor) acInfo += `Servicing Details: ${editAssetFields.acServicingVendor}\n`;
+      if (editAssetFields.acInsuranceStatus) acInfo += `Insurance Status: ${editAssetFields.acInsuranceStatus}\n`;
+      if (editAssetFields.acInsuranceDetails) acInfo += `Insurance Policy/Details: ${editAssetFields.acInsuranceDetails}\n`;
+      if (editAssetFields.acInsuranceExpiry) acInfo += `Insurance Expiry: ${editAssetFields.acInsuranceExpiry}\n`;
+      if (editAssetFields.acWarrantyDetails) acInfo += `Warranty Details: ${editAssetFields.acWarrantyDetails}\n`;
+
+      if (acInfo) {
+        finalNotes = `${acInfo}${editForm.notes ? `\n${editForm.notes}` : ""}`;
+      }
     }
 
     try {
@@ -1524,6 +2081,26 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
 
         </div>
         <div className="flex items-center gap-2">
+          <button
+            onClick={() => {
+              const nextMode = !isBulkSelectMode;
+              setIsBulkSelectMode(nextMode);
+              if (!nextMode) {
+                setSelectedAssetIds([]);
+              }
+            }}
+            className={cn(
+              "px-3 py-1.5 rounded-lg text-[10px] font-semibold tracking-wider uppercase transition-all flex items-center gap-1.5 shadow-sm font-sans",
+              isBulkSelectMode
+                ? "bg-purple-800 text-white ring-2 ring-purple-300 font-bold"
+                : "bg-purple-600 hover:bg-purple-700 text-white"
+            )}
+            title="Click to toggle Bulk QR Download & multi-selection checkboxes"
+          >
+            <QrCode className="w-3.5 h-3.5" />
+            <Printer className="w-3.5 h-3.5" />
+            {isBulkSelectMode ? "Exit Bulk Mode" : "Bulk QR Download"}
+          </button>
           <button
             onClick={exportInventoryToCsv}
             disabled={loading || filteredInventory.length === 0}
@@ -2904,11 +3481,10 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
                   )}
                 </div>
                 <div>
-                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Serial Number *</label>
+                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Serial Number</label>
                   <input
                     type="text"
-                    required
-                    placeholder="e.g. SN-PRN1928"
+                    placeholder="e.g. SN-PRN1928 (Optional)"
                     value={assetFields.printerSerial || ""}
                     onChange={(e) => setAssetFields(p => ({ ...p, printerSerial: e.target.value }))}
                     className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-mono"
@@ -2933,6 +3509,177 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
                     onChange={(e) => setAssetFields(p => ({ ...p, printerCartridge: e.target.value }))}
                     className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
                   />
+                </div>
+              </div>
+            ) : typeClean?.includes("ac") || typeClean?.includes("air conditioner") ? (
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                  <div>
+                    <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">AC Brand & Model *</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. Voltas 1.5 Ton 5-Star Split AC"
+                      value={assetFields.acModel || ""}
+                      onChange={(e) => setAssetFields(p => ({ ...p, acModel: e.target.value }))}
+                      className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">AC Type / Tonnage *</label>
+                    <select
+                      value={assetFields.acTypeTonnage || "1.5 Ton Split AC"}
+                      onChange={(e) => setAssetFields(p => ({ ...p, acTypeTonnage: e.target.value }))}
+                      className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                    >
+                      <option value="1 Ton Split AC">1 Ton Split AC</option>
+                      <option value="1.5 Ton Split AC">1.5 Ton Split AC</option>
+                      <option value="2 Ton Split AC">2 Ton Split AC</option>
+                      <option value="1 Ton Window AC">1 Ton Window AC</option>
+                      <option value="1.5 Ton Window AC">1.5 Ton Window AC</option>
+                      <option value="2 Ton Window AC">2 Ton Window AC</option>
+                      <option value="Cassette AC (Ceiling)">Cassette AC (Ceiling)</option>
+                      <option value="Tower / Portable AC">Tower / Portable AC</option>
+                      <option value="Centralized / VRF System">Centralized / VRF System</option>
+                      <option value="Other">Other</option>
+                    </select>
+                    {assetFields.acTypeTonnage === "Other" && (
+                      <input
+                        type="text"
+                        placeholder="Specify custom tonnage..."
+                        value={assetFields.acTypeTonnageCustom || ""}
+                        onChange={(e) => setAssetFields(p => ({ ...p, acTypeTonnageCustom: e.target.value }))}
+                        className="mt-1.5 w-full bg-white border border-[#C9A84C] rounded-lg px-3 py-1.5 text-xs text-[#1C1C1A] font-semibold"
+                      />
+                    )}
+                  </div>
+                  <div>
+                    <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Installation Location / Room * (kaha laga hua h)</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. Server Room / MD Cabin / Main Hall / Branch"
+                      value={assetFields.acLocation || ""}
+                      onChange={(e) => setAssetFields(p => ({ ...p, acLocation: e.target.value }))}
+                      className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Cooling Condition / Working Status *</label>
+                    <select
+                      value={assetFields.acCondition || "Excellent Cooling"}
+                      onChange={(e) => setAssetFields(p => ({ ...p, acCondition: e.target.value }))}
+                      className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                    >
+                      <option value="Excellent Cooling">Excellent Cooling</option>
+                      <option value="Good / Normal Cooling">Good / Normal Cooling</option>
+                      <option value="Low Cooling / Gas Leak">Low Cooling / Gas Leak</option>
+                      <option value="Servicing Due">Servicing Due</option>
+                      <option value="Under Repair / Not Working">Under Repair / Not Working</option>
+                      <option value="Scrap / Decommissioned">Scrap / Decommissioned</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Servicing Details */}
+                <div className="bg-amber-50/50 border border-amber-200 rounded-xl p-3.5 space-y-3">
+                  <div className="text-[10px] font-black uppercase text-amber-900 flex items-center gap-1.5 border-b border-amber-200 pb-1.5">
+                    🛠️ AC Servicing & Maintenance Record
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                    <div>
+                      <label className="block text-[9px] uppercase tracking-wider text-amber-950 font-bold mb-1">Servicing Status * (servecing hui h ki nhi)</label>
+                      <select
+                        value={assetFields.acServicingStatus || "Done (Serviced)"}
+                        onChange={(e) => setAssetFields(p => ({ ...p, acServicingStatus: e.target.value }))}
+                        className="w-full bg-white border border-amber-300 rounded-lg px-3 py-2 text-xs text-black font-semibold"
+                      >
+                        <option value="Done (Serviced)">Yes - Serviced (Hui H)</option>
+                        <option value="Pending / Due">No - Servicing Due (Nahi Hui)</option>
+                        <option value="Under AMC Contract">Under AMC Contract</option>
+                        <option value="Not Required Yet">Not Required Yet (New AC)</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-[9px] uppercase tracking-wider text-amber-950 font-bold mb-1">Last Servicing Date</label>
+                      <input
+                        type="date"
+                        value={assetFields.acLastServicingDate || ""}
+                        onChange={(e) => setAssetFields(p => ({ ...p, acLastServicingDate: e.target.value }))}
+                        className="w-full bg-white border border-amber-300 rounded-lg px-3 py-1.5 text-xs text-black font-semibold"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[9px] uppercase tracking-wider text-amber-950 font-bold mb-1">Servicing Cost Amount (kitne ki hui)</label>
+                      <input
+                        type="number"
+                        placeholder="e.g. 1500"
+                        value={assetFields.acServicingCost || ""}
+                        onChange={(e) => setAssetFields(p => ({ ...p, acServicingCost: e.target.value }))}
+                        className="w-full bg-white border border-amber-300 rounded-lg px-3 py-1.5 text-xs text-black font-bold"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[9px] uppercase tracking-wider text-amber-950 font-bold mb-1">Servicing Vendor / Details</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. Deep Clean & Gas Charge by Urban Company"
+                        value={assetFields.acServicingVendor || ""}
+                        onChange={(e) => setAssetFields(p => ({ ...p, acServicingVendor: e.target.value }))}
+                        className="w-full bg-white border border-amber-300 rounded-lg px-3 py-1.5 text-xs text-black font-normal"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Insurance & Warranty Details */}
+                <div className="bg-sky-50/50 border border-sky-200 rounded-xl p-3.5 space-y-3">
+                  <div className="text-[10px] font-black uppercase text-sky-900 flex items-center gap-1.5 border-b border-sky-200 pb-1.5">
+                    🛡️ AC Insurance & Warranty Details
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                    <div>
+                      <label className="block text-[9px] uppercase tracking-wider text-sky-950 font-bold mb-1">Insurance Status (insurence details)</label>
+                      <select
+                        value={assetFields.acInsuranceStatus || "Not Insured"}
+                        onChange={(e) => setAssetFields(p => ({ ...p, acInsuranceStatus: e.target.value }))}
+                        className="w-full bg-white border border-sky-300 rounded-lg px-3 py-2 text-xs text-black font-semibold"
+                      >
+                        <option value="Insured">Insured (Active Policy)</option>
+                        <option value="Not Insured">Not Insured</option>
+                        <option value="Expired">Insurance Expired</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-[9px] uppercase tracking-wider text-sky-950 font-bold mb-1">Insurance Provider / Policy No.</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. ICICI Lombard / POL-987456"
+                        value={assetFields.acInsuranceDetails || ""}
+                        onChange={(e) => setAssetFields(p => ({ ...p, acInsuranceDetails: e.target.value }))}
+                        className="w-full bg-white border border-sky-300 rounded-lg px-3 py-1.5 text-xs text-black font-normal"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[9px] uppercase tracking-wider text-sky-950 font-bold mb-1">Insurance Expiry Date</label>
+                      <input
+                        type="date"
+                        value={assetFields.acInsuranceExpiry || ""}
+                        onChange={(e) => setAssetFields(p => ({ ...p, acInsuranceExpiry: e.target.value }))}
+                        className="w-full bg-white border border-sky-300 rounded-lg px-3 py-1.5 text-xs text-black font-semibold"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[9px] uppercase tracking-wider text-sky-950 font-bold mb-1">Compressor Warranty / Details</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. 10 Years Compressor Warranty (Valid till 2034)"
+                        value={assetFields.acWarrantyDetails || ""}
+                        onChange={(e) => setAssetFields(p => ({ ...p, acWarrantyDetails: e.target.value }))}
+                        className="w-full bg-white border border-sky-300 rounded-lg px-3 py-1.5 text-xs text-black font-normal"
+                      />
+                    </div>
+                  </div>
                 </div>
               </div>
             ) : (
@@ -3182,6 +3929,17 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
                 <table className="w-full border-collapse text-left">
                   <thead>
                     <tr className="border-b border-[#E8E4DF] bg-[#F5F0EA]/40 text-[#5D5B57] text-[10px] uppercase font-bold tracking-wider">
+                      {isBulkSelectMode && (
+                        <th className="py-3.5 px-3 w-10 text-center animate-fade-in">
+                          <input
+                            type="checkbox"
+                            checked={filteredInventory.length > 0 && filteredInventory.every(a => selectedAssetIds.includes(String(a.id)))}
+                            onChange={() => toggleSelectAllAssets(filteredInventory)}
+                            className="w-4 h-4 rounded accent-purple-700 cursor-pointer"
+                            title="Select All Assets for Bulk QR Printing"
+                          />
+                        </th>
+                      )}
                       <th className="py-3.5 px-4 font-bold">Category</th>
                       <th className="py-3.5 px-4 font-bold">Asset Description & Serial</th>
                       <th className="py-3.5 px-4 font-bold">Condition</th>
@@ -3197,11 +3955,30 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
 
                       return (
                         <tr key={asset.id} onClick={() => setViewingAsset(asset)} className="hover:bg-indigo-50/30 transition-colors cursor-pointer group">
+                          {/* Selection Checkbox */}
+                          {isBulkSelectMode && (
+                            <td className="py-4 px-3 text-center animate-fade-in" onClick={(e) => e.stopPropagation()}>
+                              <input
+                                type="checkbox"
+                                checked={selectedAssetIds.includes(String(asset.id))}
+                                onChange={() => toggleSelectAsset(String(asset.id))}
+                                className="w-4 h-4 rounded accent-purple-700 cursor-pointer"
+                              />
+                            </td>
+                          )}
                           {/* Asset Category */}
                           <td className="py-4 px-4 whitespace-nowrap">
                             <div className="flex flex-col gap-1 items-start">
-                              <span className="text-[10px] bg-slate-100 group-hover:bg-white text-[#5D5B57] px-2 py-0.5 rounded font-mono font-bold border border-slate-200">
-                                ID: {asset.id}
+                              <span
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setViewingAsset(asset);
+                                  setQrModalAsset(asset);
+                                }}
+                                className="text-[10px] bg-purple-50 hover:bg-purple-100 text-purple-700 px-2 py-0.5 rounded font-mono font-bold border border-purple-200 cursor-pointer flex items-center gap-1 transition-all"
+                                title="Click to view unique QR Code Tag"
+                              >
+                                <QrCode className="w-3 h-3 text-purple-600" /> ID: {asset.id}
                               </span>
                               {asset.oldAssetId && (
                                 <span className="text-[9px] bg-amber-50 text-amber-800 px-2 py-0.5 rounded font-mono font-bold border border-amber-200">
@@ -3308,6 +4085,13 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
                                 className="px-2 py-1.5 text-[10px] font-bold uppercase tracking-wider text-indigo-600 hover:text-white border border-indigo-200 hover:bg-indigo-600 rounded-lg transition-all flex items-center gap-1"
                               >
                                 <HelpCircle className="w-3 h-3" /> View
+                              </button>
+                              <button
+                                onClick={() => { setViewingAsset(asset); setQrModalAsset(asset); }}
+                                className="px-2 py-1.5 text-[10px] font-bold uppercase tracking-wider text-purple-700 hover:text-white border border-purple-200 hover:bg-purple-600 rounded-lg transition-all flex items-center gap-1"
+                                title="View Unique QR Code & Print Tag"
+                              >
+                                <QrCode className="w-3 h-3" /> QR Tag
                               </button>
                               <button
                                 onClick={() => handleStartEdit(asset)}
@@ -4798,11 +5582,10 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
                     </select>
                   </div>
                   <div>
-                    <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Serial Number *</label>
+                    <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Serial Number</label>
                     <input
                       type="text"
-                      required
-                      placeholder="e.g. SN-PRN1928"
+                      placeholder="e.g. SN-PRN1928 (Optional)"
                       value={editAssetFields.printerSerial || ""}
                       onChange={(e) => setEditAssetFields(p => ({ ...p, printerSerial: e.target.value }))}
                       className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-mono"
@@ -4953,6 +5736,59 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
 
                 return (
                   <div className="space-y-4">
+                    {/* Unique QR Code Card */}
+                    <div className="bg-purple-50/70 border border-purple-200 rounded-xl p-4 flex flex-col md:flex-row items-center justify-between gap-4 shadow-xs">
+                      <div className="flex items-center gap-4">
+                        {qrDataUrl ? (
+                          <img src={qrDataUrl} alt="Asset QR Code" className="w-24 h-24 object-contain bg-white p-1 rounded-lg border border-purple-200 shadow-sm shrink-0" />
+                        ) : (
+                          <div className="w-24 h-24 bg-white rounded-lg border border-purple-200 flex items-center justify-center text-purple-400">
+                            <QrCode className="w-8 h-8 animate-pulse" />
+                          </div>
+                        )}
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs font-black text-purple-900 uppercase font-mono tracking-wider flex items-center gap-1">
+                              <QrCode className="w-3.5 h-3.5 text-purple-600" /> Unique Asset QR Code
+                            </span>
+                            <span className="px-2 py-0.5 bg-purple-200 text-purple-900 rounded font-mono font-bold text-[10px]">ID: {viewingAsset.id}</span>
+                          </div>
+                          <p className="text-[10px] text-purple-700 font-semibold">
+                            Scan with any camera or phone to view clean Asset ID without website redirection.
+                          </p>
+                          <div className="text-[9px] text-purple-800/80 font-mono truncate max-w-xs md:max-w-md bg-purple-100/60 px-2 py-0.5 rounded inline-block">
+                            Payload: Internal HRMS Tag ({viewingAsset.id})
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex flex-wrap md:flex-col gap-2 shrink-0 w-full md:w-auto">
+                        <button
+                          type="button"
+                          onClick={() => handleDownloadDirectPdf("pdf", viewingAsset)}
+                          className="flex-1 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 shadow-sm"
+                          title="Directly download PDF specification sheet file"
+                        >
+                          <Download className="w-3.5 h-3.5" /> Download PDF Sheet
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDownloadDirectPdf("label", viewingAsset)}
+                          className="flex-1 px-3 py-1.5 bg-purple-700 hover:bg-purple-800 text-white rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 shadow-sm"
+                          title="Directly download QR sticker label tag PDF"
+                        >
+                          <Download className="w-3.5 h-3.5" /> Download QR Tag PDF
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handlePrintAssetTag(viewingAsset, "label")}
+                          className="flex-1 px-3 py-1.5 bg-slate-800 hover:bg-slate-900 text-white rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 shadow-sm"
+                        >
+                          <Printer className="w-3.5 h-3.5" /> Print QR Tag
+                        </button>
+                      </div>
+                    </div>
+
                     {/* General Specs */}
                     <div className="bg-[#FCFBF9] border border-[#E8E4DF] rounded-xl p-4 space-y-2">
                       <h4 className="text-[10px] font-bold text-indigo-700 uppercase tracking-wider">Asset Information & Hardware</h4>
@@ -5293,6 +6129,400 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
           </div>
         </div>,
         document.body
+      )}
+
+      {/* Scanner & Quick Search Modal */}
+      {showScannerModal && typeof document !== "undefined" && ReactDOM.createPortal(
+        <div className="fixed inset-0 z-[10000] bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden flex flex-col font-sans">
+            <div className="p-4 border-b border-slate-200 flex items-center justify-between bg-purple-900 text-white">
+              <div className="flex items-center gap-2">
+                <QrCode className="w-5 h-5 text-purple-300" />
+                <h3 className="text-sm font-bold uppercase tracking-wide">Scan Asset QR Code</h3>
+              </div>
+              <button onClick={() => setShowScannerModal(false)} className="p-1 rounded hover:bg-purple-800 text-purple-200">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-5 space-y-4 text-xs">
+              <p className="text-slate-600 font-semibold">
+                Scan asset QR code with barcode reader/camera, or enter Asset ID / Serial Number below to immediately fetch specs & images:
+              </p>
+
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  handleScanQrResult(scanInputValue);
+                }}
+                className="space-y-3"
+              >
+                <div>
+                  <label className="block text-[10px] uppercase tracking-wider font-bold text-slate-500 mb-1">
+                    Enter Asset ID, Serial No. or Scan Code
+                  </label>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      autoFocus
+                      placeholder="e.g. AST-1001 or scan QR code..."
+                      value={scanInputValue}
+                      onChange={(e) => {
+                        setScanInputValue(e.target.value);
+                        if (e.target.value.trim().length >= 4) {
+                          handleScanQrResult(e.target.value);
+                        }
+                      }}
+                      className="flex-1 border-2 border-purple-300 focus:border-purple-600 rounded-xl p-2.5 text-sm font-mono font-bold text-slate-800 focus:outline-none shadow-xs"
+                    />
+                    <button
+                      type="submit"
+                      className="px-4 py-2.5 bg-purple-700 hover:bg-purple-800 text-white rounded-xl font-bold text-xs uppercase tracking-wider shadow-sm transition-all"
+                    >
+                      Find
+                    </button>
+                  </div>
+                </div>
+              </form>
+
+              {/* Suggestions / Recent Inventory Stock */}
+              <div className="space-y-2 pt-2 border-t border-slate-100">
+                <div className="text-[10px] uppercase font-bold text-slate-400">Quick Inventory Suggestions</div>
+                <div className="max-h-40 overflow-y-auto space-y-1.5 pr-1 scrollbar-thin">
+                  {inventory.slice(0, 10).map((asset) => (
+                    <div
+                      key={asset.id}
+                      onClick={() => {
+                        setViewingAsset(asset);
+                        setShowScannerModal(false);
+                      }}
+                      className="p-2 border border-slate-200 rounded-lg flex items-center justify-between hover:bg-purple-50 hover:border-purple-300 cursor-pointer transition-colors"
+                    >
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] bg-purple-100 text-purple-800 font-mono font-bold px-1.5 py-0.5 rounded">{asset.id}</span>
+                        <span className="font-bold text-slate-800 text-xs">{asset.assetType} - {asset.assetDetail || "No Description"}</span>
+                      </div>
+                      <span className="text-[9px] text-slate-400 font-mono">{asset.serialNumber ? `S/N: ${asset.serialNumber}` : ""}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="p-4 bg-slate-50 border-t border-slate-200 flex justify-end">
+              <button
+                onClick={() => setShowScannerModal(false)}
+                className="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 text-xs font-bold rounded-lg transition-all"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* Floating Bulk QR Print Toolbar */}
+      {isBulkSelectMode && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[9999] bg-slate-900/95 text-white backdrop-blur-md px-5 py-3 rounded-2xl shadow-2xl border border-slate-700 flex flex-wrap items-center gap-4 animate-slide-up font-sans">
+          <div className="flex items-center gap-2 pr-3 border-r border-slate-700">
+            <span className="w-6 h-6 rounded-full bg-purple-500 text-white font-black text-xs flex items-center justify-center font-mono">
+              {selectedAssetIds.length}
+            </span>
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-200">
+              {selectedAssetIds.length === 0 ? "Select Assets Below" : "Assets Selected"}
+            </span>
+          </div>
+
+          <div className="flex items-center gap-2.5">
+            <button
+              type="button"
+              onClick={() => toggleSelectAllAssets(filteredInventory)}
+              className="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-bold transition-all"
+            >
+              {filteredInventory.length > 0 && filteredInventory.every(a => selectedAssetIds.includes(String(a.id))) ? "Deselect All" : "Select All Filtered"}
+            </button>
+
+            <button
+              type="button"
+              disabled={isBulkPrinting || selectedAssetIds.length === 0}
+              onClick={() => handleDownloadDirectPdf("label")}
+              className="px-4 py-2 bg-purple-600 hover:bg-purple-700 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm"
+              title="Directly download a .pdf file containing sticker tags in exact selection sequence"
+            >
+              <Download className="w-4 h-4" />
+              {isBulkPrinting ? "Generating PDF..." : `Download PDF Stickers (${selectedAssetIds.length})`}
+            </button>
+
+            <button
+              type="button"
+              disabled={isBulkPrinting || selectedAssetIds.length === 0}
+              onClick={() => handleBulkPrintQrTags("label")}
+              className="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed text-slate-200 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm"
+              title="Open browser print preview dialog"
+            >
+              <Printer className="w-3.5 h-3.5" /> Print View
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setIsBulkSelectMode(false);
+                setSelectedAssetIds([]);
+              }}
+              className="px-3 py-2 bg-rose-900/80 hover:bg-rose-800 text-rose-200 rounded-xl text-xs font-bold transition-all"
+            >
+              Exit Bulk Mode
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Hidden Printable Container for QR Label Tags */}
+      {(viewingAsset || selectedAssetIds.length > 0) && (
+        <div id="asset-printable-area" className="font-sans text-slate-900 bg-white p-4">
+          <style>{`
+            #asset-printable-area {
+              display: none;
+            }
+            @media print {
+              @page {
+                size: portrait;
+                margin: 15mm 10mm 15mm 10mm;
+              }
+              body > * {
+                display: none !important;
+              }
+              #asset-printable-area {
+                display: block !important;
+                visibility: visible !important;
+                position: absolute !important;
+                left: 0 !important;
+                top: 0 !important;
+                width: 100% !important;
+                background: white !important;
+                padding-top: 25px !important;
+                margin: 0 !important;
+              }
+              #asset-printable-area * {
+                visibility: visible !important;
+              }
+              .page-break-after {
+                page-break-after: always !important;
+                break-after: page !important;
+              }
+              .page-break-inside-avoid {
+                page-break-inside: avoid !important;
+                break-inside: avoid !important;
+              }
+            }
+          `}</style>
+
+          {/* Top Whitespace Buffer for Print View to prevent header line clipping */}
+          <div className="w-full h-10 block print:h-14 shrink-0 pointer-events-none" />
+
+          {/* SINGLE ASSET PRINT */}
+          {viewingAsset && selectedAssetIds.length === 0 && (
+            printableMode === "label" ? (
+              /* Physical Sticker Label Tag Format (3.5" x 2.25") */
+              <div className="w-[3.5in] h-[2.25in] border-2 border-slate-900 rounded-xl p-3 flex flex-col justify-between bg-white text-slate-900 shadow-none mx-auto my-4 font-sans">
+                <div className="flex justify-between items-start border-b-2 border-slate-900 pb-1">
+                  <div>
+                    <div className="text-[9px] font-black uppercase tracking-widest text-slate-700">
+                      {companies.find(c => String(c.id) === String(viewingAsset.companyId))?.name || "OFFICIAL ASSET TAG"}
+                    </div>
+                    <div className="text-xs font-black uppercase text-indigo-900">{viewingAsset.assetType}</div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-xs font-black font-mono bg-slate-900 text-white px-2 py-0.5 rounded">{viewingAsset.id}</div>
+                    {viewingAsset.oldAssetId && <div className="text-[8px] font-mono text-slate-600">Old: {viewingAsset.oldAssetId}</div>}
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-3 py-1">
+                  {qrDataUrl && <img src={qrDataUrl} alt="Asset QR Code" className="w-20 h-20 object-contain border border-slate-900 rounded p-0.5 shrink-0" />}
+                  <div className="text-[9px] space-y-0.5 font-semibold text-slate-800 flex-1">
+                    <div className="font-bold leading-snug line-clamp-2">{viewingAsset.assetDetail || "No Description"}</div>
+                    {viewingAsset.serialNumber && <div>S/N: <span className="font-mono font-bold">{viewingAsset.serialNumber}</span></div>}
+                    {viewingAsset.assignedToName && <div className="text-indigo-900 font-bold">Assigned: {viewingAsset.assignedToName}</div>}
+                    <div className="text-[8px] text-slate-500 font-mono">Status: {viewingAsset.status || "Available"}</div>
+                  </div>
+                </div>
+
+                <div className="border-t border-slate-900 pt-1 text-[8px] font-black uppercase tracking-wider text-center text-slate-600 flex justify-between">
+                  <span>PROPERTY OF COMPANY</span>
+                  <span>DO NOT REMOVE</span>
+                </div>
+              </div>
+            ) : (
+              /* Full Page A4 Asset Specification & Audit Document */
+              <div className="max-w-3xl mx-auto p-6 bg-white text-slate-900 font-sans border-2 border-slate-900 rounded-xl space-y-6">
+                <div className="flex justify-between items-start border-b-2 border-slate-900 pb-4">
+                  <div>
+                    <h1 className="text-xl font-black uppercase tracking-wide text-indigo-950">ASSET SPECIFICATION & AUDIT CARD</h1>
+                    <p className="text-xs font-bold text-slate-600">
+                      {companies.find(c => String(c.id) === String(viewingAsset.companyId))?.name || "Company Inventory Management"}
+                    </p>
+                    <p className="text-[10px] text-slate-400 font-mono mt-1">Generated: {new Date().toLocaleDateString("en-IN")}</p>
+                  </div>
+                  <div className="text-right flex items-center gap-4">
+                    {qrDataUrl && <img src={qrDataUrl} alt="Asset QR" className="w-24 h-24 border-2 border-slate-900 rounded p-1 shrink-0" />}
+                    <div>
+                      <div className="text-base font-black font-mono bg-slate-900 text-white px-3 py-1 rounded inline-block">{viewingAsset.id}</div>
+                      <div className="text-xs font-bold text-slate-700 mt-1">Status: {viewingAsset.status}</div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Photo & Specs Grid */}
+                <div className="grid grid-cols-3 gap-4">
+                  {viewingAsset.photoUrl && (
+                    <div className="col-span-1">
+                      <img src={viewingAsset.photoUrl} alt="Asset photo" className="w-full h-44 object-cover rounded-lg border border-slate-300" />
+                    </div>
+                  )}
+                  <div className={viewingAsset.photoUrl ? "col-span-2 space-y-2" : "col-span-3 space-y-2"}>
+                    <table className="w-full text-xs text-left border-collapse border border-slate-300">
+                      <tbody>
+                        <tr className="border-b border-slate-300"><th className="p-2 bg-slate-100 border-r border-slate-300 w-1/3">Asset ID:</th><td className="p-2 font-mono font-bold">{viewingAsset.id}</td></tr>
+                        <tr className="border-b border-slate-300"><th className="p-2 bg-slate-100 border-r border-slate-300">Asset Type:</th><td className="p-2 font-bold">{viewingAsset.assetType}</td></tr>
+                        <tr className="border-b border-slate-300"><th className="p-2 bg-slate-100 border-r border-slate-300">Description / Specs:</th><td className="p-2 font-semibold">{viewingAsset.assetDetail || "N/A"}</td></tr>
+                        <tr className="border-b border-slate-300"><th className="p-2 bg-slate-100 border-r border-slate-300">Serial Number / IMEI:</th><td className="p-2 font-mono">{viewingAsset.serialNumber || "N/A"}</td></tr>
+                        <tr className="border-b border-slate-300"><th className="p-2 bg-slate-100 border-r border-slate-300">Condition:</th><td className="p-2 font-semibold">{viewingAsset.condition}</td></tr>
+                        <tr className="border-b border-slate-300"><th className="p-2 bg-slate-100 border-r border-slate-300">Assigned To:</th><td className="p-2 font-bold text-indigo-900">{viewingAsset.assignedToName || "Unallocated (In Stock)"}</td></tr>
+                        <tr><th className="p-2 bg-slate-100 border-r border-slate-300">Handover Date:</th><td className="p-2">{formatDateDDMMYY(viewingAsset.handoverDate || viewingAsset.assignedAt) || "N/A"}</td></tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                {/* Signatures */}
+                <div className="pt-8 border-t-2 border-slate-300 grid grid-cols-2 gap-8 text-xs font-bold">
+                  <div className="border-t border-slate-900 pt-2 text-center">
+                    <p>Employee Acknowledgment & Signature</p>
+                    <p className="text-[10px] font-normal text-slate-500">Received asset in good condition</p>
+                  </div>
+                  <div className="border-t border-slate-900 pt-2 text-center">
+                    <p>Admin / IT Department Clearance</p>
+                    <p className="text-[10px] font-normal text-slate-500">Authorized System Record</p>
+                  </div>
+                </div>
+              </div>
+            )
+          )}
+
+          {/* BULK / BATCH ASSET PRINT */}
+          {selectedAssetIds.length > 0 && (
+            printableMode === "label" ? (
+              /* Bulk Sticker Tags Sheet Grid (2 Columns, 3-4 rows per page) */
+              <div className="grid grid-cols-2 gap-5 p-2 pt-8 mt-4 font-sans">
+                {selectedAssetIds
+                  .map(id => inventory.find(a => String(a.id) === String(id)))
+                  .filter((a): a is any => Boolean(a))
+                  .map(asset => {
+                    const qr = bulkQrDataMap[String(asset.id)];
+                    const company = companies.find(c => String(c.id) === String(asset.companyId))?.name || "OFFICIAL ASSET TAG";
+                    return (
+                      <div key={asset.id} className="w-[3.4in] h-[2.2in] border-2 border-slate-900 rounded-xl p-3 flex flex-col justify-between bg-white text-slate-900 page-break-inside-avoid my-2">
+                        <div className="flex justify-between items-start border-b-2 border-slate-900 pb-1">
+                          <div>
+                            <div className="text-[9px] font-black uppercase tracking-widest text-slate-700">{company}</div>
+                            <div className="text-xs font-black uppercase text-indigo-900">{asset.assetType}</div>
+                          </div>
+                          <div className="text-right">
+                            <div className="text-xs font-black font-mono bg-slate-900 text-white px-2 py-0.5 rounded">{asset.id}</div>
+                            {asset.oldAssetId && <div className="text-[8px] font-mono text-slate-600">Old: {asset.oldAssetId}</div>}
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-3 py-1">
+                          {qr ? (
+                            <img src={qr} alt="Asset QR Code" className="w-20 h-20 object-contain border border-slate-900 rounded p-0.5 shrink-0" />
+                          ) : (
+                            <div className="w-20 h-20 bg-slate-100 flex items-center justify-center text-[9px]">QR CODE</div>
+                          )}
+                          <div className="text-[9px] space-y-0.5 font-semibold text-slate-800 flex-1">
+                            <div className="font-bold leading-snug line-clamp-2">{asset.assetDetail || "No Description"}</div>
+                            {asset.serialNumber && <div>S/N: <span className="font-mono font-bold">{asset.serialNumber}</span></div>}
+                            {asset.assignedToName && <div className="text-indigo-900 font-bold">Assigned: {asset.assignedToName}</div>}
+                            <div className="text-[8px] text-slate-500 font-mono">Status: {asset.status || "Available"}</div>
+                          </div>
+                        </div>
+
+                        <div className="border-t border-slate-900 pt-1 text-[8px] font-black uppercase tracking-wider text-center text-slate-600 flex justify-between">
+                          <span>PROPERTY OF COMPANY</span>
+                          <span>DO NOT REMOVE</span>
+                        </div>
+                      </div>
+                    );
+                  })}
+              </div>
+            ) : (
+              /* Bulk A4 Spec Sheets (1 page per asset) */
+              <div className="space-y-8 font-sans">
+                {selectedAssetIds
+                  .map(id => inventory.find(a => String(a.id) === String(id)))
+                  .filter((a): a is any => Boolean(a))
+                  .map((asset, idx) => {
+                    const qr = bulkQrDataMap[String(asset.id)];
+                    const company = companies.find(c => String(c.id) === String(asset.companyId))?.name || "Company Inventory Management";
+                    return (
+                      <div key={asset.id} className="max-w-3xl mx-auto p-6 bg-white text-slate-900 border-2 border-slate-900 rounded-xl space-y-6 page-break-after">
+                        <div className="flex justify-between items-start border-b-2 border-slate-900 pb-4">
+                          <div>
+                            <h1 className="text-xl font-black uppercase tracking-wide text-indigo-950">ASSET SPECIFICATION & AUDIT CARD</h1>
+                            <p className="text-xs font-bold text-slate-600">{company}</p>
+                            <p className="text-[10px] text-slate-400 font-mono mt-1">Generated: {new Date().toLocaleDateString("en-IN")} · Page {idx + 1} of {selectedAssetIds.length}</p>
+                          </div>
+                          <div className="text-right flex items-center gap-4">
+                            {qr && <img src={qr} alt="Asset QR" className="w-24 h-24 border-2 border-slate-900 rounded p-1 shrink-0" />}
+                            <div>
+                              <div className="text-base font-black font-mono bg-slate-900 text-white px-3 py-1 rounded inline-block">{asset.id}</div>
+                              <div className="text-xs font-bold text-slate-700 mt-1">Status: {asset.status}</div>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Specs Table */}
+                        <div className="grid grid-cols-3 gap-4">
+                          {asset.photoUrl && (
+                            <div className="col-span-1">
+                              <img src={asset.photoUrl} alt="Asset photo" className="w-full h-44 object-cover rounded-lg border border-slate-300" />
+                            </div>
+                          )}
+                          <div className={asset.photoUrl ? "col-span-2 space-y-2" : "col-span-3 space-y-2"}>
+                            <table className="w-full text-xs text-left border-collapse border border-slate-300">
+                              <tbody>
+                                <tr className="border-b border-slate-300"><th className="p-2 bg-slate-100 border-r border-slate-300 w-1/3">Asset ID:</th><td className="p-2 font-mono font-bold">{asset.id}</td></tr>
+                                <tr className="border-b border-slate-300"><th className="p-2 bg-slate-100 border-r border-slate-300">Asset Type:</th><td className="p-2 font-bold">{asset.assetType}</td></tr>
+                                <tr className="border-b border-slate-300"><th className="p-2 bg-slate-100 border-r border-slate-300">Description / Specs:</th><td className="p-2 font-semibold">{asset.assetDetail || "N/A"}</td></tr>
+                                <tr className="border-b border-slate-300"><th className="p-2 bg-slate-100 border-r border-slate-300">Serial Number / IMEI:</th><td className="p-2 font-mono">{asset.serialNumber || "N/A"}</td></tr>
+                                <tr className="border-b border-slate-300"><th className="p-2 bg-slate-100 border-r border-slate-300">Condition:</th><td className="p-2 font-semibold">{asset.condition}</td></tr>
+                                <tr className="border-b border-slate-300"><th className="p-2 bg-slate-100 border-r border-slate-300">Assigned To:</th><td className="p-2 font-bold text-indigo-900">{asset.assignedToName || "Unallocated (In Stock)"}</td></tr>
+                                <tr><th className="p-2 bg-slate-100 border-r border-slate-300">Handover Date:</th><td className="p-2">{formatDateDDMMYY(asset.handoverDate || asset.assignedAt) || "N/A"}</td></tr>
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
+
+                        {/* Signatures */}
+                        <div className="pt-8 border-t-2 border-slate-300 grid grid-cols-2 gap-8 text-xs font-bold">
+                          <div className="border-t border-slate-900 pt-2 text-center">
+                            <p>Employee Acknowledgment & Signature</p>
+                            <p className="text-[10px] font-normal text-slate-500">Received asset in good condition</p>
+                          </div>
+                          <div className="border-t border-slate-900 pt-2 text-center">
+                            <p>Admin / IT Department Clearance</p>
+                            <p className="text-[10px] font-normal text-slate-500">Authorized System Record</p>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+              </div>
+            )
+          )}
+        </div>
       )}
 
     </div>

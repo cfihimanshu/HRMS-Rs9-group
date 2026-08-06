@@ -4,7 +4,7 @@ import { createPortal } from "react-dom";
 import {
   Search, RefreshCw, FileText, Calendar, Building, User, Download, Filter,
   Layers, CheckCircle2, DollarSign, Briefcase, Landmark, Paperclip, Eye,
-  ChevronDown, ChevronRight, ArrowRight, Clock, Award, ShieldCheck, Check, Trash2, Edit, Save, X
+  ChevronDown, ChevronRight, ArrowRight, Clock, Award, ShieldCheck, Check, Trash2, Edit, Save, X, PhoneCall
 } from "lucide-react";
 
 const STAGE_DEFINITIONS: Record<string, string[]> = {
@@ -119,13 +119,20 @@ function getCategoryAndStages(category?: string, subCategory?: string): { catego
   const catKeys = Object.keys(STAGE_DEFINITIONS);
   const matchedKey = catKeys.find(k => k.trim().toUpperCase() === normCat);
 
-  if (matchedKey && matchedKey !== "ADVOCATE NOTICE") {
+  // 1. If explicitly provided category matches a known stage definition, use it directly!
+  if (matchedKey) {
     return { category: matchedKey, stages: STAGE_DEFINITIONS[matchedKey] };
   }
 
+  // 2. If category is omitted or generic, infer from subCategory (check ADVOCATE NOTICE first for notice steps)
   if (normSub) {
+    const advocateStages = STAGE_DEFINITIONS["ADVOCATE NOTICE"] || [];
+    if (advocateStages.some(s => s.trim().toUpperCase() === normSub)) {
+      return { category: "ADVOCATE NOTICE", stages: advocateStages };
+    }
+
     for (const [catName, stgList] of Object.entries(STAGE_DEFINITIONS)) {
-      if (catName === "ADVOCATE NOTICE" || catName === "Bill Follow Up") continue;
+      if (catName === "Bill Follow Up") continue;
       const hasStage = stgList.some(s => s.trim().toUpperCase() === normSub);
       if (hasStage) {
         return { category: catName, stages: stgList };
@@ -133,7 +140,7 @@ function getCategoryAndStages(category?: string, subCategory?: string): { catego
     }
   }
 
-  const fallbackKey = matchedKey || "ADVOCATE NOTICE";
+  const fallbackKey = "ADVOCATE NOTICE";
   return { category: fallbackKey, stages: STAGE_DEFINITIONS[fallbackKey] || STAGE_DEFINITIONS["ADVOCATE NOTICE"] };
 }
 
@@ -894,7 +901,37 @@ export default function LegalWorkEntryHistoryView({
       combined.forEach((item) => {
         const bKey = (item.bankName || "").toLowerCase().trim();
         const brKey = (item.branchName || "").toLowerCase().trim();
-        const catKey = (item.businessDevOption || item.category || "").toLowerCase().trim();
+
+        const rawCat = (item.businessDevOption || item.category || "").trim();
+        const rawSub = (item.businessDevSubOption || item.subCategory || "").trim().toUpperCase();
+
+        let catKey = "";
+        if (rawSub === "BILL FOLLOW UP") {
+          // If explicit category option was saved with follow up (e.g. ADVOCATE NOTICE or RACO RODA), use it!
+          if (rawCat && rawCat !== "Bill Follow Up" && rawCat !== "Business Development") {
+            const { category: mCat } = getCategoryAndStages(rawCat, "");
+            catKey = mCat.toLowerCase().trim();
+          } else {
+            // Find matching case item for this bank and branch
+            const matchingItem = combined.find(i =>
+              (i.bankName || "").toLowerCase().trim() === bKey &&
+              (i.branchName || "").toLowerCase().trim() === brKey &&
+              i.businessDevOption &&
+              i.businessDevOption !== "Business Development" &&
+              i.businessDevOption !== "Bill Follow Up"
+            );
+            if (matchingItem) {
+              const { category: mCat } = getCategoryAndStages(matchingItem.businessDevOption || matchingItem.category, matchingItem.businessDevSubOption || matchingItem.subCategory);
+              catKey = mCat.toLowerCase().trim();
+            } else {
+              catKey = "advocate notice";
+            }
+          }
+        } else {
+          const { category: resolvedCat } = getCategoryAndStages(rawCat, rawSub);
+          catKey = resolvedCat.toLowerCase().trim();
+        }
+
         const key = item.masterId && Number(item.masterId) > 0
           ? `m_${item.masterId}_${catKey}`
           : `b_${bKey}_${brKey}_${catKey}`;
@@ -910,9 +947,18 @@ export default function LegalWorkEntryHistoryView({
       groupedMap.forEach((groupItems) => {
         groupItems.sort((a, b) => new Date(a.createdAt || a.workDate).getTime() - new Date(b.createdAt || b.workDate).getTime());
 
+        // Find primary case item (prefer notice or log with explicit notice category, e.g. ADVOCATE NOTICE)
+        const primaryItem = groupItems.find(i => i.rawNotice) ||
+          groupItems.find(i => i.businessDevOption && i.businessDevOption !== "Business Development" && i.businessDevOption !== "Bill Follow Up") ||
+          groupItems.find(i => (i.category || "") !== "Bill Follow Up") ||
+          groupItems[0];
+
+        const { category: catName, stages } = getCategoryAndStages(
+          primaryItem.businessDevOption || primaryItem.category,
+          primaryItem.businessDevSubOption || primaryItem.subCategory
+        );
+
         const latestItem = groupItems[groupItems.length - 1];
-        const catName = latestItem.businessDevOption || latestItem.category || "ADVOCATE NOTICE";
-        const stages = STAGE_DEFINITIONS[catName] || STAGE_DEFINITIONS["ADVOCATE NOTICE"];
 
         const mergedBroughtBy = groupItems.map(i => i.broughtBy).filter(Boolean).pop() || latestItem.broughtBy;
         const mergedPreparedBy = groupItems.map(i => i.preparedBy).filter(Boolean).pop() || latestItem.preparedBy;
@@ -926,7 +972,7 @@ export default function LegalWorkEntryHistoryView({
         const mergedRate = groupItems.map(i => i.finalRate).filter(Boolean).pop() || latestItem.finalRate;
         const mergedExpenses = groupItems.map(i => i.expenses || i.ownExpense).filter(Boolean).pop() || latestItem.expenses;
 
-        let highestStage = latestItem.businessDevSubOption || latestItem.subCategory || stages[0];
+        let highestStage = primaryItem.businessDevSubOption || primaryItem.subCategory || stages[0];
         let highestIdx = stages.indexOf(highestStage);
 
         groupItems.forEach(i => {
@@ -939,7 +985,11 @@ export default function LegalWorkEntryHistoryView({
         });
 
         const mergedEntry: LegalWorkLogItem = {
-          ...latestItem,
+          ...primaryItem,
+          id: primaryItem.id || latestItem.id,
+          workDate: latestItem.workDate || primaryItem.workDate,
+          businessDevOption: primaryItem.businessDevOption || primaryItem.category || "ADVOCATE NOTICE",
+          category: primaryItem.category || primaryItem.businessDevOption || "ADVOCATE NOTICE",
           businessDevSubOption: highestStage,
           subCategory: highestStage,
           broughtBy: mergedBroughtBy,
@@ -1123,15 +1173,38 @@ export default function LegalWorkEntryHistoryView({
   const allBranchNamesForSelectedBank = useMemo(() => {
     const set = new Set<string>();
     const targetBank = (editBankName || "").toLowerCase().trim();
-    (branchesList || []).forEach(br => {
-      if (br.branchName) set.add(br.branchName);
-    });
-    (logs || []).forEach(l => {
-      if (targetBank && (l.bankName || "").toLowerCase().trim() !== targetBank) return;
-      if (l.branchName) set.add(l.branchName);
-    });
+
+    if (targetBank) {
+      // 1. Find bank object matching editBankName
+      const bankObj = (banksList || []).find(b => (b.bankName || "").toLowerCase().trim() === targetBank);
+      const bankIdStr = bankObj?.id !== undefined && bankObj?.id !== null ? String(bankObj.id) : null;
+
+      // 2. Filter branchesList matching this bank (by bankName or bankId)
+      (branchesList || []).forEach(br => {
+        const brBankNameClean = (br.bankName || "").toLowerCase().trim();
+        const brBankIdStr = br.bankId !== undefined && br.bankId !== null ? String(br.bankId) : null;
+        if ((brBankNameClean && brBankNameClean === targetBank) || (bankIdStr && brBankIdStr && bankIdStr === brBankIdStr)) {
+          if (br.branchName) set.add(br.branchName.trim());
+          else if (br.branch) set.add(br.branch.trim());
+        }
+      });
+
+      // 3. Filter logs matching editBankName
+      (logs || []).forEach(l => {
+        if ((l.bankName || "").toLowerCase().trim() === targetBank && l.branchName) {
+          set.add(l.branchName.trim());
+        }
+      });
+    }
+
+    // Fallback if no bank selected or no specific branches found
+    if (set.size === 0) {
+      (branchesList || []).forEach(br => { if (br.branchName) set.add(br.branchName.trim()); });
+      (logs || []).forEach(l => { if (l.branchName) set.add(l.branchName.trim()); });
+    }
+
     return Array.from(set).sort((a, b) => a.localeCompare(b));
-  }, [branchesList, logs, editBankName]);
+  }, [branchesList, banksList, logs, editBankName]);
 
   const totalCounts = useMemo(() => {
     return filteredLogs.reduce((acc, curr) => acc + (parseInt(curr.noOfCount || "1") || 1), 0);
@@ -1139,17 +1212,28 @@ export default function LegalWorkEntryHistoryView({
 
   const getItemAmount = (curr: LegalWorkLogItem) => {
     const finances = parseFollowUpDetails(curr.financialDetails);
+    const groupLogs = curr.allLogs && curr.allLogs.length > 0 ? curr.allLogs : [curr];
+
+    // 1. Explicit Bill Amount (e.g. ₹55,000 from PREPARE BILL or REQUEST PAYMENT)
+    const billAmtStr = curr.billAmount || groupLogs.map(l => l.billAmount).filter(Boolean).pop();
+    if (billAmtStr && !isNaN(parseFloat(billAmtStr)) && parseFloat(billAmtStr) > 0) {
+      return parseFloat(billAmtStr);
+    }
+
+    // 2. Calculated Notice Revenue (Qty * Rate) + Dispatch Amount Cost
     const countVal = parseFloat(curr.noOfCount || "1") || 1;
-    const rateStr = curr.finalRate || (curr.allLogs ? curr.allLogs.map(l => l.finalRate).filter(Boolean).pop() : undefined);
+    const rateStr = curr.finalRate || groupLogs.map(l => l.finalRate).filter(Boolean).pop();
     const rateVal = parseFloat(rateStr || "0") || 0;
     const calculatedNoticeRev = countVal * rateVal;
 
-    if (calculatedNoticeRev > 0) {
-      return calculatedNoticeRev;
+    const dispatchLog = groupLogs.find(l => (l.businessDevSubOption || l.subCategory || "").includes("DISPATCH"));
+    const dispatchCost = parseFloat(dispatchLog?.stageAmount || "0") || 0;
+
+    if (calculatedNoticeRev > 0 || dispatchCost > 0) {
+      return calculatedNoticeRev + dispatchCost;
     }
 
     const amt = Number(
-      curr.billAmount ||
       curr.stageAmount ||
       finances?.totalRevenue ||
       curr.amount ||
@@ -1384,14 +1468,25 @@ export default function LegalWorkEntryHistoryView({
 
     setNextStepSubOption(calculatedNext);
     setNextStepCount(item.noOfCount || "1");
-    setNextStepAmount("0");
+
+    // Auto-calculate bill / payment amount based on Notice Count * Rate + Dispatch Cost
+    const groupLogs = item.allLogs && item.allLogs.length > 0 ? item.allLogs : [item];
+    const existingBillAmt = item.billAmount || groupLogs.map(l => l.billAmount).filter(Boolean).pop();
+    const countVal = parseFloat(item.noOfCount || "1") || 1;
+    const rateVal = parseFloat(item.finalRate || groupLogs.map(l => l.finalRate).filter(Boolean).pop() || "0") || 0;
+    const noticeRev = countVal * rateVal;
+    const dispatchLog = groupLogs.find(l => (l.businessDevSubOption || l.subCategory || "").includes("DISPATCH"));
+    const dispatchCost = parseFloat(dispatchLog?.stageAmount || "0") || 0;
+    const autoAmount = existingBillAmt || (noticeRev + dispatchCost > 0 ? String(noticeRev + dispatchCost) : (item.stageAmount || "0"));
+
+    setNextStepAmount(autoAmount);
     setNextStepBroughtBy(item.broughtBy || item.employeeName || "");
     setNextStepPreparedBy(item.preparedBy || "");
     setNextStepPrintedBy(item.printedBy || "");
     setNextStepDispatchedBy(item.dispatchedBy || "");
     setNextStepBillDate(new Date().toISOString().split("T")[0]);
-    setNextStepBillAmount("");
-    setNextStepBillNo("");
+    setNextStepBillAmount(autoAmount);
+    setNextStepBillNo(groupLogs.map(l => l.billNo).filter(Boolean).pop() || "");
     let initRate = item.finalRate || "";
     let initOfficer = "";
     let initExpenses = item.expenses || (item.ownExpense ? String(item.ownExpense) : "");
@@ -1408,7 +1503,6 @@ export default function LegalWorkEntryHistoryView({
     setNextStepExpenses(initExpenses);
     setNextStepAllocationDate(item.allocationDate || (item.workDate ? new Date(item.workDate).toISOString().split("T")[0] : new Date().toISOString().split("T")[0]));
     // Pre-fill file from target stage if previously saved
-    const groupLogs = item.allLogs && item.allLogs.length > 0 ? item.allLogs : [item];
     const targetStageLog = groupLogs.find(gl => (gl.businessDevSubOption || gl.subCategory) === calculatedNext);
     setNextStepUploadedFileName(targetStageLog?.uploadedFileName || "");
     setNextStepPersonName(item.personName || "");
@@ -2228,16 +2322,22 @@ export default function LegalWorkEntryHistoryView({
                                             {/* Amount / Rate */}
                                             <td className="py-2.5 px-3 align-middle text-right font-black text-emerald-700">
                                               {info.isFilled ? (
-                                                (info.stageAmount && Number(info.stageAmount) > 0)
-                                                  ? `₹${Number(info.stageAmount).toLocaleString("en-IN")}`
-                                                  : (info.billAmount && Number(info.billAmount) > 0)
-                                                    ? `₹${Number(info.billAmount).toLocaleString("en-IN")}`
+                                                (stgName.includes("PREPARE BILL") || stgName.includes("REQUEST PAYMENT"))
+                                                  ? (info.billAmount && Number(info.billAmount) > 0
+                                                      ? `₹${Number(info.billAmount).toLocaleString("en-IN")}`
+                                                      : (info.stageAmount && Number(info.stageAmount) > 0
+                                                          ? `₹${Number(info.stageAmount).toLocaleString("en-IN")}`
+                                                          : "—"))
+                                                  : stgName.includes("DISPATCH")
+                                                    ? (info.stageAmount && Number(info.stageAmount) > 0
+                                                        ? `₹${Number(info.stageAmount).toLocaleString("en-IN")}`
+                                                        : "—")
                                                     : (info.finalRate && Number(info.finalRate) > 0)
                                                       ? `₹${info.finalRate}/notice`
                                                       : (item.finalRate && Number(item.finalRate) > 0)
                                                         ? `₹${item.finalRate}/notice`
-                                                        : (info.stageAmount !== undefined && info.stageAmount !== null && Number(info.stageAmount) === 0)
-                                                          ? `₹0`
+                                                        : (info.stageAmount && Number(info.stageAmount) > 0)
+                                                          ? `₹${Number(info.stageAmount).toLocaleString("en-IN")}`
                                                           : "—"
                                               ) : "—"}
                                             </td>
@@ -2420,6 +2520,88 @@ export default function LegalWorkEntryHistoryView({
                                   </tbody>
                                 </table>
                               </div>
+
+                              {/* SEPARATE BILL FOLLOW-UP LOGS & CALL HISTORY */}
+                              {(() => {
+                                const groupLogsList = item.allLogs || [item];
+                                const followUpLogs = groupLogsList.filter(i =>
+                                  (i.businessDevSubOption || i.subCategory || i.category || "").toUpperCase().includes("FOLLOW UP")
+                                );
+                                if (followUpLogs.length === 0) return null;
+
+                                return (
+                                  <div className="p-4 pt-0">
+                                    <div className="bg-amber-50/60 border border-amber-200/90 rounded-xl p-3.5 space-y-2.5">
+                                      <div className="flex items-center justify-between">
+                                        <h4 className="text-[11px] font-black uppercase text-[#714B67] flex items-center gap-1.5">
+                                          <PhoneCall className="w-3.5 h-3.5 text-[#C9A84C]" />
+                                          Bill Follow-Up Activity Logs ({followUpLogs.length})
+                                        </h4>
+                                      </div>
+                                      <div className="overflow-x-auto border border-amber-200/80 rounded-lg bg-white shadow-2xs">
+                                        <table className="w-full text-left border-collapse text-xs">
+                                          <thead>
+                                            <tr className="bg-amber-100/70 text-amber-900 font-extrabold text-[9.5px] uppercase tracking-wider border-b border-amber-200">
+                                              <th className="py-2 px-3 w-8 text-center">#</th>
+                                              <th className="py-2 px-3">Call Date &amp; Time</th>
+                                              <th className="py-2 px-3">Contacted Person / Officer</th>
+                                              <th className="py-2 px-3">Staff In-Charge</th>
+                                              <th className="py-2 px-3">Remarks / Call Details</th>
+                                              <th className="py-2 px-3 text-center">Proof File</th>
+                                              <th className="py-2 px-3 text-right">Actions</th>
+                                            </tr>
+                                          </thead>
+                                          <tbody className="divide-y divide-amber-100 text-slate-700 font-medium text-[11px]">
+                                            {followUpLogs.map((fuLog, fuIdx) => {
+                                              const fDetails = parseFollowUpDetails(fuLog.followUpDetails);
+                                              const callDate = fDetails?.callDate || (fuLog.workDate ? new Date(fuLog.workDate).toLocaleDateString("en-IN") : "—");
+                                              const callTime = fDetails?.callTime || "";
+                                              const contactedPerson = fuLog.personName || fDetails?.contactedPerson || "Officer";
+                                              const remarksText = fuLog.remarks || fDetails?.remarks || "—";
+                                              const attachmentFile = fuLog.uploadedFileName;
+
+                                              return (
+                                                <tr key={fuLog.id || fuIdx} className="hover:bg-amber-50/60 transition-colors">
+                                                  <td className="py-2 px-3 text-center font-bold text-amber-800">{fuIdx + 1}</td>
+                                                  <td className="py-2 px-3 font-semibold text-slate-800">
+                                                    {callDate} {callTime && <span className="text-[10px] text-slate-500 font-normal">({callTime})</span>}
+                                                  </td>
+                                                  <td className="py-2 px-3 font-bold text-slate-800">{contactedPerson}</td>
+                                                  <td className="py-2 px-3 text-slate-600 font-semibold">{fuLog.employeeName || fuLog.employeeId || "Staff"}</td>
+                                                  <td className="py-2 px-3 text-slate-700 max-w-xs whitespace-pre-wrap">{remarksText}</td>
+                                                  <td className="py-2 px-3 text-center">
+                                                    {attachmentFile ? (
+                                                      <button
+                                                        type="button"
+                                                        onClick={() => openFilePreview(attachmentFile)}
+                                                        className="px-2 py-0.5 bg-amber-100 hover:bg-amber-200 text-amber-900 border border-amber-300 rounded text-[10px] font-bold inline-flex items-center gap-1 cursor-pointer transition-colors"
+                                                      >
+                                                        <Paperclip className="w-3 h-3 text-[#C9A84C]" /> Proof
+                                                      </button>
+                                                    ) : (
+                                                      <span className="text-slate-400 text-[10px]">—</span>
+                                                    )}
+                                                  </td>
+                                                  <td className="py-2 px-3 text-right">
+                                                    <button
+                                                      type="button"
+                                                      onClick={() => handleDeleteLog(fuLog.id)}
+                                                      className="p-1 text-slate-400 hover:text-rose-600 rounded hover:bg-rose-50 transition-colors cursor-pointer"
+                                                      title="Delete follow-up log"
+                                                    >
+                                                      <Trash2 className="w-3.5 h-3.5" />
+                                                    </button>
+                                                  </td>
+                                                </tr>
+                                              );
+                                            })}
+                                          </tbody>
+                                        </table>
+                                      </div>
+                                    </div>
+                                  </div>
+                                );
+                              })()}
                             </div>
                           </td>
                         </tr>
@@ -2597,7 +2779,7 @@ export default function LegalWorkEntryHistoryView({
               )}
 
               {editSubOption.includes("PREPARE BILL") && (
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 bg-purple-50/70 p-3.5 rounded-xl border border-purple-200 animate-fade-in">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 bg-purple-50/70 p-3.5 rounded-xl border border-purple-200 animate-fade-in">
                   <div>
                     <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">Bill Date *</label>
                     <input type="date" required value={editBillDate} onChange={e => setEditBillDate(e.target.value)} className="w-full border border-slate-250 rounded-lg px-3 py-2 text-xs font-bold text-slate-800" />
@@ -2609,6 +2791,10 @@ export default function LegalWorkEntryHistoryView({
                   <div>
                     <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">Bill No. *</label>
                     <input type="text" required value={editBillNo} onChange={e => setEditBillNo(e.target.value)} placeholder="Enter bill number..." className="w-full border border-slate-250 rounded-lg px-3 py-2 text-xs font-bold text-slate-800" />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">Prepared By (Staff) *</label>
+                    <SearchableEmployeeInput value={editPreparedBy} onChange={setEditPreparedBy} placeholder="Search or select staff..." required employees={employeeOptions} />
                   </div>
                 </div>
               )}
@@ -2930,7 +3116,7 @@ export default function LegalWorkEntryHistoryView({
               )}
 
               {nextStepSubOption.includes("PREPARE BILL") && (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 bg-purple-50/70 p-3.5 rounded-xl border border-purple-200 animate-fade-in">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 bg-purple-50/70 p-3.5 rounded-xl border border-purple-200 animate-fade-in">
                   <div>
                     <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">Bill Date *</label>
                     <input type="date" required value={nextStepBillDate} onChange={e => setNextStepBillDate(e.target.value)} className="w-full border border-slate-250 rounded-lg px-3 py-2 text-xs font-bold text-slate-800" />
@@ -2942,6 +3128,10 @@ export default function LegalWorkEntryHistoryView({
                   <div>
                     <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">Bill No. *</label>
                     <input type="text" required value={nextStepBillNo} onChange={e => setNextStepBillNo(e.target.value)} placeholder="Enter bill number..." className="w-full border border-slate-250 rounded-lg px-3 py-2 text-xs font-bold text-slate-800" />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">Prepared By (Staff) *</label>
+                    <SearchableEmployeeInput value={nextStepPreparedBy} onChange={setNextStepPreparedBy} placeholder="Search or select staff..." required employees={employeeOptions} />
                   </div>
                   <div>
                     <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">Upload Bill File (Optional)</label>
@@ -3389,6 +3579,7 @@ export default function LegalWorkEntryHistoryView({
                 const displayUrl = selectedFilePreviewModal.fileUrl || selectedFilePreviewModal.fileName;
                 const isImage = selectedFilePreviewModal.fileName.match(/\.(png|jpg|jpeg|gif|webp|bmp|svg)$/i) || displayUrl.startsWith("data:image/");
                 const isPdf = selectedFilePreviewModal.fileName.match(/\.(pdf)$/i) || displayUrl.includes(".pdf");
+                const isAudio = selectedFilePreviewModal.fileName.match(/\.(aac|mp3|wav|m4a|ogg|wma|flac)$/i) || displayUrl.startsWith("data:audio/");
 
                 if (previewFileError) {
                   return (
@@ -3403,7 +3594,7 @@ export default function LegalWorkEntryHistoryView({
                           <span>📤 Select &amp; Upload Document File</span>
                           <input
                             type="file"
-                            accept=".xlsx,.xls,.csv,.pdf,.doc,.docx,.png,.jpg,.jpeg,image/*"
+                            accept=".xlsx,.xls,.csv,.pdf,.doc,.docx,.png,.jpg,.jpeg,.mp3,.wav,.aac,.m4a,image/*,audio/*"
                             className="hidden"
                             onChange={(e) => {
                               const file = e.target.files?.[0];
@@ -3415,6 +3606,23 @@ export default function LegalWorkEntryHistoryView({
                           />
                         </label>
                       )}
+                    </div>
+                  );
+                }
+
+                if (isAudio) {
+                  return (
+                    <div className="flex flex-col items-center justify-center text-center space-y-4 py-6 px-4 bg-amber-50/50 rounded-xl border border-amber-200/80 w-full">
+                      <div className="w-14 h-14 bg-amber-100 border border-amber-300 rounded-full flex items-center justify-center text-amber-800 shadow-sm">
+                        <PhoneCall className="w-7 h-7 text-[#C9A84C]" />
+                      </div>
+                      <div>
+                        <p className="text-xs font-black text-slate-800">{getFileNameOnly(selectedFilePreviewModal.fileName)}</p>
+                        <p className="text-[10px] text-slate-500 font-semibold mt-0.5">Call Audio Recording Proof</p>
+                      </div>
+                      <audio controls src={displayUrl} className="w-full max-w-sm" autoPlay={false}>
+                        Your browser does not support playing this audio format.
+                      </audio>
                     </div>
                   );
                 }
@@ -3483,7 +3691,7 @@ export default function LegalWorkEntryHistoryView({
                   href={selectedFilePreviewModal.fileUrl || selectedFilePreviewModal.fileName}
                   target="_blank"
                   rel="noreferrer"
-                  download={selectedFilePreviewModal.fileName}
+                  download={getFileNameOnly(selectedFilePreviewModal.fileName)}
                   className="text-xs font-bold text-[#714B67] hover:underline flex items-center gap-1 cursor-pointer"
                 >
                   ⬇️ Open / Download Document

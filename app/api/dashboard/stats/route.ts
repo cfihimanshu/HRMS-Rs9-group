@@ -356,7 +356,7 @@ export async function GET(req: Request) {
     // Fetch recent HR activities populated with user info
     let dbHrActivities = await HRRecentActivity.findAll({
       where: {},
-      order: [['timestamp', 'DESC']],
+      order: [['createdAt', 'DESC'], ['timestamp', 'DESC']],
       limit: 50,
       raw: true
     });
@@ -403,26 +403,40 @@ export async function GET(req: Request) {
       else if (action === "HIRING_APPROVED") title = "Hiring Approved";
       else if (action === "HIRING_REJECTED") title = "Hiring Rejected";
       else if (action === "EMPLOYEE_UPDATED") title = "Employee Profile Updated";
+      else if (action === "DEACTIVATE_EMPLOYEE") title = "Employee Deactivated";
       else if (action === "FINE_IMPOSED") title = "Absent Fine Imposed";
 
       const userInfo = userMap[a.user?.toString()] || (typeof a.user === "object" ? a.user : { name: "System", role: "Staff" });
+      const rawTime = a.createdAt || a.timestamp || new Date();
 
       return {
         id: (a.id || "").toString(),
         title,
         description: a.details,
-        timestamp: a.timestamp ? new Date(a.timestamp).toISOString() : new Date().toISOString(),
+        timestamp: rawTime instanceof Date ? rawTime.toISOString() : new Date(rawTime).toISOString(),
         action: a.action || "HR_ACTIVITY",
         actor: userInfo.name || "System",
         actorRole: userInfo.role || ""
       };
     });
 
+    const resolveTimestamp = (primary: any, secondary?: any): string => {
+      if (primary) {
+        const d = new Date(primary);
+        if (!isNaN(d.getTime())) return d.toISOString();
+      }
+      if (secondary) {
+        const d = new Date(secondary);
+        if (!isNaN(d.getTime())) return d.toISOString();
+      }
+      return new Date(0).toISOString();
+    };
+
     // Convert SodReports
     recentSods.forEach((sod: any) => {
       const empId = (sod.employee || "").toString();
       const userInfo = userMap[empId] || { name: "Employee", role: "Staff" };
-      const ts = sod.createdAt ? new Date(sod.createdAt).toISOString() : (sod.date ? new Date(sod.date).toISOString() : new Date().toISOString());
+      const ts = resolveTimestamp(sod.createdAt, sod.date || sod.updatedAt);
       actList.push({
         id: "sod_" + (sod.id || Date.now()),
         title: "SOD Declared",
@@ -438,7 +452,7 @@ export async function GET(req: Request) {
     recentEods.forEach((eod: any) => {
       const empId = (eod.employee || "").toString();
       const userInfo = userMap[empId] || { name: "Employee", role: "Staff" };
-      const ts = eod.createdAt ? new Date(eod.createdAt).toISOString() : (eod.date ? new Date(eod.date).toISOString() : new Date().toISOString());
+      const ts = resolveTimestamp(eod.createdAt, eod.date || eod.updatedAt);
       actList.push({
         id: "eod_" + (eod.id || Date.now()),
         title: "EOD Declared",
@@ -454,7 +468,7 @@ export async function GET(req: Request) {
     (recentFinesList || []).forEach((fine: any) => {
       const empInfo = userMap[(fine.employee || "").toString()] || { name: "Employee", role: "" };
       const impInfo = userMap[(fine.imposedBy || "").toString()] || { name: "Management", role: "" };
-      const ts = fine.createdAt ? new Date(fine.createdAt).toISOString() : new Date().toISOString();
+      const ts = resolveTimestamp(fine.createdAt, fine.updatedAt);
       actList.push({
         id: "fine_" + (fine.id || Date.now()),
         title: "Absent Fine Imposed",
@@ -466,8 +480,12 @@ export async function GET(req: Request) {
       });
     });
 
-    // Sort all by timestamp DESC and deduplicate by action + actor + timestamp_date
-    actList.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+    // Sort all strictly by timestamp DESC (newest at the very top)
+    actList.sort((a, b) => {
+      const timeA = new Date(a.timestamp).getTime();
+      const timeB = new Date(b.timestamp).getTime();
+      return (isNaN(timeB) ? 0 : timeB) - (isNaN(timeA) ? 0 : timeA);
+    });
 
     const hrActivities: any[] = [];
     const seenSet = new Set<string>();
@@ -1059,10 +1077,28 @@ export async function GET(req: Request) {
 
 
 
+    const approvedLeavesTodayAll = await Leave.findAll({
+      where: {
+        status: "Approved",
+        startDate: { [Op.lte]: endOfToday },
+        endDate: { [Op.gte]: today }
+      },
+      raw: true
+    }).catch(() => []);
+    const leaveMap: Record<string, string> = {};
+    approvedLeavesTodayAll.forEach((l: any) => {
+      if (l.employee) {
+        leaveMap[String(l.employee)] = l.reason || l.leaveType || "Approved Leave";
+      }
+    });
+
     const staffList = staffUsers
       .filter((u: any) => u && u.id)
       .map((u: any) => {
         const uidStr = String(u.id);
+        const isPresent = finalPresentIds.includes(uidStr);
+        const isOnLeave = Boolean(leaveMap[uidStr]);
+        const attendanceStatus = isOnLeave ? "On Leave" : (isPresent ? "Present" : "Absent");
         return {
           id: u.id,
           name: u.name || 'Unnamed',
@@ -1072,7 +1108,10 @@ export async function GET(req: Request) {
           companies: Array.isArray(u.companies) ? u.companies.join(', ') : (u.companies || 'N/A'),
           department: staffProfilesMap[u.id]?.department || 'N/A',
           designation: staffProfilesMap[u.id]?.designation || 'N/A',
-          isPresent: finalPresentIds.includes(uidStr),
+          isPresent,
+          isOnLeave,
+          leaveReason: leaveMap[uidStr] || null,
+          attendanceStatus,
           sodTime: sodMap[uidStr] || null,
           eodTime: eodMap[uidStr] || null
         };
