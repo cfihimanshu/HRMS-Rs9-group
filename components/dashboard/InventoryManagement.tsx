@@ -2645,7 +2645,7 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div>
                     <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Operating System (OS)</label>
                     <select
@@ -2680,11 +2680,44 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
                       className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-mono font-semibold"
                     />
                   </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 bg-slate-50/80 p-3 rounded-xl border border-slate-200">
                   <div>
-                    <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Monitor & Peripherals Included</label>
+                    <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Monitor Details & Size</label>
                     <input
                       type="text"
-                      placeholder="e.g. Dell 22 Inch Monitor + USB Keyboard & Mouse"
+                      placeholder="e.g. Dell 22 Inch LED / S/N: MON-991"
+                      value={assetFields.compMonitor || ""}
+                      onChange={(e) => setAssetFields(p => ({ ...p, compMonitor: e.target.value }))}
+                      className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Keyboard Details & Model</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Dell USB Wired KB / S/N: KB-401"
+                      value={assetFields.compKeyboard || ""}
+                      onChange={(e) => setAssetFields(p => ({ ...p, compKeyboard: e.target.value }))}
+                      className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Mouse Details & Model</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Dell Optical USB Mouse / Wireless"
+                      value={assetFields.compMouse || ""}
+                      onChange={(e) => setAssetFields(p => ({ ...p, compMouse: e.target.value }))}
+                      className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Other Peripherals & Accessories</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Headset, UPS, WebCam, Dongle..."
                       value={assetFields.compPeripherals || ""}
                       onChange={(e) => setAssetFields(p => ({ ...p, compPeripherals: e.target.value }))}
                       className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
@@ -4884,7 +4917,7 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
                       <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Operating System (OS)</label>
                       <select
@@ -4919,11 +4952,44 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
                         className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-mono font-semibold"
                       />
                     </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4 bg-slate-50/80 p-3 rounded-xl border border-slate-200">
                     <div>
-                      <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Monitor & Peripherals Included</label>
+                      <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Monitor Details & Size</label>
                       <input
                         type="text"
-                        placeholder="e.g. Dell 22 Inch Monitor + USB Keyboard & Mouse"
+                        placeholder="e.g. Dell 22 Inch LED / S/N: MON-991"
+                        value={editAssetFields.compMonitor || ""}
+                        onChange={(e) => setEditAssetFields(p => ({ ...p, compMonitor: e.target.value }))}
+                        className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Keyboard Details & Model</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. Dell USB Wired KB / S/N: KB-401"
+                        value={editAssetFields.compKeyboard || ""}
+                        onChange={(e) => setEditAssetFields(p => ({ ...p, compKeyboard: e.target.value }))}
+                        className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Mouse Details & Model</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. Dell Optical USB Mouse / Wireless"
+                        value={editAssetFields.compMouse || ""}
+                        onChange={(e) => setEditAssetFields(p => ({ ...p, compMouse: e.target.value }))}
+                        className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Other Peripherals & Accessories</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. Headset, UPS, WebCam, Dongle..."
                         value={editAssetFields.compPeripherals || ""}
                         onChange={(e) => setEditAssetFields(p => ({ ...p, compPeripherals: e.target.value }))}
                         className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
@@ -5815,6 +5881,10 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
                         {(fields.phoneSpecs || fields.laptopSpecs) && <div><span className="text-[#9C9890] block text-[9px]">RAM & STORAGE / SPECS:</span> {fields.phoneSpecs || fields.laptopSpecs}</div>}
                         {fields.laptopOs && <div><span className="text-[#9C9890] block text-[9px]">OPERATING SYSTEM (OS):</span> {fields.laptopOs}</div>}
                         {fields.laptopHostName && <div><span className="text-[#9C9890] block text-[9px]">HOST NAME:</span> <span className="font-mono font-bold text-indigo-900">{fields.laptopHostName}</span></div>}
+                        {fields.compMonitor && <div><span className="text-[#9C9890] block text-[9px]">MONITOR DETAILS:</span> {fields.compMonitor}</div>}
+                        {fields.compKeyboard && <div><span className="text-[#9C9890] block text-[9px]">KEYBOARD DETAILS:</span> {fields.compKeyboard}</div>}
+                        {fields.compMouse && <div><span className="text-[#9C9890] block text-[9px]">MOUSE DETAILS:</span> {fields.compMouse}</div>}
+                        {fields.compPeripherals && <div><span className="text-[#9C9890] block text-[9px]">PERIPHERALS / ACCESSORIES:</span> {fields.compPeripherals}</div>}
                         {fields.laptopCharger && <div><span className="text-[#9C9890] block text-[9px]">CHARGER INCLUDED:</span> {fields.laptopCharger}</div>}
                         {fields.laptopBag && <div><span className="text-[#9C9890] block text-[9px]">BAG & MOUSE:</span> {fields.laptopBag}</div>}
                         {fields.simPlanType && <div><span className="text-[#9C9890] block text-[9px]">SIM PLAN TYPE:</span> {fields.simPlanType}</div>}
