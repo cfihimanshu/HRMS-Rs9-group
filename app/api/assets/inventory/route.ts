@@ -54,6 +54,7 @@ async function ensureColumns() {
   try { await sequelize.query(`ALTER TABLE asset_inventory ADD routerWifiSsid TEXT NULL;`); } catch (_) {}
   try { await sequelize.query(`ALTER TABLE asset_inventory ADD printerCartridge TEXT NULL;`); } catch (_) {}
   try { await sequelize.query(`ALTER TABLE asset_inventory ADD furnitureLocation TEXT NULL;`); } catch (_) {}
+  try { await sequelize.query(`ALTER TABLE asset_inventory ADD installationLocation TEXT NULL;`); } catch (_) {}
   try { await sequelize.query(`ALTER TABLE asset_inventory ADD socialMediaApp TEXT NULL;`); } catch (_) {}
   try { await sequelize.query(`ALTER TABLE asset_inventory ADD socialMediaUsername TEXT NULL;`); } catch (_) {}
   try { await sequelize.query(`ALTER TABLE asset_inventory ADD socialMediaPassword TEXT NULL;`); } catch (_) {}
@@ -225,7 +226,7 @@ export async function POST(req: Request) {
     try { await AssetInventory.sync(); } catch (_) {}
 
     const body = await req.json();
-    const { id, oldAssetId, assetType, assetDetail, serialNumber, purchaseDate, purchaseValue, condition, companyId, notes, photoUrl, customFields, phonePassword: bodyPassword, simCompany: bodySimComp, sim1Number: bodySim1No, sim2Number: bodySim2No } = body;
+    const { id, oldAssetId, assetType, assetDetail, serialNumber, purchaseDate, purchaseValue, condition, companyId, notes, photoUrl, customFields, phonePassword: bodyPassword, simCompany: bodySimComp, sim1Number: bodySim1No, sim2Number: bodySim2No, installationLocation } = body;
 
     if (!id || !id.trim()) {
       return NextResponse.json({ success: false, error: "Asset ID is required" }, { status: 400 });
@@ -276,6 +277,7 @@ export async function POST(req: Request) {
       routerWifiSsid: af.routerWifiSsid || "",
       printerCartridge: af.printerCartridge || "",
       furnitureLocation: af.furnitureLocation || "",
+      installationLocation: installationLocation || af.installationLocation || af.furnitureLocation || af.acLocation || "",
       socialMediaApp: af.phoneSocialMediaAppCustom || (af.phoneSocialMediaApp !== "Other" ? af.phoneSocialMediaApp : "") || "",
       socialMediaUsername: af.phoneSocialMediaUsername || "",
       socialMediaPassword: af.phoneSocialMediaPassword || "",
@@ -318,7 +320,7 @@ export async function PUT(req: Request) {
     try { await AssetInventory.sync(); } catch (_) {}
 
     const body = await req.json();
-    const { id, oldAssetId, assetType, assetDetail, serialNumber, purchaseDate, purchaseValue, condition, status, companyId, notes, photoUrl, customFields, phonePassword: bodyPassword, simCompany: bodySimComp, sim1Number: bodySim1No, sim2Number: bodySim2No } = body;
+    const { id, oldAssetId, assetType, assetDetail, serialNumber, purchaseDate, purchaseValue, condition, status, companyId, notes, photoUrl, customFields, phonePassword: bodyPassword, simCompany: bodySimComp, sim1Number: bodySim1No, sim2Number: bodySim2No, installationLocation } = body;
 
     if (!id) {
       return NextResponse.json({ success: false, error: "Missing asset id" }, { status: 400 });
@@ -363,6 +365,8 @@ export async function PUT(req: Request) {
     asset.routerWifiSsid = af.routerWifiSsid || asset.routerWifiSsid || "";
     asset.printerCartridge = af.printerCartridge || asset.printerCartridge || "";
     asset.furnitureLocation = af.furnitureLocation || asset.furnitureLocation || "";
+    if (installationLocation !== undefined) asset.installationLocation = installationLocation;
+    else if (af.installationLocation) asset.installationLocation = af.installationLocation;
     asset.socialMediaApp = af.phoneSocialMediaAppCustom || (af.phoneSocialMediaApp !== "Other" ? af.phoneSocialMediaApp : "") || asset.socialMediaApp || "";
     asset.socialMediaUsername = af.phoneSocialMediaUsername || asset.socialMediaUsername || "";
     asset.socialMediaPassword = af.phoneSocialMediaPassword || asset.socialMediaPassword || "";

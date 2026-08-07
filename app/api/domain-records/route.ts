@@ -1,9 +1,24 @@
 import { NextResponse } from "next/server";
 import { Op } from "sequelize";
+import sequelize, { safeAuthenticate } from "@/lib/sequelize";
 import { requireApiSession } from "@/lib/apiAuth";
 import DomainRecord from "@/models/sequelize/DomainRecord";
 
 export const dynamic = "force-dynamic";
+
+async function ensureDomainRecordTable() {
+  try {
+    await safeAuthenticate(5000);
+    await DomainRecord.sync({ alter: true });
+  } catch (err: any) {
+    console.warn("[/api/domain-records] DomainRecord.sync warning, falling back to basic sync():", err?.message);
+    try {
+      await DomainRecord.sync();
+    } catch (sErr: any) {
+      console.error("[/api/domain-records] DomainRecord sync failed:", sErr?.message);
+    }
+  }
+}
 
 function cleanDate(val: any): string | null {
   if (!val || typeof val !== "string") return null;
@@ -50,6 +65,8 @@ export async function GET(request: Request) {
     const auth = await requireApiSession();
     if (auth.response) return auth.response;
 
+    await ensureDomainRecordTable();
+
     // Optional query params
     const { searchParams } = new URL(request.url);
     const search = searchParams.get("search")?.trim();
@@ -75,14 +92,24 @@ export async function GET(request: Request) {
       ];
     }
 
-    const records = await DomainRecord.findAll({
-      where,
-      order: [["createdAt", "DESC"]]
-    });
+    let records: any[] = [];
+    try {
+      records = await DomainRecord.findAll({
+        where,
+        order: [["createdAt", "DESC"]]
+      });
+    } catch (dbErr: any) {
+      console.warn("[/api/domain-records GET] Table/Column query issue detected, attempting sync & retry...", dbErr?.message);
+      await DomainRecord.sync({ alter: true });
+      records = await DomainRecord.findAll({
+        where,
+        order: [["createdAt", "DESC"]]
+      });
+    }
 
     return NextResponse.json({
       success: true,
-      records
+      records: records || []
     });
   } catch (error: any) {
     console.error("[/api/domain-records GET]", error);
@@ -94,6 +121,8 @@ export async function POST(request: Request) {
   try {
     const auth = await requireApiSession();
     if (auth.response) return auth.response;
+
+    await ensureDomainRecordTable();
 
     const body = await request.json();
     const {
@@ -127,10 +156,17 @@ export async function POST(request: Request) {
     else if (validRecordType === "Gmail") prefix = "GML";
     else if (validRecordType === "GitHub Repo") prefix = "GIT";
 
-    const count = await DomainRecord.count({ where: { recordType: validRecordType } });
+    let count = 0;
+    try {
+      count = await DomainRecord.count({ where: { recordType: validRecordType } });
+    } catch (_) {
+      await DomainRecord.sync({ alter: true });
+      count = await DomainRecord.count({ where: { recordType: validRecordType } });
+    }
+
     const id = `${prefix}-${String(1001 + count).padStart(4, "0")}`;
 
-    const created = await DomainRecord.create({
+    const recordData = {
       id,
       recordType: validRecordType,
       name: name.trim(),
@@ -150,7 +186,16 @@ export async function POST(request: Request) {
       customFields: customFields ? (typeof customFields === "object" ? JSON.stringify(customFields) : customFields) : null,
       createdById: String((auth.session as any)?.user?.id || (auth.session as any)?.user?.email || "SYSTEM"),
       createdByName: String((auth.session as any)?.user?.name || (auth.session as any)?.user?.email || "Admin User")
-    });
+    };
+
+    let created;
+    try {
+      created = await DomainRecord.create(recordData);
+    } catch (cErr: any) {
+      console.warn("[/api/domain-records POST] Create failed, attempting sync & retry...", cErr?.message);
+      await DomainRecord.sync({ alter: true });
+      created = await DomainRecord.create(recordData);
+    }
 
     return NextResponse.json({
       success: true,
@@ -168,6 +213,8 @@ export async function PUT(request: Request) {
     const auth = await requireApiSession();
     if (auth.response) return auth.response;
 
+    await ensureDomainRecordTable();
+
     const body = await request.json();
     const { id } = body;
 
@@ -175,7 +222,14 @@ export async function PUT(request: Request) {
       return NextResponse.json({ success: false, error: "Record ID is required for update" }, { status: 400 });
     }
 
-    const record = await DomainRecord.findByPk(id);
+    let record;
+    try {
+      record = await DomainRecord.findByPk(id);
+    } catch (_) {
+      await DomainRecord.sync({ alter: true });
+      record = await DomainRecord.findByPk(id);
+    }
+
     if (!record) {
       return NextResponse.json({ success: false, error: "Record not found" }, { status: 404 });
     }
@@ -218,6 +272,8 @@ export async function DELETE(request: Request) {
     const auth = await requireApiSession();
     if (auth.response) return auth.response;
 
+    await ensureDomainRecordTable();
+
     const { searchParams } = new URL(request.url);
     const id = searchParams.get("id")?.trim();
 
@@ -225,7 +281,14 @@ export async function DELETE(request: Request) {
       return NextResponse.json({ success: false, error: "Record ID is required" }, { status: 400 });
     }
 
-    const record = await DomainRecord.findByPk(id);
+    let record;
+    try {
+      record = await DomainRecord.findByPk(id);
+    } catch (_) {
+      await DomainRecord.sync({ alter: true });
+      record = await DomainRecord.findByPk(id);
+    }
+
     if (!record) {
       return NextResponse.json({ success: false, error: "Record not found" }, { status: 404 });
     }
@@ -241,4 +304,3 @@ export async function DELETE(request: Request) {
     return NextResponse.json({ success: false, error: error.message || "Failed to delete record" }, { status: 500 });
   }
 }
-

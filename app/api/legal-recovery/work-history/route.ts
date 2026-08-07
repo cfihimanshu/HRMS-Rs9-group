@@ -8,6 +8,83 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { Op } from "sequelize";
 
+let hasAutoSyncedHistory = false;
+
+async function ensureWorkLogsSyncedToHistory() {
+  if (hasAutoSyncedHistory) return;
+  try {
+    await sequelize.query(`
+      CREATE TABLE IF NOT EXISTS \`legal_work_history\` (
+        \`id\` INT AUTO_INCREMENT PRIMARY KEY,
+        \`masterId\` INT NULL,
+        \`taskId\` VARCHAR(255) NULL,
+        \`category\` VARCHAR(255) NOT NULL,
+        \`subCategory\` VARCHAR(255) NOT NULL,
+        \`bankName\` VARCHAR(255) NULL,
+        \`branchName\` VARCHAR(255) NULL,
+        \`employeeId\` VARCHAR(255) NULL,
+        \`employeeName\` VARCHAR(255) NULL,
+        \`attachmentUrl\` TEXT NULL,
+        \`remarks\` TEXT NULL,
+        \`status\` VARCHAR(255) NULL DEFAULT 'Completed',
+        \`amount\` DECIMAL(12,2) NULL,
+        \`workDate\` DATETIME NULL,
+        \`createdAt\` DATETIME NULL,
+        \`updatedAt\` DATETIME NULL
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+    `);
+
+    try {
+      const [columns]: any = await sequelize.query("SHOW COLUMNS FROM `legal_work_history`");
+      const colNames = new Set((Array.isArray(columns) ? columns : []).map((c: any) => c.Field));
+      if (!colNames.has("amount")) {
+        await sequelize.query("ALTER TABLE `legal_work_history` ADD COLUMN `amount` DECIMAL(12,2) NULL");
+      }
+    } catch (cErr) {}
+
+    const [workLogs]: any = await sequelize.query("SELECT * FROM `legal_work_logs`").catch(() => [[]]);
+    const [historyLogs]: any = await sequelize.query("SELECT id FROM `legal_work_history`").catch(() => [[]]);
+    
+    const existingHistoryIds = new Set((Array.isArray(historyLogs) ? historyLogs : []).map((h: any) => h.id));
+
+    if (Array.isArray(workLogs)) {
+      for (const log of workLogs) {
+        if (!existingHistoryIds.has(log.id)) {
+          const category = log.businessDevOption || log.category || "ADVOCATE NOTICE";
+          const subCategory = log.businessDevSubOption || log.subCategory || "TAKE NOTICE ASSIGNMENT";
+          const amountVal = Number(log.stageAmount || log.billAmount || 0) || null;
+          const workDateVal = log.workDate ? new Date(log.workDate).toISOString().slice(0, 19).replace('T', ' ') : new Date().toISOString().slice(0, 19).replace('T', ' ');
+
+          await sequelize.query(`
+            INSERT INTO \`legal_work_history\` 
+            (\`id\`, \`masterId\`, \`category\`, \`subCategory\`, \`bankName\`, \`branchName\`, \`employeeId\`, \`employeeName\`, \`attachmentUrl\`, \`remarks\`, \`status\`, \`amount\`, \`workDate\`, \`createdAt\`, \`updatedAt\`)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Completed', ?, ?, NOW(), NOW())
+          `, {
+            replacements: [
+              log.id,
+              log.masterId || 0,
+              category,
+              subCategory,
+              log.bankName || null,
+              log.branchName || null,
+              log.employeeId || null,
+              log.employeeName || null,
+              log.uploadedFileName || null,
+              log.remarks || null,
+              amountVal,
+              workDateVal
+            ]
+          }).catch(() => {});
+        }
+      }
+    }
+
+    hasAutoSyncedHistory = true;
+  } catch (err: any) {
+    console.warn("ensureWorkLogsSyncedToHistory warning:", err.message);
+  }
+}
+
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
@@ -16,6 +93,7 @@ export async function GET(request: Request) {
 
     await sequelize.authenticate();
     await LegalWorkHistory.sync();
+    await ensureWorkLogsSyncedToHistory();
 
     let whereClause: any = {};
     if (category) whereClause.category = category;

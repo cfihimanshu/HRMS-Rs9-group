@@ -20,6 +20,7 @@ export default function AssignedTaskPopup() {
       isFetching = true;
       try {
         const res = await fetch("/api/tasks?range=today");
+        if (!res.ok) return;
         const data = await res.json();
         if (data.success && Array.isArray(data.data)) {
           // Find tasks assigned to this user by an Owner/Manager or forwarded to this user that have not been acknowledged
@@ -40,8 +41,11 @@ export default function AssignedTaskPopup() {
             setUnacknowledgedTask(assigned);
           }
         }
-      } catch (err) {
-        console.error("Failed to fetch assigned task notifications:", err);
+      } catch (err: any) {
+        // Silently handle background polling fetch failures (e.g. server restart)
+        if (err?.name !== "TypeError") {
+          console.error("Failed to fetch assigned task notifications:", err);
+        }
       } finally {
         isFetching = false;
       }

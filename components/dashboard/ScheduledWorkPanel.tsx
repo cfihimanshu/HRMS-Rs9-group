@@ -115,11 +115,19 @@ export default function ScheduledWorkPanel({ sessionUser, triggerToast }: Schedu
   const [loading, setLoading] = useState(true);
   const [selectedDetailItem, setSelectedDetailItem] = useState<any | null>(null);
 
+  // Helper to format Date object into YYYY-MM-DD using local timezone (prevents UTC offset shift)
+  const formatLocalYYYYMMDD = (d: Date) => {
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  };
+
   // Helper to calculate current month start & end dates
   const getCurrentMonthDates = () => {
     const now = new Date();
-    const firstDay = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split("T")[0];
-    const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split("T")[0];
+    const firstDay = formatLocalYYYYMMDD(new Date(now.getFullYear(), now.getMonth(), 1));
+    const lastDay = formatLocalYYYYMMDD(new Date(now.getFullYear(), now.getMonth() + 1, 0));
     return { firstDay, lastDay };
   };
 
@@ -164,22 +172,21 @@ export default function ScheduledWorkPanel({ sessionUser, triggerToast }: Schedu
 
   // Quick Date Range Shortcuts
   const setQuickDateRange = (preset: "today" | "week" | "month" | "clear") => {
-    const todayStr = new Date().toISOString().split("T")[0];
+    const todayStr = formatLocalYYYYMMDD(new Date());
     if (preset === "today") {
       setFromDate(todayStr);
       setToDate(todayStr);
     } else if (preset === "week") {
       const now = new Date();
-      const firstDay = new Date(now.setDate(now.getDate() - now.getDay()));
-      const lastDay = new Date(now.setDate(now.getDate() - now.getDay() + 6));
-      setFromDate(firstDay.toISOString().split("T")[0]);
-      setToDate(lastDay.toISOString().split("T")[0]);
+      const dayOfWeek = now.getDay();
+      const first = new Date(now.getFullYear(), now.getMonth(), now.getDate() - dayOfWeek);
+      const last = new Date(now.getFullYear(), now.getMonth(), now.getDate() - dayOfWeek + 6);
+      setFromDate(formatLocalYYYYMMDD(first));
+      setToDate(formatLocalYYYYMMDD(last));
     } else if (preset === "month") {
-      const now = new Date();
-      const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
-      const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-      setFromDate(firstDay.toISOString().split("T")[0]);
-      setToDate(lastDay.toISOString().split("T")[0]);
+      const { firstDay, lastDay } = getCurrentMonthDates();
+      setFromDate(firstDay);
+      setToDate(lastDay);
     } else {
       setFromDate("");
       setToDate("");

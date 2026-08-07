@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Briefcase, Search, ChevronDown, ChevronRight, LayoutList, Calendar, MapPin, Layers, FileText, Send, CheckCircle2 } from "lucide-react";
+import { Briefcase, Search, ChevronDown, ChevronRight, LayoutList, Calendar, MapPin, Layers, FileText, Send, CheckCircle2, X } from "lucide-react";
 
 const WORK_CATEGORIES: Record<string, string[]> = {
   "ADVOCATE NOTICE": [
@@ -117,7 +117,7 @@ function SearchableEmployeeInput({
       />
 
       {isOpen && (
-        <div className="absolute left-0 right-0 top-full mt-1 z-50 max-h-48 overflow-y-auto bg-white rounded-xl border border-slate-200 shadow-xl py-1 text-xs font-semibold text-slate-800">
+        <div className="absolute left-0 top-full mt-1.5 z-[100] min-w-full w-max max-w-[280px] max-h-52 overflow-y-auto bg-white rounded-xl border border-slate-200 shadow-xl py-1 text-xs font-semibold text-slate-800 animate-in fade-in slide-in-from-top-1 duration-150">
           {filtered.length > 0 ? (
             filtered.map((name, idx) => {
               const initial = name.trim().charAt(0).toUpperCase();
@@ -128,12 +128,12 @@ function SearchableEmployeeInput({
                     onChange(name);
                     setIsOpen(false);
                   }}
-                  className="flex items-center gap-2.5 px-3 py-2 hover:bg-purple-50 cursor-pointer border-b border-slate-100 last:border-0 transition-colors"
+                  className="flex items-center gap-2.5 px-3 py-2 hover:bg-purple-50 cursor-pointer border-b border-slate-100 last:border-0 transition-colors whitespace-nowrap"
                 >
-                  <div className="w-5 h-5 rounded-full bg-purple-100 text-purple-700 font-bold text-[10px] flex items-center justify-center shrink-0 shadow-2xs">
+                  <div className="w-5.5 h-5.5 rounded-full bg-purple-100 text-purple-700 font-bold text-[10px] flex items-center justify-center shrink-0 shadow-2xs">
                     {initial}
                   </div>
-                  <span className="font-bold text-slate-800 truncate">{name}</span>
+                  <span className="font-bold text-slate-800 text-xs">{name}</span>
                 </div>
               );
             })
@@ -196,6 +196,38 @@ export default function LegalWorkLogsView({ workLogs, branches, banks, loading, 
   const [callTime, setCallTime] = useState("");
   const [contactedPerson, setContactedPerson] = useState("");
   const [uploadedFileDisplayName, setUploadedFileDisplayName] = useState("");
+  const [paymentTotalDue, setPaymentTotalDue] = useState<string>("");
+  const [paymentReceivedAmt, setPaymentReceivedAmt] = useState<string>("");
+  const [paymentMode, setPaymentMode] = useState<string>("NEFT / RTGS / Bank Transfer");
+  const [paymentRef, setPaymentRef] = useState<string>("");
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
+
+  const getPaymentRefInfo = (mode: string) => {
+    const m = (mode || "").toLowerCase();
+    if (m.includes("cheque") && !m.includes("banker")) {
+      return { label: "Cheque No. *", placeholder: "Enter Cheque No. (e.g. 004921)", required: true };
+    }
+    if (m.includes("upi") || m.includes("online")) {
+      return { label: "UPI Ref / Transaction ID *", placeholder: "Enter UPI Ref / Txn ID", required: true };
+    }
+    if (m.includes("neft") || m.includes("rtgs") || m.includes("transfer")) {
+      return { label: "UTR No. / Bank Ref *", placeholder: "Enter UTR No. (e.g. UTR991823)", required: true };
+    }
+    if (m.includes("dd") || m.includes("banker")) {
+      return { label: "Demand Draft (DD) No. *", placeholder: "Enter DD Number", required: true };
+    }
+    return { label: "Reference / Receipt No. (Optional)", placeholder: "Enter ref or receipt details...", required: false };
+  };
+
+  const clearAllUploadedFileState = () => {
+    setUploadedFileName("");
+    setUploadedFileDisplayName("");
+    setUploadedFilePreview("");
+    setUploadedFileType("");
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
   const [employeesList, setEmployeesList] = useState<any[]>([]);
 
   useEffect(() => {
@@ -320,9 +352,14 @@ export default function LegalWorkLogsView({ workLogs, branches, banks, loading, 
     setBillNo("");
     setBillAmount("");
     setPersonName("");
-    setUploadedFileName("");
+    clearAllUploadedFileState();
     setRemarks("");
   }, [selectedBankId, selectedBranchName]);
+
+  // Clear file state on bankWorkCategory or typeOfWork change
+  useEffect(() => {
+    clearAllUploadedFileState();
+  }, [bankWorkCategory, typeOfWork]);
 
   // Handle stage dropdown change: prefill if saved in current session, else clean inputs
   useEffect(() => {
@@ -344,10 +381,9 @@ export default function LegalWorkLogsView({ workLogs, branches, banks, loading, 
       if (saved.personName) setPersonName(saved.personName);
       if (saved.uploadedFileName) {
         setUploadedFileName(saved.uploadedFileName);
+        setUploadedFileDisplayName(saved.uploadedFileDisplayName || saved.uploadedFileName);
       } else {
-        setUploadedFileName("");
-        setUploadedFilePreview("");
-        setUploadedFileType("");
+        clearAllUploadedFileState();
       }
       if (saved.remarks) setRemarks(saved.remarks);
       if (saved.finalRate) setFinalRate(String(saved.finalRate));
@@ -362,9 +398,7 @@ export default function LegalWorkLogsView({ workLogs, branches, banks, loading, 
       setBillNo("");
       setBillAmount("");
       setPersonName("");
-      setUploadedFileName("");
-      setUploadedFilePreview("");
-      setUploadedFileType("");
+      clearAllUploadedFileState();
       setRemarks("");
     }
   }, [businessDevSubOption, sessionSavedStages]);
@@ -507,14 +541,25 @@ export default function LegalWorkLogsView({ workLogs, branches, banks, loading, 
         allocationDate: allocationDate || workDate,
         finalRate: finalRate ? finalRate : undefined,
         expenses: businessDevSubOption === "TAKE NOTICE ASSIGNMENT" ? (assessmentExpenses || "0") : undefined,
-        financialDetails: businessDevSubOption === "TAKE NOTICE ASSIGNMENT"
+        financialDetails: businessDevSubOption?.includes("REQUEST PAYMENT")
           ? JSON.stringify({
-              noticeCount: assessmentCount,
-              perNoticeRate,
-              bankOfficerPerNotice: officerPerNotice,
-              ownExpenses,
+              totalBillAmount: Number(paymentTotalDue || billAmount) || 0,
+              receivedAmount: Number(paymentReceivedAmt) || 0,
+              pendingAmount: Math.max(0, (Number(paymentTotalDue || billAmount) || 0) - (Number(paymentReceivedAmt) || 0)),
+              paymentStatus: (Number(paymentReceivedAmt) || 0) < (Number(paymentTotalDue || billAmount) || 0) ? "Partially Received" : "Fully Received",
+              paymentMode: paymentMode || "NEFT / RTGS / Bank Transfer",
+              paymentRef: paymentRef.trim(),
+              personName: personName.trim(),
+              allocationDate: allocationDate || workDate
             })
-          : undefined,
+          : (businessDevSubOption === "TAKE NOTICE ASSIGNMENT"
+            ? JSON.stringify({
+                noticeCount: assessmentCount,
+                perNoticeRate,
+                bankOfficerPerNotice: officerPerNotice,
+                ownExpenses,
+              })
+            : undefined),
         followUpDetails: bankWorkCategory === "Bill Follow Up"
           ? JSON.stringify({
               callDate,
@@ -532,9 +577,9 @@ export default function LegalWorkLogsView({ workLogs, branches, banks, loading, 
         preparedBy: isPreparedByStep ? (preparedBy || undefined) : undefined,
         printedBy: isPrintedByStep ? (printedBy || undefined) : undefined,
         dispatchedBy: isDispatchedByStep ? (dispatchedBy || undefined) : undefined,
-        stageAmount: isDispatchedByStep ? dispatchAmount : undefined,
+        stageAmount: businessDevSubOption?.includes("REQUEST PAYMENT") ? (paymentReceivedAmt || billAmount || undefined) : (isDispatchedByStep ? dispatchAmount : undefined),
         billDate: isBillPreparationStep ? (billDate || undefined) : undefined,
-        billAmount: isBillPreparationStep ? (billAmount || undefined) : undefined,
+        billAmount: businessDevSubOption?.includes("REQUEST PAYMENT") ? (paymentReceivedAmt || billAmount || undefined) : (isBillPreparationStep ? (billAmount || undefined) : undefined),
         billNo: isBillPreparationStep ? (billNo || undefined) : undefined,
         personName: personName || undefined,
         uploadedFileName: uploadedFileName || undefined,
@@ -565,6 +610,7 @@ export default function LegalWorkLogsView({ workLogs, branches, banks, loading, 
           billNo,
           personName,
           uploadedFileName,
+          uploadedFileDisplayName,
           remarks,
           finalRate,
           bankOfficerPerNotice,
@@ -583,9 +629,7 @@ export default function LegalWorkLogsView({ workLogs, branches, banks, loading, 
           if (currentIdx >= 0 && currentIdx < steps.length - 1) {
             const nextSub = steps[currentIdx + 1];
             setBusinessDevSubOption(nextSub);
-            setUploadedFileName("");
-            setUploadedFilePreview("");
-            setUploadedFileType("");
+            clearAllUploadedFileState();
             setFormSuccessMessage(`Stage saved! Advanced to next stage: ${nextSub}`);
           } else {
             setFormSuccessMessage("Legal Work Log entry saved successfully!");
@@ -607,7 +651,7 @@ export default function LegalWorkLogsView({ workLogs, branches, banks, loading, 
           setBillNo("");
           setBillAmount("");
           setPersonName("");
-          setUploadedFileName("");
+          clearAllUploadedFileState();
           setRemarks("");
           setCustomLocation("");
           setSessionSavedStages({});
@@ -1040,19 +1084,29 @@ export default function LegalWorkLogsView({ workLogs, branches, banks, loading, 
                                 onChange={handleFileChange}
                                 className="w-full text-xs font-bold text-slate-700 file:mr-2 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-[10px] file:font-black file:bg-purple-100 file:text-purple-800 hover:file:bg-purple-200 cursor-pointer"
                               />
-                              {uploadedFileName && (
-                                <button
-                                  type="button"
-                                  onClick={() => setShowPreviewModal(true)}
-                                  className="px-2.5 py-1.5 bg-purple-700 text-white rounded-lg text-[10px] font-black hover:bg-purple-800 flex items-center gap-1 whitespace-nowrap shadow-xs cursor-pointer"
-                                >
-                                  👁️ Preview
-                                </button>
+                              {(uploadedFileName || uploadedFileDisplayName) && (
+                                <div className="flex items-center gap-1.5">
+                                  <button
+                                    type="button"
+                                    onClick={() => setShowPreviewModal(true)}
+                                    className="px-2.5 py-1.5 bg-purple-700 text-white rounded-lg text-[10px] font-black hover:bg-purple-800 flex items-center gap-1 whitespace-nowrap shadow-xs cursor-pointer"
+                                  >
+                                    👁️ Preview
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={clearAllUploadedFileState}
+                                    className="px-2 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-lg text-[10px] font-black transition-all flex items-center gap-1 cursor-pointer"
+                                    title="Remove attachment"
+                                  >
+                                    <X className="w-3 h-3 text-rose-600" /> Remove
+                                  </button>
+                                </div>
                               )}
                             </div>
-                            {uploadedFileName && (
+                            {(uploadedFileName || uploadedFileDisplayName) && (
                               <span className="text-[10px] font-bold text-purple-700 mt-1 block truncate">
-                                📄 {uploadedFileName}
+                                📄 {uploadedFileDisplayName || uploadedFileName}
                               </span>
                             )}
                           </div>
@@ -1344,74 +1398,167 @@ export default function LegalWorkLogsView({ workLogs, branches, banks, loading, 
 
                       {/* Sub-Option G: REQUEST PAYMENT */}
                       {(businessDevSubOption?.includes("REQUEST PAYMENT")) && (
-                        <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 bg-white p-3.5 rounded-xl border border-purple-200 shadow-2xs animate-fade-in">
-                          <div>
-                            <label className="block text-[10px] font-black uppercase tracking-wider text-black mb-1.5 flex items-center gap-1">
-                              <Briefcase className="w-3.5 h-3.5 text-purple-600" />
-                              Amount (₹) *
-                            </label>
-                            <input
-                              type="number"
-                              required
-                              placeholder="Enter amount..."
-                              value={billAmount}
-                              onChange={e => setBillAmount(e.target.value)}
-                              className="w-full p-2 border border-purple-300 rounded-lg text-xs font-black text-slate-950 bg-white focus:outline-none focus:border-purple-600"
-                            />
+                        <div className="space-y-3 bg-white p-3.5 rounded-xl border border-purple-200 shadow-2xs animate-fade-in">
+                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-purple-100 pb-2">
+                            <span className="text-[10px] font-black uppercase tracking-wider text-purple-900 flex items-center gap-1">
+                              <Briefcase className="w-3.5 h-3.5 text-purple-600" /> Payment Settlement & Breakdown
+                            </span>
+                            <span className={`px-2.5 py-1 rounded text-[10px] font-black uppercase ${
+                              (Number(paymentTotalDue || billAmount || 0) - Number(paymentReceivedAmt || 0)) > 0
+                                ? "bg-rose-100 text-rose-800 border border-rose-200"
+                                : "bg-emerald-100 text-emerald-800 border border-emerald-200"
+                            }`}>
+                              {(Number(paymentTotalDue || billAmount || 0) - Number(paymentReceivedAmt || 0)) > 0
+                                ? `⚠️ ₹${(Number(paymentTotalDue || billAmount || 0) - Number(paymentReceivedAmt || 0)).toLocaleString("en-IN")} Pending`
+                                : "✓ ₹0 Pending (Fully Paid)"}
+                            </span>
                           </div>
 
-                          <div>
-                            <label className="block text-[10px] font-black uppercase tracking-wider text-black mb-1.5 flex items-center gap-1">
-                              <Briefcase className="w-3.5 h-3.5 text-purple-600" />
-                              Work Completed By / Person Name
-                            </label>
-                            <SearchableEmployeeInput
-                              value={personName}
-                              onChange={setPersonName}
-                              placeholder="Search or select employee..."
-                              employees={employeeOptions}
-                            />
+                          {/* Row 1: Amounts & Date */}
+                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                            <div>
+                              <label className="block text-[10px] font-black uppercase tracking-wider text-black mb-1.5 flex items-center gap-1">
+                                <Briefcase className="w-3.5 h-3.5 text-purple-600" />
+                                Total Bill / Due Amount (₹) *
+                              </label>
+                              <input
+                                type="number"
+                                min="0"
+                                step="0.01"
+                                required
+                                placeholder="Total due amount..."
+                                value={paymentTotalDue || billAmount}
+                                onChange={e => {
+                                  setPaymentTotalDue(e.target.value);
+                                  setBillAmount(e.target.value);
+                                }}
+                                className="w-full p-2 border border-purple-300 rounded-lg text-xs font-black text-purple-900 bg-white focus:outline-none focus:border-purple-600"
+                              />
+                            </div>
+
+                            <div>
+                              <label className="block text-[10px] font-black uppercase tracking-wider text-black mb-1.5 flex items-center gap-1">
+                                <Briefcase className="w-3.5 h-3.5 text-emerald-600" />
+                                Received Amount / Paid (₹) *
+                              </label>
+                              <input
+                                type="number"
+                                min="0"
+                                step="0.01"
+                                required
+                                placeholder="Amount received..."
+                                value={paymentReceivedAmt}
+                                onChange={e => setPaymentReceivedAmt(e.target.value)}
+                                className="w-full p-2 border border-purple-300 rounded-lg text-xs font-black text-emerald-700 bg-white focus:outline-none focus:border-purple-600"
+                              />
+                            </div>
+
+                            <div>
+                              <label className="block text-[10px] font-black uppercase tracking-wider text-black mb-1.5 flex items-center gap-1">
+                                <Calendar className="w-3.5 h-3.5 text-purple-600" />
+                                Allocated Date *
+                              </label>
+                              <input
+                                type="date"
+                                required
+                                value={allocationDate}
+                                onChange={e => setAllocationDate(e.target.value)}
+                                className="w-full p-2 border border-purple-300 rounded-lg text-xs font-black text-slate-950 bg-white focus:outline-none focus:border-purple-600"
+                              />
+                            </div>
                           </div>
 
-                          <div>
-                            <label className="block text-[10px] font-black uppercase tracking-wider text-black mb-1.5 flex items-center gap-1">
-                              <Calendar className="w-3.5 h-3.5 text-purple-600" />
-                              Allocated Date *
-                            </label>
-                            <input
-                              type="date"
-                              required
-                              value={allocationDate}
-                              onChange={e => setAllocationDate(e.target.value)}
-                              className="w-full p-2 border border-purple-300 rounded-lg text-xs font-black text-slate-950 bg-white focus:outline-none focus:border-purple-600"
-                            />
+                          {/* Row 2: Payment Mode, Dynamic Ref & Staff */}
+                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                            <div>
+                              <label className="block text-[10px] font-black uppercase tracking-wider text-black mb-1.5">
+                                Payment Mode / Method *
+                              </label>
+                              <select
+                                value={paymentMode}
+                                onChange={e => setPaymentMode(e.target.value)}
+                                className="w-full p-2 border border-purple-300 rounded-lg text-xs font-black text-slate-950 bg-white focus:outline-none focus:border-purple-600"
+                              >
+                                <option value="NEFT / RTGS / Bank Transfer">NEFT / RTGS / Bank Transfer</option>
+                                <option value="Cheque">Cheque</option>
+                                <option value="UPI / Online Transfer">UPI / Online Transfer</option>
+                                <option value="Cash">Cash</option>
+                                <option value="DD / Banker Cheque">DD / Banker Cheque</option>
+                                <option value="Direct Account Credit">Direct Account Credit</option>
+                                <option value="Other">Other</option>
+                              </select>
+                            </div>
+
+                            {(() => {
+                              const refInfo = getPaymentRefInfo(paymentMode);
+                              return (
+                                <div>
+                                  <label className="block text-[10px] font-black uppercase tracking-wider text-black mb-1.5">
+                                    {refInfo.label}
+                                  </label>
+                                  <input
+                                    type="text"
+                                    required={refInfo.required}
+                                    value={paymentRef}
+                                    onChange={e => setPaymentRef(e.target.value)}
+                                    placeholder={refInfo.placeholder}
+                                    className="w-full p-2 border border-purple-300 rounded-lg text-xs font-black text-slate-950 bg-white focus:outline-none focus:border-purple-600 font-mono"
+                                  />
+                                </div>
+                              );
+                            })()}
+
+                            <div>
+                              <label className="block text-[10px] font-black uppercase tracking-wider text-black mb-1.5 flex items-center gap-1">
+                                <Briefcase className="w-3.5 h-3.5 text-purple-600" />
+                                Work Completed By / Person Name
+                              </label>
+                              <SearchableEmployeeInput
+                                value={personName}
+                                onChange={setPersonName}
+                                placeholder="Search or select employee..."
+                                employees={employeeOptions}
+                              />
+                            </div>
                           </div>
 
                           <div>
                             <label className="block text-[10px] font-black uppercase tracking-wider text-black mb-1.5 flex items-center gap-1">
                               <FileText className="w-3.5 h-3.5 text-purple-600" />
-                              Upload File (Optional)
+                              Upload Payment Receipt / Proof (Optional)
                             </label>
                             <div className="flex items-center gap-2">
                               <input
+                                key={uploadedFileDisplayName || uploadedFileName || "payment-file-input"}
+                                ref={fileInputRef}
                                 type="file"
-                                accept=".xlsx,.xls,.csv,.pdf,.doc,.docx,.png,.jpg,.jpeg,.gif,.webp,.mp3,.wav,.aac,.m4a,.ogg,audio/*,image/*"
+                                accept=".pdf,.doc,.docx,.png,.jpg,.jpeg,.gif,.webp,.mp3,.wav,.aac,.m4a,.ogg,audio/*,image/*"
                                 onChange={handleFileChange}
                                 className="w-full text-xs font-bold text-slate-700 file:mr-2 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-[10px] file:font-black file:bg-purple-100 file:text-purple-800 hover:file:bg-purple-200 cursor-pointer"
                               />
-                              {uploadedFileName && (
-                                <button
-                                  type="button"
-                                  onClick={() => setShowPreviewModal(true)}
-                                  className="px-2.5 py-1.5 bg-purple-700 text-white rounded-lg text-[10px] font-black hover:bg-purple-800 flex items-center gap-1 whitespace-nowrap shadow-xs cursor-pointer"
-                                >
-                                  👁️ Preview
-                                </button>
+                              {(uploadedFileName || uploadedFileDisplayName) && (
+                                <div className="flex items-center gap-1.5">
+                                  <button
+                                    type="button"
+                                    onClick={() => setShowPreviewModal(true)}
+                                    className="px-2.5 py-1.5 bg-purple-700 text-white rounded-lg text-[10px] font-black hover:bg-purple-800 flex items-center gap-1 whitespace-nowrap shadow-xs cursor-pointer"
+                                  >
+                                    👁️ Preview
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={clearAllUploadedFileState}
+                                    className="px-2 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-lg text-[10px] font-black transition-all flex items-center gap-1 cursor-pointer"
+                                    title="Remove attachment"
+                                  >
+                                    <X className="w-3 h-3 text-rose-600" /> Remove
+                                  </button>
+                                </div>
                               )}
                             </div>
-                            {uploadedFileName && (
+                            {(uploadedFileName || uploadedFileDisplayName) && (
                               <span className="text-[10px] font-bold text-purple-700 mt-1 block truncate">
-                                📄 {uploadedFileName}
+                                📄 {uploadedFileDisplayName || uploadedFileName}
                               </span>
                             )}
                           </div>
@@ -1624,13 +1771,39 @@ export default function LegalWorkLogsView({ workLogs, branches, banks, loading, 
                         </div>
                         <div className="sm:col-span-3">
                           <label className="mb-1 block text-[10px] font-black uppercase">Call Attachment</label>
-                          <input
-                            type="file"
-                            accept=".pdf,.doc,.docx,.png,.jpg,.jpeg,.mp3,.wav,.aac,.m4a,.ogg,audio/*,image/*"
-                            onChange={handleFileChange}
-                            className="w-full text-xs font-bold file:mr-2 file:rounded-lg file:border-0 file:bg-purple-100 file:px-3 file:py-1.5 file:text-[10px] file:font-black file:text-purple-800"
-                          />
-                          {uploadedFileDisplayName && <span className="mt-1 block text-[10px] font-bold text-purple-700 truncate max-w-md">📎 {uploadedFileDisplayName}</span>}
+                          <div className="flex flex-wrap items-center gap-2">
+                            <input
+                              key={uploadedFileDisplayName || uploadedFileName || "call-file-input"}
+                              ref={fileInputRef}
+                              type="file"
+                              accept=".pdf,.doc,.docx,.png,.jpg,.jpeg,.mp3,.wav,.aac,.m4a,.ogg,audio/*,image/*"
+                              onChange={handleFileChange}
+                              className="flex-1 min-w-[200px] text-xs font-bold file:mr-2 file:rounded-lg file:border-0 file:bg-purple-100 file:px-3 file:py-1.5 file:text-[10px] file:font-black file:text-purple-800"
+                            />
+                            {(uploadedFileDisplayName || uploadedFileName) && (
+                              <button
+                                type="button"
+                                onClick={clearAllUploadedFileState}
+                                className="px-2.5 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-lg text-[10px] font-black transition-all flex items-center gap-1 cursor-pointer"
+                                title="Remove attachment"
+                              >
+                                <X className="w-3.5 h-3.5 text-rose-600" /> Remove Attachment
+                              </button>
+                            )}
+                          </div>
+                          {(uploadedFileDisplayName || uploadedFileName) && (
+                            <div className="mt-1.5 flex items-center gap-2 bg-purple-50 border border-purple-200 rounded-lg px-3 py-1.5 text-xs font-bold text-purple-900 max-w-md">
+                              <span className="truncate flex-1">📎 {uploadedFileDisplayName || uploadedFileName}</span>
+                              <button
+                                type="button"
+                                onClick={clearAllUploadedFileState}
+                                className="text-rose-600 hover:text-rose-800 text-xs font-black px-1.5 py-0.5 rounded hover:bg-rose-100 transition-all cursor-pointer"
+                                title="Remove attachment"
+                              >
+                                ✕
+                              </button>
+                            </div>
+                          )}
                         </div>
                       </div>
                     </div>

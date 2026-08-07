@@ -6,7 +6,7 @@ class DomainRecord extends Model<any, any> { [key: string]: any; }
 DomainRecord.init({
   id: { type: DataTypes.STRING, primaryKey: true, allowNull: false },
   recordType: {
-    type: DataTypes.ENUM("Domain Record", "Cloud Platform", "Gmail", "GitHub Repo"),
+    type: DataTypes.STRING,
     allowNull: false,
     defaultValue: "Domain Record"
   },

@@ -144,6 +144,20 @@ function getCategoryAndStages(category?: string, subCategory?: string): { catego
   return { category: fallbackKey, stages: STAGE_DEFINITIONS[fallbackKey] || STAGE_DEFINITIONS["ADVOCATE NOTICE"] };
 }
 
+export interface PaymentInstallment {
+  id: string;
+  installmentNo: number;
+  paymentDate: string;
+  amount: number;
+  paymentMode: string;
+  paymentRef?: string;
+  personName?: string;
+  paidBy?: string;
+  uploadedFileName?: string;
+  remarks?: string;
+  createdAt: string;
+}
+
 interface LegalWorkLogItem {
   id: string | number;
   masterId?: number | string;
@@ -175,6 +189,7 @@ interface LegalWorkLogItem {
   billAmount?: string;
   billNo?: string;
   personName?: string;
+  paidBy?: string;
   uploadedFileName?: string;
   bankName?: string;
   branchName?: string;
@@ -389,7 +404,7 @@ const SearchableEmployeeInput = ({
       />
 
       {isOpen && (
-        <div className="absolute left-0 right-0 top-full mt-1.5 z-50 max-h-48 overflow-y-auto bg-white rounded-xl border border-slate-200 shadow-xl py-1 text-xs font-semibold text-slate-800 animate-in fade-in slide-in-from-top-1 duration-150">
+        <div className="absolute left-0 top-full mt-1.5 z-[100] min-w-full w-max max-w-[280px] max-h-52 overflow-y-auto bg-white rounded-xl border border-slate-200 shadow-xl py-1 text-xs font-semibold text-slate-800 animate-in fade-in slide-in-from-top-1 duration-150">
           {filtered.length > 0 ? (
             filtered.map((name, idx) => {
               const initial = name.trim().charAt(0).toUpperCase();
@@ -400,12 +415,12 @@ const SearchableEmployeeInput = ({
                     onChange(name);
                     setIsOpen(false);
                   }}
-                  className="flex items-center gap-2.5 px-3 py-2 hover:bg-purple-50 cursor-pointer border-b border-slate-100 last:border-0 transition-colors"
+                  className="flex items-center gap-2.5 px-3 py-2 hover:bg-purple-50 cursor-pointer border-b border-slate-100 last:border-0 transition-colors whitespace-nowrap"
                 >
-                  <div className="w-5 h-5 rounded-full bg-purple-100 text-purple-700 font-bold text-[10px] flex items-center justify-center shrink-0 shadow-2xs">
+                  <div className="w-5.5 h-5.5 rounded-full bg-purple-100 text-purple-700 font-bold text-[10px] flex items-center justify-center shrink-0 shadow-2xs">
                     {initial}
                   </div>
-                  <span className="font-bold text-slate-800 truncate">{name}</span>
+                  <span className="font-bold text-slate-800 text-xs">{name}</span>
                 </div>
               );
             })
@@ -465,10 +480,20 @@ export default function LegalWorkEntryHistoryView({
   const [showBanksModal, setShowBanksModal] = useState(false);
   const [selectedOption, setSelectedOption] = useState("ALL");
   const [dateFilter, setDateFilter] = useState("");
+  const [showOnlyReceivedFilter, setShowOnlyReceivedFilter] = useState(false);
   const [columnFilters, setColumnFilters] = useState<Record<string, string[]>>({
     staff: [], bank: [], work: [], count: [], amount: [], execution: []
   });
   const [activeColumnFilter, setActiveColumnFilter] = useState<string | null>(null);
+
+  // Pagination states
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, selectedBank, selectedOption, dateFilter, showOnlyReceivedFilter, columnFilters]);
+
   const [banksList, setBanksList] = useState<any[]>([]);
   const [branchesList, setBranchesList] = useState<any[]>([]);
   const [editEntry, setEditEntry] = useState<LegalWorkLogItem | null>(null);
@@ -496,6 +521,245 @@ export default function LegalWorkEntryHistoryView({
   const [editCallTime, setEditCallTime] = useState("");
   const [editContactedPerson, setEditContactedPerson] = useState("");
   const [editRemarks, setEditRemarks] = useState("");
+  const [editPaymentTotalDue, setEditPaymentTotalDue] = useState("");
+  const [editPaymentReceivedAmt, setEditPaymentReceivedAmt] = useState("");
+  const [editPaymentMode, setEditPaymentMode] = useState("NEFT / RTGS / Bank Transfer");
+  const [editPaymentRef, setEditPaymentRef] = useState("");
+  const [editPaidBy, setEditPaidBy] = useState("");
+
+  const getPaymentRefInfo = (mode: string) => {
+    const m = (mode || "").toLowerCase();
+    if (m.includes("cheque") && !m.includes("banker")) {
+      return { label: "Cheque No. *", placeholder: "Enter Cheque No. (e.g. 004921)", required: true };
+    }
+    if (m.includes("upi") || m.includes("online")) {
+      return { label: "UPI Ref / Transaction ID *", placeholder: "Enter UPI Ref / Txn ID", required: true };
+    }
+    if (m.includes("neft") || m.includes("rtgs") || m.includes("transfer")) {
+      return { label: "UTR No. / Bank Ref *", placeholder: "Enter UTR No. (e.g. UTR991823)", required: true };
+    }
+    if (m.includes("dd") || m.includes("banker")) {
+      return { label: "Demand Draft (DD) No. *", placeholder: "Enter DD Number", required: true };
+    }
+    return { label: "Reference / Receipt No. (Optional)", placeholder: "Enter ref or receipt details...", required: false };
+  };
+
+  // State variables for Adding Payment Installment Modal
+  const [installmentModalLog, setInstallmentModalLog] = useState<{ logItem: LegalWorkLogItem; targetStage: string } | null>(null);
+  const [instDate, setInstDate] = useState(new Date().toISOString().split('T')[0]);
+  const [instAmount, setInstAmount] = useState("");
+  const [instMode, setInstMode] = useState("NEFT / RTGS / Bank Transfer");
+  const [instOtherMode, setInstOtherMode] = useState("");
+  const [instRef, setInstRef] = useState("");
+  const [instPersonName, setInstPersonName] = useState("");
+  const [instPaidBy, setInstPaidBy] = useState("");
+  const [instUploadedFileName, setInstUploadedFileName] = useState("");
+  const [instUploadedFileUrl, setInstUploadedFileUrl] = useState("");
+  const [instRemarks, setInstRemarks] = useState("");
+  const [submittingInstallment, setSubmittingInstallment] = useState(false);
+
+  const openAddInstallmentModal = (logItem: LegalWorkLogItem, targetStage: string = "REQUEST PAYMENT") => {
+    const groupLogs = logItem.allLogs && logItem.allLogs.length > 0 ? logItem.allLogs : [logItem];
+    const targetLog = groupLogs.find(l => (l.businessDevSubOption || l.subCategory || "").trim().toUpperCase() === targetStage.trim().toUpperCase()) || logItem;
+
+    const finances = parseFollowUpDetails(targetLog.financialDetails);
+    const installments: PaymentInstallment[] = Array.isArray(finances?.paymentInstallments) ? finances.paymentInstallments : [];
+
+    const totalBill = Number(finances?.totalBillAmount || targetLog.billAmount || targetLog.stageAmount || 0);
+    const sumInst = installments.length > 0
+      ? installments.reduce((acc, i) => acc + (Number(i.amount) || 0), 0)
+      : Number(finances?.receivedAmount || targetLog.billAmount || targetLog.stageAmount || 0);
+
+    const pending = Math.max(0, totalBill - sumInst);
+
+    setInstDate(new Date().toISOString().split('T')[0]);
+    setInstAmount(pending > 0 ? String(pending) : "");
+    setInstMode("NEFT / RTGS / Bank Transfer");
+    setInstOtherMode("");
+    setInstRef("");
+    setInstPersonName("");
+    setInstUploadedFileName("");
+    setInstUploadedFileUrl("");
+    setInstRemarks("");
+    setInstallmentModalLog({ logItem, targetStage });
+  };
+
+  const handleInstallmentFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setInstUploadedFileName(file.name);
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      if (event.target?.result) setInstUploadedFileUrl(event.target.result as string);
+    };
+    reader.readAsDataURL(file);
+
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("purpose", "task-proof");
+      const res = await fetch("/api/documents/upload", {
+        method: "POST",
+        body: formData,
+      });
+      const data = await res.json();
+      if (res.ok && data.success && data.url) {
+        setInstUploadedFileUrl(data.url);
+      }
+    } catch (err) {
+      console.warn("Installment file upload warning:", err);
+    }
+  };
+
+  const handleSaveInstallment = async () => {
+    if (!installmentModalLog) return;
+    const { logItem, targetStage } = installmentModalLog;
+    const groupLogs = logItem.allLogs && logItem.allLogs.length > 0 ? logItem.allLogs : [logItem];
+    const targetLog = groupLogs.find(l => (l.businessDevSubOption || l.subCategory || "").trim().toUpperCase() === targetStage.trim().toUpperCase()) || logItem;
+
+    if (!instAmount || Number(instAmount) <= 0) {
+      alert("Please enter a valid payment installment amount.");
+      return;
+    }
+
+    setSubmittingInstallment(true);
+    try {
+      const existingFin = parseFollowUpDetails(targetLog.financialDetails) || {};
+      let existingInstallments: PaymentInstallment[] = Array.isArray(existingFin.paymentInstallments) ? [...existingFin.paymentInstallments] : [];
+
+      // If existingInstallments is empty, but there was a previous single payment recorded, preserve it as Installment #1!
+      if (existingInstallments.length === 0) {
+        const firstAmt = Number(existingFin.receivedAmount || targetLog.billAmount || targetLog.stageAmount || 0);
+        if (firstAmt > 0) {
+          existingInstallments.push({
+            id: "inst_1_" + Date.now(),
+            installmentNo: 1,
+            paymentDate: targetLog.allocationDate || (targetLog.workDate ? new Date(targetLog.workDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]),
+            amount: firstAmt,
+            paymentMode: existingFin.paymentMode || "NEFT / RTGS / Bank Transfer",
+            paymentRef: existingFin.paymentRef || "",
+            personName: targetLog.personName || "",
+            uploadedFileName: targetLog.uploadedFileName || "",
+            remarks: "Initial Payment Received",
+            createdAt: targetLog.createdAt || new Date().toISOString()
+          });
+        }
+      }
+
+      const effectiveMode = instMode === "Other" ? (instOtherMode.trim() || "Other") : instMode;
+
+      const newInst: PaymentInstallment = {
+        id: "inst_" + Date.now(),
+        installmentNo: existingInstallments.length + 1,
+        paymentDate: instDate || new Date().toISOString().split('T')[0],
+        amount: Number(instAmount),
+        paymentMode: effectiveMode,
+        paymentRef: instRef,
+        personName: instPersonName,
+        paidBy: instPaidBy,
+        uploadedFileName: instUploadedFileUrl || instUploadedFileName || "",
+        remarks: instRemarks,
+        createdAt: new Date().toISOString()
+      };
+
+      const updatedInstallments = [...existingInstallments, newInst];
+      const totalBill = Number(existingFin.totalBillAmount || targetLog.billAmount || targetLog.stageAmount || 0);
+      const totalRec = updatedInstallments.reduce((acc, i) => acc + (Number(i.amount) || 0), 0);
+      const newPending = Math.max(0, totalBill - totalRec);
+
+      const updatedFin = {
+        ...existingFin,
+        totalBillAmount: totalBill,
+        receivedAmount: totalRec,
+        pendingAmount: newPending,
+        paymentStatus: newPending === 0 ? "Fully Paid" : "Partially Received",
+        paymentInstallments: updatedInstallments
+      };
+
+      const isNotice = String(targetLog.id).startsWith("notice_");
+      const realId = isNotice ? String(targetLog.id).replace("notice_", "") : targetLog.id;
+      const endpoint = isNotice ? "/api/legal-recovery/notices" : "/api/legal-recovery/work-log";
+
+      const payload = isNotice
+        ? { id: realId, billAmount: totalBill, handoverRemarks: targetLog.remarks }
+        : {
+          id: realId,
+          financialDetails: JSON.stringify(updatedFin),
+          stageAmount: totalRec,
+          billAmount: totalBill
+        };
+
+      const res = await fetch(endpoint, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+
+      const data = await res.json();
+      if (res.ok && (data.success || data.id || data.data)) {
+        if (triggerToast) triggerToast(`Payment installment of ₹${Number(instAmount).toLocaleString("en-IN")} added successfully!`);
+        await fetchWorkLogHistory();
+        setInstallmentModalLog(null);
+      } else {
+        alert(data.error || "Failed to add payment installment");
+      }
+    } catch (err: any) {
+      alert("Error adding installment: " + err.message);
+    } finally {
+      setSubmittingInstallment(false);
+    }
+  };
+
+  const handleDeleteInstallment = async (item: LegalWorkLogItem, targetStage: string, instId: string) => {
+    if (!window.confirm("Are you sure you want to remove this payment installment entry?")) return;
+    const groupLogs = item.allLogs && item.allLogs.length > 0 ? item.allLogs : [item];
+    const targetLog = groupLogs.find(l => (l.businessDevSubOption || l.subCategory || "").trim().toUpperCase() === targetStage.trim().toUpperCase()) || item;
+
+    try {
+      const existingFin = parseFollowUpDetails(targetLog.financialDetails) || {};
+      const existingInstallments: PaymentInstallment[] = Array.isArray(existingFin.paymentInstallments) ? existingFin.paymentInstallments : [];
+      const updatedInstallments = existingInstallments.filter(i => i.id !== instId);
+
+      const totalBill = Number(existingFin.totalBillAmount || targetLog.billAmount || targetLog.stageAmount || 0);
+      const totalRec = updatedInstallments.reduce((acc, i) => acc + (Number(i.amount) || 0), 0);
+      const newPending = Math.max(0, totalBill - totalRec);
+
+      const updatedFin = {
+        ...existingFin,
+        totalBillAmount: totalBill,
+        receivedAmount: totalRec,
+        pendingAmount: newPending,
+        paymentStatus: newPending === 0 ? "Fully Paid" : "Partially Received",
+        paymentInstallments: updatedInstallments
+      };
+
+      const isNotice = String(targetLog.id).startsWith("notice_");
+      const realId = isNotice ? String(targetLog.id).replace("notice_", "") : targetLog.id;
+      const endpoint = isNotice ? "/api/legal-recovery/notices" : "/api/legal-recovery/work-log";
+
+      const res = await fetch(endpoint, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: realId,
+          financialDetails: JSON.stringify(updatedFin),
+          stageAmount: totalRec,
+          billAmount: totalBill
+        })
+      });
+
+      const data = await res.json();
+      if (res.ok && (data.success || data.id || data.data)) {
+        if (triggerToast) triggerToast("Installment deleted successfully!");
+        await fetchWorkLogHistory();
+      } else {
+        alert(data.error || "Failed to delete installment");
+      }
+    } catch (err: any) {
+      alert("Error deleting installment: " + err.message);
+    }
+  };
   const [editUploadedFileName, setEditUploadedFileName] = useState("");
   const [editUploadedFileUrl, setEditUploadedFileUrl] = useState("");
   const [isUploadingEditFile, setIsUploadingEditFile] = useState(false);
@@ -593,6 +857,11 @@ export default function LegalWorkEntryHistoryView({
   const [nextStepUploadedFileName, setNextStepUploadedFileName] = useState("");
   const [nextStepUploadedFileUrl, setNextStepUploadedFileUrl] = useState("");
   const [nextStepPersonName, setNextStepPersonName] = useState("");
+  const [nextStepPaidBy, setNextStepPaidBy] = useState("");
+  const [nextStepPaymentTotalDue, setNextStepPaymentTotalDue] = useState("");
+  const [nextStepPaymentReceivedAmt, setNextStepPaymentReceivedAmt] = useState("");
+  const [nextStepPaymentMode, setNextStepPaymentMode] = useState("NEFT / RTGS / Bank Transfer");
+  const [nextStepPaymentRef, setNextStepPaymentRef] = useState("");
   const [nextStepRemarks, setNextStepRemarks] = useState("");
   const [submittingNextStep, setSubmittingNextStep] = useState(false);
 
@@ -1101,6 +1370,40 @@ export default function LegalWorkEntryHistoryView({
     return result;
   }, [logs]);
 
+  const getItemReceivedAmount = (curr: LegalWorkLogItem) => {
+    const groupLogs = curr.allLogs && curr.allLogs.length > 0 ? curr.allLogs : [curr];
+
+    for (const log of groupLogs) {
+      const subName = (log.businessDevSubOption || log.subCategory || "").trim().toUpperCase();
+      const isPaymentStage = subName.includes("REQUEST PAYMENT") || subName.includes("PAYMENT RECEIVED");
+
+      if (isPaymentStage) {
+        const finances = parseFollowUpDetails(log.financialDetails);
+        const recAmt = finances?.receivedAmount !== undefined && finances?.receivedAmount !== null
+          ? Number(finances.receivedAmount)
+          : Number(log.billAmount || log.stageAmount || 0);
+
+        if (!isNaN(recAmt) && recAmt > 0) {
+          return recAmt;
+        }
+      }
+    }
+
+    const finances = parseFollowUpDetails(curr.financialDetails);
+    if (finances?.receivedAmount !== undefined && finances?.receivedAmount !== null) {
+      const val = Number(finances.receivedAmount);
+      if (!isNaN(val) && val > 0) return val;
+    }
+
+    const currSub = (curr.businessDevSubOption || curr.subCategory || "").trim().toUpperCase();
+    if (currSub.includes("REQUEST PAYMENT") || currSub.includes("PAYMENT RECEIVED")) {
+      const val = Number(curr.billAmount || curr.stageAmount || 0);
+      if (!isNaN(val) && val > 0) return val;
+    }
+
+    return 0;
+  };
+
   const filteredLogs = useMemo(() => {
     return logs.filter(item => {
       const matchesSearch =
@@ -1129,9 +1432,16 @@ export default function LegalWorkEntryHistoryView({
         selected.length === 0 || selected.includes(getColumnValue(item, key))
       );
 
-      return matchesSearch && matchesBank && matchesOption && matchesDate && matchesColumns;
+      const itemReceivedAmt = getItemReceivedAmount(item);
+      const matchesReceivedFilter = !showOnlyReceivedFilter || itemReceivedAmt > 0;
+
+      return matchesSearch && matchesBank && matchesOption && matchesDate && matchesColumns && matchesReceivedFilter;
     });
-  }, [logs, searchQuery, selectedBank, selectedOption, dateFilter, columnFilters]);
+  }, [logs, searchQuery, selectedBank, selectedOption, dateFilter, columnFilters, showOnlyReceivedFilter]);
+
+  const totalReceivedAmount = useMemo(() => {
+    return filteredLogs.reduce((acc, curr) => acc + getItemReceivedAmount(curr), 0);
+  }, [filteredLogs]);
 
   const uniqueBanks = useMemo(() => {
     const bankMap = new Map<string, string>();
@@ -1296,23 +1606,29 @@ export default function LegalWorkEntryHistoryView({
     setEditSubOption(targetStage || stageLog.businessDevSubOption || stageLog.subCategory || item.businessDevSubOption || "");
     setEditCount(stageLog.noOfCount || item.noOfCount || "1");
     setEditAllocationDate(stageLog.allocationDate || item.allocationDate || (item.workDate ? new Date(item.workDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]));
-    setEditAmount(String(Number(stageLog.billAmount || stageLog.stageAmount || item.billAmount || item.stageAmount || parseFollowUpDetails(stageLog.financialDetails)?.totalRevenue || 0)));
+    const initialAmt = String(Number(stageLog.billAmount || stageLog.stageAmount || item.billAmount || item.stageAmount || parseFollowUpDetails(stageLog.financialDetails)?.totalRevenue || 0));
+    setEditAmount(initialAmt);
+    setEditPaymentTotalDue(bAmt || initialAmt || "");
+    setEditPaymentReceivedAmt(bAmt || initialAmt || "");
+    setEditPaymentMode("NEFT / RTGS / Bank Transfer");
+    setEditPaymentRef("");
     setEditBroughtBy(brought);
     setEditPreparedBy(prepared);
     setEditPrintedBy(printed);
     setEditDispatchedBy(dispatched);
     setEditPersonName(stageLog.personName || item.personName || "");
+    setEditPaidBy(stageLog.paidBy || parseFollowUpDetails(stageLog.financialDetails)?.paidBy || "");
     setEditOfficerContactNo(stageLog.officerContactNo || item.officerContactNo || "");
     setEditOwnExpense(String(stageLog.ownExpense || item.ownExpense || 0));
     setEditRate(rVal);
     setEditBillDate(bDate);
-    setEditBillAmount(bAmt);
+    setEditBillAmount(bAmt || initialAmt);
     setEditBillNo(bNo);
     setEditRemarks(rem);
 
     const currentFile = stageLog.uploadedFileName ||
       ((targetStage === "TAKE NOTICE ASSIGNMENT" || (!targetStage && (stageLog.businessDevSubOption || stageLog.subCategory) === "TAKE NOTICE ASSIGNMENT"))
-        ? (item.uploadedFileName || item.rawNotice?.handoverReceiptUrl || item.rawNotice?.documentUrl || item.rawNotice?.billingAttachments || item.rawNotice?.handoverReceiptPhoto)
+        ? (item.rawNotice?.handoverReceiptUrl || item.rawNotice?.documentUrl || item.rawNotice?.billingAttachments || item.rawNotice?.handoverReceiptPhoto)
         : undefined);
 
     setEditUploadedFileName(currentFile || "");
@@ -1326,6 +1642,10 @@ export default function LegalWorkEntryHistoryView({
           if (fin.perNoticeRate) setEditRate(String(fin.perNoticeRate));
           if (fin.bankOfficerPerNotice) setEditOfficerShare(String(fin.bankOfficerPerNotice));
           if (fin.ownExpenses) setEditOwnExpense(String(fin.ownExpenses));
+          if (fin.totalBillAmount !== undefined) setEditPaymentTotalDue(String(fin.totalBillAmount));
+          if (fin.receivedAmount !== undefined) setEditPaymentReceivedAmt(String(fin.receivedAmount));
+          if (fin.paymentMode) setEditPaymentMode(fin.paymentMode);
+          if (fin.paymentRef) setEditPaymentRef(fin.paymentRef);
         } catch (e) { }
       }
       if (l.followUpDetails) {
@@ -1378,22 +1698,32 @@ export default function LegalWorkEntryHistoryView({
             noOfCount: editCount,
             finalRate: editRate || undefined,
             expenses: editOwnExpense ? editOwnExpense : undefined,
-            financialDetails: (editOption === "ADVOCATE NOTICE" || editSubOption === "TAKE NOTICE ASSIGNMENT") ? JSON.stringify({
+            financialDetails: editSubOption.includes("REQUEST PAYMENT") ? JSON.stringify({
+              totalBillAmount: Number(editPaymentTotalDue || editBillAmount || editAmount) || 0,
+              receivedAmount: Number(editPaymentReceivedAmt) || 0,
+              pendingAmount: Math.max(0, (Number(editPaymentTotalDue || editBillAmount || editAmount) || 0) - (Number(editPaymentReceivedAmt) || 0)),
+              paymentStatus: (Number(editPaymentReceivedAmt) || 0) < (Number(editPaymentTotalDue || editBillAmount || editAmount) || 0) ? "Partially Received" : "Fully Received",
+              paymentMode: editPaymentMode || "NEFT / RTGS / Bank Transfer",
+              paymentRef: editPaymentRef ? editPaymentRef.trim() : "",
+              personName: editPersonName ? editPersonName.trim() : "",
+              allocationDate: editAllocationDate
+            }) : ((editOption === "ADVOCATE NOTICE" || editSubOption === "TAKE NOTICE ASSIGNMENT") ? JSON.stringify({
               noticeCount: Number(editCount) || 1,
               perNoticeRate: Number(editRate) || 0,
               bankOfficerPerNotice: Number(editOfficerShare) || 0,
               ownExpenses: Number(editOwnExpense) || 0,
               totalRevenue: (Number(editCount) || 1) * (Number(editRate) || 0)
-            }) : undefined,
-            stageAmount: isSelectedStage ? Math.max(0, Number(editAmount) || 0) : logItem.stageAmount,
+            }) : undefined),
+            stageAmount: isSelectedStage ? (editSubOption.includes("REQUEST PAYMENT") ? Number(editPaymentReceivedAmt || editAmount || 0) : Math.max(0, Number(editAmount) || 0)) : logItem.stageAmount,
             billDate: editBillDate || undefined,
-            billAmount: editBillAmount || undefined,
+            billAmount: editSubOption.includes("REQUEST PAYMENT") ? (editPaymentReceivedAmt || editBillAmount || undefined) : (editBillAmount || undefined),
             billNo: editBillNo || undefined,
             broughtBy: isSelectedStage ? (editBroughtBy || undefined) : logItem.broughtBy,
             preparedBy: isSelectedStage ? (editPreparedBy || undefined) : logItem.preparedBy,
             printedBy: isSelectedStage ? (editPrintedBy || undefined) : logItem.printedBy,
             dispatchedBy: isSelectedStage ? (editDispatchedBy || undefined) : logItem.dispatchedBy,
             personName: isSelectedStage ? (editPersonName || undefined) : logItem.personName,
+            paidBy: isSelectedStage ? (editPaidBy || undefined) : logItem.paidBy,
             officerContactNo: editOfficerContactNo || undefined,
             ownExpense: Number(editOwnExpense) || 0,
             uploadedFileName: isSelectedStage ? (editUploadedFileName || null) : logItem.uploadedFileName,
@@ -1440,6 +1770,16 @@ export default function LegalWorkEntryHistoryView({
       if (stageInfo.stageAmount) setNextStepAmount(stageInfo.stageAmount);
       if (stageInfo.finalRate) setNextStepRate(stageInfo.finalRate);
       if (stageInfo.expenses) setNextStepExpenses(stageInfo.expenses);
+      if (stageInfo.finances) {
+        if (stageInfo.finances.totalBillAmount !== undefined) setNextStepPaymentTotalDue(String(stageInfo.finances.totalBillAmount));
+        if (stageInfo.finances.receivedAmount !== undefined) setNextStepPaymentReceivedAmt(String(stageInfo.finances.receivedAmount));
+        if (stageInfo.finances.paymentMode) setNextStepPaymentMode(stageInfo.finances.paymentMode);
+        if (stageInfo.finances.paymentRef) setNextStepPaymentRef(stageInfo.finances.paymentRef);
+        if (stageInfo.finances.paidBy) setNextStepPaidBy(stageInfo.finances.paidBy);
+      } else {
+        setNextStepPaymentTotalDue(stageInfo.billAmount || stageInfo.stageAmount || "0");
+        setNextStepPaymentReceivedAmt(stageInfo.billAmount || stageInfo.stageAmount || "0");
+      }
       setNextStepUploadedFileName(stageInfo.file || "");
       setNextStepUploadedFileUrl("");
       if (stageInfo.remarks) setNextStepRemarks(stageInfo.remarks);
@@ -1447,6 +1787,9 @@ export default function LegalWorkEntryHistoryView({
       setNextStepUploadedFileName("");
       setNextStepUploadedFileUrl("");
       setNextStepRemarks("");
+      setNextStepPaymentTotalDue("");
+      setNextStepPaymentReceivedAmt("");
+      setNextStepPaymentRef("");
     }
   };
 
@@ -1480,6 +1823,10 @@ export default function LegalWorkEntryHistoryView({
     const autoAmount = existingBillAmt || (noticeRev + dispatchCost > 0 ? String(noticeRev + dispatchCost) : (item.stageAmount || "0"));
 
     setNextStepAmount(autoAmount);
+    setNextStepPaymentTotalDue(autoAmount);
+    setNextStepPaymentReceivedAmt(autoAmount);
+    setNextStepPaymentMode("NEFT / RTGS / Bank Transfer");
+    setNextStepPaymentRef("");
     setNextStepBroughtBy(item.broughtBy || item.employeeName || "");
     setNextStepPreparedBy(item.preparedBy || "");
     setNextStepPrintedBy(item.printedBy || "");
@@ -1524,11 +1871,16 @@ export default function LegalWorkEntryHistoryView({
       const isPrintedByStep = nextStepSubOption.includes("GENERATE NOTICE");
       const isDispatchedByStep = nextStepSubOption.includes("DISPATCH NOTICE");
       const isBillPreparationStep = nextStepSubOption.includes("PREPARE BILL");
+      const isPaymentRequest = nextStepSubOption.includes("REQUEST PAYMENT");
 
       const assessmentCount = Math.max(0, parseInt(nextStepCount || "0", 10) || 0);
       const perNoticeRate = parseFloat(nextStepRate) || 0;
       const officerPerNotice = parseFloat(nextStepOfficerShare) || 0;
       const ownExpenses = parseFloat(nextStepExpenses) || 0;
+
+      const parsedTotalDue = Number(nextStepPaymentTotalDue || nextStepBillAmount || nextStepAmount) || 0;
+      const parsedReceived = Number(nextStepPaymentReceivedAmt) || 0;
+      const pendingAmt = Math.max(0, parsedTotalDue - parsedReceived);
 
       const payload = {
         masterId: nextStepEntry.masterId || 0,
@@ -1546,22 +1898,34 @@ export default function LegalWorkEntryHistoryView({
         preparedBy: isPreparedByStep ? (nextStepPreparedBy || undefined) : undefined,
         printedBy: isPrintedByStep ? (nextStepPrintedBy || undefined) : undefined,
         dispatchedBy: isDispatchedByStep ? (nextStepDispatchedBy || undefined) : undefined,
-        stageAmount: isDispatchedByStep ? nextStepAmount : (nextStepSubOption === "TAKE NOTICE ASSIGNMENT" ? String(assessmentCount * perNoticeRate) : undefined),
+        stageAmount: isPaymentRequest ? parsedReceived : (isDispatchedByStep ? nextStepAmount : (nextStepSubOption === "TAKE NOTICE ASSIGNMENT" ? String(assessmentCount * perNoticeRate) : undefined)),
         billDate: isBillPreparationStep ? (nextStepBillDate || undefined) : undefined,
-        billAmount: isBillPreparationStep ? (nextStepBillAmount || undefined) : (nextStepSubOption.includes("REQUEST PAYMENT") ? nextStepAmount : undefined),
+        billAmount: isPaymentRequest ? (nextStepPaymentReceivedAmt || nextStepBillAmount || nextStepAmount || undefined) : (isBillPreparationStep ? (nextStepBillAmount || undefined) : undefined),
         billNo: isBillPreparationStep ? (nextStepBillNo || undefined) : undefined,
         personName: nextStepPersonName || undefined,
         finalRate: nextStepRate || undefined,
         bankOfficerPerNotice: isNoticeAssessment ? (nextStepOfficerShare || "0") : undefined,
         expenses: isNoticeAssessment ? (nextStepExpenses || "0") : undefined,
-        financialDetails: isNoticeAssessment
+        financialDetails: isPaymentRequest
           ? JSON.stringify({
-            noticeCount: assessmentCount,
-            perNoticeRate,
-            bankOfficerPerNotice: officerPerNotice,
-            ownExpenses,
+            totalBillAmount: parsedTotalDue,
+            receivedAmount: parsedReceived,
+            pendingAmount: pendingAmt,
+            paymentStatus: parsedReceived < parsedTotalDue ? "Partially Received" : "Fully Received",
+            paymentMode: nextStepPaymentMode || "NEFT / RTGS / Bank Transfer",
+            paymentRef: nextStepPaymentRef ? nextStepPaymentRef.trim() : "",
+            personName: nextStepPersonName ? nextStepPersonName.trim() : "",
+            paidBy: nextStepPaidBy ? nextStepPaidBy.trim() : "",
+            allocationDate: nextStepAllocationDate || nextStepWorkDate
           })
-          : undefined,
+          : (isNoticeAssessment
+            ? JSON.stringify({
+              noticeCount: assessmentCount,
+              perNoticeRate,
+              bankOfficerPerNotice: officerPerNotice,
+              ownExpenses,
+            })
+            : undefined),
         allocationDate: nextStepAllocationDate || nextStepWorkDate,
         uploadedFileName: nextStepUploadedFileUrl || nextStepUploadedFileName || undefined,
         remarks: nextStepRemarks ? nextStepRemarks.trim() : undefined
@@ -1768,26 +2132,15 @@ export default function LegalWorkEntryHistoryView({
       return parts[parts.length - 1].split("?")[0].trim().toLowerCase();
     };
 
-    const initialNoticeFileBase = getBaseName(
-      n?.handoverReceiptUrl ||
-      n?.documentUrl ||
-      n?.billingAttachments ||
-      n?.handoverReceiptPhoto ||
-      groupLogs[0]?.uploadedFileName ||
-      entry.uploadedFileName
-    );
-
-    // 2. File: ONLY show if explicitly uploaded for this stage, or if inspecting TAKE NOTICE ASSIGNMENT and notice receipt exists
+    // 2. File: ONLY show if explicitly uploaded for this specific stage (matchingLog.uploadedFileName),
+    // or if inspecting TAKE NOTICE ASSIGNMENT and notice handover receipt exists on rawNotice
     const matchingLogFile = matchingLog?.uploadedFileName;
 
     let file: string | undefined = undefined;
-    if (stageName === "TAKE NOTICE ASSIGNMENT") {
-      file = matchingLogFile || n?.handoverReceiptUrl || n?.documentUrl || n?.billingAttachments || n?.handoverReceiptPhoto || entry.uploadedFileName || undefined;
-    } else if (matchingLogFile) {
-      const currentFileBase = getBaseName(matchingLogFile);
-      if (currentFileBase && currentFileBase !== initialNoticeFileBase) {
-        file = matchingLogFile;
-      }
+    if (matchingLogFile && matchingLogFile.trim()) {
+      file = matchingLogFile.trim();
+    } else if (stageName === "TAKE NOTICE ASSIGNMENT" && n) {
+      file = n.handoverReceiptUrl || n.documentUrl || n.billingAttachments || n.handoverReceiptPhoto || undefined;
     }
 
     // 3. Remarks: Strip system tags ([Notice #...]) but PRESERVE actual user remarks! Filter out system placeholders like "Next step execution for..."
@@ -1806,8 +2159,38 @@ export default function LegalWorkEntryHistoryView({
       }
     }
 
+    const isPaymentStage = stageName.trim().toUpperCase().includes("REQUEST PAYMENT") || stageName.trim().toUpperCase().includes("PAYMENT RECEIVED");
+    let isPendingPayment = false;
+    let pendingAmtVal = 0;
+    let installments: PaymentInstallment[] = [];
+    let totalBillVal = 0;
+    let totalReceivedVal = 0;
+
+    if (isPaymentStage && isFilled) {
+      installments = Array.isArray(finances?.paymentInstallments) ? finances.paymentInstallments : [];
+      totalBillVal = Number(finances?.totalBillAmount || matchingLog?.billAmount || matchingLog?.stageAmount || entry.billAmount || 0);
+
+      if (installments.length > 0) {
+        totalReceivedVal = installments.reduce((acc: number, inst: any) => acc + (Number(inst.amount) || 0), 0);
+      } else {
+        totalReceivedVal = Number(finances?.receivedAmount || matchingLog?.billAmount || matchingLog?.stageAmount || 0);
+      }
+
+      pendingAmtVal = Math.max(0, totalBillVal - totalReceivedVal);
+
+      if (pendingAmtVal > 0 || finances?.paymentStatus === "Partially Received" || (installments.length > 0 && pendingAmtVal > 0)) {
+        isPendingPayment = true;
+      }
+    }
+
     return {
       isFilled,
+      isPendingPayment,
+      pendingAmtVal,
+      totalBillVal,
+      totalReceivedVal,
+      installments,
+      matchingLog,
       staff: isFilled ? stageStaff?.value : undefined,
       staffLabel: stageStaff?.label || "Staff In-Charge",
       count,
@@ -1863,54 +2246,82 @@ export default function LegalWorkEntryHistoryView({
       </div>
 
       {/* KPI Summary Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
-        <div className="bg-white p-5 rounded-2xl border border-[#E8E4DF] shadow-xs flex items-center gap-3">
-          <div className="w-12 h-12 bg-[#FCFBF9] border border-[#E8E4DF] rounded-2xl flex items-center justify-center text-[#1C1C1A]">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3.5">
+        <div className="bg-white p-4 sm:p-5 rounded-2xl border border-[#E8E4DF] shadow-xs flex items-center gap-3">
+          <div className="w-11 h-11 bg-[#FCFBF9] border border-[#E8E4DF] rounded-2xl flex items-center justify-center text-[#1C1C1A] shrink-0">
             <Calendar className="w-5 h-5" />
           </div>
-          <div>
-            <p className="text-[9px] uppercase tracking-wider text-[#9C9890] font-bold">Total History Records</p>
+          <div className="min-w-0">
+            <p className="text-[9px] uppercase tracking-wider text-[#9C9890] font-bold truncate">Total History Records</p>
             <p className="text-xl font-semibold text-[#1C1C1A] mt-0.5">{filteredLogs.length}</p>
           </div>
         </div>
 
-        <div className="bg-white p-5 rounded-2xl border border-[#E8E4DF] shadow-xs flex items-center gap-3">
-          <div className="w-12 h-12 bg-[#FCFBF9] border border-[#E8E4DF] rounded-2xl flex items-center justify-center text-[#1C1C1A]">
+        <div className="bg-white p-4 sm:p-5 rounded-2xl border border-[#E8E4DF] shadow-xs flex items-center gap-3">
+          <div className="w-11 h-11 bg-[#FCFBF9] border border-[#E8E4DF] rounded-2xl flex items-center justify-center text-[#1C1C1A] shrink-0">
             <Layers className="w-5 h-5" />
           </div>
-          <div>
-            <p className="text-[9px] uppercase tracking-wider text-[#9C9890] font-bold">Total Work Count</p>
+          <div className="min-w-0">
+            <p className="text-[9px] uppercase tracking-wider text-[#9C9890] font-bold truncate">Total Work Count</p>
             <p className="text-xl font-semibold text-[#1C1C1A] mt-0.5">{totalCounts}</p>
           </div>
         </div>
 
         <div
           onClick={() => setShowBanksModal(true)}
-          className="bg-white p-5 rounded-2xl border border-[#E8E4DF] hover:border-[#C9A84C] shadow-xs flex items-center justify-between gap-3 cursor-pointer transition-all hover:shadow-md group"
+          className="bg-white p-4 sm:p-5 rounded-2xl border border-[#E8E4DF] hover:border-[#C9A84C] shadow-xs flex items-center justify-between gap-2 cursor-pointer transition-all hover:shadow-md group"
           title="Click to view all unique banks & filter history table"
         >
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-[#FCFBF9] group-hover:bg-amber-50 border border-[#E8E4DF] group-hover:border-amber-200 rounded-2xl flex items-center justify-center text-[#1C1C1A] group-hover:text-amber-800 transition-colors">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-11 h-11 bg-[#FCFBF9] group-hover:bg-amber-50 border border-[#E8E4DF] group-hover:border-amber-200 rounded-2xl flex items-center justify-center text-[#1C1C1A] group-hover:text-amber-800 transition-colors shrink-0">
               <Landmark className="w-5 h-5" />
             </div>
-            <div>
-              <p className="text-[9px] uppercase tracking-wider text-[#9C9890] font-bold">Unique Banks</p>
+            <div className="min-w-0">
+              <p className="text-[9px] uppercase tracking-wider text-[#9C9890] font-bold truncate">Unique Banks</p>
               <p className="text-xl font-semibold text-[#1C1C1A] mt-0.5">{uniqueBanks.length}</p>
             </div>
           </div>
-          <span className="text-[9px] font-bold uppercase tracking-wider px-2 py-1 bg-amber-50 text-amber-800 border border-amber-200 rounded-lg group-hover:bg-amber-600 group-hover:text-white transition-all">
-            View &amp; Filter ➔
+          <span className="text-[8.5px] font-bold uppercase tracking-wider px-2 py-1 bg-amber-50 text-amber-800 border border-amber-200 rounded-lg group-hover:bg-amber-600 group-hover:text-white transition-all shrink-0">
+            View ➔
           </span>
         </div>
 
-        <div className="bg-white p-5 rounded-2xl border border-[#E8E4DF] shadow-xs flex items-center gap-3">
-          <div className="w-12 h-12 bg-[#FCFBF9] border border-[#E8E4DF] rounded-2xl flex items-center justify-center text-emerald-600">
+        <div className="bg-white p-4 sm:p-5 rounded-2xl border border-[#E8E4DF] shadow-xs flex items-center gap-3">
+          <div className="w-11 h-11 bg-[#FCFBF9] border border-[#E8E4DF] rounded-2xl flex items-center justify-center text-purple-700 shrink-0">
             <DollarSign className="w-5 h-5" />
           </div>
-          <div>
-            <p className="text-[9px] uppercase tracking-wider text-[#9C9890] font-bold">Total Bill Amount</p>
-            <p className="text-xl font-semibold text-emerald-700 mt-0.5">₹{totalBillAmount.toLocaleString('en-IN')}</p>
+          <div className="min-w-0">
+            <p className="text-[9px] uppercase tracking-wider text-[#9C9890] font-bold truncate">Total Bill Amount</p>
+            <p className="text-xl font-bold text-purple-900 mt-0.5 truncate">₹{totalBillAmount.toLocaleString('en-IN')}</p>
           </div>
+        </div>
+
+        <div
+          onClick={() => setShowOnlyReceivedFilter(prev => !prev)}
+          className={`p-4 sm:p-5 rounded-2xl border shadow-xs flex items-center justify-between gap-2 cursor-pointer transition-all hover:shadow-md group ${showOnlyReceivedFilter
+            ? "bg-emerald-50/90 border-emerald-500 ring-2 ring-emerald-500/20"
+            : "bg-white border-[#E8E4DF] hover:border-emerald-500"
+            }`}
+          title="Click to filter entries with complete or partial received payments"
+        >
+          <div className="flex items-center gap-3 min-w-0">
+            <div className={`w-11 h-11 rounded-2xl flex items-center justify-center transition-colors shrink-0 ${showOnlyReceivedFilter
+              ? "bg-emerald-600 text-white"
+              : "bg-emerald-50 group-hover:bg-emerald-600 text-emerald-700 group-hover:text-white border border-emerald-200"
+              }`}>
+              <CheckCircle2 className="w-5 h-5" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-[9px] uppercase tracking-wider text-[#9C9890] font-bold truncate">Total Received Amount</p>
+              <p className="text-xl font-black text-emerald-700 mt-0.5 truncate">₹{totalReceivedAmount.toLocaleString('en-IN')}</p>
+            </div>
+          </div>
+          <span className={`text-[8.5px] font-black uppercase tracking-wider px-2 py-1 rounded-lg transition-all shrink-0 ${showOnlyReceivedFilter
+            ? "bg-emerald-600 text-white shadow-2xs"
+            : "bg-emerald-50 text-emerald-800 border border-emerald-200 group-hover:bg-emerald-600 group-hover:text-white"
+            }`}>
+            {showOnlyReceivedFilter ? "Active ✓" : "Filter ➔"}
+          </span>
         </div>
       </div>
 
@@ -1964,17 +2375,26 @@ export default function LegalWorkEntryHistoryView({
           </div>
         </div>
 
-        {(searchQuery || selectedBank !== "ALL" || selectedOption !== "ALL" || dateFilter || Object.values(columnFilters).some(values => values.length > 0)) && (
-          <div className="flex items-center justify-between text-xs pt-1 border-t border-[#E8E4DF]">
-            <span className="font-medium text-[#5D5B57]">
-              Showing {filteredLogs.length} of {logs.length} entries
-            </span>
+        {(searchQuery || selectedBank !== "ALL" || selectedOption !== "ALL" || dateFilter || showOnlyReceivedFilter || Object.values(columnFilters).some(values => values.length > 0)) && (
+          <div className="flex flex-wrap items-center justify-between gap-2 text-xs pt-2 border-t border-[#E8E4DF]">
+            <div className="flex items-center gap-2">
+              <span className="font-medium text-[#5D5B57]">
+                Showing {filteredLogs.length} of {logs.length} entries
+              </span>
+              {showOnlyReceivedFilter && (
+                <span className="px-2 py-0.5 bg-emerald-100 text-emerald-800 border border-emerald-300 font-bold rounded-full text-[10px] flex items-center gap-1">
+                  <CheckCircle2 className="w-3 h-3 text-emerald-600" /> Received Payments Only
+                  <button type="button" onClick={() => setShowOnlyReceivedFilter(false)} className="ml-1 text-emerald-900 font-black hover:text-rose-700 cursor-pointer">✕</button>
+                </span>
+              )}
+            </div>
             <button
               onClick={() => {
                 setSearchQuery("");
                 setSelectedBank("ALL");
                 setSelectedOption("ALL");
                 setDateFilter("");
+                setShowOnlyReceivedFilter(false);
                 setColumnFilters({ staff: [], bank: [], work: [], count: [], amount: [], execution: [] });
               }}
               className="text-[#1C1C1A] font-bold hover:underline cursor-pointer"
@@ -1986,634 +2406,825 @@ export default function LegalWorkEntryHistoryView({
       </div>
 
       {/* Structured Tabular Format (Data Table) */}
-      <div className="bg-white rounded-2xl border border-[#E8E4DF] shadow-xs overflow-hidden">
-        {loading ? (
-          <div className="p-12 text-center text-[#5D5B57] font-semibold text-xs">
-            <RefreshCw className="w-6 h-6 animate-spin mx-auto mb-2 text-[#C9A84C]" />
-            Loading Tabular Legal Work History...
-          </div>
-        ) : filteredLogs.length === 0 ? (
-          <div className="p-12 text-center text-[#5D5B57] font-semibold text-xs space-y-2">
-            <FileText className="w-10 h-10 mx-auto text-slate-300" />
-            <p className="text-sm font-bold text-[#1C1C1A]">No Legal Work Entry records found.</p>
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse text-[11px] table-fixed min-w-[1180px]">
-              <thead>
-                <tr className="bg-[#FCFBF9] text-[#1C1C1A] font-bold border-b border-[#E8E4DF] text-[10px] uppercase tracking-wider">
-                  {[
-                    ["staff", "Date & Staff", "w-32"],
-                    ["bank", "Bank & Branch", "w-36"],
-                    ["work", "Work Category & Step", "w-64"],
-                    ["count", "Qty", "w-20"],
-                    ["amount", "Amount", "w-24"],
-                    ["execution", "Execution Details", "w-64"]
-                  ].map(([key, label, width], index) => (
-                    <th key={key} className={`relative py-2 px-2 ${width} ${key === "count" ? "text-center" : key === "amount" ? "text-right" : ""}`}>
-                      <div className={`flex items-center gap-1 ${key === "amount" ? "justify-end" : key === "count" ? "justify-center" : ""}`}>
-                        <span>{label}</span>
-                        <button type="button" onClick={() => setActiveColumnFilter(activeColumnFilter === key ? null : key)} className={`rounded p-0.5 hover:bg-slate-200 ${columnFilters[key].length ? "text-indigo-700 bg-indigo-100" : "text-slate-400"}`} title={`Filter ${label}`}>
-                          <Filter className="w-3 h-3" />
-                        </button>
-                      </div>
-                      {activeColumnFilter === key && (
-                        <ExcelHeaderFilter
-                          options={columnOptions[key]}
-                          selected={columnFilters[key]}
-                          onApply={values => setColumnFilters(current => ({ ...current, [key]: values }))}
-                          onClose={() => setActiveColumnFilter(null)}
-                          alignRight={index >= 4}
-                        />
-                      )}
-                    </th>
-                  ))}
-                  <th className="py-2 px-2 w-24">Attachment</th>
-                  <th className="py-2 px-2 w-36 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-[#E8E4DF] font-medium text-[#1C1C1A]">
-                {filteredLogs.map(item => {
-                  const rawCategoryOpt = item.businessDevOption || item.category || "ADVOCATE NOTICE";
-                  const subOpt = item.businessDevSubOption || item.subCategory || "TAKE NOTICE ASSIGNMENT";
-                  const { category: categoryOpt, stages } = getCategoryAndStages(rawCategoryOpt, subOpt);
-                  const followUp = parseFollowUpDetails(item.followUpDetails);
-                  const finances = parseFollowUpDetails(item.financialDetails);
+      {(() => {
+        const totalPages = Math.max(1, Math.ceil(filteredLogs.length / itemsPerPage));
+        const validCurrentPage = Math.min(currentPage, totalPages);
+        const paginatedLogs = filteredLogs.slice((validCurrentPage - 1) * itemsPerPage, validCurrentPage * itemsPerPage);
 
-                  const isExpanded = expandedRowKeys.has(String(item.id));
-                  const filledStagesCount = stages.filter(stg => getStageFilledDetails(item, stg).isFilled).length;
-
-                  return (
-                    <React.Fragment key={item.id}>
-                      <tr
-                        className={`transition-colors cursor-pointer ${isExpanded ? "bg-[#FCFBF9]" : "hover:bg-[#FCFBF9]"
-                          }`}
-                        onClick={() => toggleRowExpand(item.id)}
-                      >
-                        <td className="py-2 px-2 align-top">
-                          <div className="flex items-center gap-1.5">
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                toggleRowExpand(item.id);
-                              }}
-                              className="p-1 rounded hover:bg-slate-200/70 text-[#C9A84C] transition-colors shrink-0 cursor-pointer"
-                              title={isExpanded ? "Collapse stage details" : "Expand stage details"}
-                            >
-                              {isExpanded ? <ChevronDown className="w-4 h-4 text-[#C9A84C]" /> : <ChevronRight className="w-4 h-4 text-slate-400" />}
+        return (
+          <div className="bg-white rounded-2xl border border-[#E8E4DF] shadow-xs overflow-hidden">
+            {loading ? (
+              <div className="p-12 text-center text-[#5D5B57] font-semibold text-xs">
+                <RefreshCw className="w-6 h-6 animate-spin mx-auto mb-2 text-[#C9A84C]" />
+                Loading Tabular Legal Work History...
+              </div>
+            ) : filteredLogs.length === 0 ? (
+              <div className="p-12 text-center text-[#5D5B57] font-semibold text-xs space-y-2">
+                <FileText className="w-10 h-10 mx-auto text-slate-300" />
+                <p className="text-sm font-bold text-[#1C1C1A]">No Legal Work Entry records found.</p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse text-[11px] table-fixed min-w-[1180px]">
+                  <thead>
+                    <tr className="bg-[#FCFBF9] text-[#1C1C1A] font-bold border-b border-[#E8E4DF] text-[10px] uppercase tracking-wider">
+                      {[
+                        ["staff", "Date & Staff", "w-32"],
+                        ["bank", "Bank & Branch", "w-36"],
+                        ["work", "Work Category & Step", "w-64"],
+                        ["count", "Qty", "w-20"],
+                        ["amount", "Amount", "w-24"],
+                        ["execution", "Execution Details", "w-64"]
+                      ].map(([key, label, width], index) => (
+                        <th key={key} className={`relative py-2 px-2 ${width} ${key === "count" ? "text-center" : key === "amount" ? "text-right" : ""}`}>
+                          <div className={`flex items-center gap-1 ${key === "amount" ? "justify-end" : key === "count" ? "justify-center" : ""}`}>
+                            <span>{label}</span>
+                            <button type="button" onClick={() => setActiveColumnFilter(activeColumnFilter === key ? null : key)} className={`rounded p-0.5 hover:bg-slate-200 ${columnFilters[key].length ? "text-indigo-700 bg-indigo-100" : "text-slate-400"}`} title={`Filter ${label}`}>
+                              <Filter className="w-3 h-3" />
                             </button>
-                            <div>
-                              <div className="font-bold text-[#1C1C1A] flex items-center gap-1.5">
-                                <Calendar className="w-3.5 h-3.5 text-[#C9A84C] shrink-0" />
-                                {item.workDate ? new Date(item.workDate).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }) : "N/A"}
-                              </div>
-                              <div className="text-[11px] text-[#5D5B57] flex items-center gap-1 mt-0.5 font-medium">
-                                <User className="w-3 h-3 text-slate-400 shrink-0" />
-                                {item.employeeName || item.employeeId || "Staff Member"}
-                              </div>
-                            </div>
                           </div>
-                        </td>
-
-                        <td className="py-2 px-2 align-top">
-                          <div className="font-bold text-[#1C1C1A]">{item.bankName || "N/A"}</div>
-                          <div className="text-[11px] text-[#5D5B57] font-medium">{item.branchName || "N/A"}</div>
-                        </td>
-
-                        <td className="py-2 px-2 align-top">
-                          <span className="px-2 py-0.5 bg-[#C9A84C] text-white font-bold rounded text-[9px] uppercase tracking-wider inline-block mb-1 shadow-2xs">
-                            {categoryOpt}
-                          </span>
-                          <div className="font-bold text-[#1C1C1A] text-xs">
-                            {subOpt}
-                          </div>
-                          <div className="text-[9.5px] font-semibold text-[#714B67] mt-0.5 flex items-center gap-1">
-                            <span>Stages: {filledStagesCount}/{stages.length} Filled</span>
-                          </div>
-                        </td>
-
-                        <td className="py-2 px-2 align-top text-center">
-                          <span className="px-2.5 py-1 bg-[#FCFBF9] text-[#1C1C1A] font-bold rounded-lg text-xs inline-block border border-[#E8E4DF]">
-                            {item.noOfCount || "1"}
-                          </span>
-                        </td>
-
-                        <td className="py-2 px-2 align-top text-right font-black text-emerald-700">
-                          ₹{getItemAmount(item).toLocaleString("en-IN")}
-                        </td>
-
-                        <td className="py-2.5 px-3 align-top space-y-1 text-[11px] leading-snug">
-                          {item.dispatchedBy ? (
-                            <div><span className="text-slate-400 font-semibold">Dispatched By:</span> <strong className="text-[#1C1C1A]">{item.dispatchedBy}</strong></div>
-                          ) : item.printedBy ? (
-                            <div><span className="text-slate-400 font-semibold">Printed By:</span> <strong className="text-[#1C1C1A]">{item.printedBy}</strong></div>
-                          ) : item.preparedBy ? (
-                            <div><span className="text-slate-400 font-semibold">Prepared By:</span> <strong className="text-[#1C1C1A]">{item.preparedBy}</strong></div>
-                          ) : (
-                            <div><span className="text-slate-400 font-semibold">Brought By:</span> <strong className="text-[#1C1C1A]">{item.broughtBy || item.employeeName || "Staff"}</strong></div>
+                          {activeColumnFilter === key && (
+                            <ExcelHeaderFilter
+                              options={columnOptions[key]}
+                              selected={columnFilters[key]}
+                              onApply={values => setColumnFilters(current => ({ ...current, [key]: values }))}
+                              onClose={() => setActiveColumnFilter(null)}
+                              alignRight={index >= 4}
+                            />
                           )}
+                        </th>
+                      ))}
+                      <th className="py-2 px-2 w-24">Attachment</th>
+                      <th className="py-2 px-2 w-36 text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[#E8E4DF] font-medium text-[#1C1C1A]">
+                    {paginatedLogs.map(item => {
+                      const rawCategoryOpt = item.businessDevOption || item.category || "ADVOCATE NOTICE";
+                      const subOpt = item.businessDevSubOption || item.subCategory || "TAKE NOTICE ASSIGNMENT";
+                      const { category: categoryOpt, stages } = getCategoryAndStages(rawCategoryOpt, subOpt);
+                      const followUp = parseFollowUpDetails(item.followUpDetails);
+                      const finances = parseFollowUpDetails(item.financialDetails);
 
-                          {item.billNo && (
-                            <div className="text-[10px] text-indigo-700 font-bold">Bill #{item.billNo} {item.billAmount ? `(₹${parseFloat(item.billAmount).toLocaleString('en-IN')})` : ''}</div>
-                          )}
+                      const isExpanded = expandedRowKeys.has(String(item.id));
+                      const stageInfos = stages.map(stg => getStageFilledDetails(item, stg));
+                      const filledStagesCount = stageInfos.filter(s => s.isFilled).length;
+                      const fullyCompletedCount = stageInfos.filter(s => s.isFilled && !s.isPendingPayment).length;
+                      const pendingPaymentStage = stageInfos.find(s => s.isFilled && s.isPendingPayment);
 
-                          {followUp && (
-                            <div className="text-[10px] text-slate-600 truncate max-w-[180px]">
-                              <strong className="text-[#1C1C1A]">Called:</strong> {followUp.callDate || "—"} ({followUp.contactedPerson || ""})
-                            </div>
-                          )}
-                        </td>
-
-                        <td className="py-2 px-2 align-top">
-                          {(() => {
-                            const { stages: catStages } = getCategoryAndStages(rawCategoryOpt, subOpt);
-                            const allAttachments: Array<{ fileName: string; stage: string }> = [];
-                            const seenFiles = new Set<string>();
-
-                            catStages.forEach(stg => {
-                              const stgInfo = getStageFilledDetails(item, stg);
-                              if (stgInfo.isFilled && stgInfo.file && !seenFiles.has(stgInfo.file)) {
-                                seenFiles.add(stgInfo.file);
-                                allAttachments.push({
-                                  fileName: stgInfo.file,
-                                  stage: stg
-                                });
-                              }
-                            });
-
-                            if (allAttachments.length === 0) {
-                              return <span className="text-slate-400 text-[10px]">—</span>;
-                            }
-                            return (
-                              <div className="flex flex-col gap-1">
-                                {allAttachments.map((att, idx) => (
-                                  <button
-                                    key={idx}
-                                    type="button"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      openFilePreview(att.fileName);
-                                    }}
-                                    className="px-2 py-1 bg-[#FCFBF9] hover:bg-[#F5F0EA] border border-[#E8E4DF] text-[#1C1C1A] rounded-lg font-semibold text-[10px] flex items-center gap-1 cursor-pointer transition-colors"
-                                    title={att.stage ? `${att.stage}: ${getFileNameOnly(att.fileName)}` : getFileNameOnly(att.fileName)}
-                                  >
-                                    <Paperclip className="w-3 h-3 text-[#C9A84C] shrink-0" />
-                                    <span className="truncate max-w-[90px]">{getFileNameOnly(att.fileName)}</span>
-                                  </button>
-                                ))}
-                              </div>
-                            );
-                          })()}
-                        </td>
-
-                        <td className="py-2 px-2 align-top text-right">
-                          <div className="flex items-center justify-end gap-1.5">
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                openEditEntry(item);
-                              }}
-                              className="p-1.5 text-indigo-600 hover:bg-indigo-50 border border-indigo-200 rounded transition-colors cursor-pointer"
-                              title="Edit work entry details"
-                            >
-                              <Edit className="w-3 h-3" />
-                            </button>
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                toggleRowExpand(item.id);
-                              }}
-                              className={`px-2.5 py-1 rounded-lg text-[10px] font-bold flex items-center gap-1 cursor-pointer shadow-2xs transition-all ${isExpanded
-                                  ? "bg-[#714B67] text-white"
-                                  : "bg-[#C9A84C] hover:bg-[#b8973b] text-white"
-                                }`}
-                              title="Inspect Stages directly below row"
-                            >
-                              <Eye className="w-3 h-3" /> {isExpanded ? "Hide Stages" : "Inspect Stages"}
-                            </button>
-                            <button
-                              type="button"
-                              onClick={(e) => handleDeleteLog(item.id, e)}
-                              className="p-1 text-slate-400 hover:text-rose-600 rounded hover:bg-rose-50 transition-colors cursor-pointer"
-                              title="Delete entry"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-
-                      {/* EXPANDED STAGES CONTAINER ROW (CLEAN, Sleek & Non-Messy) */}
-                      {isExpanded && (
-                        <tr key={`expanded_${item.id}`} className="bg-[#FAF9F5] border-b border-[#E8E4DF] animate-fade-in">
-                          <td colSpan={7} className="p-3 sm:p-5">
-                            <div className="bg-white rounded-2xl border border-[#E8E4DF] border-l-4 border-l-[#C9A84C] shadow-sm overflow-hidden text-xs">
-                              {/* Header Bar */}
-                              <div className="px-4 py-3 bg-[#FCFBF9] border-b border-[#E8E4DF] flex flex-wrap items-center justify-between gap-3">
-                                <div className="flex items-center gap-3">
-                                  <span className="px-3 py-1 bg-amber-50 text-amber-900 border border-amber-200/80 rounded-full font-extrabold text-[11px] uppercase tracking-wider">
-                                    Stage Progress: {filledStagesCount} of {stages.length} Completed
-                                  </span>
-                                  <div className="text-xs text-slate-600 font-bold hidden sm:block">
-                                    {item.bankName || "Bank"} — {item.branchName || "Branch"} ({item.noOfCount || 1} Count)
+                      return (
+                        <React.Fragment key={item.id}>
+                          <tr
+                            className={`transition-colors cursor-pointer ${isExpanded ? "bg-[#FCFBF9]" : "hover:bg-[#FCFBF9]"
+                              }`}
+                            onClick={() => toggleRowExpand(item.id)}
+                          >
+                            <td className="py-2 px-2 align-top">
+                              <div className="flex items-center gap-1.5">
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    toggleRowExpand(item.id);
+                                  }}
+                                  className="p-1 rounded hover:bg-slate-200/70 text-[#C9A84C] transition-colors shrink-0 cursor-pointer"
+                                  title={isExpanded ? "Collapse stage details" : "Expand stage details"}
+                                >
+                                  {isExpanded ? <ChevronDown className="w-4 h-4 text-[#C9A84C]" /> : <ChevronRight className="w-4 h-4 text-slate-400" />}
+                                </button>
+                                <div>
+                                  <div className="font-bold text-[#1C1C1A] flex items-center gap-1.5">
+                                    <Calendar className="w-3.5 h-3.5 text-[#C9A84C] shrink-0" />
+                                    {item.workDate ? new Date(item.workDate).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }) : "N/A"}
+                                  </div>
+                                  <div className="text-[11px] text-[#5D5B57] flex items-center gap-1 mt-0.5 font-medium">
+                                    <User className="w-3 h-3 text-slate-400 shrink-0" />
+                                    {item.employeeName || item.employeeId || "Staff Member"}
                                   </div>
                                 </div>
+                              </div>
+                            </td>
 
-                                <div className="flex items-center gap-2">
-                                  <button
-                                    type="button"
-                                    onClick={() => openNextStepModal(item)}
-                                    className="px-3 py-1.5 bg-[#714B67] hover:bg-[#5F3F56] text-white rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-2xs transition-all"
-                                  >
-                                    <ArrowRight className="w-3.5 h-3.5" /> Next Stage Step
-                                  </button>
+                            <td className="py-2 px-2 align-top">
+                              <div className="font-bold text-[#1C1C1A]">{item.bankName || "N/A"}</div>
+                              <div className="text-[11px] text-[#5D5B57] font-medium">{item.branchName || "N/A"}</div>
+                            </td>
+
+                            <td className="py-2 px-2 align-top">
+                              <span className="px-2 py-0.5 bg-[#C9A84C] text-white font-bold rounded text-[9px] uppercase tracking-wider inline-block mb-1 shadow-2xs">
+                                {categoryOpt}
+                              </span>
+                              <div className="font-bold text-[#1C1C1A] text-xs">
+                                {subOpt}
+                              </div>
+                              <div className="text-[9.5px] font-semibold text-[#714B67] mt-0.5 flex items-center gap-1">
+                                {pendingPaymentStage ? (
+                                  <span className="text-rose-700 font-bold bg-rose-50 border border-rose-200 px-1.5 py-0.5 rounded text-[8.5px]">
+                                    ⚠️ ₹{pendingPaymentStage.pendingAmtVal.toLocaleString("en-IN")} Payment Pending
+                                  </span>
+                                ) : (
+                                  <span>Stages: {filledStagesCount}/{stages.length} Filled</span>
+                                )}
+                              </div>
+                            </td>
+
+                            <td className="py-2 px-2 align-top text-center">
+                              <span className="px-2.5 py-1 bg-[#FCFBF9] text-[#1C1C1A] font-bold rounded-lg text-xs inline-block border border-[#E8E4DF]">
+                                {item.noOfCount || "1"}
+                              </span>
+                            </td>
+
+                            <td className="py-2 px-2 align-top text-right font-black text-emerald-700">
+                              ₹{getItemAmount(item).toLocaleString("en-IN")}
+                            </td>
+
+                            <td className="py-2.5 px-3 align-top space-y-1 text-[11px] leading-snug">
+                              {item.dispatchedBy ? (
+                                <div><span className="text-slate-400 font-semibold">Dispatched By:</span> <strong className="text-[#1C1C1A]">{item.dispatchedBy}</strong></div>
+                              ) : item.printedBy ? (
+                                <div><span className="text-slate-400 font-semibold">Printed By:</span> <strong className="text-[#1C1C1A]">{item.printedBy}</strong></div>
+                              ) : item.preparedBy ? (
+                                <div><span className="text-slate-400 font-semibold">Prepared By:</span> <strong className="text-[#1C1C1A]">{item.preparedBy}</strong></div>
+                              ) : (
+                                <div><span className="text-slate-400 font-semibold">Brought By:</span> <strong className="text-[#1C1C1A]">{item.broughtBy || item.employeeName || "Staff"}</strong></div>
+                              )}
+
+                              {item.billNo && (
+                                <div className="text-[10px] text-indigo-700 font-bold">Bill #{item.billNo} {item.billAmount ? `(₹${parseFloat(item.billAmount).toLocaleString('en-IN')})` : ''}</div>
+                              )}
+
+                              {followUp && (
+                                <div className="text-[10px] text-slate-600 truncate max-w-[180px]">
+                                  <strong className="text-[#1C1C1A]">Called:</strong> {followUp.callDate || "—"} ({followUp.contactedPerson || ""})
                                 </div>
-                              </div>
-                              {/* STAGES SUB-TABLE FORMAT */}
-                              <div className="p-4 overflow-x-auto">
-                                <table className="w-full text-left border-collapse border border-slate-200 rounded-xl overflow-hidden shadow-2xs">
-                                  <thead>
-                                    <tr className="bg-slate-100/90 text-slate-700 font-extrabold text-[10px] uppercase tracking-wider border-b border-slate-250">
-                                      <th className="py-2.5 px-3 w-10 text-center">#</th>
-                                      <th className="py-2.5 px-3">Work Stage</th>
-                                      <th className="py-2.5 px-3">Allocation Date</th>
-                                      <th className="py-2.5 px-3">Staff In-Charge</th>
-                                      <th className="py-2.5 px-3 text-center">Count</th>
-                                      <th className="py-2.5 px-3 text-right">Amount / Rate</th>
-                                      <th className="py-2.5 px-3 text-center">Attachment</th>
-                                      <th className="py-2.5 px-3 text-right">Form Data</th>
-                                    </tr>
-                                  </thead>
-                                  <tbody className="divide-y divide-slate-200 text-xs font-medium">
-                                    {stages.map((stgName, idx) => {
-                                      const info = getStageFilledDetails(item, stgName);
-                                      const isStageOpen = activeNestedStage[String(item.id)] === stgName;
-                                      const formattedDate = info.date && info.date !== 'N/A'
-                                        ? new Date(info.date).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })
-                                        : info.date;
+                              )}
+                            </td>
 
-                                      return (
-                                        <React.Fragment key={idx}>
-                                          {/* Stage Row in Table */}
-                                          <tr
-                                            onClick={() => {
-                                              if (info.isFilled) {
-                                                setActiveNestedStage(prev => ({
-                                                  ...prev,
-                                                  [String(item.id)]: isStageOpen ? null : stgName
-                                                }));
-                                              }
-                                            }}
-                                            className={`transition-colors ${info.isFilled
-                                                ? isStageOpen
-                                                  ? "bg-amber-50/70 font-semibold cursor-pointer"
-                                                  : "hover:bg-slate-50/80 cursor-pointer"
-                                                : "bg-slate-50/40 text-slate-400 opacity-60"
-                                              }`}
-                                          >
-                                            {/* Status Badge */}
-                                            <td className="py-2.5 px-3 text-center align-middle">
-                                              {info.isFilled ? (
-                                                <div className="w-5 h-5 rounded-full bg-[#C9A84C] text-white flex items-center justify-center font-bold text-[10px] mx-auto shadow-2xs">
-                                                  ✓
-                                                </div>
-                                              ) : (
-                                                <span className="text-[10px] font-bold text-slate-400">{idx + 1}</span>
-                                              )}
-                                            </td>
-
-                                            {/* Work Stage Name */}
-                                            <td className="py-2.5 px-3 align-middle font-bold text-slate-800 uppercase">
-                                              {stgName}
-                                              {info.isFilled ? (
-                                                <span className="ml-2 px-1.5 py-0.5 bg-emerald-50 text-emerald-700 border border-emerald-200 text-[8.5px] font-bold rounded uppercase">
-                                                  Completed
-                                                </span>
-                                              ) : (
-                                                <span className="ml-2 text-[8.5px] text-slate-400 font-semibold uppercase">
-                                                  Pending
-                                                </span>
-                                              )}
-                                            </td>
-
-                                            {/* Execution Date */}
-                                            <td className="py-2.5 px-3 align-middle text-slate-600 font-semibold">
-                                              {info.isFilled ? formattedDate : "—"}
-                                            </td>
-
-                                            {/* Staff */}
-                                            <td className="py-2.5 px-3 align-middle text-slate-700 font-bold">
-                                              {info.isFilled && info.staff ? (
-                                                <div>
-                                                  <div>{info.staff}</div>
-                                                  <span className="text-[9px] text-slate-400 font-normal">{info.staffLabel}</span>
-                                                </div>
-                                              ) : "—"}
-                                            </td>
-
-                                            {/* Count */}
-                                            <td className="py-2.5 px-3 align-middle text-center font-bold text-slate-700">
-                                              {info.isFilled ? (info.count || "1") : "—"}
-                                            </td>
-
-                                            {/* Amount / Rate */}
-                                            <td className="py-2.5 px-3 align-middle text-right font-black text-emerald-700">
-                                              {info.isFilled ? (
-                                                (stgName.includes("PREPARE BILL") || stgName.includes("REQUEST PAYMENT"))
-                                                  ? (info.billAmount && Number(info.billAmount) > 0
-                                                      ? `₹${Number(info.billAmount).toLocaleString("en-IN")}`
-                                                      : (info.stageAmount && Number(info.stageAmount) > 0
-                                                          ? `₹${Number(info.stageAmount).toLocaleString("en-IN")}`
-                                                          : "—"))
-                                                  : stgName.includes("DISPATCH")
-                                                    ? (info.stageAmount && Number(info.stageAmount) > 0
-                                                        ? `₹${Number(info.stageAmount).toLocaleString("en-IN")}`
-                                                        : "—")
-                                                    : (info.finalRate && Number(info.finalRate) > 0)
-                                                      ? `₹${info.finalRate}/notice`
-                                                      : (item.finalRate && Number(item.finalRate) > 0)
-                                                        ? `₹${item.finalRate}/notice`
-                                                        : (info.stageAmount && Number(info.stageAmount) > 0)
-                                                          ? `₹${Number(info.stageAmount).toLocaleString("en-IN")}`
-                                                          : "—"
-                                              ) : "—"}
-                                            </td>
-
-                                            {/* Attachment */}
-                                            <td className="py-2.5 px-3 align-middle text-center">
-                                              {info.isFilled && info.file ? (
-                                                <button
-                                                  type="button"
-                                                  onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    openFilePreview(info.file!);
-                                                  }}
-                                                  className="px-2 py-1 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 rounded-md text-[10px] font-bold inline-flex items-center gap-1 transition-colors"
-                                                >
-                                                  <Paperclip className="w-3 h-3 text-[#C9A84C]" /> File
-                                                </button>
-                                              ) : (
-                                                <span className="text-slate-400 text-[10px]">—</span>
-                                              )}
-                                            </td>
-
-                                            {/* Actions / View & Edit Form Details */}
-                                            <td className="py-2.5 px-3 align-middle text-right">
-                                              {info.isFilled ? (
-                                                <div className="flex items-center justify-end gap-1.5">
-                                                  <button
-                                                    type="button"
-                                                    onClick={(e) => {
-                                                      e.stopPropagation();
-                                                      openEditEntry(item, stgName);
-                                                    }}
-                                                    className="px-2 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded-lg text-[10px] font-bold inline-flex items-center gap-1 transition-colors cursor-pointer"
-                                                    title={`Edit ${stgName} stage data`}
-                                                  >
-                                                    <Edit className="w-3 h-3" /> Edit
-                                                  </button>
-                                                  <button
-                                                    type="button"
-                                                    onClick={(e) => {
-                                                      e.stopPropagation();
-                                                      setActiveNestedStage(prev => ({
-                                                        ...prev,
-                                                        [String(item.id)]: isStageOpen ? null : stgName
-                                                      }));
-                                                    }}
-                                                    className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-lg text-[10px] font-bold inline-flex items-center gap-1 transition-colors cursor-pointer"
-                                                  >
-                                                    {isStageOpen ? "Hide Data" : "View Data"}
-                                                    {isStageOpen ? <ChevronDown className="w-3 h-3 text-[#C9A84C]" /> : <ChevronRight className="w-3 h-3 text-slate-400" />}
-                                                  </button>
-                                                </div>
-                                              ) : (
-                                                <span className="text-slate-400 text-[10px] italic">Pending</span>
-                                              )}
-                                            </td>
-                                          </tr>
-
-                                          {/* EXPANDED STAGE FULL FORM DATA TABLE */}
-                                          {isStageOpen && info.isFilled && (
-                                            <tr className="bg-amber-50/40 border-b border-amber-200 animate-fade-in">
-                                              <td colSpan={8} className="p-4">
-                                                <div className="bg-white rounded-xl border border-amber-200 p-4 shadow-sm space-y-3">
-                                                  <div className="flex items-center justify-between border-b border-slate-200 pb-2">
-                                                    <h6 className="text-xs font-black uppercase text-[#1C1C1A] flex items-center gap-2">
-                                                      <FileText className="w-4 h-4 text-[#C9A84C]" />
-                                                      All Form Data Filled for <span className="text-[#714B67]">{stgName}</span>
-                                                    </h6>
-                                                    <div className="flex items-center gap-2">
-                                                      <button
-                                                        type="button"
-                                                        onClick={() => openEditEntry(item, stgName)}
-                                                        className="px-2.5 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 text-[10px] font-bold rounded-lg inline-flex items-center gap-1 cursor-pointer transition-colors"
-                                                      >
-                                                        <Edit className="w-3 h-3" /> Edit Stage Data
-                                                      </button>
-                                                      <span className="px-2.5 py-0.5 bg-emerald-50 text-emerald-700 border border-emerald-200 text-[9.5px] font-bold rounded-full uppercase">
-                                                        Verified Stage Log
-                                                      </span>
-                                                    </div>
-                                                  </div>
-
-                                                  {/* 2-Column Key-Value Form Details Table */}
-                                                  <table className="w-full text-xs text-left border-collapse border border-slate-200 rounded-lg overflow-hidden">
-                                                    <tbody className="divide-y divide-slate-200 font-semibold">
-                                                      <tr className="bg-slate-50">
-                                                        <td className="py-2.5 px-3.5 w-1/3 text-slate-500 font-bold uppercase text-[9.5px]">Work Stage</td>
-                                                        <td className="py-2.5 px-3.5 font-black text-slate-800">{stgName}</td>
-                                                      </tr>
-                                                      <tr>
-                                                        <td className="py-2.5 px-3.5 text-slate-500 font-bold uppercase text-[9.5px]">Execution Staff ({info.staffLabel})</td>
-                                                        <td className="py-2.5 px-3.5 text-slate-800 font-bold">{info.staff || "N/A"}</td>
-                                                      </tr>
-                                                      <tr className="bg-slate-50">
-                                                        <td className="py-2.5 px-3.5 text-slate-500 font-bold uppercase text-[9.5px]">Execution Date</td>
-                                                        <td className="py-2.5 px-3.5 text-slate-800 font-bold">{formattedDate}</td>
-                                                      </tr>
-                                                      <tr>
-                                                        <td className="py-2.5 px-3.5 text-slate-500 font-bold uppercase text-[9.5px]">No. of Counts / Quantity</td>
-                                                        <td className="py-2.5 px-3.5 text-slate-800 font-bold">{info.count || "1"} Count</td>
-                                                      </tr>
-
-                                                      {info.finalRate && (
-                                                        <tr className="bg-slate-50">
-                                                          <td className="py-2.5 px-3.5 text-slate-500 font-bold uppercase text-[9.5px]">Per Notice Rate</td>
-                                                          <td className="py-2.5 px-3.5 font-bold text-purple-700">₹{info.finalRate} / notice</td>
-                                                        </tr>
-                                                      )}
-
-                                                      {info.stageAmount && (
-                                                        <tr>
-                                                          <td className="py-2.5 px-3.5 text-slate-500 font-bold uppercase text-[9.5px]">Calculated Stage Amount</td>
-                                                          <td className="py-2.5 px-3.5 font-black text-emerald-700">₹{Number(info.stageAmount).toLocaleString("en-IN")}</td>
-                                                        </tr>
-                                                      )}
-
-                                                      {info.billNo && (
-                                                        <tr className="bg-slate-50">
-                                                          <td className="py-2.5 px-3.5 text-slate-500 font-bold uppercase text-[9.5px]">Bill Details</td>
-                                                          <td className="py-2.5 px-3.5 font-bold text-indigo-700">
-                                                            Bill #{info.billNo} {info.billDate ? `(${info.billDate})` : ""} {info.billAmount ? `- ₹${parseFloat(info.billAmount).toLocaleString("en-IN")}` : ""}
-                                                          </td>
-                                                        </tr>
-                                                      )}
-
-                                                      {info.finances && (
-                                                        <tr>
-                                                          <td className="py-2.5 px-3.5 text-slate-500 font-bold uppercase text-[9.5px]">Financial Breakdown</td>
-                                                          <td className="py-2.5 px-3.5">
-                                                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px]">
-                                                              <div>Total Revenue: <strong className="text-slate-800">₹{Number(info.finances.totalRevenue || 0).toLocaleString("en-IN")}</strong></div>
-                                                              <div>Officer Share: <strong className="text-slate-800">₹{Number(info.finances.bankOfficerTotal || 0).toLocaleString("en-IN")}</strong></div>
-                                                              <div>Own Expense: <strong className="text-slate-800">₹{Number(info.finances.ownExpenses || 0).toLocaleString("en-IN")}</strong></div>
-                                                              <div className="text-emerald-700 font-bold">Gross Profit: ₹{Number(info.finances.grossProfitBeforeDispatch || 0).toLocaleString("en-IN")}</div>
-                                                            </div>
-                                                          </td>
-                                                        </tr>
-                                                      )}
-
-                                                      {info.callAt && (
-                                                        <tr className="bg-slate-50">
-                                                          <td className="py-2.5 px-3.5 text-slate-500 font-bold uppercase text-[9.5px]">Call &amp; Contact Follow-up</td>
-                                                          <td className="py-2.5 px-3.5">
-                                                            <div>Called Date/Time: <strong>{info.callAt}</strong></div>
-                                                            {info.pendingAmount && <div className="text-rose-600 font-bold">Pending Amount: ₹{Number(info.pendingAmount).toLocaleString("en-IN")}</div>}
-                                                          </td>
-                                                        </tr>
-                                                      )}
-
-                                                      {info.remarks && (
-                                                        <tr>
-                                                          <td className="py-2.5 px-3.5 text-slate-500 font-bold uppercase text-[9.5px]">Work Notes &amp; Remarks</td>
-                                                          <td className="py-2.5 px-3.5 text-slate-700 whitespace-pre-wrap">{info.remarks}</td>
-                                                        </tr>
-                                                      )}
-
-                                                      {info.file && (
-                                                        <tr className="bg-amber-50/50">
-                                                          <td className="py-2.5 px-3.5 text-amber-900 font-bold uppercase text-[9.5px]">Uploaded Document / Attachment</td>
-                                                          <td className="py-2.5 px-3.5">
-                                                            <button
-                                                              type="button"
-                                                              onClick={() => openFilePreview(info.file!)}
-                                                              className="px-3 py-1 bg-[#C9A84C] hover:bg-[#b8973b] text-white rounded-md text-xs font-bold inline-flex items-center gap-1 transition-colors shadow-2xs"
-                                                            >
-                                                              <Paperclip className="w-3.5 h-3.5" /> View {getFileNameOnly(info.file)}
-                                                            </button>
-                                                          </td>
-                                                        </tr>
-                                                      )}
-                                                    </tbody>
-                                                  </table>
-                                                </div>
-                                              </td>
-                                            </tr>
-                                          )}
-                                        </React.Fragment>
-                                      );
-                                    })}
-                                  </tbody>
-                                </table>
-                              </div>
-
-                              {/* SEPARATE BILL FOLLOW-UP LOGS & CALL HISTORY */}
+                            <td className="py-2 px-2 align-top">
                               {(() => {
-                                const groupLogsList = item.allLogs || [item];
-                                const followUpLogs = groupLogsList.filter(i =>
-                                  (i.businessDevSubOption || i.subCategory || i.category || "").toUpperCase().includes("FOLLOW UP")
-                                );
-                                if (followUpLogs.length === 0) return null;
+                                const { stages: catStages } = getCategoryAndStages(rawCategoryOpt, subOpt);
+                                const allAttachments: Array<{ fileName: string; stage: string }> = [];
+                                const seenFiles = new Set<string>();
 
+                                catStages.forEach(stg => {
+                                  const stgInfo = getStageFilledDetails(item, stg);
+                                  if (stgInfo.isFilled && stgInfo.file && !seenFiles.has(stgInfo.file)) {
+                                    seenFiles.add(stgInfo.file);
+                                    allAttachments.push({
+                                      fileName: stgInfo.file,
+                                      stage: stg
+                                    });
+                                  }
+                                });
+
+                                if (allAttachments.length === 0) {
+                                  return <span className="text-slate-400 text-[10px]">—</span>;
+                                }
                                 return (
-                                  <div className="p-4 pt-0">
-                                    <div className="bg-amber-50/60 border border-amber-200/90 rounded-xl p-3.5 space-y-2.5">
-                                      <div className="flex items-center justify-between">
-                                        <h4 className="text-[11px] font-black uppercase text-[#714B67] flex items-center gap-1.5">
-                                          <PhoneCall className="w-3.5 h-3.5 text-[#C9A84C]" />
-                                          Bill Follow-Up Activity Logs ({followUpLogs.length})
-                                        </h4>
-                                      </div>
-                                      <div className="overflow-x-auto border border-amber-200/80 rounded-lg bg-white shadow-2xs">
-                                        <table className="w-full text-left border-collapse text-xs">
-                                          <thead>
-                                            <tr className="bg-amber-100/70 text-amber-900 font-extrabold text-[9.5px] uppercase tracking-wider border-b border-amber-200">
-                                              <th className="py-2 px-3 w-8 text-center">#</th>
-                                              <th className="py-2 px-3">Call Date &amp; Time</th>
-                                              <th className="py-2 px-3">Contacted Person / Officer</th>
-                                              <th className="py-2 px-3">Staff In-Charge</th>
-                                              <th className="py-2 px-3">Remarks / Call Details</th>
-                                              <th className="py-2 px-3 text-center">Proof File</th>
-                                              <th className="py-2 px-3 text-right">Actions</th>
-                                            </tr>
-                                          </thead>
-                                          <tbody className="divide-y divide-amber-100 text-slate-700 font-medium text-[11px]">
-                                            {followUpLogs.map((fuLog, fuIdx) => {
-                                              const fDetails = parseFollowUpDetails(fuLog.followUpDetails);
-                                              const callDate = fDetails?.callDate || (fuLog.workDate ? new Date(fuLog.workDate).toLocaleDateString("en-IN") : "—");
-                                              const callTime = fDetails?.callTime || "";
-                                              const contactedPerson = fuLog.personName || fDetails?.contactedPerson || "Officer";
-                                              const remarksText = fuLog.remarks || fDetails?.remarks || "—";
-                                              const attachmentFile = fuLog.uploadedFileName;
-
-                                              return (
-                                                <tr key={fuLog.id || fuIdx} className="hover:bg-amber-50/60 transition-colors">
-                                                  <td className="py-2 px-3 text-center font-bold text-amber-800">{fuIdx + 1}</td>
-                                                  <td className="py-2 px-3 font-semibold text-slate-800">
-                                                    {callDate} {callTime && <span className="text-[10px] text-slate-500 font-normal">({callTime})</span>}
-                                                  </td>
-                                                  <td className="py-2 px-3 font-bold text-slate-800">{contactedPerson}</td>
-                                                  <td className="py-2 px-3 text-slate-600 font-semibold">{fuLog.employeeName || fuLog.employeeId || "Staff"}</td>
-                                                  <td className="py-2 px-3 text-slate-700 max-w-xs whitespace-pre-wrap">{remarksText}</td>
-                                                  <td className="py-2 px-3 text-center">
-                                                    {attachmentFile ? (
-                                                      <button
-                                                        type="button"
-                                                        onClick={() => openFilePreview(attachmentFile)}
-                                                        className="px-2 py-0.5 bg-amber-100 hover:bg-amber-200 text-amber-900 border border-amber-300 rounded text-[10px] font-bold inline-flex items-center gap-1 cursor-pointer transition-colors"
-                                                      >
-                                                        <Paperclip className="w-3 h-3 text-[#C9A84C]" /> Proof
-                                                      </button>
-                                                    ) : (
-                                                      <span className="text-slate-400 text-[10px]">—</span>
-                                                    )}
-                                                  </td>
-                                                  <td className="py-2 px-3 text-right">
-                                                    <button
-                                                      type="button"
-                                                      onClick={() => handleDeleteLog(fuLog.id)}
-                                                      className="p-1 text-slate-400 hover:text-rose-600 rounded hover:bg-rose-50 transition-colors cursor-pointer"
-                                                      title="Delete follow-up log"
-                                                    >
-                                                      <Trash2 className="w-3.5 h-3.5" />
-                                                    </button>
-                                                  </td>
-                                                </tr>
-                                              );
-                                            })}
-                                          </tbody>
-                                        </table>
-                                      </div>
-                                    </div>
+                                  <div className="flex flex-col gap-1">
+                                    {allAttachments.map((att, idx) => (
+                                      <button
+                                        key={idx}
+                                        type="button"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          openFilePreview(att.fileName);
+                                        }}
+                                        className="px-2 py-1 bg-[#FCFBF9] hover:bg-[#F5F0EA] border border-[#E8E4DF] text-[#1C1C1A] rounded-lg font-semibold text-[10px] flex items-center gap-1 cursor-pointer transition-colors"
+                                        title={att.stage ? `${att.stage}: ${att.fileName.split('/').pop()}` : att.fileName.split('/').pop()}
+                                      >
+                                        <FileText className="w-3 h-3 text-[#C9A84C] shrink-0" />
+                                        <span className="truncate">{att.fileName.split('/').pop()}</span>
+                                      </button>
+                                    ))}
                                   </div>
                                 );
                               })()}
-                            </div>
-                          </td>
-                        </tr>
-                      )}
-                    </React.Fragment>
-                  );
-                })}
-              </tbody>
-            </table>
+                            </td>
+
+                            <td className="py-2 px-2 align-top text-right">
+                              <div className="flex items-center justify-end gap-1.5">
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    openEditEntry(item);
+                                  }}
+                                  className="p-1.5 text-indigo-600 hover:bg-indigo-50 border border-indigo-200 rounded transition-colors cursor-pointer"
+                                  title="Edit work entry details"
+                                >
+                                  <Edit className="w-3 h-3" />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    toggleRowExpand(item.id);
+                                  }}
+                                  className={`px-2.5 py-1 rounded-lg text-[10px] font-bold flex items-center gap-1 cursor-pointer shadow-2xs transition-all ${isExpanded
+                                    ? "bg-[#714B67] text-white"
+                                    : "bg-[#C9A84C] hover:bg-[#b8973b] text-white"
+                                    }`}
+                                  title="Inspect Stages directly below row"
+                                >
+                                  <Eye className="w-3 h-3" /> {isExpanded ? "Hide Stages" : "Inspect Stages"}
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={(e) => handleDeleteLog(item.id, e)}
+                                  className="p-1 text-slate-400 hover:text-rose-600 rounded hover:bg-rose-50 transition-colors cursor-pointer"
+                                  title="Delete entry"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+
+                          {/* EXPANDED STAGES CONTAINER ROW (CLEAN, Sleek & Non-Messy) */}
+                          {isExpanded && (
+                            <tr key={`expanded_${item.id}`} className="bg-[#FAF9F5] border-b border-[#E8E4DF] animate-fade-in">
+                              <td colSpan={7} className="p-3 sm:p-5">
+                                <div className="bg-white rounded-2xl border border-[#E8E4DF] border-l-4 border-l-[#C9A84C] shadow-sm overflow-hidden text-xs">
+                                  {/* Header Bar */}
+                                  <div className="px-4 py-3 bg-[#FCFBF9] border-b border-[#E8E4DF] flex flex-wrap items-center justify-between gap-3">
+                                    <div className="flex items-center gap-3">
+                                      <span className={`px-3 py-1 border rounded-full font-extrabold text-[11px] uppercase tracking-wider ${pendingPaymentStage
+                                        ? "bg-rose-100 text-rose-900 border-rose-300"
+                                        : "bg-amber-50 text-amber-900 border-amber-200/80"
+                                        }`}>
+                                        Stage Progress: {fullyCompletedCount} of {stages.length} Completed {pendingPaymentStage ? `(⚠️ ₹${pendingPaymentStage.pendingAmtVal.toLocaleString("en-IN")} Pending)` : ""}
+                                      </span>
+                                      <div className="text-xs text-slate-600 font-bold hidden sm:block">
+                                        {item.bankName || "Bank"} — {item.branchName || "Branch"} ({item.noOfCount || 1} Count)
+                                      </div>
+                                    </div>
+
+                                    <div className="flex items-center gap-2">
+                                      <button
+                                        type="button"
+                                        onClick={() => openNextStepModal(item)}
+                                        className="px-3 py-1.5 bg-[#714B67] hover:bg-[#5F3F56] text-white rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-2xs transition-all"
+                                      >
+                                        <ArrowRight className="w-3.5 h-3.5" /> Next Stage Step
+                                      </button>
+                                    </div>
+                                  </div>
+                                  {/* STAGES SUB-TABLE FORMAT */}
+                                  <div className="p-4 overflow-x-auto">
+                                    <table className="w-full text-left border-collapse border border-slate-200 rounded-xl overflow-hidden shadow-2xs">
+                                      <thead>
+                                        <tr className="bg-slate-100/90 text-slate-700 font-extrabold text-[10px] uppercase tracking-wider border-b border-slate-250">
+                                          <th className="py-2.5 px-3 w-10 text-center">#</th>
+                                          <th className="py-2.5 px-3">Work Stage</th>
+                                          <th className="py-2.5 px-3">Allocation Date</th>
+                                          <th className="py-2.5 px-3">Staff In-Charge</th>
+                                          <th className="py-2.5 px-3 text-center">Count</th>
+                                          <th className="py-2.5 px-3 text-right">Amount / Rate</th>
+                                          <th className="py-2.5 px-3 text-center">Attachment</th>
+                                          <th className="py-2.5 px-3 text-right">Form Data</th>
+                                        </tr>
+                                      </thead>
+                                      <tbody className="divide-y divide-slate-200 text-xs font-medium">
+                                        {stages.map((stgName, idx) => {
+                                          const info = getStageFilledDetails(item, stgName);
+                                          const isStageOpen = activeNestedStage[String(item.id)] === stgName;
+                                          const formattedDate = info.date && info.date !== 'N/A'
+                                            ? new Date(info.date).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })
+                                            : info.date;
+
+                                          return (
+                                            <React.Fragment key={idx}>
+                                              {/* Stage Row in Table */}
+                                              <tr
+                                                onClick={() => {
+                                                  if (info.isFilled) {
+                                                    setActiveNestedStage(prev => ({
+                                                      ...prev,
+                                                      [String(item.id)]: isStageOpen ? null : stgName
+                                                    }));
+                                                  }
+                                                }}
+                                                className={`transition-colors ${info.isFilled
+                                                  ? isStageOpen
+                                                    ? "bg-amber-50/70 font-semibold cursor-pointer"
+                                                    : "hover:bg-slate-50/80 cursor-pointer"
+                                                  : "bg-slate-50/40 text-slate-400 opacity-60"
+                                                  }`}
+                                              >
+                                                {/* Status Badge */}
+                                                <td className="py-2.5 px-3 text-center align-middle">
+                                                  {info.isFilled ? (
+                                                    info.isPendingPayment ? (
+                                                      <div className="w-5 h-5 rounded-full bg-rose-500 text-white flex items-center justify-center font-bold text-[9px] mx-auto shadow-2xs" title={`Payment Pending ₹${info.pendingAmtVal.toLocaleString("en-IN")}`}>
+                                                        ⚠️
+                                                      </div>
+                                                    ) : (
+                                                      <div className="w-5 h-5 rounded-full bg-[#C9A84C] text-white flex items-center justify-center font-bold text-[10px] mx-auto shadow-2xs">
+                                                        ✓
+                                                      </div>
+                                                    )
+                                                  ) : (
+                                                    <span className="text-[10px] font-bold text-slate-400">{idx + 1}</span>
+                                                  )}
+                                                </td>
+
+                                                {/* Work Stage Name */}
+                                                <td className="py-2.5 px-3 align-middle font-bold text-slate-800 uppercase">
+                                                  {stgName}
+                                                  {info.isFilled ? (
+                                                    info.isPendingPayment ? (
+                                                      <span className="ml-2 px-2 py-0.5 bg-rose-100 text-rose-800 border border-rose-300 text-[8.5px] font-black rounded uppercase tracking-tight">
+                                                        ⚠️ Pending (₹{info.pendingAmtVal.toLocaleString("en-IN")})
+                                                      </span>
+                                                    ) : (
+                                                      <span className="ml-2 px-1.5 py-0.5 bg-emerald-50 text-emerald-700 border border-emerald-200 text-[8.5px] font-bold rounded uppercase">
+                                                        Completed
+                                                      </span>
+                                                    )
+                                                  ) : (
+                                                    <span className="ml-2 text-[8.5px] text-slate-400 font-semibold uppercase">
+                                                      Pending
+                                                    </span>
+                                                  )}
+                                                </td>
+
+                                                {/* Execution Date */}
+                                                <td className="py-2.5 px-3 align-middle text-slate-600 font-semibold">
+                                                  {info.isFilled ? formattedDate : "—"}
+                                                </td>
+
+                                                {/* Staff */}
+                                                <td className="py-2.5 px-3 align-middle text-slate-700 font-bold">
+                                                  {info.isFilled && info.staff ? (
+                                                    <div>
+                                                      <div>{info.staff}</div>
+                                                      <span className="text-[9px] text-slate-400 font-normal">{info.staffLabel}</span>
+                                                    </div>
+                                                  ) : "—"}
+                                                </td>
+
+                                                {/* Count */}
+                                                <td className="py-2.5 px-3 align-middle text-center font-bold text-slate-700">
+                                                  {info.isFilled ? (info.count || "1") : "—"}
+                                                </td>
+
+                                                {/* Amount / Rate */}
+                                                <td className="py-2.5 px-3 align-middle text-right font-black text-emerald-700">
+                                                  {info.isFilled ? (
+                                                    (stgName.includes("PREPARE BILL") || stgName.includes("REQUEST PAYMENT"))
+                                                      ? (info.billAmount && Number(info.billAmount) > 0
+                                                        ? `₹${Number(info.billAmount).toLocaleString("en-IN")}`
+                                                        : (info.stageAmount && Number(info.stageAmount) > 0
+                                                          ? `₹${Number(info.stageAmount).toLocaleString("en-IN")}`
+                                                          : "—"))
+                                                      : stgName.includes("DISPATCH")
+                                                        ? (info.stageAmount && Number(info.stageAmount) > 0
+                                                          ? `₹${Number(info.stageAmount).toLocaleString("en-IN")}`
+                                                          : "—")
+                                                        : (info.finalRate && Number(info.finalRate) > 0)
+                                                          ? `₹${info.finalRate}/notice`
+                                                          : (item.finalRate && Number(item.finalRate) > 0)
+                                                            ? `₹${item.finalRate}/notice`
+                                                            : (info.stageAmount && Number(info.stageAmount) > 0)
+                                                              ? `₹${Number(info.stageAmount).toLocaleString("en-IN")}`
+                                                              : "—"
+                                                  ) : "—"}
+                                                </td>
+
+                                                {/* Attachment */}
+                                                <td className="py-2.5 px-3 align-middle text-center">
+                                                  {info.isFilled && info.file ? (
+                                                    <button
+                                                      type="button"
+                                                      onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        openFilePreview(info.file!);
+                                                      }}
+                                                      className="px-2 py-1 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 rounded-md text-[10px] font-bold inline-flex items-center gap-1 transition-colors"
+                                                    >
+                                                      <Paperclip className="w-3 h-3 text-[#C9A84C]" /> File
+                                                    </button>
+                                                  ) : (
+                                                    <span className="text-slate-400 text-[10px]">—</span>
+                                                  )}
+                                                </td>
+
+                                                {/* Actions / View & Edit Form Details */}
+                                                <td className="py-2.5 px-3 align-middle text-right">
+                                                  {info.isFilled ? (
+                                                    <div className="flex items-center justify-end gap-1.5">
+                                                      <button
+                                                        type="button"
+                                                        onClick={(e) => {
+                                                          e.stopPropagation();
+                                                          openEditEntry(item, stgName);
+                                                        }}
+                                                        className="px-2 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded-lg text-[10px] font-bold inline-flex items-center gap-1 transition-colors cursor-pointer"
+                                                        title={`Edit ${stgName} stage data`}
+                                                      >
+                                                        <Edit className="w-3 h-3" /> Edit
+                                                      </button>
+                                                      <button
+                                                        type="button"
+                                                        onClick={(e) => {
+                                                          e.stopPropagation();
+                                                          setActiveNestedStage(prev => ({
+                                                            ...prev,
+                                                            [String(item.id)]: isStageOpen ? null : stgName
+                                                          }));
+                                                        }}
+                                                        className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-lg text-[10px] font-bold inline-flex items-center gap-1 transition-colors cursor-pointer"
+                                                      >
+                                                        {isStageOpen ? "Hide Data" : "View Data"}
+                                                        {isStageOpen ? <ChevronDown className="w-3 h-3 text-[#C9A84C]" /> : <ChevronRight className="w-3 h-3 text-slate-400" />}
+                                                      </button>
+                                                    </div>
+                                                  ) : (
+                                                    <span className="text-slate-400 text-[10px] italic">Pending</span>
+                                                  )}
+                                                </td>
+                                              </tr>
+
+                                              {/* EXPANDED STAGE FULL FORM DATA TABLE */}
+                                              {isStageOpen && info.isFilled && (
+                                                <tr className="bg-amber-50/40 border-b border-amber-200 animate-fade-in">
+                                                  <td colSpan={8} className="p-4">
+                                                    <div className="bg-white rounded-xl border border-amber-200 p-4 shadow-sm space-y-3">
+                                                      <div className="flex items-center justify-between border-b border-slate-200 pb-2">
+                                                        <h6 className="text-xs font-black uppercase text-[#1C1C1A] flex items-center gap-2">
+                                                          <FileText className="w-4 h-4 text-[#C9A84C]" />
+                                                          All Form Data Filled for <span className="text-[#714B67]">{stgName}</span>
+                                                        </h6>
+                                                        <div className="flex items-center gap-2">
+                                                          <button
+                                                            type="button"
+                                                            onClick={() => openEditEntry(item, stgName)}
+                                                            className="px-2.5 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 text-[10px] font-bold rounded-lg inline-flex items-center gap-1 cursor-pointer transition-colors"
+                                                          >
+                                                            <Edit className="w-3 h-3" /> Edit Stage Data
+                                                          </button>
+                                                          <span className="px-2.5 py-0.5 bg-emerald-50 text-emerald-700 border border-emerald-200 text-[9.5px] font-bold rounded-full uppercase">
+                                                            Verified Stage Log
+                                                          </span>
+                                                        </div>
+                                                      </div>
+
+                                                      {/* 2-Column Key-Value Form Details Table */}
+                                                      <table className="w-full text-xs text-left border-collapse border border-slate-200 rounded-lg overflow-hidden">
+                                                        <tbody className="divide-y divide-slate-200 font-semibold">
+                                                          <tr className="bg-slate-50">
+                                                            <td className="py-2.5 px-3.5 w-1/3 text-slate-500 font-bold uppercase text-[9.5px]">Work Stage</td>
+                                                            <td className="py-2.5 px-3.5 font-black text-slate-800">{stgName}</td>
+                                                          </tr>
+                                                          <tr>
+                                                            <td className="py-2.5 px-3.5 text-slate-500 font-bold uppercase text-[9.5px]">Execution Staff ({info.staffLabel})</td>
+                                                            <td className="py-2.5 px-3.5 text-slate-800 font-bold">{info.staff || "N/A"}</td>
+                                                          </tr>
+                                                          <tr className="bg-slate-50">
+                                                            <td className="py-2.5 px-3.5 text-slate-500 font-bold uppercase text-[9.5px]">Execution Date</td>
+                                                            <td className="py-2.5 px-3.5 text-slate-800 font-bold">{formattedDate}</td>
+                                                          </tr>
+                                                          <tr>
+                                                            <td className="py-2.5 px-3.5 text-slate-500 font-bold uppercase text-[9.5px]">No. of Counts / Quantity</td>
+                                                            <td className="py-2.5 px-3.5 text-slate-800 font-bold">{info.count || "1"} Count</td>
+                                                          </tr>
+
+                                                          {info.finalRate && (
+                                                            <tr className="bg-slate-50">
+                                                              <td className="py-2.5 px-3.5 text-slate-500 font-bold uppercase text-[9.5px]">Per Notice Rate</td>
+                                                              <td className="py-2.5 px-3.5 font-bold text-purple-700">₹{info.finalRate} / notice</td>
+                                                            </tr>
+                                                          )}
+                                                          {info.stageAmount && (
+                                                            <tr>
+                                                              <td className="py-2.5 px-3.5 text-slate-500 font-bold uppercase text-[9.5px]">Calculated Stage Amount</td>
+                                                              <td className="py-2.5 px-3.5 font-black text-emerald-700">₹{Number(info.stageAmount).toLocaleString("en-IN")}</td>
+                                                            </tr>
+                                                          )}
+
+                                                          {info.billNo && (
+                                                            <tr className="bg-slate-50">
+                                                              <td className="py-2.5 px-3.5 text-slate-500 font-bold uppercase text-[9.5px]">Bill Details</td>
+                                                              <td className="py-2.5 px-3.5 font-bold text-indigo-700">
+                                                                Bill #{info.billNo} {info.billDate ? `(${info.billDate})` : ""} {info.billAmount ? `- ₹${parseFloat(info.billAmount).toLocaleString("en-IN")}` : ""}
+                                                              </td>
+                                                            </tr>
+                                                          )}
+
+                                                          {stgName.trim().toUpperCase().includes("REQUEST PAYMENT") && (
+                                                            <tr className="bg-purple-50/60">
+                                                              <td className="py-3 px-3.5 text-purple-950 font-bold uppercase text-[9.5px] align-top">
+                                                                Payment Installments &amp; History
+                                                              </td>
+                                                              <td className="py-3 px-3.5">
+                                                                <div className="space-y-3">
+                                                                  <div className="flex flex-wrap items-center justify-between gap-2 bg-white p-3 rounded-xl border border-purple-200">
+                                                                    <div className="flex flex-wrap items-center gap-2 text-xs">
+                                                                      <span className="px-2.5 py-1 bg-purple-100 text-purple-900 font-black rounded-lg">
+                                                                        Total Due: ₹{(info.totalBillVal || Number(info.billAmount || 0)).toLocaleString("en-IN")}
+                                                                      </span>
+                                                                      <span className="px-2.5 py-1 bg-emerald-100 text-emerald-900 font-black rounded-lg">
+                                                                        Total Paid: ₹{info.totalReceivedVal.toLocaleString("en-IN")}
+                                                                      </span>
+                                                                      <span className={`px-2.5 py-1 font-black rounded-lg ${info.pendingAmtVal > 0 ? "bg-rose-100 text-rose-800" : "bg-emerald-50 text-emerald-700 border border-emerald-200"}`}>
+                                                                        {info.pendingAmtVal > 0 ? `⚠️ ₹${info.pendingAmtVal.toLocaleString("en-IN")} Pending` : "✓ Fully Paid"}
+                                                                      </span>
+                                                                    </div>
+                                                                    <button
+                                                                      type="button"
+                                                                      onClick={() => openAddInstallmentModal(item, stgName)}
+                                                                      className="px-3.5 py-1.5 bg-[#714B67] hover:bg-[#5F3F56] text-white text-xs font-black rounded-lg flex items-center gap-1.5 cursor-pointer shadow-xs active:scale-95 transition-all"
+                                                                    >
+                                                                      + Add Payment Installment
+                                                                    </button>
+                                                                  </div>
+
+                                                                  {info.installments && info.installments.length > 0 ? (
+                                                                    <div className="overflow-x-auto border border-purple-200 rounded-xl bg-white shadow-2xs">
+                                                                      <table className="w-full text-left border-collapse text-xs">
+                                                                        <thead>
+                                                                          <tr className="bg-purple-100/70 text-purple-950 font-extrabold text-[9.5px] uppercase tracking-wider border-b border-purple-200">
+                                                                            <th className="py-2 px-3 text-center">#</th>
+                                                                            <th className="py-2 px-3">Payment Date</th>
+                                                                            <th className="py-2 px-3 text-right">Received Amount</th>
+                                                                            <th className="py-2 px-3">Mode</th>
+                                                                            <th className="py-2 px-3">Reference / UTR</th>
+                                                                            <th className="py-2 px-3">Received By</th>
+                                                                            <th className="py-2 px-3 text-center">Proof File</th>
+                                                                            <th className="py-2 px-3 text-right">Action</th>
+                                                                          </tr>
+                                                                        </thead>
+                                                                        <tbody className="divide-y divide-purple-100 font-medium">
+                                                                          {info.installments.map((inst, iIdx) => (
+                                                                            <tr key={inst.id || iIdx} className="hover:bg-purple-50/50 transition-colors">
+                                                                              <td className="py-2 px-3 text-center font-bold text-purple-800">#{inst.installmentNo || iIdx + 1}</td>
+                                                                              <td className="py-2 px-3 font-semibold text-slate-700">{inst.paymentDate || "—"}</td>
+                                                                              <td className="py-2 px-3 text-right font-black text-emerald-700">₹{Number(inst.amount).toLocaleString("en-IN")}</td>
+                                                                              <td className="py-2 px-3 font-bold text-slate-800">{inst.paymentMode || "—"}</td>
+                                                                              <td className="py-2 px-3 font-mono text-[11px] text-purple-900">{inst.paymentRef || "—"}</td>
+                                                                              <td className="py-2 px-3 font-semibold text-slate-700">{inst.personName || "—"}</td>
+                                                                              <td className="py-2 px-3 text-center">
+                                                                                {inst.uploadedFileName ? (
+                                                                                  <button
+                                                                                    type="button"
+                                                                                    onClick={() => openFilePreview(inst.uploadedFileName!)}
+                                                                                    className="px-2 py-0.5 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 rounded text-[10px] font-bold inline-flex items-center gap-1 cursor-pointer"
+                                                                                  >
+                                                                                    <Paperclip className="w-3 h-3 text-[#C9A84C]" /> File
+                                                                                  </button>
+                                                                                ) : "—"}
+                                                                              </td>
+                                                                              <td className="py-2 px-3 text-right">
+                                                                                <button
+                                                                                  type="button"
+                                                                                  onClick={() => handleDeleteInstallment(item, stgName, inst.id)}
+                                                                                  className="p-1 text-slate-400 hover:text-rose-600 rounded hover:bg-rose-50 cursor-pointer transition-colors"
+                                                                                  title="Delete installment"
+                                                                                >
+                                                                                  <Trash2 className="w-3.5 h-3.5" />
+                                                                                </button>
+                                                                              </td>
+                                                                            </tr>
+                                                                          ))}
+                                                                        </tbody>
+                                                                      </table>
+                                                                    </div>
+                                                                  ) : (
+                                                                    <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl text-[11px] text-slate-500 italic text-center">
+                                                                      No installment payment entries recorded yet. Click "+ Add Payment Installment" above to record a payment installment.
+                                                                    </div>
+                                                                  )}
+                                                                </div>
+                                                              </td>
+                                                            </tr>
+                                                          )}
+
+                                                          {info.finances && !stgName.trim().toUpperCase().includes("REQUEST PAYMENT") && (
+                                                            <tr>
+                                                              <td className="py-2.5 px-3.5 text-slate-500 font-bold uppercase text-[9.5px]">Financial Breakdown</td>
+                                                              <td className="py-2.5 px-3.5">
+                                                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px]">
+                                                                  <div>Total Revenue: <strong className="text-slate-800">₹{Number(info.finances.totalRevenue || 0).toLocaleString("en-IN")}</strong></div>
+                                                                  <div>Officer Share: <strong className="text-slate-800">₹{Number(info.finances.bankOfficerTotal || 0).toLocaleString("en-IN")}</strong></div>
+                                                                  <div>Own Expense: <strong className="text-slate-800">₹{Number(info.finances.ownExpenses || 0).toLocaleString("en-IN")}</strong></div>
+                                                                  <div className="text-emerald-700 font-bold">Gross Profit: ₹{Number(info.finances.grossProfitBeforeDispatch || 0).toLocaleString("en-IN")}</div>
+                                                                </div>
+                                                              </td>
+                                                            </tr>
+                                                          )}
+
+                                                          {info.callAt && (
+                                                            <tr className="bg-slate-50">
+                                                              <td className="py-2.5 px-3.5 text-slate-500 font-bold uppercase text-[9.5px]">Call &amp; Contact Follow-up</td>
+                                                              <td className="py-2.5 px-3.5">
+                                                                <div>Called Date/Time: <strong>{info.callAt}</strong></div>
+                                                                {info.pendingAmount && <div className="text-rose-600 font-bold">Pending Amount: ₹{Number(info.pendingAmount).toLocaleString("en-IN")}</div>}
+                                                              </td>
+                                                            </tr>
+                                                          )}
+
+                                                          {info.remarks && (
+                                                            <tr>
+                                                              <td className="py-2.5 px-3.5 text-slate-500 font-bold uppercase text-[9.5px]">Work Notes &amp; Remarks</td>
+                                                              <td className="py-2.5 px-3.5 text-slate-700 whitespace-pre-wrap">{info.remarks}</td>
+                                                            </tr>
+                                                          )}
+
+                                                          {info.file && (
+                                                            <tr className="bg-amber-50/50">
+                                                              <td className="py-2.5 px-3.5 text-amber-900 font-bold uppercase text-[9.5px]">Uploaded Document / Attachment</td>
+                                                              <td className="py-2.5 px-3.5">
+                                                                <button
+                                                                  type="button"
+                                                                  onClick={() => openFilePreview(info.file!)}
+                                                                  className="px-3 py-1 bg-[#C9A84C] hover:bg-[#b8973b] text-white rounded-md text-xs font-bold inline-flex items-center gap-1 transition-colors shadow-2xs"
+                                                                >
+                                                                  <Paperclip className="w-3.5 h-3.5" /> View {getFileNameOnly(info.file)}
+                                                                </button>
+                                                              </td>
+                                                            </tr>
+                                                          )}
+                                                        </tbody>
+                                                      </table>
+                                                    </div>
+                                                  </td>
+                                                </tr>
+                                              )}
+                                            </React.Fragment>
+                                          );
+                                        })}
+                                      </tbody>
+                                    </table>
+                                  </div>
+
+                                  {/* SEPARATE BILL FOLLOW-UP LOGS & CALL HISTORY */}
+                                  {(() => {
+                                    const groupLogsList = item.allLogs || [item];
+                                    const followUpLogs = groupLogsList.filter(i =>
+                                      (i.businessDevSubOption || i.subCategory || i.category || "").toUpperCase().includes("FOLLOW UP")
+                                    );
+                                    if (followUpLogs.length === 0) return null;
+
+                                    return (
+                                      <div className="p-4 pt-0">
+                                        <div className="bg-amber-50/60 border border-amber-200/90 rounded-xl p-3.5 space-y-2.5">
+                                          <div className="flex items-center justify-between">
+                                            <h4 className="text-[11px] font-black uppercase text-[#714B67] flex items-center gap-1.5">
+                                              <PhoneCall className="w-3.5 h-3.5 text-[#C9A84C]" />
+                                              Bill Follow-Up Activity Logs ({followUpLogs.length})
+                                            </h4>
+                                          </div>
+                                          <div className="overflow-x-auto border border-amber-200/80 rounded-lg bg-white shadow-2xs">
+                                            <table className="w-full text-left border-collapse text-xs">
+                                              <thead>
+                                                <tr className="bg-amber-100/70 text-amber-900 font-extrabold text-[9.5px] uppercase tracking-wider border-b border-amber-200">
+                                                  <th className="py-2 px-3 w-8 text-center">#</th>
+                                                  <th className="py-2 px-3">Call Date &amp; Time</th>
+                                                  <th className="py-2 px-3">Contacted Person / Officer</th>
+                                                  <th className="py-2 px-3">Staff In-Charge</th>
+                                                  <th className="py-2 px-3">Remarks / Call Details</th>
+                                                  <th className="py-2 px-3 text-center">Proof File</th>
+                                                  <th className="py-2 px-3 text-right">Actions</th>
+                                                </tr>
+                                              </thead>
+                                              <tbody className="divide-y divide-amber-100 text-slate-700 font-medium text-[11px]">
+                                                {followUpLogs.map((fuLog, fuIdx) => {
+                                                  const fDetails = parseFollowUpDetails(fuLog.followUpDetails);
+                                                  const callDate = fDetails?.callDate || (fuLog.workDate ? new Date(fuLog.workDate).toLocaleDateString("en-IN") : "—");
+                                                  const callTime = fDetails?.callTime || "";
+                                                  const contactedPerson = fuLog.personName || fDetails?.contactedPerson || "Officer";
+                                                  const remarksText = fuLog.remarks || fDetails?.remarks || "—";
+                                                  const attachmentFile = fuLog.uploadedFileName;
+
+                                                  return (
+                                                    <tr key={fuLog.id || fuIdx} className="hover:bg-amber-50/60 transition-colors">
+                                                      <td className="py-2 px-3 text-center font-bold text-amber-800">{fuIdx + 1}</td>
+                                                      <td className="py-2 px-3 font-semibold text-slate-800">
+                                                        {callDate} {callTime && <span className="text-[10px] text-slate-500 font-normal">({callTime})</span>}
+                                                      </td>
+                                                      <td className="py-2 px-3 font-bold text-slate-800">{contactedPerson}</td>
+                                                      <td className="py-2 px-3 text-slate-600 font-semibold">{fuLog.employeeName || fuLog.employeeId || "Staff"}</td>
+                                                      <td className="py-2 px-3 text-slate-700 max-w-xs whitespace-pre-wrap">{remarksText}</td>
+                                                      <td className="py-2 px-3 text-center">
+                                                        {attachmentFile ? (
+                                                          <button
+                                                            type="button"
+                                                            onClick={() => openFilePreview(attachmentFile)}
+                                                            className="px-2 py-0.5 bg-amber-100 hover:bg-amber-200 text-amber-900 border border-amber-300 rounded text-[10px] font-bold inline-flex items-center gap-1 cursor-pointer transition-colors"
+                                                          >
+                                                            <Paperclip className="w-3 h-3 text-[#C9A84C]" /> Proof
+                                                          </button>
+                                                        ) : (
+                                                          <span className="text-slate-400 text-[10px]">—</span>
+                                                        )}
+                                                      </td>
+                                                      <td className="py-2 px-3 text-right">
+                                                        <button
+                                                          type="button"
+                                                          onClick={() => handleDeleteLog(fuLog.id)}
+                                                          className="p-1 text-slate-400 hover:text-rose-600 rounded hover:bg-rose-50 transition-colors cursor-pointer"
+                                                          title="Delete follow-up log"
+                                                        >
+                                                          <Trash2 className="w-3.5 h-3.5" />
+                                                        </button>
+                                                      </td>
+                                                    </tr>
+                                                  );
+                                                })}
+                                              </tbody>
+                                            </table>
+                                          </div>
+                                        </div>
+                                      </div>
+                                    );
+                                  })()}
+                                </div>
+                              </td>
+                            </tr>
+                          )}
+                        </React.Fragment>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            {/* Pagination Controls Footer */}
+            {!loading && filteredLogs.length > 0 && (
+              <div className="px-5 py-3.5 bg-[#FCFBF9] border-t border-[#E8E4DF] flex flex-col sm:flex-row items-center justify-between gap-3 text-xs font-sans">
+                <div className="flex items-center gap-3">
+                  <span className="text-[#5D5B57] font-semibold">
+                    Showing <strong className="text-[#1C1C1A]">{(validCurrentPage - 1) * itemsPerPage + 1}</strong> to <strong className="text-[#1C1C1A]">{Math.min(validCurrentPage * itemsPerPage, filteredLogs.length)}</strong> of <strong className="text-[#1C1C1A]">{filteredLogs.length}</strong> records
+                  </span>
+                  <div className="flex items-center gap-1.5 border-l border-[#E8E4DF] pl-3">
+                    <span className="text-[10px] text-[#9C9890] font-bold uppercase tracking-wider">Per Page:</span>
+                    <select
+                      value={itemsPerPage}
+                      onChange={(e) => {
+                        setItemsPerPage(Number(e.target.value));
+                        setCurrentPage(1);
+                      }}
+                      className="bg-white border border-[#E8E4DF] rounded-lg px-2 py-1 text-xs font-bold text-[#1C1C1A] focus:outline-none focus:border-[#C9A84C] cursor-pointer shadow-2xs"
+                    >
+                      <option value={10}>10</option>
+                      <option value={25}>25</option>
+                      <option value={50}>50</option>
+                      <option value={100}>100</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    disabled={validCurrentPage === 1}
+                    onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                    className="px-3 py-1.5 bg-white border border-[#E8E4DF] hover:bg-[#F5F0EA] disabled:opacity-40 disabled:hover:bg-white rounded-xl font-bold text-xs text-[#1C1C1A] shadow-2xs transition-all cursor-pointer disabled:cursor-not-allowed"
+                  >
+                    ← Previous
+                  </button>
+
+                  {/* Page Numbers */}
+                  <div className="flex items-center gap-1 px-1">
+                    {Array.from({ length: totalPages }, (_, i) => i + 1)
+                      .filter(p => p === 1 || p === totalPages || Math.abs(p - validCurrentPage) <= 1)
+                      .map((p, idx, arr) => {
+                        const prevP = arr[idx - 1];
+                        const showEllipsis = prevP && p - prevP > 1;
+                        return (
+                          <React.Fragment key={p}>
+                            {showEllipsis && <span className="px-1 text-slate-400 font-bold">...</span>}
+                            <button
+                              type="button"
+                              onClick={() => setCurrentPage(p)}
+                              className={`w-7 h-7 rounded-lg text-xs font-bold transition-all cursor-pointer ${validCurrentPage === p
+                                ? "bg-[#714B67] text-white shadow-2xs font-black"
+                                : "bg-white border border-[#E8E4DF] hover:bg-[#F5F0EA] text-[#1C1C1A]"
+                                }`}
+                            >
+                              {p}
+                            </button>
+                          </React.Fragment>
+                        );
+                      })}
+                  </div>
+
+                  <button
+                    type="button"
+                    disabled={validCurrentPage >= totalPages}
+                    onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                    className="px-3 py-1.5 bg-white border border-[#E8E4DF] hover:bg-[#F5F0EA] disabled:opacity-40 disabled:hover:bg-white rounded-xl font-bold text-xs text-[#1C1C1A] shadow-2xs transition-all cursor-pointer disabled:cursor-not-allowed"
+                  >
+                    Next →
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
-        )}
-      </div>
+        );
+      })()}
 
       {/* FULL EDIT WORK ENTRY MODAL */}
       {editEntry && createPortal(
@@ -2800,18 +3411,106 @@ export default function LegalWorkEntryHistoryView({
               )}
 
               {editSubOption.includes("REQUEST PAYMENT") && (
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 bg-purple-50/70 p-3.5 rounded-xl border border-purple-200 animate-fade-in">
-                  <div>
-                    <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">Amount (₹) *</label>
-                    <input type="number" min="0" step="0.01" required value={editBillAmount} onChange={e => setEditBillAmount(e.target.value)} placeholder="Enter amount..." className="w-full border border-slate-250 rounded-lg px-3 py-2 text-xs font-bold text-emerald-700" />
+                <div className="space-y-3 bg-purple-50/70 p-3.5 rounded-xl border border-purple-200 animate-fade-in">
+                  <div className="flex items-center justify-between border-b border-purple-200 pb-2">
+                    <span className="text-[10px] font-black uppercase tracking-wider text-purple-900">Payment Breakdown & Settlement Details</span>
+                    <span className={`px-2.5 py-0.5 rounded text-[10px] font-black uppercase ${(Number(editPaymentTotalDue || editBillAmount || 0) - Number(editPaymentReceivedAmt || 0)) > 0
+                      ? "bg-rose-100 text-rose-800 border border-rose-200"
+                      : "bg-emerald-100 text-emerald-800 border border-emerald-200"
+                      }`}>
+                      {(Number(editPaymentTotalDue || editBillAmount || 0) - Number(editPaymentReceivedAmt || 0)) > 0
+                        ? `⚠️ ₹${(Number(editPaymentTotalDue || editBillAmount || 0) - Number(editPaymentReceivedAmt || 0)).toLocaleString("en-IN")} Pending`
+                        : "✓ ₹0 Pending (Fully Paid)"}
+                    </span>
                   </div>
-                  <div>
-                    <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">Person Name (Optional)</label>
-                    <SearchableEmployeeInput value={editPersonName} onChange={setEditPersonName} placeholder="Search or select staff..." employees={employeeOptions} />
+
+                  {/* Row 1: Amounts & Date */}
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div>
+                      <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">Total Bill / Due Amount (₹) *</label>
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        required
+                        value={editPaymentTotalDue || editBillAmount}
+                        onChange={e => {
+                          const val = e.target.value;
+                          setEditPaymentTotalDue(val);
+                          setEditBillAmount(val);
+                        }}
+                        placeholder="Total due amount..."
+                        className="w-full border border-slate-250 rounded-lg px-3 py-2 text-xs font-bold text-purple-900"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">Received Amount / Paid (₹) *</label>
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        required
+                        value={editPaymentReceivedAmt}
+                        onChange={e => setEditPaymentReceivedAmt(e.target.value)}
+                        placeholder="Amount received..."
+                        className="w-full border border-slate-250 rounded-lg px-3 py-2 text-xs font-bold text-emerald-700"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">Allocated Date *</label>
+                      <input type="date" required value={editAllocationDate} onChange={e => setEditAllocationDate(e.target.value)} className="w-full border border-slate-250 rounded-lg px-3 py-2 text-xs font-bold text-slate-800" />
+                    </div>
                   </div>
-                  <div>
-                    <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">Allocated Date *</label>
-                    <input type="date" required value={editAllocationDate} onChange={e => setEditAllocationDate(e.target.value)} className="w-full border border-slate-250 rounded-lg px-3 py-2 text-xs font-bold text-slate-800" />
+
+                  {/* Row 2: Payment Mode, Dynamic Ref & Staff */}
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div>
+                      <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">Payment Mode / Method *</label>
+                      <select
+                        value={editPaymentMode}
+                        onChange={e => setEditPaymentMode(e.target.value)}
+                        className="w-full border border-slate-250 rounded-lg px-3 py-2 text-xs font-bold text-slate-800"
+                      >
+                        <option value="NEFT / RTGS / Bank Transfer">NEFT / RTGS / Bank Transfer</option>
+                        <option value="Cheque">Cheque</option>
+                        <option value="UPI / Online Transfer">UPI / Online Transfer</option>
+                        <option value="Cash">Cash</option>
+                        <option value="DD / Banker Cheque">DD / Banker Cheque</option>
+                        <option value="Direct Account Credit">Direct Account Credit</option>
+                        <option value="Other">Other</option>
+                      </select>
+                    </div>
+
+                    {(() => {
+                      const refInfo = getPaymentRefInfo(editPaymentMode);
+                      return (
+                        <div>
+                          <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">{refInfo.label}</label>
+                          <input
+                            type="text"
+                            required={refInfo.required}
+                            value={editPaymentRef}
+                            onChange={e => setEditPaymentRef(e.target.value)}
+                            placeholder={refInfo.placeholder}
+                            className="w-full border border-slate-250 rounded-lg px-3 py-2 text-xs font-bold text-slate-800 font-mono"
+                          />
+                        </div>
+                      );
+                    })()}
+
+                    <div>
+                      <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">Payment Collected By</label>
+                      <SearchableEmployeeInput value={editPersonName} onChange={setEditPersonName} placeholder="Search or select office staff member..." employees={employeeOptions} />
+                    </div>
+
+                    <div>
+                      <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">Paid By / Payer Name (Optional)</label>
+                      <input
+                        type="text"
+                        value={editPaidBy}
+                        onChange={e => setEditPaidBy(e.target.value)}
+                      />
+                    </div>
                   </div>
                 </div>
               )}
@@ -2953,7 +3652,7 @@ export default function LegalWorkEntryHistoryView({
       {/* NEXT STEP EXECUTION MODAL */}
       {nextStepEntry && createPortal(
         <div className="fixed inset-0 bg-black/50 z-[10000] flex items-center justify-center p-4" onMouseDown={e => e.target === e.currentTarget && setNextStepEntry(null)}>
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-2xl w-full max-w-xl overflow-hidden flex flex-col">
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-2xl w-full max-w-2xl sm:max-w-3xl overflow-hidden flex flex-col">
             <div className="px-5 py-4 border-b flex items-center justify-between bg-[#714B67] text-white">
               <div>
                 <h3 className="text-sm font-black mt-0.5">Fill Next Step for Notice / Work Log</h3>
@@ -2990,29 +3689,29 @@ export default function LegalWorkEntryHistoryView({
                 <div className="space-y-3 bg-purple-50/70 p-3.5 rounded-xl border border-purple-200 animate-fade-in">
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                     <div>
-                      <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">No. of Counts *</label>
+                      <label className="block text-[10px] font-black uppercase text-slate-600 mb-1 min-h-[18px]">No. of Counts *</label>
                       <input type="number" min="1" required value={nextStepCount} onChange={e => setNextStepCount(e.target.value)} className="w-full border border-slate-250 rounded-lg px-3 py-2 text-xs font-bold text-slate-800" />
                     </div>
                     <div>
-                      <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">Brought By *</label>
+                      <label className="block text-[10px] font-black uppercase text-slate-600 mb-1 min-h-[18px]">Brought By *</label>
                       <SearchableEmployeeInput value={nextStepBroughtBy} onChange={setNextStepBroughtBy} placeholder="Enter or search staff..." required employees={employeeOptions} />
                     </div>
                     <div>
-                      <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">Allocation Date *</label>
+                      <label className="block text-[10px] font-black uppercase text-slate-600 mb-1 min-h-[18px]">Allocation Date *</label>
                       <input type="date" required value={nextStepAllocationDate} onChange={e => setNextStepAllocationDate(e.target.value)} className="w-full border border-slate-250 rounded-lg px-3 py-2 text-xs font-bold text-slate-800" />
                     </div>
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                     <div>
-                      <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">Per Notice Rate (₹) *</label>
+                      <label className="block text-[10px] font-black uppercase text-slate-600 mb-1 min-h-[18px]">Per Notice Rate (₹) *</label>
                       <input type="number" min="0" step="0.01" value={nextStepRate} onChange={e => setNextStepRate(e.target.value)} placeholder="Rate per notice" className="w-full border border-slate-250 rounded-lg px-3 py-2 text-xs font-bold text-slate-800" />
                     </div>
                     <div>
-                      <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">Bank Officer / Notice (₹) *</label>
+                      <label className="block text-[10px] font-black uppercase text-slate-600 mb-1 min-h-[18px]">Bank Officer / Notice (₹) *</label>
                       <input type="number" min="0" step="0.01" value={nextStepOfficerShare} onChange={e => setNextStepOfficerShare(e.target.value)} placeholder="Officer share" className="w-full border border-slate-250 rounded-lg px-3 py-2 text-xs font-bold text-slate-800" />
                     </div>
                     <div>
-                      <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">Own Expenses (₹)</label>
+                      <label className="block text-[10px] font-black uppercase text-slate-600 mb-1 min-h-[18px]">Own Expenses (₹)</label>
                       <input type="number" min="0" step="0.01" value={nextStepExpenses} onChange={e => setNextStepExpenses(e.target.value)} placeholder="Enter expenses" className="w-full border border-slate-250 rounded-lg px-3 py-2 text-xs font-bold text-slate-800" />
                     </div>
                   </div>
@@ -3022,15 +3721,15 @@ export default function LegalWorkEntryHistoryView({
               {nextStepSubOption === "COLLECT NOTICE DATA" && (
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 bg-purple-50/70 p-3.5 rounded-xl border border-purple-200 animate-fade-in">
                   <div>
-                    <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">No. of Counts *</label>
+                    <label className="block text-[10px] font-black uppercase text-slate-600 mb-1 min-h-[18px]">No. of Counts *</label>
                     <input type="number" min="1" required value={nextStepCount} onChange={e => setNextStepCount(e.target.value)} className="w-full border border-slate-250 rounded-lg px-3 py-2 text-xs font-bold text-slate-800" />
                   </div>
                   <div>
-                    <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">Brought By *</label>
+                    <label className="block text-[10px] font-black uppercase text-slate-600 mb-1 min-h-[18px]">Brought By *</label>
                     <SearchableEmployeeInput value={nextStepBroughtBy} onChange={setNextStepBroughtBy} placeholder="Search or select staff..." required employees={employeeOptions} />
                   </div>
                   <div>
-                    <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">Upload Notice Data File (Optional)</label>
+                    <label className="block text-[10px] font-black uppercase text-slate-600 mb-1 min-h-[18px]">Upload Notice Data File (Optional)</label>
                     <input type="file" accept=".xlsx,.xls,.csv,.pdf,.doc,.docx,.png,.jpg,.jpeg,image/*" onChange={handleNextStepFileChange} className="w-full text-[11px] font-bold text-slate-700 file:mr-2 file:py-1 file:px-2.5 file:rounded-lg file:border-0 file:text-[9.5px] file:font-black file:bg-purple-100 file:text-purple-800 cursor-pointer" />
                     {nextStepUploadedFileName && (
                       <div className="flex items-center gap-1.5 mt-1">
@@ -3045,15 +3744,15 @@ export default function LegalWorkEntryHistoryView({
               {nextStepSubOption === "PREPARE NOTICE LIST" && (
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 bg-purple-50/70 p-3.5 rounded-xl border border-purple-200 animate-fade-in">
                   <div>
-                    <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">No. of Counts *</label>
+                    <label className="block text-[10px] font-black uppercase text-slate-600 mb-1 min-h-[18px]">No. of Counts *</label>
                     <input type="number" min="1" required value={nextStepCount} onChange={e => setNextStepCount(e.target.value)} className="w-full border border-slate-250 rounded-lg px-3 py-2 text-xs font-bold text-slate-800" />
                   </div>
                   <div>
-                    <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">Prepared By *</label>
+                    <label className="block text-[10px] font-black uppercase text-slate-600 mb-1 min-h-[18px]">Prepared By *</label>
                     <SearchableEmployeeInput value={nextStepPreparedBy} onChange={setNextStepPreparedBy} placeholder="Search or select staff..." required employees={employeeOptions} />
                   </div>
                   <div>
-                    <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">Upload Notice List File (Optional)</label>
+                    <label className="block text-[10px] font-black uppercase text-slate-600 mb-1 min-h-[18px]">Upload Notice List File (Optional)</label>
                     <input type="file" accept=".xlsx,.xls,.csv,.pdf,.doc,.docx,.png,.jpg,.jpeg,image/*" onChange={handleNextStepFileChange} className="w-full text-[11px] font-bold text-slate-700 file:mr-2 file:py-1 file:px-2.5 file:rounded-lg file:border-0 file:text-[9.5px] file:font-black file:bg-purple-100 file:text-purple-800 cursor-pointer" />
                     {nextStepUploadedFileName && (
                       <div className="flex items-center gap-1.5 mt-1">
@@ -3068,15 +3767,15 @@ export default function LegalWorkEntryHistoryView({
               {nextStepSubOption.includes("GENERATE NOTICE") && (
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 bg-purple-50/70 p-3.5 rounded-xl border border-purple-200 animate-fade-in">
                   <div>
-                    <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">No. of Counts *</label>
+                    <label className="block text-[10px] font-black uppercase text-slate-600 mb-1 min-h-[18px]">No. of Counts *</label>
                     <input type="number" min="1" required value={nextStepCount} onChange={e => setNextStepCount(e.target.value)} className="w-full border border-slate-250 rounded-lg px-3 py-2 text-xs font-bold text-slate-800" />
                   </div>
                   <div>
-                    <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">Printed By *</label>
+                    <label className="block text-[10px] font-black uppercase text-slate-600 mb-1 min-h-[18px]">Printed By *</label>
                     <SearchableEmployeeInput value={nextStepPrintedBy} onChange={setNextStepPrintedBy} placeholder="Search or select staff..." required employees={employeeOptions} />
                   </div>
                   <div>
-                    <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">Upload Notice File (Optional)</label>
+                    <label className="block text-[10px] font-black uppercase text-slate-600 mb-1 min-h-[18px]">Upload Notice File (Optional)</label>
                     <input type="file" accept=".xlsx,.xls,.csv,.pdf,.doc,.docx,.png,.jpg,.jpeg,image/*" onChange={handleNextStepFileChange} className="w-full text-[11px] font-bold text-slate-700 file:mr-2 file:py-1 file:px-2.5 file:rounded-lg file:border-0 file:text-[9.5px] file:font-black file:bg-purple-100 file:text-purple-800 cursor-pointer" />
                     {nextStepUploadedFileName && (
                       <div className="flex items-center gap-1.5 mt-1">
@@ -3089,21 +3788,23 @@ export default function LegalWorkEntryHistoryView({
               )}
 
               {nextStepSubOption.includes("DISPATCH NOTICE") && (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 bg-purple-50/70 p-3.5 rounded-xl border border-purple-200 animate-fade-in">
-                  <div>
-                    <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">No. of Counts *</label>
-                    <input type="number" min="1" required value={nextStepCount} onChange={e => setNextStepCount(e.target.value)} className="w-full border border-slate-250 rounded-lg px-3 py-2 text-xs font-bold text-slate-800" />
+                <div className="space-y-3 bg-purple-50/70 p-3.5 rounded-xl border border-purple-200 animate-fade-in">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div>
+                      <label className="block text-[10px] font-black uppercase text-slate-600 mb-1 min-h-[18px]">No. of Counts *</label>
+                      <input type="number" min="1" required value={nextStepCount} onChange={e => setNextStepCount(e.target.value)} className="w-full border border-slate-250 rounded-lg px-3 py-2 text-xs font-bold text-slate-800" />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-black uppercase text-slate-600 mb-1 min-h-[18px]">Dispatched By *</label>
+                      <SearchableEmployeeInput value={nextStepDispatchedBy} onChange={setNextStepDispatchedBy} placeholder="Search or select staff..." required employees={employeeOptions} />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-black uppercase text-slate-600 mb-1 min-h-[18px]">Dispatch Amount (₹) *</label>
+                      <input type="number" min="0" step="0.01" required value={nextStepAmount} onChange={e => setNextStepAmount(e.target.value)} placeholder="Enter dispatch amount..." className="w-full border border-slate-250 rounded-lg px-3 py-2 text-xs font-bold text-emerald-700" />
+                    </div>
                   </div>
                   <div>
-                    <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">Dispatched By *</label>
-                    <SearchableEmployeeInput value={nextStepDispatchedBy} onChange={setNextStepDispatchedBy} placeholder="Search or select staff..." required employees={employeeOptions} />
-                  </div>
-                  <div>
-                    <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">Amount (₹) *</label>
-                    <input type="number" min="0" step="0.01" required value={nextStepAmount} onChange={e => setNextStepAmount(e.target.value)} placeholder="Enter dispatch amount..." className="w-full border border-slate-250 rounded-lg px-3 py-2 text-xs font-bold text-emerald-700" />
-                  </div>
-                  <div>
-                    <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">Upload Dispatch Proof / File (Optional)</label>
+                    <label className="block text-[10px] font-black uppercase text-slate-600 mb-1 min-h-[18px]">Upload Dispatch Proof / File (Optional)</label>
                     <input type="file" accept=".xlsx,.xls,.csv,.pdf,.doc,.docx,.png,.jpg,.jpeg,image/*" onChange={handleNextStepFileChange} className="w-full text-[11px] font-bold text-slate-700 file:mr-2 file:py-1 file:px-2.5 file:rounded-lg file:border-0 file:text-[9.5px] file:font-black file:bg-purple-100 file:text-purple-800 cursor-pointer" />
                     {nextStepUploadedFileName && (
                       <div className="flex items-center gap-1.5 mt-1">
@@ -3116,52 +3817,149 @@ export default function LegalWorkEntryHistoryView({
               )}
 
               {nextStepSubOption.includes("PREPARE BILL") && (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 bg-purple-50/70 p-3.5 rounded-xl border border-purple-200 animate-fade-in">
-                  <div>
-                    <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">Bill Date *</label>
-                    <input type="date" required value={nextStepBillDate} onChange={e => setNextStepBillDate(e.target.value)} className="w-full border border-slate-250 rounded-lg px-3 py-2 text-xs font-bold text-slate-800" />
+                <div className="space-y-3 bg-purple-50/70 p-3.5 rounded-xl border border-purple-200 animate-fade-in">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div>
+                      <label className="block text-[10px] font-black uppercase text-slate-600 mb-1 min-h-[18px]">Bill Date *</label>
+                      <input type="date" required value={nextStepBillDate} onChange={e => setNextStepBillDate(e.target.value)} className="w-full border border-slate-250 rounded-lg px-3 py-2 text-xs font-bold text-slate-800" />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-black uppercase text-slate-600 mb-1 min-h-[18px]">Bill Amount (₹) *</label>
+                      <input type="number" min="0" step="0.01" required value={nextStepBillAmount} onChange={e => setNextStepBillAmount(e.target.value)} placeholder="Enter amount..." className="w-full border border-slate-250 rounded-lg px-3 py-2 text-xs font-bold text-emerald-700" />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-black uppercase text-slate-600 mb-1 min-h-[18px]">Bill No. *</label>
+                      <input type="text" required value={nextStepBillNo} onChange={e => setNextStepBillNo(e.target.value)} placeholder="Enter bill number..." className="w-full border border-slate-250 rounded-lg px-3 py-2 text-xs font-bold text-slate-800" />
+                    </div>
                   </div>
-                  <div>
-                    <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">Bill Amount (₹) *</label>
-                    <input type="number" min="0" step="0.01" required value={nextStepBillAmount} onChange={e => setNextStepBillAmount(e.target.value)} placeholder="Enter amount..." className="w-full border border-slate-250 rounded-lg px-3 py-2 text-xs font-bold text-emerald-700" />
-                  </div>
-                  <div>
-                    <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">Bill No. *</label>
-                    <input type="text" required value={nextStepBillNo} onChange={e => setNextStepBillNo(e.target.value)} placeholder="Enter bill number..." className="w-full border border-slate-250 rounded-lg px-3 py-2 text-xs font-bold text-slate-800" />
-                  </div>
-                  <div>
-                    <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">Prepared By (Staff) *</label>
-                    <SearchableEmployeeInput value={nextStepPreparedBy} onChange={setNextStepPreparedBy} placeholder="Search or select staff..." required employees={employeeOptions} />
-                  </div>
-                  <div>
-                    <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">Upload Bill File (Optional)</label>
-                    <input type="file" accept=".xlsx,.xls,.csv,.pdf,.doc,.docx,.png,.jpg,.jpeg,image/*" onChange={handleNextStepFileChange} className="w-full text-[11px] font-bold text-slate-700 file:mr-2 file:py-1 file:px-2.5 file:rounded-lg file:border-0 file:text-[9.5px] file:font-black file:bg-purple-100 file:text-purple-800 cursor-pointer" />
-                    {nextStepUploadedFileName && (
-                      <div className="flex items-center gap-1.5 mt-1">
-                        <span className="text-[10px] font-bold text-purple-700 truncate">📄 {nextStepUploadedFileName}</span>
-                        <button type="button" onClick={() => openFilePreview(nextStepUploadedFileUrl || nextStepUploadedFileName)} className="shrink-0 px-1.5 py-0.5 bg-[#C9A84C] text-white rounded text-[9px] font-bold cursor-pointer hover:bg-[#b8973b]">Preview</button>
-                      </div>
-                    )}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-[10px] font-black uppercase text-slate-600 mb-1 min-h-[18px]">Prepared By (Staff) *</label>
+                      <SearchableEmployeeInput value={nextStepPreparedBy} onChange={setNextStepPreparedBy} placeholder="Search or select staff..." required employees={employeeOptions} />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-black uppercase text-slate-600 mb-1 min-h-[18px]">Upload Bill File (Optional)</label>
+                      <input type="file" accept=".xlsx,.xls,.csv,.pdf,.doc,.docx,.png,.jpg,.jpeg,image/*" onChange={handleNextStepFileChange} className="w-full text-[11px] font-bold text-slate-700 file:mr-2 file:py-1 file:px-2.5 file:rounded-lg file:border-0 file:text-[9.5px] file:font-black file:bg-purple-100 file:text-purple-800 cursor-pointer" />
+                      {nextStepUploadedFileName && (
+                        <div className="flex items-center gap-1.5 mt-1">
+                          <span className="text-[10px] font-bold text-purple-700 truncate">📄 {nextStepUploadedFileName}</span>
+                          <button type="button" onClick={() => openFilePreview(nextStepUploadedFileUrl || nextStepUploadedFileName)} className="shrink-0 px-1.5 py-0.5 bg-[#C9A84C] text-white rounded text-[9px] font-bold cursor-pointer hover:bg-[#b8973b]">Preview</button>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
               )}
 
               {nextStepSubOption.includes("REQUEST PAYMENT") && (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 bg-purple-50/70 p-3.5 rounded-xl border border-purple-200 animate-fade-in">
-                  <div>
-                    <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">Amount (₹) *</label>
-                    <input type="number" min="0" step="0.01" required value={nextStepAmount} onChange={e => setNextStepAmount(e.target.value)} placeholder="Enter amount..." className="w-full border border-slate-250 rounded-lg px-3 py-2 text-xs font-bold text-emerald-700" />
+                <div className="space-y-3 bg-purple-50/70 p-3.5 rounded-xl border border-purple-200 animate-fade-in">
+                  <div className="flex items-center justify-between border-b border-purple-200 pb-2">
+                    <span className="text-[10px] font-black uppercase tracking-wider text-purple-900">Payment Breakdown & Settlement Details</span>
+                    <span className={`px-2.5 py-0.5 rounded text-[10px] font-black uppercase ${(Number(nextStepPaymentTotalDue || nextStepBillAmount || nextStepAmount || 0) - Number(nextStepPaymentReceivedAmt || 0)) > 0
+                      ? "bg-rose-100 text-rose-800 border border-rose-200"
+                      : "bg-emerald-100 text-emerald-800 border border-emerald-200"
+                      }`}>
+                      {(Number(nextStepPaymentTotalDue || nextStepBillAmount || nextStepAmount || 0) - Number(nextStepPaymentReceivedAmt || 0)) > 0
+                        ? `⚠️ ₹${(Number(nextStepPaymentTotalDue || nextStepBillAmount || nextStepAmount || 0) - Number(nextStepPaymentReceivedAmt || 0)).toLocaleString("en-IN")} Pending`
+                        : "✓ ₹0 Pending (Fully Paid)"}
+                    </span>
                   </div>
-                  <div>
-                    <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">Person Name (Optional)</label>
-                    <input type="text" value={nextStepPersonName} onChange={e => setNextStepPersonName(e.target.value)} placeholder="Enter person name..." className="w-full border border-slate-250 rounded-lg px-3 py-2 text-xs font-bold text-slate-800" />
+
+                  {/* Row 1: Amounts & Date */}
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div>
+                      <label className="block text-[10px] font-black uppercase text-slate-600 mb-1 min-h-[18px]">Total Bill / Due Amount (₹) *</label>
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        required
+                        value={nextStepPaymentTotalDue || nextStepBillAmount || nextStepAmount}
+                        onChange={e => {
+                          const val = e.target.value;
+                          setNextStepPaymentTotalDue(val);
+                          setNextStepBillAmount(val);
+                          setNextStepAmount(val);
+                        }}
+                        placeholder="Total due amount..."
+                        className="w-full border border-slate-250 rounded-lg px-3 py-2 text-xs font-bold text-purple-900"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-black uppercase text-slate-600 mb-1 min-h-[18px]">Received Amount / Paid (₹) *</label>
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        required
+                        value={nextStepPaymentReceivedAmt}
+                        onChange={e => setNextStepPaymentReceivedAmt(e.target.value)}
+                        placeholder="Amount received..."
+                        className="w-full border border-slate-250 rounded-lg px-3 py-2 text-xs font-bold text-emerald-700"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-black uppercase text-slate-600 mb-1 min-h-[18px]">Allocated Date *</label>
+                      <input type="date" required value={nextStepAllocationDate} onChange={e => setNextStepAllocationDate(e.target.value)} className="w-full border border-slate-250 rounded-lg px-3 py-2 text-xs font-bold text-slate-800" />
+                    </div>
                   </div>
-                  <div>
-                    <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">Allocated Date *</label>
-                    <input type="date" required value={nextStepAllocationDate} onChange={e => setNextStepAllocationDate(e.target.value)} className="w-full border border-slate-250 rounded-lg px-3 py-2 text-xs font-bold text-slate-800" />
+
+                  {/* Row 2: Payment Mode, Dynamic Ref & Staff */}
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div>
+                      <label className="block text-[10px] font-black uppercase text-slate-600 mb-1 min-h-[18px]">Payment Mode / Method *</label>
+                      <select
+                        value={nextStepPaymentMode}
+                        onChange={e => setNextStepPaymentMode(e.target.value)}
+                        className="w-full border border-slate-250 rounded-lg px-3 py-2 text-xs font-bold text-slate-800"
+                      >
+                        <option value="NEFT / RTGS / Bank Transfer">NEFT / RTGS / Bank Transfer</option>
+                        <option value="Cheque">Cheque</option>
+                        <option value="UPI / Online Transfer">UPI / Online Transfer</option>
+                        <option value="Cash">Cash</option>
+                        <option value="DD / Banker Cheque">DD / Banker Cheque</option>
+                        <option value="Direct Account Credit">Direct Account Credit</option>
+                        <option value="Other">Other</option>
+                      </select>
+                    </div>
+
+                    {(() => {
+                      const refInfo = getPaymentRefInfo(nextStepPaymentMode);
+                      return (
+                        <div>
+                          <label className="block text-[10px] font-black uppercase text-slate-600 mb-1 min-h-[18px]">{refInfo.label}</label>
+                          <input
+                            type="text"
+                            required={refInfo.required}
+                            value={nextStepPaymentRef}
+                            onChange={e => setNextStepPaymentRef(e.target.value)}
+                            placeholder={refInfo.placeholder}
+                            className="w-full border border-slate-250 rounded-lg px-3 py-2 text-xs font-bold text-slate-800 font-mono"
+                          />
+                        </div>
+                      );
+                    })()}
+
+                    <div>
+                      <label className="block text-[10px] font-black uppercase text-slate-600 mb-1 min-h-[18px]">Payment Collected By</label>
+                      <SearchableEmployeeInput value={nextStepPersonName} onChange={setNextStepPersonName} placeholder="Search or select office staff member..." employees={employeeOptions} />
+                    </div>
+
+                    <div>
+                      <label className="block text-[10px] font-black uppercase text-slate-600 mb-1 min-h-[18px]">Paid By / Payer Name (Optional)</label>
+                      <input
+                        type="text"
+                        value={nextStepPaidBy}
+                        onChange={e => setNextStepPaidBy(e.target.value)}
+                        placeholder="Bank officer or payer name..."
+                        className="w-full border border-slate-250 rounded-lg px-3 py-2 text-xs font-bold text-slate-800 focus:outline-none focus:border-purple-600"
+                      />
+                    </div>
                   </div>
+
+                  {/* Row 3: Attachment */}
                   <div>
-                    <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">Upload File (Optional)</label>
+                    <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">Upload Payment Receipt / Proof (Optional)</label>
                     <input type="file" accept=".xlsx,.xls,.csv,.pdf,.doc,.docx,.png,.jpg,.jpeg,image/*" onChange={handleNextStepFileChange} className="w-full text-[11px] font-bold text-slate-700 file:mr-2 file:py-1 file:px-2.5 file:rounded-lg file:border-0 file:text-[9.5px] file:font-black file:bg-purple-100 file:text-purple-800 cursor-pointer" />
                     {nextStepUploadedFileName && (
                       <div className="flex items-center gap-1.5 mt-1">
@@ -3330,9 +4128,15 @@ export default function LegalWorkEntryHistoryView({
                             <span className="text-[9px] font-bold uppercase tracking-wider text-[#9C9890]">Inspect Work Stage</span>
                             <h3 className="text-sm font-bold text-[#1C1C1A] uppercase">{selectedStageTab}</h3>
                             {info.isFilled ? (
-                              <span className="inline-block px-2.5 py-0.5 bg-[#C9A84C] text-white rounded-full text-[10px] font-bold uppercase tracking-wider shadow-2xs">
-                                Stage Completed / Details Filled
-                              </span>
+                              info.isPendingPayment ? (
+                                <span className="inline-block px-2.5 py-0.5 bg-rose-600 text-white rounded-full text-[10px] font-black uppercase tracking-wider shadow-2xs">
+                                  ⚠️ Partially Paid / ₹{info.pendingAmtVal.toLocaleString("en-IN")} Pending
+                                </span>
+                              ) : (
+                                <span className="inline-block px-2.5 py-0.5 bg-[#C9A84C] text-white rounded-full text-[10px] font-bold uppercase tracking-wider shadow-2xs">
+                                  Stage Completed / Details Filled
+                                </span>
+                              )
                             ) : (
                               <span className="inline-block px-2.5 py-0.5 bg-[#E8E4DF] text-[#5D5B57] rounded-full text-[10px] font-bold uppercase tracking-wider">
                                 Stage Pending
@@ -3441,17 +4245,88 @@ export default function LegalWorkEntryHistoryView({
                             );
                           })()}
 
-                          {info.callAt && (
-                            <div>
-                              <span className="text-[9px] font-bold uppercase tracking-wider text-[#9C9890] block mb-0.5">Call Date &amp; Time</span>
-                              <p className="font-bold text-[#1C1C1A]">{info.callAt}</p>
-                            </div>
-                          )}
+                          {selectedStageTab && selectedStageTab.trim().toUpperCase().includes("REQUEST PAYMENT") && (
+                            <div className="col-span-2 space-y-3 bg-purple-50/70 p-4 rounded-2xl border border-purple-200">
+                              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-purple-200 pb-2">
+                                <span className="text-[10px] font-black uppercase text-purple-950 tracking-wider">
+                                  Payment Installments Breakdown &amp; History
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={() => openAddInstallmentModal(selectedEntryDetail, selectedStageTab)}
+                                  className="px-3 py-1 bg-[#714B67] hover:bg-[#5F3F56] text-white text-[11px] font-black rounded-lg flex items-center gap-1 cursor-pointer shadow-xs active:scale-95 transition-all"
+                                >
+                                  + Add Payment Installment
+                                </button>
+                              </div>
 
-                          {info.pendingAmount !== undefined && info.pendingAmount !== null && (
-                            <div>
-                              <span className="text-[9px] font-bold uppercase tracking-wider text-[#9C9890] block mb-0.5">Total Pending Amount</span>
-                              <p className="font-black text-rose-700 text-sm">₹{Number(info.pendingAmount).toLocaleString("en-IN")}</p>
+                              <div className="flex flex-wrap items-center gap-2 text-xs">
+                                <span className="px-2.5 py-1 bg-purple-100 text-purple-900 font-black rounded-lg">
+                                  Total Bill: ₹{(info.totalBillVal || Number(info.billAmount || 0)).toLocaleString("en-IN")}
+                                </span>
+                                <span className="px-2.5 py-1 bg-emerald-100 text-emerald-900 font-black rounded-lg">
+                                  Total Received: ₹{info.totalReceivedVal.toLocaleString("en-IN")}
+                                </span>
+                                <span className={`px-2.5 py-1 font-black rounded-lg ${info.pendingAmtVal > 0 ? "bg-rose-100 text-rose-800 border border-rose-200" : "bg-emerald-50 text-emerald-700 border border-emerald-200"}`}>
+                                  {info.pendingAmtVal > 0 ? `⚠️ ₹${info.pendingAmtVal.toLocaleString("en-IN")} Pending` : "✓ Fully Paid"}
+                                </span>
+                              </div>
+
+                              {info.installments && info.installments.length > 0 ? (
+                                <div className="overflow-x-auto border border-purple-200 rounded-xl bg-white shadow-2xs max-h-52">
+                                  <table className="w-full text-left border-collapse text-xs">
+                                    <thead className="sticky top-0 bg-purple-100 text-purple-950">
+                                      <tr className="font-extrabold text-[9px] uppercase tracking-wider border-b border-purple-200">
+                                        <th className="py-2 px-2.5 text-center">#</th>
+                                        <th className="py-2 px-2.5">Date</th>
+                                        <th className="py-2 px-2.5 text-right">Received Amount</th>
+                                        <th className="py-2 px-2.5">Mode</th>
+                                        <th className="py-2 px-2.5">Ref / UTR</th>
+                                        <th className="py-2 px-2.5">Received By</th>
+                                        <th className="py-2 px-2.5 text-center">Proof</th>
+                                        <th className="py-2 px-2.5 text-right">Action</th>
+                                      </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-purple-100 font-medium">
+                                      {info.installments.map((inst, iIdx) => (
+                                        <tr key={inst.id || iIdx} className="hover:bg-purple-50/50 transition-colors">
+                                          <td className="py-2 px-2.5 text-center font-bold text-purple-800">#{inst.installmentNo || iIdx + 1}</td>
+                                          <td className="py-2 px-2.5 font-semibold text-slate-700">{inst.paymentDate || "—"}</td>
+                                          <td className="py-2 px-2.5 text-right font-black text-emerald-700">₹{Number(inst.amount).toLocaleString("en-IN")}</td>
+                                          <td className="py-2 px-2.5 font-bold text-slate-800">{inst.paymentMode || "—"}</td>
+                                          <td className="py-2 px-2.5 font-mono text-[10.5px] text-purple-900">{inst.paymentRef || "—"}</td>
+                                          <td className="py-2 px-2.5 font-semibold text-slate-700">{inst.personName || "—"}</td>
+                                          <td className="py-2 px-2.5 text-center">
+                                            {inst.uploadedFileName ? (
+                                              <button
+                                                type="button"
+                                                onClick={() => openFilePreview(inst.uploadedFileName!)}
+                                                className="px-2 py-0.5 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 rounded text-[9.5px] font-bold inline-flex items-center gap-1 cursor-pointer"
+                                              >
+                                                <Paperclip className="w-3 h-3 text-[#C9A84C]" /> File
+                                              </button>
+                                            ) : "—"}
+                                          </td>
+                                          <td className="py-2 px-2.5 text-right">
+                                            <button
+                                              type="button"
+                                              onClick={() => handleDeleteInstallment(selectedEntryDetail, selectedStageTab, inst.id)}
+                                              className="p-1 text-slate-400 hover:text-rose-600 rounded hover:bg-rose-50 cursor-pointer transition-colors"
+                                              title="Delete installment"
+                                            >
+                                              <Trash2 className="w-3 h-3" />
+                                            </button>
+                                          </td>
+                                        </tr>
+                                      ))}
+                                    </tbody>
+                                  </table>
+                                </div>
+                              ) : (
+                                <div className="p-3 bg-white border border-purple-200 rounded-xl text-[11px] text-slate-500 italic text-center">
+                                  No partial installment entries recorded yet. Click "+ Add Payment Installment" above to add a payment installment.
+                                </div>
+                              )}
                             </div>
                           )}
                         </div>
@@ -3761,11 +4636,10 @@ export default function LegalWorkEntryHistoryView({
                   <div
                     key={idx}
                     onClick={handleSelectBank}
-                    className={`p-4 rounded-xl border transition-all cursor-pointer flex items-center justify-between gap-3 ${
-                      isSelected
-                        ? "bg-amber-50 border-amber-300 ring-2 ring-amber-400/40 shadow-xs"
-                        : "bg-white border-[#E8E4DF] hover:border-[#C9A84C] hover:bg-amber-50/40 hover:shadow-md"
-                    }`}
+                    className={`p-4 rounded-xl border transition-all cursor-pointer flex items-center justify-between gap-3 ${isSelected
+                      ? "bg-amber-50 border-amber-300 ring-2 ring-amber-400/40 shadow-xs"
+                      : "bg-white border-[#E8E4DF] hover:border-[#C9A84C] hover:bg-amber-50/40 hover:shadow-md"
+                      }`}
                   >
                     <div className="flex items-center gap-3 min-w-0">
                       <div className="w-9 h-9 rounded-lg bg-amber-100/60 text-amber-900 font-black text-xs flex items-center justify-center shrink-0 border border-amber-200">
@@ -3821,6 +4695,196 @@ export default function LegalWorkEntryHistoryView({
                 className="px-4 py-1.5 bg-[#C9A84C] hover:bg-[#b8973b] text-white rounded-lg text-xs font-bold transition-colors cursor-pointer"
               >
                 Close
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* ADD PAYMENT INSTALLMENT MODAL */}
+      {installmentModalLog && createPortal(
+        <div
+          className="fixed inset-0 bg-black/60 z-[10000] flex items-center justify-center p-4"
+          onMouseDown={(e) => {
+            if (e.target === e.currentTarget) setInstallmentModalLog(null);
+          }}
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-label="Add Payment Installment"
+            className="bg-white rounded-2xl p-5 max-w-lg w-full space-y-4 shadow-2xl relative border border-[#E8E4DF] animate-scale-in"
+          >
+            {/* Modal Header */}
+            <div className="flex justify-between items-center pb-3 border-b border-[#E8E4DF]">
+              <div>
+                <span className="px-2.5 py-0.5 bg-purple-100 text-purple-900 border border-purple-200 rounded-full text-[9.5px] font-black uppercase tracking-wider">
+                  Request Payment Stage
+                </span>
+                <h3 className="text-base font-bold font-serif text-[#1C1C1A] mt-1" style={{ fontFamily: "'Playfair Display', serif" }}>
+                  + Add Payment Installment
+                </h3>
+                <p className="text-xs text-slate-500 font-semibold">
+                  {installmentModalLog.logItem.bankName} — {installmentModalLog.logItem.branchName}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setInstallmentModalLog(null)}
+                className="text-slate-400 hover:text-[#1C1C1A] font-bold text-sm px-2 py-1 rounded-lg hover:bg-slate-100 cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Modal Body Form */}
+            <div className="space-y-3.5 text-xs">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[10px] font-black uppercase text-slate-600 mb-1 min-h-[18px]">Payment Date *</label>
+                  <input
+                    type="date"
+                    required
+                    value={instDate}
+                    onChange={e => setInstDate(e.target.value)}
+                    className="w-full border border-slate-250 rounded-lg px-3 py-2 text-xs font-bold text-slate-800 focus:outline-none focus:border-purple-600"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-black uppercase text-slate-600 mb-1 min-h-[18px]">Installment Amount Received (₹) *</label>
+                  <input
+                    type="number"
+                    min="1"
+                    step="0.01"
+                    required
+                    value={instAmount}
+                    onChange={e => setInstAmount(e.target.value)}
+                    placeholder="Enter installment amount..."
+                    className="w-full border border-slate-250 rounded-lg px-3 py-2 text-xs font-black text-emerald-700 focus:outline-none focus:border-purple-600"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[10px] font-black uppercase text-slate-600 mb-1 min-h-[18px]">Payment Mode / Method *</label>
+                  <select
+                    value={instMode}
+                    onChange={e => {
+                      setInstMode(e.target.value);
+                      if (e.target.value !== "Other") setInstOtherMode("");
+                    }}
+                    className="w-full border border-slate-250 rounded-lg px-3 py-2 text-xs font-bold text-slate-800 focus:outline-none focus:border-purple-600"
+                  >
+                    <option value="NEFT / RTGS / Bank Transfer">NEFT / RTGS / Bank Transfer</option>
+                    <option value="Cheque">Cheque</option>
+                    <option value="UPI / Online Transfer">UPI / Online Transfer</option>
+                    <option value="Cash">Cash</option>
+                    <option value="DD / Banker Cheque">DD / Banker Cheque</option>
+                    <option value="Direct Account Credit">Direct Account Credit</option>
+                    <option value="Other">Other</option>
+                  </select>
+                </div>
+
+                {instMode === "Other" && (
+                  <div>
+                    <label className="block text-[10px] font-black uppercase text-purple-700 mb-1 min-h-[18px]">Specify Payment Mode / Method *</label>
+                    <input
+                      type="text"
+                      required
+                      value={instOtherMode}
+                      onChange={e => setInstOtherMode(e.target.value)}
+                      placeholder="Specify custom payment mode..."
+                      className="w-full border border-purple-300 bg-purple-50/30 rounded-lg px-3 py-2 text-xs font-bold text-purple-950 focus:outline-none focus:border-purple-600"
+                    />
+                  </div>
+                )}
+
+                {(() => {
+                  const refInfo = getPaymentRefInfo(instMode);
+                  return (
+                    <div>
+                      <label className="block text-[10px] font-black uppercase text-slate-600 mb-1 min-h-[18px]">{refInfo.label}</label>
+                      <input
+                        type="text"
+                        required={refInfo.required}
+                        value={instRef}
+                        onChange={e => setInstRef(e.target.value)}
+                        placeholder={refInfo.placeholder}
+                        className="w-full border border-slate-250 rounded-lg px-3 py-2 text-xs font-bold text-slate-800 font-mono focus:outline-none focus:border-purple-600"
+                      />
+                    </div>
+                  );
+                })()}
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">Payment Collected By</label>
+                  <SearchableEmployeeInput
+                    value={instPersonName}
+                    onChange={setInstPersonName}
+                    placeholder="Search or select office staff member..."
+                    employees={employeeOptions}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">Paid By / Payer Name (Optional)</label>
+                  <input
+                    type="text"
+                    value={instPaidBy}
+                    onChange={e => setInstPaidBy(e.target.value)}
+                    placeholder="Bank officer or payer name..."
+                    className="w-full border border-slate-250 rounded-lg px-3 py-2 text-xs font-bold text-slate-800 focus:outline-none focus:border-purple-600"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">Upload Payment Receipt / Proof File (Optional)</label>
+                <input
+                  type="file"
+                  accept=".xlsx,.xls,.csv,.pdf,.doc,.docx,.png,.jpg,.jpeg,image/*"
+                  onChange={handleInstallmentFileChange}
+                  className="w-full text-[11px] font-bold text-slate-700 file:mr-2 file:py-1 file:px-2.5 file:rounded-lg file:border-0 file:text-[9.5px] file:font-black file:bg-purple-100 file:text-purple-800 cursor-pointer"
+                />
+                {instUploadedFileName && (
+                  <p className="text-[10px] font-bold text-purple-700 mt-1">📄 {instUploadedFileName}</p>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">Remarks / Payment Execution Notes</label>
+                <textarea
+                  rows={2}
+                  value={instRemarks}
+                  onChange={e => setInstRemarks(e.target.value)}
+                  placeholder="Enter details for this installment..."
+                  className="w-full border border-slate-250 rounded-lg px-3 py-2 text-xs resize-none focus:outline-none focus:border-purple-600"
+                />
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="pt-3 border-t flex justify-end gap-2 shrink-0">
+              <button
+                type="button"
+                onClick={() => setInstallmentModalLog(null)}
+                className="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={submittingInstallment}
+                onClick={handleSaveInstallment}
+                className="px-5 py-2 bg-[#714B67] hover:bg-[#5F3F56] text-white text-xs font-black rounded-lg disabled:opacity-60 shadow-md cursor-pointer active:scale-95 transition-all flex items-center gap-1.5"
+              >
+                <CheckCircle2 className="w-3.5 h-3.5" />
+                {submittingInstallment ? "Saving..." : "Save Payment Installment"}
               </button>
             </div>
           </div>
