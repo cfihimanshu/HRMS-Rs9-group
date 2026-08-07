@@ -40,8 +40,11 @@ export default function AssignedTaskPopup() {
             setUnacknowledgedTask(assigned);
           }
         }
-      } catch (err) {
-        console.error("Failed to fetch assigned task notifications:", err);
+      } catch (err: any) {
+        // Silently handle background polling fetch failures (e.g. server restart)
+        if (err?.name !== "TypeError") {
+          console.error("Failed to fetch assigned task notifications:", err);
+        }
       } finally {
         isFetching = false;
       }

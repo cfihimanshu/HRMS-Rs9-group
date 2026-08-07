@@ -132,6 +132,10 @@ AssetInventory.init(
       type: DataTypes.TEXT,
       allowNull: true,
     },
+    installationLocation: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+    },
     socialMediaApp: {
       type: DataTypes.TEXT,
       allowNull: true,

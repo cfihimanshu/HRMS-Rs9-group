@@ -85,7 +85,8 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
     status: "Available",
     companyId: "",
     notes: "",
-    photoUrl: ""
+    photoUrl: "",
+    installationLocation: ""
   });
   const [updating, setUpdating] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -106,7 +107,8 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
     condition: "Good",
     companyId: "",
     notes: "",
-    photoUrl: ""
+    photoUrl: "",
+    installationLocation: ""
   });
   const [submittingRegister, setSubmittingRegister] = useState(false);
   const [isCustomRegisterType, setIsCustomRegisterType] = useState(false);
@@ -1368,14 +1370,15 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
       const model = assetFields.acModel || "";
       const tonnage = assetFields.acTypeTonnageCustom || assetFields.acTypeTonnage || "1.5 Ton Split AC";
       const location = assetFields.acLocation || "";
-      if (!model || !location) {
-        triggerToast("AC Brand/Model and Installation Location are required");
+      if (!model) {
+        triggerToast("AC Brand/Model is required");
         return;
       }
-      finalDetail = `${model} - ${tonnage} [Location: ${location}]`;
+      const locText = location || registerForm.installationLocation || "";
+      finalDetail = `${model} - ${tonnage}${locText ? ` [Location: ${locText}]` : ""}`;
       finalSerial = "";
 
-      let acInfo = `AC Location: ${location}\n`;
+      let acInfo = locText ? `AC Location: ${locText}\n` : "";
       if (assetFields.acCondition) acInfo += `Cooling Condition: ${assetFields.acCondition}\n`;
       if (assetFields.acServicingStatus) acInfo += `Servicing Status: ${assetFields.acServicingStatus}\n`;
       if (assetFields.acLastServicingDate) acInfo += `Last Servicing Date: ${assetFields.acLastServicingDate}\n`;
@@ -1446,7 +1449,8 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
           condition: "Good",
           companyId: "",
           notes: "",
-          photoUrl: ""
+          photoUrl: "",
+          installationLocation: ""
         });
         setAssetFields({});
         setEmailsList([""]);
@@ -1605,7 +1609,8 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
       status: asset.status || "Available",
       companyId: asset.companyId || "",
       notes: asset.notes || "",
-      photoUrl: asset.photoUrl || ""
+      photoUrl: asset.photoUrl || "",
+      installationLocation: asset.installationLocation || fields.installationLocation || fields.acLocation || fields.furnitureLocation || ""
     });
     setEditAssetFields(fields);
     setEditEmailsList(emails);
@@ -1839,14 +1844,15 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
       const model = editAssetFields.acModel || "";
       const tonnage = editAssetFields.acTypeTonnageCustom || editAssetFields.acTypeTonnage || "1.5 Ton Split AC";
       const location = editAssetFields.acLocation || "";
-      if (!model || !location) {
-        triggerToast("AC Brand/Model and Installation Location are required");
+      if (!model) {
+        triggerToast("AC Brand/Model is required");
         return;
       }
-      finalDetail = `${model} - ${tonnage} [Location: ${location}]`;
+      const locText = location || editForm.installationLocation || "";
+      finalDetail = `${model} - ${tonnage}${locText ? ` [Location: ${locText}]` : ""}`;
       finalSerial = "";
 
-      let acInfo = `AC Location: ${location}\n`;
+      let acInfo = locText ? `AC Location: ${locText}\n` : "";
       if (editAssetFields.acCondition) acInfo += `Cooling Condition: ${editAssetFields.acCondition}\n`;
       if (editAssetFields.acServicingStatus) acInfo += `Servicing Status: ${editAssetFields.acServicingStatus}\n`;
       if (editAssetFields.acLastServicingDate) acInfo += `Last Servicing Date: ${editAssetFields.acLastServicingDate}\n`;
@@ -2220,7 +2226,7 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
               <div className="text-[10px] font-semibold uppercase tracking-wider text-black flex items-center gap-2 border-b border-[#E8E4DF] pb-2">
                 <span className="w-2 h-2 rounded-full bg-indigo-600"></span> 1. Basic Identification & Company Stock
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
                 <div>
                   <label className="block text-[9px] uppercase tracking-wider text-black font-normal mb-1">Asset ID * (Auto Generated)</label>
                   <input
@@ -2309,6 +2315,16 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
                     <option value="">-- General Stock --</option>
                     {companies.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                   </select>
+                </div>
+                <div>
+                  <label className="block text-[9px] uppercase tracking-wider text-black font-normal mb-1">Installation Location (Optional)</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Floor 2, Server Room, Cabin 3..."
+                    value={registerForm.installationLocation || ""}
+                    onChange={(e) => setRegisterForm(p => ({ ...p, installationLocation: e.target.value }))}
+                    className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-black placeholder-slate-400 font-normal focus:outline-none transition-all"
+                  />
                 </div>
               </div>
             </div>
@@ -3513,7 +3529,7 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
               </div>
             ) : typeClean?.includes("ac") || typeClean?.includes("air conditioner") ? (
               <div className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div>
                     <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">AC Brand & Model *</label>
                     <input
@@ -3552,17 +3568,6 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
                         className="mt-1.5 w-full bg-white border border-[#C9A84C] rounded-lg px-3 py-1.5 text-xs text-[#1C1C1A] font-semibold"
                       />
                     )}
-                  </div>
-                  <div>
-                    <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Installation Location / Room * (kaha laga hua h)</label>
-                    <input
-                      type="text"
-                      required
-                      placeholder="e.g. Server Room / MD Cabin / Main Hall / Branch"
-                      value={assetFields.acLocation || ""}
-                      onChange={(e) => setAssetFields(p => ({ ...p, acLocation: e.target.value }))}
-                      className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
-                    />
                   </div>
                   <div>
                     <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Cooling Condition / Working Status *</label>
@@ -4293,7 +4298,8 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
                                   condition: "Good",
                                   companyId: req.company_id || "",
                                   notes: `Approved Purchase Request ID: ${req.id}`,
-                                  photoUrl: ""
+                                  photoUrl: "",
+                                  installationLocation: ""
                                 });
                                 setShowRegisterForm(true);
                                 setActiveSubTab("stock");
@@ -4606,7 +4612,7 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
 
             {/* Form Content */}
             <form onSubmit={handleSaveEdit} className="p-5 space-y-4 overflow-y-auto">
-              <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-7 gap-4">
                 <div>
                   <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Asset ID</label>
                   <input
@@ -4675,6 +4681,16 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
                     <option>Damaged</option>
                     <option>Disposed</option>
                   </select>
+                </div>
+                <div>
+                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Installation Location (Optional)</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Floor 2, Server Room..."
+                    value={editForm.installationLocation || ""}
+                    onChange={(e) => setEditForm(p => ({ ...p, installationLocation: e.target.value }))}
+                    className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] placeholder-[#9C9890] font-semibold focus:outline-none transition-all"
+                  />
                 </div>
               </div>
 
@@ -5806,7 +5822,9 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
                         {fields.routerWifiSsid && <div><span className="text-[#9C9890] block text-[9px]">WI-FI SSID & PASS:</span> {fields.routerWifiSsid}</div>}
                         {fields.routerIp && <div><span className="text-[#9C9890] block text-[9px]">ADMIN IP:</span> <span className="font-mono">{fields.routerIp}</span></div>}
                         {fields.printerCartridge && <div><span className="text-[#9C9890] block text-[9px]">TONER / CARTRIDGE:</span> <span className="font-bold text-amber-900">{fields.printerCartridge}</span></div>}
-                        {fields.furnitureLocation && <div><span className="text-[#9C9890] block text-[9px]">LOCATION / CABIN:</span> {fields.furnitureLocation}</div>}
+                        {(viewingAsset.installationLocation || fields.installationLocation || fields.furnitureLocation || fields.acLocation) && (
+                          <div><span className="text-[#9C9890] block text-[9px]">INSTALLATION LOCATION:</span> <span className="font-bold text-indigo-900">{viewingAsset.installationLocation || fields.installationLocation || fields.furnitureLocation || fields.acLocation}</span></div>
+                        )}
                         <div><span className="text-[#9C9890] block text-[9px]">CONDITION:</span> {viewingAsset.condition || "Good"}</div>
                         <div><span className="text-[#9C9890] block text-[9px]">STATUS:</span> {viewingAsset.status || "Available"}</div>
                       </div>

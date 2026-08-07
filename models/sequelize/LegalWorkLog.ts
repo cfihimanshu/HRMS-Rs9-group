@@ -132,6 +132,10 @@ LegalWorkLog.init(
       type: DataTypes.STRING,
       allowNull: true,
     },
+    paidBy: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
     uploadedFileName: {
       type: DataTypes.STRING,
       allowNull: true,

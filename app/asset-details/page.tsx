@@ -132,11 +132,25 @@ function AssetDetailsContent() {
 
           {/* Photo & Model Box */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 bg-slate-800/40 p-4 rounded-2xl border border-slate-800 items-center">
-            {asset.photoUrl && (
-              <div className="col-span-1">
-                <img src={asset.photoUrl} alt="Asset preview" className="w-full h-36 object-cover rounded-xl border border-slate-700 shadow-md" />
-              </div>
-            )}
+            {(() => {
+              let photoList: string[] = [];
+              if (asset.photoUrl) {
+                const str = String(asset.photoUrl).trim();
+                if (str.startsWith("[")) {
+                  try { photoList = JSON.parse(str); } catch (_) { photoList = [str]; }
+                } else {
+                  photoList = [str];
+                }
+              }
+              if (photoList.length === 0) return null;
+              return (
+                <div className="col-span-1 flex flex-wrap gap-2">
+                  {photoList.map((url, idx) => (
+                    <img key={idx} src={url} alt={`Asset photo ${idx + 1}`} className="w-24 h-24 object-cover rounded-xl border border-slate-700 shadow-md" />
+                  ))}
+                </div>
+              );
+            })()}
             <div className={asset.photoUrl ? "col-span-2 space-y-2" : "col-span-3 space-y-2"}>
               <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1">
                 <Cpu className="w-3.5 h-3.5 text-indigo-400" /> Description & Hardware Model

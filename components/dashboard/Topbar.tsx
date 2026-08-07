@@ -97,8 +97,11 @@ export default function Topbar({
         });
         setUnreadCount(data.unreadCount);
       }
-    } catch (e) {
-      console.error(e);
+    } catch (e: any) {
+      // Silently catch background polling fetch failures (e.g. server restart)
+      if (e?.name !== "TypeError") {
+        console.error("Error fetching notifications:", e);
+      }
     }
   }, []);
 

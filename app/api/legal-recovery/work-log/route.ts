@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import LegalWorkLog from "@/models/sequelize/LegalWorkLog";
+import LegalWorkHistory from "@/models/sequelize/LegalWorkHistory";
 import TaskLog from "@/models/sequelize/TaskLog";
 import LegalNotice from "@/models/sequelize/LegalNotice";
 import sequelize, { safeAuthenticate } from "@/lib/sequelize";
@@ -59,6 +60,11 @@ async function ensureFinancialColumns() {
   if (!existingColumns.has("financialDetails")) {
     await sequelize.query(
       "ALTER TABLE `legal_work_logs` ADD COLUMN `financialDetails` TEXT NULL"
+    );
+  }
+  if (!existingColumns.has("paidBy")) {
+    await sequelize.query(
+      "ALTER TABLE `legal_work_logs` ADD COLUMN `paidBy` VARCHAR(255) NULL"
     );
   }
 
@@ -446,11 +452,31 @@ export async function POST(request: Request) {
           proofAttachment: attachmentFile || null,
           proofUrl: attachmentFile || null,
           attachmentUrl: attachmentFile || null,
-          attachment: attachmentFile || null
         });
       } catch (tErr) {
         console.warn("TaskLog creation warning in work-log route:", tErr);
       }
+    }
+
+    // Dual-sync into legal_work_histories table as well
+    try {
+      await LegalWorkHistory.sync();
+      await LegalWorkHistory.create({
+        masterId: cleanData.masterId || null,
+        category: cleanData.category || "ADVOCATE NOTICE",
+        subCategory: cleanData.subCategory || "TAKE NOTICE ASSIGNMENT",
+        bankName: cleanData.bankName || null,
+        branchName: cleanData.branchName || null,
+        employeeId: empId,
+        employeeName: empName,
+        attachmentUrl: cleanData.uploadedFileName || null,
+        remarks: cleanData.remarks || null,
+        status: "Completed",
+        workDate: data.workDate || new Date(),
+        amount: Number(data.stageAmount || data.billAmount || 0) || null
+      });
+    } catch (hErr) {
+      console.warn("LegalWorkHistory creation warning in work-log route:", hErr);
     }
 
     return NextResponse.json({ success: true, data: newLog });
@@ -476,6 +502,10 @@ export async function DELETE(request: Request) {
 
     if (id) {
       await LegalWorkLog.destroy({ where: { id } });
+      try {
+        await LegalWorkHistory.sync();
+        await LegalWorkHistory.destroy({ where: { id } }).catch(() => {});
+      } catch (hErr) {}
       return NextResponse.json({ success: true, message: `Work Log #${id} deleted.` });
     }
 
@@ -501,6 +531,38 @@ export async function PUT(request: Request) {
     if (!entry) return NextResponse.json({ success: false, error: "Work log not found" }, { status: 404 });
 
     await entry.update(data);
+
+    // Dual sync into legal_work_history table
+    try {
+      await LegalWorkHistory.sync();
+      const existingHistory = await LegalWorkHistory.findByPk(data.id);
+      if (existingHistory) {
+        await existingHistory.update({
+          bankName: data.bankName || entry.bankName,
+          branchName: data.branchName || entry.branchName,
+          remarks: data.remarks || entry.remarks,
+          attachmentUrl: data.uploadedFileName || entry.uploadedFileName,
+          amount: Number(data.stageAmount || data.billAmount || entry.stageAmount || entry.billAmount || 0) || null
+        });
+      } else {
+        await LegalWorkHistory.create({
+          id: entry.id,
+          masterId: entry.masterId || 0,
+          category: entry.category || "ADVOCATE NOTICE",
+          subCategory: entry.subCategory || "TAKE NOTICE ASSIGNMENT",
+          bankName: entry.bankName || null,
+          branchName: entry.branchName || null,
+          employeeId: entry.employeeId,
+          employeeName: entry.employeeName,
+          attachmentUrl: entry.uploadedFileName || null,
+          remarks: entry.remarks || null,
+          status: "Completed",
+          workDate: entry.workDate || new Date(),
+          amount: Number(entry.stageAmount || entry.billAmount || 0) || null
+        }).catch(() => {});
+      }
+    } catch (hErr) {}
+
     return NextResponse.json({ success: true, data: entry });
   } catch (error: any) {
     console.error("Work Log PUT Error:", error);

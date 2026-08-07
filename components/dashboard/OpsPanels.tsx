@@ -686,6 +686,9 @@ export function DailyCommitments({
     ? filteredUsers
     : filteredUsers.filter((u: any) => (u.id || u.id) === sessionUser?.id);
 
+  const activeDisplayUsers = displayUsers.filter((u: any) => (u.status || "active").toLowerCase() === "active");
+  const inactiveDisplayUsers = displayUsers.filter((u: any) => (u.status || "active").toLowerCase() !== "active");
+
   const renderCalendarDays = () => {
     const days = [];
     const totalDays = getDaysInMonth(calendarYear, calendarMonth);
@@ -2326,9 +2329,22 @@ export function DailyCommitments({
                   disabled={!isOwner || displayUsers.length <= 1}
                 >
                   <option value="">Select Employee</option>
-                  {displayUsers.map((u: any) => (
-                    <option key={u.id || u.id} value={u.id || u.id}>{u.name} ({u.role})</option>
-                  ))}
+                  <optgroup label="Active Employees">
+                    {activeDisplayUsers.map((u: any) => (
+                      <option key={u.id || u.id} value={u.id || u.id}>
+                        {u.name} ({u.role || "Employee"})
+                      </option>
+                    ))}
+                  </optgroup>
+                  {inactiveDisplayUsers.length > 0 && (
+                    <optgroup label="--- Inactive / Archived Staff ---">
+                      {inactiveDisplayUsers.map((u: any) => (
+                        <option key={u.id || u.id} value={u.id || u.id}>
+                          {u.name} ({u.role || "Employee"}) (Archived / Inactive)
+                        </option>
+                      ))}
+                    </optgroup>
+                  )}
                 </select>
               </div>
 
@@ -3005,8 +3021,8 @@ export function PerformanceCompliance({
     });
 
     const allList = Array.from(userMap.values()).filter(u => u.name && u.name.trim() !== "" && !u.name.toLowerCase().includes("unknown"));
-    const activeList = allList.filter(u => u.status !== "inactive" && u.status !== "archived").sort((a, b) => a.name.localeCompare(b.name));
-    const inactiveList = allList.filter(u => u.status === "inactive" || u.status === "archived").sort((a, b) => a.name.localeCompare(b.name));
+    const activeList = allList.filter(u => (u.status || "active").toLowerCase() === "active").sort((a, b) => a.name.localeCompare(b.name));
+    const inactiveList = allList.filter(u => (u.status || "active").toLowerCase() !== "active").sort((a, b) => a.name.localeCompare(b.name));
 
     return { activeList, inactiveList, allUsers: allList };
   }, [mergedList, users, sessionUser, selectedCompany, selectedDept]);
@@ -5594,9 +5610,22 @@ export function PerformanceCompliance({
                   onChange={(e) => setSelectedUser(e.target.value)}
                 >
                   <option value="">Select Employee</option>
-                  {filteredUsers.map((u: any) => (
-                    <option key={u.id || u.id} value={u.id || u.id}>{u.name} ({u.role})</option>
-                  ))}
+                  <optgroup label="Active Employees">
+                    {uniqueUsersFromReports.activeList.map((u: any) => (
+                      <option key={u.id} value={u.id}>
+                        {u.name} ({u.role || "Employee"})
+                      </option>
+                    ))}
+                  </optgroup>
+                  {uniqueUsersFromReports.inactiveList.length > 0 && (
+                    <optgroup label="--- Inactive / Archived Staff ---">
+                      {uniqueUsersFromReports.inactiveList.map((u: any) => (
+                        <option key={u.id} value={u.id}>
+                          {u.name} ({u.role || "Employee"}) (Archived / Inactive)
+                        </option>
+                      ))}
+                    </optgroup>
+                  )}
                 </select>
               </div>
             )}
@@ -6432,7 +6461,9 @@ export function LeaveRequestTab({ sessionUser }: { sessionUser?: any }) {
 
   // Filter states
   const [filterUser, setFilterUser] = useState("");
-  const [filterDate, setFilterDate] = useState("");
+  const [datePreset, setDatePreset] = useState<"current_month" | "last_month" | "custom" | "all">("current_month");
+  const [filterStartDate, setFilterStartDate] = useState("");
+  const [filterEndDate, setFilterEndDate] = useState("");
   const [filterStatus, setFilterStatus] = useState("All");
   const [showFilters, setShowFilters] = useState(false);
 
@@ -6765,24 +6796,68 @@ export function LeaveRequestTab({ sessionUser }: { sessionUser?: any }) {
     }
   }, [uniqueUsers, filterUser]);
 
+  const getActivePeriodLabel = () => {
+    const now = new Date();
+    if (datePreset === "current_month") {
+      return `Current Month (${now.toLocaleDateString("en-US", { month: "short", year: "numeric" })})`;
+    }
+    if (datePreset === "last_month") {
+      const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+      return `Last Month (${lastMonth.toLocaleDateString("en-US", { month: "short", year: "numeric" })})`;
+    }
+    if (datePreset === "custom") {
+      if (filterStartDate && filterEndDate) {
+        return `${new Date(filterStartDate).toLocaleDateString("en-IN", { day: "2-digit", month: "short" })} to ${new Date(filterEndDate).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}`;
+      } else if (filterStartDate) {
+        return `From ${new Date(filterStartDate).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}`;
+      } else if (filterEndDate) {
+        return `Until ${new Date(filterEndDate).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}`;
+      }
+      return "Custom Date Range";
+    }
+    return "All Time History";
+  };
+
   const filteredLeaves = leavesList.filter((leave: any) => {
     // 1. User Filter (by ID)
     if (filterUser !== "") {
-      if (!leave.employee || leave.employee.id !== filterUser) {
+      if (!leave.employee || String(leave.employee.id) !== String(filterUser)) {
         return false;
       }
     }
 
-    // 2. Date Filter (checks if target date overlaps with leave duration)
-    if (filterDate !== "") {
-      const targetDate = new Date(filterDate);
-      targetDate.setHours(0, 0, 0, 0);
-      const leaveStart = new Date(leave.startDate);
+    // 2. Date Range Filter
+    if (leave.startDate || leave.endDate) {
+      const leaveStart = new Date(leave.startDate || leave.endDate);
       leaveStart.setHours(0, 0, 0, 0);
-      const leaveEnd = new Date(leave.endDate);
-      leaveEnd.setHours(0, 0, 0, 0);
-      if (targetDate < leaveStart || targetDate > leaveEnd) {
-        return false;
+      const leaveEnd = new Date(leave.endDate || leave.startDate);
+      leaveEnd.setHours(23, 59, 59, 999);
+
+      if (datePreset === "current_month") {
+        const now = new Date();
+        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
+        const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+        if (leaveEnd < startOfMonth || leaveStart > endOfMonth) {
+          return false;
+        }
+      } else if (datePreset === "last_month") {
+        const now = new Date();
+        const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1, 0, 0, 0, 0);
+        const endOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999);
+        if (leaveEnd < startOfLastMonth || leaveStart > endOfLastMonth) {
+          return false;
+        }
+      } else if (datePreset === "custom") {
+        if (filterStartDate) {
+          const customStart = new Date(filterStartDate);
+          customStart.setHours(0, 0, 0, 0);
+          if (leaveEnd < customStart) return false;
+        }
+        if (filterEndDate) {
+          const customEnd = new Date(filterEndDate);
+          customEnd.setHours(23, 59, 59, 999);
+          if (leaveStart > customEnd) return false;
+        }
       }
     }
 
@@ -7198,29 +7273,61 @@ export function LeaveRequestTab({ sessionUser }: { sessionUser?: any }) {
 
         {/* List of Leave Requests */}
         <div className="bg-white border border-[#E8E4DF] rounded-xl p-6 shadow-sm">
-          <h3 className="text-xs font-black tracking-widest text-[#1C1C1A] uppercase font-mono pb-2 border-b border-[#E8E4DF] mb-4 flex items-center justify-between relative">
-            <span style={{ fontFamily: "'Playfair Display', serif" }} className="font-serif text-sm font-bold lowercase first-letter:uppercase text-[#1C1C1A]">
-              📋 {canApprove ? "Leave requests registry" : "Your leave request history"}
-            </span>
-            <div className="relative">
+          <h3 className="text-xs font-black tracking-widest text-[#1C1C1A] uppercase font-mono pb-2 border-b border-[#E8E4DF] mb-4 flex flex-wrap items-center justify-between gap-2 relative">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span style={{ fontFamily: "'Playfair Display', serif" }} className="font-serif text-sm font-bold lowercase first-letter:uppercase text-[#1C1C1A]">
+                📋 {canApprove ? "Leave requests registry" : "Your leave request history"}
+              </span>
+              <span className="px-2.5 py-1 text-[10px] font-black rounded-lg bg-purple-50 text-purple-900 border border-purple-200 tracking-normal normal-case flex items-center gap-1 shadow-2xs">
+                📅 {getActivePeriodLabel()}
+              </span>
+            </div>
+
+            <div className="relative flex items-center gap-2">
+              {/* Quick Filter Pill Buttons */}
+              <div className="hidden sm:flex items-center gap-1 bg-[#F5F2EC] p-1 rounded-xl border border-[#E8E4DF] text-[10px] font-bold normal-case">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setDatePreset("current_month");
+                    setFilterStartDate("");
+                    setFilterEndDate("");
+                  }}
+                  className={`px-2.5 py-1 rounded-lg transition-all ${datePreset === "current_month" ? "bg-[#714B67] text-white font-black shadow-2xs" : "text-[#6B665E] hover:text-[#1C1C1A]"}`}
+                >
+                  Current Month
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setDatePreset("last_month");
+                    setFilterStartDate("");
+                    setFilterEndDate("");
+                  }}
+                  className={`px-2.5 py-1 rounded-lg transition-all ${datePreset === "last_month" ? "bg-[#714B67] text-white font-black shadow-2xs" : "text-[#6B665E] hover:text-[#1C1C1A]"}`}
+                >
+                  Last Month
+                </button>
+              </div>
+
               <button
                 type="button"
                 onClick={() => setShowFilters(!showFilters)}
-                className={`flex items-center gap-2 border px-4 py-2 text-xs font-bold transition-all rounded-xl shadow-sm focus:outline-none ${showFilters
+                className={`flex items-center gap-2 border px-3.5 py-1.5 text-xs font-bold transition-all rounded-xl shadow-sm focus:outline-none ${showFilters
                   ? "bg-[#C9A84C] border-[#C9A84C] text-[#FCFBF9]"
                   : "bg-[#FCFBF9] hover:bg-[#F5F2EC] border-[#E8E4DF] text-[#1C1C1A]"
                   }`}
               >
                 <Filter className="w-3.5 h-3.5" />
                 <span>Filter Leaves</span>
-                {(filterUser || filterDate || filterStatus !== "All") && (
+                {(filterUser || datePreset !== "current_month" || filterStartDate || filterEndDate || filterStatus !== "All") && (
                   <span className="w-1.5 h-1.5 rounded-full bg-[#C9A84C] animate-pulse" />
                 )}
               </button>
 
               {/* Floating Filter Popover */}
               {showFilters && (
-                <div className="absolute right-0 mt-3 z-50 bg-[#FCFBF9] border border-[#E8E4DF] shadow-[0_25px_60px_-15px_rgba(0,0,0,0.15)] rounded-2xl p-5 w-[300px] space-y-4 text-left normal-case font-sans">
+                <div className="absolute right-0 top-full mt-3 z-50 bg-[#FCFBF9] border border-[#E8E4DF] shadow-[0_25px_60px_-15px_rgba(0,0,0,0.15)] rounded-2xl p-5 w-[320px] space-y-4 text-left normal-case font-sans">
                   <div className="flex justify-between items-center border-b border-[#E8E4DF] pb-2">
                     <span className="text-xs font-bold text-[#1C1C1A] tracking-wider uppercase font-mono">Filter Registry</span>
                     <button
@@ -7250,14 +7357,48 @@ export function LeaveRequestTab({ sessionUser }: { sessionUser?: any }) {
                     </div>
 
                     <div>
-                      <label className="text-[9px] uppercase font-bold text-[#9C9890] font-mono tracking-widest block mb-1">Filter by Date</label>
-                      <input
-                        type="date"
+                      <label className="text-[9px] uppercase font-bold text-[#9C9890] font-mono tracking-widest block mb-1">Date Period Filter</label>
+                      <select
                         className="w-full bg-white border border-[#E8E4DF] rounded-xl p-2.5 text-xs font-bold text-[#1C1C1A] focus:outline-none focus:border-[#C9A84C] focus:ring-1 focus:ring-[#C9A84C]"
-                        value={filterDate}
-                        onChange={(e) => setFilterDate(e.target.value)}
-                      />
+                        value={datePreset}
+                        onChange={(e) => {
+                          const val = e.target.value as any;
+                          setDatePreset(val);
+                          if (val !== "custom") {
+                            setFilterStartDate("");
+                            setFilterEndDate("");
+                          }
+                        }}
+                      >
+                        <option value="current_month">📅 Current Month (Default)</option>
+                        <option value="last_month">📅 Last Month</option>
+                        <option value="custom">📅 Custom Date Range</option>
+                        <option value="all">🌐 All Time History</option>
+                      </select>
                     </div>
+
+                    {datePreset === "custom" && (
+                      <div className="p-3 bg-[#F5F2EC] rounded-xl border border-[#E8E4DF] space-y-3">
+                        <div>
+                          <label className="text-[9px] uppercase font-bold text-[#6B665E] font-mono tracking-widest block mb-1">Start Date (From)</label>
+                          <input
+                            type="date"
+                            className="w-full bg-white border border-[#E8E4DF] rounded-lg p-2 text-xs font-bold text-[#1C1C1A] focus:outline-none focus:border-[#C9A84C]"
+                            value={filterStartDate}
+                            onChange={(e) => setFilterStartDate(e.target.value)}
+                          />
+                        </div>
+                        <div>
+                          <label className="text-[9px] uppercase font-bold text-[#6B665E] font-mono tracking-widest block mb-1">End Date (To)</label>
+                          <input
+                            type="date"
+                            className="w-full bg-white border border-[#E8E4DF] rounded-lg p-2 text-xs font-bold text-[#1C1C1A] focus:outline-none focus:border-[#C9A84C]"
+                            value={filterEndDate}
+                            onChange={(e) => setFilterEndDate(e.target.value)}
+                          />
+                        </div>
+                      </div>
+                    )}
 
                     <div>
                       <label className="text-[9px] uppercase font-bold text-[#9C9890] font-mono tracking-widest block mb-1">Status</label>
@@ -7279,13 +7420,15 @@ export function LeaveRequestTab({ sessionUser }: { sessionUser?: any }) {
                       type="button"
                       onClick={() => {
                         setFilterUser("");
-                        setFilterDate("");
+                        setDatePreset("current_month");
+                        setFilterStartDate("");
+                        setFilterEndDate("");
                         setFilterStatus("All");
                         setShowFilters(false);
                       }}
                       className="flex-1 bg-[#FCFBF9] hover:bg-[#F5F2EC] text-[#6B665E] py-2.5 rounded-xl text-[10px] font-bold transition-all border border-[#E8E4DF]"
                     >
-                      Clear All
+                      Reset to Default
                     </button>
                     <button
                       type="button"
