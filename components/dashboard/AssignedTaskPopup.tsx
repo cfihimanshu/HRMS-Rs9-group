@@ -20,6 +20,7 @@ export default function AssignedTaskPopup() {
       isFetching = true;
       try {
         const res = await fetch("/api/tasks?range=today");
+        if (!res.ok) return;
         const data = await res.json();
         if (data.success && Array.isArray(data.data)) {
           // Find tasks assigned to this user by an Owner/Manager or forwarded to this user that have not been acknowledged

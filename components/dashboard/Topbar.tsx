@@ -81,6 +81,7 @@ export default function Topbar({
   const fetchNotifications = useCallback(async () => {
     try {
       const res = await fetch("/api/notifications");
+      if (!res.ok) return;
       const data = await res.json();
       if (data.success) {
         setNotifications(prev => {
