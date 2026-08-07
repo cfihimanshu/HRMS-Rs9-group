@@ -3,6 +3,7 @@ import React, { useState, useEffect, useMemo, useRef } from "react";
 import { Search, Shield, ShieldCheck, ShieldAlert, Key, UserCheck, RefreshCw, CheckSquare, Square, CheckCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { normalizeRole } from "@/lib/roles";
+import { CATEGORIES_ORDER, getDynamicMenuCategoriesWithPages } from "@/lib/navigationConfig";
 
 interface AdministratorAccessProps {
   userRole?: string;
@@ -473,91 +474,8 @@ export default function AdministratorAccess({ userRole, triggerToast, sessionUse
   const [loadingMatrix, setLoadingMatrix] = useState<boolean>(false);
   const [savingFormKey, setSavingFormKey] = useState<string | null>(null);
 
-  const menuCategories = [
-    "Core Workspace",
-    "Employee Self Service",
-    "AI & Vetting Hub",
-    "Training & Probation",
-    "Daily Operations",
-    "Network Partners",
-    "Compliance & Exit"
-  ];
-
-  const menuCategoriesWithPages = [
-    {
-      category: "Core Workspace",
-      pages: [
-        { id: "dashboard", label: "Owner Dashboard" },
-        { id: "hr-dash", label: "HR Dashboard" },
-        { id: "dept-dash", label: "Department Dashboard" },
-        { id: "hiring", label: "Hiring Approvals" },
-        { id: "jobs", label: "Vacancy Postings" },
-        { id: "business-leads", label: "HR Leads" },
-        { id: "employees", label: "Employees Directory" },
-        { id: "bda-directory", label: "BDA Network (Sales)" },
-        { id: "assets-registry", label: "Assets Registry" },
-        { id: "inventory-management", label: "Inventory Management" },
-        { id: "admin-access", label: "Administrator Access" },
-        { id: "document-movement", label: "Document Movement" },
-        { id: "vehicle-registry", label: "Vehicle Registry" },
-        { id: "legal-recovery", label: "Legal Recovery" }
-      ]
-    },
-    {
-      category: "Employee Self Service",
-      pages: [
-        { id: "ess-dashboard", label: "ESS Dashboard" },
-        { id: "ess-leaves", label: "Leave Management" },
-        { id: "ess-payroll", label: "My Payslips & Salary" },
-        { id: "ess-expenses", label: "Expense Claims" },
-        { id: "asset-request", label: "Asset Request" }
-      ]
-    },
-    {
-      category: "AI & Vetting Hub",
-      pages: [
-        { id: "screening", label: "AI Screening Module" },
-        { id: "interviews", label: "Interviews Queue" },
-        { id: "verification", label: "Vetting Checks Registry" },
-        { id: "onboarding", label: "NDA Onboarding SLA" }
-      ]
-    },
-    {
-      category: "Training & Probation",
-      pages: [
-        { id: "training", label: "Training Classroom" },
-        { id: "probation", label: "6-Month Probation Audit" }
-      ]
-    },
-    {
-      category: "Daily Operations",
-      pages: [
-        { id: "attendance", label: "Attendance & Leaves" },
-        { id: "scheduled-work", label: "Schedule Work Report" },
-        { id: "tasks", label: "Tasks & Projects" },
-        { id: "performance", label: "Performance Matrix" },
-        { id: "live-tracking", label: "Live Location Tracking" },
-        { id: "field-visit", label: "Field Visit Entries" },
-        { id: "leave-request", label: "Leave Requests" }
-      ]
-    },
-    {
-      category: "Network Partners",
-      pages: [
-        { id: "associates", label: "Business Associates" },
-        { id: "vendors", label: "Vendors Registry" },
-        { id: "franchise", label: "Franchise Network" }
-      ]
-    },
-    {
-      category: "Compliance & Exit",
-      pages: [
-        { id: "grievance", label: "Grievance Redressal" },
-        { id: "risks", label: "Risk & Incident Log" },
-        { id: "exit", label: "Exit Management" }
-      ]
-    }
-  ];
+  const menuCategories = CATEGORIES_ORDER;
+  const menuCategoriesWithPages = useMemo(() => getDynamicMenuCategoriesWithPages(), []);
 
   const fetchData = async () => {
     try {
