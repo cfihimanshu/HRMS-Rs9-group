@@ -201,10 +201,29 @@ export function OnboardingRoadmap({ selectedCandidate: initialCandidate, trigger
     }
   };
 
-  // Filter candidates list
-  const filteredCandidates = candidates.filter(c =>
-    c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (c.job && c.job.title.toLowerCase().includes(searchQuery.toLowerCase()))
+  // Safe array parsing for generatedDocs and signedDocs
+  const generatedDocsList = React.useMemo(() => {
+    if (!onboardingRecord?.generatedDocs) return [];
+    let docs = onboardingRecord.generatedDocs;
+    if (typeof docs === "string") {
+      try { docs = JSON.parse(docs); } catch (e) { docs = []; }
+    }
+    return Array.isArray(docs) ? docs : [];
+  }, [onboardingRecord?.generatedDocs]);
+
+  const signedDocsList = React.useMemo(() => {
+    if (!onboardingRecord?.signedDocs) return [];
+    let docs = onboardingRecord.signedDocs;
+    if (typeof docs === "string") {
+      try { docs = JSON.parse(docs); } catch (e) { docs = []; }
+    }
+    return Array.isArray(docs) ? docs : [];
+  }, [onboardingRecord?.signedDocs]);
+
+  // Filter candidates list safely
+  const filteredCandidates = (candidates || []).filter(c =>
+    (c.name || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (c.job && c.job.title && c.job.title.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
   return (
@@ -372,7 +391,7 @@ export function OnboardingRoadmap({ selectedCandidate: initialCandidate, trigger
                       </div>
                       <div className="text-right">
                         <span className="text-xs font-black text-[#714B67] font-mono">
-                          {onboardingRecord.signedDocs?.length || 0} / {onboardingRecord.generatedDocs?.length || 0}
+                          {signedDocsList.length} / {generatedDocsList.length}
                         </span>
                         <span className="text-[9px] text-slate-400 font-bold block">Documents Signed</span>
                       </div>
@@ -382,8 +401,8 @@ export function OnboardingRoadmap({ selectedCandidate: initialCandidate, trigger
                       <div
                         className="h-full bg-[#714B67] rounded-full transition-all duration-550"
                         style={{
-                          width: `${onboardingRecord.generatedDocs?.length
-                              ? ((onboardingRecord.signedDocs?.length || 0) / onboardingRecord.generatedDocs.length) * 100
+                          width: `${generatedDocsList.length
+                              ? (signedDocsList.length / generatedDocsList.length) * 100
                               : 0
                             }%`
                         }}
@@ -405,13 +424,18 @@ export function OnboardingRoadmap({ selectedCandidate: initialCandidate, trigger
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100 font-semibold text-slate-650">
-                          {onboardingRecord.generatedDocs?.map((doc: any, i: number) => {
-                            const isSigned = onboardingRecord.signedDocs?.some((s: any) => s.name === doc.name);
+                          {generatedDocsList.map((doc: any, i: number) => {
+                            const docName = typeof doc === "string" ? doc : (doc?.name || doc?.title || `Document #${i + 1}`);
+                            const docUrl = typeof doc === "string" ? "#" : (doc?.url || "#");
+                            const isSigned = signedDocsList.some((s: any) => {
+                              const sName = typeof s === "string" ? s : s?.name;
+                              return sName === docName;
+                            });
                             return (
                               <tr key={i} className="hover:bg-slate-50/50">
                                 <td className="py-3 pr-2 font-bold text-slate-805 flex items-center gap-2">
                                   <FileText className="w-4 h-4 text-slate-400 shrink-0" />
-                                  <span>{doc.name}</span>
+                                  <span>{docName}</span>
                                 </td>
                                 <td className="py-3 px-2">
                                   {isSigned ? (
@@ -428,7 +452,7 @@ export function OnboardingRoadmap({ selectedCandidate: initialCandidate, trigger
                                   <div className="flex items-center justify-end gap-2">
                                     {!isSigned && (
                                       <button
-                                        onClick={() => handleSignDoc(doc.name)}
+                                        onClick={() => handleSignDoc(docName)}
                                         disabled={submitting}
                                         className="bg-amber-600 hover:bg-amber-700 text-white px-2.5 py-1.5 rounded text-[10px] font-black flex items-center gap-1 transition-all shadow-sm"
                                         title="Simulate candidate signature"
@@ -437,7 +461,7 @@ export function OnboardingRoadmap({ selectedCandidate: initialCandidate, trigger
                                       </button>
                                     )}
                                     <a
-                                      href={doc.url}
+                                      href={docUrl}
                                       target="_blank"
                                       rel="noreferrer"
                                       className="border border-slate-200 hover:bg-slate-50 p-1.5 rounded transition-all inline-block"

@@ -544,8 +544,9 @@ export default function LegalWorkEntryHistoryView({
     return { label: "Reference / Receipt No. (Optional)", placeholder: "Enter ref or receipt details...", required: false };
   };
 
-  // State variables for Adding Payment Installment Modal
+  // State variables for Adding/Editing Payment Installment Modal
   const [installmentModalLog, setInstallmentModalLog] = useState<{ logItem: LegalWorkLogItem; targetStage: string } | null>(null);
+  const [editingInstallmentId, setEditingInstallmentId] = useState<string | null>(null);
   const [instDate, setInstDate] = useState(new Date().toISOString().split('T')[0]);
   const [instAmount, setInstAmount] = useState("");
   const [instMode, setInstMode] = useState("NEFT / RTGS / Bank Transfer");
@@ -559,6 +560,7 @@ export default function LegalWorkEntryHistoryView({
   const [submittingInstallment, setSubmittingInstallment] = useState(false);
 
   const openAddInstallmentModal = (logItem: LegalWorkLogItem, targetStage: string = "REQUEST PAYMENT") => {
+    setEditingInstallmentId(null);
     const groupLogs = logItem.allLogs && logItem.allLogs.length > 0 ? logItem.allLogs : [logItem];
     const targetLog = groupLogs.find(l => (l.businessDevSubOption || l.subCategory || "").trim().toUpperCase() === targetStage.trim().toUpperCase()) || logItem;
 
@@ -581,6 +583,21 @@ export default function LegalWorkEntryHistoryView({
     setInstUploadedFileName("");
     setInstUploadedFileUrl("");
     setInstRemarks("");
+    setInstallmentModalLog({ logItem, targetStage });
+  };
+
+  const openEditInstallmentModal = (logItem: LegalWorkLogItem, targetStage: string, inst: PaymentInstallment) => {
+    setEditingInstallmentId(inst.id);
+    setInstDate(inst.paymentDate || new Date().toISOString().split('T')[0]);
+    setInstAmount(String(inst.amount || ""));
+    setInstMode(inst.paymentMode || "NEFT / RTGS / Bank Transfer");
+    setInstOtherMode("");
+    setInstRef(inst.paymentRef || "");
+    setInstPersonName(inst.personName || "");
+    setInstPaidBy(inst.paidBy || "");
+    setInstUploadedFileName(inst.uploadedFileName || "");
+    setInstUploadedFileUrl(inst.uploadedFileName || "");
+    setInstRemarks(inst.remarks || "");
     setInstallmentModalLog({ logItem, targetStage });
   };
 
@@ -649,21 +666,42 @@ export default function LegalWorkEntryHistoryView({
 
       const effectiveMode = instMode === "Other" ? (instOtherMode.trim() || "Other") : instMode;
 
-      const newInst: PaymentInstallment = {
-        id: "inst_" + Date.now(),
-        installmentNo: existingInstallments.length + 1,
-        paymentDate: instDate || new Date().toISOString().split('T')[0],
-        amount: Number(instAmount),
-        paymentMode: effectiveMode,
-        paymentRef: instRef,
-        personName: instPersonName,
-        paidBy: instPaidBy,
-        uploadedFileName: instUploadedFileUrl || instUploadedFileName || "",
-        remarks: instRemarks,
-        createdAt: new Date().toISOString()
-      };
+      let updatedInstallments: PaymentInstallment[] = [];
 
-      const updatedInstallments = [...existingInstallments, newInst];
+      if (editingInstallmentId) {
+        updatedInstallments = existingInstallments.map(inst => {
+          if (inst.id === editingInstallmentId) {
+            return {
+              ...inst,
+              paymentDate: instDate || inst.paymentDate,
+              amount: Number(instAmount),
+              paymentMode: effectiveMode,
+              paymentRef: instRef,
+              personName: instPersonName,
+              paidBy: instPaidBy,
+              uploadedFileName: instUploadedFileUrl || instUploadedFileName || inst.uploadedFileName || "",
+              remarks: instRemarks
+            };
+          }
+          return inst;
+        });
+      } else {
+        const newInst: PaymentInstallment = {
+          id: "inst_" + Date.now(),
+          installmentNo: existingInstallments.length + 1,
+          paymentDate: instDate || new Date().toISOString().split('T')[0],
+          amount: Number(instAmount),
+          paymentMode: effectiveMode,
+          paymentRef: instRef,
+          personName: instPersonName,
+          paidBy: instPaidBy,
+          uploadedFileName: instUploadedFileUrl || instUploadedFileName || "",
+          remarks: instRemarks,
+          createdAt: new Date().toISOString()
+        };
+        updatedInstallments = [...existingInstallments, newInst];
+      }
+
       const totalBill = Number(existingFin.totalBillAmount || targetLog.billAmount || targetLog.stageAmount || 0);
       const totalRec = updatedInstallments.reduce((acc, i) => acc + (Number(i.amount) || 0), 0);
       const newPending = Math.max(0, totalBill - totalRec);
@@ -698,11 +736,15 @@ export default function LegalWorkEntryHistoryView({
 
       const data = await res.json();
       if (res.ok && (data.success || data.id || data.data)) {
-        if (triggerToast) triggerToast(`Payment installment of ₹${Number(instAmount).toLocaleString("en-IN")} added successfully!`);
+        const successMsg = editingInstallmentId 
+          ? "Payment installment updated successfully!" 
+          : `Payment installment of ₹${Number(instAmount).toLocaleString("en-IN")} added successfully!`;
+        if (triggerToast) triggerToast(successMsg);
         await fetchWorkLogHistory();
         setInstallmentModalLog(null);
+        setEditingInstallmentId(null);
       } else {
-        alert(data.error || "Failed to add payment installment");
+        alert(data.error || "Failed to save payment installment");
       }
     } catch (err: any) {
       alert("Error adding installment: " + err.message);
@@ -1795,21 +1837,28 @@ export default function LegalWorkEntryHistoryView({
   };
 
   const openNextStepModal = (item: LegalWorkLogItem) => {
+    const rawCategoryKey = item.businessDevOption || item.category || "ADVOCATE NOTICE";
+    const currentSub = item.businessDevSubOption || item.subCategory || "";
+    const { category: resolvedCat, stages } = getCategoryAndStages(rawCategoryKey, currentSub);
+
+    // Scan through all stages to find the FIRST pending / unfilled stage
+    const unfilledStage = stages.find(stg => {
+      const details = getStageFilledDetails(item, stg);
+      return !details.isFilled;
+    });
+
+    if (!unfilledStage) {
+      triggerToast?.("ℹ️ You have already filled all stages for this work log!");
+      return;
+    }
+
+    const calculatedNext = unfilledStage;
+
     setNextStepEntry(item);
     setNextStepWorkDate(new Date().toISOString().split("T")[0]);
     setNextStepBankName(item.bankName || "");
     setNextStepBranchName(item.branchName || "");
-
-    const rawCategoryKey = item.businessDevOption || item.category || "ADVOCATE NOTICE";
-    const currentSub = item.businessDevSubOption || item.subCategory || "";
-    const { category: resolvedCat, stages } = getCategoryAndStages(rawCategoryKey, currentSub);
     setNextStepOption(resolvedCat);
-
-    const currentIndex = stages.indexOf(currentSub);
-    const calculatedNext = (currentIndex >= 0 && currentIndex < stages.length - 1)
-      ? stages[currentIndex + 1]
-      : (stages[0] || "TAKE NOTICE ASSIGNMENT");
-
     setNextStepSubOption(calculatedNext);
     setNextStepCount(item.noOfCount || "1");
 
@@ -1947,12 +1996,23 @@ export default function LegalWorkEntryHistoryView({
         const categoryKey = nextStepOption || "ADVOCATE NOTICE";
         const stages = STAGE_DEFINITIONS[categoryKey] || STAGE_DEFINITIONS["ADVOCATE NOTICE"];
         const currentIndex = stages.indexOf(nextStepSubOption);
-        if (currentIndex >= 0 && currentIndex < stages.length - 1) {
-          const nextStage = stages[currentIndex + 1];
+        
+        let nextStage: string | undefined = undefined;
+        if (nextStepEntry) {
+          for (let i = currentIndex + 1; i < stages.length; i++) {
+            const stg = stages[i];
+            const details = getStageFilledDetails(nextStepEntry, stg);
+            if (!details.isFilled) {
+              nextStage = stg;
+              break;
+            }
+          }
+        }
+
+        if (nextStage) {
           setNextStepSubOption(nextStage);
           setNextStepRemarks("");
           setNextStepAmount("0");
-          // Pre-fill file from next stage's previously saved data if any
           if (nextStepEntry) {
             const groupLogs = nextStepEntry.allLogs && nextStepEntry.allLogs.length > 0 ? nextStepEntry.allLogs : [nextStepEntry];
             const nextStageLog = groupLogs.find(gl => (gl.businessDevSubOption || gl.subCategory) === nextStage);
@@ -1960,8 +2020,10 @@ export default function LegalWorkEntryHistoryView({
           } else {
             setNextStepUploadedFileName("");
           }
+          handleNextStepStageChange(nextStage, nextStepEntry);
         } else {
           setNextStepEntry(null);
+          triggerToast?.("🎉 All stages for this work log are now completed!");
         }
       } else {
         setNextStepEntry(null);
@@ -2990,14 +3052,24 @@ export default function LegalWorkEntryHistoryView({
                                                                                 ) : "—"}
                                                                               </td>
                                                                               <td className="py-2 px-3 text-right">
-                                                                                <button
-                                                                                  type="button"
-                                                                                  onClick={() => handleDeleteInstallment(item, stgName, inst.id)}
-                                                                                  className="p-1 text-slate-400 hover:text-rose-600 rounded hover:bg-rose-50 cursor-pointer transition-colors"
-                                                                                  title="Delete installment"
-                                                                                >
-                                                                                  <Trash2 className="w-3.5 h-3.5" />
-                                                                                </button>
+                                                                                <div className="flex items-center justify-end gap-1">
+                                                                                  <button
+                                                                                    type="button"
+                                                                                    onClick={() => openEditInstallmentModal(item, stgName, inst)}
+                                                                                    className="p-1 text-slate-400 hover:text-indigo-600 rounded hover:bg-indigo-50 cursor-pointer transition-colors"
+                                                                                    title="Edit installment"
+                                                                                  >
+                                                                                    <Edit className="w-3.5 h-3.5" />
+                                                                                  </button>
+                                                                                  <button
+                                                                                    type="button"
+                                                                                    onClick={() => handleDeleteInstallment(item, stgName, inst.id)}
+                                                                                    className="p-1 text-slate-400 hover:text-rose-600 rounded hover:bg-rose-50 cursor-pointer transition-colors"
+                                                                                    title="Delete installment"
+                                                                                  >
+                                                                                    <Trash2 className="w-3.5 h-3.5" />
+                                                                                  </button>
+                                                                                </div>
                                                                               </td>
                                                                             </tr>
                                                                           ))}
@@ -4727,7 +4799,7 @@ export default function LegalWorkEntryHistoryView({
           <div
             role="dialog"
             aria-modal="true"
-            aria-label="Add Payment Installment"
+            aria-label={editingInstallmentId ? "Edit Payment Installment" : "Add Payment Installment"}
             className="bg-white rounded-2xl p-5 max-w-lg w-full space-y-4 shadow-2xl relative border border-[#E8E4DF] animate-scale-in"
           >
             {/* Modal Header */}
@@ -4737,7 +4809,7 @@ export default function LegalWorkEntryHistoryView({
                   Request Payment Stage
                 </span>
                 <h3 className="text-base font-bold font-serif text-[#1C1C1A] mt-1" style={{ fontFamily: "'Playfair Display', serif" }}>
-                  + Add Payment Installment
+                  {editingInstallmentId ? "✏️ Edit Payment Installment" : "+ Add Payment Installment"}
                 </h3>
                 <p className="text-xs text-slate-500 font-semibold">
                   {installmentModalLog.logItem.bankName} — {installmentModalLog.logItem.branchName}
@@ -4898,7 +4970,7 @@ export default function LegalWorkEntryHistoryView({
                 className="px-5 py-2 bg-[#714B67] hover:bg-[#5F3F56] text-white text-xs font-black rounded-lg disabled:opacity-60 shadow-md cursor-pointer active:scale-95 transition-all flex items-center gap-1.5"
               >
                 <CheckCircle2 className="w-3.5 h-3.5" />
-                {submittingInstallment ? "Saving..." : "Save Payment Installment"}
+                {submittingInstallment ? "Saving..." : (editingInstallmentId ? "Update Payment Installment" : "Save Payment Installment")}
               </button>
             </div>
           </div>

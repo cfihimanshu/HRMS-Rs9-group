@@ -6953,30 +6953,54 @@ export function LeaveRequestTab({ sessionUser }: { sessionUser?: any }) {
     return "All Time History";
   };
 
+  const parseLeaveDate = (dStr: any) => {
+    if (!dStr) return null;
+    if (dStr instanceof Date) return isNaN(dStr.getTime()) ? null : dStr;
+    const str = String(dStr).trim();
+    if (/^\d{4}-\d{2}-\d{2}/.test(str)) {
+      const parts = str.slice(0, 10).split("-");
+      return new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+    }
+    if (/^\d{1,2}\/\d{1,2}\/\d{4}/.test(str)) {
+      const parts = str.split("/");
+      if (Number(parts[0]) > 12) {
+        return new Date(Number(parts[2]), Number(parts[1]) - 1, Number(parts[0]));
+      } else {
+        return new Date(Number(parts[2]), Number(parts[0]) - 1, Number(parts[1]));
+      }
+    }
+    const dObj = new Date(str);
+    return isNaN(dObj.getTime()) ? null : dObj;
+  };
+
   const filteredLeaves = leavesList.filter((leave: any) => {
-    // 1. User Filter (by ID)
+    // 1. User Filter (by ID - handle both object and string formats)
     if (filterUser !== "") {
-      if (!leave.employee || String(leave.employee.id) !== String(filterUser)) {
+      const empId = typeof leave.employee === "object" && leave.employee !== null
+        ? String(leave.employee.id || leave.employee._id || "")
+        : String(leave.employee || leave.employeeId || "");
+
+      if (empId !== String(filterUser)) {
         return false;
       }
     }
 
     // 2. Date Range Filter
-    if (leave.startDate || leave.endDate) {
-      const leaveStart = new Date(leave.startDate || leave.endDate);
-      leaveStart.setHours(0, 0, 0, 0);
-      const leaveEnd = new Date(leave.endDate || leave.startDate);
-      leaveEnd.setHours(23, 59, 59, 999);
+    const sDate = parseLeaveDate(leave.startDate) || parseLeaveDate(leave.createdAt);
+    const eDate = parseLeaveDate(leave.endDate) || sDate;
 
+    if (sDate && eDate) {
+      const leaveStart = new Date(sDate.getFullYear(), sDate.getMonth(), sDate.getDate(), 0, 0, 0, 0);
+      const leaveEnd = new Date(eDate.getFullYear(), eDate.getMonth(), eDate.getDate(), 23, 59, 59, 999);
+
+      const now = new Date();
       if (datePreset === "current_month") {
-        const now = new Date();
         const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
         const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
         if (leaveEnd < startOfMonth || leaveStart > endOfMonth) {
           return false;
         }
       } else if (datePreset === "last_month") {
-        const now = new Date();
         const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1, 0, 0, 0, 0);
         const endOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999);
         if (leaveEnd < startOfLastMonth || leaveStart > endOfLastMonth) {
@@ -6984,12 +7008,12 @@ export function LeaveRequestTab({ sessionUser }: { sessionUser?: any }) {
         }
       } else if (datePreset === "custom") {
         if (filterStartDate) {
-          const customStart = new Date(filterStartDate);
+          const customStart = parseLeaveDate(filterStartDate) || new Date(filterStartDate);
           customStart.setHours(0, 0, 0, 0);
           if (leaveEnd < customStart) return false;
         }
         if (filterEndDate) {
-          const customEnd = new Date(filterEndDate);
+          const customEnd = parseLeaveDate(filterEndDate) || new Date(filterEndDate);
           customEnd.setHours(23, 59, 59, 999);
           if (leaveStart > customEnd) return false;
         }

@@ -34,11 +34,6 @@ export function FieldVisitLogs({ sessionUser, triggerToast }: FieldVisitLogsProp
   const [expandedRows, setExpandedRows] = useState<Record<string, boolean>>({});
   const [isDark, setIsDark] = useState<boolean>(false);
 
-  // Filters (for managers)
-  const [searchTerm, setSearchTerm] = useState("");
-  const [dateFilter, setDateFilter] = useState("");
-  const [selectedDept, setSelectedDept] = useState("");
-
   // Form states - Start Visit
   const [openingKm, setOpeningKm] = useState("");
   const [vehicleNumber, setVehicleNumber] = useState("");
@@ -387,6 +382,42 @@ export function FieldVisitLogs({ sessionUser, triggerToast }: FieldVisitLogsProp
     setExpandedRows(prev => ({ ...prev, [id]: !prev[id] }));
   };
 
+  // Filters (for managers and employees)
+  const [searchTerm, setSearchTerm] = useState("");
+  const [datePreset, setDatePreset] = useState<"this-month" | "last-month" | "custom" | "all">("this-month");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+  const [selectedDept, setSelectedDept] = useState("");
+
+  const isDateInFilter = (visitDateStr: string) => {
+    if (!visitDateStr) return true;
+    
+    const vDate = new Date(visitDateStr);
+    if (isNaN(vDate.getTime())) return true;
+
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth();
+
+    if (datePreset === "this-month") {
+      return vDate.getFullYear() === currentYear && vDate.getMonth() === currentMonth;
+    }
+
+    if (datePreset === "last-month") {
+      const lm = new Date(currentYear, currentMonth - 1, 1);
+      return vDate.getFullYear() === lm.getFullYear() && vDate.getMonth() === lm.getMonth();
+    }
+
+    if (datePreset === "custom") {
+      const vYMD = vDate.toISOString().slice(0, 10);
+      if (startDate && vYMD < startDate) return false;
+      if (endDate && vYMD > endDate) return false;
+      return true;
+    }
+
+    return true; // "all"
+  };
+
   const departmentsList = React.useMemo(() => {
     const depts = new Set<string>();
     visits.forEach((v: any) => v.employee?.department && depts.add(v.employee.department));
@@ -396,15 +427,14 @@ export function FieldVisitLogs({ sessionUser, triggerToast }: FieldVisitLogsProp
   const filteredVisits = visits.filter((v: any) => {
     const empName = v.employee?.name || "";
     const empEmail = v.employee?.email || "";
-    const matchSearch = empName.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                        empEmail.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                        (v.vehicle_number || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
-                        (v.client_name || "").toLowerCase().includes(searchTerm.toLowerCase());
+    const matchSearch =
+      !searchTerm ||
+      empName.toLowerCase().includes(searchTerm.toLowerCase()) || 
+      empEmail.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (v.vehicle_number || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (v.client_name || "").toLowerCase().includes(searchTerm.toLowerCase());
 
-    let matchDate = true;
-    if (dateFilter) {
-      matchDate = v.date === dateFilter;
-    }
+    const matchDate = isDateInFilter(v.date || v.opening_time);
 
     let matchDept = true;
     if (isManager && selectedDept) {
@@ -414,6 +444,15 @@ export function FieldVisitLogs({ sessionUser, triggerToast }: FieldVisitLogsProp
     return matchSearch && matchDate && matchDept;
   });
 
+  const stats = React.useMemo(() => {
+    const totalVisits = filteredVisits.length;
+    const totalKm = filteredVisits.reduce((acc, v) => acc + (Number(v.distance_travelled) || 0), 0);
+    const activeVisits = filteredVisits.filter(v => v.status === "Open").length;
+    const completedVisits = filteredVisits.filter(v => v.status === "Closed").length;
+
+    return { totalVisits, totalKm, activeVisits, completedVisits };
+  }, [filteredVisits]);
+
   return (
     <div className={`space-y-8 animate-fadeIn ${isDark ? "text-gray-150" : "text-slate-800"}`}>
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -422,6 +461,61 @@ export function FieldVisitLogs({ sessionUser, triggerToast }: FieldVisitLogsProp
           <p className={`text-xs mt-1 ${isDark ? "text-gray-400" : "text-slate-500"}`}>
             Track vehicle logs, odometer readings, and coordinate verifications for travel allowance calculations.
           </p>
+        </div>
+      </div>
+
+      {/* Summary Count Stats Header */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className={`p-4 rounded-2xl border shadow-xs transition-all ${isDark ? "bg-gray-900 border-gray-800" : "bg-white border-[#E8E4DF]"}`}>
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] font-black uppercase tracking-wider text-slate-500">Total Visits</span>
+            <div className="p-2 bg-indigo-50 dark:bg-indigo-950/50 rounded-xl text-indigo-600 dark:text-indigo-400">
+              <Car className="w-4 h-4" />
+            </div>
+          </div>
+          <div className="mt-2 flex items-baseline gap-2">
+            <span className="text-2xl font-black text-slate-900 dark:text-white">{stats.totalVisits}</span>
+            <span className="text-xs font-bold text-slate-400">logs</span>
+          </div>
+        </div>
+
+        <div className={`p-4 rounded-2xl border shadow-xs transition-all ${isDark ? "bg-gray-900 border-gray-800" : "bg-white border-[#E8E4DF]"}`}>
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] font-black uppercase tracking-wider text-slate-500">Total KM Traveled</span>
+            <div className="p-2 bg-emerald-50 dark:bg-emerald-950/50 rounded-xl text-emerald-600 dark:text-emerald-400">
+              <MapPin className="w-4 h-4" />
+            </div>
+          </div>
+          <div className="mt-2 flex items-baseline gap-2">
+            <span className="text-2xl font-black text-slate-900 dark:text-white">{stats.totalKm}</span>
+            <span className="text-xs font-bold text-slate-400">km</span>
+          </div>
+        </div>
+
+        <div className={`p-4 rounded-2xl border shadow-xs transition-all ${isDark ? "bg-gray-900 border-gray-800" : "bg-white border-[#E8E4DF]"}`}>
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] font-black uppercase tracking-wider text-slate-500">Active Visits</span>
+            <div className="p-2 bg-amber-50 dark:bg-amber-950/50 rounded-xl text-amber-600 dark:text-amber-400">
+              <Clock className="w-4 h-4" />
+            </div>
+          </div>
+          <div className="mt-2 flex items-baseline gap-2">
+            <span className="text-2xl font-black text-amber-600 dark:text-amber-400">{stats.activeVisits}</span>
+            <span className="text-xs font-bold text-slate-400">open</span>
+          </div>
+        </div>
+
+        <div className={`p-4 rounded-2xl border shadow-xs transition-all ${isDark ? "bg-gray-900 border-gray-800" : "bg-white border-[#E8E4DF]"}`}>
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] font-black uppercase tracking-wider text-slate-500">Completed Visits</span>
+            <div className="p-2 bg-sky-50 dark:bg-sky-950/50 rounded-xl text-sky-600 dark:text-sky-400">
+              <CheckCircle2 className="w-4 h-4" />
+            </div>
+          </div>
+          <div className="mt-2 flex items-baseline gap-2">
+            <span className="text-2xl font-black text-slate-900 dark:text-white">{stats.completedVisits}</span>
+            <span className="text-xs font-bold text-slate-400">closed</span>
+          </div>
         </div>
       </div>
 
@@ -853,11 +947,11 @@ export function FieldVisitLogs({ sessionUser, triggerToast }: FieldVisitLogsProp
               
               {loading ? (
                 <div className="text-center py-10 font-bold text-xs text-slate-400 animate-pulse">Loading logs...</div>
-              ) : visits.length === 0 ? (
+              ) : filteredVisits.length === 0 ? (
                 <div className="text-center py-10 italic text-slate-400 text-xs">No field visit history found.</div>
               ) : (
                 <div className="space-y-3 max-h-[500px] overflow-y-auto pr-1">
-                  {visits.map((visit) => (
+                  {filteredVisits.map((visit) => (
                     <div 
                       key={visit.id} 
                       className={`p-4 rounded-xl border transition-all ${isDark ? "bg-gray-800/40 border-gray-700 hover:bg-gray-800/60" : "bg-slate-50/50 border-slate-200 hover:bg-slate-50"}`}
@@ -1015,20 +1109,45 @@ export function FieldVisitLogs({ sessionUser, triggerToast }: FieldVisitLogsProp
               </select>
             </div>
 
-            {/* Filter by Date */}
-            <div className="w-full md:w-48">
-              <input
-                type="date"
-                className={`w-full border rounded-lg px-3 py-2 text-xs font-semibold focus:outline-none focus:border-indigo-500 ${isDark ? "bg-gray-800 border-gray-700 text-gray-300" : "bg-slate-50 border-slate-200 text-slate-700"}`}
-                value={dateFilter}
-                onChange={(e) => setDateFilter(e.target.value)}
-              />
+            {/* Filter by Date Range Dropdown & Custom Range */}
+            <div className="w-full md:w-auto flex flex-wrap items-center gap-2">
+              <select
+                className={`border rounded-lg px-3 py-2 text-xs font-semibold focus:outline-none focus:border-indigo-500 ${isDark ? "bg-gray-800 border-gray-700 text-gray-300" : "bg-slate-50 border-slate-200 text-slate-700"}`}
+                value={datePreset}
+                onChange={(e) => setDatePreset(e.target.value as any)}
+              >
+                <option value="this-month">This Month ({new Date().toLocaleString("en-US", { month: "short", year: "numeric" })})</option>
+                <option value="last-month">Last Month ({new Date(new Date().getFullYear(), new Date().getMonth() - 1, 1).toLocaleString("en-US", { month: "short", year: "numeric" })})</option>
+                <option value="custom">Custom Date Range</option>
+                <option value="all">All Time</option>
+              </select>
+
+              {/* Custom Date Range Inputs */}
+              {datePreset === "custom" && (
+                <div className="flex items-center gap-1.5">
+                  <input
+                    type="date"
+                    className={`border rounded-lg px-2.5 py-1.5 text-xs font-semibold focus:outline-none focus:border-indigo-500 ${isDark ? "bg-gray-800 border-gray-700 text-gray-300" : "bg-slate-50 border-slate-200 text-slate-700"}`}
+                    value={startDate}
+                    onChange={(e) => setStartDate(e.target.value)}
+                  />
+                  <span className="text-xs font-bold text-slate-400">to</span>
+                  <input
+                    type="date"
+                    className={`border rounded-lg px-2.5 py-1.5 text-xs font-semibold focus:outline-none focus:border-indigo-500 ${isDark ? "bg-gray-800 border-gray-700 text-gray-300" : "bg-slate-50 border-slate-200 text-slate-700"}`}
+                    value={endDate}
+                    onChange={(e) => setEndDate(e.target.value)}
+                  />
+                </div>
+              )}
             </div>
 
-            {(dateFilter || selectedDept || searchTerm) && (
+            {(datePreset !== "this-month" || startDate || endDate || selectedDept || searchTerm) && (
               <button
                 onClick={() => {
-                  setDateFilter("");
+                  setDatePreset("this-month");
+                  setStartDate("");
+                  setEndDate("");
                   setSelectedDept("");
                   setSearchTerm("");
                 }}
