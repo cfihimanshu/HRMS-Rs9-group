@@ -3,27 +3,51 @@ import sequelize from "../../lib/sequelize";
 
 class Vendor extends Model {
   declare id: string;
-  declare user: string;
+  declare vendorCode: string;
+  declare vendorName: string;
+  declare shopName: string;
+  declare location: string;
+  declare contact: string;
+  declare mobile: string;
+  declare email: string;
   declare category: string;
-  declare agreementUrl: string;
   declare serviceType: string;
-  declare paymentTerms: string;
-  declare riskCategory: string;
-  declare performanceScore: number;
-  declare complaintsCount: number;
-  declare renewalDate: Date;
+  declare agreementUrl: string;
   declare status: string;
 }
 
 Vendor.init(
   {
-    
     id: {
       type: DataTypes.STRING,
       primaryKey: true,
       allowNull: false,
     },
-    user: {
+    vendorCode: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    vendorName: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    shopName: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    location: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    contact: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    mobile: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    email: {
       type: DataTypes.STRING,
       allowNull: true,
     },
@@ -31,37 +55,18 @@ Vendor.init(
       type: DataTypes.STRING,
       allowNull: true,
     },
-    agreementUrl: {
-      type: DataTypes.STRING,
-      allowNull: true,
-    },
     serviceType: {
       type: DataTypes.STRING,
       allowNull: true,
     },
-    paymentTerms: {
+    agreementUrl: {
       type: DataTypes.STRING,
-      allowNull: true,
-    },
-    riskCategory: {
-      type: DataTypes.STRING,
-      allowNull: true,
-    },
-    performanceScore: {
-      type: DataTypes.FLOAT,
-      allowNull: true,
-    },
-    complaintsCount: {
-      type: DataTypes.FLOAT,
-      allowNull: true,
-    },
-    renewalDate: {
-      type: DataTypes.DATE,
       allowNull: true,
     },
     status: {
       type: DataTypes.STRING,
       allowNull: true,
+      defaultValue: "active",
     },
     createdAt: {
       type: DataTypes.DATE,
@@ -74,6 +79,7 @@ Vendor.init(
   },
   {
     sequelize,
+    modelName: "Vendor",
     tableName: "vendors",
     timestamps: true,
   }

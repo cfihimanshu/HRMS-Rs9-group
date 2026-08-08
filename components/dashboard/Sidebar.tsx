@@ -105,7 +105,7 @@ export default function DashboardSidebar({
     { id: "leave-request", label: "Leave Request", icon: CalendarCheck, category: "Daily Operations", roles: ["Owner", "Director", "HR Head", "HR Executive", "Department Manager", "Accounts", "Trainer", "Employee", "IT Admin", "DSM", "RIBP / Risk Officer", "Business Associate", "Vendor", "Franchisee", "Territory Partner"] },
 
     { id: "associates", label: "Business Associates", icon: BriefcaseIcon, category: "Network Partners", roles: ["Owner", "Director", "HR Head", "Franchisee", "Territory Partner", "Business Associate"] },
-    { id: "vendors", label: "Vendor SLA Contracts", icon: Building2, category: "Network Partners", roles: ["Owner", "Director", "HR Head", "Accounts", "Vendor"] },
+    { id: "vendors", label: "Vendor Contracts", icon: Building2, category: "Network Partners", roles: ["Owner", "Director", "HR Head", "Accounts", "Vendor"] },
     { id: "franchise", label: "Franchise Brand Audits", icon: Coins, category: "Network Partners", roles: ["Owner", "Director", "HR Head", "Accounts", "Franchisee", "Territory Partner"] },
 
     { id: "grievance", label: "Anonymous Grievance", icon: HelpCircle, category: "Compliance & Exit", badge: stats?.operations?.grievanceCases, roles: ["Owner", "Director", "HR Head", "HR Executive", "Department Manager", "Accounts", "Trainer", "Business Associate", "Vendor", "Franchisee", "Territory Partner"] },
@@ -136,7 +136,7 @@ export default function DashboardSidebar({
     const roleLower = userRole.toLowerCase();
 
     if (allowedPageIds && allowedPageIds.length > 0) {
-      const hasPageLevelPermissions = allowedPageIds.some(p => 
+      const hasPageLevelPermissions = allowedPageIds.some(p =>
         !["Core Workspace", "Employee Self Service", "AI & Vetting Hub", "Training & Probation", "Daily Operations", "Network Partners", "Compliance & Exit"].includes(p)
       );
       if (hasPageLevelPermissions) {
