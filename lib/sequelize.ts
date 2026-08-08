@@ -133,8 +133,7 @@ const getSequelizeInstance = () => {
   const socketPath = process.env.MYSQL_SOCKET_PATH?.trim();
 
   const host = process.env.MYSQL_HOST || "localhost";
-  const isRemote = host !== "localhost" && host !== "127.0.0.1";
-  const useSsl = process.env.MYSQL_SSL === "true" || (isRemote && process.env.MYSQL_SSL !== "false");
+  const useSsl = process.env.MYSQL_SSL === "true";
   const sslConfig = useSsl
     ? { rejectUnauthorized: process.env.MYSQL_SSL_REJECT_UNAUTHORIZED === "true" }
     : undefined;
