@@ -1233,9 +1233,10 @@ export default function LegalWorkEntryHistoryView({
         const mergedPreparedBy = groupItems.map(i => i.preparedBy).filter(Boolean).pop() || latestItem.preparedBy;
         const mergedPrintedBy = groupItems.map(i => i.printedBy).filter(Boolean).pop() || latestItem.printedBy;
         const mergedDispatchedBy = groupItems.map(i => i.dispatchedBy).filter(Boolean).pop() || latestItem.dispatchedBy;
-        const mergedBillNo = groupItems.map(i => i.billNo).filter(Boolean).pop() || latestItem.billNo;
-        const mergedBillDate = groupItems.map(i => i.billDate).filter(Boolean).pop() || latestItem.billDate;
-        const mergedBillAmount = groupItems.map(i => i.billAmount).filter(Boolean).pop() || latestItem.billAmount;
+        const prepareBillLog = groupItems.find(i => (i.businessDevSubOption || i.subCategory || "").toUpperCase().includes("PREPARE BILL"));
+        const mergedBillNo = prepareBillLog?.billNo || groupItems.map(i => i.billNo).filter(Boolean).pop() || latestItem.billNo;
+        const mergedBillDate = prepareBillLog?.billDate || groupItems.map(i => i.billDate).filter(Boolean).pop() || latestItem.billDate;
+        const mergedBillAmount = prepareBillLog?.billAmount || groupItems.map(i => i.billAmount).filter(Boolean).pop() || latestItem.billAmount;
         const mergedPersonName = groupItems.map(i => i.personName).filter(Boolean).pop() || latestItem.personName;
         const mergedUploadedFile = groupItems.filter(i => !i.rawNotice).map(i => i.uploadedFileName).filter(Boolean).pop();
         const mergedRate = groupItems.map(i => i.finalRate).filter(Boolean).pop() || latestItem.finalRate;
@@ -1716,7 +1717,7 @@ export default function LegalWorkEntryHistoryView({
             }) : undefined),
             stageAmount: isSelectedStage ? (editSubOption.includes("REQUEST PAYMENT") ? Number(editPaymentReceivedAmt || editAmount || 0) : Math.max(0, Number(editAmount) || 0)) : logItem.stageAmount,
             billDate: editBillDate || undefined,
-            billAmount: editSubOption.includes("REQUEST PAYMENT") ? (editPaymentReceivedAmt || editBillAmount || undefined) : (editBillAmount || undefined),
+            billAmount: editSubOption.includes("REQUEST PAYMENT") ? (editPaymentTotalDue || editBillAmount || undefined) : (editBillAmount || undefined),
             billNo: editBillNo || undefined,
             broughtBy: isSelectedStage ? (editBroughtBy || undefined) : logItem.broughtBy,
             preparedBy: isSelectedStage ? (editPreparedBy || undefined) : logItem.preparedBy,
@@ -1900,7 +1901,7 @@ export default function LegalWorkEntryHistoryView({
         dispatchedBy: isDispatchedByStep ? (nextStepDispatchedBy || undefined) : undefined,
         stageAmount: isPaymentRequest ? parsedReceived : (isDispatchedByStep ? nextStepAmount : (nextStepSubOption === "TAKE NOTICE ASSIGNMENT" ? String(assessmentCount * perNoticeRate) : undefined)),
         billDate: isBillPreparationStep ? (nextStepBillDate || undefined) : undefined,
-        billAmount: isPaymentRequest ? (nextStepPaymentReceivedAmt || nextStepBillAmount || nextStepAmount || undefined) : (isBillPreparationStep ? (nextStepBillAmount || undefined) : undefined),
+        billAmount: isPaymentRequest ? (nextStepPaymentTotalDue || nextStepBillAmount || undefined) : (isBillPreparationStep ? (nextStepBillAmount || undefined) : undefined),
         billNo: isBillPreparationStep ? (nextStepBillNo || undefined) : undefined,
         personName: nextStepPersonName || undefined,
         finalRate: nextStepRate || undefined,
@@ -2117,9 +2118,12 @@ export default function LegalWorkEntryHistoryView({
       ? (matchingLog?.allocationDate || (matchingLog?.workDate ? new Date(matchingLog.workDate).toLocaleDateString("en-IN") : undefined))
       : (stageName === "TAKE NOTICE ASSIGNMENT" ? (n?.noticeOrderDate || n?.noticeDate || entry.allocationDate || 'N/A') : 'N/A');
 
-    const billNo = matchingLog?.billNo || (stageName === "PREPARE BILL (BILL BANWANA)" ? n?.billNo : undefined);
-    const billDate = matchingLog?.billDate || (stageName === "PREPARE BILL (BILL BANWANA)" ? n?.billDate : undefined);
-    const billAmount = matchingLog?.billAmount || (stageName === "PREPARE BILL (BILL BANWANA)" ? (n?.billAmount ? String(n.billAmount) : undefined) : undefined);
+    const prepareBillLog = groupLogs.find(l => (l.businessDevSubOption || l.subCategory || "").toUpperCase().includes("PREPARE BILL"));
+    const billNo = matchingLog?.billNo || prepareBillLog?.billNo || (stageName === "PREPARE BILL (BILL BANWANA)" ? n?.billNo : undefined);
+    const billDate = matchingLog?.billDate || prepareBillLog?.billDate || (stageName === "PREPARE BILL (BILL BANWANA)" ? n?.billDate : undefined);
+    const billAmount = (stageName === "PREPARE BILL (BILL BANWANA)"
+      ? (matchingLog?.billAmount || prepareBillLog?.billAmount || (n?.billAmount ? String(n.billAmount) : undefined) || (finances?.totalBillAmount ? String(finances.totalBillAmount) : undefined) || entry.billAmount)
+      : (matchingLog?.billAmount || prepareBillLog?.billAmount));
     const finalRate = matchingLog?.finalRate || entry.finalRate;
     const expenses = matchingLog?.expenses || (stageName === "TAKE NOTICE ASSIGNMENT" ? entry.expenses : undefined);
     const grossProfit = matchingLog?.grossProfit || (stageName === "TAKE NOTICE ASSIGNMENT" ? entry.grossProfit : undefined);
@@ -2136,9 +2140,19 @@ export default function LegalWorkEntryHistoryView({
     // or if inspecting TAKE NOTICE ASSIGNMENT and notice handover receipt exists on rawNotice
     const matchingLogFile = matchingLog?.uploadedFileName;
 
+    const dispatchLog = groupLogs.find(l => (l.businessDevSubOption || l.subCategory || "").toUpperCase().includes("DISPATCH"));
+    const dispatchFileName = dispatchLog?.uploadedFileName ? getBaseName(dispatchLog.uploadedFileName) : "";
+
     let file: string | undefined = undefined;
     if (matchingLogFile && matchingLogFile.trim()) {
-      file = matchingLogFile.trim();
+      const currentLogFileName = getBaseName(matchingLogFile);
+      const isDispatchStage = stageName.trim().toUpperCase().includes("DISPATCH");
+      // If current stage is NOT Dispatch Notices but its file matches dispatch notice file, ignore inherited dispatch file
+      if (!isDispatchStage && dispatchFileName && currentLogFileName === dispatchFileName) {
+        file = undefined;
+      } else {
+        file = matchingLogFile.trim();
+      }
     } else if (stageName === "TAKE NOTICE ASSIGNMENT" && n) {
       file = n.handoverReceiptUrl || n.documentUrl || n.billingAttachments || n.handoverReceiptPhoto || undefined;
     }

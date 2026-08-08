@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import sequelize from "@/lib/sequelize";
+import Vendor from "@/models/sequelize/Vendor";
 import VendorRegistration from "@/models/sequelize/VendorRegistration";
 import { logAudit } from "@/lib/audit";
 
@@ -44,6 +45,24 @@ export async function POST(req: Request) {
       paymentTerms: paymentTerms || "Standard",
       riskLevel: riskLevel || "Low",
     });
+
+    // Mirror to main Vendors table so it immediately appears in directory
+    try {
+      await Vendor.create({
+        id: "VEND-F10-" + Date.now(),
+        vendorName,
+        category,
+        contact,
+        panGst,
+        serviceType: serviceType || "General",
+        agreementUrl,
+        paymentTerms: paymentTerms || "Standard",
+        riskCategory: riskLevel || "Low",
+        performanceScore: 100,
+        complaintsCount: 0,
+        status: "active"
+      });
+    } catch (_) {}
 
     await logAudit({
       userId: registeredBy,

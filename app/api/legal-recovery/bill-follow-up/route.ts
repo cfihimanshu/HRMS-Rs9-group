@@ -151,11 +151,33 @@ export async function GET(request: Request) {
       const totalBillAmount = explicitBillAmt > 0 ? explicitBillAmt : (noticeRev + dispatchCost > 0 ? noticeRev + dispatchCost : parseFloat(billLog.stageAmount || logs[0].stageAmount || "0") || 0);
 
       if (totalBillAmount > 0) {
-        // Calculate payment received
+        // Calculate payment received across all logs and installments in this case group
         let receivedAmt = 0;
-        const paymentLog = logs.find(l => (l.subCategory || "").toUpperCase().includes("REQUEST PAYMENT"));
-        if (paymentLog) {
-          receivedAmt = parseFloat(paymentLog.amountRcvd || paymentLog.stageAmount || paymentLog.amount || "0") || 0;
+
+        for (const l of logs) {
+          const sub = (l.businessDevSubOption || l.subCategory || "").toUpperCase();
+          const cat = (l.businessDevOption || l.category || "").toUpperCase();
+
+          let logReceived = 0;
+
+          if (l.financialDetails) {
+            try {
+              const fin = typeof l.financialDetails === "string" ? JSON.parse(l.financialDetails) : l.financialDetails;
+              if (Array.isArray(fin?.paymentInstallments) && fin.paymentInstallments.length > 0) {
+                logReceived = fin.paymentInstallments.reduce((sum: number, inst: any) => sum + (parseFloat(String(inst.amount || 0)) || 0), 0);
+              } else if (fin?.receivedAmount !== undefined && fin?.receivedAmount !== null) {
+                logReceived = parseFloat(String(fin.receivedAmount)) || 0;
+              }
+            } catch (e) {}
+          }
+
+          if (logReceived === 0) {
+            logReceived = parseFloat(String(l.stageAmount || l.amountRcvd || l.amount || "0")) || 0;
+          }
+
+          if (logReceived > receivedAmt) {
+            receivedAmt = logReceived;
+          }
         }
 
         billsList.push({

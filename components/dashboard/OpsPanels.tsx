@@ -3057,20 +3057,77 @@ export function PerformanceCompliance({
         "EOD Issues Faced",
         "EOD Escalation Required",
         "EOD Tomorrow Plan",
-        "Tasks Logged (Count)",
         "Tasks Details & Work Summary",
         "Field Visits Travelled (KM)",
         "Field Visits Details"
       ];
 
-      const exportList = filteredList;
+      // 1. Sort existing records ascending by date
+      const sortedRecords = [...filteredList].sort((a: any, b: any) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+      // 2. Map dateStr -> record item
+      const recordMap = new Map<string, any>();
+      sortedRecords.forEach(item => {
+        const dObj = new Date(item.date);
+        const dateKey = `${dObj.getFullYear()}-${String(dObj.getMonth() + 1).padStart(2, '0')}-${String(dObj.getDate()).padStart(2, '0')}`;
+        recordMap.set(dateKey, item);
+      });
+
+      // Find fallback employee info if present
+      const fallbackEmp = sortedRecords.find(r => r.employee?.name)?.employee || { name: "N/A", email: "N/A", department: "General" };
+
+      // Determine date bounds
+      let startDateObj: Date | null = null;
+      let endDateObj: Date | null = null;
+
+      if (dateFilterType === "custom" && startDateFilter && endDateFilter) {
+        startDateObj = new Date(startDateFilter);
+        endDateObj = new Date(endDateFilter);
+      } else if (sortedRecords.length > 0) {
+        startDateObj = new Date(sortedRecords[0].date);
+        endDateObj = new Date(sortedRecords[sortedRecords.length - 1].date);
+      }
+
+      const exportList: any[] = [];
+
+      if (startDateObj && endDateObj && !isNaN(startDateObj.getTime()) && !isNaN(endDateObj.getTime())) {
+        const curr = new Date(startDateObj);
+        const last = new Date(endDateObj);
+        curr.setHours(0, 0, 0, 0);
+        last.setHours(0, 0, 0, 0);
+
+        while (curr <= last) {
+          const dateKey = `${curr.getFullYear()}-${String(curr.getMonth() + 1).padStart(2, '0')}-${String(curr.getDate()).padStart(2, '0')}`;
+          const existingItem = recordMap.get(dateKey);
+
+          if (existingItem) {
+            exportList.push(existingItem);
+          } else {
+            // Continuous missing date row
+            exportList.push({
+              date: new Date(curr),
+              employee: fallbackEmp,
+              sod: null,
+              eod: null,
+              tasks: [],
+              fieldVisits: []
+            });
+          }
+          curr.setDate(curr.getDate() + 1);
+        }
+      } else {
+        exportList.push(...sortedRecords);
+      }
+
+      let totalWorkHoursSum = 0;
+      let totalFieldKmSum = 0;
 
       const getAttendanceStatus = (item: any) => {
         if (item.sod) return "Present";
         if (item.eod) return "Present (EOD Only)";
         if (item.tasks && item.tasks.length > 0) return "Tasks Only";
         const isSunday = item.date.getDay() === 0;
-        if (isSunday) return "Weekly Off";
+        if (isSunday) return "Sunday";
         return "Absent";
       };
 
@@ -3088,22 +3145,32 @@ export function PerformanceCompliance({
 
         // Calculate Total Work Duration (Hours worked today)
         let totalDuration = "-";
+        let numericHours = 0;
+
         if (item.eod?.hoursWorked || item.eod?.totalHours || item.eod?.workHours) {
-          totalDuration = `${item.eod.hoursWorked || item.eod.totalHours || item.eod.workHours} Hrs`;
+          const val = Number(item.eod.hoursWorked || item.eod.totalHours || item.eod.workHours);
+          if (!isNaN(val) && val > 0) {
+            numericHours = val;
+            totalDuration = `${val.toFixed(2)} Hrs`;
+          }
         } else if (item.sod?.createdAt && item.eod?.createdAt) {
           const sodMs = new Date(item.sod.createdAt).getTime();
           const eodMs = new Date(item.eod.createdAt).getTime();
           if (eodMs > sodMs) {
             const diffHours = (eodMs - sodMs) / (1000 * 60 * 60);
+            numericHours = diffHours;
             totalDuration = `${diffHours.toFixed(2)} Hrs`;
           }
         }
         if (totalDuration === "-" && item.tasks && item.tasks.length > 0) {
           const totalTaskSeconds = item.tasks.reduce((sum: number, t: any) => sum + (t.elapsedSeconds || 0), 0);
           if (totalTaskSeconds > 0) {
-            totalDuration = `${(totalTaskSeconds / 3600).toFixed(2)} Hrs`;
+            numericHours = totalTaskSeconds / 3600;
+            totalDuration = `${numericHours.toFixed(2)} Hrs`;
           }
         }
+
+        totalWorkHoursSum += numericHours;
 
         const parseTaskSummary = (text: string) => {
           if (!text) return "";
@@ -3121,7 +3188,6 @@ export function PerformanceCompliance({
           return raw.replace(/(\r\n|\n|\r)/gm, " ").trim();
         };
 
-        const tasksCount = item.tasks ? item.tasks.length : 0;
         const tasksDetails = item.tasks && item.tasks.length > 0
           ? item.tasks.map((t: any, index: number) => {
             let suffix = "";
@@ -3132,15 +3198,16 @@ export function PerformanceCompliance({
             const cleanDesc = parseTaskSummary(t.description || t.progressNotes || t.remarks);
             const workSummary = cleanDesc ? ` [Summary: ${cleanDesc}]` : "";
             return `${index + 1}. [${t.status || 'Pending'}] ${t.taskTitle || 'Task'} (${t.taskType || 'General'})${workSummary}${suffix}`;
-          }).join(" | ")
+          }).join("\n")
           : "-";
 
         const fieldVisitKm = item.fieldVisits && item.fieldVisits.length > 0
           ? item.fieldVisits.reduce((sum: number, v: any) => sum + (v.distance_travelled || 0), 0)
           : 0;
+        totalFieldKmSum += fieldVisitKm;
 
         const fieldVisitDetails = item.fieldVisits && item.fieldVisits.length > 0
-          ? item.fieldVisits.map((v: any, index: number) => `${index + 1}. Client: ${v.client_name || "N/A"}, Purpose: ${v.purpose || "N/A"}, Dist: ${v.distance_travelled || 0} KM, Notes: ${v.visit_notes || "N/A"}`).join(" | ")
+          ? item.fieldVisits.map((v: any, index: number) => `${index + 1}. Client: ${v.client_name || "N/A"}, Purpose: ${v.purpose || "N/A"}, Dist: ${v.distance_travelled || 0} KM, Notes: ${v.visit_notes || "N/A"}`).join("\n")
           : "-";
 
         return [
@@ -3159,7 +3226,6 @@ export function PerformanceCompliance({
           eodIssues,
           eodEscalation,
           eodTomorrow,
-          tasksCount,
           tasksDetails,
           fieldVisitKm,
           fieldVisitDetails
@@ -3182,10 +3248,38 @@ export function PerformanceCompliance({
       rows.forEach(row => {
         excelTemplate += `<tr>`;
         row.forEach(cell => {
-          excelTemplate += `<td style="border: 1px solid #cbd5e1; padding: 6px; text-align: left; vertical-align: middle; white-space: nowrap;">${cell}</td>`;
+          const valStr = String(cell ?? "");
+          const isMultiLine = valStr.includes("\n");
+          const formattedCell = isMultiLine
+            ? valStr.replace(/\n/g, '<br style="mso-data-placement:same-cell;" />')
+            : valStr;
+          const style = isMultiLine
+            ? "border: 1px solid #cbd5e1; padding: 6px; text-align: left; vertical-align: top; white-space: pre-wrap;"
+            : "border: 1px solid #cbd5e1; padding: 6px; text-align: left; vertical-align: middle; white-space: nowrap;";
+          excelTemplate += `<td style="${style}">${formattedCell}</td>`;
         });
         excelTemplate += `</tr>`;
       });
+
+      // Summary Total row at bottom
+      const totalHoursFormatted = totalWorkHoursSum > 0 ? `${totalWorkHoursSum.toFixed(2)} Hrs` : "0 Hrs";
+      const totalKmFormatted = totalFieldKmSum > 0 ? `${totalFieldKmSum.toFixed(2)} KM` : "0 KM";
+
+      const summaryRow = [
+        "TOTAL",
+        "", "", "", "", "", "", "", "",
+        totalHoursFormatted,
+        "", "", "", "", "", "",
+        totalKmFormatted,
+        ""
+      ];
+
+      excelTemplate += `<tr style="height: 32px; background-color: #f1f5f9; font-weight: bold; border-top: 2px solid #0f766e;">`;
+      summaryRow.forEach((cell) => {
+        excelTemplate += `<td style="border: 1px solid #cbd5e1; padding: 6px; text-align: left; vertical-align: middle; font-weight: bold; background-color: #f1f5f9;">${cell}</td>`;
+      });
+      excelTemplate += `</tr>`;
+
       excelTemplate += `</table></body></html>`;
 
       const blob = new Blob([excelTemplate], { type: "application/vnd.ms-excel;charset=utf-8;" });
@@ -6724,6 +6818,9 @@ export function LeaveRequestTab({ sessionUser }: { sessionUser?: any }) {
     (allEmployeesList || []).forEach((emp: any) => {
       const empId = String(emp.id || emp._id || "");
       if (empId) {
+        const statusStr = String(emp.status || "active").toLowerCase();
+        if (["inactive", "archived", "terminated"].includes(statusStr)) return;
+
         map.set(empId, {
           id: empId,
           name: emp.name || emp.employeeName || "Employee",
@@ -6737,6 +6834,9 @@ export function LeaveRequestTab({ sessionUser }: { sessionUser?: any }) {
     (leavesList || []).forEach((l: any) => {
       if (l.employee && l.employee.id) {
         const empId = String(l.employee.id);
+        const statusStr = String(l.employee.status || "active").toLowerCase();
+        if (["inactive", "archived", "terminated"].includes(statusStr)) return;
+
         if (empId && !map.has(empId)) {
           map.set(empId, {
             id: empId,
@@ -6752,39 +6852,74 @@ export function LeaveRequestTab({ sessionUser }: { sessionUser?: any }) {
   }, [allEmployeesList, leavesList]);
 
   const uniqueUsers = React.useMemo(() => {
-    const role = sessionUser?.role || "Employee";
+    const role = (sessionUser?.role || "Employee").toLowerCase();
     const userId = (sessionUser?.id || "").toString();
 
+    const canSeeAll = ["owner", "director", "cfo", "hr head", "hr-head", "hr executive", "hr-executive", "department manager"].includes(role) || hasDirectReports;
+
     const userMap = new Map<string, { id: string; name: string; email: string }>();
+
+    // Always add self if active
     if (sessionUser && sessionUser.id) {
-      userMap.set(userId, {
-        id: userId,
-        name: `${sessionUser.name || "Self"} (Self)`,
-        email: sessionUser.email || ""
+      const selfStatus = String(sessionUser.status || "active").toLowerCase();
+      if (!["inactive", "archived", "terminated"].includes(selfStatus)) {
+        userMap.set(userId, {
+          id: userId,
+          name: `${sessionUser.name || "Self"} (Self)`,
+          email: sessionUser.email || ""
+        });
+      }
+    }
+
+    if (canSeeAll) {
+      // Add all active employees from allEmployeesList
+      (allEmployeesList || []).forEach((emp: any) => {
+        const empId = String(emp.id || emp._id || "");
+        if (!empId) return;
+
+        const statusStr = String(emp.status || "active").toLowerCase();
+        if (["inactive", "archived", "terminated"].includes(statusStr)) return;
+
+        const empName = emp.name || emp.employeeName || "Employee";
+        const isSelf = empId === userId;
+
+        userMap.set(empId, {
+          id: empId,
+          name: isSelf ? `${sessionUser?.name || empName} (Self)` : empName,
+          email: emp.email || ""
+        });
       });
     }
 
+    // Also check leavesList
     leavesList.forEach((leave) => {
       if (leave.employee && leave.employee.id) {
         const empId = leave.employee.id.toString();
 
-        // 1. If not Manager/Owner, they only see themselves (unless they have direct reports)
-        if (!["Owner", "Director", "HR Head", "HR Executive", "Department Manager"].includes(role) && !hasDirectReports) {
-          if (empId !== userId) return;
-        }
+        if (!canSeeAll && empId !== userId) return;
+
+        const statusStr = String(leave.employee.status || "active").toLowerCase();
+        if (["inactive", "archived", "terminated"].includes(statusStr)) return;
 
         if (!userMap.has(empId)) {
           userMap.set(empId, {
             id: empId,
-            name: leave.employee.name,
+            name: leave.employee.name || "Employee",
             email: leave.employee.email || ""
           });
         }
       }
     });
 
-    return Array.from(userMap.values());
-  }, [leavesList, sessionUser, hasDirectReports]);
+    const userList = Array.from(userMap.values());
+    userList.sort((a, b) => {
+      if (a.id === userId) return -1;
+      if (b.id === userId) return 1;
+      return a.name.localeCompare(b.name);
+    });
+
+    return userList;
+  }, [allEmployeesList, leavesList, sessionUser, hasDirectReports]);
 
   // Synchronize selection
   useEffect(() => {

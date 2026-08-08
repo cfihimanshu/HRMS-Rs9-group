@@ -6,7 +6,7 @@ class VehicleAssignment extends Model<any, any> { [key: string]: any; }
 VehicleAssignment.init({
   id: { type: DataTypes.STRING, primaryKey: true, allowNull: false },
   vehicleId: { type: DataTypes.STRING, allowNull: false },
-  action: { type: DataTypes.ENUM("ASSIGNED", "TRANSFERRED", "RETURNED"), allowNull: false },
+  action: { type: DataTypes.STRING, allowNull: false },
   fromPersonId: { type: DataTypes.STRING, allowNull: true },
   fromPersonName: { type: DataTypes.STRING, allowNull: true },
   toPersonId: { type: DataTypes.STRING, allowNull: true },

@@ -61,7 +61,7 @@ export const MASTER_NAV_ITEMS: NavItem[] = [
 
   // Network Partners
   { id: "associates", label: "Business Associates", category: "Network Partners" },
-  { id: "vendors", label: "Vendor SLA Contracts", category: "Network Partners" },
+  { id: "vendors", label: "Vendor Contracts", category: "Network Partners" },
   { id: "franchise", label: "Franchise Brand Audits", category: "Network Partners" },
 
   // Compliance & Exit
