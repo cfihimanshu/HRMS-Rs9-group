@@ -507,17 +507,20 @@ export async function GET(req: Request) {
     const allocatorIds = records.map((r: any) => r.allocatedBy).filter(Boolean);
     const allUserIds = Array.from(new Set([...empIds, ...fwdIds, ...assignerIds, ...allocatorIds]));
 
-    const employees = await User.findAll({
-      where: {
-        [Op.or]: [
-          { id: { [Op.in]: allUserIds } },
-          { email: { [Op.in]: allUserIds } },
-          { name: { [Op.in]: allUserIds } }
-        ]
-      },
-      attributes: ["id", "name", "role", "email"],
-      raw: true
-    });
+    let employees: any[] = [];
+    if (allUserIds.length > 0) {
+      employees = await User.findAll({
+        where: {
+          [Op.or]: [
+            { id: { [Op.in]: allUserIds } },
+            { email: { [Op.in]: allUserIds } },
+            { name: { [Op.in]: allUserIds } }
+          ]
+        },
+        attributes: ["id", "name", "role", "email"],
+        raw: true
+      });
+    }
     
     const empMap = new Map();
     employees.forEach((e: any) => {
