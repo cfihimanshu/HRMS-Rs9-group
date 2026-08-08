@@ -539,6 +539,7 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
   };
 
   const handlePrintAssetTag = async (asset: any, mode: "label" | "pdf") => {
+    setSelectedAssetIds([]); // Clear bulk selection so single print view matches exact asset
     setPrintableMode(mode);
     setQrModalAsset(asset);
     setViewingAsset(asset);
@@ -555,7 +556,7 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
 
     setTimeout(() => {
       window.print();
-    }, 300);
+    }, 400);
   };
 
   const toggleSelectAsset = (assetId: string) => {
@@ -658,98 +659,72 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
       const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
 
       if (mode === "label") {
-        // Render 2 columns x 5 rows = 10 Sticker Labels per page
-        const colWidth = 88;
-        const rowHeight = 50;
-        const startX = 12;
-        const startY = 20;
-        const marginX = 10;
-        const marginY = 5;
+        if (singleAsset) {
+          // Download clean single QR Tag PDF (Medium Size QR Code + Asset ID underneath)
+          const qrData = qrMap[String(singleAsset.id)];
+          const qrSize = 65; // 65mm x 65mm medium QR code
+          const startX = (210 - qrSize) / 2; // Center horizontally on A4 page (72.5mm)
+          const startY = 85; // Center vertically on A4 page
 
-        targetAssets.forEach((asset: any, index: number) => {
-          if (index > 0 && index % 10 === 0) {
-            doc.addPage();
-          }
-
-          const itemIndex = index % 10;
-          const col = itemIndex % 2;
-          const row = Math.floor(itemIndex / 2);
-
-          const x = startX + col * (colWidth + marginX);
-          const y = startY + row * (rowHeight + marginY);
-
-          const companyObj = companies.find(c => String(c.id) === String(asset.companyId));
-          const companyName = companyObj?.name || "OFFICIAL ASSET TAG";
-
-          // Border box
-          doc.setLineWidth(0.5);
-          doc.setDrawColor(30, 27, 75); // Dark purple border
-          doc.roundedRect(x, y, colWidth, rowHeight, 3, 3, "S");
-
-          // Header line
-          doc.setFont("helvetica", "bold");
-          doc.setFontSize(7);
-          doc.setTextColor(51, 65, 85);
-          doc.text(companyName.toUpperCase().slice(0, 30), x + 3, y + 5);
-
-          doc.setFontSize(9);
-          doc.setTextColor(30, 27, 75);
-          doc.text(String(asset.assetType || "ASSET").toUpperCase().slice(0, 22), x + 3, y + 9.5);
-
-          // ID Badge
-          doc.setFillColor(30, 27, 75);
-          doc.roundedRect(x + colWidth - 25, y + 3, 22, 6, 1, 1, "F");
-          doc.setFont("courier", "bold");
-          doc.setFontSize(7.5);
-          doc.setTextColor(255, 255, 255);
-          doc.text(String(asset.id), x + colWidth - 14, y + 7, { align: "center" });
-
-          // Divider
-          doc.setDrawColor(203, 213, 225);
-          doc.setLineWidth(0.2);
-          doc.line(x + 3, y + 11, x + colWidth - 3, y + 11);
-
-          // Add High-Res QR Code Image
-          const qrData = qrMap[String(asset.id)];
           if (qrData) {
-            doc.addImage(qrData, "PNG", x + 3, y + 13, 24, 24);
+            doc.addImage(qrData, "PNG", startX, startY, qrSize, qrSize);
           }
 
-          // Details next to QR code
-          doc.setFont("helvetica", "bold");
-          doc.setFontSize(8);
+          doc.setFont("courier", "bold");
+          doc.setFontSize(16);
           doc.setTextColor(15, 23, 42);
-          const desc = String(asset.assetDetail || "No Description").slice(0, 32);
-          doc.text(desc, x + 29, y + 16);
+          doc.text(`ASSET ID: ${singleAsset.id}`, 105, startY + qrSize + 14, { align: "center" });
 
-          doc.setFont("helvetica", "normal");
-          doc.setFontSize(7);
-          doc.setTextColor(71, 85, 105);
-          if (asset.serialNumber) {
-            doc.text(`S/N: ${String(asset.serialNumber).slice(0, 25)}`, x + 29, y + 21);
+          if (singleAsset.oldAssetId) {
+            doc.setFontSize(11);
+            doc.setTextColor(100, 116, 139);
+            doc.text(`OLD ID: ${singleAsset.oldAssetId}`, 105, startY + qrSize + 22, { align: "center" });
           }
 
-          if (asset.assignedToName) {
-            doc.setFont("helvetica", "bold");
-            doc.setTextColor(30, 27, 75);
-            doc.text(`User: ${String(asset.assignedToName).slice(0, 25)}`, x + 29, y + 26);
-          }
+          doc.save(`Asset_QR_Tag_${singleAsset.id}.pdf`);
+        } else {
+          // Bulk Mode: Clean Grid of QR Tags (ONLY QR Code + Asset ID underneath, 12 per page)
+          const colWidth = 55;
+          const rowHeight = 55;
+          const startX = 18;
+          const startY = 20;
+          const marginX = 10;
+          const marginY = 10;
 
-          doc.setFont("helvetica", "normal");
-          doc.setTextColor(100, 116, 139);
-          doc.text(`Status: ${asset.status || "Available"}`, x + 29, y + 31);
+          targetAssets.forEach((asset: any, index: number) => {
+            if (index > 0 && index % 12 === 0) {
+              doc.addPage();
+            }
 
-          // Bottom line
-          doc.setDrawColor(203, 213, 225);
-          doc.line(x + 3, y + 43, x + colWidth - 3, y + 43);
-          doc.setFont("helvetica", "bold");
-          doc.setFontSize(5.5);
-          doc.setTextColor(100, 116, 139);
-          doc.text("PROPERTY OF COMPANY", x + 4, y + 46.5);
-          doc.text("DO NOT REMOVE", x + colWidth - 4, y + 46.5, { align: "right" });
-        });
+            const itemIndex = index % 12;
+            const col = itemIndex % 3;
+            const row = Math.floor(itemIndex / 3);
 
-        doc.save(singleAsset ? `Asset_QR_Sticker_${singleAsset.id}.pdf` : `Assets_QR_Stickers_Sheet_${new Date().toISOString().slice(0,10)}.pdf`);
+            const x = startX + col * (colWidth + marginX);
+            const y = startY + row * (rowHeight + marginY);
+
+            const qrData = qrMap[String(asset.id)];
+            const qrSize = 36; // 36mm x 36mm QR code in grid
+            const qrX = x + (colWidth - qrSize) / 2;
+
+            if (qrData) {
+              doc.addImage(qrData, "PNG", qrX, y + 4, qrSize, qrSize);
+            }
+
+            doc.setFont("courier", "bold");
+            doc.setFontSize(10);
+            doc.setTextColor(15, 23, 42);
+            doc.text(`ASSET ID: ${asset.id}`, x + colWidth / 2, y + qrSize + 10, { align: "center" });
+
+            if (asset.oldAssetId) {
+              doc.setFontSize(8);
+              doc.setTextColor(100, 116, 139);
+              doc.text(`OLD: ${asset.oldAssetId}`, x + colWidth / 2, y + qrSize + 15, { align: "center" });
+            }
+          });
+
+          doc.save(`Assets_QR_Tags_Sheet_${new Date().toISOString().slice(0,10)}.pdf`);
+        }
       } else {
         // Full Specification Sheets (1 Page per Asset) with Pristine Corporate UI
         targetAssets.forEach((asset: any, index: number) => {
@@ -758,24 +733,28 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
           const companyObj = companies.find(c => String(c.id) === String(asset.companyId));
           const companyName = companyObj?.name || "Official Company Inventory";
 
-          // Top Corporate Dark Navy Banner Box
-          doc.setFillColor(15, 23, 42); // slate-900
+          // Top Corporate Deep Indigo / Slate Header Banner
+          doc.setFillColor(30, 27, 75); // #1e1b4b Deep Indigo Dark Navy
           doc.roundedRect(14, 12, 182, 28, 3, 3, "F");
 
+          // Top Indigo Accent Line
+          doc.setFillColor(99, 102, 241); // #6366f1 Indigo Accent
+          doc.rect(17, 12, 176, 1.5, "F");
+
           doc.setFont("helvetica", "bold");
-          doc.setFontSize(14);
+          doc.setFontSize(13);
           doc.setTextColor(255, 255, 255);
-          doc.text("ASSET SPECIFICATION & AUDIT CARD", 20, 22);
+          doc.text("ASSET SPECIFICATION & AUDIT CARD", 22, 22);
 
           doc.setFont("helvetica", "normal");
-          doc.setFontSize(9);
-          doc.setTextColor(148, 163, 184); // slate-400
-          doc.text(`${companyName} · Asset Control Record`, 20, 28);
+          doc.setFontSize(8.5);
+          doc.setTextColor(199, 210, 254); // indigo-200
+          doc.text(`${companyName} · Asset Control Record`, 22, 28);
 
-          doc.setFont("courier", "normal");
+          doc.setFont("helvetica", "bold");
           doc.setFontSize(7.5);
-          doc.setTextColor(203, 213, 225);
-          doc.text(`Generated: ${new Date().toLocaleDateString("en-IN")} · Page ${index + 1} of ${targetAssets.length}`, 20, 34);
+          doc.setTextColor(165, 180, 252); // indigo-300
+          doc.text(`Generated: ${new Date().toLocaleDateString("en-IN")} · Page ${index + 1} of ${targetAssets.length}`, 22, 34);
 
           // Top Right QR Badge inside header banner
           const qrData = qrMap[String(asset.id)];
@@ -785,21 +764,96 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
             doc.addImage(qrData, "PNG", 166, 15, 22, 22);
           }
 
-          // Asset Specs Card Container
-          let startY = 48;
-          const rows = [
+          let parsedCustom: any = {};
+          try {
+            parsedCustom = asset.customFields ? JSON.parse(asset.customFields) : {};
+          } catch (_) {}
+          const fields = parsedCustom.assetFields || {};
+          const emails = (parsedCustom.emailsList || []).filter(Boolean);
+          const notesStr = asset.notes || "";
+          const cleanNotes = cleanNotesString(notesStr);
+
+          // Passcodes & Lock Passwords (customFields + regex fallback)
+          const phonePass = fields.phonePassword || notesStr.match(/Phone Screen Lock Passcode:\s*([^\n]+)/i)?.[1] || "";
+          const laptopPass = fields.laptopPassword || notesStr.match(/Laptop Admin Passcode:\s*([^\n]+)/i)?.[1] || "";
+          const compPass = fields.compPassword || notesStr.match(/Computer Lock Passcode:\s*([^\n]+)/i)?.[1] || "";
+
+          // SIM & Telecom details
+          const sim1OpFromNotes = notesStr.match(/SIM 1[^\[]*\[Company:\s*([^\]]+)\]/i)?.[1] || notesStr.match(/\[Company:\s*([^\]]+)\]/i)?.[1] || "";
+          const sim2OpFromNotes = notesStr.match(/SIM 2[^\[]*\[Company:\s*([^\]]+)\]/i)?.[1] || "";
+          const sim1Op = fields.phoneSim1OperatorCustom || (fields.phoneSim1Operator && fields.phoneSim1Operator !== "Other" ? fields.phoneSim1Operator : "") || sim1OpFromNotes || (fields.phoneSim1Operator !== "Other" ? fields.phoneSim1Operator : "") || fields.simOperator || "";
+          const sim2Op = fields.phoneSim2OperatorCustom || (fields.phoneSim2Operator && fields.phoneSim2Operator !== "Other" ? fields.phoneSim2Operator : "") || sim2OpFromNotes || (fields.phoneSim2Operator !== "Other" ? fields.phoneSim2Operator : "") || "";
+          const sim1No = fields.phoneSim1No || notesStr.match(/SIM 1 (?:Mobile No|No|Number|CONFIG):\s*([0-9\s+]+)/i)?.[1] || notesStr.match(/SIM 1:\s*([0-9\s+]+)/i)?.[1] || "";
+          const sim2No = fields.phoneSim2No || notesStr.match(/SIM 2 (?:Mobile No|No|Number|CONFIG):\s*([0-9\s+]+)/i)?.[1] || notesStr.match(/SIM 2:\s*([0-9\s+]+)/i)?.[1] || "";
+          const sim1Wa = fields.phoneSim1Whatsapp || notesStr.match(/SIM 1[^\[]*\[WhatsApp:\s*([^\]]+)\]/i)?.[1] || "";
+          const sim2Wa = fields.phoneSim2Whatsapp || notesStr.match(/SIM 2[^\[]*\[WhatsApp:\s*([^\]]+)\]/i)?.[1] || "";
+
+          // External Standalone WhatsApp
+          const extWaNo = fields.phoneExternalWhatsappNo || notesStr.match(/External WhatsApp:\s*([0-9\s+]+)/i)?.[1] || "";
+          const extWaType = fields.phoneExternalWhatsappType || "Business";
+          const extWaLabel = fields.phoneExternalWhatsappLabel || notesStr.match(/External WhatsApp:[^\[]*\[Label:\s*([^\]]+)\]/i)?.[1] || "";
+
+          // Logged-in Social Media Account
+          const smAppName = fields.phoneSocialMediaAppCustom || (fields.phoneSocialMediaApp && fields.phoneSocialMediaApp !== "Other" ? fields.phoneSocialMediaApp : "") || notesStr.match(/Social Media App:\s*([^\(]+)/i)?.[1]?.trim() || "";
+          const smUsername = fields.phoneSocialMediaUsername || notesStr.match(/Social Media App:[^\(]*\(([^\)]+)\)/i)?.[1] || "";
+          const smPassword = fields.phoneSocialMediaPassword || "";
+
+          // Complete Detailed Rows for PDF Sheet
+          const rows: [string, string][] = [
             ["Asset ID", String(asset.id)],
+            ...(asset.oldAssetId ? [["Old Asset ID", String(asset.oldAssetId)] as [string, string]] : []),
             ["Category / Type", String(asset.assetType || "N/A")],
             ["Description / Model", String(asset.assetDetail || "N/A")],
             ["Serial Number / IMEI", String(asset.serialNumber || "N/A")],
+            ...(fields.phoneImei2 ? [["IMEI Number 2", String(fields.phoneImei2)] as [string, string]] : []),
+            ...(fields.phoneSpecs || fields.laptopSpecs ? [["RAM & Storage / Specs", String(fields.phoneSpecs || fields.laptopSpecs)] as [string, string]] : []),
+            ...(fields.laptopOs ? [["Operating System (OS)", String(fields.laptopOs)] as [string, string]] : []),
+            ...(fields.laptopHostName ? [["Host Name", String(fields.laptopHostName)] as [string, string]] : []),
+            ...(fields.compMonitor ? [["Monitor Details", String(fields.compMonitor)] as [string, string]] : []),
+            ...(fields.compKeyboard ? [["Keyboard Details", String(fields.compKeyboard)] as [string, string]] : []),
+            ...(fields.compMouse ? [["Mouse Details", String(fields.compMouse)] as [string, string]] : []),
+            ...(fields.compPeripherals ? [["Peripherals / Accessories", String(fields.compPeripherals)] as [string, string]] : []),
+            ...(fields.laptopCharger ? [["Charger Included", String(fields.laptopCharger)] as [string, string]] : []),
+            ...(fields.laptopBag ? [["Bag & Accessories", String(fields.laptopBag)] as [string, string]] : []),
+
+            // PASSWORDS & ACCESS
+            ...(phonePass ? [["Phone Screen Passcode", String(phonePass)] as [string, string]] : []),
+            ...(laptopPass ? [["Laptop Admin Passcode", String(laptopPass)] as [string, string]] : []),
+            ...(compPass ? [["Computer Lock Password", String(compPass)] as [string, string]] : []),
+
+            // SIM CARD & OPERATOR DETAILS
+            ...(fields.simOperator ? [["Telecom Operator", String(fields.simOperator)] as [string, string]] : []),
+            ...(sim1No || sim1Op ? [["SIM 1 Configuration", `${sim1No || "N/A"}${sim1Op ? ` (${sim1Op})` : ""}${sim1Wa ? ` [WhatsApp: ${sim1Wa}]` : ""}`] as [string, string]] : []),
+            ...(sim2No || sim2Op ? [["SIM 2 Configuration", `${sim2No || "N/A"}${sim2Op ? ` (${sim2Op})` : ""}${sim2Wa ? ` [WhatsApp: ${sim2Wa}]` : ""}`] as [string, string]] : []),
+            ...(fields.simIccid ? [["SIM ICCID / Barcode", String(fields.simIccid)] as [string, string]] : []),
+            ...(fields.simPlanType ? [["SIM Plan Type", String(fields.simPlanType)] as [string, string]] : []),
+            ...(fields.simPuk ? [["SIM PUK / PIN", String(fields.simPuk)] as [string, string]] : []),
+
+            // EXTERNAL / STANDALONE WHATSAPP
+            ...(extWaNo ? [["External WhatsApp", `${extWaNo} (Type: ${extWaType})${extWaLabel ? ` [Label: ${extWaLabel}]` : ""}`] as [string, string]] : []),
+
+            // SOCIAL MEDIA ACCOUNT
+            ...(smUsername ? [["Social Media Account", `${smAppName ? `${smAppName}: ` : ""}${smUsername}${smPassword ? ` (Pass: ${smPassword})` : ""}`] as [string, string]] : []),
+
+            // ROUTER / PRINTER / LOCATION
+            ...(fields.routerWifiSsid ? [["Wi-Fi SSID & Pass", String(fields.routerWifiSsid)] as [string, string]] : []),
+            ...(fields.routerIp ? [["Admin IP Address", String(fields.routerIp)] as [string, string]] : []),
+            ...(fields.printerCartridge ? [["Toner / Cartridge", String(fields.printerCartridge)] as [string, string]] : []),
+            ...(asset.installationLocation || fields.installationLocation || fields.furnitureLocation || fields.acLocation ? [["Installation Location", String(asset.installationLocation || fields.installationLocation || fields.furnitureLocation || fields.acLocation)] as [string, string]] : []),
+
             ["Condition Status", String(asset.condition || "Good")],
             ["Inventory Status", String(asset.status || "Available")],
             ["Company Belonging", companyName],
             ["Purchase Date", formatCleanPdfDate(asset.purchaseDate)],
-            ["Purchase Value", asset.purchaseValue ? `₹ ${Number(asset.purchaseValue).toLocaleString("en-IN")}` : "N/A"],
+            ["Purchase Value", asset.purchaseValue ? `Rs. ${Number(asset.purchaseValue).toLocaleString("en-IN")}` : "N/A"],
+            ["Registered By", String(asset.registeredBy || asset.createdBy || "System Record")],
             ["Assigned Staff", String(asset.assignedToName || "Unallocated (In Stock)")],
-            ["Handover Date", formatCleanPdfDate(asset.handoverDate || asset.assignedAt)]
+            ["Handover Date", formatCleanPdfDate(asset.handoverDate || asset.assignedAt)],
+            ...(emails.length > 0 ? [["Logged-in Emails", emails.join(", ")] as [string, string]] : []),
+            ...(cleanNotes ? [["Internal Remarks", String(cleanNotes)] as [string, string]] : []),
           ];
+
+          const startY = 48;
 
           // Asset photo if available
           const hasPhoto = asset.photoUrl && asset.photoUrl.startsWith("data:image");
@@ -814,20 +868,21 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
 
           const tableX = hasPhoto ? 66 : 14;
           const tableW = hasPhoto ? 130 : 182;
-          const rowH = 8.5;
+          const labelColW = 46;
+          const valColW = tableW - labelColW - 6;
 
-          // Draw Outer Table Border Box
-          doc.setLineWidth(0.4);
-          doc.setDrawColor(203, 213, 225); // slate-300
-          doc.roundedRect(tableX, startY, tableW, rows.length * rowH, 2, 2, "S");
+          let currentY = startY;
 
           rows.forEach(([label, value], idx) => {
-            const currentY = startY + idx * rowH;
+            doc.setFont("helvetica", "normal");
+            doc.setFontSize(8);
+            const wrappedValLines = doc.splitTextToSize(String(value || "N/A"), valColW);
+            const actualRowH = Math.max(7.5, wrappedValLines.length * 4.2 + 3);
 
             // Alternating Row Fills
             if (idx % 2 === 0) {
               doc.setFillColor(248, 250, 252); // slate-50
-              doc.rect(tableX + 0.2, currentY + 0.2, tableW - 0.4, rowH - 0.4, "F");
+              doc.rect(tableX + 0.2, currentY + 0.2, tableW - 0.4, actualRowH - 0.4, "F");
             }
 
             // Horizontal Separator
@@ -839,40 +894,28 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
 
             // Label
             doc.setFont("helvetica", "bold");
-            doc.setFontSize(8);
+            doc.setFontSize(7.5);
             doc.setTextColor(51, 65, 85); // slate-700
-            doc.text(label, tableX + 4, currentY + 5.5);
+            doc.text(label, tableX + 4, currentY + 5);
 
             // Vertical Column Separator Line
             doc.setLineWidth(0.2);
             doc.setDrawColor(226, 232, 240);
-            doc.line(tableX + 44, currentY, tableX + 44, currentY + rowH);
+            doc.line(tableX + labelColW, currentY, tableX + labelColW, currentY + actualRowH);
 
-            // Value
+            // Value (Wrapped lines)
             doc.setFont("helvetica", "normal");
-            doc.setFontSize(8.5);
+            doc.setFontSize(8);
             doc.setTextColor(15, 23, 42); // slate-900
-            doc.text(String(value).slice(0, 60), tableX + 48, currentY + 5.5);
+            doc.text(wrappedValLines, tableX + labelColW + 4, currentY + 5);
+
+            currentY += actualRowH;
           });
 
-          // Signatures Section
-          const sigY = 225;
-          doc.setLineWidth(0.5);
-          doc.setDrawColor(15, 23, 42);
-          doc.line(25, sigY, 90, sigY);
-          doc.line(120, sigY, 185, sigY);
-
-          doc.setFont("helvetica", "bold");
-          doc.setFontSize(8.5);
-          doc.setTextColor(15, 23, 42);
-          doc.text("Employee Acknowledgment & Signature", 57.5, sigY + 5, { align: "center" });
-          doc.text("Admin / IT Clearance Signature", 152.5, sigY + 5, { align: "center" });
-
-          doc.setFont("helvetica", "normal");
-          doc.setFontSize(7.5);
-          doc.setTextColor(100, 116, 139);
-          doc.text("Received asset in verified working condition", 57.5, sigY + 9, { align: "center" });
-          doc.text("Authorized HRMS System Record", 152.5, sigY + 9, { align: "center" });
+          // Draw Outer Table Border Box around actual content height
+          doc.setLineWidth(0.4);
+          doc.setDrawColor(203, 213, 225); // slate-300
+          doc.roundedRect(tableX, startY, tableW, currentY - startY, 2, 2, "S");
         });
 
         doc.save(singleAsset ? `Asset_Specification_${singleAsset.id}.pdf` : `Assets_Specification_Sheets_${new Date().toISOString().slice(0,10)}.pdf`);
@@ -1144,7 +1187,7 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
     const typeClean = registerForm.assetType.toLowerCase().trim();
     let finalDetail = registerForm.assetDetail;
     let finalSerial = registerForm.serialNumber;
-    let finalNotes = registerForm.notes;
+    let finalNotes = cleanNotesString(registerForm.notes);
 
     if (typeClean === "sim card" || typeClean === "sim") {
       const mobile = assetFields.simMobile || "";
@@ -1154,15 +1197,8 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
       }
       const operator = assetFields.simOperatorCustom || (assetFields.simOperator !== "Other" ? assetFields.simOperator : "") || "Jio";
       const network = assetFields.simNetworkCustom || (assetFields.simNetwork !== "Other" ? assetFields.simNetwork : "") || "5G";
-      const simStatus = assetFields.simStatus || "Active";
-      finalDetail = `${operator} - ${network} Network (${simStatus})`;
+      finalDetail = `${operator} - ${network} Network`;
       finalSerial = mobile;
-      let simNotesInfo = `SIM Status: ${simStatus}\n`;
-      if (assetFields.simIccid) simNotesInfo += `SIM Number (ICCID): ${assetFields.simIccid}\n`;
-      if (assetFields.simPlanType) simNotesInfo += `Plan Type: ${assetFields.simPlanType}\n`;
-      if (assetFields.simPuk) simNotesInfo += `PUC/PIN: ${assetFields.simPuk}\n`;
-      if (assetFields.simKycName) simNotesInfo += `KYC Holder: ${assetFields.simKycName}\n`;
-      finalNotes = `${simNotesInfo}${registerForm.notes ? `\n${registerForm.notes}` : ""}`;
     } else if (typeClean === "laptop") {
       const model = assetFields.laptopModel || "";
       const specs = assetFields.laptopSpecs || "";
@@ -1173,22 +1209,6 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
       }
       finalDetail = `${model} (${specs})`;
       finalSerial = serial;
-
-      let laptopInfo = "";
-      if (assetFields.laptopOs) laptopInfo += `OS: ${assetFields.laptopOs}\n`;
-      if (assetFields.laptopHostName) laptopInfo += `Host Name: ${assetFields.laptopHostName}\n`;
-      if (assetFields.laptopCharger) laptopInfo += `Charger Included: ${assetFields.laptopCharger}\n`;
-      if (assetFields.laptopBag) laptopInfo += `Accessories: ${assetFields.laptopBag}\n`;
-      if (assetFields.laptopPassword) {
-        laptopInfo += `Laptop Admin Passcode: ${assetFields.laptopPassword}\n`;
-      }
-      const filteredEmails = emailsList.map(e => e.trim()).filter(Boolean);
-      if (filteredEmails.length > 0) {
-        laptopInfo += `Logged-in Emails: ${filteredEmails.join(", ")}\n`;
-      }
-      if (laptopInfo) {
-        finalNotes = `${laptopInfo}${registerForm.notes ? `\n${registerForm.notes}` : ""}`;
-      }
     } else if (typeClean === "computer" || typeClean === "desktop computer" || typeClean === "pc") {
       const model = assetFields.compModel || "";
       const specs = assetFields.compSpecs || "";
@@ -1199,18 +1219,6 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
       }
       finalDetail = `${model}${specs ? ` (${specs})` : ""}`;
       finalSerial = serial;
-      let compInfo = "";
-      if (assetFields.compOs) compInfo += `OS: ${assetFields.compOs}\n`;
-      if (assetFields.compHostName) compInfo += `Host Name: ${assetFields.compHostName}\n`;
-      if (assetFields.compPeripherals) compInfo += `Peripherals: ${assetFields.compPeripherals}\n`;
-      if (assetFields.compPassword) compInfo += `Computer Lock Passcode: ${assetFields.compPassword}\n`;
-      const filteredEmails = emailsList.map(e => e.trim()).filter(Boolean);
-      if (filteredEmails.length > 0) {
-        compInfo += `Logged-in Emails: ${filteredEmails.join(", ")}\n`;
-      }
-      if (compInfo) {
-        finalNotes = `${compInfo}${registerForm.notes ? `\n${registerForm.notes}` : ""}`;
-      }
     } else if (typeClean === "cpu" || typeClean === "cpu tower" || typeClean === "cabinet") {
       const model = assetFields.cpuModel || "";
       const specs = assetFields.cpuSpecs || "";
@@ -1221,9 +1229,6 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
       }
       finalDetail = `${model}${specs ? ` (${specs})` : ""}`;
       finalSerial = serial;
-      if (assetFields.cpuGraphics) {
-        finalNotes = `Graphics: ${assetFields.cpuGraphics}${registerForm.notes ? `\n${registerForm.notes}` : ""}`;
-      }
     } else if (typeClean === "mouse") {
       const brand = assetFields.mouseBrand || "";
       const type = assetFields.mouseType || "Wired USB";
@@ -1261,60 +1266,12 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
       const imei2 = assetFields.phoneImei2 || "";
       const specs = assetFields.phoneSpecs || "";
 
-      const simSlots = assetFields.phoneSimSlots || "None";
-      const sim1No = assetFields.phoneSim1No || "";
-      const sim2No = assetFields.phoneSim2No || "";
-
       if (!model || !imei1) {
         triggerToast("Phone Brand & Model and IMEI Number 1 are required");
         return;
       }
       finalDetail = `${model}${specs ? ` (${specs})` : ""}`;
       finalSerial = imei2 ? `IMEI 1: ${imei1}, IMEI 2: ${imei2}` : imei1;
-
-      // Passcode, Logged-in Emails & SIMs
-      const filteredEmails = emailsList.map(e => e.trim()).filter(Boolean);
-      let mobileInfo = "";
-      if (assetFields.phonePassword) {
-        mobileInfo += `Phone Screen Lock Passcode: ${assetFields.phonePassword}\n`;
-      }
-      if (filteredEmails.length > 0) {
-        mobileInfo += `Logged-in Emails: ${filteredEmails.join(", ")}\n`;
-      }
-      if (simSlots !== "None") {
-        mobileInfo += `SIM Slots Used: ${simSlots}\n`;
-        if (sim1No) {
-          const wa1 = assetFields.phoneSim1Whatsapp || "No";
-          const wa1Type = wa1 === "Yes" ? ` (${assetFields.phoneSim1WhatsappType || "Personal"})` : "";
-          const op1 = assetFields.phoneSim1OperatorCustom || (assetFields.phoneSim1Operator !== "Other" ? assetFields.phoneSim1Operator : "") || "Jio";
-          mobileInfo += `SIM 1 Mobile No: ${sim1No} [Company: ${op1}] [WhatsApp: ${wa1}${wa1Type}]\n`;
-        }
-        if (sim2No) {
-          const wa2 = assetFields.phoneSim2Whatsapp || "No";
-          const wa2Type = wa2 === "Yes" ? ` (${assetFields.phoneSim2WhatsappType || "Personal"})` : "";
-          const op2 = assetFields.phoneSim2OperatorCustom || (assetFields.phoneSim2Operator !== "Other" ? assetFields.phoneSim2Operator : "") || "Airtel";
-          mobileInfo += `SIM 2 Mobile No: ${sim2No} [Company: ${op2}] [WhatsApp: ${wa2}${wa2Type}]\n`;
-        }
-      } else {
-        mobileInfo += `SIM Slots Used: None\n`;
-      }
-
-      if (mobileInfo) {
-        finalNotes = `${mobileInfo}${registerForm.notes ? `\n${registerForm.notes}` : ""}`;
-      }
-      if (assetFields.phoneExternalWhatsapp === "Yes" && assetFields.phoneExternalWhatsappNo) {
-        const extWaType = assetFields.phoneExternalWhatsappType || "Business";
-        const extWaLabel = assetFields.phoneExternalWhatsappLabel ? ` (${assetFields.phoneExternalWhatsappLabel})` : "";
-        const extWaLine = `External WhatsApp: ${assetFields.phoneExternalWhatsappNo} [Type: ${extWaType}]${extWaLabel}`;
-        finalNotes = finalNotes ? `${finalNotes}\n${extWaLine}` : extWaLine;
-      }
-      if (assetFields.phoneSocialMedia === "Yes" && (assetFields.phoneSocialMediaUsername || assetFields.phoneSocialMediaApp)) {
-        const app = assetFields.phoneSocialMediaAppCustom || (assetFields.phoneSocialMediaApp !== "Other" ? assetFields.phoneSocialMediaApp : "") || "Instagram";
-        const user = assetFields.phoneSocialMediaUsername || "";
-        const pass = assetFields.phoneSocialMediaPassword ? ` [Password: ${assetFields.phoneSocialMediaPassword}]` : "";
-        const smLine = `Social Media App: ${app} (${user})${pass}`;
-        finalNotes = finalNotes ? `${finalNotes}\n${smLine}` : smLine;
-      }
     } else if (typeClean === "headset / accessories") {
       const name = assetFields.accName || "";
       const type = assetFields.accType || "Wired";
@@ -1346,16 +1303,12 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
     } else if (typeClean === "router / networking") {
       const model = assetFields.routerModel || "";
       const mac = assetFields.routerMac || "";
-      const serial = assetFields.routerSerial || "";
       if (!model || !mac) {
         triggerToast("Router Brand & Model and MAC Address are required");
         return;
       }
       finalDetail = model;
       finalSerial = `MAC: ${mac}`;
-      if (serial) {
-        finalNotes = `Serial Number: ${serial}${registerForm.notes ? `\n${registerForm.notes}` : ""}`;
-      }
     } else if (typeClean === "printer / scanner") {
       const model = assetFields.printerModel || "";
       const type = assetFields.printerType || "Laser Printer";
@@ -1377,21 +1330,6 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
       const locText = location || registerForm.installationLocation || "";
       finalDetail = `${model} - ${tonnage}${locText ? ` [Location: ${locText}]` : ""}`;
       finalSerial = "";
-
-      let acInfo = locText ? `AC Location: ${locText}\n` : "";
-      if (assetFields.acCondition) acInfo += `Cooling Condition: ${assetFields.acCondition}\n`;
-      if (assetFields.acServicingStatus) acInfo += `Servicing Status: ${assetFields.acServicingStatus}\n`;
-      if (assetFields.acLastServicingDate) acInfo += `Last Servicing Date: ${assetFields.acLastServicingDate}\n`;
-      if (assetFields.acServicingCost) acInfo += `Servicing Cost: ₹${assetFields.acServicingCost}\n`;
-      if (assetFields.acServicingVendor) acInfo += `Servicing Details: ${assetFields.acServicingVendor}\n`;
-      if (assetFields.acInsuranceStatus) acInfo += `Insurance Status: ${assetFields.acInsuranceStatus}\n`;
-      if (assetFields.acInsuranceDetails) acInfo += `Insurance Policy/Details: ${assetFields.acInsuranceDetails}\n`;
-      if (assetFields.acInsuranceExpiry) acInfo += `Insurance Expiry: ${assetFields.acInsuranceExpiry}\n`;
-      if (assetFields.acWarrantyDetails) acInfo += `Warranty Details: ${assetFields.acWarrantyDetails}\n`;
-
-      if (acInfo) {
-        finalNotes = `${acInfo}${registerForm.notes ? `\n${registerForm.notes}` : ""}`;
-      }
     }
 
     try {
@@ -1464,6 +1402,34 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
     } finally {
       setSubmittingRegister(false);
     }
+  };
+
+  // Helper to strip out legacy auto-generated summary lines from notes string
+  const cleanNotesString = (notesStr: string = "") => {
+    if (!notesStr) return "";
+    return notesStr
+      .split("\n")
+      .filter(line => {
+        const trimmed = line.trim();
+        return (
+          !trimmed.startsWith("Phone Screen Lock Passcode:") &&
+          !trimmed.startsWith("Laptop Admin Passcode:") &&
+          !trimmed.startsWith("Computer Lock Passcode:") &&
+          !trimmed.startsWith("CPU Lock Passcode:") &&
+          !trimmed.startsWith("Logged-in Emails:") &&
+          !trimmed.startsWith("SIM Slots Used:") &&
+          !trimmed.startsWith("SIM 1 Mobile No:") &&
+          !trimmed.startsWith("SIM 2 Mobile No:") &&
+          !trimmed.startsWith("External WhatsApp:") &&
+          !trimmed.startsWith("OS:") &&
+          !trimmed.startsWith("Host Name:") &&
+          !trimmed.startsWith("Peripherals:") &&
+          !trimmed.startsWith("Charger Included:") &&
+          !trimmed.startsWith("Accessories:")
+        );
+      })
+      .join("\n")
+      .trim();
   };
 
   const handleStartEdit = (asset: any) => {
@@ -1608,7 +1574,7 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
       condition: asset.condition || "Good",
       status: asset.status || "Available",
       companyId: asset.companyId || "",
-      notes: asset.notes || "",
+      notes: cleanNotesString(asset.notes || ""),
       photoUrl: asset.photoUrl || "",
       installationLocation: asset.installationLocation || fields.installationLocation || fields.acLocation || fields.furnitureLocation || ""
     });
@@ -1631,7 +1597,7 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
     const typeClean = editForm.assetType.toLowerCase().trim();
     let finalDetail = editForm.assetDetail;
     let finalSerial = editForm.serialNumber;
-    let finalNotes = editForm.notes;
+    let finalNotes = cleanNotesString(editForm.notes);
 
     if (typeClean === "sim card" || typeClean === "sim") {
       const mobile = editAssetFields.simMobile || "";
@@ -1641,9 +1607,6 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
       }
       finalDetail = `${editAssetFields.simOperator || "Jio"} - ${editAssetFields.simNetwork || "5G"} Network`;
       finalSerial = mobile;
-      if (editAssetFields.simIccid) {
-        finalNotes = `SIM Number (ICCID): ${editAssetFields.simIccid}${editForm.notes ? `\n${editForm.notes}` : ""}`;
-      }
     } else if (typeClean === "laptop") {
       const model = editAssetFields.laptopModel || "";
       const specs = editAssetFields.laptopSpecs || "";
@@ -1654,22 +1617,6 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
       }
       finalDetail = `${model} (${specs})`;
       finalSerial = serial;
-
-      let laptopInfo = "";
-      if (editAssetFields.laptopOs) laptopInfo += `OS: ${editAssetFields.laptopOs}\n`;
-      if (editAssetFields.laptopHostName) laptopInfo += `Host Name: ${editAssetFields.laptopHostName}\n`;
-      if (editAssetFields.laptopCharger) laptopInfo += `Charger Included: ${editAssetFields.laptopCharger}\n`;
-      if (editAssetFields.laptopBag) laptopInfo += `Accessories: ${editAssetFields.laptopBag}\n`;
-      if (editAssetFields.laptopPassword) {
-        laptopInfo += `Laptop Admin Passcode: ${editAssetFields.laptopPassword}\n`;
-      }
-      const filteredEmails = editEmailsList.map(e => e.trim()).filter(Boolean);
-      if (filteredEmails.length > 0) {
-        laptopInfo += `Logged-in Emails: ${filteredEmails.join(", ")}\n`;
-      }
-      if (laptopInfo) {
-        finalNotes = `${laptopInfo}${editForm.notes ? `\n${editForm.notes}` : ""}`;
-      }
     } else if (typeClean === "computer" || typeClean === "desktop computer" || typeClean === "pc") {
       const model = editAssetFields.compModel || "";
       const specs = editAssetFields.compSpecs || "";
@@ -1680,18 +1627,6 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
       }
       finalDetail = `${model}${specs ? ` (${specs})` : ""}`;
       finalSerial = serial;
-      let compInfo = "";
-      if (editAssetFields.compOs) compInfo += `OS: ${editAssetFields.compOs}\n`;
-      if (editAssetFields.compHostName) compInfo += `Host Name: ${editAssetFields.compHostName}\n`;
-      if (editAssetFields.compPeripherals) compInfo += `Peripherals: ${editAssetFields.compPeripherals}\n`;
-      if (editAssetFields.compPassword) compInfo += `Computer Lock Passcode: ${editAssetFields.compPassword}\n`;
-      const filteredEmails = editEmailsList.map(e => e.trim()).filter(Boolean);
-      if (filteredEmails.length > 0) {
-        compInfo += `Logged-in Emails: ${filteredEmails.join(", ")}\n`;
-      }
-      if (compInfo) {
-        finalNotes = `${compInfo}${editForm.notes ? `\n${editForm.notes}` : ""}`;
-      }
     } else if (typeClean === "cpu" || typeClean === "cpu tower" || typeClean === "cabinet") {
       const model = editAssetFields.cpuModel || "";
       const specs = editAssetFields.cpuSpecs || "";
@@ -1702,9 +1637,6 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
       }
       finalDetail = `${model}${specs ? ` (${specs})` : ""}`;
       finalSerial = serial;
-      if (editAssetFields.cpuGraphics) {
-        finalNotes = `Graphics: ${editAssetFields.cpuGraphics}${editForm.notes ? `\n${editForm.notes}` : ""}`;
-      }
     } else if (typeClean === "mouse") {
       const brand = editAssetFields.mouseBrand || "";
       const type = editAssetFields.mouseType || "Wired USB";
@@ -1742,53 +1674,12 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
       const imei2 = editAssetFields.phoneImei2 || "";
       const specs = editAssetFields.phoneSpecs || "";
 
-      const simSlots = editAssetFields.phoneSimSlots || "None";
-      const sim1No = editAssetFields.phoneSim1No || "";
-      const sim2No = editAssetFields.phoneSim2No || "";
-
       if (!model || !imei1) {
         triggerToast("Phone Brand & Model and IMEI Number 1 are required");
         return;
       }
       finalDetail = `${model}${specs ? ` (${specs})` : ""}`;
       finalSerial = imei2 ? `IMEI 1: ${imei1}, IMEI 2: ${imei2}` : imei1;
-
-      // Passcode, Logged-in Emails & SIMs
-      const filteredEmails = editEmailsList.map(e => e.trim()).filter(Boolean);
-      let mobileInfo = "";
-      if (editAssetFields.phonePassword) {
-        mobileInfo += `Phone Screen Lock Passcode: ${editAssetFields.phonePassword}\n`;
-      }
-      if (filteredEmails.length > 0) {
-        mobileInfo += `Logged-in Emails: ${filteredEmails.join(", ")}\n`;
-      }
-      if (simSlots !== "None") {
-        mobileInfo += `SIM Slots Used: ${simSlots}\n`;
-        if (sim1No) {
-          const wa1 = editAssetFields.phoneSim1Whatsapp || "No";
-          const wa1Type = wa1 === "Yes" ? ` (${editAssetFields.phoneSim1WhatsappType || "Personal"})` : "";
-          const op1 = editAssetFields.phoneSim1OperatorCustom || (editAssetFields.phoneSim1Operator !== "Other" ? editAssetFields.phoneSim1Operator : "") || "Jio";
-          mobileInfo += `SIM 1 Mobile No: ${sim1No} [Company: ${op1}] [WhatsApp: ${wa1}${wa1Type}]\n`;
-        }
-        if (sim2No) {
-          const wa2 = editAssetFields.phoneSim2Whatsapp || "No";
-          const wa2Type = wa2 === "Yes" ? ` (${editAssetFields.phoneSim2WhatsappType || "Personal"})` : "";
-          const op2 = editAssetFields.phoneSim2OperatorCustom || (editAssetFields.phoneSim2Operator !== "Other" ? editAssetFields.phoneSim2Operator : "") || "Airtel";
-          mobileInfo += `SIM 2 Mobile No: ${sim2No} [Company: ${op2}] [WhatsApp: ${wa2}${wa2Type}]\n`;
-        }
-      } else {
-        mobileInfo += `SIM Slots Used: None\n`;
-      }
-
-      if (mobileInfo) {
-        finalNotes = `${mobileInfo}${editForm.notes ? `\n${editForm.notes}` : ""}`;
-      }
-      if (editAssetFields.phoneExternalWhatsapp === "Yes" && editAssetFields.phoneExternalWhatsappNo) {
-        const extWaType = editAssetFields.phoneExternalWhatsappType || "Business";
-        const extWaLabel = editAssetFields.phoneExternalWhatsappLabel ? ` (${editAssetFields.phoneExternalWhatsappLabel})` : "";
-        const extWaLine = `External WhatsApp: ${editAssetFields.phoneExternalWhatsappNo} [Type: ${extWaType}]${extWaLabel}`;
-        finalNotes = finalNotes ? `${finalNotes}\n${extWaLine}` : extWaLine;
-      }
     } else if (typeClean === "headset / accessories") {
       const name = editAssetFields.accName || "";
       const type = editAssetFields.accType || "Wired";
@@ -1820,16 +1711,12 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
     } else if (typeClean === "router / networking") {
       const model = editAssetFields.routerModel || "";
       const mac = editAssetFields.routerMac || "";
-      const serial = editAssetFields.routerSerial || "";
       if (!model || !mac) {
         triggerToast("Router Brand & Model and MAC Address are required");
         return;
       }
       finalDetail = model;
       finalSerial = `MAC: ${mac}`;
-      if (serial) {
-        finalNotes = `Serial Number: ${serial}${editForm.notes ? `\n${editForm.notes}` : ""}`;
-      }
     } else if (typeClean === "printer / scanner") {
       const model = editAssetFields.printerModel || "";
       const type = editAssetFields.printerType || "Laser Printer";
@@ -1851,21 +1738,6 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
       const locText = location || editForm.installationLocation || "";
       finalDetail = `${model} - ${tonnage}${locText ? ` [Location: ${locText}]` : ""}`;
       finalSerial = "";
-
-      let acInfo = locText ? `AC Location: ${locText}\n` : "";
-      if (editAssetFields.acCondition) acInfo += `Cooling Condition: ${editAssetFields.acCondition}\n`;
-      if (editAssetFields.acServicingStatus) acInfo += `Servicing Status: ${editAssetFields.acServicingStatus}\n`;
-      if (editAssetFields.acLastServicingDate) acInfo += `Last Servicing Date: ${editAssetFields.acLastServicingDate}\n`;
-      if (editAssetFields.acServicingCost) acInfo += `Servicing Cost: ₹${editAssetFields.acServicingCost}\n`;
-      if (editAssetFields.acServicingVendor) acInfo += `Servicing Details: ${editAssetFields.acServicingVendor}\n`;
-      if (editAssetFields.acInsuranceStatus) acInfo += `Insurance Status: ${editAssetFields.acInsuranceStatus}\n`;
-      if (editAssetFields.acInsuranceDetails) acInfo += `Insurance Policy/Details: ${editAssetFields.acInsuranceDetails}\n`;
-      if (editAssetFields.acInsuranceExpiry) acInfo += `Insurance Expiry: ${editAssetFields.acInsuranceExpiry}\n`;
-      if (editAssetFields.acWarrantyDetails) acInfo += `Warranty Details: ${editAssetFields.acWarrantyDetails}\n`;
-
-      if (acInfo) {
-        finalNotes = `${acInfo}${editForm.notes ? `\n${editForm.notes}` : ""}`;
-      }
     }
 
     try {
@@ -3801,7 +3673,7 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
               </div>
 
               <div>
-                <label className="block text-[9px] uppercase tracking-wider text-black font-normal mb-1">Internal Notes</label>
+                <label className="block text-[9px] uppercase tracking-wider text-black font-normal mb-1">Internal Remarks</label>
                 <textarea
                   value={registerForm.notes}
                   onChange={(e) => setRegisterForm(p => ({ ...p, notes: e.target.value }))}
@@ -5746,9 +5618,9 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
                 </div>
               </div>
 
-              {/* Internal Notes */}
+              {/* Internal Remarks */}
               <div>
-                <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Internal Notes</label>
+                <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Internal Remarks</label>
                 <textarea
                   value={editForm.notes}
                   onChange={(e) => setEditForm(p => ({ ...p, notes: e.target.value }))}
@@ -6016,12 +5888,16 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
                       </div>
                     )}
 
-                    {viewingAsset.notes && (
-                      <div className="bg-slate-50 p-3 rounded-xl border border-slate-200">
-                        <span className="text-[#9C9890] block text-[9px] font-bold uppercase mb-1">INTERNAL NOTES / WARRANTY:</span>
-                        <p className="whitespace-pre-wrap text-slate-700 font-medium">{viewingAsset.notes}</p>
-                      </div>
-                    )}
+                    {(() => {
+                      const cleanNotes = cleanNotesString(viewingAsset.notes || "");
+                      if (!cleanNotes) return null;
+                      return (
+                        <div className="bg-slate-50 p-3 rounded-xl border border-slate-200">
+                          <span className="text-[#9C9890] block text-[9px] font-bold uppercase mb-1">INTERNAL REMARKS:</span>
+                          <p className="whitespace-pre-wrap text-slate-700 font-medium">{cleanNotes}</p>
+                        </div>
+                      );
+                    })()}
                   </div>
                 );
               })()}
@@ -6311,42 +6187,59 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
       )}
 
       {/* Floating Bulk QR Print Toolbar */}
-      {isBulkSelectMode && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[9999] bg-slate-900/95 text-white backdrop-blur-md px-5 py-3 rounded-2xl shadow-2xl border border-slate-700 flex flex-wrap items-center gap-4 animate-slide-up font-sans">
-          <div className="flex items-center gap-2 pr-3 border-r border-slate-700">
-            <span className="w-6 h-6 rounded-full bg-purple-500 text-white font-black text-xs flex items-center justify-center font-mono">
+      {/* Floating Bulk Action Bar (Mounted directly on document.body via Portal so it always floats on viewport) */}
+      {isBulkSelectMode && typeof document !== "undefined" && ReactDOM.createPortal(
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[99999] bg-slate-900/95 text-white backdrop-blur-xl px-5 py-3.5 rounded-2xl shadow-2xl border border-indigo-500/40 flex flex-wrap items-center gap-4 animate-in fade-in slide-in-from-bottom-5 duration-200 font-sans max-w-[95vw] shadow-indigo-950/50">
+          <div className="flex items-center gap-2.5 pr-3 border-r border-slate-700/80">
+            <span className="w-7 h-7 rounded-full bg-gradient-to-r from-purple-500 to-indigo-500 text-white font-black text-xs flex items-center justify-center font-mono shadow-md">
               {selectedAssetIds.length}
             </span>
-            <span className="text-xs font-bold uppercase tracking-wider text-slate-200">
-              {selectedAssetIds.length === 0 ? "Select Assets Below" : "Assets Selected"}
-            </span>
+            <div>
+              <div className="text-[11px] font-black uppercase tracking-wider text-slate-100 flex items-center gap-1">
+                <CheckCircle className="w-3.5 h-3.5 text-purple-400" />
+                {selectedAssetIds.length === 0 ? "Select Assets Below" : `${selectedAssetIds.length} Assets Selected`}
+              </div>
+              <div className="text-[9px] text-slate-400 font-medium">Bulk Action Workspace</div>
+            </div>
           </div>
 
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-2 flex-wrap">
             <button
               type="button"
               onClick={() => toggleSelectAllAssets(filteredInventory)}
-              className="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-bold transition-all"
+              className="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-bold transition-all border border-slate-700 flex items-center gap-1"
             >
-              {filteredInventory.length > 0 && filteredInventory.every(a => selectedAssetIds.includes(String(a.id))) ? "Deselect All" : "Select All Filtered"}
+              <Check className="w-3.5 h-3.5 text-indigo-400" />
+              {filteredInventory.length > 0 && filteredInventory.every(a => selectedAssetIds.includes(String(a.id))) ? "Deselect All" : "Select All"}
             </button>
 
             <button
               type="button"
               disabled={isBulkPrinting || selectedAssetIds.length === 0}
               onClick={() => handleDownloadDirectPdf("label")}
-              className="px-4 py-2 bg-purple-600 hover:bg-purple-700 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm"
-              title="Directly download a .pdf file containing sticker tags in exact selection sequence"
+              className="px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-xl text-xs font-black transition-all flex items-center gap-1.5 shadow-lg shadow-purple-950/50"
+              title="Directly download a .pdf file containing QR sticker tags"
             >
-              <Download className="w-4 h-4" />
-              {isBulkPrinting ? "Generating PDF..." : `Download PDF Stickers (${selectedAssetIds.length})`}
+              <Download className="w-3.5 h-3.5" />
+              {isBulkPrinting ? "Generating..." : `Download QR Tags (${selectedAssetIds.length})`}
+            </button>
+
+            <button
+              type="button"
+              disabled={isBulkPrinting || selectedAssetIds.length === 0}
+              onClick={() => handleDownloadDirectPdf("pdf")}
+              className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-xl text-xs font-black transition-all flex items-center gap-1.5 shadow-lg shadow-emerald-950/50"
+              title="Directly download specification sheets PDF"
+            >
+              <Download className="w-3.5 h-3.5" />
+              PDF Sheets
             </button>
 
             <button
               type="button"
               disabled={isBulkPrinting || selectedAssetIds.length === 0}
               onClick={() => handleBulkPrintQrTags("label")}
-              className="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed text-slate-200 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm"
+              className="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed text-slate-200 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 border border-slate-700"
               title="Open browser print preview dialog"
             >
               <Printer className="w-3.5 h-3.5" /> Print View
@@ -6358,12 +6251,13 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
                 setIsBulkSelectMode(false);
                 setSelectedAssetIds([]);
               }}
-              className="px-3 py-2 bg-rose-900/80 hover:bg-rose-800 text-rose-200 rounded-xl text-xs font-bold transition-all"
+              className="px-3 py-2 bg-rose-900/80 hover:bg-rose-800 text-rose-200 rounded-xl text-xs font-bold transition-all border border-rose-800/50 flex items-center gap-1"
             >
-              Exit Bulk Mode
+              <X className="w-3.5 h-3.5" /> Exit
             </button>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Hidden Printable Container for QR Label Tags */}
@@ -6376,24 +6270,24 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
             @media print {
               @page {
                 size: portrait;
-                margin: 15mm 10mm 15mm 10mm;
+                margin: 10mm;
               }
-              body > * {
-                display: none !important;
+              body {
+                visibility: hidden !important;
+                background: white !important;
+              }
+              #asset-printable-area, #asset-printable-area * {
+                visibility: visible !important;
               }
               #asset-printable-area {
                 display: block !important;
-                visibility: visible !important;
                 position: absolute !important;
                 left: 0 !important;
                 top: 0 !important;
                 width: 100% !important;
                 background: white !important;
-                padding-top: 25px !important;
+                padding-top: 30px !important;
                 margin: 0 !important;
-              }
-              #asset-printable-area * {
-                visibility: visible !important;
               }
               .page-break-after {
                 page-break-after: always !important;
@@ -6406,41 +6300,27 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
             }
           `}</style>
 
-          {/* Top Whitespace Buffer for Print View to prevent header line clipping */}
-          <div className="w-full h-10 block print:h-14 shrink-0 pointer-events-none" />
+          {/* Top Whitespace Buffer for Print View */}
+          <div className="w-full h-8 block print:h-12 shrink-0 pointer-events-none" />
 
           {/* SINGLE ASSET PRINT */}
           {viewingAsset && selectedAssetIds.length === 0 && (
             printableMode === "label" ? (
-              /* Physical Sticker Label Tag Format (3.5" x 2.25") */
-              <div className="w-[3.5in] h-[2.25in] border-2 border-slate-900 rounded-xl p-3 flex flex-col justify-between bg-white text-slate-900 shadow-none mx-auto my-4 font-sans">
-                <div className="flex justify-between items-start border-b-2 border-slate-900 pb-1">
-                  <div>
-                    <div className="text-[9px] font-black uppercase tracking-widest text-slate-700">
-                      {companies.find(c => String(c.id) === String(viewingAsset.companyId))?.name || "OFFICIAL ASSET TAG"}
-                    </div>
-                    <div className="text-xs font-black uppercase text-indigo-900">{viewingAsset.assetType}</div>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-xs font-black font-mono bg-slate-900 text-white px-2 py-0.5 rounded">{viewingAsset.id}</div>
-                    {viewingAsset.oldAssetId && <div className="text-[8px] font-mono text-slate-600">Old: {viewingAsset.oldAssetId}</div>}
-                  </div>
+              /* Clean QR Tag Print Layout: Only QR Code + Asset ID underneath */
+              <div className="flex flex-col items-center justify-center p-8 bg-white text-slate-900 mx-auto my-8 font-sans">
+                {qrDataUrl ? (
+                  <img src={qrDataUrl} alt="Asset QR Code" className="w-80 h-80 object-contain mb-4" />
+                ) : (
+                  <div className="text-sm font-bold text-slate-400">Generating QR Code...</div>
+                )}
+                <div className="text-2xl font-black font-mono tracking-wider text-slate-950 uppercase">
+                  ASSET ID: {viewingAsset.id}
                 </div>
-
-                <div className="flex items-center gap-3 py-1">
-                  {qrDataUrl && <img src={qrDataUrl} alt="Asset QR Code" className="w-20 h-20 object-contain border border-slate-900 rounded p-0.5 shrink-0" />}
-                  <div className="text-[9px] space-y-0.5 font-semibold text-slate-800 flex-1">
-                    <div className="font-bold leading-snug line-clamp-2">{viewingAsset.assetDetail || "No Description"}</div>
-                    {viewingAsset.serialNumber && <div>S/N: <span className="font-mono font-bold">{viewingAsset.serialNumber}</span></div>}
-                    {viewingAsset.assignedToName && <div className="text-indigo-900 font-bold">Assigned: {viewingAsset.assignedToName}</div>}
-                    <div className="text-[8px] text-slate-500 font-mono">Status: {viewingAsset.status || "Available"}</div>
+                {viewingAsset.oldAssetId && (
+                  <div className="text-base font-mono text-slate-600 mt-1 font-bold">
+                    OLD ID: {viewingAsset.oldAssetId}
                   </div>
-                </div>
-
-                <div className="border-t border-slate-900 pt-1 text-[8px] font-black uppercase tracking-wider text-center text-slate-600 flex justify-between">
-                  <span>PROPERTY OF COMPANY</span>
-                  <span>DO NOT REMOVE</span>
-                </div>
+                )}
               </div>
             ) : (
               /* Full Page A4 Asset Specification & Audit Document */

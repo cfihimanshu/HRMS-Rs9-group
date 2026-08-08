@@ -193,9 +193,15 @@ export default function DomainRecordPanels({ userRole, triggerToast, sessionUser
       return;
     }
 
+    let finalPlatform = form.platform;
+    if (selectedCategory === "GitHub Repo" && !finalPlatform) {
+      finalPlatform = "GitHub";
+    }
+
     const payload = {
       recordType: selectedCategory,
       ...form,
+      platform: finalPlatform,
       customFields: {
         recoveryEmail: form.recoveryEmail,
         recoveryNumber: form.recoveryNumber,
@@ -1089,14 +1095,10 @@ export default function DomainRecordPanels({ userRole, triggerToast, sessionUser
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-indigo-50/50 p-3 rounded-xl border border-indigo-100">
+                    <div className="bg-indigo-50/50 p-3 rounded-xl border border-indigo-100">
                       <div className="space-y-1">
-                        <label className="text-[10px] font-bold uppercase text-indigo-900">Registrar Password</label>
+                        <label className="text-[10px] font-bold uppercase text-indigo-900">Password</label>
                         <input type="text" value={form.password} onChange={e => setForm({...form, password: e.target.value})} placeholder="Enter domain password" className="w-full px-3 py-2 bg-white border border-indigo-200 rounded-xl text-xs font-mono font-bold text-slate-800 outline-none" />
-                      </div>
-                      <div className="space-y-1">
-                        <label className="text-[10px] font-bold uppercase text-indigo-900">EPP Auth Code / 2FA</label>
-                        <input type="text" value={form.authCode} onChange={e => setForm({...form, authCode: e.target.value})} placeholder="e.g. EPP-8749-X" className="w-full px-3 py-2 bg-white border border-indigo-200 rounded-xl text-xs font-mono text-slate-800 outline-none" />
                       </div>
                     </div>
                   </div>
@@ -1170,8 +1172,8 @@ export default function DomainRecordPanels({ userRole, triggerToast, sessionUser
                     {/* Password Box */}
                     <div className="bg-sky-50/50 p-3 rounded-xl border border-sky-100">
                       <div className="space-y-1">
-                        <label className="text-[10px] font-bold uppercase text-sky-900">Password / Secret Key</label>
-                        <input type="text" value={form.password} onChange={e => setForm({...form, password: e.target.value})} placeholder="Enter cloud password/key" className="w-full px-3 py-2 bg-white border border-sky-200 rounded-xl text-xs font-mono font-bold text-slate-800 outline-none" />
+                        <label className="text-[10px] font-bold uppercase text-sky-900">Password</label>
+                        <input type="text" value={form.password} onChange={e => setForm({...form, password: e.target.value})} placeholder="Enter cloud password" className="w-full px-3 py-2 bg-white border border-sky-200 rounded-xl text-xs font-mono font-bold text-slate-800 outline-none" />
                       </div>
                     </div>
                   </div>
@@ -1300,10 +1302,6 @@ export default function DomainRecordPanels({ userRole, triggerToast, sessionUser
                         <input type="text" required value={form.name} onChange={e => setForm({...form, name: e.target.value})} placeholder="e.g. HRMS-Rs9-Group" className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 outline-none focus:border-purple-500" />
                       </div>
                       <div className="space-y-1">
-                        <label className="text-[10px] font-bold uppercase text-slate-900">Git Provider / Host</label>
-                        <input type="text" value={form.platform} onChange={e => setForm({...form, platform: e.target.value})} placeholder="GitHub, GitLab, Bitbucket, Azure DevOps" className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 outline-none focus:border-purple-500" />
-                      </div>
-                      <div className="space-y-1">
                         <label className="text-[10px] font-bold uppercase text-slate-900">Repository Access URL</label>
                         <input type="url" value={form.url} onChange={e => setForm({...form, url: e.target.value})} placeholder="https://github.com/org/repo" className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 outline-none focus:border-purple-500" />
                       </div>
@@ -1343,14 +1341,10 @@ export default function DomainRecordPanels({ userRole, triggerToast, sessionUser
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-purple-50/50 p-3 rounded-xl border border-purple-100">
+                    <div className="bg-purple-50/50 p-3 rounded-xl border border-purple-100">
                       <div className="space-y-1">
-                        <label className="text-[10px] font-bold uppercase text-purple-900">Personal Access Token / Deploy Key / Password</label>
-                        <input type="text" value={form.password} onChange={e => setForm({...form, password: e.target.value})} placeholder="ghp_xxxxxxxxxxxx" className="w-full px-3 py-2 bg-white border border-purple-200 rounded-xl text-xs font-mono font-bold text-slate-800 outline-none" />
-                      </div>
-                      <div className="space-y-1">
-                        <label className="text-[10px] font-bold uppercase text-purple-900">Deploy Webhook / 2FA Code</label>
-                        <input type="text" value={form.authCode} onChange={e => setForm({...form, authCode: e.target.value})} placeholder="Deploy secret or 2FA key" className="w-full px-3 py-2 bg-white border border-purple-200 rounded-xl text-xs font-mono text-slate-800 outline-none" />
+                        <label className="text-[10px] font-bold uppercase text-purple-900">Password</label>
+                        <input type="text" value={form.password} onChange={e => setForm({...form, password: e.target.value})} placeholder="Enter repository password" className="w-full px-3 py-2 bg-white border border-purple-200 rounded-xl text-xs font-mono font-bold text-slate-800 outline-none" />
                       </div>
                     </div>
                   </div>

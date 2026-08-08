@@ -4,7 +4,7 @@ import {
   Laptop, Cpu, Plus, CheckCircle2, AlertCircle, 
   Search, ShieldAlert, Clock, RefreshCw, Send, 
   User, Check, X, ShieldCheck, Truck, MessageSquare,
-  Package, Coins
+  Package, Coins, List, LayoutGrid
 } from "lucide-react";
 
 interface AssetRequestProps {
@@ -30,6 +30,8 @@ export function AssetRequestLogs({ sessionUser, triggerToast, setActiveTab }: As
   // Filters
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
+  const [activeStatFilter, setActiveStatFilter] = useState<"ALL" | "PENDING" | "APPROVED" | "HIGH">("ALL");
+  const [viewMode, setViewMode] = useState<"cards" | "table">("cards");
 
   // New Request Form
   const [assetType, setAssetType] = useState("Laptop");
@@ -238,6 +240,27 @@ export function AssetRequestLogs({ sessionUser, triggerToast, setActiveTab }: As
     setRemarksMap(prev => ({ ...prev, [requestId]: val }));
   };
 
+  // Helper to parse requisition reason string into structured fields
+  const parseRequisitionReason = (reasonStr: string = "") => {
+    if (!reasonStr) return { spec: "No details provided", cost: null, vendor: null, justification: null };
+
+    const specMatch = reasonStr.match(/Specifications:\s*(.*?)(?=\s*(Estimated Cost:|Vendor:|Justification:|$))/i);
+    const costMatch = reasonStr.match(/Estimated Cost:\s*(.*?)(?=\s*(Vendor:|Justification:|$))/i);
+    const vendorMatch = reasonStr.match(/Vendor:\s*(.*?)(?=\s*(Justification:|$))/i);
+    const justMatch = reasonStr.match(/Justification:\s*(.*)/i);
+
+    if (specMatch || costMatch || vendorMatch || justMatch) {
+      return {
+        spec: specMatch ? specMatch[1].trim() : reasonStr,
+        cost: costMatch ? costMatch[1].trim() : null,
+        vendor: vendorMatch ? vendorMatch[1].trim() : null,
+        justification: justMatch ? justMatch[1].trim() : null,
+      };
+    }
+
+    return { spec: reasonStr, cost: null, vendor: null, justification: null };
+  };
+
   // Filter requests
   const filteredRequests = requests.filter(r => {
     const matchesSearch = 
@@ -245,10 +268,16 @@ export function AssetRequestLogs({ sessionUser, triggerToast, setActiveTab }: As
       (r.asset_type || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
       (r.reason || "").toLowerCase().includes(searchTerm.toLowerCase());
     
-    const matchesStatus = statusFilter === "" || 
+    let matchesStatus = statusFilter === "" || 
       r.status === statusFilter || 
       (statusFilter === "Pending" && (r.status === "Pending Manager Approval" || r.status === "Pending Owner Approval" || r.status === "Pending")) ||
+      (statusFilter === "Approved" && (r.status === "Approved" || (r.status && r.status.startsWith("Dispatched")))) ||
       (statusFilter === "Dispatched" && r.status && r.status.startsWith("Dispatched"));
+
+    if (activeStatFilter === "HIGH") {
+      return matchesSearch && (r.priority || "").toLowerCase() === "high";
+    }
+
     return matchesSearch && matchesStatus;
   });
 
@@ -308,6 +337,99 @@ export function AssetRequestLogs({ sessionUser, triggerToast, setActiveTab }: As
         >
           <RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin" : ""}`} /> Refresh Hub
         </button>
+      </div>
+
+      {/* Overview Stat Cards Header (Clickable Filters) */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* Box 1: Total Requisitions */}
+        <div
+          onClick={() => {
+            setActiveStatFilter("ALL");
+            setStatusFilter("");
+          }}
+          className={`p-4 rounded-xl border flex items-center justify-between shadow-2xs cursor-pointer transition-all hover:scale-[1.02] ${
+            activeStatFilter === "ALL"
+              ? "ring-2 ring-indigo-500 border-indigo-400 bg-indigo-50/50 dark:bg-indigo-950/30"
+              : (isDark ? "bg-gray-900 border-gray-800 text-white" : "bg-white border-slate-200 hover:border-indigo-200")
+          }`}
+        >
+          <div>
+            <div className="text-[10px] font-extrabold uppercase font-mono text-slate-400">Total Requisitions</div>
+            <div className="text-xl font-black mt-1">{requests.length}</div>
+          </div>
+          <div className="w-9 h-9 rounded-lg bg-indigo-50 text-indigo-600 dark:bg-indigo-950 dark:text-indigo-300 flex items-center justify-center">
+            <Laptop className="w-5 h-5" />
+          </div>
+        </div>
+
+        {/* Box 2: Pending Approvals */}
+        <div
+          onClick={() => {
+            setActiveStatFilter("PENDING");
+            setStatusFilter("Pending");
+          }}
+          className={`p-4 rounded-xl border flex items-center justify-between shadow-2xs cursor-pointer transition-all hover:scale-[1.02] ${
+            activeStatFilter === "PENDING"
+              ? "ring-2 ring-amber-500 border-amber-400 bg-amber-50/50 dark:bg-amber-950/30"
+              : (isDark ? "bg-gray-900 border-gray-800 text-white" : "bg-white border-slate-200 hover:border-amber-200")
+          }`}
+        >
+          <div>
+            <div className="text-[10px] font-extrabold uppercase font-mono text-slate-400">Pending Approvals</div>
+            <div className="text-xl font-black text-amber-500 mt-1">
+              {requests.filter(r => (r.status || "").toLowerCase().includes("pending")).length}
+            </div>
+          </div>
+          <div className="w-9 h-9 rounded-lg bg-amber-50 text-amber-600 dark:bg-amber-950 dark:text-amber-300 flex items-center justify-center">
+            <Clock className="w-5 h-5" />
+          </div>
+        </div>
+
+        {/* Box 3: Approved & Dispatched */}
+        <div
+          onClick={() => {
+            setActiveStatFilter("APPROVED");
+            setStatusFilter("Approved");
+          }}
+          className={`p-4 rounded-xl border flex items-center justify-between shadow-2xs cursor-pointer transition-all hover:scale-[1.02] ${
+            activeStatFilter === "APPROVED"
+              ? "ring-2 ring-emerald-500 border-emerald-400 bg-emerald-50/50 dark:bg-emerald-950/30"
+              : (isDark ? "bg-gray-900 border-gray-800 text-white" : "bg-white border-slate-200 hover:border-emerald-200")
+          }`}
+        >
+          <div>
+            <div className="text-[10px] font-extrabold uppercase font-mono text-slate-400">Approved & Dispatched</div>
+            <div className="text-xl font-black text-emerald-600 mt-1">
+              {requests.filter(r => ["approved", "dispatched"].includes((r.status || "").toLowerCase())).length}
+            </div>
+          </div>
+          <div className="w-9 h-9 rounded-lg bg-emerald-50 text-emerald-600 dark:bg-emerald-950 dark:text-emerald-300 flex items-center justify-center">
+            <CheckCircle2 className="w-5 h-5" />
+          </div>
+        </div>
+
+        {/* Box 4: High Priority */}
+        <div
+          onClick={() => {
+            setActiveStatFilter("HIGH");
+            setStatusFilter("");
+          }}
+          className={`p-4 rounded-xl border flex items-center justify-between shadow-2xs cursor-pointer transition-all hover:scale-[1.02] ${
+            activeStatFilter === "HIGH"
+              ? "ring-2 ring-rose-500 border-rose-400 bg-rose-50/50 dark:bg-rose-950/30"
+              : (isDark ? "bg-gray-900 border-gray-800 text-white" : "bg-white border-slate-200 hover:border-rose-200")
+          }`}
+        >
+          <div>
+            <div className="text-[10px] font-extrabold uppercase font-mono text-slate-400">High Priority</div>
+            <div className="text-xl font-black text-rose-600 mt-1">
+              {requests.filter(r => (r.priority || "").toLowerCase() === "high").length}
+            </div>
+          </div>
+          <div className="w-9 h-9 rounded-lg bg-rose-50 text-rose-600 dark:bg-rose-950 dark:text-rose-300 flex items-center justify-center">
+            <AlertCircle className="w-5 h-5" />
+          </div>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
@@ -404,7 +526,7 @@ export function AssetRequestLogs({ sessionUser, triggerToast, setActiveTab }: As
             isDark ? "bg-gray-900 border-gray-850" : "bg-white border-slate-150"
           }`}>
             
-            {/* Filters */}
+            {/* Filters & View Switcher */}
             <div className="flex flex-col sm:flex-row gap-3 items-center">
               <div className="relative flex-1 w-full">
                 <Search className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
@@ -431,6 +553,28 @@ export function AssetRequestLogs({ sessionUser, triggerToast, setActiveTab }: As
                 <option value="Dispatched">Dispatched</option>
                 <option value="Rejected">Rejected</option>
               </select>
+
+              {/* View Mode Toggle */}
+              <div className={`flex items-center gap-1 border p-1 rounded-lg shrink-0 ${isDark ? "bg-gray-800 border-gray-700" : "bg-slate-50 border-slate-200"}`}>
+                <button
+                  onClick={() => setViewMode("cards")}
+                  title="Card Grid View"
+                  className={`p-1.5 rounded-md text-xs font-bold transition-all flex items-center gap-1 cursor-pointer ${
+                    viewMode === "cards" ? (isDark ? "bg-gray-900 text-white shadow-2xs" : "bg-white text-slate-800 shadow-2xs") : "text-slate-400 hover:text-slate-600"
+                  }`}
+                >
+                  <LayoutGrid className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => setViewMode("table")}
+                  title="Table View"
+                  className={`p-1.5 rounded-md text-xs font-bold transition-all flex items-center gap-1 cursor-pointer ${
+                    viewMode === "table" ? (isDark ? "bg-gray-900 text-white shadow-2xs" : "bg-white text-slate-800 shadow-2xs") : "text-slate-400 hover:text-slate-600"
+                  }`}
+                >
+                  <List className="w-4 h-4" />
+                </button>
+              </div>
             </div>
 
             {loading ? (
@@ -442,48 +586,119 @@ export function AssetRequestLogs({ sessionUser, triggerToast, setActiveTab }: As
                 <Laptop className="w-8 h-8 mx-auto mb-2 text-slate-300 dark:text-gray-700" />
                 No asset requests found matching filters.
               </div>
+            ) : viewMode === "table" ? (
+              <div className="overflow-x-auto border border-slate-200 dark:border-gray-800 rounded-xl">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className={`border-b text-[10px] uppercase font-black tracking-wider font-mono ${isDark ? "bg-gray-800/80 border-gray-700 text-gray-400" : "bg-slate-50 border-slate-200 text-slate-500"}`}>
+                      <th className="py-3 px-3">Asset Requested</th>
+                      <th className="py-3 px-3">Priority</th>
+                      <th className="py-3 px-3">Employee &amp; Dept</th>
+                      <th className="py-3 px-3">Specifications / Reason</th>
+                      <th className="py-3 px-3">Status</th>
+                      <th className="py-3 px-3">Admin Remarks</th>
+                    </tr>
+                  </thead>
+                  <tbody className={`divide-y text-xs ${isDark ? "divide-gray-800 text-gray-200" : "divide-slate-100 text-slate-700"}`}>
+                    {filteredRequests.map((req) => (
+                      <tr key={req.id} className={isDark ? "hover:bg-gray-800/50" : "hover:bg-slate-50/70"}>
+                        <td className="py-3 px-3 font-bold uppercase">{req.asset_type}</td>
+                        <td className="py-3 px-3">
+                          <span className={`text-[9px] font-mono font-bold px-2 py-0.5 rounded-full border ${getPriorityBadge(req.priority)}`}>
+                            {req.priority}
+                          </span>
+                        </td>
+                        <td className="py-3 px-3 font-semibold">
+                          {req.employee?.name || "Employee"} ({req.employee?.department || "General"})
+                        </td>
+                        <td className="py-3 px-3 font-medium max-w-xs truncate">{req.reason}</td>
+                        <td className="py-3 px-3">
+                          <span className={`text-[10px] font-mono font-bold px-2.5 py-0.5 rounded-full border ${getStatusBadge(req.status)}`}>
+                            {req.status}
+                          </span>
+                        </td>
+                        <td className="py-3 px-3 text-slate-400 text-[11px] max-w-xs truncate">{req.admin_remarks || "—"}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             ) : (
               <div className="space-y-4">
-                {filteredRequests.map((req) => (
-                  <div 
-                    key={req.id} 
-                    className={`p-4 rounded-xl border transition-all ${
-                      isDark ? "bg-gray-800/40 border-gray-750 hover:bg-gray-800/60" : "bg-slate-50/50 border-slate-200 hover:bg-slate-50"
-                    }`}
-                  >
-                    <div className="flex flex-col sm:flex-row justify-between items-start gap-2 mb-3">
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs font-black text-slate-800 dark:text-white uppercase tracking-wider">{req.asset_type}</span>
-                          <span className={`text-[9px] font-mono font-bold px-2 py-0.5 rounded-full border ${getPriorityBadge(req.priority)}`}>
-                            {req.priority} Priority
+                {filteredRequests.map((req) => {
+                  const parsed = parseRequisitionReason(req.reason);
+                  return (
+                    <div 
+                      key={req.id} 
+                      className={`p-5 rounded-2xl border transition-all shadow-2xs hover:shadow-md ${
+                        isDark ? "bg-gray-800/40 border-gray-750 hover:bg-gray-800/60" : "bg-white border-slate-200 hover:border-slate-300"
+                      }`}
+                    >
+                      {/* Card Header & Badges */}
+                      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 pb-3 border-b border-slate-100 dark:border-gray-750">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="text-xs font-black text-slate-850 dark:text-white uppercase tracking-tight flex items-center gap-1.5">
+                            <Laptop className="w-4 h-4 text-indigo-600 shrink-0" />
+                            {req.asset_type}
+                          </span>
+                          <span className={`text-[9px] font-mono font-bold px-2.5 py-0.5 rounded-full border ${getPriorityBadge(req.priority)}`}>
+                            ⚡ {req.priority} Priority
                           </span>
                         </div>
+                        
+                        <span className={`text-[10px] font-mono font-bold px-3 py-1 rounded-full border shadow-2xs ${getStatusBadge(req.status)}`}>
+                          ● {req.status}
+                        </span>
+                      </div>
+
+                      {/* Requester Info */}
+                      <div className="py-2 flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500">
                         {(isManager || (req.employee_id && String(req.employee_id) !== String(sessionUser?.id))) && (
-                          <div className="text-[10px] text-slate-500 font-bold flex items-center gap-1 mt-1">
-                            <User className="w-3 h-3 text-indigo-500" /> {req.employee?.name || "Employee"} ({req.employee?.department || "General"})
+                          <div className="font-bold flex items-center gap-1.5 text-slate-700 dark:text-gray-300">
+                            <User className="w-3.5 h-3.5 text-indigo-500" />
+                            <span>Requested By: <strong>{req.employee?.name || "Employee"}</strong> ({req.employee?.department || "General"})</span>
                           </div>
                         )}
-                        <div className="text-[9px] text-slate-400 mt-0.5 font-bold">
-                          Requested: {new Date(req.createdAt).toLocaleDateString()} @ {new Date(req.createdAt).toLocaleTimeString()}
+                        <div className="text-[10px] text-slate-400 font-medium font-mono">
+                          📅 {new Date(req.createdAt).toLocaleDateString()} @ {new Date(req.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                         </div>
                       </div>
-                      
-                      <span className={`text-[10px] font-mono font-bold px-3 py-1 rounded-full border ${getStatusBadge(req.status)}`}>
-                        ● {req.status}
-                      </span>
-                    </div>
 
-                    <div className="text-[11px] leading-relaxed font-semibold bg-white dark:bg-gray-900 p-3 rounded-lg border border-slate-150 dark:border-gray-750 text-slate-650 dark:text-slate-350">
-                      {req.reason}
-                    </div>
+                      {/* Structured Details Cards */}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 my-2.5">
+                        <div className="bg-slate-50 dark:bg-gray-800 p-2.5 rounded-xl border border-slate-200/80 dark:border-gray-700">
+                          <span className="text-[9px] font-mono font-extrabold uppercase text-slate-400 block mb-0.5">Specifications</span>
+                          <span className="text-xs font-bold text-slate-800 dark:text-gray-200 line-clamp-2">{parsed.spec || "—"}</span>
+                        </div>
 
-                    {req.admin_remarks && (
-                      <div className="mt-2 text-[10px] bg-indigo-50/30 dark:bg-indigo-950/10 p-2.5 rounded border border-indigo-100/10 text-indigo-650 dark:text-indigo-400 font-semibold flex items-start gap-1.5">
-                        <MessageSquare className="w-3.5 h-3.5 shrink-0 mt-0.5" />
-                        <span><strong>Admin Remarks:</strong> {req.admin_remarks}</span>
+                        {parsed.cost && (
+                          <div className="bg-emerald-50/60 dark:bg-emerald-950/20 p-2.5 rounded-xl border border-emerald-200/60 dark:border-emerald-900/40">
+                            <span className="text-[9px] font-mono font-extrabold uppercase text-emerald-600 dark:text-emerald-400 block mb-0.5">Est. Cost</span>
+                            <span className="text-xs font-black text-emerald-700 dark:text-emerald-300">{parsed.cost}</span>
+                          </div>
+                        )}
+
+                        {parsed.vendor && (
+                          <div className="bg-indigo-50/60 dark:bg-indigo-950/20 p-2.5 rounded-xl border border-indigo-200/60 dark:border-indigo-900/40">
+                            <span className="text-[9px] font-mono font-extrabold uppercase text-indigo-600 dark:text-indigo-400 block mb-0.5">Suggested Vendor</span>
+                            <span className="text-xs font-bold text-indigo-700 dark:text-indigo-300">{parsed.vendor}</span>
+                          </div>
+                        )}
+
+                        {parsed.justification && (
+                          <div className="bg-amber-50/60 dark:bg-amber-950/20 p-2.5 rounded-xl border border-amber-200/60 dark:border-amber-900/40">
+                            <span className="text-[9px] font-mono font-extrabold uppercase text-amber-600 dark:text-amber-400 block mb-0.5">Justification</span>
+                            <span className="text-xs font-semibold text-amber-800 dark:text-amber-300">{parsed.justification}</span>
+                          </div>
+                        )}
                       </div>
-                    )}
+
+                      {req.admin_remarks && (
+                        <div className="mt-2 text-[11px] bg-indigo-50/50 dark:bg-indigo-950/30 p-2.5 rounded-xl border border-indigo-100 dark:border-indigo-900/40 text-indigo-900 dark:text-indigo-300 font-semibold flex items-start gap-2">
+                          <MessageSquare className="w-3.5 h-3.5 text-indigo-600 shrink-0 mt-0.5" />
+                          <span><strong>Admin Remarks:</strong> {req.admin_remarks}</span>
+                        </div>
+                      )}
 
                     {/* Admin Actions Panel (Renders Approve/Reject buttons for any authorized approver) */}
                     {((isManager || (req.employee_id && String(req.employee_id) !== String(sessionUser?.id))) && 
@@ -559,7 +774,8 @@ export function AssetRequestLogs({ sessionUser, triggerToast, setActiveTab }: As
                     )}
 
                   </div>
-                ))}
+                );
+              })}
               </div>
             )}
 

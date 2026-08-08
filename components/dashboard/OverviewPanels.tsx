@@ -29,8 +29,11 @@ import {
   ArrowDownRight,
   Plus,
   Download,
-  Phone,
-  X
+  X,
+  Car,
+  CalendarCheck,
+  Zap,
+  CheckSquare
 } from "lucide-react";
 import StatCard from "./StatCard";
 import AttendanceChart from "./AttendanceChart";
@@ -845,6 +848,83 @@ export function HrDashboard({
                   Tap to view <ArrowUpRight className="w-2.5 h-2.5 opacity-0 group-hover:opacity-100 transition-opacity" />
                 </div>
               </div>
+            </div>
+          </div>
+
+          {/* Quick Action Links Bar */}
+          <div className={`p-4 rounded-xl border shadow-xs ${isDark ? "bg-gray-900 border-gray-800" : "bg-white border-slate-200"}`}>
+            <div className="flex items-center justify-between gap-2 mb-3">
+              <div className="flex items-center gap-2">
+                <div className="w-6 h-6 rounded-lg bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300 flex items-center justify-center">
+                  <Zap className="w-3.5 h-3.5" />
+                </div>
+                <h2 className={`text-xs font-extrabold uppercase tracking-wider ${isDark ? "text-white" : "text-slate-800"}`}>
+                  Quick Action Links
+                </h2>
+              </div>
+              <span className="text-[10px] font-semibold text-slate-400">Direct Module Navigation</span>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5">
+              <button
+                onClick={() => onNavigateTab("vehicle-registry")}
+                className={`p-3 rounded-xl border text-left transition-all hover:scale-[1.03] flex items-center gap-3 cursor-pointer ${isDark ? "bg-gray-800 border-gray-700 text-gray-200 hover:bg-gray-750" : "bg-amber-50/60 border-amber-200/80 text-amber-950 hover:bg-amber-100/90 shadow-2xs"}`}
+              >
+                <div className="p-2 rounded-lg bg-amber-600 text-white shrink-0 shadow-2xs">
+                  <Car className="w-5 h-5" />
+                </div>
+                <div className="min-w-0 font-bold text-xs truncate">Vehicle Registry</div>
+              </button>
+
+              <button
+                onClick={() => onNavigateTab("leave-request")}
+                className={`p-3 rounded-xl border text-left transition-all hover:scale-[1.03] flex items-center gap-3 cursor-pointer ${isDark ? "bg-gray-800 border-gray-700 text-gray-200 hover:bg-gray-750" : "bg-blue-50/60 border-blue-200/80 text-blue-950 hover:bg-blue-100/90 shadow-2xs"}`}
+              >
+                <div className="p-2 rounded-lg bg-blue-600 text-white shrink-0 shadow-2xs">
+                  <CalendarCheck className="w-5 h-5" />
+                </div>
+                <div className="min-w-0 font-bold text-xs truncate">Leave Requests</div>
+              </button>
+
+              <button
+                onClick={() => onNavigateTab("interviews")}
+                className={`p-3 rounded-xl border text-left transition-all hover:scale-[1.03] flex items-center gap-3 cursor-pointer ${isDark ? "bg-gray-800 border-gray-700 text-gray-200 hover:bg-gray-750" : "bg-indigo-50/60 border-indigo-200/80 text-indigo-950 hover:bg-indigo-100/90 shadow-2xs"}`}
+              >
+                <div className="p-2 rounded-lg bg-indigo-600 text-white shrink-0 shadow-2xs">
+                  <CalendarClock className="w-5 h-5" />
+                </div>
+                <div className="min-w-0 font-bold text-xs truncate">Interviews</div>
+              </button>
+
+              <button
+                onClick={() => onNavigateTab("performance")}
+                className={`p-3 rounded-xl border text-left transition-all hover:scale-[1.03] flex items-center gap-3 cursor-pointer ${isDark ? "bg-gray-800 border-gray-700 text-gray-200 hover:bg-gray-750" : "bg-teal-50/60 border-teal-200/80 text-teal-950 hover:bg-teal-100/90 shadow-2xs"}`}
+              >
+                <div className="p-2 rounded-lg bg-teal-600 text-white shrink-0 shadow-2xs">
+                  <FileText className="w-5 h-5" />
+                </div>
+                <div className="min-w-0 font-bold text-xs truncate">Work Report</div>
+              </button>
+
+              <button
+                onClick={() => onNavigateTab("business-leads")}
+                className={`p-3 rounded-xl border text-left transition-all hover:scale-[1.03] flex items-center gap-3 cursor-pointer ${isDark ? "bg-gray-800 border-gray-700 text-gray-200 hover:bg-gray-750" : "bg-emerald-50/60 border-emerald-200/80 text-emerald-950 hover:bg-emerald-100/90 shadow-2xs"}`}
+              >
+                <div className="p-2 rounded-lg bg-emerald-600 text-white shrink-0 shadow-2xs">
+                  <Users className="w-5 h-5" />
+                </div>
+                <div className="min-w-0 font-bold text-xs truncate">HR Leads</div>
+              </button>
+
+              <button
+                onClick={() => onNavigateTab("tasks")}
+                className={`p-3 rounded-xl border text-left transition-all hover:scale-[1.03] flex items-center gap-3 cursor-pointer ${isDark ? "bg-gray-800 border-gray-700 text-gray-200 hover:bg-gray-750" : "bg-purple-50/60 border-purple-200/80 text-purple-950 hover:bg-purple-100/90 shadow-2xs"}`}
+              >
+                <div className="p-2 rounded-lg bg-purple-600 text-white shrink-0 shadow-2xs">
+                  <CheckSquare className="w-5 h-5" />
+                </div>
+                <div className="min-w-0 font-bold text-xs truncate">My Tasks</div>
+              </button>
             </div>
           </div>
 

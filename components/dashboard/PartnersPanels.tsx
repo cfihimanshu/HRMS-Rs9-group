@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Plus, Search, UserPlus, RefreshCw, AlertCircle, CheckCircle, FileText, Download } from "lucide-react";
+import { Plus, Search, UserPlus, RefreshCw, AlertCircle, CheckCircle, FileText, Download, LayoutGrid, List, Building2, Phone, Mail, MapPin, Paperclip, Trash2, Edit3 } from "lucide-react";
 
 interface PartnerProps {
   toggleModal: (modalId: string, open: boolean) => void;
@@ -487,6 +487,7 @@ export function VendorOperations({ toggleModal, triggerToast }: PartnerProps) {
   const [categoryFilter, setCategoryFilter] = useState("All");
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [viewMode, setViewMode] = useState<"table" | "cards">("table");
 
   // Dynamic Categories Master State
   const [categories, setCategories] = useState<{ id: string; name: string }[]>([]);
@@ -849,6 +850,49 @@ export function VendorOperations({ toggleModal, triggerToast }: PartnerProps) {
         </div>
       </div>
 
+      {/* Stat Cards Row */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-2xs flex items-center justify-between">
+          <div>
+            <div className="text-[10px] font-extrabold uppercase font-mono text-slate-400">Total Vendors</div>
+            <div className="text-xl font-black text-slate-850 mt-1">{vendors.length}</div>
+          </div>
+          <div className="w-9 h-9 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center">
+            <Building2 className="w-5 h-5" />
+          </div>
+        </div>
+
+        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-2xs flex items-center justify-between">
+          <div>
+            <div className="text-[10px] font-extrabold uppercase font-mono text-slate-400">With Agreement</div>
+            <div className="text-xl font-black text-emerald-600 mt-1">{vendors.filter(v => v.agreementUrl).length}</div>
+          </div>
+          <div className="w-9 h-9 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
+            <Paperclip className="w-5 h-5" />
+          </div>
+        </div>
+
+        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-2xs flex items-center justify-between">
+          <div>
+            <div className="text-[10px] font-extrabold uppercase font-mono text-slate-400">Categories</div>
+            <div className="text-xl font-black text-purple-600 mt-1">{categories.length}</div>
+          </div>
+          <div className="w-9 h-9 rounded-lg bg-purple-50 text-purple-600 flex items-center justify-center">
+            <FileText className="w-5 h-5" />
+          </div>
+        </div>
+
+        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-2xs flex items-center justify-between">
+          <div>
+            <div className="text-[10px] font-extrabold uppercase font-mono text-slate-400">Filtered Vendors</div>
+            <div className="text-xl font-black text-amber-600 mt-1">{filteredVendors.length}</div>
+          </div>
+          <div className="w-9 h-9 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center">
+            <Search className="w-5 h-5" />
+          </div>
+        </div>
+      </div>
+
       {/* Filter and Search Toolbar */}
       <div className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
         <div className="relative w-full sm:w-80">
@@ -874,150 +918,278 @@ export function VendorOperations({ toggleModal, triggerToast }: PartnerProps) {
               <option key={cat.id || idx} value={cat.name}>{cat.name}</option>
             ))}
           </select>
+
+          {/* View Mode Toggle */}
+          <div className="flex items-center gap-1 border border-slate-200 p-1 rounded-lg bg-slate-50 shrink-0">
+            <button
+              onClick={() => setViewMode("table")}
+              title="Table View"
+              className={`p-1.5 rounded-md text-xs font-bold transition-all flex items-center gap-1 cursor-pointer ${
+                viewMode === "table" ? "bg-white text-slate-800 shadow-2xs" : "text-slate-500 hover:text-slate-800"
+              }`}
+            >
+              <List className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => setViewMode("cards")}
+              title="Grid Cards View"
+              className={`p-1.5 rounded-md text-xs font-bold transition-all flex items-center gap-1 cursor-pointer ${
+                viewMode === "cards" ? "bg-white text-slate-800 shadow-2xs" : "text-slate-500 hover:text-slate-800"
+              }`}
+            >
+              <LayoutGrid className="w-4 h-4" />
+            </button>
+          </div>
         </div>
       </div>
 
-      {/* Structured Vendors Data Table */}
-      <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="bg-slate-50/80 border-b border-slate-200 text-[10px] uppercase font-black tracking-wider text-slate-500 font-mono">
-                <th className="py-3.5 px-4 text-center w-14">ID</th>
-                <th className="py-3.5 px-4">Vendor Shop / Company Name</th>
-                <th className="py-3.5 px-4">Vendor Person</th>
-                <th className="py-3.5 px-4">Category</th>
-                <th className="py-3.5 px-4">Location</th>
-                <th className="py-3.5 px-4">Contact Details</th>
-                <th className="py-3.5 px-4">Services Provided</th>
-                <th className="py-3.5 px-4 text-center">Document</th>
-                <th className="py-3.5 px-4 text-center w-28">Actions</th>
-              </tr>
-            </thead>
+      {viewMode === "cards" ? (
+        /* Grid Cards View */
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {loading ? (
+            <div className="col-span-full py-12 text-center text-slate-400 font-bold animate-pulse">
+              Loading vendors master data...
+            </div>
+          ) : filteredVendors.length === 0 ? (
+            <div className="col-span-full py-12 text-center bg-white rounded-2xl border border-slate-200">
+              <p className="text-sm font-black text-slate-700">No Vendors Found</p>
+              <p className="text-xs text-slate-400 mt-1">Click "+ Add Vendor" to register your first vendor.</p>
+            </div>
+          ) : (
+            filteredVendors.map((vendor, idx) => {
+              const vCode = vendor.vendorCode || vendor.id || "VEN-001";
+              const shopName = vendor.shopName || vendor.displayName || "Vendor Master";
+              const personName = vendor.vendorName || "—";
+              const location = vendor.location && vendor.location !== "—" ? vendor.location : "—";
+              const mobile = vendor.displayMobile || vendor.mobile || vendor.contact || "—";
+              const email = vendor.displayEmail && vendor.displayEmail !== "—" ? vendor.displayEmail : "";
+              const category = vendor.category || "General";
+              const serviceType = vendor.serviceType && vendor.serviceType !== "—" ? vendor.serviceType : "—";
 
-            <tbody className="divide-y divide-slate-100 text-xs">
-              {loading ? (
-                <tr>
-                  <td colSpan={9} className="py-12 text-center text-slate-400 font-bold animate-pulse">
-                    Loading vendors master data...
-                  </td>
-                </tr>
-              ) : filteredVendors.length === 0 ? (
-                <tr>
-                  <td colSpan={9} className="py-12 text-center">
-                    <div className="max-w-xs mx-auto space-y-2">
-                      <p className="text-sm font-black text-slate-700">No Vendors Found</p>
-                      <p className="text-xs text-slate-400">Click "+ Add Vendor" to register your first vendor in the master database.</p>
-                      <button
-                        onClick={() => setShowAddVendorModal(true)}
-                        className="mt-2 px-4 py-2 bg-[#714B67] text-white text-xs font-bold rounded-lg hover:bg-[#5F3F56] transition-all inline-flex items-center gap-1.5"
-                      >
-                        <Plus className="w-3.5 h-3.5" /> + Add Vendor
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ) : (
-                filteredVendors.map((vendor, idx) => {
-                  const vCode = vendor.vendorCode || vendor.id || "VEN-001";
-                  const shopName = vendor.shopName || vendor.displayName || "Vendor Master";
-                  const personName = vendor.vendorName || "—";
-                  const location = vendor.location && vendor.location !== "—" ? vendor.location : "—";
-                  const mobile = vendor.displayMobile || vendor.mobile || vendor.contact || "—";
-                  const email = vendor.displayEmail && vendor.displayEmail !== "—" ? vendor.displayEmail : "";
-                  const category = vendor.category || "General";
-                  const serviceType = vendor.serviceType && vendor.serviceType !== "—" ? vendor.serviceType : "—";
-
-                  return (
-                    <tr key={vendor.id || idx} className="hover:bg-slate-50/70 transition-all group">
-
-                      {/* 1. ID Numbering */}
-                      <td className="py-3.5 px-4 text-center">
-                        <span className="inline-block bg-[#714B67]/10 text-[#714B67] px-2 py-0.5 rounded font-mono font-black text-[11px]">
+              return (
+                <div key={vendor.id || idx} className="bg-white border border-slate-200 rounded-2xl p-5 shadow-2xs hover:shadow-md transition-all flex flex-col justify-between space-y-4">
+                  <div>
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <span className="bg-[#714B67]/10 text-[#714B67] px-2 py-0.5 rounded font-mono font-black text-[10px]">
                           {vCode}
                         </span>
-                      </td>
+                        <h3 className="text-sm font-black text-slate-850 mt-1.5">{shopName}</h3>
+                      </div>
+                      <span className="bg-slate-100 border border-slate-200 text-slate-700 font-bold px-2 py-0.5 rounded-md text-[10px] shrink-0">
+                        {category}
+                      </span>
+                    </div>
 
-                      {/* 2. Shop / Company Name */}
-                      <td className="py-3.5 px-4 font-black text-slate-800 group-hover:text-[#714B67] transition-colors">
-                        {shopName}
-                      </td>
-
-                      {/* 3. Vendor Person */}
-                      <td className="py-3.5 px-4 font-bold text-slate-700">
-                        {personName}
-                      </td>
-
-                      {/* 4. Category */}
-                      <td className="py-3.5 px-4">
-                        <span className="bg-slate-100 border border-slate-200 text-slate-700 font-bold px-2 py-0.5 rounded-md text-[11px] inline-block">
-                          {category}
-                        </span>
-                      </td>
-
-                      {/* 5. Location */}
-                      <td className="py-3.5 px-4 text-slate-600 font-semibold">
-                        {location}
-                      </td>
-
-                      {/* 6. Contact Details */}
-                      <td className="py-3.5 px-4 font-mono space-y-0.5">
-                        <div className="text-slate-800 font-bold text-[11px]">📞 {mobile}</div>
-                        {email && <div className="text-slate-500 text-[10px] truncate max-w-[180px]">✉️ {email}</div>}
-                      </td>
-
-                      {/* 7. Services Provided */}
-                      <td className="py-3.5 px-4 text-slate-700 font-medium max-w-[200px] truncate">
-                        {serviceType}
-                      </td>
-
-                      {/* 8. Agreement Document */}
-                      <td className="py-3.5 px-4 text-center">
-                        {vendor.agreementUrl ? (
-                          <a
-                            href={vendor.agreementUrl}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="inline-flex items-center gap-1 text-[11px] font-bold text-indigo-600 hover:text-indigo-800 bg-indigo-50 hover:bg-indigo-100 px-2.5 py-1 rounded-md border border-indigo-200 transition-all"
-                          >
-                            📄 View File
-                          </a>
-                        ) : (
-                          <span className="text-[10px] text-slate-400 font-medium">No File</span>
-                        )}
-                      </td>
-
-                      {/* 9. Actions (Edit & Delete Buttons) */}
-                      <td className="py-3.5 px-4 text-center">
-                        <div className="flex items-center justify-center gap-1.5">
-                          <button
-                            type="button"
-                            onClick={() => handleOpenEditModal(vendor)}
-                            className="p-1.5 text-slate-600 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg border border-slate-200 transition-all"
-                            title="Edit Vendor"
-                          >
-                            ✏️
-                          </button>
-
-                          <button
-                            type="button"
-                            onClick={() => handleDeleteVendor(vendor.id, shopName)}
-                            className="p-1.5 text-slate-600 hover:text-rose-600 hover:bg-rose-50 rounded-lg border border-slate-200 transition-all"
-                            title="Delete Vendor"
-                          >
-                            🗑️
-                          </button>
+                    <div className="mt-3 space-y-1.5 text-xs text-slate-650">
+                      <div className="flex items-center gap-2 font-bold text-slate-700">
+                        <Building2 className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                        <span>Contact: <strong>{personName}</strong></span>
+                      </div>
+                      <div className="flex items-center gap-2 font-mono text-[11px]">
+                        <Phone className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                        <span>{mobile}</span>
+                      </div>
+                      {email && (
+                        <div className="flex items-center gap-2 text-[11px]">
+                          <Mail className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                          <span className="truncate">{email}</span>
                         </div>
-                      </td>
+                      )}
+                      <div className="flex items-center gap-2 text-[11px]">
+                        <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                        <span>{location}</span>
+                      </div>
+                    </div>
 
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
+                    {serviceType !== "—" && (
+                      <div className="mt-3 p-2.5 bg-slate-50 rounded-lg text-[11px] text-slate-600 font-medium border border-slate-150">
+                        <strong className="text-slate-800">Services:</strong> {serviceType}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="pt-3 border-t border-slate-150 flex items-center justify-between gap-2">
+                    {vendor.agreementUrl ? (
+                      <a
+                        href={vendor.agreementUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-1.5 text-xs font-bold text-indigo-600 hover:text-indigo-800 bg-indigo-50 hover:bg-indigo-100 px-3 py-1.5 rounded-lg border border-indigo-200 transition-all"
+                      >
+                        <Paperclip className="w-3.5 h-3.5" /> Agreement
+                      </a>
+                    ) : (
+                      <span className="text-[10px] text-slate-400 font-medium italic">No File Attached</span>
+                    )}
+
+                    <div className="flex items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={() => handleOpenEditModal(vendor)}
+                        className="p-1.5 text-slate-600 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg border border-slate-200 transition-all"
+                        title="Edit Vendor"
+                      >
+                        <Edit3 className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteVendor(vendor.id, shopName)}
+                        className="p-1.5 text-slate-600 hover:text-rose-600 hover:bg-rose-50 rounded-lg border border-slate-200 transition-all"
+                        title="Delete Vendor"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })
+          )}
         </div>
-      </div>
+      ) : (
+        /* Structured Vendors Data Table */
+        <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="bg-slate-50/80 border-b border-slate-200 text-[10px] uppercase font-black tracking-wider text-slate-500 font-mono">
+                  <th className="py-3.5 px-4 text-center w-14">ID</th>
+                  <th className="py-3.5 px-4">Vendor Shop / Company Name</th>
+                  <th className="py-3.5 px-4">Vendor Person</th>
+                  <th className="py-3.5 px-4">Category</th>
+                  <th className="py-3.5 px-4">Location</th>
+                  <th className="py-3.5 px-4">Contact Details</th>
+                  <th className="py-3.5 px-4">Services Provided</th>
+                  <th className="py-3.5 px-4 text-center">Document</th>
+                  <th className="py-3.5 px-4 text-center w-28">Actions</th>
+                </tr>
+              </thead>
+
+              <tbody className="divide-y divide-slate-100 text-xs">
+                {loading ? (
+                  <tr>
+                    <td colSpan={9} className="py-12 text-center text-slate-400 font-bold animate-pulse">
+                      Loading vendors master data...
+                    </td>
+                  </tr>
+                ) : filteredVendors.length === 0 ? (
+                  <tr>
+                    <td colSpan={9} className="py-12 text-center">
+                      <div className="max-w-xs mx-auto space-y-2">
+                        <p className="text-sm font-black text-slate-700">No Vendors Found</p>
+                        <p className="text-xs text-slate-400">Click "+ Add Vendor" to register your first vendor in the master database.</p>
+                        <button
+                          onClick={() => setShowAddVendorModal(true)}
+                          className="mt-2 px-4 py-2 bg-[#714B67] text-white text-xs font-bold rounded-lg hover:bg-[#5F3F56] transition-all inline-flex items-center gap-1.5"
+                        >
+                          <Plus className="w-3.5 h-3.5" /> + Add Vendor
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ) : (
+                  filteredVendors.map((vendor, idx) => {
+                    const vCode = vendor.vendorCode || vendor.id || "VEN-001";
+                    const shopName = vendor.shopName || vendor.displayName || "Vendor Master";
+                    const personName = vendor.vendorName || "—";
+                    const location = vendor.location && vendor.location !== "—" ? vendor.location : "—";
+                    const mobile = vendor.displayMobile || vendor.mobile || vendor.contact || "—";
+                    const email = vendor.displayEmail && vendor.displayEmail !== "—" ? vendor.displayEmail : "";
+                    const category = vendor.category || "General";
+                    const serviceType = vendor.serviceType && vendor.serviceType !== "—" ? vendor.serviceType : "—";
+
+                    return (
+                      <tr key={vendor.id || idx} className="hover:bg-slate-50/70 transition-all group">
+
+                        {/* 1. ID Numbering */}
+                        <td className="py-3.5 px-4 text-center">
+                          <span className="inline-block bg-[#714B67]/10 text-[#714B67] px-2 py-0.5 rounded font-mono font-black text-[11px]">
+                            {vCode}
+                          </span>
+                        </td>
+
+                        {/* 2. Shop / Company Name */}
+                        <td className="py-3.5 px-4 font-black text-slate-800 group-hover:text-[#714B67] transition-colors">
+                          {shopName}
+                        </td>
+
+                        {/* 3. Vendor Person */}
+                        <td className="py-3.5 px-4 font-bold text-slate-700">
+                          {personName}
+                        </td>
+
+                        {/* 4. Category */}
+                        <td className="py-3.5 px-4">
+                          <span className="bg-slate-100 border border-slate-200 text-slate-700 font-bold px-2 py-0.5 rounded-md text-[11px] inline-block">
+                            {category}
+                          </span>
+                        </td>
+
+                        {/* 5. Location */}
+                        <td className="py-3.5 px-4 text-slate-600 font-semibold">
+                          {location}
+                        </td>
+
+                        {/* 6. Contact Details */}
+                        <td className="py-3.5 px-4 font-mono space-y-0.5">
+                          <div className="text-slate-800 font-bold text-[11px]">📞 {mobile}</div>
+                          {email && <div className="text-slate-500 text-[10px] truncate max-w-[180px]">✉️ {email}</div>}
+                        </td>
+
+                        {/* 7. Services Provided */}
+                        <td className="py-3.5 px-4 text-slate-700 font-medium max-w-[200px] truncate">
+                          {serviceType}
+                        </td>
+
+                        {/* 8. Agreement Document */}
+                        <td className="py-3.5 px-4 text-center">
+                          {vendor.agreementUrl ? (
+                            <a
+                              href={vendor.agreementUrl}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="inline-flex items-center gap-1 text-[11px] font-bold text-indigo-600 hover:text-indigo-800 bg-indigo-50 hover:bg-indigo-100 px-2.5 py-1 rounded-md border border-indigo-200 transition-all"
+                            >
+                              📄 View File
+                            </a>
+                          ) : (
+                            <span className="text-[10px] text-slate-400 font-medium">No File</span>
+                          )}
+                        </td>
+
+                        {/* 9. Actions (Edit & Delete Buttons) */}
+                        <td className="py-3.5 px-4 text-center">
+                          <div className="flex items-center justify-center gap-1.5">
+                            <button
+                              type="button"
+                              onClick={() => handleOpenEditModal(vendor)}
+                              className="p-1.5 text-slate-600 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg border border-slate-200 transition-all"
+                              title="Edit Vendor"
+                            >
+                              ✏️
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteVendor(vendor.id, shopName)}
+                              className="p-1.5 text-slate-600 hover:text-rose-600 hover:bg-rose-50 rounded-lg border border-slate-200 transition-all"
+                              title="Delete Vendor"
+                            >
+                              🗑️
+                            </button>
+                          </div>
+                        </td>
+
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
 
       {/* Direct Add Vendor Modal */}
       {showAddVendorModal && (
