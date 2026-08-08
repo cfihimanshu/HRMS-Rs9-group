@@ -27,7 +27,6 @@ async function ensureModelSchema(instance: Sequelize, model: any) {
       message.includes("doesn't exist") ||
       message.includes("No description found")
     ) {
-      // Plain sync creates only a missing table. It never alters an existing one.
       await model.sync();
       console.info(`[database schema] Created missing table: ${tableName}`);
       return;
@@ -44,8 +43,6 @@ async function ensureModelSchema(instance: Sequelize, model: any) {
 
     const definition: any = {
       type: attribute.type,
-      // Adding a required column to a populated imported database can fail. Preserve
-      // NOT NULL only when Sequelize also has a safe default for existing rows.
       allowNull: attribute.allowNull !== false || attribute.defaultValue === undefined,
     };
     if (attribute.defaultValue !== undefined) definition.defaultValue = attribute.defaultValue;
@@ -56,7 +53,6 @@ async function ensureModelSchema(instance: Sequelize, model: any) {
       console.info(`[database schema] Added missing column: ${tableName}.${columnName}`);
       existingColumns[columnName] = definition;
     } catch (error: any) {
-      // Another server instance may have added the same column after describeTable.
       if (error?.original?.code === "ER_DUP_FIELDNAME") {
         existingColumns[columnName] = definition;
         continue;
@@ -69,9 +65,6 @@ async function ensureModelSchema(instance: Sequelize, model: any) {
 }
 
 async function ensureLoadedModelsSchema(instance: Sequelize) {
-  // Production schema changes are deployed through reviewed migrations. Runtime
-  // column creation is intentionally opt-in so connecting the app to a live
-  // database can never mutate its schema merely by authenticating.
   if (process.env.AUTO_CREATE_MISSING_COLUMNS !== "true") return;
 
   const checks = globalThis.schemaCheckPromises || new Map<string, Promise<void>>();
@@ -81,7 +74,6 @@ async function ensureLoadedModelsSchema(instance: Sequelize) {
     const modelName = (model as any).name;
     if (!checks.has(modelName)) {
       const check = ensureModelSchema(instance, model).catch((error) => {
-        // Allow a later request to retry after a temporary privilege/connection issue.
         checks.delete(modelName);
         throw error;
       });
@@ -96,7 +88,24 @@ function installSchemaCheck(instance: Sequelize) {
 
   const authenticateWithoutSchemaCheck = instance.authenticate.bind(instance);
   instance.authenticate = (async (...args: Parameters<Sequelize["authenticate"]>) => {
-    await authenticateWithoutSchemaCheck(...args);
+    try {
+      await authenticateWithoutSchemaCheck(...args);
+    } catch (err: any) {
+      const msg = String(err?.message || err || "");
+      if (
+        msg.includes("ETIMEDOUT") ||
+        msg.includes("ECONNRESET") ||
+        msg.includes("Connection lost") ||
+        msg.includes("ProtocolError") ||
+        msg.includes("SequelizeConnectionError")
+      ) {
+        console.warn("[Sequelize Connection Retry] Retrying authentication after transient timeout/error:", msg);
+        await new Promise((r) => setTimeout(r, 300));
+        await authenticateWithoutSchemaCheck(...args);
+      } else {
+        throw err;
+      }
+    }
     await ensureLoadedModelsSchema(instance);
   }) as Sequelize["authenticate"];
   globalThis.sequelizeSchemaWrapperInstalled = true;
@@ -117,17 +126,25 @@ const getSequelizeInstance = () => {
     throw new Error(`Missing required database environment variables: ${missingDatabaseEnv.join(", ")}`);
   }
 
+  const isVercel = process.env.VERCEL === "1";
   const connectTimeout = Number(process.env.MYSQL_CONNECT_TIMEOUT_MS || 10000);
-  const poolMax = Number(process.env.MYSQL_POOL_MAX || (process.env.NODE_ENV === "production" ? 5 : 20));
-  const poolAcquire = Number(process.env.MYSQL_POOL_ACQUIRE_MS || 20000);
+  const poolMax = Number(process.env.MYSQL_POOL_MAX || (isVercel ? 2 : (process.env.NODE_ENV === "production" ? 5 : 20)));
+  const poolAcquire = Number(process.env.MYSQL_POOL_ACQUIRE_MS || 15000);
   const socketPath = process.env.MYSQL_SOCKET_PATH?.trim();
+
+  const host = process.env.MYSQL_HOST || "localhost";
+  const isRemote = host !== "localhost" && host !== "127.0.0.1";
+  const useSsl = process.env.MYSQL_SSL === "true" || (isRemote && process.env.MYSQL_SSL !== "false");
+  const sslConfig = useSsl
+    ? { rejectUnauthorized: process.env.MYSQL_SSL_REJECT_UNAUTHORIZED === "true" }
+    : undefined;
 
   const instance = new Sequelize(
     process.env.MYSQL_DATABASE!,
     process.env.MYSQL_USER!,
     process.env.MYSQL_PASSWORD!,
     {
-      host: process.env.MYSQL_HOST!,
+      host,
       port: Number(process.env.MYSQL_PORT) || 3306,
       dialect: "mysql",
       dialectModule: mysql2,
@@ -135,15 +152,15 @@ const getSequelizeInstance = () => {
       dialectOptions: {
         connectTimeout,
         ...(socketPath ? { socketPath } : {}),
-        ssl: process.env.MYSQL_SSL === "true"
-          ? { rejectUnauthorized: process.env.MYSQL_SSL_REJECT_UNAUTHORIZED !== "false" }
-          : undefined
+        ssl: sslConfig,
+        enableKeepAlive: true,
+        keepAliveInitialDelay: 0
       },
       pool: {
         max: poolMax,
         min: 0,
         acquire: poolAcquire,
-        idle: 5000,
+        idle: 2000,
         evict: 1000
       }
     }
@@ -158,7 +175,7 @@ const sequelize = getSequelizeInstance();
 
 let isAssociationsInitialized = false;
 
-export async function safeAuthenticate(timeoutMs = 4000) {
+export async function safeAuthenticate(timeoutMs = 5000) {
   try {
     const authPromise = sequelize.authenticate();
     const timeoutPromise = new Promise((_, reject) =>
@@ -168,7 +185,13 @@ export async function safeAuthenticate(timeoutMs = 4000) {
     return true;
   } catch (err) {
     console.warn("Database connection timeout or error:", (err as any)?.message);
-    return false;
+    try {
+      await new Promise((r) => setTimeout(r, 200));
+      await sequelize.authenticate();
+      return true;
+    } catch (_) {
+      return false;
+    }
   }
 }
 
