@@ -35,7 +35,8 @@ import {
   ChevronDown,
   ChevronUp,
   CalendarClock,
-  Trash2
+  Trash2,
+  SlidersHorizontal
 } from "lucide-react";
 import LegalRecoverySchedulePanel from "./LegalRecoverySchedulePanel";
 
@@ -2106,7 +2107,17 @@ export function DailyCommitments({
                 </div>
 
                 <div className="mt-4 pt-4 border-t border-slate-100 flex justify-end">
-                  <button type="button" onClick={() => setShowCamera(true)} className="bg-indigo-600 hover:bg-indigo-700 w-full px-4 py-3 rounded-lg text-xs font-black text-white transition-all flex items-center justify-center gap-2 shadow-lg shadow-indigo-600/20">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (isLegalRecovery && legalScheduleItems.length === 0) {
+                        alert("⚠️ Please add at least 1 schedule entry to your table before submitting SOD.");
+                        return;
+                      }
+                      setShowCamera(true);
+                    }}
+                    className="bg-indigo-600 hover:bg-indigo-700 w-full px-4 py-3 rounded-lg text-xs font-black text-white transition-all flex items-center justify-center gap-2 shadow-lg shadow-indigo-600/20"
+                  >
                     <Camera className="w-4 h-4" /> Start Verification & Submit
                   </button>
                 </div>
@@ -2505,6 +2516,52 @@ export function PerformanceCompliance({
   const [exportingMasterReport, setExportingMasterReport] = useState(false);
   // User status filter: 'active' (default), 'inactive', 'all'
   const [userStatusFilter, setUserStatusFilter] = useState<"active" | "inactive" | "all">("active");
+
+  // Export Columns Toggle State
+  const [showColumnPicker, setShowColumnPicker] = useState(false);
+  const [selectedExportColumns, setSelectedExportColumns] = useState<Record<string, boolean>>({
+    date: true,
+    empName: true,
+    empEmail: true,
+    department: true,
+    attendanceStatus: true,
+    sodTime: true,
+    sodTaskType: true,
+    sodSummary: true,
+    eodTime: true,
+    duration: true,
+    completedWork: true,
+    pendingTargets: true,
+    issuesFaced: true,
+    escalation: true,
+    tomorrowPlan: true,
+    tasksDetails: true,
+    fieldVisitKm: true,
+    fieldVisitDetails: true,
+    gpsLocation: true,
+  });
+
+  const availableColumnsList = React.useMemo(() => [
+    { key: "date", label: "Report Date" },
+    { key: "empName", label: "Employee Name" },
+    { key: "empEmail", label: "Employee Email" },
+    { key: "department", label: "Department" },
+    { key: "attendanceStatus", label: "Attendance Status" },
+    { key: "sodTime", label: "SOD Time" },
+    { key: "sodTaskType", label: "SOD Planned Task Type" },
+    { key: "sodSummary", label: "SOD Planned Summary" },
+    { key: "eodTime", label: "EOD Time" },
+    { key: "duration", label: "Total Work Duration (Hours)" },
+    { key: "completedWork", label: "EOD Completed Work" },
+    { key: "pendingTargets", label: "EOD Pending Work" },
+    { key: "issuesFaced", label: "EOD Issues Faced" },
+    { key: "escalation", label: "EOD Escalation Required" },
+    { key: "tomorrowPlan", label: "EOD Tomorrow Plan" },
+    { key: "tasksDetails", label: "Tasks Details & Work Summary" },
+    { key: "fieldVisitKm", label: "Field Visits Travelled (KM)" },
+    { key: "fieldVisitDetails", label: "Field Visits Details" },
+    { key: "gpsLocation", label: "GPS Coordinates" },
+  ], []);
 
   const loggedInDbUser = React.useMemo(() => {
     if (!sessionUser?.id || users.length === 0) return null;
@@ -3633,6 +3690,273 @@ export function PerformanceCompliance({
       document.body.removeChild(link);
     } catch (error) {
       console.error("Failed to export employee work summary:", error);
+    }
+  };
+
+  const exportEodRegistry = () => {
+    try {
+      const activeCols = availableColumnsList.filter(c => selectedExportColumns[c.key]);
+      if (activeCols.length === 0) {
+        alert("⚠️ Please select at least 1 column to export.");
+        return;
+      }
+
+      // 1. Sort existing records ascending by date
+      const sortedRecords = [...filteredList].sort((a: any, b: any) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+      // 2. Map dateStr -> record item
+      const recordMap = new Map<string, any>();
+      sortedRecords.forEach(item => {
+        const dObj = new Date(item.date);
+        const dateKey = `${dObj.getFullYear()}-${String(dObj.getMonth() + 1).padStart(2, '0')}-${String(dObj.getDate()).padStart(2, '0')}`;
+        recordMap.set(dateKey, item);
+      });
+
+      // Fallback employee info
+      const fallbackEmp = sortedRecords.find(r => r.employee?.name)?.employee || { name: "N/A", email: "N/A", department: "General" };
+
+      // Determine full month or custom date range bounds
+      let startDateObj: Date | null = null;
+      let endDateObj: Date | null = null;
+
+      const now = new Date();
+      if (dateFilterType === "current-month") {
+        startDateObj = new Date(now.getFullYear(), now.getMonth(), 1);
+        endDateObj = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+      } else if (dateFilterType === "custom" && startDateFilter && endDateFilter) {
+        startDateObj = new Date(startDateFilter);
+        endDateObj = new Date(endDateFilter);
+      } else if (sortedRecords.length > 0) {
+        const firstD = new Date(sortedRecords[0].date);
+        const lastD = new Date(sortedRecords[sortedRecords.length - 1].date);
+        startDateObj = new Date(firstD.getFullYear(), firstD.getMonth(), 1);
+        endDateObj = new Date(lastD.getFullYear(), lastD.getMonth() + 1, 0);
+      } else {
+        startDateObj = new Date(now.getFullYear(), now.getMonth(), 1);
+        endDateObj = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+      }
+
+      const exportList: any[] = [];
+      if (startDateObj && endDateObj && !isNaN(startDateObj.getTime()) && !isNaN(endDateObj.getTime())) {
+        const curr = new Date(startDateObj);
+        const last = new Date(endDateObj);
+        curr.setHours(0, 0, 0, 0);
+        last.setHours(0, 0, 0, 0);
+
+        while (curr <= last) {
+          const dateKey = `${curr.getFullYear()}-${String(curr.getMonth() + 1).padStart(2, '0')}-${String(curr.getDate()).padStart(2, '0')}`;
+          const existingItem = recordMap.get(dateKey);
+
+          if (existingItem) {
+            exportList.push(existingItem);
+          } else {
+            exportList.push({
+              date: new Date(curr),
+              employee: fallbackEmp,
+              sod: null,
+              eod: null,
+              tasks: [],
+              fieldVisits: []
+            });
+          }
+          curr.setDate(curr.getDate() + 1);
+        }
+      } else {
+        exportList.push(...sortedRecords);
+      }
+
+      let totalWorkHoursSum = 0;
+      let totalFieldKmSum = 0;
+
+      const parseTaskSummary = (text: string) => {
+        if (!text) return "";
+        let raw = text.trim();
+        if (raw.startsWith("[") || raw.startsWith("{")) {
+          try {
+            const parsed = JSON.parse(raw);
+            if (Array.isArray(parsed) && parsed.length > 0) {
+              raw = parsed.map((p: any) => p.note || p.text || p.description || p.summary || "").filter(Boolean).join(", ") || raw;
+            } else if (parsed && typeof parsed === "object") {
+              raw = parsed.note || parsed.text || parsed.description || parsed.summary || raw;
+            }
+          } catch (_) {}
+        }
+        return raw.replace(/(\r\n|\n|\r)/gm, " ").trim();
+      };
+
+      const rows: { isSunday: boolean; rowStyle: string; values: Record<string, string> }[] = exportList.map((item: any) => {
+        const dObj = new Date(item.date);
+        const isSunday = dObj.getDay() === 0;
+
+        // Sunday styling: Light Green background (#d1fae5)
+        const rowStyle = isSunday
+          ? "background-color: #d1fae5; color: #065f46; font-weight: bold;"
+          : "";
+
+        const dateStr = dObj.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
+        const empName = item.employee?.name || "Unknown";
+        const empEmail = item.employee?.email || "—";
+        const empDept = item.employee?.department || "General";
+
+        let attendanceStatus = "Absent";
+        if (isSunday) attendanceStatus = "Sunday";
+        else if (item.sod) attendanceStatus = "Present";
+        else if (item.eod) attendanceStatus = "Present (EOD Only)";
+        else if (item.tasks && item.tasks.length > 0) attendanceStatus = "Tasks Only";
+
+        const sodTimeStr = isSunday ? "Sunday" : (item.sod ? formatTimeTo12Hour(item.sod.createdAt) : "—");
+        const sodTaskType = isSunday ? "Sunday" : (item.sod?.taskType || "—");
+        const sodSummary = isSunday ? "Sunday" : (item.sod?.taskSummary || item.sod?.remarks || "—");
+
+        const eodTimeStr = isSunday ? "Sunday" : (item.eod ? formatTimeTo12Hour(item.eod.createdAt) : "—");
+        const completedWork = isSunday ? "Sunday" : (item.eod?.completedWork || item.eod?.outcomes || "—");
+        const pendingTargets = isSunday ? "Sunday" : (item.eod?.pendingTargets || item.eod?.pendingWork || "—");
+        const tomorrowPlan = isSunday ? "Sunday" : (item.eod?.tomorrowPlan || item.eod?.nextDayPlan || "—");
+        const issuesFaced = isSunday ? "Sunday" : (item.eod?.issuesFaced || item.eod?.blockers || "—");
+        const escalation = isSunday ? "Sunday" : (item.eod?.escalationRequired || item.eod?.escalation || "No");
+
+        let durationStr = "—";
+        let numericHours = 0;
+
+        if (!isSunday) {
+          if (item.eod?.hoursWorked || item.eod?.totalHours || item.eod?.workHours) {
+            const val = Number(item.eod.hoursWorked || item.eod.totalHours || item.eod.workHours);
+            if (!isNaN(val) && val > 0) {
+              numericHours = val;
+              durationStr = `${val.toFixed(2)} Hrs`;
+            }
+          } else if (item.sod?.createdAt && item.eod?.createdAt) {
+            const sodMs = new Date(item.sod.createdAt).getTime();
+            const eodMs = new Date(item.eod.createdAt).getTime();
+            if (eodMs > sodMs) {
+              const diffHours = (eodMs - sodMs) / (1000 * 60 * 60);
+              numericHours = diffHours;
+              durationStr = `${diffHours.toFixed(2)} Hrs`;
+            }
+          }
+          if (durationStr === "—" && item.tasks && item.tasks.length > 0) {
+            const totalTaskSeconds = item.tasks.reduce((sum: number, t: any) => sum + (t.elapsedSeconds || 0), 0);
+            if (totalTaskSeconds > 0) {
+              numericHours = totalTaskSeconds / 3600;
+              durationStr = `${numericHours.toFixed(2)} Hrs`;
+            }
+          }
+        } else {
+          durationStr = "Sunday";
+        }
+
+        totalWorkHoursSum += numericHours;
+
+        const tasksDetails = isSunday ? "Sunday" : (item.tasks && item.tasks.length > 0
+          ? item.tasks.map((t: any, index: number) => {
+            let suffix = "";
+            if (t.updatedAt && new Date(t.updatedAt).toDateString() !== item.date.toDateString() && item.date.toDateString() === new Date(t.date).toDateString()) {
+              const dSuffix = new Date(t.updatedAt).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
+              suffix = ` (Shifted to ${dSuffix})`;
+            }
+            const cleanDesc = parseTaskSummary(t.description || t.progressNotes || t.remarks);
+            const workSummary = cleanDesc ? ` [Summary: ${cleanDesc}]` : "";
+            return `${index + 1}. [${t.status || 'Pending'}] ${t.taskTitle || 'Task'} (${t.taskType || 'General'})${workSummary}${suffix}`;
+          }).join("\n")
+          : "—");
+
+        const fieldVisitKm = isSunday ? 0 : (item.fieldVisits && item.fieldVisits.length > 0
+          ? item.fieldVisits.reduce((sum: number, v: any) => sum + (v.distance_travelled || 0), 0)
+          : 0);
+        totalFieldKmSum += fieldVisitKm;
+
+        const fieldVisitDetails = isSunday ? "Sunday" : (item.fieldVisits && item.fieldVisits.length > 0
+          ? item.fieldVisits.map((v: any, index: number) => `${index + 1}. Client: ${v.client_name || "N/A"}, Purpose: ${v.purpose || "N/A"}, Dist: ${v.distance_travelled || 0} KM, Notes: ${v.visit_notes || "N/A"}`).join("\n")
+          : "—");
+
+        const gpsCoords = isSunday ? "Sunday" : (item.sod?.latitude && item.sod?.longitude
+          ? `${Number(item.sod.latitude).toFixed(4)}, ${Number(item.sod.longitude).toFixed(4)}`
+          : "—");
+
+        const values: Record<string, string> = {
+          date: dateStr,
+          empName,
+          empEmail,
+          department: empDept,
+          attendanceStatus,
+          sodTime: sodTimeStr,
+          sodTaskType,
+          sodSummary,
+          eodTime: eodTimeStr,
+          duration: durationStr,
+          completedWork,
+          pendingTargets,
+          tomorrowPlan,
+          issuesFaced,
+          escalation,
+          tasksDetails,
+          fieldVisitKm: isSunday ? "Sunday" : (fieldVisitKm > 0 ? `${fieldVisitKm.toFixed(2)} KM` : "0 KM"),
+          fieldVisitDetails,
+          gpsLocation: gpsCoords,
+        };
+
+        return { isSunday, rowStyle, values };
+      });
+
+      // Construct native Excel HTML
+      const TH = (text: string) => `<th style="background:#714B67;color:#ffffff;font-weight:bold;border:1px solid #5F3F56;padding:8px 10px;text-align:left;vertical-align:middle;white-space:nowrap;">${text}</th>`;
+
+      let html = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">`;
+      html += `<head><meta charset="utf-8"><!--[if gte mso 9]><xml><x:ExcelWorkbook><x:ExcelWorksheets><x:ExcelWorksheet><x:Name>Work Report</x:Name><x:WorksheetOptions><x:DisplayGridlines/></x:WorksheetOptions></x:ExcelWorksheet></x:ExcelWorksheets></x:ExcelWorkbook></xml><![endif]--></head><body>`;
+      html += `<table border="1" style="border-collapse:collapse;font-family:'Segoe UI',Arial,sans-serif;font-size:11px;">`;
+
+      // Header row
+      html += `<tr style="height:32px;">${activeCols.map(c => TH(c.label)).join("")}</tr>`;
+
+      // Data rows
+      rows.forEach(r => {
+        const bgStyle = r.rowStyle ? `style="${r.rowStyle}"` : "";
+        html += `<tr ${bgStyle}>`;
+        activeCols.forEach(c => {
+          const valStr = String(r.values[c.key] ?? "—");
+          const isMultiLine = valStr.includes("\n");
+          const formattedCell = isMultiLine
+            ? valStr.replace(/\n/g, '<br style="mso-data-placement:same-cell;" />')
+            : valStr;
+          const sundayTdStyle = r.isSunday ? "background-color:#d1fae5;color:#065f46;font-weight:bold;" : "";
+          const style = isMultiLine
+            ? `border:1px solid #cbd5e1;padding:6px;text-align:left;vertical-align:top;white-space:pre-wrap;${sundayTdStyle}`
+            : `border:1px solid #cbd5e1;padding:6px;text-align:left;vertical-align:middle;white-space:nowrap;${sundayTdStyle}`;
+          html += `<td style="${style}">${formattedCell}</td>`;
+        });
+        html += `</tr>`;
+      });
+
+      // Bottom TOTAL SUM row
+      const totalHoursFormatted = totalWorkHoursSum > 0 ? `${totalWorkHoursSum.toFixed(2)} Hrs` : "0.00 Hrs";
+      const totalKmFormatted = totalFieldKmSum > 0 ? `${totalFieldKmSum.toFixed(2)} KM` : "0 KM";
+
+      html += `<tr style="height:34px;background-color:#f1f5f9;font-weight:bold;border-top:2px solid #714B67;">`;
+      activeCols.forEach(c => {
+        let text = "";
+        if (c.key === "date" || c.key === "empName") text = "TOTAL SUM";
+        else if (c.key === "duration") text = totalHoursFormatted;
+        else if (c.key === "fieldVisitKm") text = totalKmFormatted;
+        html += `<td style="border:1px solid #cbd5e1;padding:8px;font-weight:extrabold;background-color:#f1f5f9;color:#1e293b;vertical-align:middle;">${text}</td>`;
+      });
+      html += `</tr>`;
+
+      html += `</table></body></html>`;
+
+      const blob = new Blob([html], { type: "application/vnd.ms-excel;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      const fileDate = dateFilterType === "custom" ? `${startDateFilter || "start"}_to_${endDateFilter || "end"}` : dateFilterType;
+      link.setAttribute("href", url);
+      link.setAttribute("download", `Full_Month_Work_Report_${fileDate}_${new Date().toISOString().split("T")[0]}.xls`);
+      link.style.visibility = "hidden";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      triggerToast?.("Full month work report exported successfully with selected columns.");
+    } catch (err) {
+      console.error("Export error:", err);
     }
   };
 
@@ -5812,188 +6136,313 @@ export function PerformanceCompliance({
               📋 {activeSubTab === "sod" ? "Start of day (SOD) registry" : "End of day (EOD) registry"}
             </span>
 
-            <div className="relative">
-              <button
-                type="button"
-                onClick={() => setShowFilters(!showFilters)}
-                className={`flex items-center gap-2 border px-4 py-2 text-xs font-bold transition-all rounded-xl shadow-sm focus:outline-none ${showFilters
-                  ? "bg-[#C9A84C] border-[#C9A84C] text-[#FCFBF9]"
-                  : "bg-[#FCFBF9] hover:bg-[#F5F2EC] border-[#E8E4DF] text-[#1C1C1A]"
-                  }`}
-              >
-                <Filter className="w-3.5 h-3.5" />
-                <span>Filter Reports</span>
-                {(searchTerm || selectedCompany || selectedDept || selectedUser || dateFilterType !== "overall" || userStatusFilter !== "active") && (
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#C9A84C] animate-pulse" />
-                )}
-              </button>
+            <div className="flex items-center gap-2">
+              {/* Filter Reports Button */}
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowFilters(!showFilters);
+                    setShowColumnPicker(false);
+                  }}
+                  className={`flex items-center gap-2 border px-4 py-2 text-xs font-bold transition-all rounded-xl shadow-sm focus:outline-none ${showFilters
+                    ? "bg-[#C9A84C] border-[#C9A84C] text-[#FCFBF9]"
+                    : "bg-[#FCFBF9] hover:bg-[#F5F2EC] border-[#E8E4DF] text-[#1C1C1A]"
+                    }`}
+                >
+                  <Filter className="w-3.5 h-3.5" />
+                  <span>Filter Reports</span>
+                  {(searchTerm || selectedCompany || selectedDept || selectedUser || dateFilterType !== "overall" || userStatusFilter !== "active") && (
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#C9A84C] animate-pulse" />
+                  )}
+                </button>
 
-              {/* Floating Filter Popover */}
-              {showFilters && (
-                <div className="absolute right-0 mt-3 z-50 bg-[#FCFBF9] border border-[#E8E4DF] shadow-[0_25px_60px_-15px_rgba(0,0,0,0.15)] rounded-2xl p-5 w-[320px] space-y-4 text-left normal-case font-sans">
-                  <div className="flex justify-between items-center border-b border-[#E8E4DF] pb-2">
-                    <span className="text-xs font-bold text-[#1C1C1A] tracking-wider uppercase font-mono">Filter Reports</span>
-                    <button
-                      type="button"
-                      onClick={() => setShowFilters(false)}
-                      className="text-[#9C9890] hover:text-[#1C1C1A] transition-colors"
-                    >
-                      <X className="w-4 h-4" />
-                    </button>
-                  </div>
+                {/* Floating Filter Popover */}
+                {showFilters && (
+                  <div className="absolute right-0 mt-3 z-50 bg-[#FCFBF9] border border-[#E8E4DF] shadow-[0_25px_60px_-15px_rgba(0,0,0,0.15)] rounded-2xl p-5 w-[320px] space-y-4 text-left normal-case font-sans">
+                    <div className="flex justify-between items-center border-b border-[#E8E4DF] pb-2">
+                      <span className="text-xs font-bold text-[#1C1C1A] tracking-wider uppercase font-mono">Filter Reports</span>
+                      <button
+                        type="button"
+                        onClick={() => setShowFilters(false)}
+                        className="text-[#9C9890] hover:text-[#1C1C1A] transition-colors"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
 
-                  <div className="space-y-4 text-xs">
-                    {/* Company Dropdown (Owner/Director/HR only) */}
-                    {isOwner && (
+                    <div className="space-y-4 text-xs">
+                      {/* Company Dropdown (Owner/Director/HR only) */}
+                      {isOwner && (
+                        <div>
+                          <label className="text-[9px] uppercase font-bold text-[#9C9890] font-mono tracking-widest block mb-1">Company</label>
+                          <select
+                            className="w-full bg-white border border-[#E8E4DF] rounded-xl p-2.5 text-xs font-bold text-[#1C1C1A] focus:outline-none focus:border-[#C9A84C] focus:ring-1 focus:ring-[#C9A84C]"
+                            value={selectedCompany}
+                            onChange={(e) => {
+                              setSelectedCompany(e.target.value);
+                              setSelectedUser("");
+                            }}
+                          >
+                            {sessionUser?.role === "Owner" && (
+                              <option value="">All Companies</option>
+                            )}
+                            {visibleCompanies.map((c: any) => (
+                              <option key={c.id} value={c.id.toString()}>{c.name}</option>
+                            ))}
+                          </select>
+                        </div>
+                      )}
+
+                      {/* Department Dropdown */}
+                      {isOwner && (
+                        <div>
+                          <label className="text-[9px] uppercase font-bold text-[#9C9890] font-mono tracking-widest block mb-1">Department</label>
+                          <select
+                            className="w-full bg-white border border-[#E8E4DF] rounded-xl p-2.5 text-xs font-bold text-[#1C1C1A] focus:outline-none focus:border-[#C9A84C] focus:ring-1 focus:ring-[#C9A84C]"
+                            value={selectedDept}
+                            onChange={(e) => {
+                              setSelectedDept(e.target.value);
+                              setSelectedUser("");
+                            }}
+                          >
+                            <option value="">All Departments</option>
+                            {departmentsList.map((d: any) => (
+                              <option key={d} value={d}>{d}</option>
+                            ))}
+                          </select>
+                        </div>
+                      )}
+
+                      {/* Employee Dropdown */}
+                      {isOwner && (
+                        <div>
+                          <label className="text-[9px] uppercase font-bold text-[#9C9890] font-mono tracking-widest block mb-1">Employee</label>
+                          <select
+                            className="w-full bg-white border border-[#E8E4DF] rounded-xl p-2.5 text-xs font-bold text-[#1C1C1A] focus:outline-none focus:border-[#C9A84C] focus:ring-1 focus:ring-[#C9A84C]"
+                            value={selectedUser}
+                            onChange={(e) => setSelectedUser(e.target.value)}
+                          >
+                            <option value="">All Staff Members</option>
+                            <optgroup label="Active Employees">
+                              {uniqueUsersFromReports.activeList.map((u: any) => (
+                                <option key={u.id} value={u.id}>{u.name}</option>
+                              ))}
+                            </optgroup>
+                            {uniqueUsersFromReports.inactiveList.length > 0 && (
+                              <optgroup label="Inactive / Archived Employees">
+                                {uniqueUsersFromReports.inactiveList.map((u: any) => (
+                                  <option key={u.id} value={u.id}>{u.name} (Archived / Inactive)</option>
+                                ))}
+                              </optgroup>
+                            )}
+                          </select>
+                        </div>
+                      )}
+
+                      {/* Date Preset Filter */}
                       <div>
-                        <label className="text-[9px] uppercase font-bold text-[#9C9890] font-mono tracking-widest block mb-1">Company</label>
+                        <label className="text-[9px] uppercase font-bold text-[#9C9890] font-mono tracking-widest block mb-1">Date Range Preset</label>
                         <select
                           className="w-full bg-white border border-[#E8E4DF] rounded-xl p-2.5 text-xs font-bold text-[#1C1C1A] focus:outline-none focus:border-[#C9A84C] focus:ring-1 focus:ring-[#C9A84C]"
-                          value={selectedCompany}
-                          onChange={(e) => {
-                            setSelectedCompany(e.target.value);
-                            setSelectedUser("");
+                          value={dateFilterType}
+                          onChange={(e: any) => {
+                            setDateFilterType(e.target.value);
+                            if (e.target.value !== "custom") {
+                              setStartDateFilter("");
+                              setEndDateFilter("");
+                            }
                           }}
                         >
-                          {sessionUser?.role === "Owner" && (
-                            <option value="">All Companies</option>
-                          )}
-                          {visibleCompanies.map((c: any) => (
-                            <option key={c.id} value={c.id}>{c.name}</option>
-                          ))}
+                          <option value="overall">Overall Date Filter</option>
+                          <option value="current-month">Current Month</option>
+                          <option value="custom">Custom Range</option>
                         </select>
                       </div>
-                    )}
 
-                    {/* Department Dropdown (Owner/Director/HR only) */}
-                    {isOwner && (
+                      {/* Custom Range Inputs */}
+                      {dateFilterType === "custom" && (
+                        <div className="space-y-2">
+                          <div>
+                            <label className="text-[8px] uppercase font-bold text-[#9C9890] font-mono tracking-widest block mb-1">Start Date</label>
+                            <input
+                              type="date"
+                              className="w-full bg-white border border-[#E8E4DF] rounded-xl p-2 text-xs font-bold text-[#1C1C1A] focus:outline-none focus:border-[#C9A84C] focus:ring-1 focus:ring-[#C9A84C]"
+                              value={startDateFilter}
+                              onChange={(e) => setStartDateFilter(e.target.value)}
+                            />
+                          </div>
+                          <div>
+                            <label className="text-[8px] uppercase font-bold text-[#9C9890] font-mono tracking-widest block mb-1">End Date</label>
+                            <input
+                              type="date"
+                              className="w-full bg-white border border-[#E8E4DF] rounded-xl p-2 text-xs font-bold text-[#1C1C1A] focus:outline-none focus:border-[#C9A84C] focus:ring-1 focus:ring-[#C9A84C]"
+                              value={endDateFilter}
+                              onChange={(e) => setEndDateFilter(e.target.value)}
+                            />
+                          </div>
+                        </div>
+                      )}
+
+                      {/* User Status Filter */}
                       <div>
-                        <label className="text-[9px] uppercase font-bold text-[#9C9890] font-mono tracking-widest block mb-1">Department</label>
+                        <label className="text-[9px] uppercase font-bold text-[#9C9890] font-mono tracking-widest block mb-1">User Status</label>
                         <select
                           className="w-full bg-white border border-[#E8E4DF] rounded-xl p-2.5 text-xs font-bold text-[#1C1C1A] focus:outline-none focus:border-[#C9A84C] focus:ring-1 focus:ring-[#C9A84C]"
-                          value={selectedDept}
-                          onChange={(e) => setSelectedDept(e.target.value)}
+                          value={userStatusFilter}
+                          onChange={(e) => setUserStatusFilter(e.target.value as "active" | "inactive" | "all")}
                         >
-                          <option value="">All Departments</option>
-                          {departmentsList.map((dept) => (
-                            <option key={dept} value={dept}>{dept}</option>
-                          ))}
+                          <option value="active">Active Staff Only</option>
+                          <option value="inactive">Inactive / Archived Staff</option>
+                          <option value="all">All Staff (Active + Inactive)</option>
                         </select>
                       </div>
-                    )}
-
-                    {/* Employee Dropdown (Visible to everyone) */}
-                    <div>
-                      <label className="text-[9px] uppercase font-bold text-[#9C9890] font-mono tracking-widest block mb-1">Select Employee</label>
-                      <select
-                        className="w-full bg-white border border-[#E8E4DF] rounded-xl p-2.5 text-xs font-bold text-[#1C1C1A] focus:outline-none focus:border-[#C9A84C] focus:ring-1 focus:ring-[#C9A84C]"
-                        value={selectedUser}
-                        onChange={(e) => setSelectedUser(e.target.value)}
-                      >
-                        {isOwner && (
-                          <option value="">All Employees</option>
-                        )}
-                        <optgroup label="Active Employees">
-                          {uniqueUsersFromReports.activeList.map((u: any) => (
-                            <option key={u.id} value={u.id}>{u.name}</option>
-                          ))}
-                        </optgroup>
-                        {uniqueUsersFromReports.inactiveList.length > 0 && (
-                          <optgroup label="Inactive / Archived Employees">
-                            {uniqueUsersFromReports.inactiveList.map((u: any) => (
-                              <option key={u.id} value={u.id}>{u.name} (Archived / Inactive)</option>
-                            ))}
-                          </optgroup>
-                        )}
-                      </select>
                     </div>
 
-                    {/* Date Filter Type */}
-                    <div>
-                      <label className="text-[9px] uppercase font-bold text-[#9C9890] font-mono tracking-widest block mb-1">Date Filter</label>
-                      <select
-                        className="w-full bg-white border border-[#E8E4DF] rounded-xl p-2.5 text-xs font-bold text-[#1C1C1A] focus:outline-none focus:border-[#C9A84C] focus:ring-1 focus:ring-[#C9A84C]"
-                        value={dateFilterType}
-                        onChange={(e) => {
-                          setDateFilterType(e.target.value as any);
-                          if (e.target.value !== "custom") {
-                            setStartDateFilter("");
-                            setEndDateFilter("");
-                          }
+                    <div className="pt-2 flex gap-3">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSearchTerm("");
+                          setSelectedCompany("");
+                          setSelectedDept("");
+                          setSelectedUser("");
+                          setDateFilterType("overall");
+                          setStartDateFilter("");
+                          setEndDateFilter("");
+                          setUserStatusFilter("active");
+                          setShowFilters(false);
                         }}
+                        className="flex-1 bg-[#FCFBF9] hover:bg-[#F5F2EC] text-[#6B665E] py-2.5 rounded-xl text-[10px] font-bold transition-all border border-[#E8E4DF]"
                       >
-                        <option value="overall">Overall Date Filter</option>
-                        <option value="current-month">Current Month</option>
-                        <option value="custom">Custom Range</option>
-                      </select>
+                        Clear All
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setShowFilters(false)}
+                        className="flex-1 bg-[#C9A84C] hover:bg-[#B5963D] text-[#FCFBF9] py-2.5 rounded-xl text-[10px] font-bold transition-all shadow-md"
+                      >
+                        Apply Filters
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* TOGGLE COLUMN SELECTOR BUTTON - Right side of Filter Reports */}
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowColumnPicker(!showColumnPicker);
+                    setShowFilters(false);
+                  }}
+                  className={`flex items-center gap-2 border px-4 py-2 text-xs font-bold transition-all rounded-xl shadow-sm focus:outline-none ${showColumnPicker
+                    ? "bg-[#714B67] border-[#714B67] text-white font-black"
+                    : "bg-[#FCFBF9] hover:bg-[#F5F2EC] border-[#E8E4DF] text-[#1C1C1A]"
+                    }`}
+                  title="Toggle columns for data export"
+                >
+                  <SlidersHorizontal className="w-3.5 h-3.5" />
+                  <span>Columns ({Object.values(selectedExportColumns).filter(Boolean).length}/{availableColumnsList.length})</span>
+                  <ChevronDown className="w-3 h-3 text-[#9C9890]" />
+                </button>
+
+                {/* Floating Column Picker Popover */}
+                {showColumnPicker && (
+                  <div className="absolute right-0 mt-3 z-50 bg-[#FCFBF9] border border-[#E8E4DF] shadow-[0_25px_60px_-15px_rgba(0,0,0,0.15)] rounded-2xl p-5 w-[340px] space-y-4 text-left normal-case font-sans animate-fadeIn">
+                    <div className="flex justify-between items-center border-b border-[#E8E4DF] pb-2">
+                      <span className="text-xs font-bold text-[#1C1C1A] tracking-wider uppercase font-mono flex items-center gap-1.5">
+                        <SlidersHorizontal className="w-3.5 h-3.5 text-[#714B67]" /> Select Export Columns
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setShowColumnPicker(false)}
+                        className="text-[#9C9890] hover:text-[#1C1C1A] transition-colors"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
                     </div>
 
-                    {/* Custom Range Inputs */}
-                    {dateFilterType === "custom" && (
-                      <div className="space-y-2">
-                        <div>
-                          <label className="text-[8px] uppercase font-bold text-[#9C9890] font-mono tracking-widest block mb-1">Start Date</label>
-                          <input
-                            type="date"
-                            className="w-full bg-white border border-[#E8E4DF] rounded-xl p-2 text-xs font-bold text-[#1C1C1A] focus:outline-none focus:border-[#C9A84C] focus:ring-1 focus:ring-[#C9A84C]"
-                            value={startDateFilter}
-                            onChange={(e) => setStartDateFilter(e.target.value)}
-                          />
-                        </div>
-                        <div>
-                          <label className="text-[8px] uppercase font-bold text-[#9C9890] font-mono tracking-widest block mb-1">End Date</label>
-                          <input
-                            type="date"
-                            className="w-full bg-white border border-[#E8E4DF] rounded-xl p-2 text-xs font-bold text-[#1C1C1A] focus:outline-none focus:border-[#C9A84C] focus:ring-1 focus:ring-[#C9A84C]"
-                            value={endDateFilter}
-                            onChange={(e) => setEndDateFilter(e.target.value)}
-                          />
-                        </div>
+                    <div className="flex items-center justify-between text-[11px] font-bold">
+                      <span className="text-[#6B665E]">
+                        {Object.values(selectedExportColumns).filter(Boolean).length} of {availableColumnsList.length} Selected
+                      </span>
+                      <div className="flex gap-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const allOn: Record<string, boolean> = {};
+                            availableColumnsList.forEach(c => allOn[c.key] = true);
+                            setSelectedExportColumns(allOn);
+                          }}
+                          className="text-[#714B67] hover:underline font-extrabold"
+                        >
+                          Select All
+                        </button>
+                        <span className="text-slate-300">|</span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const allOff: Record<string, boolean> = {};
+                            availableColumnsList.forEach(c => allOff[c.key] = false);
+                            setSelectedExportColumns(allOff);
+                          }}
+                          className="text-rose-600 hover:underline font-extrabold"
+                        >
+                          Clear
+                        </button>
                       </div>
-                    )}
-                    {/* User Status Filter */}
-                    <div>
-                      <label className="text-[9px] uppercase font-bold text-[#9C9890] font-mono tracking-widest block mb-1">User Status</label>
-                      <select
-                        className="w-full bg-white border border-[#E8E4DF] rounded-xl p-2.5 text-xs font-bold text-[#1C1C1A] focus:outline-none focus:border-[#C9A84C] focus:ring-1 focus:ring-[#C9A84C]"
-                        value={userStatusFilter}
-                        onChange={(e) => setUserStatusFilter(e.target.value as "active" | "inactive" | "all")}
+                    </div>
+
+                    {/* Column Toggle Checkboxes List */}
+                    <div className="max-h-64 overflow-y-auto space-y-1.5 pr-1 border-t border-b border-[#E8E4DF] py-3">
+                      {availableColumnsList.map((col) => {
+                        const isChecked = !!selectedExportColumns[col.key];
+                        return (
+                          <label
+                            key={col.key}
+                            className={`flex items-center justify-between p-2 rounded-xl border text-xs cursor-pointer transition-all ${
+                              isChecked
+                                ? "bg-purple-50/70 border-purple-200 text-purple-950 font-bold"
+                                : "bg-white border-slate-200 text-slate-500 hover:bg-slate-50 font-medium"
+                            }`}
+                          >
+                            <span className="flex items-center gap-2">
+                              <input
+                                type="checkbox"
+                                checked={isChecked}
+                                onChange={(e) => {
+                                  setSelectedExportColumns(prev => ({
+                                    ...prev,
+                                    [col.key]: e.target.checked
+                                  }));
+                                }}
+                                className="rounded text-[#714B67] focus:ring-[#714B67]"
+                              />
+                              {col.label}
+                            </span>
+                            {isChecked && <span className="text-[10px] text-purple-700 font-mono font-black">Active</span>}
+                          </label>
+                        );
+                      })}
+                    </div>
+
+                    <div className="pt-1 flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          exportEodRegistry();
+                          setShowColumnPicker(false);
+                        }}
+                        className="w-full bg-[#714B67] hover:bg-[#5F3F56] text-white py-2.5 rounded-xl text-xs font-extrabold transition-all shadow-md flex items-center justify-center gap-2"
                       >
-                        <option value="active">Active Staff Only</option>
-                        <option value="inactive">Inactive / Archived Staff</option>
-                        <option value="all">All Staff (Active + Inactive)</option>
-                      </select>
+                        <Download className="w-4 h-4" /> Export Report with Selected Columns
+                      </button>
                     </div>
                   </div>
-
-                  <div className="pt-2 flex gap-3">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setSearchTerm("");
-                        setSelectedCompany("");
-                        setSelectedDept("");
-                        setSelectedUser("");
-                        setDateFilterType("overall");
-                        setStartDateFilter("");
-                        setEndDateFilter("");
-                        setUserStatusFilter("active");
-                        setShowFilters(false);
-                      }}
-                      className="flex-1 bg-[#FCFBF9] hover:bg-[#F5F2EC] text-[#6B665E] py-2.5 rounded-xl text-[10px] font-bold transition-all border border-[#E8E4DF]"
-                    >
-                      Clear All
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setShowFilters(false)}
-                      className="flex-1 bg-[#C9A84C] hover:bg-[#B5963D] text-[#FCFBF9] py-2.5 rounded-xl text-[10px] font-bold transition-all shadow-md"
-                    >
-                      Apply Filters
-                    </button>
-                  </div>
-                </div>
-              )}
+                )}
+              </div>
             </div>
           </div>
 
@@ -6526,7 +6975,7 @@ function FineEmployeeSearchCombobox({
   );
 }
 
-export function LeaveRequestTab({ sessionUser }: { sessionUser?: any }) {
+export function LeaveRequestTab({ sessionUser, initialSearchFilter }: { sessionUser?: any; initialSearchFilter?: string }) {
   const userRole = sessionUser?.role;
   const isManager = userRole === "Department Manager";
   const isHR = ["HR Head", "HR Executive"].includes(userRole);
@@ -6559,7 +7008,14 @@ export function LeaveRequestTab({ sessionUser }: { sessionUser?: any }) {
   const [filterStartDate, setFilterStartDate] = useState("");
   const [filterEndDate, setFilterEndDate] = useState("");
   const [filterStatus, setFilterStatus] = useState("All");
+  const [searchTerm, setSearchTerm] = useState(initialSearchFilter || "");
   const [showFilters, setShowFilters] = useState(false);
+
+  useEffect(() => {
+    if (initialSearchFilter !== undefined) {
+      setSearchTerm(initialSearchFilter);
+    }
+  }, [initialSearchFilter]);
 
   // Action state
   const [actionRemarks, setActionRemarks] = useState<{ [key: string]: string }>({});
@@ -6953,24 +7409,40 @@ export function LeaveRequestTab({ sessionUser }: { sessionUser?: any }) {
     return "All Time History";
   };
 
-  const parseLeaveDate = (dStr: any) => {
+  const parseLeaveDate = (dStr: any): Date | null => {
     if (!dStr) return null;
     if (dStr instanceof Date) return isNaN(dStr.getTime()) ? null : dStr;
     const str = String(dStr).trim();
+    if (!str || str === "Invalid date" || str === "null" || str === "undefined") return null;
+
     if (/^\d{4}-\d{2}-\d{2}/.test(str)) {
       const parts = str.slice(0, 10).split("-");
-      return new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
-    }
-    if (/^\d{1,2}\/\d{1,2}\/\d{4}/.test(str)) {
-      const parts = str.split("/");
-      if (Number(parts[0]) > 12) {
-        return new Date(Number(parts[2]), Number(parts[1]) - 1, Number(parts[0]));
-      } else {
-        return new Date(Number(parts[2]), Number(parts[0]) - 1, Number(parts[1]));
+      const year = Number(parts[0]);
+      const month = Number(parts[1]) - 1;
+      const day = Number(parts[2]);
+      if (!isNaN(year) && !isNaN(month) && !isNaN(day)) {
+        return new Date(year, month, day);
       }
     }
+
+    if (/^\d{1,2}[\/\-]\d{1,2}[\/\-]\d{4}/.test(str)) {
+      const parts = str.split(/[\/\-]/);
+      const p1 = Number(parts[0]);
+      const p2 = Number(parts[1]);
+      const year = Number(parts[2]);
+
+      let day = p1;
+      let month = p2 - 1;
+      if (p2 > 12) {
+        day = p2;
+        month = p1 - 1;
+      }
+      return new Date(year, month, day);
+    }
+
     const dObj = new Date(str);
-    return isNaN(dObj.getTime()) ? null : dObj;
+    if (isNaN(dObj.getTime())) return null;
+    return new Date(dObj.getFullYear(), dObj.getMonth(), dObj.getDate());
   };
 
   const filteredLeaves = leavesList.filter((leave: any) => {
@@ -7030,6 +7502,17 @@ export function LeaveRequestTab({ sessionUser }: { sessionUser?: any }) {
         if (leave.status !== filterStatus) {
           return false;
         }
+      }
+    }
+
+    // 4. Leave Type / Search Term Filter
+    if (searchTerm.trim()) {
+      const term = searchTerm.toLowerCase().trim();
+      const lType = String(leave.leaveType || leave.type || "").toLowerCase();
+      const lReason = String(leave.reason || "").toLowerCase();
+      const empName = String(leave.employeeInfo?.name || leave.employee?.name || "").toLowerCase();
+      if (!lType.includes(term) && !lReason.includes(term) && !empName.includes(term)) {
+        return false;
       }
     }
 
@@ -7466,6 +7949,17 @@ export function LeaveRequestTab({ sessionUser }: { sessionUser?: any }) {
                   className={`px-2.5 py-1 rounded-lg transition-all ${datePreset === "last_month" ? "bg-[#714B67] text-white font-black shadow-2xs" : "text-[#6B665E] hover:text-[#1C1C1A]"}`}
                 >
                   Last Month
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setDatePreset("all");
+                    setFilterStartDate("");
+                    setFilterEndDate("");
+                  }}
+                  className={`px-2.5 py-1 rounded-lg transition-all ${datePreset === "all" ? "bg-[#714B67] text-white font-black shadow-2xs" : "text-[#6B665E] hover:text-[#1C1C1A]"}`}
+                >
+                  All Time
                 </button>
               </div>
 

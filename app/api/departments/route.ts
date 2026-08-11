@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import sequelize from "@/lib/sequelize";
 import Department from "@/models/sequelize/Department";
+import EmployeeProfile from "@/models/sequelize/EmployeeProfile";
 import { Op } from "sequelize";
 
 const COMMON_DEPARTMENTS = [
@@ -50,11 +51,46 @@ export async function GET(req: Request) {
       ];
     }
 
-    const departments = await Department.findAll({
+    const dbDepartments = await Department.findAll({
       where: query,
-      order: [['name', 'ASC']]
+      order: [['name', 'ASC']],
+      raw: true
     });
-    return NextResponse.json({ success: true, data: departments });
+
+    const getCanonicalName = (name: string): string => {
+      const s = (name || "").trim().toLowerCase();
+      if (s.includes("hr") || s.includes("human")) return "Human Resources";
+      if (s.includes("it") || s.includes("tech") || s.includes("software") || s.includes("information technology")) return "IT & Software";
+      if (s.includes("account") || s.includes("finance")) return "Finance & Accounts";
+      if (s.includes("legal") || s.includes("recovery") || s.includes("security")) return "Security & Legal";
+      if (s.includes("admin") || s.includes("operation") || s.includes("ops")) return "Operations";
+      if (s.includes("management") || s.includes("board")) return "Management";
+      if (s.includes("business development") || s.includes("bda") || s.includes("sales")) return "Business Development";
+      return name.trim();
+    };
+
+    const canonicalMap = new Map<string, { id: string; name: string }>();
+
+    dbDepartments.forEach((d: any) => {
+      if (!d.name) return;
+      const canonical = getCanonicalName(d.name);
+      if (!canonicalMap.has(canonical.toLowerCase())) {
+        canonicalMap.set(canonical.toLowerCase(), { id: canonical, name: canonical });
+      }
+    });
+
+    // Also fetch distinct departments from active EmployeeProfiles
+    const profiles = await EmployeeProfile.findAll({ attributes: ["department"], raw: true });
+    profiles.forEach((p: any) => {
+      if (!p.department) return;
+      const canonical = getCanonicalName(p.department);
+      if (!canonicalMap.has(canonical.toLowerCase())) {
+        canonicalMap.set(canonical.toLowerCase(), { id: canonical, name: canonical });
+      }
+    });
+
+    const data = Array.from(canonicalMap.values()).sort((a, b) => a.name.localeCompare(b.name));
+    return NextResponse.json({ success: true, data });
   } catch (error: any) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }

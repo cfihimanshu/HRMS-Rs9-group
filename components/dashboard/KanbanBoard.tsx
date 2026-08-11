@@ -163,10 +163,12 @@ const SearchableCombobox = ({
 
 export default function KanbanBoard({
   initialDateFilter,
-  initialSearchFilter
+  initialSearchFilter,
+  initialUserFilter
 }: {
   initialDateFilter?: string;
   initialSearchFilter?: string;
+  initialUserFilter?: string;
 }) {
   const { data: session, status } = useSession();
   const sessionUser = session?.user;
@@ -1251,9 +1253,15 @@ export default function KanbanBoard({
     setDragOverCol(null);
   };
 
-  const [filterUser, setFilterUser] = useState("All");
+  const [filterUser, setFilterUser] = useState(initialUserFilter || "All");
   const [filterDate, setFilterDate] = useState(initialDateFilter || "");
   const [searchQuery, setSearchQuery] = useState(initialSearchFilter || "");
+
+  useEffect(() => {
+    if (initialUserFilter !== undefined) {
+      setFilterUser(initialUserFilter || "All");
+    }
+  }, [initialUserFilter]);
 
   useEffect(() => {
     setFilterDate(initialDateFilter || "");
@@ -1288,7 +1296,9 @@ export default function KanbanBoard({
       const query = searchQuery.trim().toLowerCase();
       const title = (t.taskTitle || "").toLowerCase();
       const description = (t.description || "").toLowerCase();
-      matchQuery = title.includes(query) || description.includes(query) || query.includes(title);
+      const taskId = String(t.id || "").toLowerCase();
+      const status = String(t.status || "").toLowerCase();
+      matchQuery = title.includes(query) || description.includes(query) || taskId.includes(query) || status.includes(query) || query.includes(title);
     }
 
     return matchUser && matchDate && matchQuery;

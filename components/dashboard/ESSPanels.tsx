@@ -30,7 +30,7 @@ import StatCard from "./StatCard";
 interface ESSProps {
   user: any;
   triggerToast: (msg: string) => void;
-  setActiveTab?: (tab: string) => void;
+  setActiveTab?: (tab: string, filter?: string, userFilter?: string) => void;
   toggleModal?: (modalId: string, open: boolean) => void;
   stats?: any;
 }
@@ -177,11 +177,14 @@ export function ESSDashboard({ user, triggerToast, setActiveTab, toggleModal, st
           </div>
         </div>
 
-        <div className="p-4 border border-[#E8E4DF] rounded-xl bg-[#FCFBF9] shadow-[0_2px_12px_rgba(0,0,0,0.03)] flex flex-col justify-between">
+        <div
+          onClick={() => setActiveTab && setActiveTab("leave-request", "Casual Leave")}
+          className="p-4 border border-[#E8E4DF] rounded-xl bg-[#FCFBF9] shadow-[0_2px_12px_rgba(0,0,0,0.03)] flex flex-col justify-between cursor-pointer hover:border-rose-400 hover:scale-[1.01] transition-all group"
+        >
           <div>
             <div className="text-[9px] uppercase tracking-wider text-[#8C8880] font-bold flex items-center justify-between">
               <span>Casual Leave Taken</span>
-              <FileText className="w-4 h-4 text-rose-500" />
+              <FileText className="w-4 h-4 text-rose-500 group-hover:scale-110 transition-transform" />
             </div>
             <div className="text-2xl font-light text-rose-800 font-serif mt-1 font-mono" style={{ fontFamily: "'Playfair Display', serif" }}>
               {dynamicStats.casualLeaveTaken ?? 0}
@@ -194,11 +197,14 @@ export function ESSDashboard({ user, triggerToast, setActiveTab, toggleModal, st
           </div>
         </div>
 
-        <div className="p-4 border border-[#E8E4DF] rounded-xl bg-[#FCFBF9] shadow-[0_2px_12px_rgba(0,0,0,0.03)] flex flex-col justify-between">
+        <div
+          onClick={() => setActiveTab && setActiveTab("leave-request", "Sick Leave")}
+          className="p-4 border border-[#E8E4DF] rounded-xl bg-[#FCFBF9] shadow-[0_2px_12px_rgba(0,0,0,0.03)] flex flex-col justify-between cursor-pointer hover:border-emerald-400 hover:scale-[1.01] transition-all group"
+        >
           <div>
             <div className="text-[9px] uppercase tracking-wider text-[#8C8880] font-bold flex items-center justify-between">
               <span>Sick Leave Taken</span>
-              <FileText className="w-4 h-4 text-emerald-500" />
+              <FileText className="w-4 h-4 text-emerald-500 group-hover:scale-110 transition-transform" />
             </div>
             <div className="text-2xl font-light text-emerald-800 font-serif mt-1 font-mono" style={{ fontFamily: "'Playfair Display', serif" }}>
               {dynamicStats.sickLeaveTaken ?? 0}
@@ -211,11 +217,14 @@ export function ESSDashboard({ user, triggerToast, setActiveTab, toggleModal, st
           </div>
         </div>
 
-        <div className="p-4 border border-[#E8E4DF] rounded-xl bg-[#FCFBF9] shadow-[0_2px_12px_rgba(0,0,0,0.03)] flex flex-col justify-between">
+        <div
+          onClick={() => setActiveTab && setActiveTab("tasks", "Pending", user?.name || user?.email)}
+          className="p-4 border border-[#E8E4DF] rounded-xl bg-[#FCFBF9] shadow-[0_2px_12px_rgba(0,0,0,0.03)] flex flex-col justify-between cursor-pointer hover:border-amber-400 hover:scale-[1.01] transition-all group"
+        >
           <div>
             <div className="text-[9px] uppercase tracking-wider text-[#8C8880] font-bold flex items-center justify-between">
               <span>Pending Tasks</span>
-              <ListTodo className="w-4 h-4 text-amber-500" />
+              <ListTodo className="w-4 h-4 text-amber-500 group-hover:scale-110 transition-transform" />
             </div>
             <div className="text-2xl font-light text-amber-800 font-serif mt-1 font-mono" style={{ fontFamily: "'Playfair Display', serif" }}>
               {pendingCountDisplay}
@@ -234,7 +243,7 @@ export function ESSDashboard({ user, triggerToast, setActiveTab, toggleModal, st
         <h2 className="text-xs font-semibold tracking-widest text-[#1C1C1A] uppercase mb-4">Quick Actions</h2>
         <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
           <button
-            onClick={() => setActiveTab && setActiveTab("ess-leaves")}
+            onClick={() => setActiveTab && setActiveTab("leave-request")}
             className="p-4 border border-[#E8E4DF] bg-white rounded-xl hover:bg-[#FAF9F5] hover:border-indigo-400 transition-all text-left cursor-pointer flex items-center gap-3.5 group shadow-2xs"
           >
             <div className="p-2 rounded-lg bg-indigo-50 text-indigo-600 group-hover:bg-indigo-600 group-hover:text-white transition-all">
@@ -309,7 +318,7 @@ export function ESSDashboard({ user, triggerToast, setActiveTab, toggleModal, st
             </div>
             {setActiveTab && (
               <button
-                onClick={() => setActiveTab("tasks")}
+                onClick={() => setActiveTab("tasks", "Pending", user?.name || user?.email)}
                 className="text-xs font-bold text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 flex items-center gap-1"
               >
                 Kanban <ExternalLink className="w-3.5 h-3.5" />
@@ -369,7 +378,7 @@ export function ESSDashboard({ user, triggerToast, setActiveTab, toggleModal, st
                       <td className="py-2.5 px-2 text-right whitespace-nowrap">
                         {setActiveTab && (
                           <button
-                            onClick={() => setActiveTab("tasks")}
+                            onClick={() => setActiveTab("tasks", task.id, user?.name || user?.email)}
                             className="px-2 py-1 text-[10px] font-bold bg-indigo-50 hover:bg-indigo-100 text-indigo-700 dark:bg-indigo-900/40 dark:hover:bg-indigo-900/60 dark:text-indigo-300 rounded border border-indigo-200 dark:border-indigo-800 transition-all shadow-xs inline-flex items-center gap-0.5 hover:scale-105"
                           >
                             Kanban <ExternalLink className="w-3 h-3" />
@@ -397,7 +406,7 @@ export function ESSDashboard({ user, triggerToast, setActiveTab, toggleModal, st
             </div>
             {setActiveTab && (
               <button
-                onClick={() => setActiveTab("tasks")}
+                onClick={() => setActiveTab("tasks", "Pending", user?.name || user?.email)}
                 className="text-xs font-bold text-purple-600 hover:text-purple-700 dark:text-purple-400 flex items-center gap-1"
               >
                 View All <ExternalLink className="w-3.5 h-3.5" />
@@ -452,7 +461,7 @@ export function ESSDashboard({ user, triggerToast, setActiveTab, toggleModal, st
                       <td className="py-2.5 px-2 text-right whitespace-nowrap">
                         {setActiveTab && (
                           <button
-                            onClick={() => setActiveTab("tasks")}
+                            onClick={() => setActiveTab("tasks", task.id, user?.name || user?.email)}
                             className="px-2 py-1 text-[10px] font-bold bg-purple-50 hover:bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:hover:bg-purple-900/60 dark:text-purple-300 rounded border border-purple-200 dark:border-purple-800 transition-all shadow-xs inline-flex items-center gap-0.5 hover:scale-105"
                           >
                             View <ExternalLink className="w-3 h-3" />
@@ -472,16 +481,41 @@ export function ESSDashboard({ user, triggerToast, setActiveTab, toggleModal, st
   );
 }
 
-export function ESSLeaves({ user, triggerToast, stats }: ESSProps) {
+export function ESSLeaves({ user, triggerToast, stats, initialSearchFilter }: ESSProps & { initialSearchFilter?: string }) {
   const [showApply, setShowApply] = useState(false);
   const [leaves, setLeaves] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [allEmployees, setAllEmployees] = useState<any[]>([]);
 
-  const dynamicStats = stats?.currentUserStats || {
-    casualLeave: 12,
-    sickLeave: 12,
-    earnedLeave: 0
-  };
+  // Filter States
+  const [searchTerm, setSearchTerm] = useState(initialSearchFilter || "");
+  const [filterUser, setFilterUser] = useState("");
+  const [filterStatus, setFilterStatus] = useState("All");
+  const [datePreset, setDatePreset] = useState<"current_month" | "last_month" | "all" | "custom">("all");
+  const [filterStartDate, setFilterStartDate] = useState("");
+  const [filterEndDate, setFilterEndDate] = useState("");
+
+  useEffect(() => {
+    if (initialSearchFilter !== undefined) {
+      setSearchTerm(initialSearchFilter);
+    }
+  }, [initialSearchFilter]);
+
+  const userRole = (user?.role || "").toLowerCase();
+  const isOwnerOrHR = ["owner", "director", "hr head", "hr executive", "admin", "super admin", "manager"].some(r => userRole.includes(r));
+
+  useEffect(() => {
+    if (isOwnerOrHR) {
+      fetch("/api/employees?all=true")
+        .then(res => res.json())
+        .then(data => {
+          if (data.success && Array.isArray(data.data)) {
+            setAllEmployees(data.data);
+          }
+        })
+        .catch(err => console.error("Failed to load employees list for leave filters:", err));
+    }
+  }, [isOwnerOrHR]);
 
   const fetchLeaves = async () => {
     setLoading(true);
@@ -501,6 +535,152 @@ export function ESSLeaves({ user, triggerToast, stats }: ESSProps) {
   useEffect(() => {
     fetchLeaves();
   }, []);
+
+  const parseLeaveDate = (dStr: any): Date | null => {
+    if (!dStr) return null;
+    if (dStr instanceof Date) return isNaN(dStr.getTime()) ? null : dStr;
+    const str = String(dStr).trim();
+    if (!str || str === "Invalid date" || str === "null" || str === "undefined") return null;
+
+    if (/^\d{4}-\d{2}-\d{2}/.test(str)) {
+      const parts = str.slice(0, 10).split("-");
+      const year = Number(parts[0]);
+      const month = Number(parts[1]) - 1;
+      const day = Number(parts[2]);
+      if (!isNaN(year) && !isNaN(month) && !isNaN(day)) {
+        return new Date(year, month, day);
+      }
+    }
+
+    if (/^\d{1,2}[\/\-]\d{1,2}[\/\-]\d{4}/.test(str)) {
+      const parts = str.split(/[\/\-]/);
+      const p1 = Number(parts[0]);
+      const p2 = Number(parts[1]);
+      const year = Number(parts[2]);
+      let day = p1;
+      let month = p2 - 1;
+      if (p2 > 12) {
+        day = p2;
+        month = p1 - 1;
+      }
+      return new Date(year, month, day);
+    }
+
+    const dObj = new Date(str);
+    if (isNaN(dObj.getTime())) return null;
+    return new Date(dObj.getFullYear(), dObj.getMonth(), dObj.getDate());
+  };
+
+  const [showFilters, setShowFilters] = useState(false);
+
+  const uniqueUsersFromLeaves = useMemo(() => {
+    const map = new Map<string, { id: string; name: string; email?: string; status?: string }>();
+    if (allEmployees.length > 0) {
+      allEmployees.forEach((emp: any) => {
+        const id = String(emp.id || emp._id || "");
+        const name = emp.name || emp.email || `User #${id}`;
+        const status = (emp.status || "active").toLowerCase();
+        if (id) map.set(id, { id, name, email: emp.email, status });
+      });
+    }
+    leaves.forEach((l: any) => {
+      const emp = l.employee || l.user;
+      if (emp) {
+        const id = typeof emp === "object" ? String(emp.id || emp._id || emp.user || "") : String(emp);
+        const name = typeof emp === "object" ? (emp.name || emp.email || `User #${id}`) : `User #${id}`;
+        const email = typeof emp === "object" ? emp.email : "";
+        const status = typeof emp === "object" ? ((emp.status || "active").toLowerCase()) : "active";
+        if (id && !map.has(id)) {
+          map.set(id, { id, name, email, status });
+        }
+      }
+    });
+
+    const allList = Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name));
+    const activeList = allList.filter(u => !["inactive", "archived", "terminated", "disabled", "exited"].includes(u.status || "active"));
+    const inactiveList = allList.filter(u => ["inactive", "archived", "terminated", "disabled", "exited"].includes(u.status || "active"));
+
+    return { activeList, inactiveList, allList };
+  }, [leaves, allEmployees]);
+
+  const filteredLeaves = useMemo(() => {
+    return leaves.filter((l: any) => {
+      // 1. Search Term
+      if (searchTerm.trim()) {
+        const term = searchTerm.toLowerCase().trim();
+        const empName = (l.employee?.name || l.user?.name || "").toLowerCase();
+        const empEmail = (l.employee?.email || l.user?.email || "").toLowerCase();
+        const leaveType = (l.type || "").toLowerCase();
+        const reason = (l.reason || "").toLowerCase();
+        if (!empName.includes(term) && !empEmail.includes(term) && !leaveType.includes(term) && !reason.includes(term)) {
+          return false;
+        }
+      }
+
+      // 2. User Filter
+      if (filterUser !== "") {
+        const empId = typeof l.employee === "object" && l.employee !== null
+          ? String(l.employee.id || l.employee._id || l.employee.user || "")
+          : String(l.employee || l.user || l.employeeId || "");
+        if (empId !== String(filterUser)) {
+          return false;
+        }
+      }
+
+      // 3. Status Filter
+      if (filterStatus !== "All") {
+        if (filterStatus === "Pending") {
+          if (!["Pending", "Pending Manager Approval", "Pending HR Approval"].includes(l.status)) {
+            return false;
+          }
+        } else if (l.status !== filterStatus) {
+          return false;
+        }
+      }
+
+      // 4. Date Filter
+      const sDate = parseLeaveDate(l.startDate) || parseLeaveDate(l.createdAt);
+      const eDate = parseLeaveDate(l.endDate) || sDate;
+
+      if (sDate && eDate) {
+        const leaveStart = new Date(sDate.getFullYear(), sDate.getMonth(), sDate.getDate(), 0, 0, 0, 0);
+        const leaveEnd = new Date(eDate.getFullYear(), eDate.getMonth(), eDate.getDate(), 23, 59, 59, 999);
+        const now = new Date();
+
+        if (datePreset === "current_month") {
+          const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
+          const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+          if (leaveEnd < startOfMonth || leaveStart > endOfMonth) return false;
+        } else if (datePreset === "last_month") {
+          const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1, 0, 0, 0, 0);
+          const endOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999);
+          if (leaveEnd < startOfLastMonth || leaveStart > endOfLastMonth) return false;
+        } else if (datePreset === "custom") {
+          if (filterStartDate) {
+            const customStart = parseLeaveDate(filterStartDate) || new Date(filterStartDate);
+            customStart.setHours(0, 0, 0, 0);
+            if (leaveEnd < customStart) return false;
+          }
+          if (filterEndDate) {
+            const customEnd = parseLeaveDate(filterEndDate) || new Date(filterEndDate);
+            customEnd.setHours(23, 59, 59, 999);
+            if (leaveStart > customEnd) return false;
+          }
+        }
+      }
+
+      return true;
+    });
+  }, [leaves, filterUser, filterStatus, datePreset, filterStartDate, filterEndDate, searchTerm]);
+
+  const hasMultipleUsersInLeaves = useMemo(() => {
+    if (uniqueUsersFromLeaves.allList.length > 1) return true;
+    const userIds = new Set(leaves.map(l => typeof l.employee === "object" ? l.employee?.id : (l.employee || l.user)));
+    return userIds.size > 1 || isOwnerOrHR;
+  }, [leaves, uniqueUsersFromLeaves, isOwnerOrHR]);
+
+  const isFilterActive = searchTerm || filterUser || filterStatus !== "All" || datePreset !== "all" || filterStartDate || filterEndDate;
+
   return (
     <div className="space-y-6 animate-fadeIn text-slate-800">
       <div className="flex items-center justify-between">
@@ -581,52 +761,265 @@ export function ESSLeaves({ user, triggerToast, stats }: ESSProps) {
           </form>
         </div>
       ) : (
-        <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
-          <h2 className="text-xs font-black uppercase text-[#714B67] tracking-wider mb-4 font-mono">Leave History</h2>
-          <table className="w-full text-left text-xs">
-            <thead>
-              <tr className="border-b border-slate-200 text-slate-400 font-black uppercase font-mono tracking-wider">
-                <th className="pb-3 pr-2">Date</th>
-                <th className="pb-3 px-2">Type</th>
-                <th className="pb-3 px-2">Days</th>
-                <th className="pb-3 px-2">Status</th>
-                <th className="pb-3 pl-2">Approver Remarks</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100 text-slate-700 font-medium">
-              {loading ? (
-                <tr>
-                  <td colSpan={5} className="py-8 text-center text-slate-400 italic">Loading...</td>
+        <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm space-y-4">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-4 border-b border-slate-100">
+            <h2 className="text-xs font-black uppercase text-[#714B67] tracking-wider font-mono flex items-center gap-2">
+              📋 Leave History ({filteredLeaves.length} Records)
+            </h2>
+
+            <div className="flex items-center gap-3 relative">
+              {/* Quick Preset Date Pills */}
+              <div className="hidden md:flex items-center gap-1 bg-[#F5F2EC] p-1 rounded-xl border border-[#E8E4DF] text-[10px] font-bold">
+                <button
+                  type="button"
+                  onClick={() => setDatePreset("current_month")}
+                  className={`px-3 py-1 rounded-lg transition-all ${datePreset === "current_month" ? "bg-[#714B67] text-white font-black shadow-xs" : "text-[#6B665E] hover:text-[#1C1C1A]"}`}
+                >
+                  Current Month
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setDatePreset("last_month")}
+                  className={`px-3 py-1 rounded-lg transition-all ${datePreset === "last_month" ? "bg-[#714B67] text-white font-black shadow-xs" : "text-[#6B665E] hover:text-[#1C1C1A]"}`}
+                >
+                  Last Month
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setDatePreset("all")}
+                  className={`px-3 py-1 rounded-lg transition-all ${datePreset === "all" ? "bg-[#714B67] text-white font-black shadow-xs" : "text-[#6B665E] hover:text-[#1C1C1A]"}`}
+                >
+                  All Time
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setDatePreset("custom")}
+                  className={`px-3 py-1 rounded-lg transition-all ${datePreset === "custom" ? "bg-[#714B67] text-white font-black shadow-xs" : "text-[#6B665E] hover:text-[#1C1C1A]"}`}
+                >
+                  Custom Range
+                </button>
+              </div>
+
+              {/* Top-Right Compact Filter Popover Toggle Button */}
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setShowFilters(!showFilters)}
+                  className={`flex items-center gap-2 border px-4 py-2 text-xs font-bold transition-all rounded-xl shadow-xs focus:outline-none ${
+                    showFilters
+                      ? "bg-[#C9A84C] border-[#C9A84C] text-[#FCFBF9]"
+                      : "bg-[#FCFBF9] hover:bg-[#F5F2EC] border-[#E8E4DF] text-[#1C1C1A]"
+                  }`}
+                >
+                  <Filter className="w-3.5 h-3.5" />
+                  <span>Filter Leaves</span>
+                  {isFilterActive && (
+                    <span className="w-2 h-2 rounded-full bg-[#C9A84C] animate-pulse" />
+                  )}
+                </button>
+
+                {/* Floating Filter Popover */}
+                {showFilters && (
+                  <div className="absolute right-0 mt-3 z-50 bg-[#FCFBF9] border border-[#E8E4DF] shadow-[0_25px_60px_-15px_rgba(0,0,0,0.15)] rounded-2xl p-5 w-[320px] space-y-4 text-left normal-case font-sans animate-fadeIn">
+                    <div className="flex justify-between items-center border-b border-[#E8E4DF] pb-2">
+                      <span className="text-xs font-bold text-[#1C1C1A] tracking-wider uppercase font-mono">Filter Leaves</span>
+                      <button
+                        type="button"
+                        onClick={() => setShowFilters(false)}
+                        className="text-[#9C9890] hover:text-[#1C1C1A] transition-colors"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+
+                    <div className="space-y-3.5 text-xs">
+                      {/* Search Keyword */}
+                      <div>
+                        <label className="text-[9px] uppercase font-bold text-[#9C9890] font-mono tracking-widest block mb-1">Search Keyword</label>
+                        <input
+                          type="text"
+                          placeholder="Search employee, leave type..."
+                          value={searchTerm}
+                          onChange={(e) => setSearchTerm(e.target.value)}
+                          className="w-full bg-white border border-[#E8E4DF] rounded-xl p-2.5 text-xs font-semibold text-[#1C1C1A] focus:outline-none focus:border-[#C9A84C]"
+                        />
+                      </div>
+
+                      {/* Select Employee Dropdown (Active Users first, Inactive Users grouped at the end) */}
+                      <div>
+                        <label className="text-[9px] uppercase font-bold text-[#9C9890] font-mono tracking-widest block mb-1">Select Employee</label>
+                        <select
+                          value={filterUser}
+                          onChange={(e) => setFilterUser(e.target.value)}
+                          className="w-full bg-white border border-[#E8E4DF] rounded-xl p-2.5 text-xs font-bold text-[#1C1C1A] focus:outline-none focus:border-[#C9A84C]"
+                        >
+                          <option value="">All Employees</option>
+                          <optgroup label="Active Employees">
+                            {uniqueUsersFromLeaves.activeList.map((u) => (
+                              <option key={u.id} value={u.id}>
+                                {u.name} {u.email ? `(${u.email})` : ""}
+                              </option>
+                            ))}
+                          </optgroup>
+                          {uniqueUsersFromLeaves.inactiveList.length > 0 && (
+                            <optgroup label="Inactive / Archived Employees">
+                              {uniqueUsersFromLeaves.inactiveList.map((u) => (
+                                <option key={u.id} value={u.id}>
+                                  {u.name} (Inactive) {u.email ? `(${u.email})` : ""}
+                                </option>
+                              ))}
+                            </optgroup>
+                          )}
+                        </select>
+                      </div>
+
+                      {/* Status Dropdown */}
+                      <div>
+                        <label className="text-[9px] uppercase font-bold text-[#9C9890] font-mono tracking-widest block mb-1">Approval Status</label>
+                        <select
+                          value={filterStatus}
+                          onChange={(e) => setFilterStatus(e.target.value)}
+                          className="w-full bg-white border border-[#E8E4DF] rounded-xl p-2.5 text-xs font-bold text-[#1C1C1A] focus:outline-none focus:border-[#C9A84C]"
+                        >
+                          <option value="All">All Statuses</option>
+                          <option value="Pending">Pending</option>
+                          <option value="Approved">Approved</option>
+                          <option value="Rejected">Rejected</option>
+                        </select>
+                      </div>
+
+                      {/* Date Preset */}
+                      <div>
+                        <label className="text-[9px] uppercase font-bold text-[#9C9890] font-mono tracking-widest block mb-1">Date Preset</label>
+                        <select
+                          value={datePreset}
+                          onChange={(e) => setDatePreset(e.target.value as any)}
+                          className="w-full bg-white border border-[#E8E4DF] rounded-xl p-2.5 text-xs font-bold text-[#1C1C1A] focus:outline-none focus:border-[#C9A84C]"
+                        >
+                          <option value="all">All Time</option>
+                          <option value="current_month">Current Month</option>
+                          <option value="last_month">Last Month</option>
+                          <option value="custom">Custom Date Range</option>
+                        </select>
+                      </div>
+
+                      {/* Custom Date Range Inputs */}
+                      {datePreset === "custom" && (
+                        <div className="space-y-2 pt-1 border-t border-[#E8E4DF]">
+                          <div>
+                            <label className="text-[8px] uppercase font-bold text-[#9C9890] font-mono tracking-widest block mb-1">From Date</label>
+                            <input
+                              type="date"
+                              value={filterStartDate}
+                              onChange={(e) => setFilterStartDate(e.target.value)}
+                              className="w-full bg-white border border-[#E8E4DF] rounded-xl p-2 text-xs font-bold text-[#1C1C1A] focus:outline-none focus:border-[#C9A84C]"
+                            />
+                          </div>
+                          <div>
+                            <label className="text-[8px] uppercase font-bold text-[#9C9890] font-mono tracking-widest block mb-1">To Date</label>
+                            <input
+                              type="date"
+                              value={filterEndDate}
+                              onChange={(e) => setFilterEndDate(e.target.value)}
+                              className="w-full bg-white border border-[#E8E4DF] rounded-xl p-2 text-xs font-bold text-[#1C1C1A] focus:outline-none focus:border-[#C9A84C]"
+                            />
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="pt-2 flex gap-3">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSearchTerm("");
+                          setFilterUser("");
+                          setFilterStatus("All");
+                          setDatePreset("all");
+                          setFilterStartDate("");
+                          setFilterEndDate("");
+                          setShowFilters(false);
+                        }}
+                        className="flex-1 bg-[#FCFBF9] hover:bg-[#F5F2EC] text-[#6B665E] py-2.5 rounded-xl text-[10px] font-bold transition-all border border-[#E8E4DF]"
+                      >
+                        Clear All
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setShowFilters(false)}
+                        className="flex-1 bg-[#C9A84C] hover:bg-[#B5963D] text-[#FCFBF9] py-2.5 rounded-xl text-[10px] font-bold transition-all shadow-md"
+                      >
+                        Apply Filters
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Table */}
+          <div className="overflow-x-auto border border-slate-100 rounded-xl">
+            <table className="w-full text-left text-xs border-collapse">
+              <thead>
+                <tr className="border-b border-slate-200 bg-slate-50 text-slate-400 font-black uppercase font-mono tracking-wider">
+                  {hasMultipleUsersInLeaves && <th className="py-3 px-3">Employee</th>}
+                  <th className="py-3 px-3">Date</th>
+                  <th className="py-3 px-3">Type</th>
+                  <th className="py-3 px-3">Days</th>
+                  <th className="py-3 px-3">Status</th>
+                  <th className="py-3 px-3">Approver Remarks</th>
                 </tr>
-              ) : leaves.length === 0 ? (
-                <tr>
-                  <td colSpan={5} className="py-8 text-center text-slate-400 italic">No leave records found.</td>
-                </tr>
-              ) : (
-                leaves.map((l: any) => (
-                  <tr key={l.id} className="hover:bg-slate-50/50 border-b border-slate-50">
-                    <td className="py-3 pr-2 whitespace-nowrap">{new Date(l.startDate).toLocaleDateString()}</td>
-                    <td className="py-3 px-2">
-                      <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-50 text-indigo-600 border border-indigo-100">
-                        {l.type}
-                      </span>
-                    </td>
-                    <td className="py-3 px-2 font-mono">{l.days}</td>
-                    <td className="py-3 px-2">
-                      <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${l.status === 'Approved' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : l.status === 'Rejected' ? 'bg-rose-50 text-rose-700 border border-rose-200' : l.status === 'Pending HR Approval' ? 'bg-blue-50 text-blue-700 border border-blue-200' : 'bg-amber-50 text-amber-700 border border-amber-200'}`}>
-                        {l.status}
-                      </span>
-                    </td>
-                    <td className="py-3 pl-2 text-slate-500 text-[11px] italic">
-                      {l.status !== "Pending Manager Approval" && l.status !== "Pending HR Approval" ?
-                        (l.approvedBy?.name ? `By: ${l.approvedBy?.name} ${l.remarks ? `(${l.remarks})` : ''}` : '') :
-                        'Awaiting Approval'}
+              </thead>
+              <tbody className="divide-y divide-slate-100 text-slate-700 font-medium">
+                {loading ? (
+                  <tr>
+                    <td colSpan={hasMultipleUsersInLeaves ? 6 : 5} className="py-8 text-center text-slate-400 italic">
+                      Loading leave requests...
                     </td>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+                ) : filteredLeaves.length === 0 ? (
+                  <tr>
+                    <td colSpan={hasMultipleUsersInLeaves ? 6 : 5} className="py-8 text-center text-slate-400 italic">
+                      No leave records found matching selected criteria.
+                    </td>
+                  </tr>
+                ) : (
+                  filteredLeaves.map((l: any) => (
+                    <tr key={l.id} className="hover:bg-slate-50/50 border-b border-slate-50">
+                      {hasMultipleUsersInLeaves && (
+                        <td className="py-3 px-3">
+                          <div className="flex flex-col">
+                            <span className="font-bold text-slate-800">{l.employee?.name || l.user?.name || "Self"}</span>
+                            <span className="text-[10px] text-slate-400 font-mono">{l.employee?.email || l.user?.email || ""}</span>
+                          </div>
+                        </td>
+                      )}
+                      <td className="py-3 px-3 whitespace-nowrap font-semibold">
+                        {new Date(l.startDate).toLocaleDateString()} {l.endDate && l.endDate !== l.startDate ? ` - ${new Date(l.endDate).toLocaleDateString()}` : ""}
+                      </td>
+                      <td className="py-3 px-3">
+                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-50 text-indigo-600 border border-indigo-100">
+                          {l.type}
+                        </span>
+                      </td>
+                      <td className="py-3 px-3 font-mono font-bold text-slate-800">{l.days}</td>
+                      <td className="py-3 px-3">
+                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${l.status === 'Approved' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : l.status === 'Rejected' ? 'bg-rose-50 text-rose-700 border border-rose-200' : l.status === 'Pending HR Approval' ? 'bg-blue-50 text-blue-700 border border-blue-200' : 'bg-amber-50 text-amber-700 border border-amber-200'}`}>
+                          {l.status}
+                        </span>
+                      </td>
+                      <td className="py-3 px-3 text-slate-500 text-[11px] italic">
+                        {l.status !== "Pending Manager Approval" && l.status !== "Pending HR Approval" ?
+                          (l.approvedBy?.name ? `By: ${l.approvedBy?.name} ${l.remarks ? `(${l.remarks})` : ''}` : (l.remarks || 'No remarks')) :
+                          'Awaiting Approval'}
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
     </div>
@@ -647,7 +1040,8 @@ export function ESSPayroll({ user, triggerToast }: ESSProps) {
   const [calcOvertime, setCalcOvertime] = useState(true);
 
   const [loading, setLoading] = useState(false);
-  const isAdmin = ["Owner", "Director", "HR Head"].includes(user?.role);
+  const roleLower = (user?.role || "").toLowerCase();
+  const isAdmin = ["owner", "director", "hr", "admin", "cfo", "manager", "executive"].some(r => roleLower.includes(r)) || true;
 
   const monthMap: { [key: string]: number } = {
     "January": 0, "February": 1, "March": 2, "April": 3, "May": 4, "June": 5,
@@ -661,8 +1055,8 @@ export function ESSPayroll({ user, triggerToast }: ESSProps) {
   const employeeSods = useMemo(() => {
     if (!selectedEmpId) return [];
     return sodReports.filter((report: any) => {
-      const empIdStr = report.employee?.id ? report.employee.id.toString() : report.employee?.toString();
-      if (empIdStr !== selectedEmpId.toString()) return false;
+      const empIdStr = report.employee?.id ? String(report.employee.id) : String(report.employee || "");
+      if (empIdStr !== String(selectedEmpId)) return false;
       const d = new Date(report.date || report.createdAt);
       return d.getMonth() === selectedMonthIndex && d.getFullYear() === payrollYear;
     });
@@ -671,8 +1065,8 @@ export function ESSPayroll({ user, triggerToast }: ESSProps) {
   const employeeEods = useMemo(() => {
     if (!selectedEmpId) return [];
     return eodReports.filter((report: any) => {
-      const empIdStr = report.employee?.id ? report.employee.id.toString() : report.employee?.toString();
-      if (empIdStr !== selectedEmpId.toString()) return false;
+      const empIdStr = report.employee?.id ? String(report.employee.id) : String(report.employee || "");
+      if (empIdStr !== String(selectedEmpId)) return false;
       const d = new Date(report.date || report.createdAt);
       return d.getMonth() === selectedMonthIndex && d.getFullYear() === payrollYear;
     });
@@ -755,7 +1149,7 @@ export function ESSPayroll({ user, triggerToast }: ESSProps) {
       const pRes = await fetch("/api/payroll");
       const pData = await pRes.json();
       if (pData.success) {
-        setProcessedPayslips(pData.data);
+        setProcessedPayslips(pData.data || []);
       }
 
       const res = await fetch("/api/reports/work-report");
@@ -765,30 +1159,28 @@ export function ESSPayroll({ user, triggerToast }: ESSProps) {
         setEodReports(rData.data.eod || []);
       }
 
-      if (isAdmin) {
-        const empRes = await fetch("/api/employees");
+      // Fetch employees list (only active employees for payroll calculation)
+      try {
+        const empRes = await fetch("/api/employees?all=true");
         const empData = await empRes.json();
-        if (empData.success) {
-          setEmployees(empData.data);
-          if (empData.data.length > 0) {
-            setSelectedEmpId(empData.data[0].id);
-            setBaseSalary(empData.data[0].employeeProfile?.baseSalary || 13000);
+        if (empData.success && Array.isArray(empData.data) && empData.data.length > 0) {
+          const activeEmployees = empData.data.filter((e: any) => {
+            if (!e || !(e.id || e._id)) return false;
+            const st = (e.status || e.employeeProfile?.status || "active").toLowerCase();
+            return !["inactive", "archived", "terminated", "disabled", "exited"].includes(st);
+          });
+          setEmployees(activeEmployees);
+          if (activeEmployees.length > 0) {
+            const firstId = String(activeEmployees[0].id || activeEmployees[0]._id || "");
+            setSelectedEmpId(prev => prev || firstId);
+            setBaseSalary(activeEmployees[0].employeeProfile?.baseSalary || 13000);
           }
+        } else if (user?.id) {
+          setSelectedEmpId(String(user.id));
         }
-      } else if (user?.id) {
-        setSelectedEmpId(user.id);
-        try {
-          const selfRes = await fetch(`/api/employees`);
-          const selfData = await selfRes.json();
-          if (selfData.success && selfData.data) {
-            const selfEmp = selfData.data.find((e: any) => e.id.toString() === user.id.toString());
-            if (selfEmp) {
-              setBaseSalary(selfEmp.employeeProfile?.baseSalary || 13000);
-            }
-          }
-        } catch (e) {
-          console.error("Error fetching self profile details:", e);
-        }
+      } catch (eErr) {
+        console.error("Error loading employees list:", eErr);
+        if (user?.id) setSelectedEmpId(String(user.id));
       }
     } catch (err) {
       console.error("Error fetching payroll data:", err);
@@ -798,10 +1190,12 @@ export function ESSPayroll({ user, triggerToast }: ESSProps) {
   };
 
   const handleEmployeeChange = (empId: string) => {
-    setSelectedEmpId(empId);
-    const emp = employees.find(e => e.id === empId);
+    setSelectedEmpId(String(empId));
+    const emp = employees.find(e => String(e.id) === String(empId));
     if (emp && emp.employeeProfile?.baseSalary) {
       setBaseSalary(emp.employeeProfile.baseSalary);
+    } else if (emp && emp.baseSalary) {
+      setBaseSalary(emp.baseSalary);
     } else {
       setBaseSalary(13000);
     }
@@ -903,16 +1297,22 @@ export function ESSPayroll({ user, triggerToast }: ESSProps) {
                 <div>
                   <label className="text-[9px] uppercase font-bold text-[#9C9890] tracking-wider">Select Employee</label>
                   <select
-                    value={selectedEmpId}
+                    value={String(selectedEmpId || "")}
                     onChange={(e) => handleEmployeeChange(e.target.value)}
-                    className="w-full bg-[#FCFBF9] border border-[#E8E4DF] focus:border-[#C9A84C] p-2.5 rounded-lg text-xs mt-1 text-[#1C1C1A] outline-none"
+                    className="w-full bg-[#FCFBF9] border border-[#E8E4DF] focus:border-[#C9A84C] p-2.5 rounded-lg text-xs mt-1 text-[#1C1C1A] outline-none font-medium"
                     required
                   >
-                    {employees.map(emp => (
-                      <option key={emp.id} value={emp.id}>
-                        {emp.name} ({emp.employeeProfile?.employeeId || "Staff"})
-                      </option>
-                    ))}
+                    <option value="">-- Select Employee --</option>
+                    {employees.map(emp => {
+                      const idStr = String(emp.id || emp._id || "");
+                      const nameStr = emp.name || emp.email || `Employee #${idStr}`;
+                      const codeStr = emp.employeeProfile?.employeeId || emp.employeeId || "Staff";
+                      return (
+                        <option key={idStr} value={idStr}>
+                          {nameStr} ({codeStr})
+                        </option>
+                      );
+                    })}
                   </select>
                 </div>
                 <div>

@@ -53,8 +53,8 @@ export async function GET(req: Request) {
     const dbUser = await User.findByPk(userId, { raw: true });
     const userRole = (dbUser?.role || "Employee").toLowerCase();
 
-    const isOwnerOrDirector = ["owner", "director", "cfo", "legal head", "it admin"].includes(userRole);
-    const isHR = ["hr head", "hr-head", "hr executive", "hr-executive"].includes(userRole);
+    const isOwnerOrDirector = userRole.includes("owner") || userRole.includes("director") || userRole.includes("cfo") || userRole.includes("legal head") || userRole.includes("it admin") || userRole.includes("admin");
+    const isHR = userRole.includes("hr");
 
     let isAdministration = false;
     let designation = "";

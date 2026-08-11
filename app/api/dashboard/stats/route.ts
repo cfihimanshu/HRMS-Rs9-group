@@ -28,8 +28,9 @@ import Expense from "@/models/sequelize/Expense";
 import TaskLog from "@/models/sequelize/TaskLog";
 import DisciplinaryWarning from "@/models/sequelize/DisciplinaryWarning";
 import AbsentFine from "@/models/sequelize/AbsentFine";
-import AssetRequest from "@/models/sequelize/AssetRequest";
 import Department from "@/models/sequelize/Department";
+import AssetRequest from "@/models/sequelize/AssetRequest";
+import AuditLog from "@/models/sequelize/AuditLog";
 
 export async function GET(req: Request) {
   try {
@@ -47,8 +48,12 @@ export async function GET(req: Request) {
     const companyId = searchParams.get("companyId");
 
 
-    // Filters based on selected company
-    let userFilter: any = {};
+    // Filters based on selected company & active status
+    let userFilter: any = {
+      status: {
+        [Op.notIn]: ["inactive", "Inactive", "archived", "Archived", "terminated", "Terminated", "disabled", "Disabled"]
+      }
+    };
     let candidateFilter: any = {};
     let interviewFilter: any = {};
     let generalUserFilter: any = {}; // for Probation, Grievance, Attendance, Exits, etc.
@@ -257,8 +262,15 @@ export async function GET(req: Request) {
         status: "Present"
       }
     });
+    const activeUsersInFilter = await User.findAll({
+      where: userFilter,
+      attributes: ['id']
+    });
+    const activeUserIds = new Set(activeUsersInFilter.map((u: any) => String(u.id)));
+
     const attendanceEmployeeIds = attendanceRecords.map((r: any) => r.employee?.toString()).filter(Boolean);
-    const combinedIds = [...uniqueSodEmployees, ...uniqueEodEmployees, ...attendanceEmployeeIds];
+    const combinedIds = [...uniqueSodEmployees, ...uniqueEodEmployees, ...attendanceEmployeeIds]
+      .filter((id: string) => activeUserIds.has(String(id)));
     const finalPresentIds = combinedIds.filter((v: any, i: number, a: any[]) => a.indexOf(v) === i);
 
     const presentCount = finalPresentIds.length;
@@ -361,11 +373,15 @@ export async function GET(req: Request) {
       raw: true
     });
 
-    // Query live SOD, EOD, and Fines tables so any SOD/EOD submitted directly is included
-    const [recentSods, recentEods, recentFinesList] = await Promise.all([
+    // Query live SOD, EOD, Fines, AuditLogs, Leaves, Expenses, and AssetRequests tables so any Employee Dashboard activity or data change is included
+    const [recentSods, recentEods, recentFinesList, recentAuditLogs, recentLeaves, recentExpenses, recentAssetRequests] = await Promise.all([
       SodReport.findAll({ order: [['createdAt', 'DESC']], limit: 25, raw: true }).catch(() => []),
       EodReport.findAll({ order: [['createdAt', 'DESC']], limit: 25, raw: true }).catch(() => []),
-      AbsentFine.findAll({ order: [['createdAt', 'DESC']], limit: 25, raw: true }).catch(() => [])
+      AbsentFine.findAll({ order: [['createdAt', 'DESC']], limit: 25, raw: true }).catch(() => []),
+      AuditLog.findAll({ order: [['createdAt', 'DESC']], limit: 30, raw: true }).catch(() => []),
+      Leave.findAll({ order: [['createdAt', 'DESC']], limit: 20, raw: true }).catch(() => []),
+      Expense.findAll({ order: [['createdAt', 'DESC']], limit: 20, raw: true }).catch(() => []),
+      AssetRequest.findAll({ order: [['createdAt', 'DESC']], limit: 20, raw: true }).catch(() => [])
     ]);
 
     const allActorIds = [...new Set([
@@ -374,6 +390,10 @@ export async function GET(req: Request) {
       ...recentEods.map((e: any) => e.employee),
       ...recentFinesList.map((f: any) => f.employee),
       ...recentFinesList.map((f: any) => f.imposedBy),
+      ...recentAuditLogs.map((a: any) => a.user),
+      ...recentLeaves.map((l: any) => l.employee),
+      ...recentExpenses.map((ex: any) => ex.employee),
+      ...recentAssetRequests.map((ar: any) => ar.employee)
     ].filter(Boolean))];
 
     let userMap: Record<string, { name: string; role: string }> = {};
@@ -477,6 +497,76 @@ export async function GET(req: Request) {
         action: "FINE_IMPOSED",
         actor: impInfo.name,
         actorRole: impInfo.role || ""
+      });
+    });
+
+    // Convert AuditLogs (Employee dashboard & system data changes)
+    (recentAuditLogs || []).forEach((audit: any) => {
+      const empId = (audit.user || "").toString();
+      const userInfo = userMap[empId] || { name: "Employee", role: "Staff" };
+      const ts = resolveTimestamp(audit.createdAt, audit.timestamp);
+      let actionTitle = audit.action ? audit.action.replace(/_/g, " ") : "Data Change";
+      const actUpper = (audit.action || "").toUpperCase();
+      if (actUpper.includes("UPDATE") || actUpper.includes("EDIT")) actionTitle = "Employee Data Updated";
+      else if (actUpper.includes("CREATE") || actUpper.includes("ADD")) actionTitle = "Employee Record Added";
+      else if (actUpper.includes("DELETE") || actUpper.includes("REMOVE")) actionTitle = "Employee Record Removed";
+
+      actList.push({
+        id: "audit_" + (audit.id || Date.now()),
+        title: actionTitle,
+        description: `${userInfo.name} ${audit.details || `${audit.action || "updated"} ${audit.entity || "record"}`}`,
+        timestamp: ts,
+        action: audit.action || "DATA_CHANGE",
+        actor: userInfo.name,
+        actorRole: userInfo.role || ""
+      });
+    });
+
+    // Convert Leaves (Leave requests from Employee Dashboard)
+    (recentLeaves || []).forEach((l: any) => {
+      const empId = (l.employee || "").toString();
+      const userInfo = userMap[empId] || { name: "Employee", role: "Staff" };
+      const ts = resolveTimestamp(l.createdAt, l.updatedAt);
+      actList.push({
+        id: "leave_" + (l.id || Date.now()),
+        title: `Leave Request (${l.status || "Pending"})`,
+        description: `${userInfo.name} submitted leave request for ${l.type || l.leaveType || "Leave"}${l.reason ? ` — ${l.reason}` : ""}`,
+        timestamp: ts,
+        action: "LEAVE_SUBMITTED",
+        actor: userInfo.name,
+        actorRole: userInfo.role || ""
+      });
+    });
+
+    // Convert Expenses (Expense claims from Employee Dashboard)
+    (recentExpenses || []).forEach((ex: any) => {
+      const empId = (ex.employee || "").toString();
+      const userInfo = userMap[empId] || { name: "Employee", role: "Staff" };
+      const ts = resolveTimestamp(ex.createdAt, ex.updatedAt);
+      actList.push({
+        id: "exp_" + (ex.id || Date.now()),
+        title: `Expense Claim (${ex.status || "Pending"})`,
+        description: `${userInfo.name} submitted expense claim of ₹${ex.amount || 0}${ex.title || ex.category ? ` for ${ex.title || ex.category}` : ""}`,
+        timestamp: ts,
+        action: "EXPENSE_SUBMITTED",
+        actor: userInfo.name,
+        actorRole: userInfo.role || ""
+      });
+    });
+
+    // Convert Asset Requests (Asset requests from Employee Dashboard)
+    (recentAssetRequests || []).forEach((ar: any) => {
+      const empId = (ar.employee || "").toString();
+      const userInfo = userMap[empId] || { name: "Employee", role: "Staff" };
+      const ts = resolveTimestamp(ar.createdAt, ar.updatedAt);
+      actList.push({
+        id: "asset_" + (ar.id || Date.now()),
+        title: `Asset Request (${ar.status || "Pending"})`,
+        description: `${userInfo.name} requested asset: ${ar.assetName || ar.category || "Equipment"}${ar.reason ? ` — ${ar.reason}` : ""}`,
+        timestamp: ts,
+        action: "ASSET_REQUESTED",
+        actor: userInfo.name,
+        actorRole: userInfo.role || ""
       });
     });
 
@@ -679,25 +769,63 @@ export async function GET(req: Request) {
         ])].filter(Boolean);
       } else if (deptFilterParam && deptFilterParam !== "all") {
         // Global viewer has selected a specific department
-        const selectedDepartment = await Department.findOne({
+        const allActiveUsers = await User.findAll({
           where: {
-            [Op.or]: [
-              { id: deptFilterParam },
-              { name: deptFilterParam }
-            ]
+            status: { [Op.notIn]: ["inactive", "Inactive", "archived", "Archived", "terminated", "Terminated", "disabled", "Disabled"] },
+            ...(companyId ? { companies: { [Op.like]: `%${companyId}%` } } : {})
           },
+          attributes: ["id", "role"],
           raw: true
         });
-        const departmentValues = [...new Set([
-          deptFilterParam,
-          (selectedDepartment as any)?.id,
-          (selectedDepartment as any)?.name
-        ].filter(Boolean))];
-        const deptProfiles = await EmployeeProfile.findAll({
-          where: { department: { [Op.in]: departmentValues } },
-          attributes: ["user"]
+
+        const activeIds = allActiveUsers.map((u: any) => u.id);
+        const activeProfiles = await EmployeeProfile.findAll({
+          where: { user: { [Op.in]: activeIds } },
+          raw: true
         });
-        deptUserIds = deptProfiles.map((p: any) => p.user).filter(Boolean);
+
+        const activeProfilesMap = new Map<string, any>();
+        activeProfiles.forEach((p: any) => { activeProfilesMap.set(String(p.user), p); });
+
+        const selectedCanonical = (deptFilterParam || "").toLowerCase().trim();
+
+        const isMatchingDept = (profileDept: string, uRole: string, designation: string) => {
+          const formatted = formatDeptName(profileDept, uRole, designation).toLowerCase();
+          const raw = String(profileDept || "").toLowerCase();
+
+          if (formatted === selectedCanonical || raw === selectedCanonical) return true;
+
+          if (selectedCanonical.includes("hr") || selectedCanonical.includes("human")) {
+            return formatted.includes("human") || raw.includes("hr") || raw.includes("human");
+          }
+          if (selectedCanonical.includes("it") || selectedCanonical.includes("tech") || selectedCanonical.includes("software")) {
+            return formatted.includes("it") || raw.includes("it") || raw.includes("tech") || raw.includes("software");
+          }
+          if (selectedCanonical.includes("account") || selectedCanonical.includes("finance")) {
+            return formatted.includes("finance") || raw.includes("account") || raw.includes("fin");
+          }
+          if (selectedCanonical.includes("legal") || selectedCanonical.includes("recovery") || selectedCanonical.includes("security")) {
+            return formatted.includes("legal") || raw.includes("legal") || raw.includes("recov") || raw.includes("secur");
+          }
+          if (selectedCanonical.includes("admin") || selectedCanonical.includes("operation") || selectedCanonical.includes("ops")) {
+            return formatted.includes("operation") || raw.includes("admin") || raw.includes("oper") || raw.includes("ops");
+          }
+          if (selectedCanonical.includes("management")) {
+            return formatted.includes("management") || raw.includes("mgmt") || raw.includes("manag");
+          }
+          if (selectedCanonical.includes("business development") || selectedCanonical.includes("bda") || selectedCanonical.includes("sales")) {
+            return formatted.includes("business development") || raw.includes("bda") || raw.includes("sales");
+          }
+
+          return false;
+        };
+
+        deptUserIds = allActiveUsers
+          .filter((u: any) => {
+            const p = activeProfilesMap.get(String(u.id));
+            return isMatchingDept(p?.department || "", u.role || "", p?.designation || "");
+          })
+          .map((u: any) => u.id);
       } else {
         // Global admin with "all" departments selected, show all active users in company
         let activeUsersQuery: any = { status: "active" };
@@ -1060,8 +1188,52 @@ export async function GET(req: Request) {
       };
     }
 
-    // Fetch staff list for dashboard viewing (filtered by userFilter)
-    const staffUsers = await User.findAll({ where: userFilter, attributes: ['id', 'name', 'email', 'role', 'status', 'companies'] });
+    // Fetch staff list & departments for dashboard viewing (filtered by userFilter)
+    const [staffUsers, allDepts] = await Promise.all([
+      User.findAll({ where: userFilter, attributes: ['id', 'name', 'email', 'role', 'status', 'companies'] }),
+      Department.findAll({ attributes: ['id', 'name', 'code'], raw: true }).catch(() => [])
+    ]);
+
+    const deptMap = new Map<string, string>();
+    allDepts.forEach((d: any) => {
+      if (d.id) deptMap.set(String(d.id), d.name);
+      if (d.code) deptMap.set(String(d.code), d.name);
+    });
+
+    const formatDeptName = (rawDept: any, role?: string, designation?: string): string => {
+      if (rawDept) {
+        const str = String(rawDept).trim();
+        if (str && str !== 'N/A' && deptMap.has(str)) {
+          return deptMap.get(str)!;
+        }
+
+        if (str.startsWith("DEPT_") || str.startsWith("dept_")) {
+          const parts = str.split("_");
+          if (parts.length >= 3) {
+            const code = parts[2].toUpperCase();
+            if (code === "MAN" || code === "MGMT") return "Management";
+            if (code === "OPE" || code === "OPS") return "Operations";
+            if (code === "SEC" || code === "LEG") return "Security & Legal";
+            if (code === "HR") return "Human Resources";
+            if (code === "FIN" || code === "ACC") return "Finance & Accounts";
+            if (code === "IT" || code === "TECH" || code === "DEV") return "IT & Software";
+            return code.charAt(0) + code.slice(1).toLowerCase();
+          }
+        }
+      }
+
+      // Infer department intelligently from User Role or Designation
+      const roleStr = `${role || ""} ${designation || ""}`.toLowerCase();
+      if (roleStr.includes("hr") || roleStr.includes("human") || roleStr.includes("recruit") || roleStr.includes("hiring")) return "Human Resources";
+      if (roleStr.includes("engineer") || roleStr.includes("developer") || roleStr.includes("it") || roleStr.includes("tech") || roleStr.includes("wordpress") || roleStr.includes("network") || roleStr.includes("software")) return "IT & Software";
+      if (roleStr.includes("owner") || roleStr.includes("director") || roleStr.includes("ceo") || roleStr.includes("coo") || roleStr.includes("cco") || roleStr.includes("cfmo") || roleStr.includes("head")) return "Management";
+      if (roleStr.includes("legal") || roleStr.includes("recovery") || roleStr.includes("security") || roleStr.includes("facility") || roleStr.includes("guard")) return "Security & Legal";
+      if (roleStr.includes("finance") || roleStr.includes("account") || roleStr.includes("billing") || roleStr.includes("payroll")) return "Finance & Accounts";
+      if (roleStr.includes("admin") || roleStr.includes("operation") || roleStr.includes("logistics") || roleStr.includes("manager")) return "Operations";
+
+      return "Operations";
+    };
+
     const staffProfileIds = staffUsers.map((u: any) => u.id);
     let staffProfiles: any[] = [];
     if (staffProfileIds.length > 0) {
@@ -1074,8 +1246,6 @@ export async function GET(req: Request) {
         designation: p.designation || 'N/A'
       };
     });
-
-
 
     const approvedLeavesTodayAll = await Leave.findAll({
       where: {
@@ -1099,6 +1269,7 @@ export async function GET(req: Request) {
         const isPresent = finalPresentIds.includes(uidStr);
         const isOnLeave = Boolean(leaveMap[uidStr]);
         const attendanceStatus = isOnLeave ? "On Leave" : (isPresent ? "Present" : "Absent");
+        const userDept = formatDeptName(staffProfilesMap[u.id]?.department, u.role, staffProfilesMap[u.id]?.designation);
         return {
           id: u.id,
           name: u.name || 'Unnamed',
@@ -1106,7 +1277,7 @@ export async function GET(req: Request) {
           role: u.role || 'Employee',
           status: u.status || 'active',
           companies: Array.isArray(u.companies) ? u.companies.join(', ') : (u.companies || 'N/A'),
-          department: staffProfilesMap[u.id]?.department || 'N/A',
+          department: userDept,
           designation: staffProfilesMap[u.id]?.designation || 'N/A',
           isPresent,
           isOnLeave,
@@ -1126,15 +1297,101 @@ export async function GET(req: Request) {
       (dbUser as any)?.employeeId
     ].filter(Boolean);
 
-    const userPendingTasksCount = await TaskLog.count({
-      where: {
-        [Op.or]: [
-          { employee: { [Op.in]: possibleUserKeys } },
-          { forwardedTo: { [Op.in]: possibleUserKeys } }
-        ],
-        status: { [Op.ne]: "Completed" }
+    const isGlobalViewerOrOwner = ["Owner", "Director", "HR Head", "HR Executive"].includes(sessionUser.role);
+
+    const pendingTaskWhere: any = {
+      [Op.or]: [
+        { status: { [Op.notIn]: ["Completed", "completed", "Done", "done", "Approved", "approved"] } },
+        { status: { [Op.is]: null } }
+      ]
+    };
+
+    if (!isGlobalViewerOrOwner) {
+      pendingTaskWhere[Op.and] = [
+        {
+          [Op.or]: [
+            { employee: { [Op.in]: possibleUserKeys } },
+            { forwardedTo: { [Op.in]: possibleUserKeys } }
+          ]
+        }
+      ];
+    } else if (companyId) {
+      const usersInCompany = await User.findAll({
+        where: { companies: { [Op.like]: `%${companyId}%` } },
+        attributes: ['id', 'email', 'name'],
+        raw: true
+      });
+      const companyUserKeys = usersInCompany.flatMap((u: any) => [u.id, u.email, u.name]).filter(Boolean);
+      if (companyUserKeys.length > 0) {
+        pendingTaskWhere[Op.and] = [
+          {
+            [Op.or]: [
+              { employee: { [Op.in]: companyUserKeys } },
+              { forwardedTo: { [Op.in]: companyUserKeys } }
+            ]
+          }
+        ];
       }
+    }
+
+    let userPendingTasksCount = await TaskLog.count({
+      where: pendingTaskWhere
     });
+
+    // Also include synthetic LegalRecoverySchedule tasks merged into My Tasks page (/api/tasks)
+    try {
+      const LegalRecoverySchedule = (sequelize.models as any).LegalRecoverySchedule || (await import("@/models/sequelize/LegalRecoverySchedule")).default;
+      if (LegalRecoverySchedule) {
+        await LegalRecoverySchedule.sync();
+        const allTaskLogs = await TaskLog.findAll({
+          where: pendingTaskWhere,
+          attributes: ["id", "scheduleId"],
+          raw: true
+        });
+        const existingTaskIds = new Set(allTaskLogs.map((r: any) => String(r.id || "").trim()));
+        const existingSchIds = new Set(allTaskLogs.map((r: any) => String(r.scheduleId || "").trim()).filter(Boolean));
+
+        const legalUserProfiles = await EmployeeProfile.findAll({
+          where: {
+            [Op.or]: [
+              { vertical: { [Op.like]: "%legal%" } },
+              { vertical: { [Op.like]: "%security%" } },
+              { department: { [Op.like]: "%legal%" } },
+              { department: { [Op.like]: "%security%" } }
+            ]
+          },
+          attributes: ["user"],
+          raw: true
+        });
+        const legalUserIds = new Set(legalUserProfiles.map((p: any) => String(p.user)));
+
+        const schRecords = await LegalRecoverySchedule.findAll({
+          where: {
+            status: {
+              [Op.or]: [
+                { [Op.notIn]: ["Completed", "completed", "Done", "done", "Approved", "approved"] },
+                { [Op.is]: null }
+              ]
+            }
+          },
+          raw: true
+        });
+
+        const missingSchs = schRecords.filter((s: any) => {
+          const empIdStr = String(s.employeeId || "").trim();
+          if (!legalUserIds.has(empIdStr)) return false;
+          const sId = String(s.id || "").trim();
+          const tId = String(s.taskId || "").trim();
+          if (sId && (existingTaskIds.has(sId) || existingSchIds.has(sId))) return false;
+          if (tId && (existingTaskIds.has(tId) || existingSchIds.has(tId))) return false;
+          return true;
+        });
+
+        userPendingTasksCount += missingSchs.length;
+      }
+    } catch (schErr) {
+      console.error("Error merging LegalRecoverySchedule into stats pending count:", schErr);
+    }
 
     const [pendingLeavesCount, pendingAssetRequestsCount] = await Promise.all([
       Leave.count({ where: { status: "Pending" } }),

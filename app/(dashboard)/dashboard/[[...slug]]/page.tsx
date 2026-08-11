@@ -82,9 +82,11 @@ export default function UnifiedEnterpriseDashboard() {
   const [activeTab, setActiveTab] = useState<string>(() => routeParams?.slug?.[0] || "dashboard");
   const [businessLeadsFilter, setBusinessLeadsFilter] = useState<string>("All");
   const [kanbanSearchFilter, setKanbanSearchFilter] = useState<string>("");
+  const [kanbanUserFilter, setKanbanUserFilter] = useState<string>("All");
   const [performanceSubTab, setPerformanceSubTab] = useState<string>("visual-dashboard");
+  const [leaveSearchFilter, setLeaveSearchFilter] = useState<string>("");
 
-  const handleNavigateTab = (tab: string, filter?: string) => {
+  const handleNavigateTab = (tab: string, filter?: string, userFilter?: string) => {
     const isOwner = userRole === "Owner" || rawRole === "Owner" || rawRole?.toLowerCase() === "owner" || userRole?.toLowerCase() === "owner";
     const isHomeTab = tab === "dashboard" || tab === "ess" || tab === "ess-dashboard" || tab === "attendance";
     if (!isOwner && stats?.currentUserCompliance && !stats.currentUserCompliance.hasSod && !isHomeTab) {
@@ -103,14 +105,25 @@ export default function UnifiedEnterpriseDashboard() {
     if (tab === "business-leads" && filter) {
       setBusinessLeadsFilter(filter);
       setKanbanSearchFilter("");
-    } else if (tab === "tasks" && filter) {
-      setKanbanSearchFilter(filter);
+      setKanbanUserFilter("All");
+      setLeaveSearchFilter("");
+    } else if (tab === "tasks") {
+      setKanbanSearchFilter(filter || "");
+      setKanbanUserFilter(userFilter || "All");
       setBusinessLeadsFilter("All");
+      setLeaveSearchFilter("");
     } else if (tab === "performance" && filter) {
       setPerformanceSubTab(filter);
+    } else if ((tab === "leave-request" || tab === "ess-leaves") && filter) {
+      setLeaveSearchFilter(filter);
+      setKanbanSearchFilter("");
+      setKanbanUserFilter("All");
+      setBusinessLeadsFilter("All");
     } else {
       setBusinessLeadsFilter("All");
       setKanbanSearchFilter("");
+      setKanbanUserFilter("All");
+      setLeaveSearchFilter("");
     }
   };
   const [mobileMenuOpen, setMobileMenuOpen] = useState<boolean>(false);
@@ -1189,7 +1202,7 @@ export default function UnifiedEnterpriseDashboard() {
             <ESSDashboard user={session?.user} triggerToast={triggerToast} setActiveTab={handleNavigateTab} toggleModal={toggleModal} stats={stats} />
           )}
           {activeTab === "ess-leaves" && (
-            <ESSLeaves user={session?.user} triggerToast={triggerToast} stats={stats} />
+            <ESSLeaves user={session?.user} triggerToast={triggerToast} stats={stats} initialSearchFilter={leaveSearchFilter} />
           )}
           {activeTab === "ess-payroll" && (
             <ESSPayroll user={session?.user} triggerToast={triggerToast} />
@@ -1411,6 +1424,7 @@ export default function UnifiedEnterpriseDashboard() {
             <KanbanBoard
               initialDateFilter={taskDateFilter}
               initialSearchFilter={kanbanSearchFilter}
+              initialUserFilter={kanbanUserFilter}
             />
           )}
 
@@ -1432,7 +1446,7 @@ export default function UnifiedEnterpriseDashboard() {
           )}
 
           {activeTab === "leave-request" && (
-            <LeaveRequestTab sessionUser={session?.user} />
+            <LeaveRequestTab sessionUser={session?.user} initialSearchFilter={leaveSearchFilter} />
           )}
 
           {activeTab === "associates" && (

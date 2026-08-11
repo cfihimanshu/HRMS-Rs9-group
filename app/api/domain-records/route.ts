@@ -3,8 +3,162 @@ import { Op } from "sequelize";
 import sequelize, { safeAuthenticate } from "@/lib/sequelize";
 import { requireApiSession } from "@/lib/apiAuth";
 import DomainRecord from "@/models/sequelize/DomainRecord";
+import User from "@/models/sequelize/User";
+import Notification from "@/models/sequelize/Notification";
+import { sendEmail } from "@/lib/email";
 
 export const dynamic = "force-dynamic";
+
+// ─── Background Domain Expiry Reminder Daemon ────────────────────────────────
+// Checks for domain/infrastructure records expiring within 30 days every 60s
+// Sends daily emails & in-app notifications with remaining days count
+
+let daemonStarted = (global as any).__domainReminderDaemonStarted || false;
+const isServerless = process.env.VERCEL === "1" || process.env.NODE_ENV === "production";
+
+if (!daemonStarted && !isServerless) {
+  (global as any).__domainReminderDaemonStarted = true;
+  console.log("🌐 [Domain Expiry Daemon] Started background reminder interval (every 60s)...");
+
+  setInterval(async () => {
+    try {
+      await safeAuthenticate(5000);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const todayStr = today.toISOString().slice(0, 10);
+
+      const records = await DomainRecord.findAll({
+        where: {
+          expiryDate: { [Op.ne]: null }
+        }
+      });
+
+      const portalUrl = "https://hrms.cfi247.com/";
+
+      for (const record of records) {
+        try {
+          if (!record.expiryDate || record.expiryDate === "Invalid date") continue;
+          
+          const expDate = new Date(record.expiryDate);
+          if (isNaN(expDate.getTime())) continue;
+
+          expDate.setHours(0, 0, 0, 0);
+          const diffTime = expDate.getTime() - today.getTime();
+          const daysRemaining = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+          // Trigger when domain is expiring within 30 days (<= 30 days) and not sent today
+          if (daysRemaining <= 30 && record.lastExpiryReminderSent !== todayStr) {
+            console.log(`🌐 [Domain Expiry Daemon] Domain ${record.name} expires in ${daysRemaining} days. Sending daily reminder...`);
+
+            const recipients: string[] = [];
+            if (record.attachedEmail && record.attachedEmail.includes("@")) {
+              recipients.push(record.attachedEmail.trim());
+            }
+
+            try {
+              const adminUsers = await User.findAll({
+                where: {
+                  role: { [Op.or]: ["Owner", "Director", "IT Admin", "IT Manager", "HR Head"] }
+                },
+                attributes: ["id", "email", "name"],
+                raw: true
+              });
+
+              adminUsers.forEach((u: any) => {
+                if (u.email && !recipients.includes(u.email)) {
+                  recipients.push(u.email);
+                }
+              });
+
+              // Create in-app notifications for admins
+              for (const admin of adminUsers) {
+                if (admin.id) {
+                  const notifId = Date.now().toString() + Math.random().toString(36).substring(2, 6);
+                  await Notification.create({
+                    id: notifId,
+                    recipient: String(admin.id),
+                    title: `Domain Expiry Alert: ${record.name}`,
+                    message: `This domain (${record.name}) is going to be expired in ${daysRemaining} days.`,
+                    read: false
+                  }).catch(() => {});
+                }
+              }
+            } catch (aErr) {
+              console.error("Admin user fetch error in domain daemon:", aErr);
+            }
+
+            if (recipients.length > 0) {
+              const daysLabel = daysRemaining < 0 
+                ? `EXPIRED ${Math.abs(daysRemaining)} days ago`
+                : daysRemaining === 0 
+                  ? "0 days (EXPIRES TODAY)" 
+                  : `${daysRemaining} days`;
+
+              const html = `<!DOCTYPE html>
+<html><head><meta charset="utf-8">
+<style>
+  body{font-family:'Segoe UI',system-ui,sans-serif;background:#f8fafc;margin:0;padding:0;color:#1e293b}
+  .wrap{max-width:580px;margin:32px auto;background:#fff;border-radius:16px;overflow:hidden;border:1px solid #e2e8f0;box-shadow:0 4px 20px rgba(0,0,0,.06)}
+  .header{background:linear-gradient(135deg,#e11d48 0%,#4f46e5 100%);padding:28px 24px;color:#fff;text-align:center}
+  .header h1{margin:0;font-size:20px;font-weight:700}
+  .header p{margin:6px 0 0;font-size:13px;opacity:.9}
+  .body{padding:28px 24px}
+  .badge{display:inline-block;padding:4px 12px;border-radius:999px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;background:#ffe4e6;color:#be123c;margin-bottom:12px}
+  .box{background:#f1f5f9;border:1px solid #e2e8f0;border-radius:12px;padding:18px;margin:16px 0}
+  .box h2{margin:0 0 6px;font-size:18px;font-weight:700;color:#0f172a}
+  .box p{margin:4px 0;font-size:13px;color:#475569}
+  .due{background:#fef3c7;border:1px solid #fde68a;border-radius:10px;padding:12px 16px;margin:16px 0;font-size:14px;font-weight:700;color:#92400e}
+  .footer{background:#f8fafc;padding:16px 24px;text-align:center;font-size:11px;color:#94a3b8;border-top:1px solid #e2e8f0}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="header">
+    <h1>🌐 Domain Expiry Alert</h1>
+    <p>Infrastructure Expiry Daily Notice</p>
+  </div>
+  <div class="body">
+    <div class="badge">${record.recordType || "Domain Record"}</div>
+    <div class="box">
+      <h2>${record.name}</h2>
+      ${record.platform ? `<p><strong>Platform / Registrar:</strong> ${record.platform}</p>` : ""}
+      ${record.attachedEmail ? `<p><strong>Attached Email:</strong> ${record.attachedEmail}</p>` : ""}
+      ${record.expiryDate ? `<p><strong>Expiry Date:</strong> ${record.expiryDate}</p>` : ""}
+    </div>
+    <div class="due">
+      ⏰ Notice: This domain (${record.name}) is going to be expired in ${daysLabel}.
+    </div>
+    <p>Please renew the domain or update the renewal status in the portal to prevent service interruption.</p>
+    <p style="text-align:center;margin-top:20px">
+      <a href="${portalUrl}" style="background:#4f46e5;color:#fff;padding:10px 24px;border-radius:8px;text-decoration:none;font-weight:700;font-size:13px">Open Infrastructure Portal →</a>
+    </p>
+  </div>
+  <div class="footer">RS9 Group HRMS • Domain & Infrastructure Registry</div>
+</div>
+</body></html>`;
+
+              await sendEmail({
+                to: recipients,
+                subject: `🌐 Domain Expiry Warning: This domain (${record.name}) is going to be expired in ${daysRemaining} days.`,
+                html
+              });
+            }
+
+            record.lastExpiryReminderSent = todayStr;
+            await record.save();
+          }
+        } catch (itemErr) {
+          console.error("Error in domain expiry daemon for item:", record.id, itemErr);
+        }
+      }
+    } catch (daemonErr: any) {
+      if (daemonErr?.name === "SequelizeConnectionAcquireTimeoutError" || daemonErr?.message?.includes("timeout")) {
+        return;
+      }
+      console.error("🌐 [Domain Expiry Daemon] Error:", daemonErr);
+    }
+  }, 60000);
+}
 
 async function ensureDomainRecordTable() {
   try {

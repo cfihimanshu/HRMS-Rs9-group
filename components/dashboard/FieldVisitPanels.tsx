@@ -418,9 +418,38 @@ export function FieldVisitLogs({ sessionUser, triggerToast }: FieldVisitLogsProp
     return true; // "all"
   };
 
+  const formatCleanDept = (rawDept: any): string => {
+    if (!rawDept) return "General";
+    const str = String(rawDept).trim();
+    if (!str) return "General";
+
+    if (str.startsWith("DEPT_") || str.startsWith("dept_")) {
+      const parts = str.split("_");
+      if (parts.length >= 3) {
+        const code = parts[2].toUpperCase();
+        if (code === "MAN" || code === "MGMT") return "Management";
+        if (code === "OPE" || code === "OPS") return "Operations";
+        if (code === "SEC" || code === "LEG") return "Security & Legal";
+        if (code === "HR") return "Human Resources";
+        if (code === "FIN" || code === "ACC") return "Finance & Accounts";
+        if (code === "IT" || code === "TECH") return "IT & Software";
+        return code.charAt(0) + code.slice(1).toLowerCase();
+      }
+    }
+
+    if (/^\d+$/.test(str)) {
+      return "General";
+    }
+
+    return str;
+  };
+
   const departmentsList = React.useMemo(() => {
     const depts = new Set<string>();
-    visits.forEach((v: any) => v.employee?.department && depts.add(v.employee.department));
+    visits.forEach((v: any) => {
+      const formatted = formatCleanDept(v.employee?.department);
+      if (formatted) depts.add(formatted);
+    });
     return Array.from(depts).sort();
   }, [visits]);
 
@@ -438,7 +467,7 @@ export function FieldVisitLogs({ sessionUser, triggerToast }: FieldVisitLogsProp
 
     let matchDept = true;
     if (isManager && selectedDept) {
-      matchDept = v.employee?.department === selectedDept;
+      matchDept = formatCleanDept(v.employee?.department) === selectedDept;
     }
 
     return matchSearch && matchDate && matchDept;
@@ -1190,7 +1219,7 @@ export function FieldVisitLogs({ sessionUser, triggerToast }: FieldVisitLogsProp
                           >
                             <td className="px-6 py-4">
                               <div className="font-bold text-slate-850 dark:text-white">{visit.employee?.name || "Unknown"}</div>
-                              <div className="text-[10px] text-slate-455 font-mono mt-0.5">{visit.employee?.email} | {visit.employee?.department}</div>
+                              <div className="text-[10px] text-slate-455 font-mono mt-0.5">{visit.employee?.email} | {formatCleanDept(visit.employee?.department)}</div>
                             </td>
                             <td className="px-6 py-4">
                               <div className="flex items-center gap-1">

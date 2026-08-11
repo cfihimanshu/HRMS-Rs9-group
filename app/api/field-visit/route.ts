@@ -8,6 +8,8 @@ import FieldVisit from "@/models/sequelize/FieldVisit";
 import { logAudit } from "@/lib/audit";
 import { Op } from "sequelize";
 
+import Department from "@/models/sequelize/Department";
+
 export async function GET(req: Request) {
   try {
     const session = await getServerSession(authOptions);
@@ -43,12 +45,43 @@ export async function GET(req: Request) {
     });
 
     // Resolve employee details to attach to visits
-    const users = await User.findAll({
-      attributes: ["id", "name", "email"]
+    const [users, profiles, departments] = await Promise.all([
+      User.findAll({ attributes: ["id", "name", "email"] }),
+      EmployeeProfile.findAll({ attributes: ["user", "department"] }),
+      Department.findAll({ attributes: ["id", "name"], raw: true })
+    ]);
+
+    const deptMap = new Map<string, string>();
+    departments.forEach((d: any) => {
+      if (d.id) deptMap.set(String(d.id), d.name);
     });
-    const profiles = await EmployeeProfile.findAll({
-      attributes: ["user", "department"]
-    });
+
+    const formatDept = (rawDept: any): string => {
+      if (!rawDept) return "General";
+      const str = String(rawDept).trim();
+      if (!str) return "General";
+      if (deptMap.has(str)) return deptMap.get(str)!;
+
+      if (str.startsWith("DEPT_") || str.startsWith("dept_")) {
+        const parts = str.split("_");
+        if (parts.length >= 3) {
+          const code = parts[2].toUpperCase();
+          if (code === "MAN" || code === "MGMT") return "Management";
+          if (code === "OPE" || code === "OPS") return "Operations";
+          if (code === "SEC" || code === "LEG") return "Security & Legal";
+          if (code === "HR") return "Human Resources";
+          if (code === "FIN" || code === "ACC") return "Finance & Accounts";
+          if (code === "IT" || code === "TECH") return "IT & Software";
+          return code.charAt(0) + code.slice(1).toLowerCase();
+        }
+      }
+
+      if (/^\d+$/.test(str)) {
+        return "General";
+      }
+
+      return str;
+    };
 
     const userMap = users.reduce((acc: any, u: any) => {
       acc[u.id] = { name: u.name, email: u.email };
@@ -56,7 +89,7 @@ export async function GET(req: Request) {
     }, {});
 
     const profileMap = profiles.reduce((acc: any, p: any) => {
-      acc[p.user] = p.department;
+      acc[p.user] = formatDept(p.department);
       return acc;
     }, {});
 
