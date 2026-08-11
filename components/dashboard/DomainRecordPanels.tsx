@@ -1059,31 +1059,45 @@ export default function DomainRecordPanels({ userRole, triggerToast, sessionUser
                         <input type="date" value={form.expiryDate} onChange={e => setForm({...form, expiryDate: e.target.value})} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 outline-none" />
                       </div>
 
-                      {/* Renewal Date - Only appears when expiry date is close (<= 60 days) or active renewal date */}
+                      {/* Renewal Date Option:
+                          - In NEW form (modalMode === "add"): show only if expiryDate is within this current calendar year (or if renewalDate is set)
+                          - In EDIT form (modalMode === "edit"): show always as currently available
+                      */}
                       {(() => {
-                        let isClose = Boolean(form.renewalDate && form.renewalDate !== "Invalid date");
-                        if (!isClose && form.expiryDate && form.expiryDate !== "Invalid date") {
+                        const isEditMode = modalMode === "edit";
+                        const hasRenewalDate = Boolean(form.renewalDate && form.renewalDate !== "Invalid date");
+                        
+                        let isExpiryWithinThisYear = false;
+                        if (form.expiryDate && form.expiryDate !== "Invalid date") {
                           try {
-                            const exp = new Date(form.expiryDate).getTime();
-                            const now = new Date().getTime();
-                            if (!isNaN(exp)) {
-                              const diffDays = (exp - now) / (1000 * 3600 * 24);
-                              if (diffDays <= 60) isClose = true;
+                            const expYear = new Date(form.expiryDate).getFullYear();
+                            const currentYear = new Date().getFullYear();
+                            if (!isNaN(expYear) && expYear === currentYear) {
+                              isExpiryWithinThisYear = true;
                             }
                           } catch (_) {}
                         }
-                        return isClose ? (
+
+                        // In Add mode: show ONLY if expiryDate is within this year OR if renewalDate is already set
+                        // In Edit mode: show always (as it currently works)
+                        const showRenewalSection = isEditMode || isExpiryWithinThisYear || hasRenewalDate;
+
+                        if (!showRenewalSection) return null;
+
+                        return hasRenewalDate ? (
                           <div className="space-y-1 animate-in fade-in">
                             <div className="flex items-center justify-between">
-                              <label className="text-[10px] font-bold uppercase text-amber-900">Renewal Date *</label>
-                              <span className="text-[9px] font-bold text-amber-700 bg-amber-100 px-1.5 py-0.5 rounded">⚠️ Expiry Approaching</span>
+                              <label className="text-[10px] font-bold uppercase text-amber-900">Renewal Date</label>
+                              <span className="text-[9px] font-bold text-amber-700 bg-amber-100 px-1.5 py-0.5 rounded">
+                                {isExpiryWithinThisYear ? "⚠️ Expiring This Year" : "Renewal Info"}
+                              </span>
                             </div>
                             <input type="date" value={form.renewalDate} onChange={e => setForm({...form, renewalDate: e.target.value})} className="w-full px-3 py-2 bg-amber-50/80 border border-amber-300 rounded-xl text-xs font-semibold text-slate-900 outline-none" />
                           </div>
                         ) : (
                           <div className="flex items-end pb-2">
-                            <button type="button" onClick={() => setForm({...form, renewalDate: new Date().toISOString().slice(0,10)})} className="text-[11px] text-indigo-600 hover:text-indigo-800 font-bold underline">
-                              + Add Renewal Date (Optional)
+                            <button type="button" onClick={() => setForm({...form, renewalDate: form.expiryDate || new Date().toISOString().slice(0,10)})} className="text-[11px] text-indigo-600 hover:text-indigo-800 font-bold underline">
+                              + Add Renewal Date
                             </button>
                           </div>
                         );

@@ -399,6 +399,11 @@ export async function GET(req: Request) {
 
     const userRole = (session.user as any).role;
     const userId = (session.user as any).id;
+    const roleLower = String(userRole || "").toLowerCase();
+
+    // Owner, Director, HR Head, HR Executive, Admin see ALL leaves from ALL employees
+    const isGlobalManagerOrOwner = ["owner", "director", "hr head", "hr-head", "hr executive", "hr-executive", "admin", "super admin", "cfo"].some(r => roleLower.includes(r)) ||
+      roleLower.includes("owner") || roleLower.includes("director") || roleLower.includes("hr");
 
     // Get mapped company IDs of the logged-in user
     const loggedInUser = await User.findByPk(userId);
@@ -422,7 +427,7 @@ export async function GET(req: Request) {
       return comps.some((id: any) => loggedInUserCompanies.some((cid: any) => cid.toString() === id.toString()));
     }).map((u: any) => u.id);
 
-    // Find direct reports of this user (even if reporting manager is in a different department/role)
+    // Find direct reports of this user
     let directReportUserIds: string[] = [];
     if (loggedInUser && loggedInUser.name) {
       const reports = await EmployeeProfile.findAll({
@@ -432,13 +437,15 @@ export async function GET(req: Request) {
       directReportUserIds = reports.map((p: any) => p.user).filter(Boolean);
     }
 
-    // ── Dynamic Approval Routing Matrix check for Leave GET permissions
+    // Dynamic Approval Routing Matrix check for Leave GET permissions
     const { getAuthorizedApplicantIdsForApprover } = await import("@/lib/approvalRouting");
     const { isGeneralApprover, overrideApplicantIds } = await getAuthorizedApplicantIdsForApprover("leave_requests", userId, userRole);
 
     let filter: any = {};
 
-    if (isGeneralApprover) {
+    if (isGlobalManagerOrOwner) {
+      filter = {}; // Owner, Directors & HR see ALL leaves from ALL employees across all companies
+    } else if (isGeneralApprover) {
       if (loggedInUserCompanies.length > 0) {
         const allTargetUserIds = Array.from(new Set([...sameCompanyUserIds, ...directReportUserIds]));
         filter = {

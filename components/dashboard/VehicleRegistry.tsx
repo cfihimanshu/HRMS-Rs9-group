@@ -247,14 +247,63 @@ export default function VehicleRegistry({ triggerToast }: { triggerToast?: (m: s
     const j = await r.json(); if (!r.ok) return notify(j.error || "Document delete failed");
     notify("✓ Document deleted"); await detail(selected);
   };
-  const stats = [["Total Vehicles", summary.total || 0], ["Available", summary.available || 0], ["Assigned", summary.assigned || 0], ["Maintenance", summary.maintenance || 0], ["Sold", summary.sold || 0], ["Docs Expiring (30d)", summary.expiringDocuments || 0]];
+  const stats = [
+    { label: "Total Vehicles", value: summary.total || 0, key: "All" },
+    { label: "Available", value: summary.available || 0, key: "Available" },
+    { label: "Assigned", value: summary.assigned || 0, key: "Assigned" },
+    { label: "Maintenance", value: summary.maintenance || 0, key: "Maintenance" },
+    { label: "Sold", value: summary.sold || 0, key: "Sold" },
+    { label: "Docs Expiring (30d)", value: summary.expiringDocuments || 0, key: "Docs Expiring (30d)" },
+  ];
 
   return <div className="space-y-5">
     <datalist id="vehicle-people">{people.map(p => <option key={p.id} value={p.name}>{p.employeeId} · {p.department}</option>)}</datalist>
     <div className="flex flex-col md:flex-row justify-between gap-3"><div><h1 className="text-2xl font-serif">Vehicle Registry</h1><p className="text-xs text-[#77736C] mt-1">Company vehicles, documents, expiry and assignment history.</p></div><button onClick={() => setModal("vehicle")} className="bg-[#1C1C1A] text-white rounded-xl px-4 py-2.5 text-xs font-semibold flex items-center gap-2"><Plus className="w-4 h-4" /> Add Vehicle</button></div>
-    <div className="grid grid-cols-2 xl:grid-cols-6 gap-3">{stats.map(([l, v]) => <div key={l} className="bg-white border border-[#E8E4DF] rounded-xl p-4"><div className="text-xl font-semibold">{v}</div><div className="text-[9px] uppercase tracking-wider text-[#77736C] mt-1">{l}</div></div>)}</div>
+    <div className="grid grid-cols-2 xl:grid-cols-6 gap-3">
+      {stats.map(({ label, value, key }) => {
+        const isActive = status === key;
+        const activeStyles: Record<string, string> = {
+          "All": "bg-[#F9F5EA] text-[#4A3C17] border-[#C9A84C] ring-2 ring-[#C9A84C]/40 shadow-sm scale-[1.02]",
+          "Available": "bg-emerald-50 text-emerald-900 border-emerald-400 ring-2 ring-emerald-400/40 shadow-sm scale-[1.02]",
+          "Assigned": "bg-blue-50 text-blue-900 border-blue-400 ring-2 ring-blue-400/40 shadow-sm scale-[1.02]",
+          "Maintenance": "bg-rose-50 text-rose-900 border-rose-400 ring-2 ring-rose-400/40 shadow-sm scale-[1.02]",
+          "Sold": "bg-amber-100/80 text-amber-950 border-amber-400 ring-2 ring-amber-400/40 shadow-sm scale-[1.02]",
+          "Docs Expiring (30d)": "bg-orange-50 text-orange-950 border-orange-400 ring-2 ring-orange-400/40 shadow-sm scale-[1.02]",
+        };
+        return (
+          <button
+            key={label}
+            type="button"
+            onClick={() => setStatus(isActive && key !== "All" ? "All" : key)}
+            className={`text-left rounded-xl p-4 transition-all border cursor-pointer select-none ${
+              isActive
+                ? activeStyles[key] || "bg-[#F9F5EA] text-[#4A3C17] border-[#C9A84C] ring-2 ring-[#C9A84C]/40 shadow-sm scale-[1.02]"
+                : "bg-white text-slate-800 border-[#E8E4DF] hover:border-[#C9A84C] hover:shadow-xs hover:-translate-y-0.5"
+            }`}
+          >
+            <div className="text-xl font-bold">{value}</div>
+            <div className={`text-[9px] uppercase tracking-wider mt-1 font-semibold ${isActive ? "opacity-90" : "text-[#77736C]"}`}>{label}</div>
+          </button>
+        );
+      })}
+    </div>
     <div className="bg-white border border-[#E8E4DF] rounded-xl overflow-hidden">
-      <div className="p-4 border-b flex gap-3"><div className="relative flex-1"><Search className="absolute left-3 top-2.5 w-4 h-4 text-slate-400" /><input value={search} onChange={e => setSearch(e.target.value)} placeholder="Registration, make, model, assignee, buyer..." className="w-full border rounded-lg pl-9 pr-3 py-2 text-xs" /></div><select value={status} onChange={e => setStatus(e.target.value)} className="border rounded-lg px-3 text-xs">{["All", "Available", "Assigned", "Maintenance", "Out of Service", "Sold"].map(x => <option key={x}>{x}</option>)}</select></div>
+      <div className="p-4 border-b flex flex-wrap items-center gap-3">
+        <div className="relative flex-1 min-w-[200px]"><Search className="absolute left-3 top-2.5 w-4 h-4 text-slate-400" /><input value={search} onChange={e => setSearch(e.target.value)} placeholder="Registration, make, model, assignee, buyer..." className="w-full border rounded-lg pl-9 pr-3 py-2 text-xs" /></div>
+        <div className="flex items-center gap-2">
+          <select value={status} onChange={e => setStatus(e.target.value)} className="border rounded-lg px-3 py-2 text-xs bg-white">{["All", "Available", "Assigned", "Maintenance", "Out of Service", "Sold", "Docs Expiring (30d)"].map(x => <option key={x} value={x}>{x}</option>)}</select>
+          {status !== "All" && (
+            <button
+              onClick={() => setStatus("All")}
+              className="text-[10px] bg-amber-100 text-amber-900 border border-amber-300 rounded-lg px-2.5 py-1.5 font-bold flex items-center gap-1 hover:bg-amber-200 transition-colors"
+              title="Clear status filter"
+            >
+              <span>Filter: {status}</span>
+              <X className="w-3 h-3" />
+            </button>
+          )}
+        </div>
+      </div>
       <div className="overflow-x-auto"><table className="w-full min-w-[900px] text-left"><thead className="bg-[#F7F4EF] text-[9px] uppercase tracking-wider text-[#77736C]"><tr>{["Number Plate", "Owner Name", "Vehicle Details", "Current Assignee / Buyer", "Location", "Status", "Action"].map(x => <th key={x} className="px-4 py-3">{x}</th>)}</tr></thead><tbody className="divide-y">
         {loading ? <tr><td colSpan={7} className="py-14 text-center"><Loader2 className="animate-spin mx-auto" /></td></tr> : vehicles.map(v => <tr key={v.id} onClick={() => detail(v)} className="hover:bg-[#FCFAF7] cursor-pointer">
       <td className="px-4 py-3"><div className="font-mono font-bold text-sm">{v.registrationNumber}</div><div className="text-[10px] text-slate-500">{v.vehicleType}</div></td>

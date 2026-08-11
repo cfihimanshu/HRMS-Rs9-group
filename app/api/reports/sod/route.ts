@@ -103,6 +103,12 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: false, error: "Missing required fields (Task Summary, Type)" }, { status: 400 });
     }
 
+    if (taskType === "Legal Recovery" || (taskSummary && taskSummary.includes("Legal Recovery SOD"))) {
+      if (!Array.isArray(legalSchedules) || legalSchedules.length === 0) {
+        return NextResponse.json({ success: false, error: "Strict Rule: At least 1 schedule item is required to declare Legal Recovery SOD." }, { status: 400 });
+      }
+    }
+
     if (!selfieUrl && (!legalSchedules || legalSchedules.length === 0)) {
       return NextResponse.json({ success: false, error: "Missing strict required fields (Task Summary, Type, or Selfie)" }, { status: 400 });
     }

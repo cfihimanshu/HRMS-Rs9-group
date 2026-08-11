@@ -18,28 +18,81 @@ export async function POST(req: Request) {
 
     const {
       partnerName,
+      contactPerson,
+      email,
+      mobile,
+      alternateMobile,
+      address,
+      pincode,
       territory,
+      state,
       brandProject,
-      agreementUrl,
       revenueShare,
+      franchiseFee,
+      agreementStartDate,
+      agreementEndDate,
+      gstin,
+      pan,
+      agreementUrl,
+      kycDocUrl,
       reportingPerson,
       riskLevel,
       status,
     } = body;
 
-    if (!partnerName || !territory || !brandProject || !agreementUrl) {
-      return NextResponse.json({ success: false, error: "Missing required fields" }, { status: 400 });
+    if (!partnerName) {
+      return NextResponse.json({ success: false, error: "Partner Name is required" }, { status: 400 });
     }
 
     await sequelize.authenticate();
+    await FranchiseRegistration.sync();
+
+    // Ensure all new columns exist in MySQL franchiseregistrations table
+    const columnsToAdd = [
+      "contactPerson VARCHAR(255)",
+      "email VARCHAR(255)",
+      "mobile VARCHAR(255)",
+      "alternateMobile VARCHAR(255)",
+      "address TEXT",
+      "pincode VARCHAR(255)",
+      "state VARCHAR(255)",
+      "franchiseFee VARCHAR(255)",
+      "agreementStartDate VARCHAR(255)",
+      "agreementEndDate VARCHAR(255)",
+      "gstin VARCHAR(255)",
+      "pan VARCHAR(255)",
+      "kycDocUrl VARCHAR(255)",
+    ];
+
+    for (const col of columnsToAdd) {
+      try {
+        await sequelize.query(`ALTER TABLE franchiseregistrations ADD COLUMN ${col}`);
+      } catch (err) {
+        // Ignored if column already exists
+      }
+    }
 
     const record = await FranchiseRegistration.create({
+      id: Date.now().toString(),
       registeredBy,
       partnerName,
+      contactPerson,
+      email,
+      mobile,
+      alternateMobile,
+      address,
+      pincode,
       territory,
+      state,
       brandProject,
-      agreementUrl,
       revenueShare: revenueShare || "Standard",
+      franchiseFee,
+      agreementStartDate,
+      agreementEndDate,
+      gstin,
+      pan,
+      agreementUrl,
+      kycDocUrl,
       reportingPerson: reportingPerson || "Manager",
       riskLevel: riskLevel || "Low",
       status: status || "Pending",
@@ -71,6 +124,7 @@ export async function GET(req: Request) {
     }
 
     await sequelize.authenticate();
+    await FranchiseRegistration.sync();
 
     const records = await FranchiseRegistration.findAll({
       order: [['createdAt', 'DESC']],
@@ -95,6 +149,64 @@ export async function GET(req: Request) {
     });
 
     return NextResponse.json({ success: true, data });
+  } catch (error: any) {
+    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+  }
+}
+
+// PUT: Update FORM-11 record
+export async function PUT(req: Request) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session || !session.user) {
+      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
+    }
+
+    const body = await req.json();
+    const { id, ...updateData } = body;
+
+    if (!id) {
+      return NextResponse.json({ success: false, error: "Record ID is required" }, { status: 400 });
+    }
+
+    await sequelize.authenticate();
+    const record = await FranchiseRegistration.findByPk(id);
+
+    if (!record) {
+      return NextResponse.json({ success: false, error: "Record not found" }, { status: 404 });
+    }
+
+    await record.update(updateData);
+
+    return NextResponse.json({ success: true, data: record });
+  } catch (error: any) {
+    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+  }
+}
+
+// DELETE: Remove FORM-11 record
+export async function DELETE(req: Request) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session || !session.user) {
+      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
+    }
+
+    const { searchParams } = new URL(req.url);
+    const id = searchParams.get("id");
+
+    if (!id) {
+      return NextResponse.json({ success: false, error: "ID parameter is required" }, { status: 400 });
+    }
+
+    await sequelize.authenticate();
+    const deletedCount = await FranchiseRegistration.destroy({ where: { id } });
+
+    if (deletedCount === 0) {
+      return NextResponse.json({ success: false, error: "Record not found" }, { status: 404 });
+    }
+
+    return NextResponse.json({ success: true, message: "Franchise partner deleted successfully" });
   } catch (error: any) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }

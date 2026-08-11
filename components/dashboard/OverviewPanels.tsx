@@ -33,7 +33,9 @@ import {
   Car,
   CalendarCheck,
   Zap,
-  CheckSquare
+  CheckSquare,
+  Building2,
+  Activity
 } from "lucide-react";
 import StatCard from "./StatCard";
 import AttendanceChart from "./AttendanceChart";
@@ -67,6 +69,7 @@ export function OwnerDashboard({
 }: OverviewProps) {
   const firstName = sessionUser?.name ? sessionUser.name.split(' ')[0] : 'Admin';
   const [showStaffModal, setShowStaffModal] = React.useState(false);
+  const [showActivityModal, setShowActivityModal] = React.useState(false);
   const [staffModalFilter, setStaffModalFilter] = React.useState<"all" | "present" | "absent">("all");
   const exportAttendanceReport = () => {
     if (!stats?.staffList) return;
@@ -422,9 +425,9 @@ export function OwnerDashboard({
                 { name: "Approve Leaves", tab: "ess-leaves", icon: CalendarClock },
                 { name: "Process Payroll", tab: "ess-payroll", icon: FileText },
                 { name: "Post Job", tab: "jobs", icon: Briefcase },
-                { name: "Appraisal Logs", tab: "performance", icon: TrendingUp },
-                { name: "Risk Assessment", tab: "risks", icon: ShieldAlert },
-                { name: "Verify Registry", tab: "verification", icon: ShieldCheck },
+                { name: "Schedule Work Report", tab: "scheduled-work", icon: CalendarClock },
+                { name: "Vendor Management", tab: "vendors", icon: Building2 },
+                { name: "Disciplinary Warnings", tab: "disciplinary-warnings", icon: ShieldAlert },
                 { name: "Work Report", tab: "performance", icon: FileSearch }
               ].map((action, i) => {
                 const IconComponent = action.icon;
@@ -452,7 +455,7 @@ export function OwnerDashboard({
             <div className="flex items-center justify-between mb-5">
               <h2 className="text-xs font-semibold tracking-widest text-[#1C1C1A] uppercase">Recent Activity</h2>
               <button
-                onClick={() => onNavigateTab("tasks")}
+                onClick={() => setShowActivityModal(true)}
                 className="text-[9px] uppercase tracking-wider font-bold text-indigo-600 hover:text-indigo-800 transition-colors flex items-center gap-1"
               >
                 View All <ArrowUpRight className="w-3 h-3" />
@@ -496,6 +499,8 @@ export function OwnerDashboard({
                 <tbody className="divide-y divide-[#E8E4DF]">
                   {stats?.staffList?.length > 0 ? stats.staffList
                     .filter((staff: any) => {
+                      const st = String(staff.status || "").toLowerCase();
+                      if (["inactive", "archived", "terminated", "disabled"].includes(st)) return false;
                       if (staffModalFilter === "present") return staff.isPresent;
                       if (staffModalFilter === "absent") return !staff.isPresent;
                       return true;
@@ -550,6 +555,48 @@ export function OwnerDashboard({
         </div>
       )}
 
+      {showActivityModal && (
+        <div className="fixed inset-0 bg-black/30 z-50 flex justify-center items-center backdrop-blur-md p-4 sm:p-6" onClick={() => setShowActivityModal(false)}>
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[85vh] flex flex-col overflow-hidden animate-slideUp border border-[#E8E4DF]" onClick={e => e.stopPropagation()}>
+            <div className="flex justify-between items-center px-6 py-4 border-b border-[#E8E4DF] bg-[#FCFBF9]">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600 shadow-2xs">
+                  <Activity className="w-4 h-4" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-serif font-medium text-[#1C1C1A]" style={{ fontFamily: "'Playfair Display', serif" }}>
+                    Recent Enterprise Activities
+                  </h2>
+                  <p className="text-[10px] text-[#8C8880] uppercase tracking-wider font-semibold">
+                    Real-time operational & HR updates ({stats?.hrActivities?.length || 0} events)
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowActivityModal(false)}
+                className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center transition-colors"
+                title="Close"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="p-6 overflow-y-auto max-h-[68vh] custom-scrollbar bg-white">
+              <ActivityFeed dark={false} companyId={selectedCompanyId} logs={stats?.hrActivities} maxHeight="max-h-none" />
+            </div>
+
+            <div className="p-4 border-t border-[#E8E4DF] bg-[#FCFBF9] text-right">
+              <button
+                onClick={() => setShowActivityModal(false)}
+                className="px-5 py-2 bg-slate-800 text-white rounded-lg text-xs font-semibold tracking-wider uppercase hover:bg-slate-900 transition-colors shadow-2xs"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
@@ -573,12 +620,47 @@ export function HrDashboard({
   const [attendanceFilter, setAttendanceFilter] = React.useState<"all" | "present" | "absent" | "leave">("all");
   const [attendanceSearchQuery, setAttendanceSearchQuery] = React.useState("");
 
+  const formatCleanDepartment = (rawDept: any, role?: string, designation?: string): string => {
+    if (rawDept) {
+      const str = String(rawDept).trim();
+      if (str && str !== "N/A" && !/^\d+$/.test(str)) {
+        if (str.startsWith("DEPT_") || str.startsWith("dept_")) {
+          const parts = str.split("_");
+          if (parts.length >= 3) {
+            const code = parts[2].toUpperCase();
+            if (code === "MAN" || code === "MGMT") return "Management";
+            if (code === "OPE" || code === "OPS") return "Operations";
+            if (code === "SEC" || code === "LEG") return "Security & Legal";
+            if (code === "HR") return "Human Resources";
+            if (code === "FIN" || code === "ACC") return "Finance & Accounts";
+            if (code === "IT" || code === "TECH" || code === "DEV") return "IT & Software";
+            return code.charAt(0) + code.slice(1).toLowerCase();
+          }
+        }
+        return str;
+      }
+    }
+
+    const roleStr = `${role || ""} ${designation || ""}`.toLowerCase();
+    if (roleStr.includes("hr") || roleStr.includes("human") || roleStr.includes("recruit") || roleStr.includes("hiring")) return "Human Resources";
+    if (roleStr.includes("engineer") || roleStr.includes("developer") || roleStr.includes("it") || roleStr.includes("tech") || roleStr.includes("wordpress") || roleStr.includes("network") || roleStr.includes("software")) return "IT & Software";
+    if (roleStr.includes("owner") || roleStr.includes("director") || roleStr.includes("ceo") || roleStr.includes("coo") || roleStr.includes("cco") || roleStr.includes("cfmo") || roleStr.includes("head")) return "Management";
+    if (roleStr.includes("legal") || roleStr.includes("recovery") || roleStr.includes("security") || roleStr.includes("facility") || roleStr.includes("guard")) return "Security & Legal";
+    if (roleStr.includes("finance") || roleStr.includes("account") || roleStr.includes("billing") || roleStr.includes("payroll")) return "Finance & Accounts";
+    if (roleStr.includes("admin") || roleStr.includes("operation") || roleStr.includes("logistics") || roleStr.includes("manager")) return "Operations";
+
+    return "Operations";
+  };
+
   const attendanceCounts = React.useMemo(() => {
-    const staff = stats?.staffList || [];
-    const present = staff.filter((s: any) => s.isPresent).length;
-    const leave = staff.filter((s: any) => s.isOnLeave || s.attendanceStatus === "On Leave").length;
-    const absent = staff.filter((s: any) => !s.isPresent && !s.isOnLeave && s.attendanceStatus !== "On Leave").length;
-    const total = staff.length;
+    const activeStaff = (stats?.staffList || []).filter((s: any) => {
+      const st = String(s.status || "").toLowerCase();
+      return !["inactive", "archived", "terminated", "disabled"].includes(st);
+    });
+    const present = activeStaff.filter((s: any) => s.isPresent).length;
+    const leave = activeStaff.filter((s: any) => s.isOnLeave || s.attendanceStatus === "On Leave").length;
+    const absent = activeStaff.filter((s: any) => !s.isPresent && !s.isOnLeave && s.attendanceStatus !== "On Leave").length;
+    const total = activeStaff.length;
     return {
       present: stats?.todayCompliance?.attendance ?? present,
       absent: stats?.todayCompliance?.absent ?? absent,
@@ -588,8 +670,11 @@ export function HrDashboard({
   }, [stats]);
 
   const filteredAttendanceStaffList = React.useMemo(() => {
-    const staff = stats?.staffList || [];
-    return staff.filter((member: any) => {
+    const activeStaff = (stats?.staffList || []).filter((member: any) => {
+      const st = String(member.status || "").toLowerCase();
+      return !["inactive", "archived", "terminated", "disabled"].includes(st);
+    });
+    return activeStaff.filter((member: any) => {
       const isPresent = member.isPresent;
       const isOnLeave = member.isOnLeave || member.attendanceStatus === "On Leave";
       const isAbsent = !isPresent && !isOnLeave;
@@ -1142,7 +1227,7 @@ export function HrDashboard({
                           </td>
                           <td className="px-6 py-4">
                             <div className="text-xs font-semibold text-slate-800 dark:text-slate-200">{staff.role}</div>
-                            <div className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider mt-0.5">{staff.department}</div>
+                            <div className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider mt-0.5">{formatCleanDepartment(staff.department, staff.role, staff.designation)}</div>
                           </td>
                           <td className="px-6 py-4">
                             {isOnLeave ? (

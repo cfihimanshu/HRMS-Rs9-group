@@ -29,6 +29,7 @@ DomainRecord.init({
   url: { type: DataTypes.STRING, allowNull: true }, // Access URL / Repo Link
   remarks: { type: DataTypes.TEXT, allowNull: true },
   customFields: { type: DataTypes.TEXT, allowNull: true },
+  lastExpiryReminderSent: { type: DataTypes.STRING, allowNull: true },
   createdById: { type: DataTypes.STRING, allowNull: false },
   createdByName: { type: DataTypes.STRING, allowNull: false }
 }, {

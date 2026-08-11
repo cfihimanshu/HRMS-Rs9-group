@@ -190,55 +190,21 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
   const [ownerRemarksMap, setOwnerRemarksMap] = useState<Record<string, string>>({});
   const [sourceRequestId, setSourceRequestId] = useState<string | null>(null);
 
-  const generateNextAssetId = useCallback((type: string) => {
-    const typeClean = (type || "").toLowerCase().trim();
-    let prefix = "AST";
-    if (typeClean.startsWith("laptop")) {
-      prefix = "LAP";
-    } else if (typeClean.startsWith("computer") || typeClean.startsWith("desktop") || typeClean === "pc") {
-      prefix = "COM";
-    } else if (typeClean.startsWith("cpu")) {
-      prefix = "CPU";
-    } else if (typeClean.startsWith("mouse")) {
-      prefix = "MOU";
-    } else if (typeClean.startsWith("keyboard")) {
-      prefix = "KBD";
-    } else if (typeClean.startsWith("monitor") || typeClean.startsWith("display")) {
-      prefix = "MON";
-    } else if (typeClean.startsWith("mobile") || typeClean.includes("phone")) {
-      prefix = "MOB";
-    } else if (typeClean.startsWith("sim")) {
-      prefix = "SIM";
-    } else if (typeClean.startsWith("headset") || typeClean.startsWith("accessor")) {
-      prefix = "ACC";
-    } else if (typeClean.startsWith("id card") || typeClean.startsWith("lanyard")) {
-      prefix = "IDC";
-    } else if (typeClean.startsWith("office") || typeClean.startsWith("chair") || typeClean.startsWith("table") || typeClean.startsWith("furniture")) {
-      prefix = "FUR";
-    } else if (typeClean.startsWith("router") || typeClean.startsWith("network")) {
-      prefix = "NET";
-    } else if (typeClean.startsWith("printer") || typeClean.startsWith("scanner")) {
-      prefix = "PRN";
-    } else {
-      const alphaOnly = typeClean.replace(/[^a-z0-9]/g, "");
-      if (alphaOnly.length >= 2) {
-        prefix = alphaOnly.substring(0, Math.min(alphaOnly.length, 3)).toUpperCase();
-      } else {
-        prefix = "AST";
-      }
-    }
-
+  const generateNextAssetId = useCallback((_type?: string) => {
     let maxNum = 0;
-    const regex = new RegExp(`^${prefix}-(\\d+)$`, "i");
 
-    // Check existing inventory
+    // Check existing inventory for maximum numeric ID
     inventory.forEach(item => {
-      if (item.id) {
-        const match = String(item.id).trim().match(regex);
-        if (match) {
-          const num = parseInt(match[1], 10);
-          if (num > maxNum) {
-            maxNum = num;
+      if (item && item.id) {
+        const idStr = String(item.id).trim();
+        const numOnly = parseInt(idStr, 10);
+        if (!isNaN(numOnly) && String(numOnly) === idStr) {
+          if (numOnly > maxNum) maxNum = numOnly;
+        } else {
+          const match = idStr.match(/(\d+)$/);
+          if (match) {
+            const num = parseInt(match[1], 10);
+            if (num > maxNum) maxNum = num;
           }
         }
       }
@@ -246,20 +212,23 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
 
     // Check existing purchase requests (to prevent duplicates)
     purchaseRequests.forEach(req => {
-      if (req.asset_id) {
-        const match = String(req.asset_id).trim().match(regex);
-        if (match) {
-          const num = parseInt(match[1], 10);
-          if (num > maxNum) {
-            maxNum = num;
+      if (req && req.asset_id) {
+        const idStr = String(req.asset_id).trim();
+        const numOnly = parseInt(idStr, 10);
+        if (!isNaN(numOnly) && String(numOnly) === idStr) {
+          if (numOnly > maxNum) maxNum = numOnly;
+        } else {
+          const match = idStr.match(/(\d+)$/);
+          if (match) {
+            const num = parseInt(match[1], 10);
+            if (num > maxNum) maxNum = num;
           }
         }
       }
     });
 
-    const nextNum = maxNum + 1;
-    const suffix = nextNum < 10 ? `0${nextNum}` : `${nextNum}`;
-    return `${prefix}-${suffix}`;
+    const nextNum = maxNum > 0 ? maxNum + 1 : 1;
+    return String(nextNum);
   }, [inventory, purchaseRequests]);
 
   useEffect(() => {
@@ -466,9 +435,9 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
     if (targetAsset?.id) {
       const payloadText = getAssetQrPayloadText(targetAsset);
       QRCode.toDataURL(payloadText, {
-        width: 1000,
-        margin: 1,
-        errorCorrectionLevel: "H",
+        scale: 10,
+        margin: 4,
+        errorCorrectionLevel: "M",
         color: { dark: "#0f172a", light: "#ffffff" }
       })
         .then((url: string) => setQrDataUrl(url))
@@ -538,6 +507,44 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
     }
   };
 
+  const preloadImageAsync = (src: string): Promise<boolean> => {
+    return new Promise((resolve) => {
+      if (!src) return resolve(false);
+      const img = new Image();
+      img.onload = () => resolve(true);
+      img.onerror = () => resolve(false);
+      img.src = src;
+      if (img.complete) resolve(true);
+    });
+  };
+
+  const printCleanHtml = (htmlContent: string) => {
+    let iframe = document.getElementById("qr-print-iframe") as HTMLIFrameElement;
+    if (!iframe) {
+      iframe = document.createElement("iframe");
+      iframe.id = "qr-print-iframe";
+      iframe.style.position = "fixed";
+      iframe.style.right = "-9999px";
+      iframe.style.bottom = "-9999px";
+      iframe.style.width = "0px";
+      iframe.style.height = "0px";
+      iframe.style.border = "0";
+      document.body.appendChild(iframe);
+    }
+
+    const doc = iframe.contentWindow?.document || iframe.contentDocument;
+    if (doc) {
+      doc.open();
+      doc.write(htmlContent);
+      doc.close();
+
+      setTimeout(() => {
+        iframe.contentWindow?.focus();
+        iframe.contentWindow?.print();
+      }, 350);
+    }
+  };
+
   const handlePrintAssetTag = async (asset: any, mode: "label" | "pdf") => {
     setSelectedAssetIds([]); // Clear bulk selection so single print view matches exact asset
     setPrintableMode(mode);
@@ -546,17 +553,92 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
     try {
       const payloadText = getAssetQrPayloadText(asset);
       const url = await QRCode.toDataURL(payloadText, {
-        width: 1000,
-        margin: 1,
-        errorCorrectionLevel: "H",
+        scale: 10,
+        margin: 4,
+        errorCorrectionLevel: "M",
         color: { dark: "#0f172a", light: "#ffffff" }
       });
       setQrDataUrl(url);
-    } catch (_) {}
 
-    setTimeout(() => {
-      window.print();
-    }, 400);
+      if (mode === "label") {
+        const html = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Asset QR Tag - ${asset.id}</title>
+  <style>
+    @page {
+      size: A4 portrait;
+      margin: 15mm;
+    }
+    html, body {
+      margin: 0;
+      padding: 0;
+      background: #ffffff;
+      font-family: 'Segoe UI', Arial, sans-serif;
+      text-align: center;
+    }
+    .print-card {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 40px 20px;
+      margin: 20px auto;
+      max-width: 500px;
+      background: #ffffff;
+    }
+    .type-header {
+      font-size: 14px;
+      font-weight: 800;
+      color: #3730a3;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      margin-bottom: 16px;
+    }
+    .qr-img {
+      width: 300px;
+      height: 300px;
+      object-fit: contain;
+      margin-bottom: 20px;
+      display: block;
+    }
+    .asset-id {
+      font-family: monospace;
+      font-size: 28px;
+      font-weight: 900;
+      color: #0f172a;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+    }
+    .old-id {
+      font-family: monospace;
+      font-size: 15px;
+      font-weight: 700;
+      color: #64748b;
+      margin-top: 6px;
+    }
+  </style>
+</head>
+<body>
+  <div class="print-card">
+    <div class="type-header">${asset.assetType || "ASSET QR TAG"}</div>
+    <img src="${url}" class="qr-img" alt="Asset QR Code" />
+    <div class="asset-id">ASSET ID: ${asset.id}</div>
+    ${asset.oldAssetId ? `<div class="old-id">OLD ID: ${asset.oldAssetId}</div>` : ""}
+  </div>
+</body>
+</html>`;
+        printCleanHtml(html);
+      } else {
+        await preloadImageAsync(url);
+        await new Promise(r => setTimeout(r, 250));
+        window.print();
+      }
+    } catch (err: any) {
+      console.error("Single QR print error:", err);
+      triggerToast("Error preparing QR tag: " + (err.message || "Unknown error"));
+    }
   };
 
   const toggleSelectAsset = (assetId: string) => {
@@ -583,7 +665,7 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
 
     try {
       setIsBulkPrinting(true);
-      triggerToast(`Generating high-definition QR codes for ${selectedAssetIds.length} assets...`);
+      triggerToast(`Preparing QR codes for ${selectedAssetIds.length} assets...`);
 
       // Preserve exact sequence of user selection
       const selectedAssetsInSequence = selectedAssetIds
@@ -593,9 +675,9 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
       const qrPromises = selectedAssetsInSequence.map(async (asset: any) => {
         const payloadText = getAssetQrPayloadText(asset);
         const dataUrl = await QRCode.toDataURL(payloadText, {
-          width: 1000,
-          margin: 1,
-          errorCorrectionLevel: "H",
+          scale: 10,
+          margin: 4,
+          errorCorrectionLevel: "M",
           color: { dark: "#0f172a", light: "#ffffff" }
         });
         return { id: String(asset.id), dataUrl };
@@ -608,10 +690,142 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
       setBulkQrDataMap(qrMap);
       setPrintableMode(mode);
 
-      setTimeout(() => {
+      if (mode === "label") {
+        const stickersHtml = selectedAssetsInSequence.map(asset => {
+          const qr = qrMap[String(asset.id)];
+          const company = companies.find(c => String(c.id) === String(asset.companyId))?.name || "OFFICIAL ASSET TAG";
+          return `<div class="sticker">
+            <div class="header">
+              <div>
+                <div class="company">${company}</div>
+                <div class="type">${asset.assetType || "ASSET"}</div>
+              </div>
+              <div class="id-badge">${asset.id}</div>
+            </div>
+            <div class="body">
+              ${qr ? `<img src="${qr}" class="qr-img" />` : ''}
+              <div class="info">
+                <div class="desc">${asset.assetDetail || "No Description"}</div>
+                ${asset.serialNumber ? `<div>S/N: <b>${asset.serialNumber}</b></div>` : ""}
+                ${asset.assignedToName ? `<div class="user">Assigned: ${asset.assignedToName}</div>` : ""}
+              </div>
+            </div>
+            <div class="footer">PROPERTY OF COMPANY &bull; DO NOT REMOVE</div>
+          </div>`;
+        }).join("");
+
+        const html = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Bulk Asset QR Tags</title>
+  <style>
+    @page {
+      size: A4 portrait;
+      margin: 8mm;
+    }
+    html, body {
+      margin: 0;
+      padding: 0;
+      background: #ffffff;
+      font-family: 'Segoe UI', Arial, sans-serif;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 16px;
+      padding: 10px;
+    }
+    .sticker {
+      border: 2px solid #0f172a;
+      border-radius: 10px;
+      padding: 12px;
+      box-sizing: border-box;
+      page-break-inside: avoid;
+      break-inside: avoid;
+      background: #ffffff;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      height: 200px;
+    }
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      border-bottom: 2px solid #0f172a;
+      padding-bottom: 4px;
+    }
+    .company {
+      font-size: 9px;
+      font-weight: 900;
+      text-transform: uppercase;
+      color: #334155;
+    }
+    .type {
+      font-size: 11px;
+      font-weight: 900;
+      color: #312e81;
+      text-transform: uppercase;
+    }
+    .id-badge {
+      font-family: monospace;
+      font-size: 12px;
+      font-weight: 900;
+      background: #0f172a;
+      color: #ffffff;
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+    .body {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin: 8px 0;
+    }
+    .qr-img {
+      width: 85px;
+      height: 85px;
+      object-fit: contain;
+      flex-shrink: 0;
+    }
+    .info {
+      font-size: 10px;
+      color: #1e293b;
+      line-height: 1.3;
+    }
+    .desc {
+      font-weight: 700;
+    }
+    .user {
+      color: #312e81;
+      font-weight: 800;
+    }
+    .footer {
+      border-top: 1px solid #0f172a;
+      padding-top: 4px;
+      font-size: 8px;
+      font-weight: 900;
+      color: #64748b;
+      text-align: center;
+      letter-spacing: 1px;
+    }
+  </style>
+</head>
+<body>
+  <div class="grid">
+    ${stickersHtml}
+  </div>
+</body>
+</html>`;
+        printCleanHtml(html);
+        setIsBulkPrinting(false);
+      } else {
+        await Promise.all(Object.values(qrMap).map(url => preloadImageAsync(url)));
+        await new Promise(r => setTimeout(r, 300));
         window.print();
         setIsBulkPrinting(false);
-      }, 400);
+      }
     } catch (err: any) {
       console.error("Bulk QR generation failed:", err);
       triggerToast("Bulk QR printing error: " + (err.message || "Unknown error"));
@@ -642,9 +856,9 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
       const qrPromises = targetAssets.map(async (asset: any) => {
         const payloadText = getAssetQrPayloadText(asset);
         const dataUrl = await QRCode.toDataURL(payloadText, {
-          width: 1000,
-          margin: 1,
-          errorCorrectionLevel: "H",
+          scale: 10,
+          margin: 4,
+          errorCorrectionLevel: "M",
           color: { dark: "#0f172a", light: "#ffffff" }
         });
         return { id: String(asset.id), dataUrl };
@@ -1841,11 +2055,16 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
     const matchesCompany = selectedCompany === "all" || String(asset.companyId) === String(selectedCompany);
 
     // 3. Condition Filter
-    const matchesCondition = selectedCondition === "all" || asset.condition === selectedCondition;
+    const matchesCondition = selectedCondition === "all"
+      || asset.condition === selectedCondition
+      || ((selectedCondition === "Brand New" || selectedCondition === "New") && (asset.condition === "Brand New" || asset.condition === "New"));
 
     // 4. Asset Type Filter
     const matchesType = selectedType === "all" || asset.assetType === selectedType;
-    const matchesStatus = selectedStatus === "all" || asset.status === selectedStatus;
+    const matchesStatus = selectedStatus === "all"
+      || asset.status === selectedStatus
+      || (selectedStatus === "In Use" && (asset.status === "In Use" || asset.status === "Assigned"))
+      || (selectedStatus === "Available" && (asset.status === "Available" || !asset.status || asset.status === "Unassigned"));
     const matchesAssignee = selectedAssignee === "all"
       || (selectedAssignee === "unassigned"
           ? (!asset.assignedToUserId && !asset.assignedToName)
@@ -2039,42 +2258,125 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
         </button>
       </div>
 
-      {/* Quick Stats Grid */}
+      {/* Quick Stats Grid (Clickable Filters) */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="bg-[#FCFBF9] border border-[#E8E4DF] p-4 rounded-xl flex items-center gap-3">
-          <div className="p-3 bg-indigo-50 rounded-lg text-indigo-600">
-            <Package className="w-5 h-5" />
-          </div>
-          <div>
-            <div className="text-xs text-[#9C9890] font-semibold uppercase tracking-wider">Total Spare</div>
-            <div className="text-xl font-bold font-serif">{totalCount}</div>
+        {/* Card 1: TOTAL SPARE */}
+        <div
+          onClick={() => {
+            setSelectedStatus("all");
+            setSelectedCondition("all");
+            setSelectedType("all");
+            setSelectedCompany("all");
+            setSelectedAssignee("all");
+            setSearchQuery("");
+            triggerToast("Reset inventory filters - showing all stock");
+          }}
+          className={`bg-[#FCFBF9] border p-4 rounded-xl flex items-center justify-between cursor-pointer transition-all hover:border-indigo-400 hover:shadow-md ${
+            selectedStatus === "all" && selectedCondition === "all" && !searchQuery
+              ? "border-indigo-500 ring-2 ring-indigo-500/20 bg-indigo-50/20"
+              : "border-[#E8E4DF]"
+          }`}
+          title="Click to reset all filters and view all inventory stock"
+        >
+          <div className="flex items-center gap-3">
+            <div className="p-3 bg-indigo-50 rounded-lg text-indigo-600">
+              <Package className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="text-xs text-[#9C9890] font-semibold uppercase tracking-wider">Total Spare</div>
+              <div className="text-xl font-bold font-serif">{totalCount}</div>
+              <span className="text-[9px] font-bold text-indigo-600 block mt-0.5">Click to view all</span>
+            </div>
           </div>
         </div>
-        <div className="bg-[#FCFBF9] border border-[#E8E4DF] p-4 rounded-xl flex items-center gap-3">
-          <div className="p-3 bg-emerald-50 rounded-lg text-emerald-600">
-            <CheckCircle className="w-5 h-5" />
-          </div>
-          <div>
-            <div className="text-xs text-[#9C9890] font-semibold uppercase tracking-wider">Available</div>
-            <div className="text-xl font-bold font-serif">{availableCount}</div>
+
+        {/* Card 2: AVAILABLE */}
+        <div
+          onClick={() => {
+            const nextStatus = selectedStatus === "Available" ? "all" : "Available";
+            setSelectedStatus(nextStatus);
+            if (nextStatus === "Available") {
+              triggerToast("Filtered: Available Stock");
+            }
+          }}
+          className={`bg-[#FCFBF9] border p-4 rounded-xl flex items-center justify-between cursor-pointer transition-all hover:border-emerald-400 hover:shadow-md ${
+            selectedStatus === "Available"
+              ? "border-emerald-500 ring-2 ring-emerald-500/20 bg-emerald-50/40"
+              : "border-[#E8E4DF]"
+          }`}
+          title="Click to filter Available / Unassigned stock"
+        >
+          <div className="flex items-center gap-3">
+            <div className="p-3 bg-emerald-50 rounded-lg text-emerald-600">
+              <CheckCircle className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="text-xs text-[#9C9890] font-semibold uppercase tracking-wider">Available</div>
+              <div className="text-xl font-bold font-serif">{availableCount}</div>
+              <span className={`text-[9px] font-bold block mt-0.5 ${selectedStatus === "Available" ? "text-emerald-700 font-black underline" : "text-emerald-600"}`}>
+                {selectedStatus === "Available" ? "Filter Active ✓" : "Click to filter"}
+              </span>
+            </div>
           </div>
         </div>
-        <div className="bg-[#FCFBF9] border border-[#E8E4DF] p-4 rounded-xl flex items-center gap-3">
-          <div className="p-3 bg-sky-50 rounded-lg text-sky-600">
-            <Sparkles className="w-5 h-5" />
-          </div>
-          <div>
-            <div className="text-xs text-[#9C9890] font-semibold uppercase tracking-wider">Brand New</div>
-            <div className="text-xl font-bold font-serif">{newCount}</div>
+
+        {/* Card 3: BRAND NEW */}
+        <div
+          onClick={() => {
+            const nextCond = (selectedCondition === "Brand New" || selectedCondition === "New") ? "all" : "Brand New";
+            setSelectedCondition(nextCond);
+            if (nextCond !== "all") {
+              triggerToast("Filtered: Brand New Condition Stock");
+            }
+          }}
+          className={`bg-[#FCFBF9] border p-4 rounded-xl flex items-center justify-between cursor-pointer transition-all hover:border-sky-400 hover:shadow-md ${
+            selectedCondition === "Brand New" || selectedCondition === "New"
+              ? "border-sky-500 ring-2 ring-sky-500/20 bg-sky-50/40"
+              : "border-[#E8E4DF]"
+          }`}
+          title="Click to filter Brand New condition assets"
+        >
+          <div className="flex items-center gap-3">
+            <div className="p-3 bg-sky-50 rounded-lg text-sky-600">
+              <Sparkles className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="text-xs text-[#9C9890] font-semibold uppercase tracking-wider">Brand New</div>
+              <div className="text-xl font-bold font-serif">{newCount}</div>
+              <span className={`text-[9px] font-bold block mt-0.5 ${(selectedCondition === "Brand New" || selectedCondition === "New") ? "text-sky-700 font-black underline" : "text-sky-600"}`}>
+                {(selectedCondition === "Brand New" || selectedCondition === "New") ? "Filter Active ✓" : "Click to filter"}
+              </span>
+            </div>
           </div>
         </div>
-        <div className="bg-[#FCFBF9] border border-[#E8E4DF] p-4 rounded-xl flex items-center gap-3">
-          <div className="p-3 bg-amber-50 rounded-lg text-amber-600">
-            <Cpu className="w-5 h-5" />
-          </div>
-          <div>
-            <div className="text-xs text-[#9C9890] font-semibold uppercase tracking-wider">In Use / Assigned</div>
-            <div className="text-xl font-bold font-serif">{inUseCount}</div>
+
+        {/* Card 4: IN USE / ASSIGNED */}
+        <div
+          onClick={() => {
+            const nextStatus = (selectedStatus === "In Use" || selectedStatus === "Assigned") ? "all" : "In Use";
+            setSelectedStatus(nextStatus);
+            if (nextStatus !== "all") {
+              triggerToast("Filtered: In Use / Assigned Assets");
+            }
+          }}
+          className={`bg-[#FCFBF9] border p-4 rounded-xl flex items-center justify-between cursor-pointer transition-all hover:border-amber-400 hover:shadow-md ${
+            selectedStatus === "In Use" || selectedStatus === "Assigned"
+              ? "border-amber-500 ring-2 ring-amber-500/20 bg-amber-50/40"
+              : "border-[#E8E4DF]"
+          }`}
+          title="Click to filter In Use / Assigned assets"
+        >
+          <div className="flex items-center gap-3">
+            <div className="p-3 bg-amber-50 rounded-lg text-amber-600">
+              <Cpu className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="text-xs text-[#9C9890] font-semibold uppercase tracking-wider">In Use / Assigned</div>
+              <div className="text-xl font-bold font-serif">{inUseCount}</div>
+              <span className={`text-[9px] font-bold block mt-0.5 ${(selectedStatus === "In Use" || selectedStatus === "Assigned") ? "text-amber-700 font-black underline" : "text-amber-600"}`}>
+                {(selectedStatus === "In Use" || selectedStatus === "Assigned") ? "Filter Active ✓" : "Click to filter"}
+              </span>
+            </div>
           </div>
         </div>
       </div>
@@ -6270,24 +6572,36 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
             @media print {
               @page {
                 size: portrait;
-                margin: 10mm;
+                margin: 5mm;
               }
-              body {
+              html, body {
                 visibility: hidden !important;
                 background: white !important;
+                margin: 0 !important;
+                padding: 0 !important;
               }
               #asset-printable-area, #asset-printable-area * {
                 visibility: visible !important;
               }
               #asset-printable-area {
                 display: block !important;
-                position: absolute !important;
+                position: fixed !important;
                 left: 0 !important;
                 top: 0 !important;
-                width: 100% !important;
+                width: 100vw !important;
+                height: auto !important;
+                min-height: 100vh !important;
                 background: white !important;
-                padding-top: 30px !important;
+                padding: 10px !important;
                 margin: 0 !important;
+                z-index: 9999999 !important;
+                overflow: visible !important;
+              }
+              #asset-printable-area img {
+                max-width: 100% !important;
+                height: auto !important;
+                display: block !important;
+                visibility: visible !important;
               }
               .page-break-after {
                 page-break-after: always !important;
@@ -6309,7 +6623,7 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
               /* Clean QR Tag Print Layout: Only QR Code + Asset ID underneath */
               <div className="flex flex-col items-center justify-center p-8 bg-white text-slate-900 mx-auto my-8 font-sans">
                 {qrDataUrl ? (
-                  <img src={qrDataUrl} alt="Asset QR Code" className="w-80 h-80 object-contain mb-4" />
+                  <img src={qrDataUrl} alt="Asset QR Code" className="w-72 h-72 object-contain mb-4 shrink-0" style={{ width: "280px", height: "280px", aspectRatio: "1 / 1" }} />
                 ) : (
                   <div className="text-sm font-bold text-slate-400">Generating QR Code...</div>
                 )}

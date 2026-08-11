@@ -93,7 +93,23 @@ export async function GET(request: Request) {
     const status = clean(params.get("status"));
     const companyId = clean(params.get("companyId"));
     const where: any = {};
-    if (status && status !== "All") where.status = status;
+
+    const today = new Date().toISOString().slice(0, 10);
+    const soon = new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10);
+
+    if (status && status !== "All") {
+      if (status === "Docs Expiring (30d)" || status === "Expiring") {
+        const expiringDocs = await VehicleDocument.findAll({
+          where: { expiryDate: { [Op.between]: [today, soon] } },
+          attributes: ["vehicleId"],
+          raw: true,
+        });
+        const vehicleIds = Array.from(new Set(expiringDocs.map((d: any) => d.vehicleId).filter(Boolean)));
+        where.id = { [Op.in]: vehicleIds.length > 0 ? vehicleIds : ["__none__"] };
+      } else {
+        where.status = status;
+      }
+    }
     if (companyId && companyId !== "All") where.companyId = companyId;
     if (search) where[Op.or] = [
       { registrationNumber: { [Op.like]: `%${search}%` } }, { make: { [Op.like]: `%${search}%` } },
@@ -103,8 +119,6 @@ export async function GET(request: Request) {
       { buyerName: { [Op.like]: `%${search}%` } },
     ];
     const rows = await Vehicle.findAll({ attributes, where, order: [["updatedAt", "DESC"]] });
-    const today = new Date().toISOString().slice(0, 10);
-    const soon = new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10);
     const expiringVehicleIds = await VehicleDocument.count({ where: { expiryDate: { [Op.between]: [today, soon] } }, distinct: true, col: "vehicleId" });
     return NextResponse.json({
       success: true, data: rows,
