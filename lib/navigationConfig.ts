@@ -24,6 +24,7 @@ export const MASTER_NAV_ITEMS: NavItem[] = [
   { id: "business-leads", label: "HR Leads", category: "Core Workspace" },
   { id: "employees", label: "Employees Directory", category: "Core Workspace" },
   { id: "bda-directory", label: "BDA Network (Sales)", category: "Core Workspace" },
+  { id: "bda-leads", label: "BDA Leads", category: "Core Workspace" },
   { id: "assets-registry", label: "Assets Registry", category: "Core Workspace" },
   { id: "domain-record", label: "Domain Record", category: "Core Workspace" },
   { id: "inventory-management", label: "Inventory Management", category: "Core Workspace" },

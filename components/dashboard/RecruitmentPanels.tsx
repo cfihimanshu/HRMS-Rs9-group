@@ -69,6 +69,7 @@ export function HiringApproval({
 }) {
   const [activeTab, setActiveTab] = useState<string>("Manager");
   const [hasSetDefaultTab, setHasSetDefaultTab] = useState(false);
+  const [selectedStatFilter, setSelectedStatFilter] = useState<string | null>(null);
   const [expandedReq, setExpandedReq] = useState<string | null>(null);
   const [remarksInput, setRemarksInput] = useState<{ [key: string]: string }>({});
   const [budgetInput, setBudgetInput] = useState<{ [key: string]: string }>({});
@@ -103,6 +104,13 @@ export function HiringApproval({
     : requisitions;
 
   const filteredRequisitions = visibleRequisitions.filter((req) => {
+    if (selectedStatFilter) {
+      if (selectedStatFilter === "pendingHRSourcing") return req.status === "Pending HR Sourcing Review";
+      if (selectedStatFilter === "pendingAccounts") return req.status === "Pending Accounts Review";
+      if (selectedStatFilter === "pendingOwner") return req.status === "Pending Owner Approval";
+      if (selectedStatFilter === "pendingHRPost") return req.status === "Approved — Pending HR Post" || req.status === "Approved";
+      if (selectedStatFilter === "posted") return req.status === "Job Posted";
+    }
     if (userRole === "Accounts" && activeTab !== "Accounts") return false;
     if (activeTab === "HRSourcing") return req.status === "Pending HR Sourcing Review";
     if (activeTab === "Accounts") return req.status === "Pending Accounts Review";
@@ -180,17 +188,48 @@ export function HiringApproval({
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
         {[
-          { label: "Pending HR Sourcing", val: stats.pendingHRSourcing, color: "fuchsia" },
-          { label: "Pending Accounts", val: stats.pendingAccounts, color: "amber" },
-          { label: "Pending Owner", val: stats.pendingOwner, color: "orange" },
-          { label: "Pending HR Post", val: stats.pendingHRPost, color: "violet" },
-          { label: "Job Posted", val: stats.posted, color: "emerald" },
-        ].map((s, i) => (
-          <div key={i} className={`bg-${s.color}-500/10 border border-${s.color}-500/20 p-4 rounded-xl shadow-sm`}>
-            <div className={`text-[9px] font-black uppercase text-${s.color}-600 tracking-widest font-mono`}>{s.label}</div>
-            <div className={`text-2xl font-black text-${s.color}-700 mt-1`}>{s.val}</div>
-          </div>
-        ))}
+          { key: "pendingHRSourcing", label: "Pending HR Sourcing", val: stats.pendingHRSourcing, color: "fuchsia", tabId: "HRSourcing" },
+          { key: "pendingAccounts", label: "Pending Accounts", val: stats.pendingAccounts, color: "amber", tabId: "Accounts" },
+          { key: "pendingOwner", label: "Pending Owner", val: stats.pendingOwner, color: "orange", tabId: "Owner" },
+          { key: "pendingHRPost", label: "Pending HR Post", val: stats.pendingHRPost, color: "violet", tabId: "HRPosting" },
+          { key: "posted", label: "Job Posted", val: stats.posted, color: "emerald", tabId: "HRPosting" },
+        ].map((s, i) => {
+          const isSelected = selectedStatFilter === s.key;
+          const isLocked = isHR && !["HRSourcing", "HRPosting"].includes(s.tabId);
+
+          return (
+            <div
+              key={i}
+              onClick={() => {
+                if (isLocked) return;
+                if (isSelected) {
+                  setSelectedStatFilter(null);
+                } else {
+                  setSelectedStatFilter(s.key);
+                  setActiveTab(s.tabId);
+                }
+              }}
+              className={`p-4 rounded-xl shadow-xs transition-all border cursor-pointer select-none group hover:scale-[1.02] hover:shadow-md ${
+                isSelected
+                  ? `bg-${s.color}-500/25 border-${s.color}-500 ring-2 ring-${s.color}-500/50 scale-[1.02]`
+                  : `bg-${s.color}-500/10 border-${s.color}-500/20 hover:border-${s.color}-500/50`
+              } ${isLocked ? "opacity-50 cursor-not-allowed" : ""}`}
+            >
+              <div className="flex items-center justify-between">
+                <div className={`text-[9px] font-black uppercase text-${s.color}-600 tracking-widest font-mono`}>{s.label}</div>
+                {isSelected && (
+                  <span className={`text-[8px] font-bold px-1.5 py-0.5 rounded bg-${s.color}-600 text-white font-mono`}>FILTERED</span>
+                )}
+              </div>
+              <div className={`text-2xl font-black text-${s.color}-700 mt-1 flex items-baseline justify-between`}>
+                <span>{s.val}</span>
+                <span className="text-[9px] font-bold text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity">
+                  {isSelected ? "Clear ×" : "Filter →"}
+                </span>
+              </div>
+            </div>
+          );
+        })}
       </div>
 
       {/* Visual Flow */}
@@ -218,7 +257,7 @@ export function HiringApproval({
       </div>
 
       {/* Desk Tabs */}
-      <div className="flex bg-slate-100 p-1 rounded-lg border border-slate-200 w-fit flex-wrap gap-1">
+      <div className="flex bg-slate-100 p-1 rounded-lg border border-slate-200 w-fit flex-wrap gap-1 items-center">
         {[
           { id: "Manager", label: "1. Dept Manager", available: !isHR },
           { id: "HRSourcing", label: "2. HR Sourcing", available: true },
@@ -230,13 +269,18 @@ export function HiringApproval({
           return (
             <button
               key={tab.id}
-              className={`px-4 py-2 rounded text-xs font-bold transition-all ${activeTab === tab.id
+              className={`px-4 py-2 rounded text-xs font-bold transition-all ${activeTab === tab.id && !selectedStatFilter
                 ? "bg-[#714B67] text-white shadow-sm"
                 : isLocked
                   ? "text-slate-400 bg-slate-100 cursor-not-allowed"
                   : "text-slate-500 hover:text-slate-800 hover:bg-slate-200/50"
                 }`}
-              onClick={() => !isLocked && setActiveTab(tab.id)}
+              onClick={() => {
+                if (!isLocked) {
+                  setSelectedStatFilter(null);
+                  setActiveTab(tab.id);
+                }
+              }}
               disabled={isLocked}
             >
               {tab.label}

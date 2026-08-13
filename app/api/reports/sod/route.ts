@@ -27,19 +27,19 @@ export async function GET(req: Request) {
     await sequelize.authenticate();
     await SodReport.sync();
 
-    const today = new Date();
-    today.setUTCHours(0, 0, 0, 0);
-    const tomorrow = new Date(today);
-    tomorrow.setDate(tomorrow.getDate() + 1);
+    const now = new Date();
+    const dayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+    const dayEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
 
     const record = await SodReport.findOne({
       where: {
         employee: userId,
-        date: {
-          [Op.gte]: today,
-          [Op.lt]: tomorrow
-        }
-      }
+        [Op.or]: [
+          { date: { [Op.gte]: dayStart, [Op.lte]: dayEnd } },
+          { createdAt: { [Op.gte]: dayStart, [Op.lte]: dayEnd } }
+        ]
+      },
+      order: [["createdAt", "DESC"]]
     });
 
     // Check if there is an assigned task from Owner for today
@@ -50,8 +50,8 @@ export async function GET(req: Request) {
           employee: userId,
           assignedBy: { [Op.ne]: null },
           date: {
-            [Op.gte]: today,
-            [Op.lt]: tomorrow
+            [Op.gte]: dayStart,
+            [Op.lt]: dayEnd
           }
         },
         order: [["createdAt", "DESC"]]
@@ -124,25 +124,25 @@ export async function POST(req: Request) {
     await sequelize.authenticate();
     await SodReport.sync();
 
-    const today = new Date();
-    today.setUTCHours(0, 0, 0, 0);
-    const tomorrow = new Date(today);
-    tomorrow.setDate(tomorrow.getDate() + 1);
+    const now = new Date();
+    const dayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+    const dayEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
 
     let record = await SodReport.findOne({
       where: {
         employee: userId,
-        date: {
-          [Op.gte]: today,
-          [Op.lt]: tomorrow
-        }
-      }
+        [Op.or]: [
+          { date: { [Op.gte]: dayStart, [Op.lte]: dayEnd } },
+          { createdAt: { [Op.gte]: dayStart, [Op.lte]: dayEnd } }
+        ]
+      },
+      order: [["createdAt", "DESC"]]
     });
 
     if (!record) {
       record = await SodReport.create({
         employee: userId,
-        date: today,
+        date: now,
         taskSummary,
         taskType,
         remarks: remarks || "",
@@ -260,8 +260,8 @@ export async function POST(req: Request) {
       where: {
         employee: userId,
         date: {
-          [Op.gte]: today,
-          [Op.lt]: tomorrow
+          [Op.gte]: dayStart,
+          [Op.lt]: dayEnd
         }
       }
     });
@@ -269,7 +269,7 @@ export async function POST(req: Request) {
       await Attendance.create({
         id: Date.now().toString(),
         employee: userId,
-        date: today,
+        date: now,
         status: "Present",
         checkIn: new Date(),
       });

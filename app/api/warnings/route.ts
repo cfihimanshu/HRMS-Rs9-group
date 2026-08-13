@@ -148,6 +148,7 @@ export async function GET(req: Request) {
       return NextResponse.json({ success: false, error: "User not found" }, { status: 404 });
     }
     const role = dbUser.role || "Employee";
+    await EmployeeProfile.sync({ alter: true }).catch(() => {});
     const profile = await EmployeeProfile.findOne({ where: { user: userId }, raw: true });
     const designation = profile?.designation || "";
 

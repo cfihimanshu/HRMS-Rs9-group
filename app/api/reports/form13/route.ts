@@ -26,6 +26,8 @@ async function initDB() {
         ndaReminder: { type: DataTypes.BOOLEAN, allowNull: true },
         postExitWatch: { type: DataTypes.BOOLEAN, allowNull: true },
         finalSettlementStatus: { type: DataTypes.STRING, defaultValue: "Pending Audit" },
+        salaryStatus: { type: DataTypes.STRING, defaultValue: "Pending" },
+        pendingDuesRemarks: { type: DataTypes.TEXT, allowNull: true },
         approvalStage: { type: DataTypes.STRING, defaultValue: "Pending Manager" },
         exitType: { type: DataTypes.STRING, allowNull: true },
         noticePeriodDays: { type: DataTypes.INTEGER, allowNull: true },
@@ -74,6 +76,7 @@ export async function POST(req: Request) {
       category,
       exitReason,
       resignationDate,
+      lastWorkingDay,
       handoverTo,
       department,
       company,
@@ -96,28 +99,34 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: false, error: "Please provide an exit reason" }, { status: 400 });
     }
 
-    // Find Employee Profile & Department Reporting Manager
+    // Find Employee Profile & Department Reporting Manager assigned in Employee Directory
     const profile = await EmployeeProfile.findOne({ where: { user: submittedBy }, raw: true });
-    let reportingManagerName = profile?.reportingManager || "";
+    let rawReportingManager = (profile?.reportingManager || "").trim();
+    // Strip designation in brackets, e.g. "Astha Sharma (Wordpress Developer)" -> "Astha Sharma"
+    let cleanManagerName = rawReportingManager.replace(/\s*\(.*?\)\s*/g, "").trim();
+
     let managerUser: any = null;
 
-    if (reportingManagerName) {
+    if (cleanManagerName) {
       managerUser = await User.findOne({
         where: {
           [Op.or]: [
-            { name: { [Op.like]: `%${reportingManagerName}%` } },
-            { email: { [Op.like]: `%${reportingManagerName}%` } }
+            { id: cleanManagerName },
+            { name: { [Op.like]: `%${cleanManagerName}%` } },
+            { email: { [Op.like]: `%${cleanManagerName}%` } }
           ]
         },
         raw: true
       });
     }
 
-    if (!managerUser) {
-      // Fallback to any Manager in the system
+    if (!managerUser && rawReportingManager) {
       managerUser = await User.findOne({
         where: {
-          role: { [Op.in]: ["Department Manager", "HR Head", "Director", "Owner"] }
+          [Op.or]: [
+            { name: { [Op.like]: `%${rawReportingManager}%` } },
+            { email: { [Op.like]: `%${rawReportingManager}%` } }
+          ]
         },
         raw: true
       });
@@ -132,6 +141,7 @@ export async function POST(req: Request) {
       category: category || "Employee",
       exitReason,
       resignationDate: resignationDate || new Date().toISOString().split("T")[0],
+      lastWorkingDay: lastWorkingDay || "",
       handoverTo: handoverTo || "",
       department: department || profile?.department || "",
       company: company || (profile as any)?.company || "",
@@ -148,7 +158,7 @@ export async function POST(req: Request) {
       postExitRisk: postExitRisk || "Low",
       approvalStage: "Pending Manager",
       managerId: managerUser?.id || null,
-      managerName: managerUser?.name || reportingManagerName || "Department Manager",
+      managerName: managerUser?.name || cleanManagerName || rawReportingManager || "Department Manager",
       managerEmail: managerUser?.email || null,
       managerApprovalStatus: "Pending",
       ownerApprovalStatus: "Pending",
@@ -204,7 +214,7 @@ export async function POST(req: Request) {
               <p style="margin: 5px 0 0 0; font-size: 12px; color: #666;">Form ID: ${formId}</p>
             </div>
             
-            <p><strong>Action Required:</strong> Department Reporting Manager (<strong>${managerUser?.name || reportingManagerName || "Manager"}</strong>) & Owner can log in to the HRMS Dashboard under <em>Exit & Separation Clearance</em> to review and process approval (Direct Exit vs Notice Period).</p>
+            <p><strong>Action Required:</strong> Department Reporting Manager (<strong>${managerUser?.name || cleanManagerName || rawReportingManager || "Manager"}</strong>) & Owner can log in to the HRMS Dashboard under <em>Exit & Separation Clearance</em> to review and process approval (Direct Exit vs Notice Period).</p>
           </div>
           <div style="text-align: center; padding: 15px; font-size: 11px; color: #888; border-top: 1px solid #eee;">
             RS9 Group Enterprise HR & Governance System
@@ -240,10 +250,36 @@ export async function GET(req: Request) {
     const dbUser: any = await User.findByPk(currentUserId, { raw: true });
     const userRole = dbUser?.role || (session.user as any).role || "Employee";
     const userName = dbUser?.name || (session.user as any).name || "";
+    const userEmail = dbUser?.email || (session.user as any).email || "";
+    const roleLower = userRole.toLowerCase();
 
-    const isManager = userRole !== "Employee" || userRole.toLowerCase().includes("manager");
+    const isGlobalAdmin = ["owner", "director", "hr head", "hr executive", "admin"].some(r => roleLower.includes(r));
+
+    // Find all employees who have current user assigned as Department Reporting Manager in Employee Directory
+    const mySubordinates = userName ? await EmployeeProfile.findAll({
+      where: {
+        reportingManager: { [Op.like]: `%${userName}%` }
+      },
+      attributes: ["user"],
+      raw: true
+    }).catch(() => []) : [];
+    const subordinateUserIds = mySubordinates.map((p: any) => p.user).filter(Boolean);
+
+    let whereClause: any = {};
+    if (!isGlobalAdmin) {
+      whereClause = {
+        [Op.or]: [
+          { submittedBy: currentUserId },
+          { managerId: currentUserId },
+          ...(userName ? [{ managerName: { [Op.like]: `%${userName}%` } }] : []),
+          ...(userEmail ? [{ managerEmail: { [Op.like]: `%${userEmail}%` } }] : []),
+          ...(subordinateUserIds.length > 0 ? [{ submittedBy: { [Op.in]: subordinateUserIds } }] : [])
+        ]
+      };
+    }
 
     const records = await ExitForm.findAll({
+      where: whereClause,
       order: [['createdAt', 'DESC']],
       limit: 100
     });
@@ -254,11 +290,23 @@ export async function GET(req: Request) {
     if (userIds.length > 0) {
       const users = await User.findAll({
         where: { id: userIds },
-        attributes: ['id', 'name', 'email', 'role']
+        attributes: ['id', 'name', 'email', 'role', 'mobile']
       });
+      const profiles = await EmployeeProfile.findAll({
+        where: { user: userIds },
+        raw: true
+      }).catch(() => []);
+
+      const profileMap = (profiles || []).reduce((acc: any, p: any) => {
+        acc[p.user] = p;
+        return acc;
+      }, {});
 
       userMap = users.reduce((acc: any, u: any) => {
-        acc[u.id] = u.toJSON();
+        const uJson = u.toJSON();
+        const prof = profileMap[u.id] || {};
+        uJson.mobile = uJson.mobile || prof.mobile || prof.phone || null;
+        acc[u.id] = uJson;
         return acc;
       }, {});
     }
@@ -266,6 +314,9 @@ export async function GET(req: Request) {
     const data = records.map(r => {
       const rJson = r.toJSON() as any;
       rJson.submittedByUser = userMap[rJson.submittedBy] || null;
+      if (!rJson.personalMobile && rJson.submittedByUser?.mobile) {
+        rJson.personalMobile = rJson.submittedByUser.mobile;
+      }
       return rJson;
     });
 
@@ -330,6 +381,18 @@ export async function PUT(req: Request) {
 
     if (action === "manager_decision") {
       // Stage 1: Department Reporting Manager decision
+      const submitterProfile = await EmployeeProfile.findOne({ where: { user: exitForm.submittedBy }, raw: true }).catch(() => null);
+      const isAssignedReportingManager = Boolean(submitterProfile?.reportingManager && userName && submitterProfile.reportingManager.toLowerCase().includes(userName.toLowerCase()));
+      const isRecordManager = Boolean(
+        exitForm.managerId === userId || 
+        (exitForm.managerName && userName && exitForm.managerName.toLowerCase().includes(userName.toLowerCase())) ||
+        (exitForm.managerEmail && dbUser?.email && exitForm.managerEmail.toLowerCase() === dbUser.email.toLowerCase())
+      );
+      const isAllowedAdmin = ["owner", "director", "hr head", "hr executive", "admin", "department manager"].some(r => userRoleLower.includes(r));
+
+      if (!isAssignedReportingManager && !isRecordManager && !isAllowedAdmin) {
+        return NextResponse.json({ success: false, error: "Only the assigned Department Reporting Manager or Executive Management can process Stage 1 approval" }, { status: 403 });
+      }
 
       if (isApprove) {
         await exitForm.update({
@@ -490,6 +553,7 @@ export async function PUT(req: Request) {
       }
 
       if (isApprove) {
+        const { salaryStatus, pendingDuesRemarks } = body;
         await exitForm.update({
           approvalStage: "Approved",
           hrApprovalStatus: "Approved",
@@ -499,7 +563,9 @@ export async function PUT(req: Request) {
           accessRevoke: accessRevoke !== undefined ? accessRevoke : exitForm.accessRevoke,
           handover: handover !== undefined ? handover : exitForm.handover,
           finalSettlement: finalSettlement !== undefined ? finalSettlement : exitForm.finalSettlement,
-          exitFeedback: exitFeedback || exitForm.exitFeedback
+          exitFeedback: exitFeedback || exitForm.exitFeedback,
+          salaryStatus: salaryStatus || exitForm.salaryStatus || "Pending",
+          pendingDuesRemarks: pendingDuesRemarks !== undefined ? pendingDuesRemarks : exitForm.pendingDuesRemarks,
         });
 
         // Soft-update employee status in User table
@@ -522,6 +588,7 @@ export async function PUT(req: Request) {
                 
                 <div style="background-color: #f9f8fb; border-left: 4px solid #714B67; padding: 12px; margin: 15px 0;">
                   <p style="margin: 0;"><strong>Final Settlement Status:</strong> Approved & Processed</p>
+                  <p style="margin: 5px 0 0 0;"><strong>Salary Status:</strong> ${salaryStatus || exitForm.salaryStatus || "Pending"}</p>
                   <p style="margin: 5px 0 0 0;"><strong>HR Remarks:</strong> ${remarks || "Clearance completed"}</p>
                 </div>
 
@@ -564,6 +631,56 @@ export async function PUT(req: Request) {
           sendEmail({ to: empEmail, subject: `Exit Request Update — Rejected by HR Department`, html: emailHtml }).catch(e => console.error("Email err:", e));
         }
       }
+    } else if (action === "full_edit") {
+      const isAllowedEdit = userRoleLower.includes("owner") || userRoleLower.includes("director") || userRoleLower.includes("hr") || userRoleLower.includes("admin");
+      if (!isAllowedEdit) {
+        return NextResponse.json({ success: false, error: "Unauthorized to edit exit form details" }, { status: 403 });
+      }
+
+      const {
+        name,
+        category,
+        resignationDate,
+        lastWorkingDay,
+        handoverTo,
+        exitReason,
+        exitFeedback,
+        salaryStatus,
+        pendingDuesRemarks,
+        assetReturn,
+        accessRevoke,
+        handover,
+        finalSettlement,
+        managerRemarks,
+        ownerRemarks,
+        hrRemarks,
+        approvalStage,
+        exitType,
+        noticePeriodDays,
+      } = body;
+
+      const updateData: any = {};
+      if (name !== undefined) updateData.name = name;
+      if (category !== undefined) updateData.category = category;
+      if (resignationDate !== undefined) updateData.resignationDate = resignationDate;
+      if (lastWorkingDay !== undefined) updateData.lastWorkingDay = lastWorkingDay;
+      if (handoverTo !== undefined) updateData.handoverTo = handoverTo;
+      if (exitReason !== undefined) updateData.exitReason = exitReason;
+      if (exitFeedback !== undefined) updateData.exitFeedback = exitFeedback;
+      if (salaryStatus !== undefined) updateData.salaryStatus = salaryStatus;
+      if (pendingDuesRemarks !== undefined) updateData.pendingDuesRemarks = pendingDuesRemarks;
+      if (assetReturn !== undefined) updateData.assetReturn = assetReturn;
+      if (accessRevoke !== undefined) updateData.accessRevoke = accessRevoke;
+      if (handover !== undefined) updateData.handover = handover;
+      if (finalSettlement !== undefined) updateData.finalSettlement = finalSettlement;
+      if (managerRemarks !== undefined) updateData.managerRemarks = managerRemarks;
+      if (ownerRemarks !== undefined) updateData.ownerRemarks = ownerRemarks;
+      if (hrRemarks !== undefined) updateData.hrRemarks = hrRemarks;
+      if (approvalStage !== undefined) updateData.approvalStage = approvalStage;
+      if (exitType !== undefined) updateData.exitType = exitType;
+      if (noticePeriodDays !== undefined) updateData.noticePeriodDays = noticePeriodDays;
+
+      await exitForm.update(updateData);
     }
 
     await logAudit({

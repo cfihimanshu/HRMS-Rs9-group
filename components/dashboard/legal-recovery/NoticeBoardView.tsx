@@ -490,6 +490,20 @@ export default function NoticeBoardView({
   });
   const [showColumnToggle, setShowColumnToggle] = useState(false);
   const columnToggleRef = useRef<HTMLDivElement>(null);
+  const topScrollRef = useRef<HTMLDivElement>(null);
+  const tableScrollRef = useRef<HTMLDivElement>(null);
+
+  const handleTopScroll = () => {
+    if (topScrollRef.current && tableScrollRef.current) {
+      tableScrollRef.current.scrollLeft = topScrollRef.current.scrollLeft;
+    }
+  };
+
+  const handleTableScroll = () => {
+    if (topScrollRef.current && tableScrollRef.current) {
+      topScrollRef.current.scrollLeft = tableScrollRef.current.scrollLeft;
+    }
+  };
 
   // Excel-like column filters state
   const [activeFilterKey, setActiveFilterKey] = useState<string | null>(null);
@@ -1949,8 +1963,8 @@ export default function NoticeBoardView({
             </div>
           </div>
 
-          {/* Notices Table */}
-          <div className="overflow-x-auto custom-scrollbar w-full shadow-sm border border-[#E8E4DF] rounded-2xl bg-white">
+          {/* Notices Table Container */}
+          <div className="overflow-auto max-h-[calc(100vh-270px)] custom-scrollbar w-full shadow-sm border border-[#E8E4DF] rounded-2xl bg-white relative">
             {loading ? (
               <div className="text-center py-16 text-slate-400 text-xs flex flex-col items-center gap-2">
                 <RefreshCw className="w-6 h-6 animate-spin text-indigo-600" /> LOADING NOTICES...
@@ -1987,9 +2001,9 @@ export default function NoticeBoardView({
                 `}</style>
                 <table className="notice-tracking-table min-w-[2800px] w-full text-left border-collapse text-[11px] font-sans">
                 <thead>
-                  <tr className="bg-slate-50 border-b border-[#E8E4DF] text-[9px] uppercase tracking-wider text-slate-500 font-black">
+                  <tr className="bg-slate-50 border-b border-[#E8E4DF] text-[9px] uppercase tracking-wider text-slate-500 font-black sticky top-0 z-20 shadow-2xs">
                     {visibleColumns.bankBranch && (
-                      <th className="px-3 py-2.5 relative">
+                      <th className="px-3 py-2.5 relative sticky left-0 z-30 bg-slate-50 shadow-[2px_0_5px_rgba(0,0,0,0.05)]">
                         <div className="flex items-center justify-between gap-1">
                           <span>BANK/BRANCH</span>
                           <button
@@ -2617,7 +2631,7 @@ export default function NoticeBoardView({
                       <tr key={n.id} className="hover:bg-slate-50/50 transition-colors">
                         {/* BANK/BRANCH */}
                         {visibleColumns.bankBranch && (
-                          <td className="allow-wrap px-3 py-3 max-w-[180px]">
+                          <td className="allow-wrap px-3 py-3 max-w-[180px] sticky left-0 z-10 bg-white shadow-[2px_0_5px_rgba(0,0,0,0.05)]">
                             <div className="font-extrabold text-slate-900 truncate">{bank?.bankName || "Unknown Bank"}</div>
                             <div className="text-[10px] text-slate-500 truncate mt-0.5">
                               {branch?.branchName || "Unknown Branch"} ({n.branchId})

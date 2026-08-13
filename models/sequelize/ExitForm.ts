@@ -79,6 +79,15 @@ ExitForm.init(
       defaultValue: "Pending Audit",
       allowNull: true,
     },
+    salaryStatus: {
+      type: DataTypes.STRING, // "Pending" | "Paid / Released" | "Included in Full & Final (F&F)"
+      defaultValue: "Pending",
+      allowNull: true,
+    },
+    pendingDuesRemarks: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+    },
     exitFeedback: {
       type: DataTypes.TEXT,
       allowNull: true,

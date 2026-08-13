@@ -187,55 +187,55 @@ export function OwnerDashboard({
           </p>
         </div>
 
-        <div className="relative z-10 w-full md:w-2/3 grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 divide-x divide-[#E8E4DF]">
+        <div className="relative z-10 w-full md:w-2/3 grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 md:gap-6 sm:divide-x divide-[#E8E4DF]">
           <div
-            className="pl-3 md:pl-5 first:pl-0 cursor-pointer hover:bg-[#FAF9F5] transition-all p-2 rounded-lg -ml-1 group"
+            className="pl-1 sm:pl-3 md:pl-5 sm:first:pl-0 cursor-pointer hover:bg-[#FAF9F5] transition-all p-2 rounded-lg group"
             onClick={() => onNavigateTab("employees")}
             title="Click to view Employees Directory"
           >
-            <div className="text-2xl font-light text-indigo-950 font-serif" style={{ fontFamily: "'Playfair Display', serif" }}>
+            <div className="text-xl sm:text-2xl font-light text-indigo-950 font-serif" style={{ fontFamily: "'Playfair Display', serif" }}>
               {stats?.roles?.employees || 0}
             </div>
             <div className="text-[9px] uppercase tracking-wider text-[#8C8880] mt-1 font-semibold flex items-center gap-1 group-hover:text-indigo-600 transition-colors">
-              <Users className="w-3 h-3 text-indigo-500 group-hover:text-indigo-700" /> Total Staff <ArrowUpRight className="w-3 h-3 text-[#8C8880] group-hover:text-indigo-600" />
+              <Users className="w-3 h-3 text-indigo-500 group-hover:text-indigo-700 shrink-0" /> <span className="truncate">Total Staff</span> <ArrowUpRight className="w-3 h-3 text-[#8C8880] group-hover:text-indigo-600 shrink-0" />
             </div>
           </div>
           <div
-            className="pl-3 md:pl-5 cursor-pointer hover:bg-[#FAF9F5] transition-all p-2 rounded-lg group"
+            className="pl-2 sm:pl-3 md:pl-5 cursor-pointer hover:bg-[#FAF9F5] transition-all p-2 rounded-lg group"
             onClick={() => onNavigateTab("performance", "sod")}
             title="Click to view Work Report (SOD)"
           >
-            <div className="text-2xl font-light text-emerald-800 font-serif" style={{ fontFamily: "'Playfair Display', serif" }}>
+            <div className="text-xl sm:text-2xl font-light text-emerald-800 font-serif" style={{ fontFamily: "'Playfair Display', serif" }}>
               {stats?.todayCompliance?.attendance || 0}
             </div>
             <div className="text-[9px] uppercase tracking-wider text-[#8C8880] mt-1 font-semibold flex items-center gap-1 group-hover:text-emerald-700 transition-colors">
-              <UserCheck className="w-3 h-3 text-emerald-600" /> Present Today <ArrowUpRight className="w-3 h-3 text-[#8C8880] group-hover:text-emerald-700" />
+              <UserCheck className="w-3 h-3 text-emerald-600 shrink-0" /> <span className="truncate">Present Today</span> <ArrowUpRight className="w-3 h-3 text-[#8C8880] group-hover:text-emerald-700 shrink-0" />
             </div>
           </div>
 
           <div
-            className="pl-3 md:pl-5 cursor-pointer hover:bg-[#FAF9F5] transition-all p-2 rounded-lg group"
+            className="pl-1 sm:pl-3 md:pl-5 cursor-pointer hover:bg-[#FAF9F5] transition-all p-2 rounded-lg group"
             onClick={() => onNavigateTab("tasks")}
             title="Click to view Pending Tasks"
           >
-            <div className="text-2xl font-light text-amber-700 font-serif" style={{ fontFamily: "'Playfair Display', serif" }}>
+            <div className="text-xl sm:text-2xl font-light text-amber-700 font-serif" style={{ fontFamily: "'Playfair Display', serif" }}>
               {stats?.pendingApprovals?.pendingTasks ?? stats?.currentUserStats?.pendingTasksCount ?? 0}
             </div>
             <div className="text-[9px] uppercase tracking-wider text-[#8C8880] mt-1 font-semibold flex items-center gap-1 group-hover:text-amber-600 transition-colors">
-              <Clock className="w-3 h-3 text-amber-500" /> Pending Tasks <ArrowUpRight className="w-3 h-3 text-[#8C8880] group-hover:text-amber-600" />
+              <Clock className="w-3 h-3 text-amber-500 shrink-0" /> <span className="truncate">Pending Tasks</span> <ArrowUpRight className="w-3 h-3 text-[#8C8880] group-hover:text-amber-600 shrink-0" />
             </div>
           </div>
 
           <div
-            className="pl-3 md:pl-5 cursor-pointer hover:bg-[#FAF9F5] transition-all p-2 rounded-lg group"
+            className="pl-2 sm:pl-3 md:pl-5 cursor-pointer hover:bg-[#FAF9F5] transition-all p-2 rounded-lg group"
             onClick={() => onNavigateTab("ess-leaves")}
             title="Click to view Pending Requests (Leaves & Assets)"
           >
-            <div className="text-2xl font-light text-purple-900 font-serif" style={{ fontFamily: "'Playfair Display', serif" }}>
+            <div className="text-xl sm:text-2xl font-light text-purple-900 font-serif" style={{ fontFamily: "'Playfair Display', serif" }}>
               {stats?.pendingApprovals?.pendingRequestsTotal ?? 0}
             </div>
             <div className="text-[9px] uppercase tracking-wider text-[#8C8880] mt-1 font-semibold flex items-center gap-1 group-hover:text-purple-600 transition-colors">
-              <FileCheck className="w-3 h-3 text-purple-500" /> Pending Requests <ArrowUpRight className="w-3 h-3 text-[#8C8880] group-hover:text-purple-600" />
+              <FileCheck className="w-3 h-3 text-purple-500 shrink-0" /> <span className="truncate">Pending Requests</span> <ArrowUpRight className="w-3 h-3 text-[#8C8880] group-hover:text-purple-600 shrink-0" />
             </div>
           </div>
         </div>

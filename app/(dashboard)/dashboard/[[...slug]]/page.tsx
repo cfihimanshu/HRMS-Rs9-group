@@ -52,6 +52,7 @@ import {
 } from "@/components/dashboard/ESSPanels";
 import EmployeeDirectory from "@/components/dashboard/EmployeePanels";
 import BDADirectory from "@/components/dashboard/BDAPanels";
+import BdaLeads from "@/components/dashboard/BdaLeads";
 import AssetsRegistry from "@/components/dashboard/AssetsRegistry";
 import InventoryManagement from "@/components/dashboard/InventoryManagement";
 import AdministratorAccess from "@/components/dashboard/AdministratorAccess";
@@ -1276,6 +1277,14 @@ export default function UnifiedEnterpriseDashboard() {
 
           {activeTab === "bda-directory" && (
             <BDADirectory
+              userRole={userRole}
+              triggerToast={triggerToast}
+              sessionUser={session?.user}
+            />
+          )}
+
+          {activeTab === "bda-leads" && (
+            <BdaLeads
               userRole={userRole}
               triggerToast={triggerToast}
               sessionUser={session?.user}

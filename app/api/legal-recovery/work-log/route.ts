@@ -273,11 +273,14 @@ export async function POST(request: Request) {
         { status: 400 }
       );
     }
-    if (isNoticeAssessment && !String(data.broughtBy || "").trim()) {
-      return NextResponse.json(
-        { success: false, error: "Brought By person name is required." },
-        { status: 400 }
-      );
+    if (isNoticeAssessment && !String(cleanData.broughtBy || "").trim()) {
+      cleanData.broughtBy = empName;
+    }
+    if (requiredPersonField && !isBillFollowUp && !String(cleanData[requiredPersonField] || "").trim()) {
+      cleanData[requiredPersonField] = empName;
+    }
+    if (!String(cleanData.broughtBy || "").trim()) {
+      cleanData.broughtBy = empName;
     }
     if (isNoticeAssessment) {
       const count = Number.parseInt(String(parsedFinancialDetails?.noticeCount || "0"), 10);
@@ -317,13 +320,6 @@ export async function POST(request: Request) {
     } else {
       delete cleanData.financialDetails;
     }
-    if (requiredPersonField && !isBillFollowUp && !String(data[requiredPersonField] || "").trim()) {
-      const fieldLabel = requiredPersonField.replace(/([A-Z])/g, " $1").replace(/^./, c => c.toUpperCase());
-      return NextResponse.json(
-        { success: false, error: `${fieldLabel} person name is required.` },
-        { status: 400 }
-      );
-    }
     if (
       isDispatchStage &&
       (!Number.isFinite(parsedStageAmount) || parsedStageAmount < 0)
@@ -334,128 +330,159 @@ export async function POST(request: Request) {
       );
     }
 
+    const targetWorkDateStr = (data.workDate || data.date || data.allocationDate || new Date().toISOString().split('T')[0]).trim();
+    const logDateObj = isNaN(new Date(targetWorkDateStr + "T10:00:00").getTime())
+      ? new Date()
+      : new Date(targetWorkDateStr + "T10:00:00");
+
     const newLog = await LegalWorkLog.create({
       ...cleanData,
       employeeId: empId,
       employeeName: empName,
+      workDate: targetWorkDateStr,
+      createdAt: logDateObj,
+      updatedAt: logDateObj,
       finalRate: Number.isFinite(parsedFinalRate) ? parsedFinalRate : null,
       expenses: Number.isFinite(parsedExpenses) ? parsedExpenses : null,
       grossProfit: isNoticeAssessment ? calculatedAssessmentGp : (Number.isFinite(parsedFinalRate) ? parsedFinalRate * (Number.parseFloat(String(data.noOfCount || "1")) || 1) : null),
     });
 
-    if (data.workDate || data.allocationDate) {
+    try {
+      await TaskLog.sync();
+      
+      const countStr = data.noOfCount || "1";
+      const categoryStr = data.businessDevOption || data.category || "Legal Recovery Work";
+      const subCatStr = data.businessDevSubOption || data.subCategory || "Notice Execution";
+      
+      const followUpDetailsObj = data.followUpDetails ? (typeof data.followUpDetails === "string" ? JSON.parse(data.followUpDetails) : data.followUpDetails) : null;
+      const contactedPersonStr = followUpDetailsObj?.contactedPerson || data.personName || "";
+      const billNoStr = data.billNo || followUpDetailsObj?.billNo || "";
+
+      const titleStr = isBillFollowUp
+        ? `Bill Follow Up: ${data.bankName || 'Bank'} (${data.branchName || 'Branch'}) - Call with ${contactedPersonStr || 'Officer'} ${billNoStr ? `(Bill #${billNoStr})` : ''}`.trim()
+        : `${categoryStr}: ${subCatStr} (${countStr} Count)`;
+
+      const taskDate = targetWorkDateStr;
+      
+      let taskTime = "10:00 AM";
+      if (isBillFollowUp && followUpDetailsObj?.callTime) {
+        taskTime = followUpDetailsObj.callTime;
+      } else if (data.allocationDate) {
+        const dt = new Date(data.allocationDate);
+        if (!isNaN(dt.getTime())) {
+          taskTime = dt.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" });
+        }
+      }
+
+      const dateCompact = taskDate.replace(/-/g, "");
+      const generatedTaskId = `TSK-${dateCompact}-${Math.floor(1000 + Math.random() * 9000)}`;
+
+      const detailsParts: string[] = [];
+
+      if (data.broughtBy && String(data.broughtBy).trim()) {
+        detailsParts.push(`Brought By: ${String(data.broughtBy).trim()}`);
+      }
+      if (data.preparedBy && String(data.preparedBy).trim()) {
+        detailsParts.push(`Prepared By: ${String(data.preparedBy).trim()}`);
+      }
+      if (data.printedBy && String(data.printedBy).trim()) {
+        detailsParts.push(`Printed By: ${String(data.printedBy).trim()}`);
+      }
+      if (data.dispatchedBy && String(data.dispatchedBy).trim()) {
+        detailsParts.push(`Dispatched By: ${String(data.dispatchedBy).trim()}`);
+      }
+      if (data.personName && String(data.personName).trim()) {
+        detailsParts.push(`Person: ${String(data.personName).trim()}`);
+      }
+
+      const billParts: string[] = [];
+      if (data.billNo && String(data.billNo).trim()) {
+        billParts.push(`Bill No: ${String(data.billNo).trim()}`);
+      }
+      if (data.billAmount !== undefined && data.billAmount !== null && String(data.billAmount).trim() !== "") {
+        billParts.push(`Amount: Rs.${data.billAmount}`);
+      }
+      if (billParts.length > 0) {
+        detailsParts.push(billParts.join(", "));
+      }
+
+      if (isNoticeAssessment) {
+        const finParts: string[] = [];
+        if (parsedFinancialDetails?.perNoticeRate !== undefined && parsedFinancialDetails?.perNoticeRate !== null) {
+          finParts.push(`Per Notice Rate: Rs.${parsedFinancialDetails.perNoticeRate}`);
+        }
+        if (parsedFinancialDetails?.bankOfficerPerNotice !== undefined && parsedFinancialDetails?.bankOfficerPerNotice !== null) {
+          finParts.push(`Officer/Notice: Rs.${parsedFinancialDetails.bankOfficerPerNotice}`);
+        }
+        if (parsedExpenses !== undefined && !isNaN(parsedExpenses) && parsedExpenses > 0) {
+          finParts.push(`Own Expenses: Rs.${parsedExpenses}`);
+        }
+        if (calculatedAssessmentGp !== undefined && calculatedAssessmentGp !== null && !isNaN(calculatedAssessmentGp)) {
+          finParts.push(`GP before dispatch: Rs.${calculatedAssessmentGp}`);
+        }
+        if (finParts.length > 0) {
+          detailsParts.push(finParts.join(", "));
+        }
+      }
+
+      const attachmentFile = data.uploadedFileName || followUpDetailsObj?.attachment || null;
+
+      let taskDescriptionParts: string[] = [];
+      if (detailsParts.length > 0) {
+        taskDescriptionParts.push(detailsParts.join(" | "));
+      }
+      if (data.remarks && String(data.remarks).trim()) {
+        taskDescriptionParts.push(`Remarks: ${String(data.remarks).trim()}`);
+      }
+      if (attachmentFile && String(attachmentFile).trim()) {
+        taskDescriptionParts.push(`Attachment File: ${String(attachmentFile).trim()}`);
+      }
+      const taskDescription = taskDescriptionParts.join(" | ");
+
+      await TaskLog.create({
+        id: generatedTaskId,
+        employee: empId,
+        taskTitle: titleStr,
+        description: taskDescription,
+        status: "Pending",
+        allocatedBy: empId,
+        date: taskDate,
+        scheduledAt: logDateObj,
+        createdAt: logDateObj,
+        updatedAt: logDateObj,
+        time: taskTime,
+        workSection: data.workLocation || "Bank",
+        bankName: data.bankName || null,
+        branchName: data.branchName || null,
+        proofAttachment: attachmentFile || null,
+        proofUrl: attachmentFile || null,
+        attachmentUrl: attachmentFile || null,
+      });
+
+      // Dual-sync into LegalRecoverySchedule so task displays in Schedule Work Report for exact work date
       try {
-        await TaskLog.sync();
-        
-        const countStr = data.noOfCount || "1";
-        const categoryStr = data.businessDevOption || data.category || "Legal Recovery Work";
-        const subCatStr = data.businessDevSubOption || data.subCategory || "Notice Execution";
-        
-        const followUpDetailsObj = data.followUpDetails ? (typeof data.followUpDetails === "string" ? JSON.parse(data.followUpDetails) : data.followUpDetails) : null;
-        const contactedPersonStr = followUpDetailsObj?.contactedPerson || data.personName || "";
-        const billNoStr = data.billNo || followUpDetailsObj?.billNo || "";
-
-        const titleStr = isBillFollowUp
-          ? `Bill Follow Up: ${data.bankName || 'Bank'} (${data.branchName || 'Branch'}) - Call with ${contactedPersonStr || 'Officer'} ${billNoStr ? `(Bill #${billNoStr})` : ''}`.trim()
-          : `${categoryStr}: ${subCatStr} (${countStr} Count)`;
-
-        const taskDate = data.workDate || new Date().toISOString().split('T')[0];
-        
-        let taskTime = "10:00 AM";
-        if (isBillFollowUp && followUpDetailsObj?.callTime) {
-          taskTime = followUpDetailsObj.callTime;
-        } else if (data.allocationDate) {
-          const dt = new Date(data.allocationDate);
-          if (!isNaN(dt.getTime())) {
-            taskTime = dt.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" });
-          }
-        }
-
-        const dateCompact = taskDate.replace(/-/g, "");
-        const generatedTaskId = `TSK-${dateCompact}-${Math.floor(1000 + Math.random() * 9000)}`;
-
-        const detailsParts: string[] = [];
-
-        if (data.broughtBy && String(data.broughtBy).trim()) {
-          detailsParts.push(`Brought By: ${String(data.broughtBy).trim()}`);
-        }
-        if (data.preparedBy && String(data.preparedBy).trim()) {
-          detailsParts.push(`Prepared By: ${String(data.preparedBy).trim()}`);
-        }
-        if (data.printedBy && String(data.printedBy).trim()) {
-          detailsParts.push(`Printed By: ${String(data.printedBy).trim()}`);
-        }
-        if (data.dispatchedBy && String(data.dispatchedBy).trim()) {
-          detailsParts.push(`Dispatched By: ${String(data.dispatchedBy).trim()}`);
-        }
-        if (data.personName && String(data.personName).trim()) {
-          detailsParts.push(`Person: ${String(data.personName).trim()}`);
-        }
-
-        const billParts: string[] = [];
-        if (data.billNo && String(data.billNo).trim()) {
-          billParts.push(`Bill No: ${String(data.billNo).trim()}`);
-        }
-        if (data.billAmount !== undefined && data.billAmount !== null && String(data.billAmount).trim() !== "") {
-          billParts.push(`Amount: Rs.${data.billAmount}`);
-        }
-        if (billParts.length > 0) {
-          detailsParts.push(billParts.join(", "));
-        }
-
-        if (isNoticeAssessment) {
-          const finParts: string[] = [];
-          if (parsedFinancialDetails?.perNoticeRate !== undefined && parsedFinancialDetails?.perNoticeRate !== null) {
-            finParts.push(`Per Notice Rate: Rs.${parsedFinancialDetails.perNoticeRate}`);
-          }
-          if (parsedFinancialDetails?.bankOfficerPerNotice !== undefined && parsedFinancialDetails?.bankOfficerPerNotice !== null) {
-            finParts.push(`Officer/Notice: Rs.${parsedFinancialDetails.bankOfficerPerNotice}`);
-          }
-          if (parsedExpenses !== undefined && !isNaN(parsedExpenses) && parsedExpenses > 0) {
-            finParts.push(`Own Expenses: Rs.${parsedExpenses}`);
-          }
-          if (calculatedAssessmentGp !== undefined && calculatedAssessmentGp !== null && !isNaN(calculatedAssessmentGp)) {
-            finParts.push(`GP before dispatch: Rs.${calculatedAssessmentGp}`);
-          }
-          if (finParts.length > 0) {
-            detailsParts.push(finParts.join(", "));
-          }
-        }
-
-        const attachmentFile = data.uploadedFileName || followUpDetailsObj?.attachment || null;
-
-        let taskDescriptionParts: string[] = [];
-        if (detailsParts.length > 0) {
-          taskDescriptionParts.push(detailsParts.join(" | "));
-        }
-        if (data.remarks && String(data.remarks).trim()) {
-          taskDescriptionParts.push(`Remarks: ${String(data.remarks).trim()}`);
-        }
-        if (attachmentFile && String(attachmentFile).trim()) {
-          taskDescriptionParts.push(`Attachment File: ${String(attachmentFile).trim()}`);
-        }
-        const taskDescription = taskDescriptionParts.join(" | ");
-
-        await TaskLog.create({
-          id: generatedTaskId,
-          employee: empId,
-          taskTitle: titleStr,
-          description: taskDescription,
-          status: "Pending",
-          allocatedBy: empId,
-          date: taskDate,
-          scheduledAt: data.allocationDate ? new Date(data.allocationDate) : new Date(),
+        const LegalRecoverySchedule = (sequelize.models as any).LegalRecoverySchedule || (await import("@/models/sequelize/LegalRecoverySchedule")).default;
+        await LegalRecoverySchedule.sync().catch(() => {});
+        await LegalRecoverySchedule.create({
+          id: "lrs_worklog_" + generatedTaskId,
+          employeeId: empId,
+          sodId: null,
+          date: targetWorkDateStr,
           time: taskTime,
           workSection: data.workLocation || "Bank",
+          type: categoryStr,
+          subType: subCatStr,
           bankName: data.bankName || null,
           branchName: data.branchName || null,
-          proofAttachment: attachmentFile || null,
-          proofUrl: attachmentFile || null,
-          attachmentUrl: attachmentFile || null,
-        });
-      } catch (tErr) {
-        console.warn("TaskLog creation warning in work-log route:", tErr);
-      }
+          details: taskDescription,
+          status: "Pending",
+          createdAt: logDateObj,
+          updatedAt: logDateObj
+        }).catch(() => {});
+      } catch (schErr) {}
+
+    } catch (tErr) {
+      console.warn("TaskLog creation warning in work-log route:", tErr);
     }
 
     // Dual-sync into legal_work_histories table as well
@@ -472,7 +499,9 @@ export async function POST(request: Request) {
         attachmentUrl: cleanData.uploadedFileName || null,
         remarks: cleanData.remarks || null,
         status: "Completed",
-        workDate: data.workDate || new Date(),
+        workDate: targetWorkDateStr,
+        createdAt: logDateObj,
+        updatedAt: logDateObj,
         amount: Number(data.stageAmount || data.billAmount || 0) || null
       });
     } catch (hErr) {

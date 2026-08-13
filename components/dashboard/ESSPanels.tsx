@@ -23,7 +23,10 @@ import {
   X,
   Upload,
   Eye,
-  Filter
+  Filter,
+  Sparkles,
+  Award,
+  MapPin
 } from "lucide-react";
 import StatCard from "./StatCard";
 
@@ -39,6 +42,7 @@ export function ESSDashboard({ user, triggerToast, setActiveTab, toggleModal, st
   const [isDark, setIsDark] = React.useState(false);
   const [tasks, setTasks] = React.useState<any[]>([]);
   const [loadingTasks, setLoadingTasks] = React.useState(true);
+  const [matrixModal, setMatrixModal] = React.useState<"productivity" | "tasks" | "sod-eod" | "attendance" | null>(null);
 
   React.useEffect(() => {
     setIsDark(document.documentElement.classList.contains("dark"));
@@ -114,12 +118,43 @@ export function ESSDashboard({ user, triggerToast, setActiveTab, toggleModal, st
 
   const dynamicStats = stats?.currentUserStats || {
     presentDays: 0,
-    totalWorkingDays: 22,
+    totalWorkingDays: 26,
     attendancePercent: 100,
     casualLeave: 12,
     sickLeave: 12,
     earnedLeave: 0,
   };
+
+  const totalWorkingDaysCount = (dynamicStats?.totalWorkingDays && Number(dynamicStats.totalWorkingDays) > 1) ? Number(dynamicStats.totalWorkingDays) : 26;
+
+  const myAllTasks = React.useMemo(() => {
+    return tasks.filter((t: any) => isMatchUser(t.employee) || isMatchUser(t.employeeId) || isMatchUser(t.assignedTo) || isMatchUser(t.forwardedTo));
+  }, [tasks, userIdentifiers]);
+
+  const completedMyTasks = React.useMemo(() => {
+    return myAllTasks.filter((t: any) => t.status === "Completed" || t.status === "Done" || t.status === "Approved");
+  }, [myAllTasks]);
+
+  const overdueMyTasks = React.useMemo(() => {
+    const now = new Date().toISOString();
+    return pendingTasks.filter((t: any) => t.deadlineAt && t.deadlineAt < now);
+  }, [pendingTasks]);
+
+  const totalTaskCount = myAllTasks.length || 1;
+  const completedTaskCount = completedMyTasks.length;
+  const taskCompletionRate = Math.min(100, Math.max(0, Math.round((completedTaskCount / totalTaskCount) * 100)));
+
+  const pendingCount = pendingTasks.length;
+  const overdueCount = overdueMyTasks.length;
+  const onTimeRate = pendingCount > 0 ? Math.max(0, Math.min(100, Math.round(((pendingCount - overdueCount) / pendingCount) * 100))) : 100;
+
+  const attendancePercent = Math.min(100, Math.max(0, Number(dynamicStats.attendancePercent ?? 100)));
+
+  const sodEodRate = Math.min(100, Math.max(0, stats?.currentUserCompliance?.hasSod
+    ? (stats?.currentUserCompliance?.hasEod ? 100 : 90)
+    : (dynamicStats.presentDays > 0 ? Math.round((dynamicStats.presentDays / totalWorkingDaysCount) * 100) : 85)));
+
+  const performanceScore = Math.min(100, Math.max(0, Math.round(attendancePercent * 0.4 + taskCompletionRate * 0.4 + sodEodRate * 0.2)));
 
   const pendingCountDisplay = pendingTasks.length;
 
@@ -167,7 +202,7 @@ export function ESSDashboard({ user, triggerToast, setActiveTab, toggleModal, st
               <CalendarCheck className="w-4 h-4 text-indigo-500" />
             </div>
             <div className="text-2xl font-light text-[#1C1C1A] font-serif mt-1 font-mono" style={{ fontFamily: "'Playfair Display', serif" }}>
-              {dynamicStats.presentDays ?? 0} <span className="text-xs text-[#8C8880] font-sans">/ {dynamicStats.totalWorkingDays ?? 22}</span>
+              {dynamicStats.presentDays ?? 0} <span className="text-xs text-[#8C8880] font-sans">/ {totalWorkingDaysCount}</span>
             </div>
           </div>
           <div className="mt-3 pt-2.5 border-t border-[#E8E4DF]/70 flex items-center justify-between">
@@ -238,67 +273,250 @@ export function ESSDashboard({ user, triggerToast, setActiveTab, toggleModal, st
         </div>
       </div>
 
-      {/* Quick Actions Panel */}
-      <div className="bg-[#FCFBF9] border border-[#E8E4DF] rounded-xl p-6 shadow-[0_2px_12px_rgba(0,0,0,0.03)]">
-        <h2 className="text-xs font-semibold tracking-widest text-[#1C1C1A] uppercase mb-4">Quick Actions</h2>
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-          <button
-            onClick={() => setActiveTab && setActiveTab("leave-request")}
-            className="p-4 border border-[#E8E4DF] bg-white rounded-xl hover:bg-[#FAF9F5] hover:border-indigo-400 transition-all text-left cursor-pointer flex items-center gap-3.5 group shadow-2xs"
-          >
-            <div className="p-2 rounded-lg bg-indigo-50 text-indigo-600 group-hover:bg-indigo-600 group-hover:text-white transition-all">
-              <CalendarCheck className="w-5 h-5" />
+      {/* Performance Matrix, Quick Actions & Requests Tracker 3-Section Row */}
+      <div className="grid grid-cols-1 xl:grid-cols-12 gap-5 items-stretch">
+        {/* Section 1: User Performance & Productivity Matrix Panel (Left 5 cols) */}
+        <div className="xl:col-span-5 bg-[#FCFBF9] border border-[#E8E4DF] rounded-2xl p-4 sm:p-4.5 shadow-[0_2px_12px_rgba(0,0,0,0.03)] space-y-3 flex flex-col justify-between h-full">
+          <div className="border-b border-[#E8E4DF]/70 pb-2.5">
+            <div className="flex items-center gap-2">
+              <TrendingUp className="w-4 h-4 text-indigo-600" />
+              <h2 className="text-sm font-bold text-slate-900 font-serif" style={{ fontFamily: "'Playfair Display', serif" }}>
+                Performance & Productivity Matrix
+              </h2>
             </div>
-            <span className="font-semibold text-[#1C1C1A] text-xs group-hover:text-indigo-600 transition-colors">Apply Leave</span>
-          </button>
+          </div>
 
-          <button
-            onClick={() => setActiveTab && setActiveTab("ess-payroll")}
-            className="p-4 border border-[#E8E4DF] bg-white rounded-xl hover:bg-[#FAF9F5] hover:border-emerald-400 transition-all text-left cursor-pointer flex items-center gap-3.5 group shadow-2xs"
-          >
-            <div className="p-2 rounded-lg bg-emerald-50 text-emerald-600 group-hover:bg-emerald-600 group-hover:text-white transition-all">
-              <FileText className="w-5 h-5" />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 flex-1">
+            {/* Productivity Index */}
+            <div className="bg-gradient-to-br from-indigo-50/90 to-purple-50/40 border border-indigo-100/90 rounded-xl p-3 flex flex-col justify-between shadow-2xs">
+              <div className="text-[9px] uppercase tracking-wider text-indigo-900 font-extrabold flex items-center justify-between">
+                <span>Productivity Index</span>
+                <Sparkles className="w-3.5 h-3.5 text-indigo-600" />
+              </div>
+              <div className="my-1.5 flex items-baseline justify-between">
+                <span className="text-xl font-bold text-indigo-950 font-mono">{performanceScore}%</span>
+              </div>
+              <div className="w-full bg-indigo-200/60 rounded-full h-1 overflow-hidden">
+                <div className="bg-indigo-600 h-full rounded-full transition-all duration-500" style={{ width: `${performanceScore}%` }}></div>
+              </div>
             </div>
-            <span className="font-semibold text-[#1C1C1A] text-xs group-hover:text-emerald-600 transition-colors">View Payslip</span>
-          </button>
 
-          <button
-            onClick={() => setActiveTab && setActiveTab("ess-expenses")}
-            className="p-4 border border-[#E8E4DF] bg-white rounded-xl hover:bg-[#FAF9F5] hover:border-amber-400 transition-all text-left cursor-pointer flex items-center gap-3.5 group shadow-2xs"
-          >
-            <div className="p-2 rounded-lg bg-amber-50 text-amber-600 group-hover:bg-amber-600 group-hover:text-white transition-all">
-              <Coins className="w-5 h-5" />
+            {/* Task Completion Rate */}
+            <div
+              onClick={() => setMatrixModal("tasks")}
+              className="bg-emerald-50/70 border border-emerald-100 hover:border-emerald-400 rounded-xl p-3 flex flex-col justify-between shadow-2xs hover:shadow-md hover:scale-[1.02] transition-all cursor-pointer group"
+            >
+              <div className="text-[9px] uppercase tracking-wider text-emerald-900 font-extrabold flex items-center justify-between">
+                <span>Task Completion Rate</span>
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 group-hover:scale-110 transition-transform" />
+              </div>
+              <div className="my-1.5 flex items-baseline justify-between">
+                <span className="text-xl font-bold text-emerald-950 font-mono">{taskCompletionRate}%</span>
+                <span className="text-[9px] font-bold text-emerald-800">
+                  {completedTaskCount} / {totalTaskCount} Done
+                </span>
+              </div>
+              <div className="w-full bg-emerald-200/60 rounded-full h-1 overflow-hidden">
+                <div className="bg-emerald-600 h-full rounded-full transition-all duration-500" style={{ width: `${taskCompletionRate}%` }}></div>
+              </div>
             </div>
-            <span className="font-semibold text-[#1C1C1A] text-xs group-hover:text-amber-600 transition-colors">Claim Expense</span>
-          </button>
 
-          <button
-            onClick={() => {
-              if (setActiveTab) {
-                setActiveTab("leave-request");
-                setTimeout(() => {
-                  const el = document.getElementById("absent-fines-section");
-                  if (el) el.scrollIntoView({ behavior: "smooth" });
-                }, 350);
-              }
-            }}
-            className="p-4 border border-rose-200/80 bg-rose-50/50 rounded-xl hover:bg-rose-100/70 hover:border-rose-300 transition-all text-left cursor-pointer flex items-center gap-3.5 group shadow-2xs"
-          >
-            <div className="p-2 rounded-lg bg-rose-600 text-white transition-all">
-              <AlertCircle className="w-5 h-5" />
+            {/* SOD & EOD Compliance */}
+            <div
+              onClick={() => setMatrixModal("sod-eod")}
+              className="bg-blue-50/70 border border-blue-100 hover:border-blue-400 rounded-xl p-3 flex flex-col justify-between shadow-2xs hover:shadow-md hover:scale-[1.02] transition-all cursor-pointer group"
+            >
+              <div className="text-[9px] uppercase tracking-wider text-blue-900 font-extrabold flex items-center justify-between">
+                <span>SOD & EOD Compliance</span>
+                <Clock className="w-3.5 h-3.5 text-blue-600 group-hover:rotate-12 transition-transform" />
+              </div>
+              <div className="my-1.5 flex items-baseline justify-between">
+                <span className="text-xl font-bold text-blue-950 font-mono">
+                  {stats?.currentUserCompliance?.hasEod ? "2 / 2" : (stats?.currentUserCompliance?.hasSod ? "1 / 2" : "0 / 2")}
+                </span>
+                <span className="text-[9px] font-bold text-blue-800">
+                  {stats?.currentUserCompliance?.hasSod ? (stats?.currentUserCompliance?.hasEod ? "SOD & EOD Done ✓" : "SOD Done • EOD Due") : "SOD Pending"}
+                </span>
+              </div>
+              <div className="w-full bg-blue-200/60 rounded-full h-1 overflow-hidden">
+                <div className="bg-blue-600 h-full rounded-full transition-all duration-500" style={{ width: `${sodEodRate}%` }}></div>
+              </div>
             </div>
-            <span className="font-bold text-rose-950 text-xs">My Absent Fines</span>
-          </button>
 
-          <button
-            onClick={() => toggleModal ? toggleModal(!stats?.currentUserCompliance?.hasSod ? "sodModal" : "eodModal", true) : setActiveTab?.("attendance")}
-            className="p-4 border border-indigo-200/80 bg-indigo-50/60 rounded-xl hover:bg-indigo-100/70 transition-all text-left cursor-pointer flex items-center gap-3.5 group shadow-2xs"
-          >
-            <div className="p-2 rounded-lg bg-indigo-600 text-white transition-all">
-              <Clock className="w-5 h-5" />
+            {/* Attendance Score */}
+            <div
+              onClick={() => setMatrixModal("attendance")}
+              className="bg-amber-50/70 border border-amber-100 hover:border-amber-400 rounded-xl p-3 flex flex-col justify-between shadow-2xs hover:shadow-md hover:scale-[1.02] transition-all cursor-pointer group"
+            >
+              <div className="text-[9px] uppercase tracking-wider text-amber-900 font-extrabold flex items-center justify-between">
+                <span>Attendance Count</span>
+                <CalendarCheck className="w-3.5 h-3.5 text-amber-600 group-hover:scale-110 transition-transform" />
+              </div>
+              <div className="my-1.5 flex items-baseline justify-between">
+                <span className="text-xl font-bold text-amber-950 font-mono">
+                  {dynamicStats.presentDays ?? 0} / {totalWorkingDaysCount}
+                </span>
+                <span className="text-[9px] font-bold text-amber-800">
+                  Days Present
+                </span>
+              </div>
+              <div className="w-full bg-amber-200/60 rounded-full h-1 overflow-hidden">
+                <div className="bg-amber-600 h-full rounded-full transition-all duration-500" style={{ width: `${attendancePercent}%` }}></div>
+              </div>
             </div>
-            <span className="font-bold text-indigo-900 text-xs">Fill SOD / EOD</span>
-          </button>
+          </div>
+        </div>
+
+        {/* Section 2: Quick Actions Panel (Middle 4 cols) */}
+        <div className="xl:col-span-4 bg-[#FCFBF9] border border-[#E8E4DF] rounded-2xl p-4 sm:p-4.5 shadow-[0_2px_12px_rgba(0,0,0,0.03)] space-y-3 flex flex-col justify-between h-full">
+          <div className="flex-1 flex flex-col justify-between">
+            <h2 className="text-xs font-semibold tracking-widest text-[#1C1C1A] uppercase border-b border-[#E8E4DF]/70 pb-2.5 mb-3">
+              Quick Actions
+            </h2>
+            <div className="grid grid-cols-3 gap-2.5 flex-1">
+              <button
+                onClick={() => setActiveTab && setActiveTab("leave-request")}
+                className="p-3 border border-[#E8E4DF] bg-white rounded-xl hover:bg-[#FAF9F5] hover:border-indigo-400 transition-all text-center flex flex-col items-center justify-center gap-1.5 group shadow-2xs cursor-pointer h-full"
+              >
+                <div className="p-2 rounded-lg bg-indigo-50 text-indigo-600 group-hover:bg-indigo-600 group-hover:text-white transition-all">
+                  <CalendarCheck className="w-4 h-4" />
+                </div>
+                <span className="font-semibold text-[#1C1C1A] text-[10px] group-hover:text-indigo-600 transition-colors">Apply Leave</span>
+              </button>
+
+              <button
+                onClick={() => setActiveTab && setActiveTab("tasks", "Pending", user?.name || user?.email)}
+                className="p-3 border border-[#E8E4DF] bg-white rounded-xl hover:bg-[#FAF9F5] hover:border-emerald-400 transition-all text-center flex flex-col items-center justify-center gap-1.5 group shadow-2xs cursor-pointer h-full"
+              >
+                <div className="p-2 rounded-lg bg-emerald-50 text-emerald-600 group-hover:bg-emerald-600 group-hover:text-white transition-all">
+                  <ListTodo className="w-4 h-4" />
+                </div>
+                <span className="font-semibold text-[#1C1C1A] text-[10px] group-hover:text-emerald-600 transition-colors">My Tasks</span>
+              </button>
+
+              <button
+                onClick={() => setActiveTab && setActiveTab("performance")}
+                className="p-3 border border-[#E8E4DF] bg-white rounded-xl hover:bg-[#FAF9F5] hover:border-purple-400 transition-all text-center flex flex-col items-center justify-center gap-1.5 group shadow-2xs cursor-pointer h-full"
+              >
+                <div className="p-2 rounded-lg bg-purple-50 text-purple-600 group-hover:bg-purple-600 group-hover:text-white transition-all">
+                  <FileText className="w-4 h-4" />
+                </div>
+                <span className="font-semibold text-[#1C1C1A] text-[10px] group-hover:text-purple-600 transition-colors">Work Report</span>
+              </button>
+
+              <button
+                onClick={() => setActiveTab && setActiveTab("field-visit")}
+                className="p-3 border border-[#E8E4DF] bg-white rounded-xl hover:bg-[#FAF9F5] hover:border-amber-400 transition-all text-center flex flex-col items-center justify-center gap-1.5 group shadow-2xs cursor-pointer h-full"
+              >
+                <div className="p-2 rounded-lg bg-amber-50 text-amber-600 group-hover:bg-amber-600 group-hover:text-white transition-all">
+                  <MapPin className="w-4 h-4" />
+                </div>
+                <span className="font-semibold text-[#1C1C1A] text-[10px] group-hover:text-amber-600 transition-colors">Field Visit Logs</span>
+              </button>
+
+              <button
+                onClick={() => {
+                  if (setActiveTab) {
+                    setActiveTab("leave-request");
+                    setTimeout(() => {
+                      const el = document.getElementById("absent-fines-section");
+                      if (el) el.scrollIntoView({ behavior: "smooth" });
+                    }, 350);
+                  }
+                }}
+                className="p-3 border border-rose-200/80 bg-rose-50/40 rounded-xl hover:bg-rose-100/70 hover:border-rose-400 transition-all text-center flex flex-col items-center justify-center gap-1.5 group shadow-2xs cursor-pointer h-full"
+              >
+                <div className="p-2 rounded-lg bg-rose-100 text-rose-700 group-hover:bg-rose-600 group-hover:text-white transition-all">
+                  <AlertCircle className="w-4 h-4" />
+                </div>
+                <span className="font-bold text-rose-900 text-[10px] group-hover:text-rose-700 transition-colors">Absent Fines</span>
+              </button>
+
+              <button
+                onClick={() => toggleModal ? toggleModal(!stats?.currentUserCompliance?.hasSod ? "sodModal" : "eodModal", true) : setActiveTab?.("attendance")}
+                className="p-3 border border-blue-200/80 bg-blue-50/40 rounded-xl hover:bg-blue-100/70 hover:border-blue-400 transition-all text-center flex flex-col items-center justify-center gap-1.5 group shadow-2xs cursor-pointer h-full"
+              >
+                <div className="p-2 rounded-lg bg-blue-100 text-blue-700 group-hover:bg-blue-600 group-hover:text-white transition-all">
+                  <Clock className="w-4 h-4" />
+                </div>
+                <span className="font-bold text-blue-900 text-[10px] group-hover:text-blue-700 transition-colors">Fill SOD/EOD</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Section 3: My Requests & Approvals Status Tracker (Right 3 cols) */}
+        <div className="xl:col-span-3 bg-[#FCFBF9] border border-[#E8E4DF] rounded-2xl p-4 sm:p-4.5 shadow-[0_2px_12px_rgba(0,0,0,0.03)] space-y-3 flex flex-col justify-between h-full">
+          <div className="flex-1 flex flex-col justify-between">
+            <div className="flex items-center justify-between border-b border-[#E8E4DF]/70 pb-2.5 mb-2.5">
+              <div className="flex items-center gap-1.5">
+                <Clock className="w-3.5 h-3.5 text-indigo-600" />
+                <h2 className="text-xs font-semibold tracking-widest text-[#1C1C1A] uppercase">
+                  Requests Tracker
+                </h2>
+              </div>
+              <span className="text-[9px] font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-100">Live</span>
+            </div>
+
+            <div className="space-y-2 flex-1 flex flex-col justify-between">
+              {/* Leave Requests */}
+              <div
+                onClick={() => setActiveTab && setActiveTab("leave-request")}
+                className="p-2.5 bg-white border border-[#E8E4DF] rounded-xl hover:border-indigo-300 transition-all cursor-pointer flex items-center justify-between group shadow-2xs flex-1"
+              >
+                <div className="flex items-center gap-2">
+                  <div className="p-1.5 rounded-lg bg-indigo-50 text-indigo-600 group-hover:bg-indigo-600 group-hover:text-white transition-all">
+                    <CalendarCheck className="w-3.5 h-3.5" />
+                  </div>
+                  <div>
+                    <div className="text-[11px] font-bold text-[#1C1C1A]">Leave Application</div>
+                    <div className="text-[9px] text-slate-500">Casual / Sick Leave</div>
+                  </div>
+                </div>
+                <span className="text-[9px] font-extrabold text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
+                  Pending
+                </span>
+              </div>
+
+              {/* Expense Claims */}
+              <div
+                onClick={() => setActiveTab && setActiveTab("ess-expenses")}
+                className="p-2.5 bg-white border border-[#E8E4DF] rounded-xl hover:border-amber-300 transition-all cursor-pointer flex items-center justify-between group shadow-2xs flex-1"
+              >
+                <div className="flex items-center gap-2">
+                  <div className="p-1.5 rounded-lg bg-amber-50 text-amber-600 group-hover:bg-amber-600 group-hover:text-white transition-all">
+                    <Coins className="w-3.5 h-3.5" />
+                  </div>
+                  <div>
+                    <div className="text-[11px] font-bold text-[#1C1C1A]">Expense Claims</div>
+                    <div className="text-[9px] text-slate-500">Reimbursement</div>
+                  </div>
+                </div>
+                <span className="text-[9px] font-extrabold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                  Approved
+                </span>
+              </div>
+
+              {/* Asset Requests */}
+              <div
+                onClick={() => setActiveTab && setActiveTab("asset-request")}
+                className="p-2.5 bg-white border border-[#E8E4DF] rounded-xl hover:border-purple-300 transition-all cursor-pointer flex items-center justify-between group shadow-2xs flex-1"
+              >
+                <div className="flex items-center gap-2">
+                  <div className="p-1.5 rounded-lg bg-purple-50 text-purple-600 group-hover:bg-purple-600 group-hover:text-white transition-all">
+                    <FileText className="w-3.5 h-3.5" />
+                  </div>
+                  <div>
+                    <div className="text-[11px] font-bold text-[#1C1C1A]">Asset Request</div>
+                    <div className="text-[9px] text-slate-500">Equipment & Devices</div>
+                  </div>
+                </div>
+                <span className="text-[9px] font-extrabold text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-200">
+                  Active
+                </span>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -310,7 +528,7 @@ export function ESSDashboard({ user, triggerToast, setActiveTab, toggleModal, st
           <div className="flex items-center justify-between gap-3 mb-4 pb-3 border-b border-slate-100 dark:border-gray-800">
             <div className="flex items-center gap-2">
               <h2 className={`text-base font-bold ${isDark ? "text-white" : "text-slate-800"}`}>
-                My Pending Tasks
+                Pending Tasks
               </h2>
               <span className="bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300 px-2 py-0.5 rounded-full text-[10px] font-black">
                 {pendingTasks.length} Pending
@@ -477,6 +695,189 @@ export function ESSDashboard({ user, triggerToast, setActiveTab, toggleModal, st
         </div>
 
       </div>
+
+      {/* Performance Matrix Detail Popup Modal */}
+      {matrixModal && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 animate-fade-in">
+          <div className="bg-white rounded-2xl border border-[#E8E4DF] shadow-2xl max-w-md w-full overflow-hidden space-y-0">
+            {/* Modal Header */}
+            <div className="p-4 border-b border-[#E8E4DF] bg-[#FAF9F5] flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                {matrixModal === "productivity" && <Sparkles className="w-5 h-5 text-indigo-600" />}
+                {matrixModal === "tasks" && <CheckCircle2 className="w-5 h-5 text-emerald-600" />}
+                {matrixModal === "sod-eod" && <Clock className="w-5 h-5 text-blue-600" />}
+                {matrixModal === "attendance" && <CalendarCheck className="w-5 h-5 text-amber-600" />}
+                <h3 className="text-sm font-bold text-[#1C1C1A]">
+                  {matrixModal === "tasks" && "Task Completion Rate Details"}
+                  {matrixModal === "sod-eod" && "SOD & EOD Compliance Tracker"}
+                  {matrixModal === "attendance" && "Attendance & Leaves Summary"}
+                </h3>
+              </div>
+              <button
+                onClick={() => setMatrixModal(null)}
+                className="p-1 rounded-lg hover:bg-slate-200 text-slate-500 hover:text-slate-800 transition-all cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-5 space-y-4">
+
+              {/* Task Completion Popup */}
+              {matrixModal === "tasks" && (
+                <div className="space-y-4">
+                  <div className="p-3.5 bg-emerald-50/70 border border-emerald-100 rounded-xl flex items-center justify-between">
+                    <div>
+                      <div className="text-[10px] uppercase font-bold text-emerald-800 tracking-wider">Completion Rate</div>
+                      <div className="text-2xl font-black text-emerald-950 font-mono mt-0.5">{taskCompletionRate}%</div>
+                    </div>
+                    <span className="text-[10px] font-extrabold text-emerald-800 bg-emerald-100 px-3 py-1 rounded-full border border-emerald-200">
+                      {completedTaskCount} of {totalTaskCount} Done
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    <div className="p-3 bg-slate-50 border border-slate-100 rounded-xl text-center">
+                      <div className="text-[9px] uppercase font-bold text-slate-500">Total Tasks</div>
+                      <div className="text-lg font-bold text-slate-900 font-mono mt-1">{totalTaskCount}</div>
+                    </div>
+
+                    <div className="p-3 bg-emerald-50 border border-emerald-100 rounded-xl text-center">
+                      <div className="text-[9px] uppercase font-bold text-emerald-700">Completed</div>
+                      <div className="text-lg font-bold text-emerald-900 font-mono mt-1">{completedTaskCount}</div>
+                    </div>
+
+                    <div className="p-3 bg-amber-50 border border-amber-100 rounded-xl text-center">
+                      <div className="text-[9px] uppercase font-bold text-amber-700">Pending</div>
+                      <div className="text-lg font-bold text-amber-900 font-mono mt-1">{pendingCount}</div>
+                    </div>
+
+                    <div className="p-3 bg-rose-50 border border-rose-100 rounded-xl text-center">
+                      <div className="text-[9px] uppercase font-bold text-rose-700">Overdue</div>
+                      <div className="text-lg font-bold text-rose-900 font-mono mt-1">{overdueCount}</div>
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={() => {
+                      setMatrixModal(null);
+                      if (setActiveTab) setActiveTab("tasks", "Pending", user?.name || user?.email);
+                    }}
+                    className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-xs transition-all shadow-xs cursor-pointer text-center"
+                  >
+                    View All My Pending Tasks →
+                  </button>
+                </div>
+              )}
+
+              {/* SOD & EOD Compliance Popup */}
+              {matrixModal === "sod-eod" && (
+                <div className="space-y-4">
+                  <div className="p-3.5 bg-blue-50/70 border border-blue-100 rounded-xl flex items-center justify-between">
+                    <div>
+                      <div className="text-[10px] uppercase font-bold text-blue-800 tracking-wider">Today's Declaration</div>
+                      <div className="text-xl font-bold text-blue-950 font-mono mt-0.5">
+                        {stats?.currentUserCompliance?.hasEod ? "2 / 2 (SOD & EOD Done ✓)" : (stats?.currentUserCompliance?.hasSod ? "1 / 2 (SOD Done, EOD Pending)" : "0 / 2 (SOD Pending)")}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2.5 text-xs">
+                    <div className="p-3 bg-slate-50 border border-slate-100 rounded-xl flex items-center justify-between">
+                      <div>
+                        <div className="font-bold text-slate-800">Start of Day (SOD)</div>
+                        <div className="text-[10px] text-slate-500">Plan tasks for the workday</div>
+                      </div>
+                      <span className={`text-[10px] font-extrabold px-2.5 py-1 rounded-full border ${stats?.currentUserCompliance?.hasSod ? "bg-emerald-100 text-emerald-800 border-emerald-200" : "bg-amber-100 text-amber-800 border-amber-200"}`}>
+                        {stats?.currentUserCompliance?.hasSod ? "Filed ✓" : "Pending"}
+                      </span>
+                    </div>
+
+                    <div className="p-3 bg-slate-50 border border-slate-100 rounded-xl flex items-center justify-between">
+                      <div>
+                        <div className="font-bold text-slate-800">End of Day (EOD)</div>
+                        <div className="text-[10px] text-slate-500">Log completed work summary</div>
+                      </div>
+                      <span className={`text-[10px] font-extrabold px-2.5 py-1 rounded-full border ${stats?.currentUserCompliance?.hasEod ? "bg-emerald-100 text-emerald-800 border-emerald-200" : "bg-blue-100 text-blue-800 border-blue-200"}`}>
+                        {stats?.currentUserCompliance?.hasEod ? "Submitted ✓" : "Due at Logout"}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-2">
+                    {(!stats?.currentUserCompliance?.hasSod) && (
+                      <button
+                        onClick={() => {
+                          setMatrixModal(null);
+                          if (toggleModal) toggleModal("sodModal", true);
+                        }}
+                        className="flex-1 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold text-xs transition-all shadow-xs cursor-pointer text-center"
+                      >
+                        Declare SOD Now
+                      </button>
+                    )}
+                    {(stats?.currentUserCompliance?.hasSod && !stats?.currentUserCompliance?.hasEod) && (
+                      <button
+                        onClick={() => {
+                          setMatrixModal(null);
+                          if (toggleModal) toggleModal("eodModal", true);
+                        }}
+                        className="flex-1 py-2.5 bg-[#714B67] hover:bg-[#5F3F56] text-white rounded-xl font-bold text-xs transition-all shadow-xs cursor-pointer text-center"
+                      >
+                        Submit EOD Now
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Attendance Count Popup */}
+              {matrixModal === "attendance" && (
+                <div className="space-y-4">
+                  <div className="p-3.5 bg-amber-50/70 border border-amber-100 rounded-xl flex items-center justify-between">
+                    <div>
+                      <div className="text-[10px] uppercase font-bold text-amber-800 tracking-wider">Attendance Count</div>
+                      <div className="text-2xl font-black text-amber-950 font-mono mt-0.5">
+                        {dynamicStats.presentDays ?? 0} / {totalWorkingDaysCount} Days
+                      </div>
+                    </div>
+                    <span className="text-[10px] font-extrabold text-amber-800 bg-amber-100 px-3 py-1 rounded-full border border-amber-200">
+                      {attendancePercent}% Attendance
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    <div className="p-3 bg-rose-50 border border-rose-100 rounded-xl text-center">
+                      <div className="text-[9px] uppercase font-bold text-rose-700">Casual Leave Taken</div>
+                      <div className="text-lg font-bold text-rose-900 font-mono mt-1">
+                        {dynamicStats.casualLeaveTaken || 0} / 12 Days
+                      </div>
+                    </div>
+
+                    <div className="p-3 bg-emerald-50 border border-emerald-100 rounded-xl text-center">
+                      <div className="text-[9px] uppercase font-bold text-emerald-700">Sick Leave Taken</div>
+                      <div className="text-lg font-bold text-emerald-900 font-mono mt-1">
+                        {dynamicStats.sickLeaveTaken || 0} / 12 Days
+                      </div>
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={() => {
+                      setMatrixModal(null);
+                      if (setActiveTab) setActiveTab("leave-request");
+                    }}
+                    className="w-full py-2.5 bg-amber-600 hover:bg-amber-700 text-white rounded-xl font-bold text-xs transition-all shadow-xs cursor-pointer text-center"
+                  >
+                    Apply Leave Request →
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -805,11 +1206,10 @@ export function ESSLeaves({ user, triggerToast, stats, initialSearchFilter }: ES
                 <button
                   type="button"
                   onClick={() => setShowFilters(!showFilters)}
-                  className={`flex items-center gap-2 border px-4 py-2 text-xs font-bold transition-all rounded-xl shadow-xs focus:outline-none ${
-                    showFilters
-                      ? "bg-[#C9A84C] border-[#C9A84C] text-[#FCFBF9]"
-                      : "bg-[#FCFBF9] hover:bg-[#F5F2EC] border-[#E8E4DF] text-[#1C1C1A]"
-                  }`}
+                  className={`flex items-center gap-2 border px-4 py-2 text-xs font-bold transition-all rounded-xl shadow-xs focus:outline-none ${showFilters
+                    ? "bg-[#C9A84C] border-[#C9A84C] text-[#FCFBF9]"
+                    : "bg-[#FCFBF9] hover:bg-[#F5F2EC] border-[#E8E4DF] text-[#1C1C1A]"
+                    }`}
                 >
                   <Filter className="w-3.5 h-3.5" />
                   <span>Filter Leaves</span>
@@ -1306,10 +1706,9 @@ export function ESSPayroll({ user, triggerToast }: ESSProps) {
                     {employees.map(emp => {
                       const idStr = String(emp.id || emp._id || "");
                       const nameStr = emp.name || emp.email || `Employee #${idStr}`;
-                      const codeStr = emp.employeeProfile?.employeeId || emp.employeeId || "Staff";
                       return (
                         <option key={idStr} value={idStr}>
-                          {nameStr} ({codeStr})
+                          {nameStr}
                         </option>
                       );
                     })}

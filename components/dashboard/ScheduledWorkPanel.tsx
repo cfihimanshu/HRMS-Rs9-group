@@ -92,7 +92,7 @@ const getCleanProgressNoteText = (rawNotes: any): string => {
           const text = (parsed.text || parsed.note || parsed.message || parsed.comment || "").trim();
           if (text) return text;
         }
-      } catch (e) {}
+      } catch (e) { }
     }
 
     // Clean JSON metadata strings like {"createdAt":"...", "userName":"..."}
@@ -245,8 +245,8 @@ export default function ScheduledWorkPanel({ sessionUser, triggerToast }: Schedu
     const endMs = item.completedAt
       ? new Date(item.completedAt).getTime()
       : item.updatedAt
-      ? new Date(item.updatedAt).getTime()
-      : 0;
+        ? new Date(item.updatedAt).getTime()
+        : 0;
 
     if (isNaN(startMs) || isNaN(endMs) || endMs <= startMs) {
       return (
@@ -456,9 +456,6 @@ export default function ScheduledWorkPanel({ sessionUser, triggerToast }: Schedu
             <CalendarClock className="w-5 h-5 text-[#714B67]" />
             <h1 className="text-lg font-black tracking-tight text-slate-900">Schedule Work Report</h1>
           </div>
-          <p className="text-xs text-slate-500 font-medium">
-            Master report of all SOD work schedules declared across employees, banks, NBFCs & departments
-          </p>
         </div>
 
         <div className="flex items-center gap-2">
@@ -481,9 +478,8 @@ export default function ScheduledWorkPanel({ sessionUser, triggerToast }: Schedu
       <div className="grid grid-cols-2 sm:grid-cols-6 gap-2.5">
         <div
           onClick={() => { setStatusFilter("all"); setTypeFilter("all"); setCurrentPage(1); }}
-          className={`bg-white border p-3 rounded-xl shadow-2xs space-y-1 cursor-pointer transition-all hover:scale-[1.02] hover:shadow-md ${
-            statusFilter === "all" && typeFilter === "all" ? "border-purple-600 ring-2 ring-purple-600/20 bg-purple-50/20" : "border-purple-100"
-          }`}
+          className={`bg-white border p-3 rounded-xl shadow-2xs space-y-1 cursor-pointer transition-all hover:scale-[1.02] hover:shadow-md ${statusFilter === "all" && typeFilter === "all" ? "border-purple-600 ring-2 ring-purple-600/20 bg-purple-50/20" : "border-purple-100"
+            }`}
         >
           <span className="text-[10px] font-black uppercase text-slate-500 font-mono tracking-wider">Total Schedules</span>
           <div className="text-lg font-black text-purple-950 flex items-center gap-1.5">
@@ -493,9 +489,8 @@ export default function ScheduledWorkPanel({ sessionUser, triggerToast }: Schedu
 
         <div
           onClick={() => { setStatusFilter("Pending"); setTypeFilter("all"); setCurrentPage(1); }}
-          className={`bg-white border p-3 rounded-xl shadow-2xs space-y-1 cursor-pointer transition-all hover:scale-[1.02] hover:shadow-md ${
-            statusFilter.toLowerCase() === "pending" ? "border-amber-600 ring-2 ring-amber-500/20 bg-amber-50/30" : "border-amber-100"
-          }`}
+          className={`bg-white border p-3 rounded-xl shadow-2xs space-y-1 cursor-pointer transition-all hover:scale-[1.02] hover:shadow-md ${statusFilter.toLowerCase() === "pending" ? "border-amber-600 ring-2 ring-amber-500/20 bg-amber-50/30" : "border-amber-100"
+            }`}
         >
           <span className="text-[10px] font-black uppercase text-amber-600 font-mono tracking-wider">Pending</span>
           <div className="text-lg font-black text-amber-700 flex items-center gap-1.5">
@@ -505,9 +500,8 @@ export default function ScheduledWorkPanel({ sessionUser, triggerToast }: Schedu
 
         <div
           onClick={() => { setStatusFilter("In Progress"); setTypeFilter("all"); setCurrentPage(1); }}
-          className={`bg-white border p-3 rounded-xl shadow-2xs space-y-1 cursor-pointer transition-all hover:scale-[1.02] hover:shadow-md ${
-            statusFilter.toLowerCase() === "in progress" ? "border-blue-600 ring-2 ring-blue-500/20 bg-blue-50/30" : "border-blue-100"
-          }`}
+          className={`bg-white border p-3 rounded-xl shadow-2xs space-y-1 cursor-pointer transition-all hover:scale-[1.02] hover:shadow-md ${statusFilter.toLowerCase() === "in progress" ? "border-blue-600 ring-2 ring-blue-500/20 bg-blue-50/30" : "border-blue-100"
+            }`}
         >
           <span className="text-[10px] font-black uppercase text-blue-600 font-mono tracking-wider">In Progress</span>
           <div className="text-lg font-black text-blue-700 flex items-center gap-1.5">
@@ -517,9 +511,8 @@ export default function ScheduledWorkPanel({ sessionUser, triggerToast }: Schedu
 
         <div
           onClick={() => { setStatusFilter("Completed"); setTypeFilter("all"); setCurrentPage(1); }}
-          className={`bg-white border p-3 rounded-xl shadow-2xs space-y-1 cursor-pointer transition-all hover:scale-[1.02] hover:shadow-md ${
-            statusFilter.toLowerCase() === "completed" ? "border-emerald-600 ring-2 ring-emerald-500/20 bg-emerald-50/30" : "border-emerald-100"
-          }`}
+          className={`bg-white border p-3 rounded-xl shadow-2xs space-y-1 cursor-pointer transition-all hover:scale-[1.02] hover:shadow-md ${statusFilter.toLowerCase() === "completed" ? "border-emerald-600 ring-2 ring-emerald-500/20 bg-emerald-50/30" : "border-emerald-100"
+            }`}
         >
           <span className="text-[10px] font-black uppercase text-emerald-600 font-mono tracking-wider">Completed</span>
           <div className="text-lg font-black text-emerald-700 flex items-center gap-1.5">
@@ -529,9 +522,8 @@ export default function ScheduledWorkPanel({ sessionUser, triggerToast }: Schedu
 
         <div
           onClick={() => { setTypeFilter("Bank Related"); setStatusFilter("all"); setCurrentPage(1); }}
-          className={`bg-white border p-3 rounded-xl shadow-2xs space-y-1 cursor-pointer transition-all hover:scale-[1.02] hover:shadow-md ${
-            typeFilter.toLowerCase() === "bank related" ? "border-indigo-600 ring-2 ring-indigo-500/20 bg-indigo-50/30" : "border-indigo-100"
-          }`}
+          className={`bg-white border p-3 rounded-xl shadow-2xs space-y-1 cursor-pointer transition-all hover:scale-[1.02] hover:shadow-md ${typeFilter.toLowerCase() === "bank related" ? "border-indigo-600 ring-2 ring-indigo-500/20 bg-indigo-50/30" : "border-indigo-100"
+            }`}
         >
           <span className="text-[10px] font-black uppercase text-indigo-600 font-mono tracking-wider">Bank</span>
           <div className="text-lg font-black text-indigo-900 flex items-center gap-1.5">
@@ -541,9 +533,8 @@ export default function ScheduledWorkPanel({ sessionUser, triggerToast }: Schedu
 
         <div
           onClick={() => { setTypeFilter("NBFC"); setStatusFilter("all"); setCurrentPage(1); }}
-          className={`bg-white border p-3 rounded-xl shadow-2xs space-y-1 cursor-pointer transition-all hover:scale-[1.02] hover:shadow-md ${
-            typeFilter.toLowerCase() === "nbfc" ? "border-teal-600 ring-2 ring-teal-500/20 bg-teal-50/30" : "border-teal-100"
-          }`}
+          className={`bg-white border p-3 rounded-xl shadow-2xs space-y-1 cursor-pointer transition-all hover:scale-[1.02] hover:shadow-md ${typeFilter.toLowerCase() === "nbfc" ? "border-teal-600 ring-2 ring-teal-500/20 bg-teal-50/30" : "border-teal-100"
+            }`}
         >
           <span className="text-[10px] font-black uppercase text-teal-600 font-mono tracking-wider">NBFC</span>
           <div className="text-lg font-black text-teal-900 flex items-center gap-1.5">
@@ -746,15 +737,14 @@ export default function ScheduledWorkPanel({ sessionUser, triggerToast }: Schedu
                       {/* Type Column */}
                       <td className="py-1.5 px-2 whitespace-nowrap">
                         <div className="space-y-0.5">
-                          <span className={`px-1.5 py-0.5 rounded text-[9px] font-black inline-block ${
-                            item.type === "Bank Related" || item.type === "NBFC"
+                          <span className={`px-1.5 py-0.5 rounded text-[9px] font-black inline-block ${item.type === "Bank Related" || item.type === "NBFC"
                               ? "bg-purple-100 text-purple-800 border border-purple-200"
                               : item.type === "Field Visit"
-                              ? "bg-emerald-100 text-emerald-800 border border-emerald-200"
-                              : item.type === "Others"
-                              ? "bg-amber-100 text-amber-800 border border-amber-200"
-                              : "bg-blue-100 text-blue-800 border border-blue-200"
-                          }`}>
+                                ? "bg-emerald-100 text-emerald-800 border border-emerald-200"
+                                : item.type === "Others"
+                                  ? "bg-amber-100 text-amber-800 border border-amber-200"
+                                  : "bg-blue-100 text-blue-800 border border-blue-200"
+                            }`}>
                             {item.type === "Others" && item.otherType ? `Others (${item.otherType})` : item.type}
                           </span>
                           {item.subType && (
@@ -828,13 +818,12 @@ export default function ScheduledWorkPanel({ sessionUser, triggerToast }: Schedu
 
                       {/* Status Column - Read-only badge mapped dynamically from My Tasks */}
                       <td className="py-1.5 px-2 whitespace-nowrap">
-                        <span className={`text-[10px] font-black rounded-lg px-2 py-0.5 border inline-flex items-center gap-1 ${
-                          item.status === "Completed"
+                        <span className={`text-[10px] font-black rounded-lg px-2 py-0.5 border inline-flex items-center gap-1 ${item.status === "Completed"
                             ? "bg-emerald-100 text-emerald-800 border-emerald-300"
                             : item.status === "In Progress"
-                            ? "bg-blue-100 text-blue-800 border-blue-300"
-                            : "bg-amber-100 text-amber-800 border-amber-300"
-                        }`}>
+                              ? "bg-blue-100 text-blue-800 border-blue-300"
+                              : "bg-amber-100 text-amber-800 border-amber-300"
+                          }`}>
                           {item.status === "Completed" ? "✅ Completed" : item.status === "In Progress" ? "⏳ In Progress" : "🕒 Pending"}
                         </span>
                       </td>
@@ -947,13 +936,12 @@ export default function ScheduledWorkPanel({ sessionUser, triggerToast }: Schedu
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 bg-purple-50/60 p-3 rounded-xl border border-purple-100">
                 <div>
                   <span className="text-[10px] font-bold uppercase text-slate-500 block">Status</span>
-                  <span className={`inline-block px-2 py-0.5 rounded text-[10px] font-black mt-0.5 ${
-                    selectedDetailItem.status === "Completed"
+                  <span className={`inline-block px-2 py-0.5 rounded text-[10px] font-black mt-0.5 ${selectedDetailItem.status === "Completed"
                       ? "bg-emerald-100 text-emerald-800 border border-emerald-300"
                       : selectedDetailItem.status === "In Progress"
-                      ? "bg-blue-100 text-blue-800 border border-blue-300"
-                      : "bg-amber-100 text-amber-800 border border-amber-300"
-                  }`}>
+                        ? "bg-blue-100 text-blue-800 border border-blue-300"
+                        : "bg-amber-100 text-amber-800 border border-amber-300"
+                    }`}>
                     {selectedDetailItem.status || "Pending"}
                   </span>
                 </div>

@@ -20,19 +20,19 @@ export async function GET(req: Request) {
     await sequelize.authenticate();
     await EodReport.sync();
 
-    const today = new Date();
-    today.setUTCHours(0, 0, 0, 0);
-    const tomorrow = new Date(today);
-    tomorrow.setDate(tomorrow.getDate() + 1);
+    const now = new Date();
+    const dayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+    const dayEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
 
     const record = await EodReport.findOne({
       where: {
         employee: userId,
-        date: {
-          [Op.gte]: today,
-          [Op.lt]: tomorrow
-        }
-      }
+        [Op.or]: [
+          { date: { [Op.gte]: dayStart, [Op.lte]: dayEnd } },
+          { createdAt: { [Op.gte]: dayStart, [Op.lte]: dayEnd } }
+        ]
+      },
+      order: [["createdAt", "DESC"]]
     });
     return NextResponse.json({ success: true, data: record });
   } catch (error: any) {
@@ -64,20 +64,20 @@ export async function POST(req: Request) {
     await sequelize.authenticate();
     await EodReport.sync();
 
-    const today = new Date();
-    today.setUTCHours(0, 0, 0, 0);
-    const tomorrow = new Date(today);
-    tomorrow.setDate(tomorrow.getDate() + 1);
+    const now = new Date();
+    const dayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+    const dayEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
 
     // Prevent duplicates
     const exists = await EodReport.findOne({
       where: {
         employee: userId,
-        date: {
-          [Op.gte]: today,
-          [Op.lt]: tomorrow
-        }
-      }
+        [Op.or]: [
+          { date: { [Op.gte]: dayStart, [Op.lte]: dayEnd } },
+          { createdAt: { [Op.gte]: dayStart, [Op.lte]: dayEnd } }
+        ]
+      },
+      order: [["createdAt", "DESC"]]
     });
     if (exists) {
       return NextResponse.json({ success: false, error: "EOD already submitted for today" }, { status: 400 });
@@ -85,7 +85,7 @@ export async function POST(req: Request) {
 
     const record = await EodReport.create({
       employee: userId,
-      date: today,
+      date: now,
       completedWork,
       pendingWork,
       issues: issues || "",

@@ -198,20 +198,21 @@ export async function GET(req: Request) {
     }) : 0;
 
     // 6. Attendance, SOD/EOD compliances (today's counts)
-    const today = new Date();
-    today.setUTCHours(0, 0, 0, 0);
-    const endOfToday = new Date();
-    endOfToday.setUTCHours(23, 59, 59, 999);
-    const tomorrow = new Date(today);
+    const now = new Date();
+    const dayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+    const dayEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+    const today = dayStart;
+    const endOfToday = dayEnd;
+    const tomorrow = new Date(dayStart);
     tomorrow.setDate(tomorrow.getDate() + 1);
 
     const sodReportsToday = await SodReport.findAll({
       where: {
         ...reportFilter,
-        date: {
-          [Op.gte]: today,
-          [Op.lt]: tomorrow
-        }
+        [Op.or]: [
+          { date: { [Op.gte]: dayStart, [Op.lte]: dayEnd } },
+          { createdAt: { [Op.gte]: dayStart, [Op.lte]: dayEnd } }
+        ]
       }
     });
     const sodEmployeeIds = sodReportsToday.map((r: any) => r.employee?.toString()).filter(Boolean);
@@ -220,10 +221,10 @@ export async function GET(req: Request) {
     const eodReportsToday = await EodReport.findAll({
       where: {
         ...reportFilter,
-        date: {
-          [Op.gte]: today,
-          [Op.lt]: tomorrow
-        }
+        [Op.or]: [
+          { date: { [Op.gte]: dayStart, [Op.lte]: dayEnd } },
+          { createdAt: { [Op.gte]: dayStart, [Op.lte]: dayEnd } }
+        ]
       }
     });
     const eodEmployeeIds = eodReportsToday.map((r: any) => r.employee?.toString()).filter(Boolean);
@@ -591,6 +592,7 @@ export async function GET(req: Request) {
 
     // --- Current User Dynamic Stats (ESS) ---
     const userId = (session.user as any).id;
+    await EmployeeProfile.sync({ alter: true }).catch(() => {});
     const userProfile = await EmployeeProfile.findOne({ where: { user: userId } });
     let casualLeave = 12;
     let sickLeave = 12;
@@ -602,9 +604,9 @@ export async function GET(req: Request) {
       earnedLeave = (userProfile.get("leaveBalances.earnedLeave") as number) ?? 0;
     }
 
-    const now = new Date();
-    const year = now.getFullYear();
-    const month = now.getMonth();
+    const monthNow = new Date();
+    const year = monthNow.getFullYear();
+    const month = monthNow.getMonth();
     const startOfMonth = new Date(Date.UTC(year, month, 1, 0, 0, 0, 0));
     const endOfMonth = new Date(Date.UTC(year, month + 1, 0, 23, 59, 59, 999));
 
@@ -689,7 +691,7 @@ export async function GET(req: Request) {
         workingDaysInMonth++;
       }
     }
-    if (workingDaysInMonth === 0) workingDaysInMonth = 26;
+    if (!workingDaysInMonth || workingDaysInMonth <= 1) workingDaysInMonth = 26;
 
     const holidaysList = [
       { name: "New Year's Day", date: new Date(year, 0, 1) },
@@ -1345,11 +1347,10 @@ export async function GET(req: Request) {
         await LegalRecoverySchedule.sync();
         const allTaskLogs = await TaskLog.findAll({
           where: pendingTaskWhere,
-          attributes: ["id", "scheduleId"],
+          attributes: ["id"],
           raw: true
         });
         const existingTaskIds = new Set(allTaskLogs.map((r: any) => String(r.id || "").trim()));
-        const existingSchIds = new Set(allTaskLogs.map((r: any) => String(r.scheduleId || "").trim()).filter(Boolean));
 
         const legalUserProfiles = await EmployeeProfile.findAll({
           where: {
@@ -1382,8 +1383,8 @@ export async function GET(req: Request) {
           if (!legalUserIds.has(empIdStr)) return false;
           const sId = String(s.id || "").trim();
           const tId = String(s.taskId || "").trim();
-          if (sId && (existingTaskIds.has(sId) || existingSchIds.has(sId))) return false;
-          if (tId && (existingTaskIds.has(tId) || existingSchIds.has(tId))) return false;
+          if (sId && existingTaskIds.has(sId)) return false;
+          if (tId && existingTaskIds.has(tId)) return false;
           return true;
         });
 
@@ -1411,7 +1412,7 @@ export async function GET(req: Request) {
         currentUserStats: {
           presentDays: presentDaysCount,
           totalWorkingDays: workingDaysInMonth,
-          attendancePercent: workingDaysInMonth > 0 ? Math.round((presentDaysCount / workingDaysInMonth) * 100) : 100,
+          attendancePercent: workingDaysInMonth > 0 ? Math.min(100, Math.round((presentDaysCount / workingDaysInMonth) * 100)) : 100,
           casualLeave,
           sickLeave,
           earnedLeave,

@@ -26,6 +26,7 @@ class EmployeeProfile extends Model {
   declare allocatedGmail: string;
   declare allocatedWhatsapp: string;
   declare reportingManager: string;
+  declare assignedManager: string;
   declare profilePhoto: string;
   declare dailyWorkingHours: number;
   declare workingDays: string;
@@ -59,6 +60,10 @@ EmployeeProfile.init(
       allowNull: true,
     },
     reportingManager: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    assignedManager: {
       type: DataTypes.STRING,
       allowNull: true,
     },

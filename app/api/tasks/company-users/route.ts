@@ -15,17 +15,13 @@ export async function GET() {
     }
 
     const userId = (session.user as any).id;
-    console.log("[company-users] userId:", userId);
     await sequelize.authenticate();
 
     // Get current user to find their companies array from DB (session may not have it)
     const currentUser = await User.findOne({ where: { id: userId }, raw: true }) as any;
     if (!currentUser) {
-      console.log("[company-users] currentUser not found for ID:", userId);
       return NextResponse.json({ success: false, error: "User not found" }, { status: 404 });
     }
-
-    console.log("[company-users] currentUser companies:", currentUser.companies);
 
     const userRole = (session.user as any).role || "Employee";
 
@@ -54,15 +50,11 @@ export async function GET() {
         userCompanies = Array.isArray(parsed) ? parsed.map(String) : [];
       }
     } catch (e) {
-      console.log("[company-users] parse error for currentUser companies:", e);
       userCompanies = [];
     }
 
-    console.log("[company-users] parsed userCompanies:", userCompanies);
-
     // If user has no company assigned, return empty
     if (userCompanies.length === 0) {
-      console.log("[company-users] user has no companies assigned");
       return NextResponse.json({ success: true, data: [] });
     }
 
@@ -86,8 +78,6 @@ export async function GET() {
         role: u.role || "Employee",
         email: u.email || "",
       }));
-
-    console.log("[company-users] returning users:", companyUsers);
 
     return NextResponse.json({ success: true, data: companyUsers });
   } catch (error: any) {

@@ -30,7 +30,7 @@ export async function GET(req: Request) {
     let records = await TaskCallCategory.findAll({ order: [["name", "ASC"]] });
 
     // Seed default categories if missing
-    const defaults = ["Bank", "General", "Interview", "IT", "Legal", "Others"];
+    const defaults = ["Bank", "General", "Interview", "IT", "Legal", "Sales", "Others"];
     for (const name of defaults) {
       const exists = records.find((r: any) => r.name.toLowerCase() === name.toLowerCase());
       if (!exists) {
