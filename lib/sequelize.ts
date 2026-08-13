@@ -124,14 +124,10 @@ const getSequelizeInstance = () => {
     return globalThis.sequelizeInstance;
   }
 
-  const requiredDatabaseEnv = ["MYSQL_DATABASE", "MYSQL_USER", "MYSQL_PASSWORD"] as const;
-  const missingDatabaseEnv: string[] = requiredDatabaseEnv.filter(key => !process.env[key]);
-  if (!process.env.MYSQL_HOST && !process.env.MYSQL_SOCKET_PATH) {
-    missingDatabaseEnv.push("MYSQL_HOST or MYSQL_SOCKET_PATH");
-  }
-  if (missingDatabaseEnv.length > 0) {
-    throw new Error(`Missing required database environment variables: ${missingDatabaseEnv.join(", ")}`);
-  }
+  const host = process.env.MYSQL_HOST || "localhost";
+  const database = process.env.MYSQL_DATABASE || "hrms_db";
+  const username = process.env.MYSQL_USER || "root";
+  const password = process.env.MYSQL_PASSWORD || "";
 
   const isVercel = process.env.VERCEL === "1";
   const connectTimeout = Number(process.env.MYSQL_CONNECT_TIMEOUT_MS || 30000);
@@ -139,16 +135,15 @@ const getSequelizeInstance = () => {
   const poolAcquire = Number(process.env.MYSQL_POOL_ACQUIRE_MS || 45000);
   const socketPath = process.env.MYSQL_SOCKET_PATH?.trim();
 
-  const host = process.env.MYSQL_HOST || "localhost";
   const useSsl = process.env.MYSQL_SSL === "true";
   const sslConfig = useSsl
     ? { rejectUnauthorized: process.env.MYSQL_SSL_REJECT_UNAUTHORIZED === "true" }
     : undefined;
 
   const instance = new Sequelize(
-    process.env.MYSQL_DATABASE!,
-    process.env.MYSQL_USER!,
-    process.env.MYSQL_PASSWORD!,
+    database,
+    username,
+    password,
     {
       host,
       port: Number(process.env.MYSQL_PORT) || 3306,
