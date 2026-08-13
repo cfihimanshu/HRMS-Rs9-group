@@ -496,10 +496,9 @@ export async function GET(req: Request) {
     }
 
     const limitParam = searchParams.get("limit");
-    // Return all tasks with NO limit unless a specific numeric limit parameter is passed
     const fetchLimit = (limitParam && limitParam !== "all" && !isNaN(Number(limitParam)))
       ? parseInt(limitParam, 10)
-      : undefined;
+      : (limitParam === "all" ? undefined : 500);
 
     let records = await TaskLog.findAll({
       where: query,
@@ -511,14 +510,18 @@ export async function GET(req: Request) {
     try {
       const LegalRecoverySchedule = (sequelize.models as any).LegalRecoverySchedule || (await import("@/models/sequelize/LegalRecoverySchedule")).default;
       const EmployeeProfile = (sequelize.models as any).EmployeeProfile || (await import("@/models/sequelize/EmployeeProfile")).default;
-      await LegalRecoverySchedule.sync();
       
       const schQuery: any = {};
       if (userRole !== "Owner") {
         schQuery.employeeId = { [Op.in]: query[Op.or] ? (query[Op.or][0]?.employee?.[Op.in] || [userId]) : [userId] };
       }
       
-      const schRecords = await LegalRecoverySchedule.findAll({ where: schQuery, raw: true });
+      const schRecords = await LegalRecoverySchedule.findAll({
+        where: schQuery,
+        order: [["createdAt", "DESC"]],
+        limit: fetchLimit,
+        raw: true
+      });
       const existingTaskIds = new Set(records.map((r: any) => String(r.id || "").trim()));
       const existingSchIds = new Set(records.map((r: any) => String(r.scheduleId || "").trim()).filter(Boolean));
 
@@ -590,11 +593,7 @@ export async function GET(req: Request) {
     if (allUserIds.length > 0) {
       employees = await User.findAll({
         where: {
-          [Op.or]: [
-            { id: { [Op.in]: allUserIds } },
-            { email: { [Op.in]: allUserIds } },
-            { name: { [Op.in]: allUserIds } }
-          ]
+          id: { [Op.in]: allUserIds }
         },
         attributes: ["id", "name", "role", "email"],
         raw: true

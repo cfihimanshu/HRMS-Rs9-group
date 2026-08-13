@@ -457,6 +457,9 @@ export async function POST(request: Request) {
         proofAttachment: attachmentFile || null,
         proofUrl: attachmentFile || null,
         attachmentUrl: attachmentFile || null,
+        timerState: "Stopped",
+        timerStart: null,
+        elapsedSeconds: 0,
       });
 
       // Dual-sync into LegalRecoverySchedule so task displays in Schedule Work Report for exact work date

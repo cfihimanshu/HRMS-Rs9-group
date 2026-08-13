@@ -105,13 +105,35 @@ export async function GET(req: Request) {
       whereClause.employeeId = { [Op.in]: verticalUserIds };
     }
 
-    // Filter by employee if specifically requested, or limit to current user only if non-manager and non-legal/security
-    if (employeeId && employeeId !== "all") {
+    const currentUserIdStr = String(currentUserId);
+    let isReportingManager = false;
+    let subordinateUserIds: string[] = [currentUserIdStr];
+
+    const currentUserName = (session.user as any)?.name;
+    if (currentUserName) {
+      const subProfiles = await EmployeeProfile.findAll({
+        where: { reportingManager: currentUserName },
+        attributes: ["user"],
+        raw: true
+      });
+      if (subProfiles.length > 0) {
+        isReportingManager = true;
+        subordinateUserIds = Array.from(new Set([currentUserIdStr, ...subProfiles.map((p: any) => String(p.user)).filter(Boolean)]));
+      }
+    }
+
+    const canViewAllSchedules = isManager || isReportingManager;
+
+    if (!canViewAllSchedules) {
+      // Regular Legal Recovery or Security staff: ONLY see own work logs!
+      whereClause.employeeId = currentUserIdStr;
+    } else if (employeeId && employeeId !== "all") {
       whereClause.employeeId = verticalOnly && verticalUserIds
         ? (verticalUserIds.includes(String(employeeId)) ? employeeId : { [Op.in]: [] })
         : employeeId;
-    } else if (!isManager && !isLegalOrSecurity && !all) {
-      whereClause.employeeId = currentUserId;
+    } else if (isReportingManager && !isManager) {
+      // Reporting Manager (non-Owner/Director): see own + subordinates' work logs
+      whereClause.employeeId = { [Op.in]: subordinateUserIds };
     }
 
     // Filter by date

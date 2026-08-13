@@ -734,9 +734,15 @@ export default function KanbanBoard({
       status: newStatus
     };
 
-    if (newStatus === "Completed") {
+    if (newStatus === "In Progress") {
+      payloadFields.timerState = "Running";
+      payloadFields.timerStart = nowISO;
+    } else if (newStatus === "Completed") {
       payloadFields.elapsedSeconds = finalElapsed;
       payloadFields.completedAt = nowISO;
+      payloadFields.timerState = "Stopped";
+      payloadFields.timerStart = null;
+    } else if (newStatus === "Pending") {
       payloadFields.timerState = "Stopped";
       payloadFields.timerStart = null;
     }
@@ -745,24 +751,36 @@ export default function KanbanBoard({
     setTasks(prev => prev.map(t => t.id === taskId ? {
       ...t,
       status: newStatus as Task["status"],
-      ...(newStatus === "Completed" ? {
+      ...(newStatus === "In Progress" ? {
+        timerState: "Running",
+        timerStart: nowISO
+      } : newStatus === "Completed" ? {
         elapsedSeconds: finalElapsed,
         completedAt: nowISO,
         timerState: "Stopped",
         timerStart: null
-      } : {})
+      } : {
+        timerState: "Stopped",
+        timerStart: null
+      })
     } : t));
 
     if (selectedTask?.id === taskId) {
       setSelectedTask(prev => prev ? {
         ...prev,
         status: newStatus as Task["status"],
-        ...(newStatus === "Completed" ? {
+        ...(newStatus === "In Progress" ? {
+          timerState: "Running",
+          timerStart: nowISO
+        } : newStatus === "Completed" ? {
           elapsedSeconds: finalElapsed,
           completedAt: nowISO,
           timerState: "Stopped",
           timerStart: null
-        } : {})
+        } : {
+          timerState: "Stopped",
+          timerStart: null
+        })
       } : null);
     }
 
@@ -805,39 +823,24 @@ export default function KanbanBoard({
   const getLiveElapsed = (task: Task): number => {
     if (!task) return 0;
 
-    const baseSeconds = task.elapsedSeconds || 0;
-    const startISO = task.timerStart || task.createdAt || task.date;
-    const startTime = startISO ? new Date(startISO).getTime() : 0;
+    const baseSeconds = Number(task.elapsedSeconds) || 0;
 
     if (task.status === "Completed") {
-      if (baseSeconds > 0) return baseSeconds;
-      if (task.completedAt && startTime > 0) {
-        const compTime = new Date(task.completedAt).getTime();
-        const diff = Math.floor((compTime - startTime) / 1000);
-        if (diff > 0) return diff;
-      }
-      if (startTime > 0 && task.updatedAt) {
-        const updatedTime = new Date(task.updatedAt).getTime();
-        const diff = Math.floor((updatedTime - startTime) / 1000);
-        if (diff > 0) return diff;
-      }
-      return baseSeconds;
+      return Math.max(0, baseSeconds);
     }
 
-    if (task.timerState === "Running" && task.timerStart) {
-      const timerStartMs = new Date(task.timerStart).getTime();
-      if (!isNaN(timerStartMs) && timerStartMs > 0) {
-        const liveDiff = Math.floor((Date.now() - timerStartMs) / 1000);
-        return baseSeconds + Math.max(0, liveDiff);
+    const nowMs = Date.now();
+    const refTimeStr = task.updatedAt || task.createdAt || task.date;
+    const refMs = refTimeStr ? new Date(refTimeStr).getTime() : nowMs;
+    
+    let liveDiff = 0;
+    if (!isNaN(refMs) && refMs > 0 && refMs <= nowMs) {
+      const diff = Math.floor((nowMs - refMs) / 1000);
+      if (diff <= 86400) {
+        liveDiff = Math.max(0, diff);
       }
     }
-
-    if (baseSeconds > 0) return baseSeconds;
-    if (startTime > 0) {
-      const elapsed = Math.floor((Date.now() - startTime) / 1000);
-      return Math.max(0, elapsed);
-    }
-    return 0;
+    return baseSeconds + liveDiff;
   };
 
   const timerAction = async (task: Task, action: "start" | "pause" | "stop") => {
@@ -1782,18 +1785,12 @@ export default function KanbanBoard({
               "flex items-center gap-1 text-[10px] font-mono font-black px-2 py-1 rounded-lg border transition-all shadow-2xs",
               task.status === "Completed"
                 ? "bg-slate-100 text-slate-500 border-slate-200 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-700"
-                : task.timerState === "Running"
+                : task.status === "In Progress"
                   ? "bg-emerald-100 text-emerald-800 border-emerald-400 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-700"
-                  : task.timerState === "Paused"
-                    ? "bg-amber-100 text-amber-800 border-amber-400 dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-700"
-                    : "bg-indigo-100 text-indigo-800 border-indigo-300 dark:bg-indigo-950/60 dark:text-indigo-300 dark:border-indigo-700"
+                  : "bg-indigo-100 text-indigo-800 border-indigo-300 dark:bg-indigo-950/60 dark:text-indigo-300 dark:border-indigo-700"
             )}>
-              {task.status !== "Completed" && task.timerState === "Running" ? (
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse inline-block" />
-              ) : task.status !== "Completed" && task.timerState === "Paused" ? (
-                <span className="w-1.5 h-1.5 rounded-full bg-amber-600 inline-block" />
-              ) : task.status !== "Completed" ? (
-                <Timer className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
+              {task.status !== "Completed" ? (
+                <span className={`w-1.5 h-1.5 rounded-full animate-pulse inline-block ${task.status === "In Progress" ? "bg-emerald-600" : "bg-indigo-600"}`} />
               ) : (
                 <Timer className="w-3 h-3 text-slate-400" />
               )}
@@ -3223,7 +3220,7 @@ export default function KanbanBoard({
                 </div>
 
 
-                {/* Automatic Live Task Timer Display (Auto-starts on creation, stops on completion) */}
+                {/* Automatic Live Task Timer Display */}
                 <div className="px-6 py-3 border-b border-slate-100 bg-slate-50/50">
                   <div className="flex items-center justify-between gap-3">
                     <div className="flex items-center gap-2">
@@ -3231,17 +3228,17 @@ export default function KanbanBoard({
                       <span className="text-[10px] uppercase font-black text-slate-600 tracking-wider">Time Elapsed</span>
                       <span className={`text-[12px] font-black px-3 py-1 rounded-full border font-mono ${selectedTask.status === "Completed"
                         ? "bg-slate-100 text-slate-700 border-slate-300"
-                        : "bg-emerald-100 text-emerald-700 border-emerald-300"
+                        : selectedTask.status === "In Progress"
+                          ? "bg-emerald-100 text-emerald-700 border-emerald-300"
+                          : "bg-indigo-50 text-indigo-700 border-indigo-200"
                         }`}>
-                        {selectedTask.status !== "Completed" && (
+                        {selectedTask.status === "In Progress" && (
                           <span className="inline-block w-2 h-2 rounded-full bg-emerald-500 animate-pulse mr-1.5" />
                         )}
                         {selectedTask.status === "Completed" ? "✓ " : ""}
                         {formatTimer(getLiveElapsed(selectedTask))}
                       </span>
                     </div>
-
-
                   </div>
                 </div>
 
