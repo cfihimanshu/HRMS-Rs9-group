@@ -154,7 +154,7 @@ export default function DomainRecordPanels({ userRole, triggerToast, sessionUser
     let extras: any = {};
     try {
       extras = record.customFields ? JSON.parse(record.customFields) : {};
-    } catch (_) {}
+    } catch (_) { }
 
     setForm({
       name: record.name || "",
@@ -379,7 +379,7 @@ export default function DomainRecordPanels({ userRole, triggerToast, sessionUser
 
   return (
     <div className="space-y-6 font-sans text-slate-800 pb-12">
-      
+
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-5 rounded-2xl border border-[#E8E4DF] shadow-xs">
         <div>
@@ -387,9 +387,6 @@ export default function DomainRecordPanels({ userRole, triggerToast, sessionUser
             <Globe className="w-6 h-6 text-indigo-600" />
             <h1 className="text-xl font-black text-slate-900 tracking-wide">Domain & Infrastructure Registry</h1>
           </div>
-          <p className="text-xs text-slate-500 mt-1 font-medium">
-            Centralized control for Domains, Cloud Platforms, Email Accounts & Code Repositories
-          </p>
         </div>
 
         <div className="flex items-center gap-2 self-end md:self-auto">
@@ -691,7 +688,7 @@ export default function DomainRecordPanels({ userRole, triggerToast, sessionUser
                       const isPassVisible = visiblePasswords[item.id];
                       return (
                         <tr key={item.id} className="hover:bg-slate-50/70 transition-colors">
-                          
+
                           {/* ID Badge */}
                           {visibleColumns.id && (
                             <td className="py-3 px-4 font-mono font-bold text-indigo-900 whitespace-nowrap">
@@ -890,7 +887,7 @@ export default function DomainRecordPanels({ userRole, triggerToast, sessionUser
       {showModal && (
         <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl max-w-2xl w-full shadow-2xl overflow-hidden flex flex-col font-sans max-h-[90vh]">
-            
+
             {/* Modal Header */}
             <div className="p-4 border-b border-[#E8E4DF] flex items-center justify-between bg-slate-50">
               <div className="flex items-center gap-2">
@@ -920,7 +917,7 @@ export default function DomainRecordPanels({ userRole, triggerToast, sessionUser
                     let extras: any = {};
                     try {
                       extras = currentRecord.customFields ? JSON.parse(currentRecord.customFields) : {};
-                    } catch (_) {}
+                    } catch (_) { }
 
                     return (
                       <div className="space-y-4">
@@ -1008,7 +1005,7 @@ export default function DomainRecordPanels({ userRole, triggerToast, sessionUser
             ) : (
               /* ADD / EDIT FORM - 4 DISTINCT CATEGORY FORMS */
               <form onSubmit={handleSubmit} className="p-5 space-y-4 overflow-y-auto text-xs">
-                
+
                 {/* FORM 1: 🌐 DOMAIN RECORD FORM */}
                 {selectedCategory === "Domain Record" && (
                   <div className="space-y-4">
@@ -1021,16 +1018,16 @@ export default function DomainRecordPanels({ userRole, triggerToast, sessionUser
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="space-y-1">
                         <label className="text-[10px] font-bold uppercase text-slate-900">Domain Name *</label>
-                        <input type="text" required value={form.name} onChange={e => setForm({...form, name: e.target.value})} placeholder="e.g. cfiindia.com" className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 outline-none focus:border-indigo-500" />
+                        <input type="text" required value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder="e.g. cfiindia.com" className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 outline-none focus:border-indigo-500" />
                       </div>
                       <div className="space-y-1">
                         <label className="text-[10px] font-bold uppercase text-slate-900">Registrar / Platform</label>
-                        <input type="text" value={form.platform} onChange={e => setForm({...form, platform: e.target.value})} placeholder="e.g. GoDaddy, Hostinger, Namecheap" className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 outline-none focus:border-indigo-500" />
+                        <input type="text" value={form.platform} onChange={e => setForm({ ...form, platform: e.target.value })} placeholder="e.g. GoDaddy, Hostinger, Namecheap" className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 outline-none focus:border-indigo-500" />
                       </div>
                       {/* Status Dropdown - Domain Record */}
                       <div className="space-y-1">
                         <label className="text-[10px] font-bold uppercase text-slate-900">Status Dropdown</label>
-                        <select value={form.status} onChange={e => setForm({...form, status: e.target.value})} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 outline-none focus:border-indigo-500">
+                        <select value={form.status} onChange={e => setForm({ ...form, status: e.target.value })} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 outline-none focus:border-indigo-500">
                           <option value="In Use">In Use</option>
                           <option value="Available">Available</option>
                           <option value="Transferred">Transferred</option>
@@ -1040,23 +1037,23 @@ export default function DomainRecordPanels({ userRole, triggerToast, sessionUser
                       </div>
                       <div className="space-y-1">
                         <label className="text-[10px] font-bold uppercase text-slate-900">Attached Gmail / Owner Email</label>
-                        <input type="email" value={form.attachedEmail} onChange={e => setForm({...form, attachedEmail: e.target.value})} placeholder="e.g. owner@gmail.com" className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 outline-none focus:border-indigo-500" />
+                        <input type="email" value={form.attachedEmail} onChange={e => setForm({ ...form, attachedEmail: e.target.value })} placeholder="e.g. owner@gmail.com" className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 outline-none focus:border-indigo-500" />
                       </div>
                       <div className="space-y-1">
                         <label className="text-[10px] font-bold uppercase text-slate-900">Registrar User ID / Username</label>
-                        <input type="text" value={form.userId} onChange={e => setForm({...form, userId: e.target.value})} placeholder="e.g. godaddy_admin" className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 outline-none focus:border-indigo-500" />
+                        <input type="text" value={form.userId} onChange={e => setForm({ ...form, userId: e.target.value })} placeholder="e.g. godaddy_admin" className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 outline-none focus:border-indigo-500" />
                       </div>
                       <div className="space-y-1">
                         <label className="text-[10px] font-bold uppercase text-slate-900">Registered Phone Number</label>
-                        <input type="text" value={form.phoneNumber} onChange={e => setForm({...form, phoneNumber: e.target.value})} placeholder="e.g. 9876543210" className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 outline-none focus:border-indigo-500" />
+                        <input type="text" value={form.phoneNumber} onChange={e => setForm({ ...form, phoneNumber: e.target.value })} placeholder="e.g. 9876543210" className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 outline-none focus:border-indigo-500" />
                       </div>
                       <div className="space-y-1">
                         <label className="text-[10px] font-bold uppercase text-slate-900">Purchase Date</label>
-                        <input type="date" value={form.purchaseDate} onChange={e => setForm({...form, purchaseDate: e.target.value})} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 outline-none" />
+                        <input type="date" value={form.purchaseDate} onChange={e => setForm({ ...form, purchaseDate: e.target.value })} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 outline-none" />
                       </div>
                       <div className="space-y-1">
                         <label className="text-[10px] font-bold uppercase text-slate-900">Expiry Date</label>
-                        <input type="date" value={form.expiryDate} onChange={e => setForm({...form, expiryDate: e.target.value})} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 outline-none" />
+                        <input type="date" value={form.expiryDate} onChange={e => setForm({ ...form, expiryDate: e.target.value })} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 outline-none" />
                       </div>
 
                       {/* Renewal Date Option:
@@ -1066,7 +1063,7 @@ export default function DomainRecordPanels({ userRole, triggerToast, sessionUser
                       {(() => {
                         const isEditMode = modalMode === "edit";
                         const hasRenewalDate = Boolean(form.renewalDate && form.renewalDate !== "Invalid date");
-                        
+
                         let isExpiryWithinThisYear = false;
                         if (form.expiryDate && form.expiryDate !== "Invalid date") {
                           try {
@@ -1075,7 +1072,7 @@ export default function DomainRecordPanels({ userRole, triggerToast, sessionUser
                             if (!isNaN(expYear) && expYear === currentYear) {
                               isExpiryWithinThisYear = true;
                             }
-                          } catch (_) {}
+                          } catch (_) { }
                         }
 
                         // In Add mode: show ONLY if expiryDate is within this year OR if renewalDate is already set
@@ -1092,11 +1089,11 @@ export default function DomainRecordPanels({ userRole, triggerToast, sessionUser
                                 {isExpiryWithinThisYear ? "⚠️ Expiring This Year" : "Renewal Info"}
                               </span>
                             </div>
-                            <input type="date" value={form.renewalDate} onChange={e => setForm({...form, renewalDate: e.target.value})} className="w-full px-3 py-2 bg-amber-50/80 border border-amber-300 rounded-xl text-xs font-semibold text-slate-900 outline-none" />
+                            <input type="date" value={form.renewalDate} onChange={e => setForm({ ...form, renewalDate: e.target.value })} className="w-full px-3 py-2 bg-amber-50/80 border border-amber-300 rounded-xl text-xs font-semibold text-slate-900 outline-none" />
                           </div>
                         ) : (
                           <div className="flex items-end pb-2">
-                            <button type="button" onClick={() => setForm({...form, renewalDate: form.expiryDate || new Date().toISOString().slice(0,10)})} className="text-[11px] text-indigo-600 hover:text-indigo-800 font-bold underline">
+                            <button type="button" onClick={() => setForm({ ...form, renewalDate: form.expiryDate || new Date().toISOString().slice(0, 10) })} className="text-[11px] text-indigo-600 hover:text-indigo-800 font-bold underline">
                               + Add Renewal Date
                             </button>
                           </div>
@@ -1105,14 +1102,14 @@ export default function DomainRecordPanels({ userRole, triggerToast, sessionUser
 
                       <div className="space-y-1">
                         <label className="text-[10px] font-bold uppercase text-slate-900">Annual Cost (INR)</label>
-                        <input type="number" value={form.cost} onChange={e => setForm({...form, cost: e.target.value})} placeholder="e.g. 1200" className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 outline-none" />
+                        <input type="number" value={form.cost} onChange={e => setForm({ ...form, cost: e.target.value })} placeholder="e.g. 1200" className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 outline-none" />
                       </div>
                     </div>
 
                     <div className="bg-indigo-50/50 p-3 rounded-xl border border-indigo-100">
                       <div className="space-y-1">
                         <label className="text-[10px] font-bold uppercase text-indigo-900">Password</label>
-                        <input type="text" value={form.password} onChange={e => setForm({...form, password: e.target.value})} placeholder="Enter domain password" className="w-full px-3 py-2 bg-white border border-indigo-200 rounded-xl text-xs font-mono font-bold text-slate-800 outline-none" />
+                        <input type="text" value={form.password} onChange={e => setForm({ ...form, password: e.target.value })} placeholder="Enter domain password" className="w-full px-3 py-2 bg-white border border-indigo-200 rounded-xl text-xs font-mono font-bold text-slate-800 outline-none" />
                       </div>
                     </div>
                   </div>
@@ -1131,19 +1128,19 @@ export default function DomainRecordPanels({ userRole, triggerToast, sessionUser
                       {/* Cloud Platform / Server Name */}
                       <div className="space-y-1">
                         <label className="text-[10px] font-bold uppercase text-slate-900">Cloud Platform / Server Name *</label>
-                        <input type="text" required value={form.name} onChange={e => setForm({...form, name: e.target.value})} placeholder="e.g. AWS Production EC2" className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 outline-none focus:border-sky-500" />
+                        <input type="text" required value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder="e.g. AWS Production EC2" className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 outline-none focus:border-sky-500" />
                       </div>
 
                       {/* Server IP / Host Domain */}
                       <div className="space-y-1">
                         <label className="text-[10px] font-bold uppercase text-slate-900">Server IP / Host Domain</label>
-                        <input type="text" value={form.url} onChange={e => setForm({...form, url: e.target.value})} placeholder="e.g. 192.168.1.100 or app.vercel.app" className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 outline-none focus:border-sky-500" />
+                        <input type="text" value={form.url} onChange={e => setForm({ ...form, url: e.target.value })} placeholder="e.g. 192.168.1.100 or app.vercel.app" className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 outline-none focus:border-sky-500" />
                       </div>
 
                       {/* Status Dropdown */}
                       <div className="space-y-1">
                         <label className="text-[10px] font-bold uppercase text-slate-900">Status Dropdown</label>
-                        <select value={form.status} onChange={e => setForm({...form, status: e.target.value})} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 outline-none focus:border-sky-500">
+                        <select value={form.status} onChange={e => setForm({ ...form, status: e.target.value })} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 outline-none focus:border-sky-500">
                           <option value="In Use">In Use</option>
                           <option value="Available">Available</option>
                           <option value="Transferred">Transferred</option>
@@ -1155,31 +1152,31 @@ export default function DomainRecordPanels({ userRole, triggerToast, sessionUser
                       {/* Account Owner Email */}
                       <div className="space-y-1">
                         <label className="text-[10px] font-bold uppercase text-slate-900">Account Owner Email</label>
-                        <input type="email" value={form.attachedEmail} onChange={e => setForm({...form, attachedEmail: e.target.value})} placeholder="e.g. devops@company.com" className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 outline-none" />
+                        <input type="email" value={form.attachedEmail} onChange={e => setForm({ ...form, attachedEmail: e.target.value })} placeholder="e.g. devops@company.com" className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 outline-none" />
                       </div>
 
                       {/* Linked Mobile Number */}
                       <div className="space-y-1">
                         <label className="text-[10px] font-bold uppercase text-slate-900">Linked Mobile Number</label>
-                        <input type="text" value={form.phoneNumber} onChange={e => setForm({...form, phoneNumber: e.target.value})} placeholder="e.g. 9876543210" className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 outline-none" />
+                        <input type="text" value={form.phoneNumber} onChange={e => setForm({ ...form, phoneNumber: e.target.value })} placeholder="e.g. 9876543210" className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 outline-none" />
                       </div>
 
                       {/* Monthly Billing Cost */}
                       <div className="space-y-1">
                         <label className="text-[10px] font-bold uppercase text-slate-900">Monthly Billing Cost (INR)</label>
-                        <input type="number" value={form.cost} onChange={e => setForm({...form, cost: e.target.value})} placeholder="e.g. 4500" className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 outline-none" />
+                        <input type="number" value={form.cost} onChange={e => setForm({ ...form, cost: e.target.value })} placeholder="e.g. 4500" className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 outline-none" />
                       </div>
 
                       {/* Subscription Date */}
                       <div className="space-y-1">
                         <label className="text-[10px] font-bold uppercase text-slate-900">Subscription Date</label>
-                        <input type="date" value={form.purchaseDate} onChange={e => setForm({...form, purchaseDate: e.target.value})} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 outline-none" />
+                        <input type="date" value={form.purchaseDate} onChange={e => setForm({ ...form, purchaseDate: e.target.value })} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 outline-none" />
                       </div>
 
                       {/* Expiry Date */}
                       <div className="space-y-1">
                         <label className="text-[10px] font-bold uppercase text-slate-900">Expiry / Billing Date</label>
-                        <input type="date" value={form.expiryDate} onChange={e => setForm({...form, expiryDate: e.target.value})} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 outline-none" />
+                        <input type="date" value={form.expiryDate} onChange={e => setForm({ ...form, expiryDate: e.target.value })} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 outline-none" />
                       </div>
                     </div>
 
@@ -1187,7 +1184,7 @@ export default function DomainRecordPanels({ userRole, triggerToast, sessionUser
                     <div className="bg-sky-50/50 p-3 rounded-xl border border-sky-100">
                       <div className="space-y-1">
                         <label className="text-[10px] font-bold uppercase text-sky-900">Password</label>
-                        <input type="text" value={form.password} onChange={e => setForm({...form, password: e.target.value})} placeholder="Enter cloud password" className="w-full px-3 py-2 bg-white border border-sky-200 rounded-xl text-xs font-mono font-bold text-slate-800 outline-none" />
+                        <input type="text" value={form.password} onChange={e => setForm({ ...form, password: e.target.value })} placeholder="Enter cloud password" className="w-full px-3 py-2 bg-white border border-sky-200 rounded-xl text-xs font-mono font-bold text-slate-800 outline-none" />
                       </div>
                     </div>
                   </div>
@@ -1206,7 +1203,7 @@ export default function DomainRecordPanels({ userRole, triggerToast, sessionUser
                       {/* Email Address / ID */}
                       <div className="space-y-1">
                         <label className="text-[10px] font-bold uppercase text-slate-900">Email Address / ID *</label>
-                        <input type="email" required value={form.name} onChange={e => setForm({...form, name: e.target.value})} placeholder="e.g. hr.cfipl@gmail.com" className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 outline-none focus:border-rose-500" />
+                        <input type="email" required value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder="e.g. hr.cfipl@gmail.com" className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 outline-none focus:border-rose-500" />
                       </div>
 
                       {/* Email Suite / Provider Dropdown */}
@@ -1251,7 +1248,7 @@ export default function DomainRecordPanels({ userRole, triggerToast, sessionUser
                       {/* Status Dropdown */}
                       <div className="space-y-1">
                         <label className="text-[10px] font-bold uppercase text-slate-900">Status Dropdown</label>
-                        <select value={form.status} onChange={e => setForm({...form, status: e.target.value})} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 outline-none focus:border-rose-500">
+                        <select value={form.status} onChange={e => setForm({ ...form, status: e.target.value })} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 outline-none focus:border-rose-500">
                           <option value="In Use">In Use</option>
                           <option value="Available">Available</option>
                           <option value="Transferred">Transferred</option>
@@ -1263,31 +1260,31 @@ export default function DomainRecordPanels({ userRole, triggerToast, sessionUser
                       {/* Attached Mobile Number */}
                       <div className="space-y-1">
                         <label className="text-[10px] font-bold uppercase text-slate-900">Attached Mobile Number *</label>
-                        <input type="text" value={form.phoneNumber} onChange={e => setForm({...form, phoneNumber: e.target.value})} placeholder="e.g. 9876543210 (Registered SIM)" className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 outline-none" />
+                        <input type="text" value={form.phoneNumber} onChange={e => setForm({ ...form, phoneNumber: e.target.value })} placeholder="e.g. 9876543210 (Registered SIM)" className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 outline-none" />
                       </div>
 
                       {/* Recovery Email */}
                       <div className="space-y-1">
                         <label className="text-[10px] font-bold uppercase text-slate-900">Recovery Email</label>
-                        <input type="email" value={form.recoveryEmail} onChange={e => setForm({...form, recoveryEmail: e.target.value})} placeholder="e.g. recovery@company.com" className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 outline-none" />
+                        <input type="email" value={form.recoveryEmail} onChange={e => setForm({ ...form, recoveryEmail: e.target.value })} placeholder="e.g. recovery@company.com" className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 outline-none" />
                       </div>
 
                       {/* Recovery Mobile Number */}
                       <div className="space-y-1">
                         <label className="text-[10px] font-bold uppercase text-slate-900">Recovery Mobile Number</label>
-                        <input type="text" value={form.recoveryNumber} onChange={e => setForm({...form, recoveryNumber: e.target.value})} placeholder="e.g. 9123456789 (Backup Phone)" className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 outline-none" />
+                        <input type="text" value={form.recoveryNumber} onChange={e => setForm({ ...form, recoveryNumber: e.target.value })} placeholder="e.g. 9123456789 (Backup Phone)" className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 outline-none" />
                       </div>
 
                       {/* Assigned Staff / Custodian */}
                       <div className="space-y-1">
                         <label className="text-[10px] font-bold uppercase text-slate-900">Assigned Staff / Employee Custodian</label>
-                        <input type="text" value={form.assignedUser} onChange={e => setForm({...form, assignedUser: e.target.value})} placeholder="e.g. Himanshu Akodiya" className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 outline-none" />
+                        <input type="text" value={form.assignedUser} onChange={e => setForm({ ...form, assignedUser: e.target.value })} placeholder="e.g. Himanshu Akodiya" className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 outline-none" />
                       </div>
 
                       {/* Account Creation Date */}
                       <div className="space-y-1">
                         <label className="text-[10px] font-bold uppercase text-slate-900">Account Creation Date</label>
-                        <input type="date" value={form.purchaseDate} onChange={e => setForm({...form, purchaseDate: e.target.value})} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 outline-none" />
+                        <input type="date" value={form.purchaseDate} onChange={e => setForm({ ...form, purchaseDate: e.target.value })} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 outline-none" />
                       </div>
                     </div>
 
@@ -1295,7 +1292,7 @@ export default function DomainRecordPanels({ userRole, triggerToast, sessionUser
                     <div className="bg-rose-50/50 p-3 rounded-xl border border-rose-100">
                       <div className="space-y-1">
                         <label className="text-[10px] font-bold uppercase text-rose-900">Email Account Password *</label>
-                        <input type="text" required value={form.password} onChange={e => setForm({...form, password: e.target.value})} placeholder="Enter Gmail password" className="w-full px-3 py-2 bg-white border border-rose-200 rounded-xl text-xs font-mono font-bold text-slate-800 outline-none" />
+                        <input type="text" required value={form.password} onChange={e => setForm({ ...form, password: e.target.value })} placeholder="Enter Gmail password" className="w-full px-3 py-2 bg-white border border-rose-200 rounded-xl text-xs font-mono font-bold text-slate-800 outline-none" />
                       </div>
                     </div>
                   </div>
@@ -1313,15 +1310,15 @@ export default function DomainRecordPanels({ userRole, triggerToast, sessionUser
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="space-y-1">
                         <label className="text-[10px] font-bold uppercase text-slate-900">Repository / Project Name *</label>
-                        <input type="text" required value={form.name} onChange={e => setForm({...form, name: e.target.value})} placeholder="e.g. HRMS-Rs9-Group" className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 outline-none focus:border-purple-500" />
+                        <input type="text" required value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder="e.g. HRMS-Rs9-Group" className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 outline-none focus:border-purple-500" />
                       </div>
                       <div className="space-y-1">
                         <label className="text-[10px] font-bold uppercase text-slate-900">Repository Access URL</label>
-                        <input type="url" value={form.url} onChange={e => setForm({...form, url: e.target.value})} placeholder="https://github.com/org/repo" className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 outline-none focus:border-purple-500" />
+                        <input type="url" value={form.url} onChange={e => setForm({ ...form, url: e.target.value })} placeholder="https://github.com/org/repo" className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 outline-none focus:border-purple-500" />
                       </div>
                       <div className="space-y-1">
                         <label className="text-[10px] font-bold uppercase text-slate-900">Visibility / Access Level</label>
-                        <select value={form.visibility} onChange={e => setForm({...form, visibility: e.target.value})} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 outline-none">
+                        <select value={form.visibility} onChange={e => setForm({ ...form, visibility: e.target.value })} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 outline-none">
                           <option value="Private">Private</option>
                           <option value="Public">Public</option>
                           <option value="Internal Team">Internal Team</option>
@@ -1329,7 +1326,7 @@ export default function DomainRecordPanels({ userRole, triggerToast, sessionUser
                       </div>
                       <div className="space-y-1">
                         <label className="text-[10px] font-bold uppercase text-slate-900">Status Dropdown</label>
-                        <select value={form.status} onChange={e => setForm({...form, status: e.target.value})} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 outline-none">
+                        <select value={form.status} onChange={e => setForm({ ...form, status: e.target.value })} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 outline-none">
                           <option value="In Use">In Use</option>
                           <option value="Available">Available</option>
                           <option value="Transferred">Transferred</option>
@@ -1339,26 +1336,26 @@ export default function DomainRecordPanels({ userRole, triggerToast, sessionUser
                       </div>
                       <div className="space-y-1">
                         <label className="text-[10px] font-bold uppercase text-slate-900">Lead Developer / Maintainer</label>
-                        <input type="text" value={form.userId} onChange={e => setForm({...form, userId: e.target.value})} placeholder="e.g. Senior Tech Lead" className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 outline-none" />
+                        <input type="text" value={form.userId} onChange={e => setForm({ ...form, userId: e.target.value })} placeholder="e.g. Senior Tech Lead" className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 outline-none" />
                       </div>
                       <div className="space-y-1">
                         <label className="text-[10px] font-bold uppercase text-slate-900">Account / Owner Email</label>
-                        <input type="email" value={form.attachedEmail} onChange={e => setForm({...form, attachedEmail: e.target.value})} placeholder="e.g. dev@company.com" className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 outline-none" />
+                        <input type="email" value={form.attachedEmail} onChange={e => setForm({ ...form, attachedEmail: e.target.value })} placeholder="e.g. dev@company.com" className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 outline-none" />
                       </div>
                       <div className="space-y-1">
                         <label className="text-[10px] font-bold uppercase text-slate-900">Contact Phone Number</label>
-                        <input type="text" value={form.phoneNumber} onChange={e => setForm({...form, phoneNumber: e.target.value})} placeholder="e.g. 9876543210" className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 outline-none" />
+                        <input type="text" value={form.phoneNumber} onChange={e => setForm({ ...form, phoneNumber: e.target.value })} placeholder="e.g. 9876543210" className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 outline-none" />
                       </div>
                       <div className="space-y-1">
                         <label className="text-[10px] font-bold uppercase text-slate-900">Repo Creation Date</label>
-                        <input type="date" value={form.purchaseDate} onChange={e => setForm({...form, purchaseDate: e.target.value})} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 outline-none" />
+                        <input type="date" value={form.purchaseDate} onChange={e => setForm({ ...form, purchaseDate: e.target.value })} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 outline-none" />
                       </div>
                     </div>
 
                     <div className="bg-purple-50/50 p-3 rounded-xl border border-purple-100">
                       <div className="space-y-1">
                         <label className="text-[10px] font-bold uppercase text-purple-900">Password</label>
-                        <input type="text" value={form.password} onChange={e => setForm({...form, password: e.target.value})} placeholder="Enter repository password" className="w-full px-3 py-2 bg-white border border-purple-200 rounded-xl text-xs font-mono font-bold text-slate-800 outline-none" />
+                        <input type="text" value={form.password} onChange={e => setForm({ ...form, password: e.target.value })} placeholder="Enter repository password" className="w-full px-3 py-2 bg-white border border-purple-200 rounded-xl text-xs font-mono font-bold text-slate-800 outline-none" />
                       </div>
                     </div>
                   </div>

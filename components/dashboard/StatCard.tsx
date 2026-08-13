@@ -16,7 +16,7 @@ export default function StatCard({ title, value, trend, trendUp, icon, onClick, 
   return (
     <div 
       onClick={onClick}
-      className={`stat-card relative overflow-hidden group transition-all duration-300 hover:shadow-[0_4px_25px_rgba(0,0,0,0.06)] border-[#E8E4DF] ${
+      className={`stat-card bg-white relative overflow-hidden group transition-all duration-300 hover:shadow-[0_4px_25px_rgba(0,0,0,0.06)] border-[#E8E4DF] ${
         onClick ? "cursor-pointer active:scale-[0.99]" : ""
       }`}
     >

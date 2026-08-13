@@ -396,6 +396,7 @@ export async function GET(req: Request) {
     }
 
     await sequelize.authenticate();
+    await EmployeeProfile.sync({ alter: true }).catch(() => {});
 
     const userRole = (session.user as any).role;
     const userId = (session.user as any).id;
@@ -427,11 +428,21 @@ export async function GET(req: Request) {
       return comps.some((id: any) => loggedInUserCompanies.some((cid: any) => cid.toString() === id.toString()));
     }).map((u: any) => u.id);
 
-    // Find direct reports of this user
     let directReportUserIds: string[] = [];
     if (loggedInUser && loggedInUser.name) {
+      const mgrName = loggedInUser.name.trim();
+      const cleanMgrName = mgrName.replace(/\s*\(.*?\)\s*/g, "").trim();
       const reports = await EmployeeProfile.findAll({
-        where: { reportingManager: loggedInUser.name },
+        where: {
+          [Op.or]: [
+            { reportingManager: mgrName },
+            { reportingManager: { [Op.like]: `%${mgrName}%` } },
+            { reportingManager: { [Op.like]: `%${cleanMgrName}%` } },
+            { assignedManager: mgrName },
+            { assignedManager: { [Op.like]: `%${mgrName}%` } },
+            { assignedManager: { [Op.like]: `%${cleanMgrName}%` } }
+          ]
+        },
         attributes: ["user"]
       });
       directReportUserIds = reports.map((p: any) => p.user).filter(Boolean);
@@ -582,30 +593,57 @@ export async function PUT(req: Request) {
     const isSameCompany = applicantCompanyId && loggedInUserCompanies.some((cid: any) => cid.toString() === applicantCompanyId.toString());
 
     // Check if logged-in user is explicitly the direct reporting manager of applicant
-    const isDirectReportManager = applicantProfile?.reportingManager && loggedInUser?.name && applicantProfile.reportingManager === loggedInUser.name;
+    const repMgr = (applicantProfile as any)?.reportingManager || "";
+    const assMgr = (applicantProfile as any)?.assignedManager || "";
+    const loggedName = loggedInUser?.name || "";
+    const cleanLoggedName = loggedName.replace(/\s*\(.*?\)\s*/g, "").trim();
+
+    const isDirectReportManager = Boolean(
+      loggedName && (
+        (repMgr && (
+          repMgr.toLowerCase() === loggedName.toLowerCase() ||
+          repMgr.toLowerCase().includes(loggedName.toLowerCase()) ||
+          repMgr.toLowerCase().includes(cleanLoggedName.toLowerCase()) ||
+          loggedName.toLowerCase().includes(repMgr.replace(/\s*\(.*?\)\s*/g, "").trim().toLowerCase())
+        )) ||
+        (assMgr && (
+          assMgr.toLowerCase() === loggedName.toLowerCase() ||
+          assMgr.toLowerCase().includes(loggedName.toLowerCase()) ||
+          assMgr.toLowerCase().includes(cleanLoggedName.toLowerCase()) ||
+          loggedName.toLowerCase().includes(assMgr.replace(/\s*\(.*?\)\s*/g, "").trim().toLowerCase())
+        ))
+      )
+    );
+
+    const roleLower = String(loggedInUserRole || "").toLowerCase();
+
+    // Owner, Director, HR Head, HR Executive, Admin have universal approval rights across ALL companies
+    const isGlobalManagerOrOwner = ["owner", "director", "hr head", "hr-head", "hr executive", "hr-executive", "admin", "super admin", "cfo"].some(r => roleLower.includes(r)) ||
+      roleLower.includes("owner") || roleLower.includes("director") || roleLower.includes("hr");
 
     // Dynamic Check against Approval Matrix for leave_requests
     const { isUserAuthorizedApprover } = await import("@/lib/approvalRouting");
     const isAuthorizedMatrixUser = await isUserAuthorizedApprover("leave_requests", loggedInUserId, loggedInUserRole, applicantId);
-    const isPrivileged = isAuthorizedMatrixUser || isDirectReportManager;
+    const isPrivileged = isGlobalManagerOrOwner || isAuthorizedMatrixUser || isDirectReportManager;
     if (!isPrivileged) {
       return NextResponse.json({ success: false, error: "Access Denied: You do not have approval rights for leave requests." }, { status: 403 });
     }
 
     if (currentStatus === "Pending Manager Approval" || currentStatus === "Pending") {
       // Who can approve Manager stage?
-      // 1. Assigned Direct Reporting Manager (bypass department match)
-      // 2. Department Manager (same department, same company)
-      // 3. Company Manager (Owner, Director, or role containing "manager", same company)
+      // 1. Owner / Director / HR Head / Admin (Global bypass)
+      // 2. Assigned Direct Reporting Manager (bypass company/department match)
+      // 3. Department Manager (same department)
+      // 4. Authorized matrix user
       const isDeptManager = loggedInUserRole === "Department Manager";
       const isCompanyManager = ["Owner", "Director"].includes(loggedInUserRole) || (loggedInUserRole || "").toLowerCase().includes("manager");
 
-      if (loggedInUserCompanies.length > 0 && !isSameCompany && !isDirectReportManager) {
+      if (!isGlobalManagerOrOwner && !isDirectReportManager && loggedInUserCompanies.length > 0 && !isSameCompany) {
         return NextResponse.json({ success: false, error: "Access Denied: Applicant belongs to a different company." }, { status: 403 });
       }
 
-      if (isDirectReportManager) {
-        // Explicitly authorized direct reporting manager, bypass department checks
+      if (isGlobalManagerOrOwner || isDirectReportManager) {
+        // Global manager / Owner / Director / Direct Reporting manager bypass department/company check
       } else if (isDeptManager) {
         const managerProfile = await EmployeeProfile.findOne({ where: { user: loggedInUserId } });
         if (!applicantProfile || !managerProfile || applicantProfile.department !== managerProfile.department) {
@@ -615,17 +653,23 @@ export async function PUT(req: Request) {
         return NextResponse.json({ success: false, error: "Access Denied: Only authorized managers can approve at this stage." }, { status: 403 });
       }
 
-      // If approved, proceed to Pending HR Approval. If rejected, set to Rejected.
-      finalStatus = status === "Approved" ? "Pending HR Approval" : "Rejected";
-      
-      // Update Manager fields
-      (leave as any).managerStatus = status; // Approved / Rejected
+      // If Owner or Director approves, set to final Approved directly. Otherwise move to Pending HR Approval.
+      if (["owner", "director"].some(r => roleLower.includes(r))) {
+        finalStatus = status === "Approved" ? "Approved" : "Rejected";
+        (leave as any).managerStatus = status;
+        (leave as any).hrStatus = status;
+      } else {
+        finalStatus = status === "Approved" ? "Pending HR Approval" : "Rejected";
+        (leave as any).managerStatus = status;
+      }
       if (remarks) (leave as any).managerRemarks = remarks;
     } else if (currentStatus === "Pending HR Approval") {
-      // Who can approve HR stage? Dynamic check against Approval Matrix
-      const isHR = isAuthorizedMatrixUser;
+      // Who can approve HR stage?
+      // 1. Owner / Director / HR Head / HR Executive / Admin (Global bypass)
+      // 2. Authorized matrix user
+      const isHR = isGlobalManagerOrOwner || isAuthorizedMatrixUser;
 
-      if (loggedInUserCompanies.length > 0 && !isSameCompany) {
+      if (!isGlobalManagerOrOwner && loggedInUserCompanies.length > 0 && !isSameCompany) {
         return NextResponse.json({ success: false, error: "Access Denied: Applicant belongs to a different company." }, { status: 403 });
       }
 
@@ -634,7 +678,7 @@ export async function PUT(req: Request) {
       }
 
       finalStatus = status === "Approved" ? "Approved" : "Rejected";
-      
+
       // Update HR fields
       (leave as any).hrStatus = status; // Approved / Rejected
       if (remarks) (leave as any).hrRemarks = remarks;
@@ -703,10 +747,7 @@ export async function PUT(req: Request) {
             html: emailHtml,
           });
         }
-      } else if (
-        (currentStatus === "Pending Manager Approval" && finalStatus === "Rejected") ||
-        (currentStatus === "Pending HR Approval" && (finalStatus === "Approved" || finalStatus === "Rejected"))
-      ) {
+      } else if (finalStatus === "Approved" || finalStatus === "Rejected") {
         // 2. Request finalized: Email applicant
         if (applicantUser && applicantUser.email) {
           const processedUser = await User.findByPk(loggedInUserId);

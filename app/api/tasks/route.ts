@@ -10,11 +10,69 @@ import EmployeeProfile from "@/models/sequelize/EmployeeProfile";
 import { getRequestIp, logAudit } from "@/lib/audit";
 import { sendEmail } from "@/lib/email";
 import Notification from "@/models/sequelize/Notification";
-import { Op } from "sequelize";
+import { Op, DataTypes } from "sequelize";
 
 // ─── Background Reminder Daemon ──────────────────────────────────────────────
 // Checks for due follow-up tasks every 30 seconds and sends emails.
 // Works continuously inside the running Next.js dev server process.
+
+async function resolveTaskNotificationRecipients(task: any) {
+  const recipients: string[] = [];
+  let assignedUserName = "Team Member";
+
+  try {
+    // 1. Assigned Employee
+    if (task.employee) {
+      const emp = await User.findOne({ where: { id: task.employee }, raw: true }) as any;
+      if (emp) {
+        assignedUserName = emp.name || "Team Member";
+        if (emp.email) recipients.push(emp.email);
+
+        // Find Reporting Manager of this Employee via EmployeeProfile
+        const profile = await EmployeeProfile.findOne({
+          where: { [Op.or]: [{ user: emp.id }, { employeeId: emp.id }] },
+          raw: true,
+        }) as any;
+
+        if (profile?.reportingManager) {
+          const mgrName = profile.reportingManager.trim();
+          const managerUser = await User.findOne({
+            where: {
+              [Op.or]: [
+                { name: { [Op.like]: `%${mgrName}%` } },
+                { email: { [Op.like]: `%${mgrName}%` } },
+              ],
+            },
+            raw: true,
+          }) as any;
+          if (managerUser?.email) {
+            recipients.push(managerUser.email);
+          }
+        }
+      }
+    }
+
+    // 2. Task Assigner / Creator (if different)
+    const assignerId = task.assignedBy || task.createdById;
+    if (assignerId && assignerId !== task.employee) {
+      const assigner = await User.findOne({ where: { id: assignerId }, raw: true }) as any;
+      if (assigner?.email) recipients.push(assigner.email);
+    }
+
+    // 3. Forwarded User (if any)
+    if (task.forwardedTo && task.forwardedTo !== task.employee) {
+      const fwdUser = await User.findOne({ where: { id: task.forwardedTo }, raw: true }) as any;
+      if (fwdUser?.email) recipients.push(fwdUser.email);
+    }
+  } catch (err) {
+    console.error("resolveTaskNotificationRecipients error:", err);
+  }
+
+  return {
+    recipients: Array.from(new Set(recipients.filter(Boolean))),
+    assignedUserName,
+  };
+}
 
 let daemonStarted = (global as any).__reminderDaemonStarted || false;
 const isServerless = process.env.VERCEL === "1" || process.env.NODE_ENV === "production";
@@ -26,6 +84,7 @@ if (!daemonStarted && !isServerless) {
   setInterval(async () => {
     try {
       const now = new Date();
+      const portalUrl = "https://hrms.cfi247.com/";
       // Look for tasks where scheduledAt is in the past and reminder not yet sent
       const dueTasks = await TaskLog.findAll({
         where: {
@@ -38,26 +97,12 @@ if (!daemonStarted && !isServerless) {
 
       if (dueTasks.length > 0) {
         console.log(`⏰ [Task Reminder Daemon] Found ${dueTasks.length} tasks with due reminders! Sending emails...`);
-        const portalUrl = "https://hrms.cfi247.com/";
 
         for (const task of dueTasks) {
           try {
-            const recipients: string[] = [];
-
-            // 1. Owner
-            const owner = await User.findOne({ where: { id: task.employee }, raw: true }) as any;
-            if (owner?.email) recipients.push(owner.email);
-
-            // 2. Forwarded user (if any)
-            if (task.forwardedTo) {
-              const fwdUser = await User.findOne({ where: { id: task.forwardedTo }, raw: true }) as any;
-              if (fwdUser?.email) {
-                recipients.push(fwdUser.email);
-              }
-            }
+            const { recipients, assignedUserName } = await resolveTaskNotificationRecipients(task);
 
             if (recipients.length === 0) {
-              // Mark reminderSent true even if no email so we don't query it forever
               task.reminderSent = true;
               await task.save();
               continue;
@@ -89,10 +134,10 @@ if (!daemonStarted && !isServerless) {
 <div class="wrap">
   <div class="header">
     <h1>📅 Follow-up Reminder</h1>
-    <p>Your scheduled task follow-up is due now</p>
+    <p>Scheduled task follow-up is due now</p>
   </div>
   <div class="body">
-    <p>This is a reminder for your scheduled task follow-up:</p>
+    <p>This is a reminder for scheduled task follow-up (Assigned to: <strong>${assignedUserName}</strong>):</p>
     <div class="badge">${task.taskType || "Task"}</div>
     <div class="task-box">
       <h2>${task.taskTitle}</h2>
@@ -106,13 +151,13 @@ if (!daemonStarted && !isServerless) {
       <a href="${portalUrl}" style="background:#4f46e5;color:#fff;padding:10px 24px;border-radius:8px;text-decoration:none;font-weight:700;font-size:13px">Open Portal →</a>
     </p>
   </div>
-  <div class="footer">RS9 Group HRMS • This is an automated reminder</div>
+  <div class="footer">RS9 Group HRMS • Automated Task System</div>
 </div>
 </body></html>`;
 
             await sendEmail({
               to: recipients,
-              subject: `📅 Task Follow-up Due – ${task.taskTitle}`,
+              subject: `📅 Task Follow-up Due (${assignedUserName}) – ${task.taskTitle}`,
               html,
             });
 
@@ -139,17 +184,18 @@ if (!daemonStarted && !isServerless) {
         console.log(`⏰ [Task Reminder Daemon] Found ${overdueTasks.length} overdue tasks! Sending reminders...`);
         for (const task of overdueTasks) {
           try {
-            const employee = await User.findOne({ where: { id: task.employee }, raw: true }) as any;
-            if (employee && employee.email) {
+            const { recipients, assignedUserName } = await resolveTaskNotificationRecipients(task);
+
+            if (recipients.length > 0) {
               const deadlineLabel = new Date(task.deadlineAt).toLocaleString("en-IN", {
                 day: "2-digit", month: "short", year: "numeric",
                 hour: "2-digit", minute: "2-digit",
               });
 
-              // Send Overdue Reminder Email
+              // Send Overdue Reminder Email to User & Reporting Manager
               await sendEmail({
-                to: employee.email,
-                subject: `⚠️ URGENT REMINDER: Task Overdue – ${task.taskTitle}`,
+                to: recipients,
+                subject: `⚠️ URGENT: Task Overdue (${assignedUserName}) – ${task.taskTitle}`,
                 html: `<!DOCTYPE html>
 <html><head><meta charset="utf-8">
 <style>
@@ -170,12 +216,12 @@ if (!daemonStarted && !isServerless) {
 <body>
 <div class="wrap">
   <div class="header">
-    <h1>⚠️ Task Overdue Reminder</h1>
-    <p>Your task deadline has passed. Please complete it immediately.</p>
+    <h1>⚠️ Task Overdue Alert</h1>
+    <p>Task deadline has passed and is still pending completion</p>
   </div>
   <div class="body">
-    <p>Hello <strong>${employee.name || "Team Member"}</strong>,</p>
-    <p>This is an urgent reminder that your task deadline has passed but the task is still not completed:</p>
+    <p>Hello,</p>
+    <p>This is an urgent reminder that the task assigned to <strong>${assignedUserName}</strong> has passed its deadline and is pending completion:</p>
     <div class="badge">${task.taskType || "Task"}</div>
     <div class="task-box">
       <h2>${task.taskTitle}</h2>
@@ -184,9 +230,12 @@ if (!daemonStarted && !isServerless) {
     <div class="due">
       ⏰ Deadline was: <strong>${deadlineLabel}</strong>
     </div>
-    <p>Please log in to the portal and complete the task as soon as possible.</p>
+    <p>Please log in to the portal and update/complete the task as soon as possible.</p>
+    <p style="text-align:center;margin-top:20px">
+      <a href="${portalUrl}" style="background:#be123c;color:#fff;padding:10px 24px;border-radius:8px;text-decoration:none;font-weight:700;font-size:13px">Open Portal →</a>
+    </p>
   </div>
-  <div class="footer">RS9 Group HRMS • This is an automated reminder</div>
+  <div class="footer">RS9 Group HRMS • Automated Task System</div>
 </div>
 </body></html>`,
               });
@@ -340,6 +389,36 @@ export async function GET(req: Request) {
     const userRole = (session.user as any).role || "Employee";
 
     await sequelize.authenticate();
+
+    // Auto-ensure sales columns exist on tasklogs & legal_recovery_schedules tables
+    try {
+      const qi = sequelize.getQueryInterface();
+      const tasklogCols = await qi.describeTable("tasklogs").catch(() => ({} as any));
+      const newCols: Array<{ name: string; type: any }> = [
+        { name: "personName", type: DataTypes.STRING },
+        { name: "contactNo", type: DataTypes.STRING },
+        { name: "companyName", type: DataTypes.STRING },
+        { name: "emailAddress", type: DataTypes.STRING },
+        { name: "visitLocation", type: DataTypes.TEXT },
+        {name: "callStatus", type: DataTypes.STRING },
+        { name: "leadStatus", type: DataTypes.STRING },
+        { name: "salesReason", type: DataTypes.STRING },
+      ];
+      for (const col of newCols) {
+        if (!tasklogCols[col.name]) {
+          await qi.addColumn("tasklogs", col.name, { type: col.type, allowNull: true }).catch(() => {});
+        }
+      }
+      const lrsCols = await qi.describeTable("legal_recovery_schedules").catch(() => ({} as any));
+      for (const col of newCols) {
+        if (!lrsCols[col.name]) {
+          await qi.addColumn("legal_recovery_schedules", col.name, { type: col.type, allowNull: true }).catch(() => {});
+        }
+      }
+    } catch (colCheckErr) {
+      console.warn("Column check warning:", colCheckErr);
+    }
+
     const { searchParams } = new URL(req.url);
     const filterDate = searchParams.get("date");
     const range = searchParams.get("range");
@@ -597,13 +676,14 @@ export async function POST(req: Request) {
     const userRole = (session.user as any).role || "Employee";
     const userName = session.user.name || "Employee";
     const body = await req.json();
-    const { taskTitle, taskType, description, status, employeeId, deadlineAt } = body;
+    const { taskTitle, taskType, description, status, employeeId, deadlineAt, personName, contactNo, companyName, emailAddress, visitLocation, callStatus, salesReason } = body;
 
     if (!taskTitle || !taskType) {
       return NextResponse.json({ success: false, error: "Missing required fields (Task Title, Task Type)" }, { status: 400 });
     }
 
     await sequelize.authenticate();
+    await TaskLog.sync({ alter: true }).catch(() => {});
     const { scheduledAt } = body;
 
     const now = new Date();
@@ -639,6 +719,13 @@ export async function POST(req: Request) {
       status: status || "Pending",
       proofAttachment: body.proofAttachment || body.attachmentUrl || null,
       scheduledAt: scheduledAt ? new Date(scheduledAt) : null,
+      personName: personName || null,
+      contactNo: contactNo || null,
+      companyName: companyName || null,
+      emailAddress: emailAddress || null,
+      visitLocation: visitLocation || null,
+      callStatus: callStatus || null,
+      salesReason: salesReason || null,
       // Auto-start timer when task is created
       timerState: (status === "Completed") ? "Stopped" : "Running",
       timerStart: (status === "Completed") ? null : now,
@@ -648,7 +735,7 @@ export async function POST(req: Request) {
     // Auto-create LegalRecoverySchedule entry so tasks created from My Tasks page appear in Schedule Work Report
     try {
       const LegalRecoverySchedule = (sequelize.models as any).LegalRecoverySchedule || (await import("@/models/sequelize/LegalRecoverySchedule")).default;
-      await LegalRecoverySchedule.sync();
+      await LegalRecoverySchedule.sync({ alter: true }).catch(() => {});
       const todayStr = now.toISOString().split("T")[0];
       const timeStr = now.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: true });
 
@@ -670,6 +757,13 @@ export async function POST(req: Request) {
         rboName: body.rboName || null,
         caseDetails: body.caseDetails || null,
         proofAttachment: body.proofAttachment || body.attachmentUrl || null,
+        personName: personName || null,
+        contactNo: contactNo || null,
+        companyName: companyName || null,
+        emailAddress: emailAddress || null,
+        visitLocation: visitLocation || null,
+        callStatus: callStatus || null,
+        salesReason: salesReason || null,
         taskId: record.id
       });
     } catch (lrsSyncErr) {
@@ -1040,13 +1134,72 @@ export async function PUT(req: Request) {
       }
     }
 
-    if (status === "Completed" && prevStatus !== "Completed" && task.employee !== userId) {
+    if (status === "Completed" && prevStatus !== "Completed") {
       try {
-        const creator = await User.findByPk(task.employee);
-        const creatorRole = creator?.role || "";
-        const isManager = ["Department Manager", "department manager", "department-manager"].includes(creatorRole) || creatorRole.toLowerCase().includes("manager");
+        // Find who assigned/created this task
+        const assignerId = task.assignedBy || task.createdById || task.employee;
+        let assigner: any = null;
+        if (assignerId) {
+          assigner = await User.findByPk(assignerId, { attributes: ["id", "name", "email", "role"], raw: true });
+        }
+        
+        const assignerRole = (assigner?.role || "").toLowerCase().trim();
+        const isOwnerAssigner = ["owner", "director"].includes(assignerRole);
 
-        if (!isManager) {
+        // Send email ONLY IF task was assigned by Owner/Director and completed
+        if (isOwnerAssigner && assigner && assigner.email) {
+          const completedLabel = new Date().toLocaleString("en-IN", {
+            day: "2-digit", month: "short", year: "numeric",
+            hour: "2-digit", minute: "2-digit",
+          });
+
+          await sendEmail({
+            to: assigner.email,
+            subject: `✅ Task Completed (Assigned by You) – ${task.taskTitle}`,
+            html: `<!DOCTYPE html>
+<html><head><meta charset="utf-8">
+<style>
+  body{font-family:'Segoe UI',system-ui,sans-serif;background:#f1f5f9;margin:0;padding:0;color:#1e293b}
+  .wrap{max-width:580px;margin:32px auto;background:#fff;border-radius:16px;overflow:hidden;border:1px solid #e2e8f0;box-shadow:0 4px 20px rgba(0,0,0,.06)}
+  .header{background:linear-gradient(135deg,#059669 0%,#047857 100%);padding:28px 24px;color:#fff;text-align:center}
+  .header h1{margin:0;font-size:20px;font-weight:700}
+  .header p{margin:6px 0 0;font-size:13px;opacity:.9}
+  .body{padding:28px 24px}
+  .badge{display:inline-block;padding:4px 12px;border-radius:999px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;background:#ecfdf5;color:#047857;margin-bottom:12px}
+  .task-box{background:#f0fdf4;border:1px solid #bbf7d0;border-radius:12px;padding:16px;margin:16px 0}
+  .task-box h2{margin:0 0 6px;font-size:16px;font-weight:700;color:#0f172a}
+  .task-box p{margin:0;font-size:13px;color:#475569}
+  .due{background:#ecfdf5;border:1px solid #a7f3d0;border-radius:10px;padding:12px 16px;margin:16px 0;font-size:13px;font-weight:600;color:#065f46}
+  .footer{background:#f8fafc;padding:16px 24px;text-align:center;font-size:11px;color:#94a3b8;border-top:1px solid #e2e8f0}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="header">
+    <h1>✅ Task Completed</h1>
+    <p>A task assigned by you has been marked as Completed</p>
+  </div>
+  <div class="body">
+    <p>Hello <strong>${assigner.name || "Owner"}</strong>,</p>
+    <p>The task you assigned has been completed by <strong>${userName}</strong>:</p>
+    <div class="badge">${task.taskType || "Task"}</div>
+    <div class="task-box">
+      <h2>${task.taskTitle}</h2>
+      ${task.description ? `<p>${task.description}</p>` : ""}
+    </div>
+    <div class="due">Completed On: <strong>${completedLabel}</strong></div>
+    <p style="text-align:center;margin-top:20px">
+      <a href="${portalUrl}" style="background:#059669;color:#fff;padding:10px 24px;border-radius:8px;text-decoration:none;font-weight:700;font-size:13px">View Task in Portal →</a>
+    </p>
+  </div>
+  <div class="footer">RS9 Group HRMS • Automated Task System</div>
+</div>
+</body></html>`,
+          });
+        }
+
+        // In-app notification for task completion
+        if (task.employee !== userId) {
           await Notification.sync();
           await Notification.create({
             id: Date.now().toString() + Math.random().toString(36).substring(2, 8),
@@ -1057,7 +1210,7 @@ export async function PUT(req: Request) {
           });
         }
       } catch (notifErr) {
-        console.error("Task completion notification error:", notifErr);
+        console.error("Task completion notification/email error:", notifErr);
       }
     }
 
@@ -1106,18 +1259,18 @@ export async function DELETE(req: Request) {
     const userRoleLower = (userRole || "").toLowerCase().trim();
     const isOwnerOrAdmin = ["owner", "director", "hr head", "hr executive", "department manager", "it admin"].includes(userRoleLower);
 
-    let query: any = { [Op.or]: [{ id: taskId }, { scheduleId: taskId }] };
+    let query: any = { id: taskId };
     // Privileged roles can delete any task. Other roles can delete tasks assigned to them or created by them.
     if (!isOwnerOrAdmin) {
       query[Op.and] = [
-        { [Op.or]: [{ id: taskId }, { scheduleId: taskId }] },
+        { id: taskId },
         { [Op.or]: [{ employee: userId }, { assignedBy: userId }] }
       ];
     }
 
     const task = await TaskLog.findOne({ where: query });
     const LegalRecoverySchedule = (sequelize.models as any).LegalRecoverySchedule || (await import("@/models/sequelize/LegalRecoverySchedule")).default;
-    await LegalRecoverySchedule.sync();
+    await LegalRecoverySchedule.sync().catch(() => {});
 
     let schQuery: any = { [Op.or]: [{ id: taskId }, { taskId: taskId }] };
     if (!isOwnerOrAdmin) {

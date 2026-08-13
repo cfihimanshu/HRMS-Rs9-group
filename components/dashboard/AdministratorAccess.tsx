@@ -569,6 +569,7 @@ export default function AdministratorAccess({ userRole, triggerToast, sessionUse
       { id: "business-leads", roles: ["Owner", "Director", "HR Head", "HR Executive"] },
       { id: "employees", roles: ["Owner", "Director", "HR Head", "HR Executive"] },
       { id: "bda-directory", roles: ["Owner", "Director", "HR Head", "HR Executive", "Department Manager"] },
+      { id: "bda-leads", roles: ["Owner", "Director", "HR Head", "HR Executive", "Department Manager", "Employee"] },
       { id: "assets-registry", roles: ["Owner", "Director", "HR Head", "HR Executive"] },
       { id: "inventory-management", roles: ["Owner"] },
       { id: "admin-access", roles: ["Owner"] },

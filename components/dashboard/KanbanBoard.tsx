@@ -62,6 +62,8 @@ interface Task {
   updatedAt?: string | null;
   completedAt?: string | null;
   scheduleId?: string | null;
+  leadStatus?: string | null;
+  callStatus?: string | null;
 }
 
 const TYPE_COLORS: Record<string, string> = {
@@ -212,6 +214,14 @@ export default function KanbanBoard({
   const [rboName, setRboName] = useState<string>("");
   const [caseDetails, setCaseDetails] = useState<string>("");
   const [callDirection, setCallDirection] = useState<string>("Incoming Call");
+  const [personName, setPersonName] = useState<string>("");
+  const [contactNo, setContactNo] = useState<string>("");
+  const [companyName, setCompanyName] = useState<string>("");
+  const [emailAddress, setEmailAddress] = useState<string>("");
+  const [visitLocation, setVisitLocation] = useState<string>("");
+  const [salesReason, setSalesReason] = useState<string>("");
+  const [otherSalesReason, setOtherSalesReason] = useState<string>("");
+  const [callStatus, setCallStatus] = useState<string>("");
 
   // Dynamic Task Category Master List (General, Legal, IT, Bank, Interview, Others, etc.)
   const [bankCategories, setBankCategories] = useState<string[]>([]);
@@ -572,6 +582,20 @@ export default function KanbanBoard({
         ...customLines,
         desc ? `Remark: ${desc}` : "",
       ].filter(Boolean).join("\n");
+    } else if (selectedTaskCategory === "Sales") {
+      const effectiveReason = salesReason === "Other" ? (otherSalesReason ? `Other: ${otherSalesReason}` : "Other") : salesReason;
+      finalDesc = [
+        type === "Call" ? `Call Mode: ${callDirection}` : `Task Mode: ${type}`,
+        personName ? `Person Name: ${personName}` : "",
+        contactNo ? `Contact No: ${contactNo}` : "",
+        companyName ? `Company Name: ${companyName}` : "",
+        emailAddress ? `Email: ${emailAddress}` : "",
+        visitLocation ? `Location: ${visitLocation}` : "",
+        effectiveReason ? `Reason: ${effectiveReason}` : "",
+        callStatus ? `Status: ${callStatus}` : "",
+        otherCategoryDesc ? `Describe: ${otherCategoryDesc}` : "",
+        desc ? `Remark: ${desc}` : "",
+      ].filter(Boolean).join("\n");
     } else if (type === "Call" && callCategory === "Interview") {
       finalDesc = [`Call Category: Interview (${callDirection})`, desc ? `Remark: ${desc}` : ""].filter(Boolean).join("\n");
     } else if (type === "Call" && callCategory === "Others") {
@@ -608,7 +632,14 @@ export default function KanbanBoard({
           description: finalDesc,
           status: "Pending",
           employeeId: assigneeId || undefined,
-          deadlineAt: deadlineAt || undefined
+          deadlineAt: deadlineAt || undefined,
+          personName: personName || undefined,
+          contactNo: contactNo || undefined,
+          companyName: companyName || undefined,
+          emailAddress: emailAddress || undefined,
+          visitLocation: visitLocation || undefined,
+          salesReason: salesReason === "Other" ? (otherSalesReason || "Other") : (salesReason || undefined),
+          callStatus: callStatus || undefined
         }),
       });
       const data = await res.json();
@@ -618,6 +649,14 @@ export default function KanbanBoard({
         setDesc("");
         setCallCategory("");
         setCallDirection("Incoming Call");
+        setPersonName("");
+        setContactNo("");
+        setCompanyName("");
+        setEmailAddress("");
+        setVisitLocation("");
+        setSalesReason("");
+        setOtherSalesReason("");
+        setCallStatus("");
         setOtherCategoryDesc("");
         setSelectedProjectName("");
         setBankName("");
@@ -2077,8 +2116,8 @@ export default function KanbanBoard({
                             </div>
                           )}
 
-                          {/* Call Direction / Mode Selector (when Task Mode is Call) */}
-                          {type === "Call" && (
+                          {/* Standard Call Direction Panel (for non-Sales task titles when Task Mode is Call) */}
+                          {selectedTaskCategory !== "Sales" && type === "Call" && (
                             <div className="mt-2 p-2.5 bg-purple-50/70 border border-purple-200 rounded-xl space-y-1 animate-fade-in">
                               <label className="block text-[9px] font-black uppercase tracking-wider text-purple-800">
                                 Call Direction / Mode *
@@ -2091,6 +2130,148 @@ export default function KanbanBoard({
                                 <option value="Incoming Call">Incoming Call 📥</option>
                                 <option value="Outgoing Call">Outgoing Call 📤</option>
                               </select>
+                            </div>
+                          )}
+
+                          {/* Sales Details Panel (ONLY when Task Category is Sales) */}
+                          {selectedTaskCategory === "Sales" && (
+                            <div className="mt-2 p-3 bg-purple-50/80 border border-purple-200 rounded-xl space-y-2.5 animate-fade-in text-slate-800">
+                              {type === "Call" && (
+                                <div>
+                                  <label className="block text-[9px] font-black uppercase tracking-wider text-purple-800 mb-1">
+                                    Call Direction / Mode *
+                                  </label>
+                                  <select
+                                    value={callDirection}
+                                    onChange={e => setCallDirection(e.target.value)}
+                                    className="w-full border border-purple-300 rounded-lg px-2.5 py-2 text-xs font-extrabold text-purple-900 bg-white focus:outline-none focus:border-purple-600"
+                                  >
+                                    <option value="Incoming Call">Incoming Call</option>
+                                    <option value="Outgoing Call">Outgoing Call</option>
+                                  </select>
+                                </div>
+                              )}
+
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                                <div>
+                                  <label className="block text-[9px] font-black uppercase tracking-wider text-purple-800 mb-1">
+                                    Person Name
+                                  </label>
+                                  <input
+                                    type="text"
+                                    placeholder="e.g. Rahul Sharma"
+                                    value={personName}
+                                    onChange={e => setPersonName(e.target.value)}
+                                    className="w-full border border-purple-200 rounded-lg px-2.5 py-1.5 text-xs font-bold text-slate-800 bg-white focus:outline-none focus:border-purple-500"
+                                  />
+                                </div>
+                                <div>
+                                  <label className="block text-[9px] font-black uppercase tracking-wider text-purple-800 mb-1">
+                                    Contact No
+                                  </label>
+                                  <input
+                                    type="text"
+                                    placeholder="e.g. +91 9876543210"
+                                    value={contactNo}
+                                    onChange={e => setContactNo(e.target.value)}
+                                    className="w-full border border-purple-200 rounded-lg px-2.5 py-1.5 text-xs font-bold text-slate-800 bg-white focus:outline-none focus:border-purple-500"
+                                  />
+                                </div>
+                              </div>
+
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                                <div>
+                                  <label className="block text-[9px] font-black uppercase tracking-wider text-purple-800 mb-1">
+                                    Company Name
+                                  </label>
+                                  <input
+                                    type="text"
+                                    placeholder="e.g. ABC Technologies"
+                                    value={companyName}
+                                    onChange={e => setCompanyName(e.target.value)}
+                                    className="w-full border border-purple-200 rounded-lg px-2.5 py-1.5 text-xs font-bold text-slate-800 bg-white focus:outline-none focus:border-purple-500"
+                                  />
+                                </div>
+                                {type === "Email" && (
+                                  <div>
+                                    <label className="block text-[9px] font-black uppercase tracking-wider text-purple-800 mb-1">
+                                      Email Address *
+                                    </label>
+                                    <input
+                                      type="email"
+                                      placeholder="e.g. client@example.com"
+                                      value={emailAddress}
+                                      onChange={e => setEmailAddress(e.target.value)}
+                                      className="w-full border border-purple-200 rounded-lg px-2.5 py-1.5 text-xs font-bold text-slate-800 bg-white focus:outline-none focus:border-purple-500"
+                                    />
+                                  </div>
+                                )}
+                                {(type === "Field Visit" || type === "Visit") && (
+                                  <div>
+                                    <label className="block text-[9px] font-black uppercase tracking-wider text-purple-800 mb-1">
+                                      Visit Location / Address *
+                                    </label>
+                                    <input
+                                      type="text"
+                                      placeholder="e.g. Malviya Nagar, Jaipur / Office Premises"
+                                      value={visitLocation}
+                                      onChange={e => setVisitLocation(e.target.value)}
+                                      className="w-full border border-purple-200 rounded-lg px-2.5 py-1.5 text-xs font-bold text-slate-800 bg-white focus:outline-none focus:border-purple-500"
+                                    />
+                                  </div>
+                                )}
+                              </div>
+
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                                <div>
+                                  <label className="block text-[9px] font-black uppercase tracking-wider text-purple-800 mb-1">
+                                    Reason / Purpose
+                                  </label>
+                                  <select
+                                    value={salesReason}
+                                    onChange={e => setSalesReason(e.target.value)}
+                                    className="w-full border border-purple-200 rounded-lg px-2.5 py-1.5 text-xs font-bold text-slate-800 bg-white focus:outline-none focus:border-purple-500"
+                                  >
+                                    <option value="">-- Select Reason --</option>
+                                    <option value="Pitching">Pitching</option>
+                                    <option value="Follow Up">Follow Up</option>
+                                    <option value="Client Meeting">Client Meeting</option>
+                                    <option value="Proposal Shared">Proposal Shared</option>
+                                    <option value="Other">Other</option>
+                                  </select>
+                                </div>
+                                <div>
+                                  <label className="block text-[9px] font-black uppercase tracking-wider text-purple-800 mb-1">
+                                    Status
+                                  </label>
+                                  <select
+                                    value={callStatus}
+                                    onChange={e => setCallStatus(e.target.value)}
+                                    className="w-full border border-purple-200 rounded-lg px-2.5 py-1.5 text-xs font-bold text-slate-800 bg-white focus:outline-none focus:border-purple-500"
+                                  >
+                                    <option value="">-- Select Status --</option>
+                                    <option value="Interested">Interested</option>
+                                    <option value="Not Interested">Not Interested</option>
+                                    <option value="Call Not Received">Call Not Received</option>
+                                    <option value="Busy">Busy</option>
+                                  </select>
+                                </div>
+                              </div>
+
+                              {salesReason === "Other" && (
+                                <div>
+                                  <label className="block text-[9px] font-black uppercase tracking-wider text-purple-800 mb-1">
+                                    Specify Other Reason *
+                                  </label>
+                                  <input
+                                    type="text"
+                                    placeholder="Please enter custom sales reason..."
+                                    value={otherSalesReason}
+                                    onChange={e => setOtherSalesReason(e.target.value)}
+                                    className="w-full border border-purple-200 rounded-lg px-2.5 py-1.5 text-xs font-bold text-slate-800 bg-white focus:outline-none focus:border-purple-500"
+                                  />
+                                </div>
+                              )}
                             </div>
                           )}
                         </div>
@@ -2804,6 +2985,28 @@ export default function KanbanBoard({
                       <p className="text-xs text-slate-500 mt-1 font-medium whitespace-pre-line break-all">{cleanDescription(selectedTask.description)}</p>
                     )}
 
+                    {/* Dynamic Real-Time Lead Status Badge */}
+                    {(() => {
+                      const leadStatusVal = selectedTask.leadStatus || selectedTask.callStatus || (selectedTask.description?.match(/Lead Status:\s*([^\n]+)/)?.[1]) || (selectedTask.description?.match(/Status:\s*([^\n]+)/)?.[1]);
+                      if (!leadStatusVal) return null;
+
+                      const statusBadgeStyle = 
+                        leadStatusVal === "Converted" ? "bg-emerald-50 text-emerald-700 border-emerald-300 ring-1 ring-emerald-400/30" :
+                        leadStatusVal === "Lost" ? "bg-rose-50 text-rose-700 border-rose-300 ring-1 ring-rose-400/30" :
+                        leadStatusVal === "In Progress" ? "bg-blue-50 text-blue-700 border-blue-300 ring-1 ring-blue-400/30" :
+                        leadStatusVal === "Qualified" ? "bg-indigo-50 text-indigo-700 border-indigo-300 ring-1 ring-indigo-400/30" :
+                        "bg-amber-50 text-amber-700 border-amber-300";
+
+                      return (
+                        <div className="mt-2.5 flex items-center gap-2">
+                          <span className="text-[9px] uppercase font-black tracking-wider text-slate-400">Lead Status:</span>
+                          <span className={`px-2.5 py-0.5 rounded-xl text-xs font-black border ${statusBadgeStyle}`}>
+                            {leadStatusVal}
+                          </span>
+                        </div>
+                      );
+                    })()}
+
                   </div>
 
                   {/* Action buttons: Edit, Delete, Close */}
@@ -3068,18 +3271,20 @@ export default function KanbanBoard({
                         <div className="space-y-4">
                           {proofUrls.length > 0 && (
                             <div className="space-y-3">
-                              {proofUrls.map((proofUrl, idx) => {
-                                const url = proofUrl.toLowerCase();
+                              {proofUrls.map((proofObj: any, idx) => {
+                                const actualUrl = typeof proofObj === "string" ? proofObj : (proofObj?.url || proofObj?.src || "");
+                                const displayName = typeof proofObj === "object" ? (proofObj?.name || `Proof #${idx + 1}`) : `Proof #${idx + 1}`;
+                                const url = (actualUrl || "").toLowerCase();
                                 return (
                                   <div key={idx} className="border border-slate-200 rounded-xl p-3 bg-white space-y-2 relative shadow-sm">
-                                    <div className="text-[9px] font-black text-slate-400 uppercase tracking-wider">Proof #{idx + 1}</div>
+                                    <div className="text-[9px] font-black text-slate-400 uppercase tracking-wider">{displayName}</div>
                                     <div className="pr-10">
                                       {(() => {
                                         if (url.includes('application/pdf') || url.includes('.pdf')) {
-                                          return <a href={proofUrl} target="_blank" rel="noopener noreferrer" download={`Task_Document_${idx + 1}.pdf`} className="p-2.5 bg-slate-50 hover:bg-slate-100 transition-colors rounded-lg border border-slate-200 text-xs font-bold text-slate-700 flex items-center justify-between gap-2 cursor-pointer"><div className="flex items-center gap-2"><Paperclip className="w-4 h-4" /> PDF Document Uploaded</div> <Download className="w-4 h-4 text-slate-400" /></a>;
+                                          return <a href={actualUrl} target="_blank" rel="noopener noreferrer" download={`${displayName}.pdf`} className="p-2.5 bg-slate-50 hover:bg-slate-100 transition-colors rounded-lg border border-slate-200 text-xs font-bold text-slate-700 flex items-center justify-between gap-2 cursor-pointer"><div className="flex items-center gap-2"><Paperclip className="w-4 h-4" /> {displayName}</div> <Download className="w-4 h-4 text-slate-400" /></a>;
                                         }
                                         if (url.includes('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet') || url.includes('application/vnd.ms-excel') || url.includes('text/csv') || url.includes('.xls') || url.includes('.xlsx') || url.includes('.csv')) {
-                                          return <a href={proofUrl} target="_blank" rel="noopener noreferrer" download={`Task_Document_${idx + 1}.xlsx`} className="p-2.5 bg-slate-50 hover:bg-slate-100 transition-colors rounded-lg border border-slate-200 text-xs font-bold text-slate-700 flex items-center justify-between gap-2 cursor-pointer"><div className="flex items-center gap-2"><Paperclip className="w-4 h-4" /> Excel/CSV Document Uploaded</div> <Download className="w-4 h-4 text-slate-400" /></a>;
+                                          return <a href={actualUrl} target="_blank" rel="noopener noreferrer" download={`${displayName}.xlsx`} className="p-2.5 bg-slate-50 hover:bg-slate-100 transition-colors rounded-lg border border-slate-200 text-xs font-bold text-slate-700 flex items-center justify-between gap-2 cursor-pointer"><div className="flex items-center gap-2"><Paperclip className="w-4 h-4" /> {displayName}</div> <Download className="w-4 h-4 text-slate-400" /></a>;
                                         }
 
                                         const isAudio = /\.(mp3|wav|wave|m4a|ogg|oga|aac|wma|amr|opus|flac|aiff|aif|caf|ac3|mp2|weba|mka|ra)(?:$|[?#])/i.test(url) || url.includes('audio/');
@@ -3087,18 +3292,18 @@ export default function KanbanBoard({
                                         const isImage = /\.(png|jpe?g|gif|webp|bmp|tiff?|heic|heif|avif)(?:$|[?#])/i.test(url) || url.includes('image/');
 
                                         if (isAudio) {
-                                          return <div className="space-y-2"><audio controls src={proofUrl} className="w-full mt-1 border border-slate-100 rounded-lg p-1 bg-slate-50 shadow-sm" /><a href={proofUrl} target="_blank" rel="noopener noreferrer" download className="text-[10px] font-bold text-indigo-600 hover:underline">Open / download audio</a></div>;
+                                          return <div className="space-y-2"><audio controls src={actualUrl} className="w-full mt-1 border border-slate-100 rounded-lg p-1 bg-slate-50 shadow-sm" /><a href={actualUrl} target="_blank" rel="noopener noreferrer" download className="text-[10px] font-bold text-indigo-600 hover:underline">Open / download audio</a></div>;
                                         }
                                         if (isVideo) {
-                                          return <div className="space-y-2"><video controls src={proofUrl} className="max-h-48 w-full rounded-lg border border-slate-200 object-contain shadow-sm bg-slate-50 mt-1" /><a href={proofUrl} target="_blank" rel="noopener noreferrer" download className="text-[10px] font-bold text-indigo-600 hover:underline">Open / download video</a></div>;
+                                          return <div className="space-y-2"><video controls src={actualUrl} className="max-h-48 w-full rounded-lg border border-slate-200 object-contain shadow-sm bg-slate-50 mt-1" /><a href={actualUrl} target="_blank" rel="noopener noreferrer" download className="text-[10px] font-bold text-indigo-600 hover:underline">Open / download video</a></div>;
                                         }
                                         if (!isImage) {
-                                          return <a href={proofUrl} target="_blank" rel="noopener noreferrer" download className="p-2.5 bg-slate-50 hover:bg-slate-100 transition-colors rounded-lg border border-slate-200 text-xs font-bold text-slate-700 flex items-center justify-between gap-2"><div className="flex items-center gap-2"><Paperclip className="w-4 h-4" /> Uploaded File</div><Download className="w-4 h-4 text-slate-400" /></a>;
+                                          return <a href={actualUrl} target="_blank" rel="noopener noreferrer" download className="p-2.5 bg-slate-50 hover:bg-slate-100 transition-colors rounded-lg border border-slate-200 text-xs font-bold text-slate-700 flex items-center justify-between gap-2"><div className="flex items-center gap-2"><Paperclip className="w-4 h-4" /> {displayName}</div><Download className="w-4 h-4 text-slate-400" /></a>;
                                         }
                                         return (
                                           <img
-                                            src={proofUrl}
-                                            alt={`Proof ${idx + 1}`}
+                                            src={actualUrl}
+                                            alt={displayName}
                                             className="max-h-36 rounded-lg border border-slate-200 object-contain shadow-sm bg-slate-50"
                                           />
                                         );

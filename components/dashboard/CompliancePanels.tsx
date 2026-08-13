@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Plus, Search, AlertCircle, ShieldAlert, CheckCircle, RefreshCw, EyeOff, FileText, UserCheck, ShieldCheck, Building2 } from "lucide-react";
+import { Plus, Search, AlertCircle, ShieldAlert, CheckCircle, RefreshCw, EyeOff, FileText, UserCheck, ShieldCheck, Building2, Edit, X } from "lucide-react";
 
 interface ComplianceProps {
   riskAlertList: any[];
@@ -626,7 +626,9 @@ export function SystemRiskAlerts({ toggleModal, triggerToast, riskAlertList, onR
       </div>
     </div>
   );
-}export function ExitSeparation({ sessionUser, triggerToast }: { sessionUser?: any; triggerToast: (msg: string) => void; }) {
+}
+
+export function ExitSeparation({ sessionUser, triggerToast }: { sessionUser?: any; triggerToast: (msg: string) => void; }) {
   const [employees, setEmployees] = useState<any[]>([]);
   const [exits, setExits] = useState<any[]>([]);
   const [form13Records, setForm13Records] = useState<any[]>([]);
@@ -635,9 +637,23 @@ export function SystemRiskAlerts({ toggleModal, triggerToast, riskAlertList, onR
 
   const userRole = (sessionUser?.role || "Employee").toLowerCase();
   const isSubmitter = Boolean(selectedRecord && (selectedRecord.submittedBy === sessionUser?.id || selectedRecord.name === sessionUser?.name));
-  const isManagerOrAbove = !isSubmitter && (
+  const isAssignedManager = Boolean(
+    selectedRecord && (
+      selectedRecord.managerId === sessionUser?.id ||
+      (selectedRecord.managerName && sessionUser?.name && selectedRecord.managerName.toLowerCase().includes(sessionUser.name.toLowerCase())) ||
+      (selectedRecord.managerEmail && sessionUser?.email && selectedRecord.managerEmail.toLowerCase() === sessionUser.email.toLowerCase())
+    )
+  );
+  const isManagerOrAbove = isAssignedManager || (!isSubmitter && (
     sessionUser?.role !== "Employee" ||
     userRole.includes("manager") ||
+    userRole.includes("owner") ||
+    userRole.includes("director") ||
+    userRole.includes("hr") ||
+    userRole.includes("admin") ||
+    userRole.includes("head")
+  ));
+  const isOwnerOrHR = !isSubmitter && (
     userRole.includes("owner") ||
     userRole.includes("director") ||
     userRole.includes("hr") ||
@@ -664,10 +680,36 @@ export function SystemRiskAlerts({ toggleModal, triggerToast, riskAlertList, onR
   // HR Decision Form State
   const [hrDecision, setHrDecision] = useState({
     remarks: "",
+    salaryStatus: "Pending" as "Pending" | "Paid / Released" | "Included in Full & Final (F&F)",
+    pendingDuesRemarks: "",
     assetReturn: false,
     accessRevoke: false,
     handover: false,
     finalSettlement: false
+  });
+
+  // Full Edit Form State (For Owner / Director / HR)
+  const [showFullEditModal, setShowFullEditModal] = useState(false);
+  const [fullEditForm, setFullEditForm] = useState({
+    name: "",
+    category: "Employee",
+    resignationDate: "",
+    lastWorkingDay: "",
+    handoverTo: "",
+    exitReason: "",
+    exitFeedback: "",
+    salaryStatus: "Pending",
+    pendingDuesRemarks: "",
+    assetReturn: false,
+    accessRevoke: false,
+    handover: false,
+    finalSettlement: false,
+    managerRemarks: "",
+    ownerRemarks: "",
+    hrRemarks: "",
+    approvalStage: "Pending Manager",
+    exitType: "Direct Exit",
+    noticePeriodDays: 30
   });
 
   // FORM-13 State
@@ -741,7 +783,7 @@ export function SystemRiskAlerts({ toggleModal, triggerToast, riskAlertList, onR
             setManagerDecision({
               exitType: recordToUse.exitType || "Direct Exit",
               noticePeriodDays: recordToUse.noticePeriodDays || 30,
-              lastWorkingDay: recordToUse.lastWorkingDay || new Date().toISOString().split("T")[0],
+                      lastWorkingDay: recordToUse.lastWorkingDay || new Date().toISOString().split("T")[0],
               remarks: recordToUse.managerRemarks || ""
             });
             setOwnerDecision({
@@ -749,6 +791,8 @@ export function SystemRiskAlerts({ toggleModal, triggerToast, riskAlertList, onR
             });
             setHrDecision({
               remarks: recordToUse.hrRemarks || "",
+              salaryStatus: recordToUse.salaryStatus || "Pending",
+              pendingDuesRemarks: recordToUse.pendingDuesRemarks || "",
               assetReturn: recordToUse.assetReturn || false,
               accessRevoke: recordToUse.accessRevoke || false,
               handover: recordToUse.handover || false,
@@ -788,11 +832,71 @@ export function SystemRiskAlerts({ toggleModal, triggerToast, riskAlertList, onR
 
     setHrDecision({
       remarks: record.hrRemarks || "",
+      salaryStatus: record.salaryStatus || "Pending",
+      pendingDuesRemarks: record.pendingDuesRemarks || "",
       assetReturn: record.assetReturn || false,
       accessRevoke: record.accessRevoke || false,
       handover: record.handover || false,
       finalSettlement: record.finalSettlement || false
     });
+  };
+
+  const handleOpenFullEditModal = () => {
+    if (!selectedRecord) return;
+    setFullEditForm({
+      name: selectedRecord.name || "",
+      category: selectedRecord.category || "Employee",
+      resignationDate: selectedRecord.resignationDate || "",
+      lastWorkingDay: selectedRecord.lastWorkingDay || "",
+      handoverTo: selectedRecord.handoverTo || "",
+      exitReason: selectedRecord.exitReason || "",
+      exitFeedback: selectedRecord.exitFeedback || "",
+      salaryStatus: selectedRecord.salaryStatus || "Pending",
+      pendingDuesRemarks: selectedRecord.pendingDuesRemarks || "",
+      assetReturn: !!selectedRecord.assetReturn,
+      accessRevoke: !!selectedRecord.accessRevoke,
+      handover: !!selectedRecord.handover,
+      finalSettlement: !!selectedRecord.finalSettlement,
+      managerRemarks: selectedRecord.managerRemarks || "",
+      ownerRemarks: selectedRecord.ownerRemarks || "",
+      hrRemarks: selectedRecord.hrRemarks || "",
+      approvalStage: selectedRecord.approvalStage || "Pending Manager",
+      exitType: selectedRecord.exitType || "Direct Exit",
+      noticePeriodDays: selectedRecord.noticePeriodDays || 30
+    });
+    setShowFullEditModal(true);
+  };
+
+  const handleSaveFullEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedRecord) return;
+    try {
+      setSubmitting(true);
+      const res = await fetch("/api/reports/form13", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          formId: selectedRecord.id,
+          action: "full_edit",
+          ...fullEditForm
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        triggerToast("Exit Clearance details updated successfully!");
+        setShowFullEditModal(false);
+        if (data.data) {
+          handleSelectRecord(data.data);
+        }
+        await loadData();
+      } else {
+        triggerToast("Error updating exit details: " + data.error);
+      }
+    } catch (err: any) {
+      triggerToast("Failed to save exit clearance edits: " + err.message);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const handleForm13Submit = async (e: React.FormEvent) => {
@@ -919,6 +1023,8 @@ export function SystemRiskAlerts({ toggleModal, triggerToast, riskAlertList, onR
           action: "hr_decision",
           decision,
           remarks: hrDecision.remarks,
+          salaryStatus: hrDecision.salaryStatus,
+          pendingDuesRemarks: hrDecision.pendingDuesRemarks,
           assetReturn: hrDecision.assetReturn,
           accessRevoke: hrDecision.accessRevoke,
           handover: hrDecision.handover,
@@ -1054,14 +1160,24 @@ export function SystemRiskAlerts({ toggleModal, triggerToast, riskAlertList, onR
                   </div>
                 </div>
                 
-                <div className={`px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-center min-w-32`}>
-                  <span className="text-[9px] uppercase font-black tracking-widest text-slate-500 block mb-0.5">Approval Stage</span>
-                  <span className={`text-xs font-bold ${
-                    selectedRecord.approvalStage === 'Approved' ? 'text-emerald-600' :
-                    selectedRecord.approvalStage === 'Rejected' ? 'text-rose-600' : 'text-amber-600'
-                  }`}>
-                    {selectedRecord.approvalStage || "Pending Manager"}
-                  </span>
+                <div className="flex items-center gap-2">
+                  {isOwnerOrHR && (
+                    <button
+                      onClick={handleOpenFullEditModal}
+                      className="px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 shadow-2xs"
+                    >
+                      <Edit className="w-3.5 h-3.5" /> Edit Exit Form
+                    </button>
+                  )}
+                  <div className={`px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-center min-w-32`}>
+                    <span className="text-[9px] uppercase font-black tracking-widest text-slate-500 block mb-0.5">Approval Stage</span>
+                    <span className={`text-xs font-bold ${
+                      selectedRecord.approvalStage === 'Approved' ? 'text-emerald-600' :
+                      selectedRecord.approvalStage === 'Rejected' ? 'text-rose-600' : 'text-amber-600'
+                    }`}>
+                      {selectedRecord.approvalStage || "Pending Manager"}
+                    </span>
+                  </div>
                 </div>
               </div>
 
@@ -1142,9 +1258,29 @@ export function SystemRiskAlerts({ toggleModal, triggerToast, riskAlertList, onR
 
                   <div className="bg-white p-2.5 rounded-lg border border-slate-200/80 space-y-0.5 col-span-2 shadow-2xs">
                     <span className="text-[9px] font-black uppercase text-slate-400 block font-mono">Personal Contact / Email</span>
-                    <span className="font-bold text-slate-900 text-xs block truncate">📞 {selectedRecord.personalMobile || "N/A"} | ✉️ {selectedRecord.personalEmail || selectedRecord.submittedByUser?.email || "N/A"}</span>
+                    <span className="font-bold text-slate-900 text-xs block truncate">
+                      📞 {selectedRecord.personalMobile || selectedRecord.submittedByUser?.mobile || selectedRecord.submittedByUser?.phone || "N/A"} | ✉️ {selectedRecord.personalEmail || selectedRecord.submittedByUser?.email || "N/A"}
+                    </span>
+                  </div>
+
+                  <div className="bg-white p-2.5 rounded-lg border border-slate-200/80 space-y-0.5 col-span-2 shadow-2xs">
+                    <span className="text-[9px] font-black uppercase text-slate-400 block font-mono">Salary Settlement Status</span>
+                    <span className={`inline-block px-2 py-0.5 rounded text-[11px] font-extrabold ${
+                      selectedRecord.salaryStatus === "Paid / Released" ? "bg-emerald-100 text-emerald-800" :
+                      selectedRecord.salaryStatus === "Included in Full & Final (F&F)" ? "bg-blue-100 text-blue-800" :
+                      "bg-amber-100 text-amber-800"
+                    }`}>
+                      {selectedRecord.salaryStatus || "Pending"}
+                    </span>
                   </div>
                 </div>
+
+                {selectedRecord.pendingDuesRemarks && (
+                  <div className="bg-amber-50/70 p-3 rounded-lg border border-amber-200 space-y-1 shadow-2xs text-amber-900">
+                    <span className="text-[9px] font-black uppercase text-amber-700 block font-mono">⚠️ Pending Dues / Hold Items Details</span>
+                    <p className="text-xs font-bold leading-normal">{selectedRecord.pendingDuesRemarks}</p>
+                  </div>
+                )}
 
                 <div className="bg-white p-3 rounded-lg border border-slate-200/80 space-y-1 shadow-2xs">
                   <span className="text-[9px] font-black uppercase text-slate-400 block font-mono">Exit Reason & Remarks</span>
@@ -1156,6 +1292,101 @@ export function SystemRiskAlerts({ toggleModal, triggerToast, riskAlertList, onR
                   )}
                 </div>
               </div>
+
+              {/* COMPLETE APPROVAL AUDIT & REMARKS LOG CARD */}
+              <div className="mb-6 bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-3 shadow-2xs">
+                <h4 className="text-[10px] font-black uppercase tracking-widest text-[#714B67] font-mono flex items-center gap-1.5 border-b border-slate-200 pb-2">
+                  <CheckCircle className="w-3.5 h-3.5 text-emerald-600" /> Complete Approval Audit & Remarks Log
+                </h4>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
+                  {/* Stage 1: Department Reporting Manager Audit */}
+                  <div className={`p-3 rounded-lg border bg-white ${
+                    selectedRecord.managerApprovalStatus === 'Approved' ? 'border-emerald-200 bg-emerald-50/20' :
+                    selectedRecord.managerApprovalStatus === 'Rejected' ? 'border-rose-200 bg-rose-50/20' : 'border-slate-200'
+                  }`}>
+                    <span className="text-[9px] font-black uppercase text-slate-400 block font-mono">Stage 1: Dept Manager</span>
+                    <div className="font-bold text-slate-900 mt-1">{selectedRecord.managerName || "Department Manager"}</div>
+                    <div className={`text-[10px] font-bold mt-0.5 ${
+                      selectedRecord.managerApprovalStatus === 'Approved' ? 'text-emerald-700' :
+                      selectedRecord.managerApprovalStatus === 'Rejected' ? 'text-rose-700' : 'text-amber-700'
+                    }`}>
+                      Status: {selectedRecord.managerApprovalStatus || "Pending"} {selectedRecord.exitType ? `(${selectedRecord.exitType})` : ""}
+                    </div>
+                    {selectedRecord.exitType === "Notice Period" && (
+                      <div className="text-[9.5px] text-slate-600 mt-1 font-mono bg-slate-50 p-1.5 rounded border border-slate-100">
+                        Notice: {selectedRecord.noticePeriodDays || 30} Days <br /> LWD: {selectedRecord.lastWorkingDay || "N/A"}
+                      </div>
+                    )}
+                    {selectedRecord.managerRemarks ? (
+                      <div className="text-[10.5px] text-slate-700 bg-slate-50 p-2 rounded mt-2 border border-slate-200/60 leading-tight">
+                        <strong>Remarks:</strong> "{selectedRecord.managerRemarks}"
+                      </div>
+                    ) : null}
+                  </div>
+
+                  {/* Stage 2: Owner / Executive Management Audit */}
+                  <div className={`p-3 rounded-lg border bg-white ${
+                    selectedRecord.ownerApprovalStatus === 'Approved' ? 'border-blue-200 bg-blue-50/20' :
+                    selectedRecord.ownerApprovalStatus === 'Rejected' ? 'border-rose-200 bg-rose-50/20' : 'border-slate-200'
+                  }`}>
+                    <span className="text-[9px] font-black uppercase text-slate-400 block font-mono">Stage 2: Owner / Management</span>
+                    <div className="font-bold text-slate-900 mt-1">Executive Board</div>
+                    <div className={`text-[10px] font-bold mt-0.5 ${
+                      selectedRecord.ownerApprovalStatus === 'Approved' ? 'text-blue-700' :
+                      selectedRecord.ownerApprovalStatus === 'Rejected' ? 'text-rose-700' : 'text-slate-500'
+                    }`}>
+                      Status: {selectedRecord.ownerApprovalStatus || "Pending"}
+                    </div>
+                    {selectedRecord.ownerRemarks ? (
+                      <div className="text-[10.5px] text-slate-700 bg-slate-50 p-2 rounded mt-2 border border-slate-200/60 leading-tight">
+                        <strong>Remarks:</strong> "{selectedRecord.ownerRemarks}"
+                      </div>
+                    ) : null}
+                  </div>
+
+                  {/* Stage 3: HR Final Clearance Audit */}
+                  <div className={`p-3 rounded-lg border bg-white ${
+                    selectedRecord.hrApprovalStatus === 'Approved' ? 'border-purple-200 bg-purple-50/20' :
+                    selectedRecord.hrApprovalStatus === 'Rejected' ? 'border-rose-200 bg-rose-50/20' : 'border-slate-200'
+                  }`}>
+                    <span className="text-[9px] font-black uppercase text-slate-400 block font-mono">Stage 3: HR Final Clearance</span>
+                    <div className="font-bold text-slate-900 mt-1">HR Department</div>
+                    <div className={`text-[10px] font-bold mt-0.5 ${
+                      selectedRecord.hrApprovalStatus === 'Approved' ? 'text-purple-700' :
+                      selectedRecord.hrApprovalStatus === 'Rejected' ? 'text-rose-700' : 'text-slate-500'
+                    }`}>
+                      Status: {selectedRecord.hrApprovalStatus || "Pending"}
+                    </div>
+                    {selectedRecord.hrApprovalStatus === 'Approved' && (
+                      <div className="text-[9.5px] text-slate-600 mt-1 space-y-0.5 font-semibold">
+                        <div>✓ Assets Returned: {selectedRecord.assetReturn ? "Yes" : "N/A"}</div>
+                        <div>✓ Access Revoked: {selectedRecord.accessRevoke ? "Yes" : "N/A"}</div>
+                        <div>✓ KT Handover: {selectedRecord.handover ? "Yes" : "N/A"}</div>
+                        <div>✓ Final F&F: {selectedRecord.finalSettlement ? "Done" : "N/A"}</div>
+                      </div>
+                    )}
+                    {selectedRecord.hrRemarks ? (
+                      <div className="text-[10.5px] text-slate-700 bg-slate-50 p-2 rounded mt-2 border border-slate-200/60 leading-tight">
+                        <strong>Remarks:</strong> "{selectedRecord.hrRemarks}"
+                      </div>
+                    ) : null}
+                  </div>
+                </div>
+              </div>
+
+              {/* READ-ONLY SUMMARY CARD WHEN REQUEST IS FULLY APPROVED */}
+              {selectedRecord.approvalStage === "Approved" && (
+                <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-5 mb-6 text-center space-y-2">
+                  <CheckCircle className="w-8 h-8 text-emerald-600 mx-auto" />
+                  <h4 className="text-sm font-black uppercase tracking-wider text-emerald-900">
+                    Exit & Separation Clearance Fully Approved & Completed
+                  </h4>
+                  <p className="text-xs text-emerald-800 max-w-lg mx-auto">
+                    This exit request has been fully processed and approved across all 3 stages (Department Reporting Manager → Owner → HR Final Clearance). All records and decision remarks are locked in Read-Only archive.
+                  </p>
+                </div>
+              )}
 
               {/* EMPLOYEE STATUS VIEW FOR SUBMITTER */}
               {isSubmitter ? (
@@ -1332,8 +1563,8 @@ export function SystemRiskAlerts({ toggleModal, triggerToast, riskAlertList, onR
                 </div>
               )}
 
-              {/* STAGE 3: HR DEPARTMENT FINAL CLEARANCE PANEL */}
-              {(isManagerOrAbove && (selectedRecord.approvalStage === "Pending HR" || selectedRecord.approvalStage === "Approved")) && (
+              {/* STAGE 3: HR DEPARTMENT FINAL CLEARANCE PANEL (ONLY WHEN PENDING HR) */}
+              {(isManagerOrAbove && selectedRecord.approvalStage === "Pending HR") && (
                 <div className="bg-purple-50/50 border border-purple-200 rounded-xl p-5 mb-6">
                   <div className="flex items-center gap-2 mb-3">
                     <Building2 className="w-5 h-5 text-purple-700" />
@@ -1360,6 +1591,66 @@ export function SystemRiskAlerts({ toggleModal, triggerToast, riskAlertList, onR
                       ))}
                     </div>
 
+                    {/* Salary Settlement Status Options */}
+                    <div className="bg-white p-3.5 rounded-xl border border-slate-200 space-y-2">
+                      <label className="text-[10px] font-bold uppercase tracking-wider text-slate-600 font-mono block">
+                        Salary Settlement Status *
+                      </label>
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs font-bold">
+                        <label className={`p-2.5 rounded-lg border cursor-pointer flex items-center gap-2 transition-all ${
+                          hrDecision.salaryStatus === "Pending" ? "bg-amber-50 border-amber-300 text-amber-900" : "bg-slate-50 border-slate-200 text-slate-700"
+                        }`}>
+                          <input
+                            type="radio"
+                            name="hrSalaryStatus"
+                            checked={hrDecision.salaryStatus === "Pending"}
+                            onChange={() => setHrDecision({ ...hrDecision, salaryStatus: "Pending" })}
+                            className="accent-amber-600"
+                          />
+                          <span>🔴 Pending (Due)</span>
+                        </label>
+
+                        <label className={`p-2.5 rounded-lg border cursor-pointer flex items-center gap-2 transition-all ${
+                          hrDecision.salaryStatus === "Paid / Released" ? "bg-emerald-50 border-emerald-300 text-emerald-900" : "bg-slate-50 border-slate-200 text-slate-700"
+                        }`}>
+                          <input
+                            type="radio"
+                            name="hrSalaryStatus"
+                            checked={hrDecision.salaryStatus === "Paid / Released"}
+                            onChange={() => setHrDecision({ ...hrDecision, salaryStatus: "Paid / Released" })}
+                            className="accent-emerald-600"
+                          />
+                          <span>🟢 Paid / Released</span>
+                        </label>
+
+                        <label className={`p-2.5 rounded-lg border cursor-pointer flex items-center gap-2 transition-all ${
+                          hrDecision.salaryStatus === "Included in Full & Final (F&F)" ? "bg-blue-50 border-blue-300 text-blue-900" : "bg-slate-50 border-slate-200 text-slate-700"
+                        }`}>
+                          <input
+                            type="radio"
+                            name="hrSalaryStatus"
+                            checked={hrDecision.salaryStatus === "Included in Full & Final (F&F)"}
+                            onChange={() => setHrDecision({ ...hrDecision, salaryStatus: "Included in Full & Final (F&F)" })}
+                            className="accent-blue-600"
+                          />
+                          <span>🔵 Included in F&F</span>
+                        </label>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 font-mono">
+                        Pending Dues / Hold Items Details (If Any)
+                      </label>
+                      <textarea
+                        rows={2}
+                        value={hrDecision.pendingDuesRemarks}
+                        onChange={e => setHrDecision({ ...hrDecision, pendingDuesRemarks: e.target.value })}
+                        className="w-full bg-white border border-slate-200 rounded p-2.5 text-xs font-medium text-slate-800 mt-1 focus:outline-none focus:border-purple-600"
+                        placeholder="Detail any pending salary, hold amount, or dues that can be updated later..."
+                      />
+                    </div>
+
                     <div>
                       <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 font-mono">HR Final Clearance Remarks</label>
                       <textarea
@@ -1371,24 +1662,22 @@ export function SystemRiskAlerts({ toggleModal, triggerToast, riskAlertList, onR
                       />
                     </div>
 
-                    {selectedRecord.approvalStage === "Pending HR" && (
-                      <div className="flex gap-3 pt-2">
-                        <button
-                          onClick={() => handleProcessHrDecision("approve")}
-                          disabled={submitting}
-                          className="flex-1 bg-purple-600 hover:bg-purple-700 text-white py-2.5 rounded-lg text-xs font-bold transition-all shadow-sm flex items-center justify-center gap-1.5 disabled:opacity-50"
-                        >
-                          <CheckCircle className="w-4 h-4" /> Final Approve & Complete Exit
-                        </button>
-                        <button
-                          onClick={() => handleProcessHrDecision("reject")}
-                          disabled={submitting}
-                          className="px-5 bg-rose-600 hover:bg-rose-700 text-white py-2.5 rounded-lg text-xs font-bold transition-all shadow-sm disabled:opacity-50"
-                        >
-                          Reject Clearance
-                        </button>
-                      </div>
-                    )}
+                    <div className="flex gap-3 pt-2">
+                      <button
+                        onClick={() => handleProcessHrDecision("approve")}
+                        disabled={submitting}
+                        className="flex-1 bg-purple-600 hover:bg-purple-700 text-white py-2.5 rounded-lg text-xs font-bold transition-all shadow-sm flex items-center justify-center gap-1.5 disabled:opacity-50"
+                      >
+                        <CheckCircle className="w-4 h-4" /> Final Approve & Complete Exit
+                      </button>
+                      <button
+                        onClick={() => handleProcessHrDecision("reject")}
+                        disabled={submitting}
+                        className="px-5 bg-rose-600 hover:bg-rose-700 text-white py-2.5 rounded-lg text-xs font-bold transition-all shadow-sm disabled:opacity-50"
+                      >
+                        Reject Clearance
+                      </button>
+                    </div>
                   </div>
                 </div>
               )}
@@ -1542,6 +1831,214 @@ export function SystemRiskAlerts({ toggleModal, triggerToast, riskAlertList, onR
                 </div>
               </form>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* FULL EXIT CLEARANCE EDIT MODAL FOR OWNER / HR */}
+      {showFullEditModal && selectedRecord && (
+        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl max-h-[92vh] overflow-y-auto border border-slate-200 animate-fade-in">
+            <div className="p-5 border-b border-slate-200 flex justify-between items-center bg-slate-900 text-white rounded-t-3xl">
+              <div>
+                <h3 className="text-base font-extrabold tracking-tight flex items-center gap-2">
+                  <Edit className="w-5 h-5 text-indigo-400" /> Edit Exit Clearance Details
+                </h3>
+                <p className="text-xs text-slate-400 font-semibold mt-0.5">
+                  Form ID: {selectedRecord.id} | Employee: {selectedRecord.name}
+                </p>
+              </div>
+              <button
+                onClick={() => setShowFullEditModal(false)}
+                className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveFullEdit} className="p-6 space-y-4 text-xs font-semibold">
+              
+              {/* Basic Fields */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[10px] font-black uppercase text-slate-600 mb-1 font-mono">Employee Name</label>
+                  <input
+                    type="text"
+                    value={fullEditForm.name}
+                    onChange={e => setFullEditForm({ ...fullEditForm, name: e.target.value })}
+                    className="w-full border border-slate-300 rounded-xl p-2.5 font-bold focus:outline-none focus:border-indigo-600"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-black uppercase text-slate-600 mb-1 font-mono">Handover / KT Person</label>
+                  <input
+                    type="text"
+                    value={fullEditForm.handoverTo}
+                    onChange={e => setFullEditForm({ ...fullEditForm, handoverTo: e.target.value })}
+                    className="w-full border border-slate-300 rounded-xl p-2.5 font-bold focus:outline-none focus:border-indigo-600"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-black uppercase text-slate-600 mb-1 font-mono">Resignation Date</label>
+                  <input
+                    type="date"
+                    value={fullEditForm.resignationDate}
+                    onChange={e => setFullEditForm({ ...fullEditForm, resignationDate: e.target.value })}
+                    className="w-full border border-slate-300 rounded-xl p-2.5 font-bold focus:outline-none focus:border-indigo-600"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-black uppercase text-slate-600 mb-1 font-mono">Last Working Day (LWD)</label>
+                  <input
+                    type="date"
+                    value={fullEditForm.lastWorkingDay}
+                    onChange={e => setFullEditForm({ ...fullEditForm, lastWorkingDay: e.target.value })}
+                    className="w-full border border-slate-300 rounded-xl p-2.5 font-bold focus:outline-none focus:border-indigo-600"
+                  />
+                </div>
+              </div>
+
+              {/* Salary Settlement Status & Pending Dues */}
+              <div className="bg-purple-50/60 p-4 rounded-2xl border border-purple-200 space-y-3">
+                <h4 className="text-[10px] font-black uppercase tracking-wider text-purple-900 font-mono">
+                  💰 Salary & Financial Settlement Options
+                </h4>
+
+                <div>
+                  <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">
+                    Salary Settlement Status *
+                  </label>
+                  <select
+                    value={fullEditForm.salaryStatus}
+                    onChange={e => setFullEditForm({ ...fullEditForm, salaryStatus: e.target.value })}
+                    className="w-full bg-white border border-purple-300 rounded-xl p-2.5 font-extrabold text-slate-800 focus:outline-none focus:border-purple-600"
+                  >
+                    <option value="Pending">🔴 Pending (Salary / Dues Pending)</option>
+                    <option value="Paid / Released">🟢 Paid / Released (Salary Paid)</option>
+                    <option value="Included in Full & Final (F&F)">🔵 Included in Full & Final (F&F)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">
+                    Pending Dues / Hold Items Details (Fill when completed or updated later)
+                  </label>
+                  <textarea
+                    rows={2}
+                    placeholder="Describe any pending salary, hold amount, or dues that were completed or resolved..."
+                    value={fullEditForm.pendingDuesRemarks}
+                    onChange={e => setFullEditForm({ ...fullEditForm, pendingDuesRemarks: e.target.value })}
+                    className="w-full bg-white border border-purple-200 rounded-xl p-2.5 font-bold text-slate-800 focus:outline-none focus:border-purple-600"
+                  />
+                </div>
+              </div>
+
+              {/* Clearance Checkboxes */}
+              <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-2">
+                <h4 className="text-[10px] font-black uppercase tracking-wider text-slate-600 font-mono">
+                  Clearance Items Checklist
+                </h4>
+                <div className="grid grid-cols-2 gap-2 text-xs font-bold">
+                  <label className="flex items-center gap-2 cursor-pointer bg-white p-2 rounded-lg border border-slate-200">
+                    <input
+                      type="checkbox"
+                      checked={fullEditForm.assetReturn}
+                      onChange={e => setFullEditForm({ ...fullEditForm, assetReturn: e.target.checked })}
+                      className="accent-indigo-600 w-4 h-4"
+                    />
+                    <span>Company Assets Returned</span>
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer bg-white p-2 rounded-lg border border-slate-200">
+                    <input
+                      type="checkbox"
+                      checked={fullEditForm.accessRevoke}
+                      onChange={e => setFullEditForm({ ...fullEditForm, accessRevoke: e.target.checked })}
+                      className="accent-indigo-600 w-4 h-4"
+                    />
+                    <span>System Access Revoked</span>
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer bg-white p-2 rounded-lg border border-slate-200">
+                    <input
+                      type="checkbox"
+                      checked={fullEditForm.handover}
+                      onChange={e => setFullEditForm({ ...fullEditForm, handover: e.target.checked })}
+                      className="accent-indigo-600 w-4 h-4"
+                    />
+                    <span>Work Handover Complete</span>
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer bg-white p-2 rounded-lg border border-slate-200">
+                    <input
+                      type="checkbox"
+                      checked={fullEditForm.finalSettlement}
+                      onChange={e => setFullEditForm({ ...fullEditForm, finalSettlement: e.target.checked })}
+                      className="accent-indigo-600 w-4 h-4"
+                    />
+                    <span>Final F&F Settlement Done</span>
+                  </label>
+                </div>
+              </div>
+
+              {/* Reason & Remarks */}
+              <div>
+                <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">Exit Reason</label>
+                <textarea
+                  rows={2}
+                  value={fullEditForm.exitReason}
+                  onChange={e => setFullEditForm({ ...fullEditForm, exitReason: e.target.value })}
+                  className="w-full border border-slate-300 rounded-xl p-2.5 font-bold focus:outline-none focus:border-indigo-600"
+                />
+              </div>
+
+              {/* Approval Stage & Remarks */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">Overall Approval Stage</label>
+                  <select
+                    value={fullEditForm.approvalStage}
+                    onChange={e => setFullEditForm({ ...fullEditForm, approvalStage: e.target.value })}
+                    className="w-full border border-slate-300 rounded-xl p-2.5 font-extrabold text-slate-800 focus:outline-none"
+                  >
+                    <option value="Pending Manager">Pending Manager (Stage 1)</option>
+                    <option value="Pending Owner">Pending Owner (Stage 2)</option>
+                    <option value="Pending HR">Pending HR (Stage 3)</option>
+                    <option value="Approved">Approved & Completed</option>
+                    <option value="Rejected">Rejected</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">HR Remarks</label>
+                  <input
+                    type="text"
+                    value={fullEditForm.hrRemarks}
+                    onChange={e => setFullEditForm({ ...fullEditForm, hrRemarks: e.target.value })}
+                    className="w-full border border-slate-300 rounded-xl p-2.5 font-bold focus:outline-none focus:border-indigo-600"
+                  />
+                </div>
+              </div>
+
+              <div className="pt-4 border-t border-slate-200 flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowFullEditModal(false)}
+                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={submitting}
+                  className="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl shadow-md disabled:opacity-50 flex items-center gap-1.5"
+                >
+                  {submitting ? <RefreshCw className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
+                  Save All Changes
+                </button>
+              </div>
+
+            </form>
           </div>
         </div>
       )}

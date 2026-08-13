@@ -79,6 +79,7 @@ export default function DashboardSidebar({
     { id: "business-leads", label: "HR Leads", icon: FileSpreadsheet, category: "Core Workspace", roles: ["Owner", "Director", "HR Head", "HR Executive"] },
     { id: "employees", label: "Employees Directory", icon: Users2, category: "Core Workspace", roles: ["Owner", "Director", "HR Head", "HR Executive"] },
     { id: "bda-directory", label: "BDA Network (Sales)", icon: Users2, category: "Core Workspace", roles: ["Owner", "Director", "HR Head", "HR Executive", "Department Manager"] },
+    { id: "bda-leads", label: "BDA Leads", icon: FileSpreadsheet, category: "Core Workspace", roles: ["Owner", "Director", "HR Head", "HR Executive", "Department Manager", "Employee"] },
     { id: "assets-registry", label: "Assets Registry", icon: Cpu, category: "Core Workspace", roles: ["Owner", "Director", "HR Head", "HR Executive"] },
     { id: "domain-record", label: "Domain Record", icon: Globe, category: "Core Workspace", roles: ["Owner", "Director", "HR Head", "HR Executive", "IT Admin"] },
     { id: "inventory-management", label: "Inventory Management", icon: Package, category: "Core Workspace", roles: ["Owner"] },
@@ -118,6 +119,7 @@ export default function DashboardSidebar({
   const isAdministration = userDept.toLowerCase().includes("administration");
 
   const isOwnerOrDirector = ["Owner", "Director"].some(r => userRole.toLowerCase().includes(r.toLowerCase()));
+
   let allowedPageIds: string[] | null = null;
   if (Array.isArray(user?.menuAccess)) {
     allowedPageIds = user.menuAccess;
@@ -128,6 +130,34 @@ export default function DashboardSidebar({
     } catch { }
   }
 
+  // Default ESS pages accessible to all employees & staff members
+  const DEFAULT_ESS_PAGES = [
+    "ess-dashboard",
+    "ess-leaves",
+    "ess-expenses",
+    "asset-request",
+    "tasks",
+    "performance",
+    "field-visit",
+    "leave-request",
+    "exit"
+  ];
+
+  let effectiveAllowedPageIds: string[] = allowedPageIds && allowedPageIds.length > 0
+    ? [...allowedPageIds]
+    : [...DEFAULT_ESS_PAGES];
+
+  // Always merge basic ESS self-service pages so no employee is missing essential tools
+  DEFAULT_ESS_PAGES.forEach(pageId => {
+    if (!effectiveAllowedPageIds.includes(pageId)) {
+      effectiveAllowedPageIds.push(pageId);
+    }
+  });
+
+  if (userRole.toLowerCase().includes("bda") && !effectiveAllowedPageIds.includes("bda-leads")) {
+    effectiveAllowedPageIds.push("bda-leads");
+  }
+
   const menuItems = allMenuItems.filter(item => {
     // 1. OWNER / DIRECTOR: Unconditional access to ALL pages & categories
     if (isOwnerOrDirector) return true;
@@ -135,14 +165,14 @@ export default function DashboardSidebar({
     // 2. NON-OWNER USERS: Filter strictly by assigned menuAccess permissions & role rules
     const roleLower = userRole.toLowerCase();
 
-    if (allowedPageIds && allowedPageIds.length > 0) {
-      const hasPageLevelPermissions = allowedPageIds.some(p =>
+    if (effectiveAllowedPageIds && effectiveAllowedPageIds.length > 0) {
+      const hasPageLevelPermissions = effectiveAllowedPageIds.some(p =>
         !["Core Workspace", "Employee Self Service", "AI & Vetting Hub", "Training & Probation", "Daily Operations", "Network Partners", "Compliance & Exit"].includes(p)
       );
       if (hasPageLevelPermissions) {
-        return allowedPageIds.includes(item.id);
+        return effectiveAllowedPageIds.includes(item.id);
       } else {
-        if (!allowedPageIds.includes(item.category)) {
+        if (!effectiveAllowedPageIds.includes(item.category)) {
           return false;
         }
       }

@@ -82,16 +82,13 @@ export async function GET(req: Request) {
     const isManager = userRole === "department manager" || userRole.includes("manager") || userRole.includes("head") || userRole === "dsm" ||
                       designation === "department manager" || designation.includes("manager") || designation.includes("head") || designation === "dsm";
 
-    if (!isOwnerOrDirector && !isHR && !isAdministration && !isLegalRecoveryUser && !isManager) {
-      return NextResponse.json({ success: false, error: "Unauthorized access" }, { status: 401 });
-    }
-
     const adminCompaniesNormalized = getUserCompanies(dbUser);
 
     // Fetch employees
     const employees = await User.findAll({ where: {}, raw: true });
 
     // Fetch profiles to merge data
+    await EmployeeProfile.sync({ alter: true }).catch(() => {});
     const profiles = await EmployeeProfile.findAll({ where: {}, raw: true });
     const departments = await Department.findAll({ where: {}, raw: true });
     const allCompanies = await Company.findAll({ where: {}, raw: true });

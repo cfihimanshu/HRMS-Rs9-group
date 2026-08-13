@@ -248,6 +248,10 @@ export function DailyCommitments({
       alert("Please enter custom location details.");
       return;
     }
+    if (legalInputType === "General" && !legalInputRemarks.trim()) {
+      alert("Remarks are required when Type is General.");
+      return;
+    }
     if (legalInputType === "Others" && !legalInputOtherType.trim()) {
       alert("Please specify custom Type / Input for Others.");
       return;
@@ -817,6 +821,12 @@ export function DailyCommitments({
   };
 
   const captureSodPhotoAndSubmit = async () => {
+    if (isLegalRecovery && legalScheduleItems.length === 0) {
+      alert("⚠️ Legal Recovery / Security staff must add at least 1 schedule entry to the table before submitting SOD.");
+      setShowCamera(false);
+      return;
+    }
+
     if (sodTaskTitle === "Bank" && (!selectedBankId || !sodBranchName || !sodOfficerName.trim() || !sodOfficerPhone.trim())) {
       alert("Please select Bank, Branch, Officer Name and Officer Phone for Bank task.");
       setShowCamera(false);
@@ -1358,12 +1368,12 @@ export function DailyCommitments({
                       {/* Case 1: Type === "General" -> Remark option */}
                       {legalInputType === "General" && (
                         <div className="animate-fade-in pt-1">
-                          <label className="block text-[9px] font-bold uppercase text-slate-500 mb-1">Remarks (Optional)</label>
+                          <label className="block text-[9px] font-bold uppercase text-slate-700 mb-1">Remarks *</label>
                           <input
                             type="text"
                             value={legalInputRemarks}
                             onChange={e => setLegalInputRemarks(e.target.value)}
-                            placeholder="General remarks or notes..."
+                            placeholder="General remarks or notes (Required)..."
                             className="w-full p-2 border border-slate-300 rounded-lg text-xs font-semibold text-slate-800 focus:outline-none focus:border-purple-600"
                           />
                         </div>
@@ -3381,7 +3391,29 @@ export function PerformanceCompliance({
         if (cursor.getDay() !== 0) workingDates.push(cursor.toISOString().split("T")[0]);
       }
 
-      const summary = (data.users || []).map((user: any) => {
+      let filteredMasterUsers = data.users || [];
+      if (selectedUser) {
+        filteredMasterUsers = filteredMasterUsers.filter((u: any) => String(u.id) === selectedUser.toString());
+      }
+      if (selectedDept) {
+        filteredMasterUsers = filteredMasterUsers.filter((u: any) => {
+          const p: any = profileMap.get(String(u.id));
+          const empDept = p?.department || u.department || "";
+          const deptName = empDept ? (deptMap.get(String(empDept)) || empDept) : "General";
+          return deptName === selectedDept || empDept === selectedDept;
+        });
+      }
+      if (searchTerm) {
+        const term = searchTerm.toLowerCase().trim();
+        filteredMasterUsers = filteredMasterUsers.filter((u: any) => {
+          const nameWords = (u.name || "").toLowerCase().split(/\s+/);
+          const nameMatch = nameWords.some((w: string) => w.startsWith(term));
+          const emailMatch = (u.email || "").toLowerCase().startsWith(term);
+          return nameMatch || emailMatch;
+        });
+      }
+
+      const summary = filteredMasterUsers.map((user: any) => {
         const id = String(user.id);
         const profile: any = profileMap.get(id) || {};
         const employeeAttendance = (data.attendance || []).filter((a: any) => String(a.employee) === id);
@@ -3576,6 +3608,14 @@ export function PerformanceCompliance({
       const filteredEmps = visualStats.employeesData.filter((emp: any) => {
         if (emp.role === "Owner") return false;
         if (selectedUser && emp.id.toString() !== selectedUser.toString()) return false;
+        if (selectedDept && emp.department !== selectedDept) return false;
+        if (searchTerm) {
+          const term = searchTerm.toLowerCase().trim();
+          const nameWords = (emp.name || "").toLowerCase().split(/\s+/);
+          const nameMatch = nameWords.some((word: string) => word.startsWith(term));
+          const emailMatch = (emp.email || "").toLowerCase().startsWith(term);
+          if (!nameMatch && !emailMatch) return false;
+        }
         return true;
       });
 

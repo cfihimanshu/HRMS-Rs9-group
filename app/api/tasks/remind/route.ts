@@ -61,21 +61,52 @@ export async function GET(req: Request) {
       try {
         const recipients: string[] = [];
 
-        // 1. Owner
-        const owner = await User.findOne({ where: { id: task.employee }, raw: true }) as any;
-        if (owner?.email) recipients.push(owner.email);
+        // 1. Assigned Employee
+        let assignedUserName = "Team Member";
+        if (task.employee) {
+          const emp = await User.findOne({ where: { id: task.employee }, raw: true }) as any;
+          if (emp) {
+            assignedUserName = emp.name || "Team Member";
+            if (emp.email) recipients.push(emp.email);
 
-        // 2. Forwarded user (if any)
-        let forwardedUserEmail: string | null = null;
-        if (task.forwardedTo) {
-          const fwdUser = await User.findOne({ where: { id: task.forwardedTo }, raw: true }) as any;
-          if (fwdUser?.email) {
-            recipients.push(fwdUser.email);
-            forwardedUserEmail = fwdUser.email;
+            // Reporting Manager via EmployeeProfile
+            const EmployeeProfile = (sequelize.models as any).EmployeeProfile || (await import("@/models/sequelize/EmployeeProfile")).default;
+            const profile = await EmployeeProfile.findOne({
+              where: { [Op.or]: [{ user: emp.id }, { employeeId: emp.id }] },
+              raw: true,
+            }) as any;
+
+            if (profile?.reportingManager) {
+              const mgrName = profile.reportingManager.trim();
+              const managerUser = await User.findOne({
+                where: {
+                  [Op.or]: [
+                    { name: { [Op.like]: `%${mgrName}%` } },
+                    { email: { [Op.like]: `%${mgrName}%` } },
+                  ],
+                },
+                raw: true,
+              }) as any;
+              if (managerUser?.email) recipients.push(managerUser.email);
+            }
           }
         }
 
-        if (recipients.length === 0) continue;
+        // 2. Task Assigner / Creator (if different)
+        const assignerId = task.assignedBy || task.createdById;
+        if (assignerId && assignerId !== task.employee) {
+          const assigner = await User.findOne({ where: { id: assignerId }, raw: true }) as any;
+          if (assigner?.email) recipients.push(assigner.email);
+        }
+
+        // 3. Forwarded user (if any)
+        if (task.forwardedTo && task.forwardedTo !== task.employee) {
+          const fwdUser = await User.findOne({ where: { id: task.forwardedTo }, raw: true }) as any;
+          if (fwdUser?.email) recipients.push(fwdUser.email);
+        }
+
+        const uniqueRecipients = Array.from(new Set(recipients.filter(Boolean)));
+        if (uniqueRecipients.length === 0) continue;
 
         const scheduledLabel = new Date(task.scheduledAt).toLocaleString("en-IN", {
           day: "2-digit", month: "short", year: "numeric",

@@ -165,6 +165,38 @@ TaskLog.init(
       type: DataTypes.TEXT("long"), // Store base64 image or file URL
       allowNull: true,
     },
+    personName: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    contactNo: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    companyName: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    emailAddress: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    visitLocation: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+    },
+    callStatus: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    leadStatus: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    salesReason: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
     createdAt: {
       type: DataTypes.DATE,
       allowNull: true,
