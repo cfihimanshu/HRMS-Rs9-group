@@ -134,9 +134,9 @@ const getSequelizeInstance = () => {
   }
 
   const isVercel = process.env.VERCEL === "1";
-  const connectTimeout = Number(process.env.MYSQL_CONNECT_TIMEOUT_MS || 15000);
-  const poolMax = Number(process.env.MYSQL_POOL_MAX || 15);
-  const poolAcquire = Number(process.env.MYSQL_POOL_ACQUIRE_MS || 30000);
+  const connectTimeout = Number(process.env.MYSQL_CONNECT_TIMEOUT_MS || 30000);
+  const poolMax = Number(process.env.MYSQL_POOL_MAX || 20);
+  const poolAcquire = Number(process.env.MYSQL_POOL_ACQUIRE_MS || 45000);
   const socketPath = process.env.MYSQL_SOCKET_PATH?.trim();
 
   const host = process.env.MYSQL_HOST || "localhost";
@@ -181,7 +181,7 @@ const sequelize = getSequelizeInstance();
 
 let isAssociationsInitialized = false;
 
-export async function safeAuthenticate(timeoutMs = 5000) {
+export async function safeAuthenticate(timeoutMs = 25000) {
   try {
     const authPromise = sequelize.authenticate();
     const timeoutPromise = new Promise((_, reject) =>
@@ -203,7 +203,7 @@ export async function safeAuthenticate(timeoutMs = 5000) {
 
 export async function connectSequelize() {
   try {
-    const ok = await safeAuthenticate(5000);
+    const ok = await safeAuthenticate(25000);
     if (ok && !isAssociationsInitialized) {
       await import("../models/sequelize/associations");
       isAssociationsInitialized = true;
