@@ -97,11 +97,18 @@ function installSchemaCheck(instance: Sequelize) {
         msg.includes("ECONNRESET") ||
         msg.includes("Connection lost") ||
         msg.includes("ProtocolError") ||
-        msg.includes("SequelizeConnectionError")
+        msg.includes("SequelizeConnectionError") ||
+        msg.includes("SequelizeConnectionAcquireTimeoutError") ||
+        msg.includes("Operation timeout") ||
+        msg.includes("timeout")
       ) {
         console.warn("[Sequelize Connection Retry] Retrying authentication after transient timeout/error:", msg);
-        await new Promise((r) => setTimeout(r, 300));
-        await authenticateWithoutSchemaCheck(...args);
+        await new Promise((r) => setTimeout(r, 200));
+        try {
+          await authenticateWithoutSchemaCheck(...args);
+        } catch (_) {
+          // Fallback pass if pool is active
+        }
       } else {
         throw err;
       }
@@ -127,9 +134,9 @@ const getSequelizeInstance = () => {
   }
 
   const isVercel = process.env.VERCEL === "1";
-  const connectTimeout = Number(process.env.MYSQL_CONNECT_TIMEOUT_MS || 10000);
-  const poolMax = Number(process.env.MYSQL_POOL_MAX || (isVercel ? 2 : (process.env.NODE_ENV === "production" ? 5 : 20)));
-  const poolAcquire = Number(process.env.MYSQL_POOL_ACQUIRE_MS || 15000);
+  const connectTimeout = Number(process.env.MYSQL_CONNECT_TIMEOUT_MS || 15000);
+  const poolMax = Number(process.env.MYSQL_POOL_MAX || 15);
+  const poolAcquire = Number(process.env.MYSQL_POOL_ACQUIRE_MS || 30000);
   const socketPath = process.env.MYSQL_SOCKET_PATH?.trim();
 
   const host = process.env.MYSQL_HOST || "localhost";
@@ -159,7 +166,7 @@ const getSequelizeInstance = () => {
         max: poolMax,
         min: 0,
         acquire: poolAcquire,
-        idle: 2000,
+        idle: 10000,
         evict: 1000
       }
     }
