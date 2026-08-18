@@ -68,9 +68,17 @@ export function OwnerDashboard({
   onCompanyChange
 }: OverviewProps) {
   const firstName = sessionUser?.name ? sessionUser.name.split(' ')[0] : 'Admin';
+  const [isDark, setIsDark] = React.useState(false);
   const [showStaffModal, setShowStaffModal] = React.useState(false);
   const [showActivityModal, setShowActivityModal] = React.useState(false);
   const [staffModalFilter, setStaffModalFilter] = React.useState<"all" | "present" | "absent">("all");
+  React.useEffect(() => {
+    const syncTheme = () => setIsDark(document.documentElement.classList.contains("dark"));
+    syncTheme();
+    const observer = new MutationObserver(syncTheme);
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
+    return () => observer.disconnect();
+  }, []);
   const exportAttendanceReport = () => {
     if (!stats?.staffList) return;
 
@@ -129,13 +137,13 @@ export function OwnerDashboard({
   };
 
   return (
-    <div className="space-y-8 animate-fade-in text-[#1C1C1A]">
+    <div className="space-y-8 animate-fade-in text-[#1C1C1A] dark:text-gray-100">
 
       {/* Top Action Header Bar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <span className="text-[9px] uppercase tracking-widest text-indigo-600 font-bold">Command Center</span>
-          <h1 className="text-xl font-light text-[#1C1C1A] tracking-wide font-serif" style={{ fontFamily: "'Playfair Display', serif" }}>
+          <h1 className="text-xl font-light text-[#1C1C1A] dark:text-gray-100 tracking-wide font-serif" style={{ fontFamily: "'Playfair Display', serif" }}>
             Enterprise Workspace
           </h1>
         </div>
@@ -144,7 +152,7 @@ export function OwnerDashboard({
             <select
               value={selectedCompanyId || ""}
               onChange={(e) => onCompanyChange?.(e.target.value)}
-              className="text-[10px] uppercase tracking-wider font-semibold px-3 py-2 bg-[#FCFBF9] border border-[#E8E4DF] rounded-lg focus:outline-none focus:border-indigo-500 transition-colors shadow-2xs text-[#1C1C1A]"
+              className="text-[10px] uppercase tracking-wider font-semibold px-3 py-2 bg-[#FCFBF9] dark:bg-gray-900 border border-[#E8E4DF] dark:border-gray-700 rounded-lg focus:outline-none focus:border-indigo-500 transition-colors shadow-2xs text-[#1C1C1A] dark:text-gray-100"
             >
               <option value="">All Companies</option>
               {companies.map((c) => (
@@ -153,7 +161,7 @@ export function OwnerDashboard({
             </select>
           )}
           <button
-            className="px-4 py-2 border border-[#E8E4DF] rounded-lg text-xs font-semibold tracking-wider uppercase bg-[#FCFBF9] hover:bg-[#F5F0EA] text-[#5D5B57] transition-all flex items-center gap-2"
+            className="px-4 py-2 border border-[#E8E4DF] dark:border-gray-700 rounded-lg text-xs font-semibold tracking-wider uppercase bg-[#FCFBF9] dark:bg-gray-900 hover:bg-[#F5F0EA] dark:hover:bg-gray-800 text-[#5D5B57] dark:text-gray-300 transition-all flex items-center gap-2"
             onClick={exportAttendanceReport}
           >
             <Download className="w-3.5 h-3.5" /> Export
@@ -168,7 +176,7 @@ export function OwnerDashboard({
       </div>
 
       {/* Hero Greeting Card */}
-      <div className="bg-[#FCFBF9] border border-[#E8E4DF] rounded-xl p-6 md:p-7 shadow-[0_2px_12px_rgba(0,0,0,0.03)] relative overflow-hidden flex flex-col md:flex-row md:items-center justify-between gap-6">
+      <div className="bg-[#FCFBF9] dark:bg-gray-900 border border-[#E8E4DF] dark:border-gray-800 rounded-xl p-6 md:p-7 shadow-[0_2px_12px_rgba(0,0,0,0.03)] relative overflow-hidden flex flex-col md:flex-row md:items-center justify-between gap-6 transition-colors">
         <div className="absolute right-0 bottom-0 pointer-events-none opacity-[0.025] text-[#1C1C1A]">
           <svg className="w-64 h-64" viewBox="0 0 100 100" fill="none" stroke="currentColor" strokeWidth="0.5">
             <circle cx="90" cy="90" r="80" />
@@ -178,7 +186,7 @@ export function OwnerDashboard({
         </div>
 
         <div className="relative z-10 w-full md:w-1/3">
-          <h1 className="text-2xl md:text-3xl font-light tracking-wide text-[#1C1C1A] font-serif" style={{ fontFamily: "'Playfair Display', serif" }}>
+          <h1 className="text-2xl md:text-3xl font-light tracking-wide text-[#1C1C1A] dark:text-gray-100 font-serif" style={{ fontFamily: "'Playfair Display', serif" }}>
             Good morning, {firstName}.
           </h1>
           <div className="h-0.5 w-12 bg-indigo-600 mt-2" />
@@ -187,13 +195,13 @@ export function OwnerDashboard({
           </p>
         </div>
 
-        <div className="relative z-10 w-full md:w-2/3 grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 md:gap-6 sm:divide-x divide-[#E8E4DF]">
+        <div className="relative z-10 w-full md:w-2/3 grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 md:gap-6 sm:divide-x divide-[#E8E4DF] dark:divide-gray-700">
           <div
-            className="pl-1 sm:pl-3 md:pl-5 sm:first:pl-0 cursor-pointer hover:bg-[#FAF9F5] transition-all p-2 rounded-lg group"
+            className="pl-1 sm:pl-3 md:pl-5 sm:first:pl-0 cursor-pointer hover:bg-[#FAF9F5] dark:hover:bg-gray-800 transition-all p-2 rounded-lg group"
             onClick={() => onNavigateTab("employees")}
             title="Click to view Employees Directory"
           >
-            <div className="text-xl sm:text-2xl font-light text-indigo-950 font-serif" style={{ fontFamily: "'Playfair Display', serif" }}>
+            <div className="text-xl sm:text-2xl font-light text-indigo-950 dark:text-indigo-300 font-serif" style={{ fontFamily: "'Playfair Display', serif" }}>
               {stats?.roles?.employees || 0}
             </div>
             <div className="text-[9px] uppercase tracking-wider text-[#8C8880] mt-1 font-semibold flex items-center gap-1 group-hover:text-indigo-600 transition-colors">
@@ -201,11 +209,11 @@ export function OwnerDashboard({
             </div>
           </div>
           <div
-            className="pl-2 sm:pl-3 md:pl-5 cursor-pointer hover:bg-[#FAF9F5] transition-all p-2 rounded-lg group"
+            className="pl-2 sm:pl-3 md:pl-5 cursor-pointer hover:bg-[#FAF9F5] dark:hover:bg-gray-800 transition-all p-2 rounded-lg group"
             onClick={() => onNavigateTab("performance", "sod")}
             title="Click to view Work Report (SOD)"
           >
-            <div className="text-xl sm:text-2xl font-light text-emerald-800 font-serif" style={{ fontFamily: "'Playfair Display', serif" }}>
+            <div className="text-xl sm:text-2xl font-light text-emerald-800 dark:text-emerald-400 font-serif" style={{ fontFamily: "'Playfair Display', serif" }}>
               {stats?.todayCompliance?.attendance || 0}
             </div>
             <div className="text-[9px] uppercase tracking-wider text-[#8C8880] mt-1 font-semibold flex items-center gap-1 group-hover:text-emerald-700 transition-colors">
@@ -214,11 +222,11 @@ export function OwnerDashboard({
           </div>
 
           <div
-            className="pl-1 sm:pl-3 md:pl-5 cursor-pointer hover:bg-[#FAF9F5] transition-all p-2 rounded-lg group"
+            className="pl-1 sm:pl-3 md:pl-5 cursor-pointer hover:bg-[#FAF9F5] dark:hover:bg-gray-800 transition-all p-2 rounded-lg group"
             onClick={() => onNavigateTab("tasks")}
             title="Click to view Pending Tasks"
           >
-            <div className="text-xl sm:text-2xl font-light text-amber-700 font-serif" style={{ fontFamily: "'Playfair Display', serif" }}>
+            <div className="text-xl sm:text-2xl font-light text-amber-700 dark:text-amber-400 font-serif" style={{ fontFamily: "'Playfair Display', serif" }}>
               {stats?.pendingApprovals?.pendingTasks ?? stats?.currentUserStats?.pendingTasksCount ?? 0}
             </div>
             <div className="text-[9px] uppercase tracking-wider text-[#8C8880] mt-1 font-semibold flex items-center gap-1 group-hover:text-amber-600 transition-colors">
@@ -227,11 +235,11 @@ export function OwnerDashboard({
           </div>
 
           <div
-            className="pl-2 sm:pl-3 md:pl-5 cursor-pointer hover:bg-[#FAF9F5] transition-all p-2 rounded-lg group"
+            className="pl-2 sm:pl-3 md:pl-5 cursor-pointer hover:bg-[#FAF9F5] dark:hover:bg-gray-800 transition-all p-2 rounded-lg group"
             onClick={() => onNavigateTab("ess-leaves")}
             title="Click to view Pending Requests (Leaves & Assets)"
           >
-            <div className="text-xl sm:text-2xl font-light text-purple-900 font-serif" style={{ fontFamily: "'Playfair Display', serif" }}>
+            <div className="text-xl sm:text-2xl font-light text-purple-900 dark:text-purple-400 font-serif" style={{ fontFamily: "'Playfair Display', serif" }}>
               {stats?.pendingApprovals?.pendingRequestsTotal ?? 0}
             </div>
             <div className="text-[9px] uppercase tracking-wider text-[#8C8880] mt-1 font-semibold flex items-center gap-1 group-hover:text-purple-600 transition-colors">
@@ -246,9 +254,9 @@ export function OwnerDashboard({
 
         {/* Left Column: Operations Overview & HR Pipeline */}
         <div className="space-y-7">
-          <div className="bg-[#FCFBF9] border border-[#E8E4DF] rounded-xl p-6 shadow-[0_2px_12px_rgba(0,0,0,0.03)]">
+          <div className="bg-[#FCFBF9] dark:bg-gray-900 border border-[#E8E4DF] dark:border-gray-800 rounded-xl p-6 shadow-[0_2px_12px_rgba(0,0,0,0.03)] transition-colors">
             <div className="flex items-center justify-between mb-5">
-              <h2 className="text-xs font-semibold tracking-widest text-[#1C1C1A] uppercase">Today's Operations</h2>
+              <h2 className="text-xs font-semibold tracking-widest text-[#1C1C1A] dark:text-gray-100 uppercase">Today's Operations</h2>
               <button
                 onClick={() => onNavigateTab("performance", "visual-dashboard")}
                 className="text-[9px] uppercase tracking-wider font-bold text-indigo-600 hover:text-indigo-800 transition-colors flex items-center gap-1"
@@ -259,7 +267,7 @@ export function OwnerDashboard({
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               {/* SOD Declared Card */}
               <div
-                className="p-3.5 border border-[#E8E4DF] rounded-lg bg-white cursor-pointer hover:border-indigo-400 hover:bg-[#FAF9F5] transition-all group flex flex-col justify-between"
+                className="p-3.5 border border-[#E8E4DF] dark:border-gray-700 rounded-lg bg-white dark:bg-gray-950 cursor-pointer hover:border-indigo-400 hover:bg-[#FAF9F5] dark:hover:bg-gray-800 transition-all group flex flex-col justify-between"
                 onClick={() => onNavigateTab("performance", "sod")}
                 title="Click to view SOD Work Reports"
               >
@@ -268,7 +276,7 @@ export function OwnerDashboard({
                     <span>SOD Declared</span>
                     <ArrowUpRight className="w-3 h-3 text-[#9C9890] group-hover:text-indigo-600" />
                   </div>
-                  <div className="text-lg font-light text-[#1C1C1A] font-serif mt-1 font-mono">
+                  <div className="text-lg font-light text-[#1C1C1A] dark:text-gray-100 font-serif mt-1 font-mono">
                     {stats?.todayCompliance?.sod || 0} <span className="text-xs text-[#8C8880] font-sans">/ {stats?.roles?.employees || 0}</span>
                   </div>
                 </div>
@@ -279,7 +287,7 @@ export function OwnerDashboard({
 
               {/* EOD Logs Submitted Card */}
               <div
-                className="p-3.5 border border-[#E8E4DF] rounded-lg bg-white cursor-pointer hover:border-blue-400 hover:bg-[#FAF9F5] transition-all group flex flex-col justify-between"
+                className="p-3.5 border border-[#E8E4DF] dark:border-gray-700 rounded-lg bg-white dark:bg-gray-950 cursor-pointer hover:border-blue-400 hover:bg-[#FAF9F5] dark:hover:bg-gray-800 transition-all group flex flex-col justify-between"
                 onClick={() => onNavigateTab("performance", "eod")}
                 title="Click to view EOD Work Reports"
               >
@@ -288,7 +296,7 @@ export function OwnerDashboard({
                     <span>EOD Logs</span>
                     <ArrowUpRight className="w-3 h-3 text-[#9C9890] group-hover:text-blue-600" />
                   </div>
-                  <div className="text-lg font-light text-[#1C1C1A] font-serif mt-1 font-mono">
+                  <div className="text-lg font-light text-[#1C1C1A] dark:text-gray-100 font-serif mt-1 font-mono">
                     {stats?.todayCompliance?.eod || 0} <span className="text-xs text-[#8C8880] font-sans">/ {stats?.roles?.employees || 0}</span>
                   </div>
                 </div>
@@ -299,7 +307,7 @@ export function OwnerDashboard({
 
               {/* Late Check-ins Card */}
               <div
-                className="p-3.5 border border-[#E8E4DF] rounded-lg bg-white cursor-pointer hover:border-rose-300 hover:bg-[#FAF9F5] transition-all group flex flex-col justify-between"
+                className="p-3.5 border border-[#E8E4DF] dark:border-gray-700 rounded-lg bg-white dark:bg-gray-950 cursor-pointer hover:border-rose-300 hover:bg-[#FAF9F5] dark:hover:bg-gray-800 transition-all group flex flex-col justify-between"
                 onClick={() => onNavigateTab("performance", "sod")}
                 title="Click to view Late Check-ins & SOD Reports"
               >
@@ -308,7 +316,7 @@ export function OwnerDashboard({
                     <span>Late Check-ins</span>
                     <ArrowUpRight className="w-3 h-3 text-[#9C9890] group-hover:text-rose-600" />
                   </div>
-                  <div className="text-lg font-light text-[#1C1C1A] font-serif mt-1 font-mono">
+                  <div className="text-lg font-light text-[#1C1C1A] dark:text-gray-100 font-serif mt-1 font-mono">
                     {stats?.todayCompliance?.lateCheckins || 0}
                   </div>
                 </div>
@@ -319,20 +327,20 @@ export function OwnerDashboard({
             </div>
           </div>
 
-          <div className="bg-[#FCFBF9] border border-[#E8E4DF] rounded-xl p-6 shadow-[0_2px_12px_rgba(0,0,0,0.03)]">
+          <div className="bg-[#FCFBF9] dark:bg-gray-900 border border-[#E8E4DF] dark:border-gray-800 rounded-xl p-6 shadow-[0_2px_12px_rgba(0,0,0,0.03)] transition-colors">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xs font-semibold tracking-widest text-[#1C1C1A] uppercase">HR & Hiring Pipeline</h2>
+              <h2 className="text-xs font-semibold tracking-widest text-[#1C1C1A] dark:text-gray-100 uppercase">HR & Hiring Pipeline</h2>
               <button onClick={() => onNavigateTab("business-leads", "All")} className="text-[9px] uppercase tracking-wider font-bold text-indigo-600 hover:text-indigo-800 transition-colors flex items-center gap-1">Manage Leads <ArrowUpRight className="w-3 h-3" /></button>
             </div>
 
             {/* 6 Uniform Core Metric Cards */}
             <div className="grid grid-cols-2 gap-3">
               <div
-                className="p-3.5 border border-[#E8E4DF] rounded-lg bg-white cursor-pointer hover:border-indigo-400 hover:bg-[#FAF9F5] transition-all group"
+                className="p-3.5 border border-[#E8E4DF] dark:border-gray-700 rounded-lg bg-white dark:bg-gray-950 cursor-pointer hover:border-indigo-400 hover:bg-[#FAF9F5] dark:hover:bg-gray-800 transition-all group"
                 onClick={() => onNavigateTab("business-leads", "All")}
                 title="Click to view Total HR Leads"
               >
-                <div className="text-xl font-light text-indigo-950 font-serif" style={{ fontFamily: "'Playfair Display', serif" }}>
+                <div className="text-xl font-light text-indigo-950 dark:text-indigo-300 font-serif" style={{ fontFamily: "'Playfair Display', serif" }}>
                   {stats?.hrStats?.hrLeadsCount || stats?.candidates?.total || 0}
                 </div>
                 <div className="text-[9px] uppercase tracking-wider text-[#8C8880] mt-1 font-bold flex items-center justify-between">
@@ -342,11 +350,11 @@ export function OwnerDashboard({
               </div>
 
               <div
-                className="p-3.5 border border-[#E8E4DF] rounded-lg bg-white cursor-pointer hover:border-amber-400 hover:bg-[#FAF9F5] transition-all group"
+                className="p-3.5 border border-[#E8E4DF] dark:border-gray-700 rounded-lg bg-white dark:bg-gray-950 cursor-pointer hover:border-amber-400 hover:bg-[#FAF9F5] dark:hover:bg-gray-800 transition-all group"
                 onClick={() => onNavigateTab("business-leads", "Pending")}
                 title="Click to view Pending Leads"
               >
-                <div className="text-xl font-light text-amber-800 font-serif" style={{ fontFamily: "'Playfair Display', serif" }}>
+                <div className="text-xl font-light text-amber-800 dark:text-amber-400 font-serif" style={{ fontFamily: "'Playfair Display', serif" }}>
                   {stats?.hrStats?.pendingLeadsCount || stats?.candidates?.pending || 0}
                 </div>
                 <div className="text-[9px] uppercase tracking-wider text-[#8C8880] mt-1 font-bold flex items-center justify-between">
@@ -356,11 +364,11 @@ export function OwnerDashboard({
               </div>
 
               <div
-                className="p-3.5 border border-[#E8E4DF] rounded-lg bg-white cursor-pointer hover:border-emerald-400 hover:bg-[#FAF9F5] transition-all group"
+                className="p-3.5 border border-[#E8E4DF] dark:border-gray-700 rounded-lg bg-white dark:bg-gray-950 cursor-pointer hover:border-emerald-400 hover:bg-[#FAF9F5] dark:hover:bg-gray-800 transition-all group"
                 onClick={() => onNavigateTab("business-leads", "Selected")}
                 title="Click to view Selected Leads"
               >
-                <div className="text-xl font-light text-emerald-800 font-serif" style={{ fontFamily: "'Playfair Display', serif" }}>
+                <div className="text-xl font-light text-emerald-800 dark:text-emerald-400 font-serif" style={{ fontFamily: "'Playfair Display', serif" }}>
                   {stats?.hrStats?.selectedLeadsCount !== undefined ? stats.hrStats.selectedLeadsCount : (stats?.candidates?.selected || 0)}
                 </div>
                 <div className="text-[9px] uppercase tracking-wider text-[#8C8880] mt-1 font-bold flex items-center justify-between">
@@ -370,11 +378,11 @@ export function OwnerDashboard({
               </div>
 
               <div
-                className="p-3.5 border border-[#E8E4DF] rounded-lg bg-white cursor-pointer hover:border-rose-400 hover:bg-[#FAF9F5] transition-all group"
+                className="p-3.5 border border-[#E8E4DF] dark:border-gray-700 rounded-lg bg-white dark:bg-gray-950 cursor-pointer hover:border-rose-400 hover:bg-[#FAF9F5] dark:hover:bg-gray-800 transition-all group"
                 onClick={() => onNavigateTab("business-leads", "Rejected")}
                 title="Click to view Rejected Leads"
               >
-                <div className="text-xl font-light text-rose-700 font-serif" style={{ fontFamily: "'Playfair Display', serif" }}>
+                <div className="text-xl font-light text-rose-700 dark:text-rose-400 font-serif" style={{ fontFamily: "'Playfair Display', serif" }}>
                   {stats?.hrStats?.rejectedLeadsCount !== undefined ? stats.hrStats.rejectedLeadsCount : 0}
                 </div>
                 <div className="text-[9px] uppercase tracking-wider text-[#8C8880] mt-1 font-bold flex items-center justify-between">
@@ -384,11 +392,11 @@ export function OwnerDashboard({
               </div>
 
               <div
-                className="p-3.5 border border-[#E8E4DF] rounded-lg bg-white cursor-pointer hover:border-blue-400 hover:bg-[#FAF9F5] transition-all group"
+                className="p-3.5 border border-[#E8E4DF] dark:border-gray-700 rounded-lg bg-white dark:bg-gray-950 cursor-pointer hover:border-blue-400 hover:bg-[#FAF9F5] dark:hover:bg-gray-800 transition-all group"
                 onClick={() => onNavigateTab("interviews")}
                 title="Click to view Interviews Queue"
               >
-                <div className="text-xl font-light text-blue-900 font-serif" style={{ fontFamily: "'Playfair Display', serif" }}>
+                <div className="text-xl font-light text-blue-900 dark:text-blue-400 font-serif" style={{ fontFamily: "'Playfair Display', serif" }}>
                   {stats?.hrStats?.interviewsToday || 0}
                 </div>
                 <div className="text-[9px] uppercase tracking-wider text-[#8C8880] mt-1 font-bold flex items-center justify-between">
@@ -398,11 +406,11 @@ export function OwnerDashboard({
               </div>
 
               <div
-                className="p-3.5 border border-[#E8E4DF] rounded-lg bg-white cursor-pointer hover:border-purple-400 hover:bg-[#FAF9F5] transition-all group"
+                className="p-3.5 border border-[#E8E4DF] dark:border-gray-700 rounded-lg bg-white dark:bg-gray-950 cursor-pointer hover:border-purple-400 hover:bg-[#FAF9F5] dark:hover:bg-gray-800 transition-all group"
                 onClick={() => onNavigateTab("verification")}
                 title="Click to view Vetting Checks Registry"
               >
-                <div className="text-xl font-light text-purple-900 font-serif" style={{ fontFamily: "'Playfair Display', serif" }}>
+                <div className="text-xl font-light text-purple-900 dark:text-purple-400 font-serif" style={{ fontFamily: "'Playfair Display', serif" }}>
                   {stats?.hrStats?.verificationPending || 0}
                 </div>
                 <div className="text-[9px] uppercase tracking-wider text-[#8C8880] mt-1 font-bold flex items-center justify-between">
@@ -417,8 +425,8 @@ export function OwnerDashboard({
         {/* Right Column: Quick Actions & Activity Feed */}
         <div className="space-y-7">
 
-          <div className="bg-[#FCFBF9] border border-[#E8E4DF] rounded-xl p-6 shadow-[0_2px_12px_rgba(0,0,0,0.03)]">
-            <h2 className="text-xs font-semibold tracking-widest text-[#1C1C1A] uppercase mb-4">Quick Actions</h2>
+          <div className="bg-[#FCFBF9] dark:bg-gray-900 border border-[#E8E4DF] dark:border-gray-800 rounded-xl p-6 shadow-[0_2px_12px_rgba(0,0,0,0.03)] transition-colors">
+            <h2 className="text-xs font-semibold tracking-widest text-[#1C1C1A] dark:text-gray-100 uppercase mb-4">Quick Actions</h2>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               {[
                 { name: "Add Employee", tab: "employees", icon: UserPlus },
@@ -435,7 +443,7 @@ export function OwnerDashboard({
                   <button
                     key={i}
                     onClick={() => onNavigateTab(action.tab)}
-                    className="text-[9px] uppercase tracking-wider font-bold p-3 rounded-xl border border-[#E8E4DF] bg-white text-[#4A4844] hover:bg-[#FAF9F5] hover:border-indigo-400 hover:shadow-2xs transition-all text-left cursor-pointer flex flex-col justify-between h-20 group"
+                    className="text-[9px] uppercase tracking-wider font-bold p-3 rounded-xl border border-[#E8E4DF] dark:border-gray-700 bg-white dark:bg-gray-950 text-[#4A4844] dark:text-gray-300 hover:bg-[#FAF9F5] dark:hover:bg-gray-800 hover:border-indigo-400 hover:shadow-2xs transition-all text-left cursor-pointer flex flex-col justify-between h-20 group"
                     title={`Navigate to ${action.name}`}
                   >
                     <div className="w-full flex items-center justify-between">
@@ -444,16 +452,16 @@ export function OwnerDashboard({
                       </div>
                       <ArrowUpRight className="w-3 h-3 text-[#9C9890] group-hover:text-indigo-600 transition-colors" />
                     </div>
-                    <span className="font-semibold text-[#1C1C1A] text-[9.5px] leading-snug group-hover:text-indigo-600 transition-colors">{action.name}</span>
+                    <span className="font-semibold text-[#1C1C1A] dark:text-gray-100 text-[9.5px] leading-snug group-hover:text-indigo-600 transition-colors">{action.name}</span>
                   </button>
                 );
               })}
             </div>
           </div>
 
-          <div className="bg-[#FCFBF9] border border-[#E8E4DF] rounded-xl p-6 shadow-[0_2px_12px_rgba(0,0,0,0.03)]">
+          <div className="bg-[#FCFBF9] dark:bg-gray-900 border border-[#E8E4DF] dark:border-gray-800 rounded-xl p-6 shadow-[0_2px_12px_rgba(0,0,0,0.03)] transition-colors">
             <div className="flex items-center justify-between mb-5">
-              <h2 className="text-xs font-semibold tracking-widest text-[#1C1C1A] uppercase">Recent Activity</h2>
+              <h2 className="text-xs font-semibold tracking-widest text-[#1C1C1A] dark:text-gray-100 uppercase">Recent Activity</h2>
               <button
                 onClick={() => setShowActivityModal(true)}
                 className="text-[9px] uppercase tracking-wider font-bold text-indigo-600 hover:text-indigo-800 transition-colors flex items-center gap-1"
@@ -461,7 +469,7 @@ export function OwnerDashboard({
                 View All <ArrowUpRight className="w-3 h-3" />
               </button>
             </div>
-            <ActivityFeed dark={false} companyId={selectedCompanyId} logs={stats?.hrActivities} maxHeight="max-h-[310px]" />
+            <ActivityFeed dark={isDark} companyId={selectedCompanyId} logs={stats?.hrActivities} maxHeight="max-h-[310px]" />
           </div>
         </div>
       </div>

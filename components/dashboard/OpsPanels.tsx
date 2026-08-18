@@ -820,6 +820,16 @@ export function DailyCommitments({
     }
   };
 
+  const waitForCameraReady = async (ref: React.RefObject<HTMLVideoElement>, timeoutMs = 5000) => {
+    const startedAt = Date.now();
+    while (Date.now() - startedAt < timeoutMs) {
+      const video = ref.current;
+      if (video && video.readyState >= 2 && video.videoWidth > 0 && video.videoHeight > 0) return video;
+      await new Promise(resolve => setTimeout(resolve, 150));
+    }
+    throw new Error("Camera abhi ready nahi hai. Camera permission allow karke 2-3 seconds baad dobara click karein.");
+  };
+
   const captureSodPhotoAndSubmit = async () => {
     if (isLegalRecovery && legalScheduleItems.length === 0) {
       alert("⚠️ Legal Recovery / Security staff must add at least 1 schedule entry to the table before submitting SOD.");
@@ -880,18 +890,17 @@ export function DailyCommitments({
     let selfieUrl = "";
 
     try {
-      if (!videoRef.current || !canvasRef.current || videoRef.current.videoWidth === 0) {
-        throw new Error("Camera stream is not active or ready.");
-      }
+      const readyVideo = await waitForCameraReady(videoRef);
+      if (!canvasRef.current) throw new Error("Verification canvas initialize nahi hua.");
 
       const context = canvasRef.current.getContext("2d");
       if (!context) {
         throw new Error("Failed to initialize canvas context.");
       }
 
-      canvasRef.current.width = videoRef.current.videoWidth;
-      canvasRef.current.height = videoRef.current.videoHeight;
-      context.drawImage(videoRef.current, 0, 0, canvasRef.current.width, canvasRef.current.height);
+      canvasRef.current.width = readyVideo.videoWidth;
+      canvasRef.current.height = readyVideo.videoHeight;
+      context.drawImage(readyVideo, 0, 0, canvasRef.current.width, canvasRef.current.height);
 
       const blob = await new Promise<Blob | null>((resolve) => {
         canvasRef.current!.toBlob(resolve, "image/jpeg", 0.9);
@@ -995,18 +1004,17 @@ export function DailyCommitments({
     let selfieUrl = "";
 
     try {
-      if (!eodVideoRef.current || !eodCanvasRef.current || eodVideoRef.current.videoWidth === 0) {
-        throw new Error("Camera stream is not active or ready.");
-      }
+      const readyVideo = await waitForCameraReady(eodVideoRef);
+      if (!eodCanvasRef.current) throw new Error("Verification canvas initialize nahi hua.");
 
       const context = eodCanvasRef.current.getContext("2d");
       if (!context) {
         throw new Error("Failed to initialize canvas context.");
       }
 
-      eodCanvasRef.current.width = eodVideoRef.current.videoWidth;
-      eodCanvasRef.current.height = eodVideoRef.current.videoHeight;
-      context.drawImage(eodVideoRef.current, 0, 0, eodCanvasRef.current.width, eodCanvasRef.current.height);
+      eodCanvasRef.current.width = readyVideo.videoWidth;
+      eodCanvasRef.current.height = readyVideo.videoHeight;
+      context.drawImage(readyVideo, 0, 0, eodCanvasRef.current.width, eodCanvasRef.current.height);
 
       const blob = await new Promise<Blob | null>((resolve) => {
         eodCanvasRef.current!.toBlob(resolve, "image/jpeg", 0.9);
@@ -2546,6 +2554,10 @@ export function PerformanceCompliance({
     escalation: true,
     tomorrowPlan: true,
     tasksDetails: true,
+    progressNotes: true,
+    taskProofUrls: true,
+    sodSelfieUrl: true,
+    eodSelfieUrl: true,
     fieldVisitKm: true,
     fieldVisitDetails: true,
     gpsLocation: true,
@@ -2568,6 +2580,10 @@ export function PerformanceCompliance({
     { key: "escalation", label: "EOD Escalation Required" },
     { key: "tomorrowPlan", label: "EOD Tomorrow Plan" },
     { key: "tasksDetails", label: "Tasks Details & Work Summary" },
+    { key: "progressNotes", label: "Task Progress Notes" },
+    { key: "taskProofUrls", label: "Task Proof / Image / Recording URLs" },
+    { key: "sodSelfieUrl", label: "SOD Selfie URL" },
+    { key: "eodSelfieUrl", label: "EOD Selfie URL" },
     { key: "fieldVisitKm", label: "Field Visits Travelled (KM)" },
     { key: "fieldVisitDetails", label: "Field Visits Details" },
     { key: "gpsLocation", label: "GPS Coordinates" },
@@ -3112,6 +3128,98 @@ export function PerformanceCompliance({
     }
   }, [selectedCompany, selectedDept, uniqueUsersFromReports, selectedUser]);
 
+  const getOverallStaffExportRecords = () => mergedList.filter((item: any) => {
+    if (!matchDateFilter(item.date)) return false;
+    if (activeSubTab === "sod" && !item.sod) return false;
+    if (activeSubTab === "eod" && !item.eod) return false;
+
+    const empId = item.employee
+      ? (typeof item.employee === "object" ? (item.employee.id || "") : item.employee).toString().trim()
+      : "";
+    const fullUser = users.find((user: any) => user.id?.toString() === empId);
+    const name = String(item.employee?.name || fullUser?.name || "").toLowerCase();
+    const email = String(item.employee?.email || fullUser?.email || "").toLowerCase();
+    const term = searchTerm.toLowerCase().trim();
+    if (term && !name.includes(term) && !email.includes(term)) return false;
+    if (selectedCompany && !isUserInCompany(fullUser || item.employee, selectedCompany)) return false;
+    if (selectedDept) {
+      const department = fullUser?.department || item.employee?.department || "";
+      if (department !== selectedDept) return false;
+    }
+    const status = String(fullUser?.status || item.employee?.status || "active").toLowerCase();
+    const inactive = status === "inactive" || status === "archived";
+    if (userStatusFilter === "active" && inactive) return false;
+    if (userStatusFilter === "inactive" && !inactive) return false;
+    return true;
+  });
+
+  const cleanExportNote = (value: any): string => {
+    if (!value) return "";
+    if (typeof value !== "string") return String(value);
+    const text = value.trim();
+    if (text.startsWith("[") || text.startsWith("{")) {
+      try {
+        const parsed = JSON.parse(text);
+        if (Array.isArray(parsed)) return parsed.map((note: any) => note?.text || note?.note || note?.message || note?.comment || note).filter(Boolean).join(" | ");
+        if (parsed && typeof parsed === "object") return String(parsed.text || parsed.note || parsed.message || parsed.comment || text);
+      } catch (_) {}
+    }
+    return text.replace(/\r?\n/g, " | ");
+  };
+
+  const collectTaskProofUrls = (task: any): string[] => {
+    const urls: string[] = [];
+
+    const addProofValue = (value: any) => {
+      if (!value) return;
+      if (Array.isArray(value)) {
+        value.forEach(addProofValue);
+        return;
+      }
+      if (typeof value === "object") {
+        const directUrl = value.url || value.src || value.href || value.path || value.fileUrl || value.downloadUrl || value.attachmentUrl || value.recordingUrl;
+        if (directUrl) addProofValue(directUrl);
+        else Object.values(value).forEach(addProofValue);
+        return;
+      }
+
+      const text = String(value).trim();
+      if (!text) return;
+      if ((text.startsWith("[") && text.endsWith("]")) || (text.startsWith("{") && text.endsWith("}"))) {
+        try {
+          addProofValue(JSON.parse(text));
+          return;
+        } catch (_) {}
+      }
+
+      // Legacy uploads can be saved as comma-separated URLs.
+      if (text.includes(",") && !text.startsWith("data:")) {
+        text.split(",").map(part => part.trim()).filter(Boolean).forEach(part => urls.push(part));
+      } else {
+        urls.push(text);
+      }
+    };
+
+    [
+      task?.proofAttachment,
+      task?.attachmentUrl,
+      task?.attachments,
+      task?.attachmentsJson,
+      task?.screenshotUrl,
+      task?.screenshot_url,
+      task?.recordingUrl,
+      task?.recording_url,
+      task?.callRecordingUrl,
+      task?.audioUrl,
+      task?.videoUrl,
+      task?.taskLog?.proofAttachment,
+      task?.taskLog?.attachmentUrl,
+      task?.taskLog?.callRecordingUrl,
+    ].forEach(addProofValue);
+
+    return Array.from(new Set(urls.map(url => url.trim()).filter(Boolean)));
+  };
+
   const exportConsolidatedExcel = () => {
     try {
       const headers = [
@@ -3131,43 +3239,53 @@ export function PerformanceCompliance({
         "EOD Escalation Required",
         "EOD Tomorrow Plan",
         "Tasks Details & Work Summary",
+        "Task Progress Notes",
+        "Task Proof / Image / Recording URLs",
+        "SOD Selfie URL",
+        "EOD Selfie URL",
         "Field Visits Travelled (KM)",
         "Field Visits Details"
       ];
 
-      // 1. Sort existing records ascending by date & employee name
-      const sortedRecords = [...filteredList].sort((a: any, b: any) => {
+      // 1. Sort existing records ascending by date
+      const sourceRecords = isOwner ? getOverallStaffExportRecords() : filteredList;
+      const sortedRecords = [...sourceRecords].sort((a: any, b: any) => {
         const dateDiff = new Date(a.date).getTime() - new Date(b.date).getTime();
-        if (dateDiff !== 0) return dateDiff;
-        const nameA = a.employee?.name || "";
-        const nameB = b.employee?.name || "";
-        return nameA.localeCompare(nameB);
+        return dateDiff || String(a.employee?.name || "").localeCompare(String(b.employee?.name || ""));
       });
 
-      const exportList: any[] = [];
-
-      // If a single user is selected and preset is month view, fill calendar missing days for that user
-      if (selectedUser && (dateFilterType === "current-month" || dateFilterType === "last-month")) {
-        const recordMap = new Map<string, any>();
+      // A date can contain many employees. Date-only maps overwrite all but one
+      // employee, so use the continuous-date map only for a single-user export.
+      const recordMap = new Map<string, any>();
+      if (selectedUser) {
         sortedRecords.forEach(item => {
           const dObj = new Date(item.date);
           const dateKey = `${dObj.getFullYear()}-${String(dObj.getMonth() + 1).padStart(2, '0')}-${String(dObj.getDate()).padStart(2, '0')}`;
           recordMap.set(dateKey, item);
         });
+      }
 
-        const fallbackEmp = sortedRecords.find(r => r.employee?.name)?.employee || { name: "N/A", email: "N/A", department: "General" };
-        const now = new Date();
-        let startDateObj: Date;
-        let endDateObj: Date;
+      // Find fallback employee info if present
+      const fallbackEmp = sortedRecords.find(r => r.employee?.name)?.employee || { name: "N/A", email: "N/A", department: "General" };
 
-        if (dateFilterType === "last-month") {
-          startDateObj = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-          endDateObj = new Date(now.getFullYear(), now.getMonth(), 0);
-        } else {
-          startDateObj = new Date(now.getFullYear(), now.getMonth(), 1);
-          endDateObj = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-        }
+      // Determine date bounds
+      let startDateObj: Date | null = null;
+      let endDateObj: Date | null = null;
 
+      if (dateFilterType === "custom" && startDateFilter && endDateFilter) {
+        startDateObj = new Date(startDateFilter);
+        endDateObj = new Date(endDateFilter);
+      } else if (sortedRecords.length > 0) {
+        startDateObj = new Date(sortedRecords[0].date);
+        endDateObj = new Date(sortedRecords[sortedRecords.length - 1].date);
+      }
+
+      const exportList: any[] = [];
+
+      if (isOwner || !selectedUser) {
+        // Overall export must preserve every employee row visible under current filters.
+        exportList.push(...sortedRecords);
+      } else if (startDateObj && endDateObj && !isNaN(startDateObj.getTime()) && !isNaN(endDateObj.getTime())) {
         const curr = new Date(startDateObj);
         const last = new Date(endDateObj);
         curr.setHours(0, 0, 0, 0);
@@ -3278,6 +3396,15 @@ export function PerformanceCompliance({
           }).join("\n")
           : "-";
 
+        const taskProgressNotes = item.tasks && item.tasks.length > 0
+          ? item.tasks.map((task: any, index: number) => `${index + 1}. ${task.taskTitle || "Task"}: ${cleanExportNote(task.progressNotes || task.followUpHistory || task.taskLog?.progressNotes) || "-"}`).join("\n")
+          : "-";
+        const taskProofUrls = item.tasks && item.tasks.length > 0
+          ? item.tasks.flatMap((task: any, index: number) => collectTaskProofUrls(task).map(url => `${index + 1}. ${task.taskTitle || "Task"}: ${url}`)).join("\n") || "-"
+          : "-";
+        const sodSelfieUrl = item.sod?.selfieUrl || "-";
+        const eodSelfieUrl = item.eod?.selfieUrl || "-";
+
         const fieldVisitKm = item.fieldVisits && item.fieldVisits.length > 0
           ? item.fieldVisits.reduce((sum: number, v: any) => sum + (v.distance_travelled || 0), 0)
           : 0;
@@ -3304,6 +3431,10 @@ export function PerformanceCompliance({
           eodEscalation,
           eodTomorrow,
           tasksDetails,
+          taskProgressNotes,
+          taskProofUrls,
+          sodSelfieUrl,
+          eodSelfieUrl,
           fieldVisitKm,
           fieldVisitDetails
         ];
@@ -3342,14 +3473,7 @@ export function PerformanceCompliance({
       const totalHoursFormatted = totalWorkHoursSum > 0 ? `${totalWorkHoursSum.toFixed(2)} Hrs` : "0 Hrs";
       const totalKmFormatted = totalFieldKmSum > 0 ? `${totalFieldKmSum.toFixed(2)} KM` : "0 KM";
 
-      const summaryRow = [
-        "TOTAL",
-        "", "", "", "", "", "", "", "",
-        totalHoursFormatted,
-        "", "", "", "", "", "",
-        totalKmFormatted,
-        ""
-      ];
+      const summaryRow = headers.map((_, index) => index === 0 ? "TOTAL" : index === 9 ? totalHoursFormatted : index === 20 ? totalKmFormatted : "");
 
       excelTemplate += `<tr style="height: 32px; background-color: #f1f5f9; font-weight: bold; border-top: 2px solid #0f766e;">`;
       summaryRow.forEach((cell) => {
@@ -3363,11 +3487,13 @@ export function PerformanceCompliance({
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.setAttribute("href", url);
-      link.setAttribute("download", `Consolidated_Work_Report_${new Date().toISOString().split('T')[0]}.xls`);
+      link.setAttribute("download", `All_Staff_Consolidated_Work_Report_${new Date().toISOString().split('T')[0]}.xls`);
       link.style.visibility = 'hidden';
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      triggerToast?.(`Overall report exported: ${sortedRecords.length} staff record(s).`);
     } catch (error) {
       console.error("Failed to export consolidated Excel:", error);
     }
@@ -3757,39 +3883,52 @@ export function PerformanceCompliance({
         return;
       }
 
-      // 1. Sort existing records ascending by date & employee name
-      const sortedRecords = [...filteredList].sort((a: any, b: any) => {
+      // 1. Sort existing records ascending by date
+      const sourceRecords = isOwner ? getOverallStaffExportRecords() : filteredList;
+      const sortedRecords = [...sourceRecords].sort((a: any, b: any) => {
         const dateDiff = new Date(a.date).getTime() - new Date(b.date).getTime();
-        if (dateDiff !== 0) return dateDiff;
-        const nameA = a.employee?.name || "";
-        const nameB = b.employee?.name || "";
-        return nameA.localeCompare(nameB);
+        return dateDiff || String(a.employee?.name || "").localeCompare(String(b.employee?.name || ""));
       });
 
-      const exportList: any[] = [];
-
-      // If a single user is selected and preset is month view, fill calendar missing days for that user
-      if (selectedUser && (dateFilterType === "current-month" || dateFilterType === "last-month")) {
-        const recordMap = new Map<string, any>();
+      // Preserve all employees for an overall export. Date-only mapping is used
+      // only for a selected employee where one row per date is expected.
+      const recordMap = new Map<string, any>();
+      if (selectedUser) {
         sortedRecords.forEach(item => {
           const dObj = new Date(item.date);
           const dateKey = `${dObj.getFullYear()}-${String(dObj.getMonth() + 1).padStart(2, '0')}-${String(dObj.getDate()).padStart(2, '0')}`;
           recordMap.set(dateKey, item);
         });
+      }
 
-        const fallbackEmp = sortedRecords.find(r => r.employee?.name)?.employee || { name: "N/A", email: "N/A", department: "General" };
-        const now = new Date();
-        let startDateObj: Date;
-        let endDateObj: Date;
+      // Fallback employee info
+      const fallbackEmp = sortedRecords.find(r => r.employee?.name)?.employee || { name: "N/A", email: "N/A", department: "General" };
 
-        if (dateFilterType === "last-month") {
-          startDateObj = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-          endDateObj = new Date(now.getFullYear(), now.getMonth(), 0);
-        } else {
-          startDateObj = new Date(now.getFullYear(), now.getMonth(), 1);
-          endDateObj = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-        }
+      // Determine full month or custom date range bounds
+      let startDateObj: Date | null = null;
+      let endDateObj: Date | null = null;
 
+      const now = new Date();
+      if (dateFilterType === "current-month") {
+        startDateObj = new Date(now.getFullYear(), now.getMonth(), 1);
+        endDateObj = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+      } else if (dateFilterType === "custom" && startDateFilter && endDateFilter) {
+        startDateObj = new Date(startDateFilter);
+        endDateObj = new Date(endDateFilter);
+      } else if (sortedRecords.length > 0) {
+        const firstD = new Date(sortedRecords[0].date);
+        const lastD = new Date(sortedRecords[sortedRecords.length - 1].date);
+        startDateObj = new Date(firstD.getFullYear(), firstD.getMonth(), 1);
+        endDateObj = new Date(lastD.getFullYear(), lastD.getMonth() + 1, 0);
+      } else {
+        startDateObj = new Date(now.getFullYear(), now.getMonth(), 1);
+        endDateObj = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+      }
+
+      const exportList: any[] = [];
+      if (isOwner || !selectedUser) {
+        exportList.push(...sortedRecords);
+      } else if (startDateObj && endDateObj && !isNaN(startDateObj.getTime()) && !isNaN(endDateObj.getTime())) {
         const curr = new Date(startDateObj);
         const last = new Date(endDateObj);
         curr.setHours(0, 0, 0, 0);
@@ -3912,6 +4051,12 @@ export function PerformanceCompliance({
             return `${index + 1}. [${t.status || 'Pending'}] ${t.taskTitle || 'Task'} (${t.taskType || 'General'})${workSummary}${suffix}`;
           }).join("\n")
           : "—");
+        const progressNotes = isSunday ? "Sunday" : (item.tasks && item.tasks.length > 0
+          ? item.tasks.map((task: any, index: number) => `${index + 1}. ${task.taskTitle || "Task"}: ${cleanExportNote(task.progressNotes || task.followUpHistory || task.taskLog?.progressNotes) || "—"}`).join("\n")
+          : "—");
+        const taskProofUrls = isSunday ? "Sunday" : (item.tasks && item.tasks.length > 0
+          ? item.tasks.flatMap((task: any, index: number) => collectTaskProofUrls(task).map(url => `${index + 1}. ${task.taskTitle || "Task"}: ${url}`)).join("\n") || "—"
+          : "—");
 
         const fieldVisitKm = isSunday ? 0 : (item.fieldVisits && item.fieldVisits.length > 0
           ? item.fieldVisits.reduce((sum: number, v: any) => sum + (v.distance_travelled || 0), 0)
@@ -3943,6 +4088,10 @@ export function PerformanceCompliance({
           issuesFaced,
           escalation,
           tasksDetails,
+          progressNotes,
+          taskProofUrls,
+          sodSelfieUrl: isSunday ? "Sunday" : (item.sod?.selfieUrl || "—"),
+          eodSelfieUrl: isSunday ? "Sunday" : (item.eod?.selfieUrl || "—"),
           fieldVisitKm: isSunday ? "Sunday" : (fieldVisitKm > 0 ? `${fieldVisitKm.toFixed(2)} KM` : "0 KM"),
           fieldVisitDetails,
           gpsLocation: gpsCoords,
@@ -4001,13 +4150,14 @@ export function PerformanceCompliance({
       const link = document.createElement("a");
       const fileDate = dateFilterType === "custom" ? `${startDateFilter || "start"}_to_${endDateFilter || "end"}` : dateFilterType;
       link.setAttribute("href", url);
-      link.setAttribute("download", `Full_Month_Work_Report_${fileDate}_${new Date().toISOString().split("T")[0]}.xls`);
+      link.setAttribute("download", `All_Staff_Work_Report_${fileDate}_${new Date().toISOString().split("T")[0]}.xls`);
       link.style.visibility = "hidden";
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
+      URL.revokeObjectURL(url);
 
-      triggerToast?.("Full month work report exported successfully with selected columns.");
+      triggerToast?.(`Overall report exported successfully: ${sortedRecords.length} staff record(s).`);
     } catch (err) {
       console.error("Export error:", err);
     }

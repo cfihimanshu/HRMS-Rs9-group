@@ -1,21 +1,12 @@
 import { LoginForm } from "@/components/login-form";
-import { LoginSplash } from "@/components/login-splash";
 
 // Keep the login route independently compilable after development asset refreshes.
 export default function LoginPage() {
   return (
-    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#FAF9F6] p-6 font-sans md:p-10 text-slate-800">
-      <LoginSplash />
-      
-      {/* Elegant luxury watermarks in the background */}
-      <div className="absolute right-[-5%] bottom-[-5%] select-none pointer-events-none text-[#F3EFE9] font-serif text-[24vw] leading-none font-extralight tracking-tighter opacity-70" style={{ fontFamily: "'Cormorant Garamond', serif" }}>
-        RS9
-      </div>
-      <div className="absolute left-[5%] top-[5%] select-none pointer-events-none text-[#F3EFE9] font-serif text-[16vw] leading-none font-extralight tracking-tighter opacity-40" style={{ fontFamily: "'Cormorant Garamond', serif" }}>
-        CREATIVE
-      </div>
-
-      <div className="relative z-10 w-full max-w-sm md:max-w-4xl">
+    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#f1eee8] px-4 py-8 font-sans text-slate-800 sm:px-6 lg:px-10">
+      <div className="pointer-events-none absolute -left-32 -top-32 h-96 w-96 rounded-full bg-[#d7c993]/20 blur-3xl" />
+      <div className="pointer-events-none absolute -bottom-40 -right-24 h-[30rem] w-[30rem] rounded-full bg-[#899d8f]/15 blur-3xl" />
+      <div className="relative z-10 w-full max-w-5xl">
         <LoginForm callbackUrl="/dashboard" />
       </div>
     </div>
