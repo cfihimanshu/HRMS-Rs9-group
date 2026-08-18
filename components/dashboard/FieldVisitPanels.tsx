@@ -25,6 +25,62 @@ const parseJsonField = (field: any): any[] => {
   return [];
 };
 
+const normalizePhotoUrl = (rawUrl: any): string => {
+  const value = String(rawUrl || "").trim();
+  if (!value) return "";
+  if (value.startsWith("http://localhost/")) {
+    const origin = typeof window !== "undefined" ? window.location.origin : "http://localhost:3000";
+    return value.replace("http://localhost/", `${origin}/`);
+  }
+  if (value.startsWith("/")) return value;
+  if (/^(https?:|data:|blob:)/i.test(value)) return value;
+  return `/${value.replace(/^\.\//, "")}`;
+};
+
+const getVisitPhotoUrls = (visit: any): string[] => {
+  const urls: string[] = [];
+  const addValue = (value: any) => {
+    if (!value) return;
+    if (Array.isArray(value)) {
+      value.forEach(addValue);
+      return;
+    }
+    if (typeof value === "object") {
+      const directUrl = value.url || value.src || value.photo_url || value.photoUrl || value.fileUrl || value.path;
+      if (directUrl) addValue(directUrl);
+      else Object.values(value).forEach(addValue);
+      return;
+    }
+
+    const text = String(value).trim();
+    if (!text) return;
+    if ((text.startsWith("[") && text.endsWith("]")) || (text.startsWith("{") && text.endsWith("}"))) {
+      try {
+        addValue(JSON.parse(text));
+        return;
+      } catch (_) {}
+    }
+    urls.push(normalizePhotoUrl(text));
+  };
+
+  [
+    visit?.photos_json,
+    visit?.photos,
+    visit?.photo_url,
+    visit?.photoUrl,
+    visit?.opening_photo_url,
+    visit?.openingPhotoUrl,
+    visit?.start_photo_url,
+    visit?.startPhotoUrl,
+    visit?.closing_photo_url,
+    visit?.closingPhotoUrl,
+    visit?.end_photo_url,
+    visit?.endPhotoUrl,
+  ].forEach(addValue);
+
+  return Array.from(new Set(urls.filter(Boolean)));
+};
+
 export function FieldVisitLogs({ sessionUser, triggerToast }: FieldVisitLogsProps) {
   const [visits, setVisits] = useState<any[]>([]);
   const [activeVisit, setActiveVisit] = useState<any | null>(null);
@@ -1052,7 +1108,7 @@ export function FieldVisitLogs({ sessionUser, triggerToast }: FieldVisitLogsProp
 
                       {/* Display Photos */}
                       {(() => {
-                        const photos = parseJsonField(visit.photos_json);
+                        const photos = getVisitPhotoUrls(visit);
                         if (photos.length === 0) return null;
                         return (
                           <div className="flex gap-2 mt-3 pt-3 border-t border-dashed border-slate-200 dark:border-gray-700">
@@ -1351,7 +1407,7 @@ export function FieldVisitLogs({ sessionUser, triggerToast }: FieldVisitLogsProp
 
                                       {/* Photos */}
                                       {(() => {
-                                        const photos = parseJsonField(visit.photos_json);
+                                        const photos = getVisitPhotoUrls(visit);
                                         if (photos.length === 0) return null;
                                         return (
                                           <div>

@@ -3168,21 +3168,55 @@ export function PerformanceCompliance({
   };
 
   const collectTaskProofUrls = (task: any): string[] => {
-    const values = [task?.proofAttachment, task?.attachmentUrl, task?.screenshotUrl, task?.recordingUrl, task?.callRecordingUrl, task?.audioUrl, task?.videoUrl];
     const urls: string[] = [];
-    values.filter(Boolean).forEach(value => {
-      if (typeof value === "string" && value.trim().startsWith("[")) {
-        try {
-          const parsed = JSON.parse(value);
-          if (Array.isArray(parsed)) parsed.filter(Boolean).forEach(url => urls.push(String(url)));
-          else urls.push(String(value));
-        } catch (_) { urls.push(String(value)); }
-      } else if (Array.isArray(value)) {
-        value.filter(Boolean).forEach(url => urls.push(String(url)));
-      } else {
-        urls.push(String(value));
+
+    const addProofValue = (value: any) => {
+      if (!value) return;
+      if (Array.isArray(value)) {
+        value.forEach(addProofValue);
+        return;
       }
-    });
+      if (typeof value === "object") {
+        const directUrl = value.url || value.src || value.href || value.path || value.fileUrl || value.downloadUrl || value.attachmentUrl || value.recordingUrl;
+        if (directUrl) addProofValue(directUrl);
+        else Object.values(value).forEach(addProofValue);
+        return;
+      }
+
+      const text = String(value).trim();
+      if (!text) return;
+      if ((text.startsWith("[") && text.endsWith("]")) || (text.startsWith("{") && text.endsWith("}"))) {
+        try {
+          addProofValue(JSON.parse(text));
+          return;
+        } catch (_) {}
+      }
+
+      // Legacy uploads can be saved as comma-separated URLs.
+      if (text.includes(",") && !text.startsWith("data:")) {
+        text.split(",").map(part => part.trim()).filter(Boolean).forEach(part => urls.push(part));
+      } else {
+        urls.push(text);
+      }
+    };
+
+    [
+      task?.proofAttachment,
+      task?.attachmentUrl,
+      task?.attachments,
+      task?.attachmentsJson,
+      task?.screenshotUrl,
+      task?.screenshot_url,
+      task?.recordingUrl,
+      task?.recording_url,
+      task?.callRecordingUrl,
+      task?.audioUrl,
+      task?.videoUrl,
+      task?.taskLog?.proofAttachment,
+      task?.taskLog?.attachmentUrl,
+      task?.taskLog?.callRecordingUrl,
+    ].forEach(addProofValue);
+
     return Array.from(new Set(urls.map(url => url.trim()).filter(Boolean)));
   };
 
