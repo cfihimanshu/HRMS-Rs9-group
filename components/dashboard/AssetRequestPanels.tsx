@@ -56,6 +56,11 @@ export function AssetRequestLogs({ sessionUser, triggerToast, setActiveTab }: As
   useEffect(() => {
     setIsDark(document.documentElement.classList.contains("dark"));
     fetchRequests();
+    const observer = new MutationObserver(() => {
+      setIsDark(document.documentElement.classList.contains("dark"));
+    });
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
+    return () => observer.disconnect();
   }, []);
 
   const fetchRequests = async () => {

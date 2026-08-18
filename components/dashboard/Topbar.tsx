@@ -222,13 +222,13 @@ export default function Topbar({
 
   return (
     <>
-      <header className="h-14 border-b px-6 lg:px-8 flex items-center justify-between shrink-0 bg-[#FCFBF9] border-[#E8E4DF] relative z-20">
+      <header className="h-14 border-b px-6 lg:px-8 flex items-center justify-between shrink-0 bg-[#FCFBF9] dark:bg-gray-900 border-[#E8E4DF] dark:border-gray-800 text-[#1C1C1A] dark:text-gray-100 relative z-20 transition-colors duration-300">
 
         {/* Left side: Mobile menu toggle and breadcrumb */}
         <div className="flex items-center gap-3">
           <button
             onClick={() => setMobileMenuOpen?.(!mobileMenuOpen)}
-            className="p-2 -ml-2 mr-1 rounded-lg lg:hidden text-[#1C1C1A] hover:bg-[#F0EAE4] transition-colors focus:outline-none"
+            className="p-2 -ml-2 mr-1 rounded-lg lg:hidden text-[#1C1C1A] dark:text-gray-100 hover:bg-[#F0EAE4] dark:hover:bg-gray-800 transition-colors focus:outline-none"
             title="Toggle Sidebar Menu"
           >
             <Menu className="w-5 h-5" />
@@ -245,7 +245,7 @@ export default function Topbar({
           <div className="relative" ref={notifRef}>
             <button
               onClick={() => setShowNotifications(!showNotifications)}
-              className="p-2 rounded-full text-[#9C9890] hover:text-[#1C1C1A] hover:bg-[#F0EAE4]/60 transition-all relative focus:outline-none"
+              className="p-2 rounded-full text-[#9C9890] dark:text-gray-400 hover:text-[#1C1C1A] dark:hover:text-white hover:bg-[#F0EAE4]/60 dark:hover:bg-gray-800 transition-all relative focus:outline-none"
               title="Notifications"
             >
               <Bell className="w-4 h-4" />
@@ -414,13 +414,13 @@ export default function Topbar({
           {/* Theme Toggle */}
           <button
             onClick={toggleTheme}
-            className="p-2 rounded-full text-[#9C9890] hover:text-[#1C1C1A] hover:bg-[#F0EAE4]/60 transition-all focus:outline-none"
+            className="p-2 rounded-full text-[#9C9890] dark:text-gray-400 hover:text-[#1C1C1A] dark:hover:text-white hover:bg-[#F0EAE4]/60 dark:hover:bg-gray-800 transition-all focus:outline-none"
             title="Toggle Theme"
           >
             {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
           </button>
 
-          <div className="h-5 w-px bg-[#E8E4DF] mx-1" />
+          <div className="h-5 w-px bg-[#E8E4DF] dark:bg-gray-700 mx-1" />
 
           {/* Logout */}
           <button

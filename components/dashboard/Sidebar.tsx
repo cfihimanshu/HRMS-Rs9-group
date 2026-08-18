@@ -240,14 +240,14 @@ export default function DashboardSidebar({
   return (
     <aside
       className={`fixed lg:static top-0 bottom-0 left-0 z-40 w-64 flex-shrink-0 flex flex-col h-screen overflow-y-auto border-r transition-all duration-300 transform ${mobileMenuOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
-        } bg-[#FAFAF7] border-[#E8E4DF]`}
+        } bg-[#FAFAF7] dark:bg-gray-950 border-[#E8E4DF] dark:border-gray-800 text-[#1C1C1A] dark:text-gray-100`}
     >
-      <div className="flex items-center gap-3 px-6 py-5 border-b border-[#E8E4DF]">
-        <div className="text-xl font-light tracking-widest text-[#1C1C1A] font-serif" style={{ fontFamily: "'Playfair Display', serif" }}>
+      <div className="flex items-center gap-3 px-6 py-5 border-b border-[#E8E4DF] dark:border-gray-800">
+        <div className="text-xl font-light tracking-widest text-[#1C1C1A] dark:text-gray-100 font-serif" style={{ fontFamily: "'Playfair Display', serif" }}>
           RS9
         </div>
-        <div className="h-4 w-px bg-[#E8E4DF]" />
-        <div className="text-[10px] font-bold tracking-widest text-[#9C9890] uppercase">
+        <div className="h-4 w-px bg-[#E8E4DF] dark:bg-gray-800" />
+        <div className="text-[10px] font-bold tracking-widest text-[#9C9890] dark:text-gray-400 uppercase">
           Group
         </div>
       </div>
@@ -262,7 +262,7 @@ export default function DashboardSidebar({
           return (
             <div key={cat}>
               {isAI && (
-                <div className="mx-2.5 my-3 border-t border-[#E8E4DF]/85 text-[9px] font-bold uppercase tracking-widest pt-3 text-[#C9A84C]">
+                <div className="mx-2.5 my-3 border-t border-[#E8E4DF]/85 dark:border-gray-800 text-[9px] font-bold uppercase tracking-widest pt-3 text-[#C9A84C]">
                   ✦ AI Features
                 </div>
               )}
@@ -270,8 +270,8 @@ export default function DashboardSidebar({
               <button
                 onClick={() => toggle(cat)}
                 className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-[10px] font-bold tracking-wider transition-all uppercase ${anyActive
-                  ? "bg-[#F0EAE4] text-[#1C1C1A]"
-                  : "text-[#5D5B57] hover:bg-[#F0EAE4]/50 hover:text-[#1C1C1A]"
+                  ? "bg-[#F0EAE4] dark:bg-gray-800 text-[#1C1C1A] dark:text-white"
+                  : "text-[#5D5B57] dark:text-gray-400 hover:bg-[#F0EAE4]/50 dark:hover:bg-gray-800/70 hover:text-[#1C1C1A] dark:hover:text-white"
                   }`}
               >
                 <div className="flex items-center gap-2.5 min-w-0">
@@ -285,7 +285,7 @@ export default function DashboardSidebar({
               </button>
 
               {isOpen && (
-                <div className="ml-4 mt-1 space-y-1 pl-2 border-l border-[#E8E4DF]">
+                <div className="ml-4 mt-1 space-y-1 pl-2 border-l border-[#E8E4DF] dark:border-gray-800">
                   {groupedMenu[cat].map((item) => {
                     const isActive = activeTab === item.id;
                     const ItemIcon = item.icon;
@@ -311,8 +311,8 @@ export default function DashboardSidebar({
                           }
                         }}
                         className={`w-full flex items-center justify-between text-[11px] py-2 px-2.5 rounded-lg font-medium transition-all ${isActive
-                          ? "bg-[#F0EAE4] text-[#1C1C1A] font-semibold border-l-2 border-[#C9A84C]"
-                          : "text-[#5D5B57] hover:bg-[#F5F0EA] hover:text-[#1C1C1A]"
+                          ? "bg-[#F0EAE4] dark:bg-gray-800 text-[#1C1C1A] dark:text-white font-semibold border-l-2 border-[#C9A84C]"
+                          : "text-[#5D5B57] dark:text-gray-400 hover:bg-[#F5F0EA] dark:hover:bg-gray-800/70 hover:text-[#1C1C1A] dark:hover:text-white"
                           }`}
                       >
                         <div className="flex items-center gap-2">
@@ -338,8 +338,8 @@ export default function DashboardSidebar({
         })}
       </nav>
 
-      <div className="p-4 border-t border-[#E8E4DF]">
-        <div className="flex items-center gap-3 p-2.5 rounded-xl bg-[#FCFBF9] border border-[#E8E4DF] shadow-[0_2px_10px_rgba(0,0,0,0.02)]">
+      <div className="p-4 border-t border-[#E8E4DF] dark:border-gray-800">
+        <div className="flex items-center gap-3 p-2.5 rounded-xl bg-[#FCFBF9] dark:bg-gray-900 border border-[#E8E4DF] dark:border-gray-800 shadow-[0_2px_10px_rgba(0,0,0,0.02)]">
           <div className="w-8 h-8 rounded-full bg-[#C9A84C] flex items-center justify-center text-white text-xs font-semibold shrink-0 shadow-sm overflow-hidden">
             {user?.profilePhoto ? (
               <img
@@ -353,8 +353,8 @@ export default function DashboardSidebar({
             )}
           </div>
           <div className="min-w-0 flex-1 text-left">
-            <div className="text-xs font-semibold truncate text-[#1C1C1A]">{user?.name || "System User"}</div>
-            <div className="text-[10px] text-[#9C9890] truncate font-medium uppercase tracking-wide">
+            <div className="text-xs font-semibold truncate text-[#1C1C1A] dark:text-gray-100">{user?.name || "System User"}</div>
+            <div className="text-[10px] text-[#9C9890] dark:text-gray-400 truncate font-medium uppercase tracking-wide">
               {user?.designation || userRole}
             </div>
           </div>

@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { useSession } from "next-auth/react";
 import * as XLSX from "xlsx";
 import { cn } from "@/lib/utils";
+import DailyBackdateEntryModal from "./DailyBackdateEntryModal";
 import {
   Plus,
   GripVertical,
@@ -194,6 +195,7 @@ export default function KanbanBoard({
 
   // Add Task form
   const [showAdd, setShowAdd] = useState(false);
+  const [showDailyBackdate, setShowDailyBackdate] = useState(false);
   const [title, setTitle] = useState("");
   const [type, setType] = useState("Meeting");
   const [desc, setDesc] = useState("");
@@ -288,6 +290,9 @@ export default function KanbanBoard({
   const [assigneeId, setAssigneeId] = useState("");
   const [deadlineDate, setDeadlineDate] = useState("");
   const [deadlineTime, setDeadlineTime] = useState("");
+  const [entryDate, setEntryDate] = useState("");
+  const [entryTime, setEntryTime] = useState("09:00");
+  const [entryStatus, setEntryStatus] = useState<"Pending" | "In Progress" | "Completed">("Pending");
 
   // Task Editing & Deletion
   const [isEditingTask, setIsEditingTask] = useState(false);
@@ -616,6 +621,17 @@ export default function KanbanBoard({
       deadlineAt = new Date(`${deadlineDate}T${timeVal}`).toISOString();
     }
 
+    let historicalEntryAt: string | null = null;
+    if (entryDate) {
+      const selectedEntryDate = new Date(`${entryDate}T${entryTime || "09:00"}:00`);
+      if (selectedEntryDate.getTime() > Date.now()) {
+        alert("Back-date entry future date ki nahi ho sakti.");
+        setSubmitting(false);
+        return;
+      }
+      historicalEntryAt = selectedEntryDate.toISOString();
+    }
+
     try {
       const res = await fetch("/api/tasks", {
         method: "POST",
@@ -630,8 +646,9 @@ export default function KanbanBoard({
           rboName: rboName || undefined,
           caseDetails: caseDetails || undefined,
           description: finalDesc,
-          status: "Pending",
+          status: entryDate ? entryStatus : "Pending",
           employeeId: assigneeId || undefined,
+          entryDate: historicalEntryAt || undefined,
           deadlineAt: deadlineAt || undefined,
           personName: personName || undefined,
           contactNo: contactNo || undefined,
@@ -675,6 +692,9 @@ export default function KanbanBoard({
         setAssigneeId("");
         setDeadlineDate("");
         setDeadlineTime("");
+        setEntryDate("");
+        setEntryTime("09:00");
+        setEntryStatus("Pending");
         setShowAdd(false);
         fetchTasks();
       } else {
@@ -1892,6 +1912,12 @@ export default function KanbanBoard({
             </button>
           </div>
           <button
+            onClick={() => setShowDailyBackdate(true)}
+            className="flex items-center gap-1.5 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 text-[10px] font-black uppercase tracking-wider rounded-lg px-3 py-2 transition-all shadow-sm"
+          >
+            <CalendarClock className="w-3.5 h-3.5" /> Daily Back-Date
+          </button>
+          <button
             onClick={handleExportTasks}
             className="flex items-center gap-1.5 bg-[#714B67] hover:bg-[#5b3c53] text-white text-[10px] font-black uppercase tracking-wider rounded-lg px-3 py-2 transition-all shadow-sm font-sans"
           >
@@ -1903,6 +1929,8 @@ export default function KanbanBoard({
           </div>
         </div>
       </div>
+
+      <DailyBackdateEntryModal open={showDailyBackdate} onClose={() => setShowDailyBackdate(false)} onSaved={fetchTasks} currentUser={sessionUser} />
 
       {viewMode === "kanban" ? (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 flex-1 items-start">
@@ -2657,9 +2685,37 @@ export default function KanbanBoard({
                             />
                           </div>
                         )}
-                        {/* Owner Task Assignment and Deadline Fields */}
+                        {/* Owner Task Assignment, historical entry and deadline fields */}
                         {(sessionUser as any)?.role === "Owner" && (
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 border-t border-slate-100 pt-3">
+                          <div className="space-y-3 border-t border-slate-100 pt-3">
+                            <div className="rounded-xl border border-amber-200 bg-amber-50/70 p-3">
+                              <div className="flex items-start gap-2 mb-2.5">
+                                <CalendarClock className="w-4 h-4 text-amber-700 mt-0.5 shrink-0" />
+                                <div>
+                                  <p className="text-[10px] font-black uppercase tracking-wider text-amber-900">Back Date Entry (Optional)</p>
+                                  <p className="text-[9px] text-amber-700 mt-0.5">Purana task record karne ke liye original work date, time aur us samay ka status select karein.</p>
+                                </div>
+                              </div>
+                              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                                <div>
+                                  <label className="block text-[9px] uppercase tracking-wider text-amber-800 font-black mb-1">Original Date</label>
+                                  <input type="date" max={new Date().toISOString().split("T")[0]} value={entryDate} onChange={e => setEntryDate(e.target.value)} className="w-full border border-amber-200 rounded-lg px-2 py-2 text-xs font-bold text-slate-800 bg-white focus:outline-none focus:border-amber-500" />
+                                </div>
+                                <div>
+                                  <label className="block text-[9px] uppercase tracking-wider text-amber-800 font-black mb-1">Original Time</label>
+                                  <input type="time" disabled={!entryDate} value={entryTime} onChange={e => setEntryTime(e.target.value)} className="w-full border border-amber-200 rounded-lg px-2 py-2 text-xs font-bold text-slate-800 bg-white disabled:bg-slate-100 focus:outline-none focus:border-amber-500" />
+                                </div>
+                                <div>
+                                  <label className="block text-[9px] uppercase tracking-wider text-amber-800 font-black mb-1">Historical Status</label>
+                                  <select disabled={!entryDate} value={entryStatus} onChange={e => setEntryStatus(e.target.value as typeof entryStatus)} className="w-full border border-amber-200 rounded-lg px-2 py-2 text-xs font-bold text-slate-800 bg-white disabled:bg-slate-100 focus:outline-none focus:border-amber-500">
+                                    <option value="Pending">Pending</option>
+                                    <option value="In Progress">In Progress</option>
+                                    <option value="Completed">Completed</option>
+                                  </select>
+                                </div>
+                              </div>
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                             <div>
                               <label className="block text-[9px] uppercase tracking-wider text-slate-500 font-black mb-1">Assign To *</label>
                               <select
@@ -2695,6 +2751,7 @@ export default function KanbanBoard({
                                   />
                                 </div>
                               </div>
+                            </div>
                             </div>
                           </div>
                         )}

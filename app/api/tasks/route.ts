@@ -675,7 +675,7 @@ export async function POST(req: Request) {
     const userRole = (session.user as any).role || "Employee";
     const userName = session.user.name || "Employee";
     const body = await req.json();
-    const { taskTitle, taskType, description, status, employeeId, deadlineAt, personName, contactNo, companyName, emailAddress, visitLocation, callStatus, salesReason } = body;
+    const { taskTitle, taskType, description, status, employeeId, deadlineAt, entryDate, personName, contactNo, companyName, emailAddress, visitLocation, callStatus, salesReason } = body;
 
     if (!taskTitle || !taskType) {
       return NextResponse.json({ success: false, error: "Missing required fields (Task Title, Task Type)" }, { status: 400 });
@@ -686,6 +686,14 @@ export async function POST(req: Request) {
     const { scheduledAt } = body;
 
     const now = new Date();
+    const requestedEntryDate = entryDate ? new Date(entryDate) : null;
+    if (requestedEntryDate && (!Number.isFinite(requestedEntryDate.getTime()) || requestedEntryDate.getTime() > now.getTime())) {
+      return NextResponse.json({ success: false, error: "Back-date entry must be a valid past or current date" }, { status: 400 });
+    }
+    if (requestedEntryDate && userRole !== "Owner") {
+      return NextResponse.json({ success: false, error: "Only Owner can create back-date staff entries" }, { status: 403 });
+    }
+    const effectiveEntryDate = requestedEntryDate || now;
 
     // Owner can assign tasks to other users
     let targetEmployeeId = userId;
@@ -711,13 +719,13 @@ export async function POST(req: Request) {
       assignedBy,
       deadlineHours: calculatedDeadlineHours,
       deadlineAt: finalDeadlineAt,
-      date: now,
+      date: effectiveEntryDate,
       taskTitle,
       taskType,
       description: description || "",
       status: status || "Pending",
       proofAttachment: body.proofAttachment || body.attachmentUrl || null,
-      scheduledAt: scheduledAt ? new Date(scheduledAt) : null,
+      scheduledAt: scheduledAt ? new Date(scheduledAt) : (requestedEntryDate || null),
       personName: personName || null,
       contactNo: contactNo || null,
       companyName: companyName || null,
@@ -727,16 +735,17 @@ export async function POST(req: Request) {
       salesReason: salesReason || null,
       // Auto-start timer when task is created
       timerState: (status === "Completed") ? "Stopped" : "Running",
-      timerStart: (status === "Completed") ? null : now,
+      timerStart: (status === "Completed" || requestedEntryDate) ? null : now,
       elapsedSeconds: 0,
+      completedAt: status === "Completed" ? effectiveEntryDate : null,
     });
 
     // Auto-create LegalRecoverySchedule entry so tasks created from My Tasks page appear in Schedule Work Report
     try {
       const LegalRecoverySchedule = (sequelize.models as any).LegalRecoverySchedule || (await import("@/models/sequelize/LegalRecoverySchedule")).default;
       await LegalRecoverySchedule.sync({ alter: true }).catch(() => {});
-      const todayStr = now.toISOString().split("T")[0];
-      const timeStr = now.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: true });
+      const todayStr = effectiveEntryDate.toISOString().split("T")[0];
+      const timeStr = effectiveEntryDate.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: true });
 
       await LegalRecoverySchedule.create({
         id: "lrs_task_" + record.id + "_" + Date.now(),
@@ -770,7 +779,7 @@ export async function POST(req: Request) {
     }
 
     // Notify assigned employee (if assigned by Owner to someone else)
-    if (userRole === "Owner" && employeeId && employeeId !== userId) {
+    if (userRole === "Owner" && employeeId && employeeId !== userId && !requestedEntryDate) {
       try {
         const assignedUser = await User.findOne({ where: { id: employeeId }, raw: true }) as any;
         if (assignedUser && assignedUser.email) {
@@ -847,7 +856,7 @@ export async function POST(req: Request) {
       action: "TASK_LOGGED",
       entity: "TaskLog",
       entityId: record.id.toString(),
-      details: `${userName} logged a new task: ${taskTitle} (${taskType})`,
+      details: `${userName} logged a ${requestedEntryDate ? "back-date" : "new"} task: ${taskTitle} (${taskType})${requestedEntryDate ? ` for ${effectiveEntryDate.toISOString().split("T")[0]}` : ""}`,
     });
 
     return NextResponse.json({ success: true, data: record });

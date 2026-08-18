@@ -67,6 +67,10 @@ export default function HiringRequisitionModal({ onClose, triggerToast, userComp
 
   useEffect(() => {
     setIsDark(document.documentElement.classList.contains("dark"));
+    const observer = new MutationObserver(() => {
+      setIsDark(document.documentElement.classList.contains("dark"));
+    });
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
     const fetchCompanies = async () => {
       try {
         const res = await fetch("/api/companies");
@@ -83,6 +87,7 @@ export default function HiringRequisitionModal({ onClose, triggerToast, userComp
       }
     };
     fetchCompanies();
+    return () => observer.disconnect();
   }, []);
 
   useEffect(() => {
