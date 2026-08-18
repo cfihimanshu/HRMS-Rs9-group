@@ -196,7 +196,7 @@ export function DailyCommitments({
   const [userVertical, setUserVertical] = useState<string>(sessionUser?.vertical || "");
   const [legalScheduleItems, setLegalScheduleItems] = useState<any[]>([]);
   const [legalInputDate, setLegalInputDate] = useState(new Date().toISOString().split("T")[0]);
-  const [legalInputTime, setLegalInputTime] = useState(() => 
+  const [legalInputTime, setLegalInputTime] = useState(() =>
     new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: true })
   );
   const [legalInputWorkSection, setLegalInputWorkSection] = useState("");
@@ -2517,7 +2517,7 @@ export function PerformanceCompliance({
   const [activeDetailsTab, setActiveDetailsTab] = useState<"tasks" | "attendance">("tasks");
   const [selectedDashboardCategory, setSelectedDashboardCategory] = useState<"staff" | "calls" | "tasks" | "payments" | "pendingTasks" | "hrCalls" | null>(null);
   const [loadingExtra, setLoadingExtra] = useState(false);
-  const [dateFilterType, setDateFilterType] = useState<"overall" | "current-month" | "custom">("current-month");
+  const [dateFilterType, setDateFilterType] = useState<"overall" | "today" | "yesterday" | "current-month" | "last-month" | "custom">("current-month");
   const [startDateFilter, setStartDateFilter] = useState("");
   const [endDateFilter, setEndDateFilter] = useState("");
   const [selectedSelfie, setSelectedSelfie] = useState<string | null>(null);
@@ -2703,7 +2703,7 @@ export function PerformanceCompliance({
     const firstDayIndex = getFirstDayOfMonth(calendarYear, calendarMonth);
 
     for (let i = 0; i < firstDayIndex; i++) {
-      days.push(<div key={`empty-${i}`} className="h-14 border border-slate-100 bg-slate-50/50 rounded-lg"></div>);
+      days.push(<div key={`empty-${i}`} className="min-h-[46px] sm:h-14 border border-slate-100 bg-slate-50/50 rounded-lg"></div>);
     }
 
     const todayStart = new Date();
@@ -2778,11 +2778,11 @@ export function PerformanceCompliance({
       days.push(
         <div
           key={`day-${d}`}
-          className={`h-14 border rounded-lg p-1.5 flex flex-col justify-between transition-all ${statusColor} shadow-sm`}
+          className={`min-h-[46px] sm:h-14 border rounded-lg p-1 sm:p-1.5 flex flex-col justify-between transition-all ${statusColor} shadow-sm min-w-0`}
         >
-          <div className="text-[10px] font-bold font-mono">{d}</div>
+          <div className="text-[9px] sm:text-[10px] font-bold font-mono">{d}</div>
           {statusLabel && (
-            <div className="text-[8px] uppercase tracking-wider font-extrabold text-center py-0.5 rounded">
+            <div className="text-[7px] sm:text-[8px] uppercase tracking-wider font-extrabold text-center py-0.5 rounded truncate" title={statusLabel}>
               {statusLabel}
             </div>
           )}
@@ -2849,8 +2849,14 @@ export function PerformanceCompliance({
 
       // Tier 3: Determine active query range for full reports
       let queryRange = "all";
-      if (dateFilterType === "current-month") {
+      if (dateFilterType === "today") {
+        queryRange = "today";
+      } else if (dateFilterType === "yesterday") {
+        queryRange = "yesterday";
+      } else if (dateFilterType === "current-month") {
         queryRange = "current-month";
+      } else if (dateFilterType === "last-month") {
+        queryRange = "last-month";
       } else if (dateFilterType === "custom" && (startDateFilter || endDateFilter)) {
         queryRange = `custom&startDate=${startDateFilter || ""}&endDate=${endDateFilter || ""}`;
       }
@@ -3258,7 +3264,6 @@ export function PerformanceCompliance({
           if (existingItem) {
             exportList.push(existingItem);
           } else {
-            // Continuous missing date row
             exportList.push({
               date: new Date(curr),
               employee: fallbackEmp,
@@ -3271,6 +3276,7 @@ export function PerformanceCompliance({
           curr.setDate(curr.getDate() + 1);
         }
       } else {
+        // For multi-employee views, custom range, yesterday, today, etc., export ALL filtered records!
         exportList.push(...sortedRecords);
       }
 
@@ -3338,7 +3344,7 @@ export function PerformanceCompliance({
               } else if (parsed && typeof parsed === "object") {
                 raw = parsed.note || parsed.text || parsed.description || parsed.summary || raw;
               }
-            } catch (_) {}
+            } catch (_) { }
           }
           return raw.replace(/(\r\n|\n|\r)/gm, " ").trim();
         };
@@ -3572,7 +3578,7 @@ export function PerformanceCompliance({
         const completedTasks = employeeTasks.filter((t: any) => ["completed", "done"].includes(String(t.status || "").toLowerCase())).length;
         const totalTasks = employeeTasks.length;
         const completionPct = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : (present > 0 ? Math.min(100, Number(((present / workingDates.length) * 100).toFixed(1))) : 0);
-        const workHoursFormatted = workMs > 0 
+        const workHoursFormatted = workMs > 0
           ? `${Math.floor(workMs / 3600000)}h ${Math.floor((workMs % 3600000) / 60000)}m`
           : "0h 0m";
 
@@ -3717,6 +3723,12 @@ export function PerformanceCompliance({
 
       const dateLabel = dateFilterType === "custom"
         ? `${startDateFilter || "Start"} to ${endDateFilter || "End"}`
+        : dateFilterType === "today"
+        ? "Today"
+        : dateFilterType === "yesterday"
+        ? "Yesterday"
+        : dateFilterType === "last-month"
+        ? "Last Month"
         : dateFilterType === "current-month" ? "Current Month" : "All Time";
 
       let html = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">`;
@@ -3907,6 +3919,7 @@ export function PerformanceCompliance({
           curr.setDate(curr.getDate() + 1);
         }
       } else {
+        // For multi-employee views, custom range, yesterday, today, etc., export ALL filtered records!
         exportList.push(...sortedRecords);
       }
 
@@ -3924,7 +3937,7 @@ export function PerformanceCompliance({
             } else if (parsed && typeof parsed === "object") {
               raw = parsed.note || parsed.text || parsed.description || parsed.summary || raw;
             }
-          } catch (_) {}
+          } catch (_) { }
         }
         return raw.replace(/(\r\n|\n|\r)/gm, " ").trim();
       };
@@ -4121,9 +4134,24 @@ export function PerformanceCompliance({
   const matchDateFilter = useCallback((dateInput: any) => {
     if (!dateInput) return false;
     const itemDate = new Date(dateInput);
-    if (dateFilterType === "current-month") {
+    const y = itemDate.getFullYear();
+    const m = itemDate.getMonth();
+    const d = itemDate.getDate();
+
+    if (dateFilterType === "today") {
       const now = new Date();
-      return itemDate.getFullYear() === now.getFullYear() && itemDate.getMonth() === now.getMonth();
+      return y === now.getFullYear() && m === now.getMonth() && d === now.getDate();
+    } else if (dateFilterType === "yesterday") {
+      const yest = new Date();
+      yest.setDate(yest.getDate() - 1);
+      return y === yest.getFullYear() && m === yest.getMonth() && d === yest.getDate();
+    } else if (dateFilterType === "current-month") {
+      const now = new Date();
+      return y === now.getFullYear() && m === now.getMonth();
+    } else if (dateFilterType === "last-month") {
+      const now = new Date();
+      const lastM = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+      return y === lastM.getFullYear() && m === lastM.getMonth();
     } else if (dateFilterType === "custom") {
       if (!startDateFilter && !endDateFilter) return true;
       const itemTime = itemDate.getTime();
@@ -4564,7 +4592,7 @@ export function PerformanceCompliance({
 
   return (
     <div className="space-y-6 animate-fadeIn text-slate-800">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
         <div>
           <h1 className="text-xl font-black text-slate-850">Work Reports</h1>
           <p className="text-xs text-slate-500 mt-1">
@@ -4572,21 +4600,21 @@ export function PerformanceCompliance({
           </p>
         </div>
 
-        <div className="flex flex-wrap gap-2 items-center self-start md:self-auto">
+        <div className="flex flex-wrap lg:flex-nowrap gap-2 items-center w-full lg:w-auto">
           {activeSubTab !== "visual-dashboard" && (
             <button
               onClick={exportConsolidatedExcel}
-              className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-black shadow-md shadow-emerald-600/10 flex items-center gap-1.5 transition-all"
+              className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-black shadow-md shadow-emerald-600/10 flex items-center gap-1.5 transition-all shrink-0"
             >
               <Download className="w-4 h-4" /> Export
             </button>
           )}
 
           {/* Sub-Tabs */}
-          <div className="flex bg-slate-100 p-1 rounded-lg border border-slate-200">
+          <div className="flex bg-slate-100 p-1 rounded-lg border border-slate-200 overflow-x-auto max-w-full whitespace-nowrap scrollbar-none w-full lg:w-auto">
             <button
               onClick={() => setActiveSubTab("visual-dashboard")}
-              className={`px-4 py-2 text-xs font-black rounded-md transition-all ${activeSubTab === "visual-dashboard"
+              className={`shrink-0 px-3 sm:px-4 py-2 text-xs font-black rounded-md transition-all ${activeSubTab === "visual-dashboard"
                 ? "bg-[#714B67] text-white shadow-md"
                 : "text-slate-655 hover:text-[#714B67]"
                 }`}
@@ -4595,7 +4623,7 @@ export function PerformanceCompliance({
             </button>
             <button
               onClick={() => setActiveSubTab("sod")}
-              className={`px-4 py-2 text-xs font-black rounded-md transition-all ${activeSubTab === "sod"
+              className={`shrink-0 px-3 sm:px-4 py-2 text-xs font-black rounded-md transition-all ${activeSubTab === "sod"
                 ? "bg-[#714B67] text-white shadow-md"
                 : "text-slate-655 hover:text-[#714B67]"
                 }`}
@@ -4604,7 +4632,7 @@ export function PerformanceCompliance({
             </button>
             <button
               onClick={() => setActiveSubTab("eod")}
-              className={`px-4 py-2 text-xs font-black rounded-md transition-all ${activeSubTab === "eod"
+              className={`shrink-0 px-3 sm:px-4 py-2 text-xs font-black rounded-md transition-all ${activeSubTab === "eod"
                 ? "bg-[#714B67] text-white shadow-md"
                 : "text-slate-655 hover:text-[#714B67]"
                 }`}
@@ -4613,7 +4641,7 @@ export function PerformanceCompliance({
             </button>
             <button
               onClick={() => setActiveSubTab("attendance-calendar")}
-              className={`px-4 py-2 text-xs font-black rounded-md transition-all ${activeSubTab === "attendance-calendar"
+              className={`shrink-0 px-3 sm:px-4 py-2 text-xs font-black rounded-md transition-all ${activeSubTab === "attendance-calendar"
                 ? "bg-[#714B67] text-white shadow-md"
                 : "text-slate-655 hover:text-[#714B67]"
                 }`}
@@ -4627,15 +4655,15 @@ export function PerformanceCompliance({
       {activeSubTab === "visual-dashboard" ? (
         <div className="space-y-6 animate-fadeIn">
           {/* Filters Bar */}
-          <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div className="flex flex-wrap items-center gap-3">
+          <div className="bg-white border border-slate-200 rounded-xl p-3.5 sm:p-4 shadow-sm flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+            <div className="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-3 w-full lg:w-auto">
               {/* Date Filter Type Selector */}
-              <div>
+              <div className="w-full sm:w-auto min-w-0 sm:min-w-[130px]">
                 <label className="block text-[9px] uppercase tracking-wider text-slate-400 font-black mb-1 font-mono">Date Range</label>
                 <select
                   value={dateFilterType}
                   onChange={(e: any) => setDateFilterType(e.target.value)}
-                  className="bg-slate-50 hover:bg-slate-100 border border-slate-200 focus:border-[#714B67] rounded-lg px-3 py-1.5 text-xs text-slate-800 focus:outline-none font-bold transition-all shadow-sm"
+                  className="w-full bg-slate-50 hover:bg-slate-100 border border-slate-200 focus:border-[#714B67] rounded-lg px-3 py-1.5 text-xs text-slate-800 focus:outline-none font-bold transition-all shadow-sm"
                 >
                   <option value="overall">All Time</option>
                   <option value="current-month">Current Month</option>
@@ -4645,30 +4673,30 @@ export function PerformanceCompliance({
 
               {/* Custom Date Inputs */}
               {dateFilterType === "custom" && (
-                <div className="flex items-center gap-2">
-                  <div>
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
+                  <div className="w-full sm:w-auto">
                     <label className="block text-[8px] uppercase tracking-wider text-slate-400 font-bold mb-0.5">From</label>
                     <input
                       type="date"
                       value={startDateFilter}
                       onChange={(e) => setStartDateFilter(e.target.value)}
-                      className="bg-white border border-slate-200 rounded-lg p-1.5 text-[10px] text-slate-800"
+                      className="w-full bg-white border border-slate-200 rounded-lg p-1.5 text-[10px] text-slate-800"
                     />
                   </div>
-                  <div>
+                  <div className="w-full sm:w-auto">
                     <label className="block text-[8px] uppercase tracking-wider text-slate-400 font-bold mb-0.5">To</label>
                     <input
                       type="date"
                       value={endDateFilter}
                       onChange={(e) => setEndDateFilter(e.target.value)}
-                      className="bg-white border border-slate-200 rounded-lg p-1.5 text-[10px] text-slate-800"
+                      className="w-full bg-white border border-slate-200 rounded-lg p-1.5 text-[10px] text-slate-800"
                     />
                   </div>
                 </div>
               )}
 
               {/* Department Dropdown */}
-              <div>
+              <div className="w-full sm:w-auto min-w-0 sm:min-w-[130px]">
                 <label className="block text-[9px] uppercase tracking-wider text-slate-400 font-black mb-1 font-mono">Department</label>
                 <select
                   value={selectedDept}
@@ -4676,7 +4704,7 @@ export function PerformanceCompliance({
                     setSelectedDept(e.target.value);
                     setSelectedUser("");
                   }}
-                  className="bg-slate-50 hover:bg-slate-100 border border-slate-200 focus:border-[#714B67] rounded-lg px-3 py-1.5 text-xs text-slate-800 focus:outline-none font-bold transition-all shadow-sm"
+                  className="w-full bg-slate-50 hover:bg-slate-100 border border-slate-200 focus:border-[#714B67] rounded-lg px-3 py-1.5 text-xs text-slate-800 focus:outline-none font-bold transition-all shadow-sm"
                 >
                   <option value="">All Departments</option>
                   {departmentsList.map((d: any) => (
@@ -4686,12 +4714,12 @@ export function PerformanceCompliance({
               </div>
 
               {/* User Dropdown */}
-              <div>
+              <div className="w-full sm:w-auto min-w-0 sm:min-w-[140px]">
                 <label className="block text-[9px] uppercase tracking-wider text-slate-400 font-black mb-1 font-mono">Employee</label>
                 <select
                   value={selectedUser}
                   onChange={(e) => setSelectedUser(e.target.value)}
-                  className="bg-slate-50 hover:bg-slate-100 border border-slate-200 focus:border-[#714B67] rounded-lg px-3 py-1.5 text-xs text-slate-800 focus:outline-none font-bold transition-all shadow-sm"
+                  className="w-full bg-slate-50 hover:bg-slate-100 border border-slate-200 focus:border-[#714B67] rounded-lg px-3 py-1.5 text-xs text-slate-800 focus:outline-none font-bold transition-all shadow-sm"
                 >
                   <option value="">All Employees</option>
                   <optgroup label="Active Employees">
@@ -4710,12 +4738,12 @@ export function PerformanceCompliance({
               </div>
 
               {/* User Status Filter */}
-              <div>
+              <div className="w-full sm:w-auto min-w-0 sm:min-w-[130px]">
                 <label className="block text-[9px] uppercase tracking-wider text-slate-400 font-black mb-1 font-mono">User Status</label>
                 <select
                   value={userStatusFilter}
                   onChange={(e) => setUserStatusFilter(e.target.value as "active" | "inactive" | "all")}
-                  className="bg-slate-50 hover:bg-slate-100 border border-slate-200 focus:border-[#714B67] rounded-lg px-3 py-1.5 text-xs text-slate-800 focus:outline-none font-bold transition-all shadow-sm"
+                  className="w-full bg-slate-50 hover:bg-slate-100 border border-slate-200 focus:border-[#714B67] rounded-lg px-3 py-1.5 text-xs text-slate-800 focus:outline-none font-bold transition-all shadow-sm"
                 >
                   <option value="active">Active Staff Only</option>
                   <option value="inactive">Inactive / Archived Staff</option>
@@ -4737,7 +4765,7 @@ export function PerformanceCompliance({
                   setEndDateFilter("");
                   setUserStatusFilter("active");
                 }}
-                className="mt-4 md:mt-0 flex items-center gap-1.5 border border-rose-250 hover:bg-rose-50 text-rose-600 px-3 py-1.5 rounded-lg text-xs font-bold transition-all shadow-sm"
+                className="w-full sm:w-auto justify-center flex items-center gap-1.5 border border-rose-250 hover:bg-rose-50 text-rose-600 px-3 py-1.5 rounded-lg text-xs font-bold transition-all shadow-sm shrink-0"
               >
                 <RefreshCw className="w-3.5 h-3.5" /> Clear Filters
               </button>
@@ -4745,19 +4773,19 @@ export function PerformanceCompliance({
           </div>
 
           {/* Quick Stats Grid */}
-          <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
             <div
               onClick={() => setSelectedDashboardCategory("staff")}
-              className="bg-white border border-slate-200 p-4 rounded-xl flex items-center gap-3 shadow-sm cursor-pointer hover:bg-slate-50 transition-all hover:border-indigo-400 active:scale-[0.98]"
+              className="bg-white border border-slate-200 p-3 sm:p-4 rounded-xl flex items-center gap-2.5 sm:gap-3 shadow-sm cursor-pointer hover:bg-slate-50 transition-all hover:border-indigo-400 active:scale-[0.98]"
             >
-              <div className="p-3 bg-purple-50 rounded-lg text-purple-650">
-                <Users className="w-5 h-5 text-purple-600" />
+              <div className="p-2.5 sm:p-3 bg-purple-50 rounded-lg text-purple-650 shrink-0">
+                <Users className="w-4 h-4 sm:w-5 sm:h-5 text-purple-600" />
               </div>
-              <div>
-                <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">
+              <div className="min-w-0">
+                <div className="text-[9px] sm:text-[10px] text-slate-400 font-bold uppercase tracking-wider truncate">
                   {selectedUser ? "Active Staff" : "Total Staff"}
                 </div>
-                <div className="text-xs font-bold font-sans text-slate-800 leading-tight">
+                <div className="text-xs font-bold font-sans text-slate-800 leading-tight truncate">
                   {selectedUser
                     ? (users.find(u => u.id?.toString() === selectedUser.toString())?.name || "Selected")
                     : `${visualStats.employeesData.length} Staff`
@@ -4768,41 +4796,41 @@ export function PerformanceCompliance({
 
             <div
               onClick={() => setSelectedDashboardCategory("calls")}
-              className="bg-white border border-slate-200 p-4 rounded-xl flex items-center gap-3 shadow-sm cursor-pointer hover:bg-slate-50 transition-all hover:border-indigo-400 active:scale-[0.98]"
+              className="bg-white border border-slate-200 p-3 sm:p-4 rounded-xl flex items-center gap-2.5 sm:gap-3 shadow-sm cursor-pointer hover:bg-slate-50 transition-all hover:border-indigo-400 active:scale-[0.98]"
             >
-              <div className="p-3 bg-indigo-50 rounded-lg text-indigo-650">
-                <PhoneCall className="w-5 h-5 text-indigo-600" />
+              <div className="p-2.5 sm:p-3 bg-indigo-50 rounded-lg text-indigo-650 shrink-0">
+                <PhoneCall className="w-4 h-4 sm:w-5 sm:h-5 text-indigo-600" />
               </div>
-              <div>
-                <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Total Bank Calls</div>
-                <div className="text-xl font-bold font-serif text-slate-800">{visualStats.totalCalls}</div>
+              <div className="min-w-0">
+                <div className="text-[9px] sm:text-[10px] text-slate-400 font-bold uppercase tracking-wider truncate">Total Bank Calls</div>
+                <div className="text-lg sm:text-xl font-bold font-serif text-slate-800">{visualStats.totalCalls}</div>
               </div>
             </div>
 
             <div
               onClick={() => setSelectedDashboardCategory("hrCalls")}
-              className="bg-white border border-slate-200 p-4 rounded-xl flex items-center gap-3 shadow-sm cursor-pointer hover:bg-slate-50 transition-all hover:border-indigo-400 active:scale-[0.98]"
+              className="bg-white border border-slate-200 p-3 sm:p-4 rounded-xl flex items-center gap-2.5 sm:gap-3 shadow-sm cursor-pointer hover:bg-slate-50 transition-all hover:border-indigo-400 active:scale-[0.98]"
             >
-              <div className="p-3 bg-sky-50 rounded-lg text-sky-650">
-                <PhoneCall className="w-5 h-5 text-sky-600" />
+              <div className="p-2.5 sm:p-3 bg-sky-50 rounded-lg text-sky-650 shrink-0">
+                <PhoneCall className="w-4 h-4 sm:w-5 sm:h-5 text-sky-600" />
               </div>
-              <div>
-                <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Interview Calls</div>
-                <div className="text-xl font-bold font-serif text-slate-800">{visualStats.totalHrCalls}</div>
+              <div className="min-w-0">
+                <div className="text-[9px] sm:text-[10px] text-slate-400 font-bold uppercase tracking-wider truncate">Interview Calls</div>
+                <div className="text-lg sm:text-xl font-bold font-serif text-slate-800">{visualStats.totalHrCalls}</div>
               </div>
             </div>
 
             <div
               onClick={() => setSelectedDashboardCategory("tasks")}
-              className="bg-white border border-slate-200 p-4 rounded-xl flex items-center gap-3 shadow-sm cursor-pointer hover:bg-slate-50 transition-all hover:border-indigo-400 active:scale-[0.98]"
+              className="bg-white border border-slate-200 p-3 sm:p-4 rounded-xl flex items-center gap-2.5 sm:gap-3 shadow-sm cursor-pointer hover:bg-slate-50 transition-all hover:border-indigo-400 active:scale-[0.98]"
             >
-              <div className="p-3 bg-emerald-50 rounded-lg text-emerald-650">
-                <CheckCircle className="w-5 h-5 text-emerald-600" />
+              <div className="p-2.5 sm:p-3 bg-emerald-50 rounded-lg text-emerald-650 shrink-0">
+                <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-600" />
               </div>
-              <div>
-                <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Tasks Completed</div>
+              <div className="min-w-0">
+                <div className="text-[9px] sm:text-[10px] text-slate-400 font-bold uppercase tracking-wider truncate">Tasks Completed</div>
                 <div className="flex items-baseline gap-1.5">
-                  <span className="text-xl font-bold font-serif text-slate-800">{visualStats.totalTasksDone}</span>
+                  <span className="text-lg sm:text-xl font-bold font-serif text-slate-800">{visualStats.totalTasksDone}</span>
                   <span className="text-[10px] text-emerald-600 font-bold">
                     {(() => {
                       const tot = visualStats.totalTasksDone + visualStats.totalTasksPending;
@@ -4815,15 +4843,15 @@ export function PerformanceCompliance({
 
             <div
               onClick={() => setSelectedDashboardCategory("pendingTasks")}
-              className="bg-white border border-slate-200 p-4 rounded-xl flex items-center gap-3 shadow-sm cursor-pointer hover:bg-slate-50 transition-all hover:border-[#F43F5E] active:scale-[0.98]"
+              className="bg-white border border-slate-200 p-3 sm:p-4 rounded-xl flex items-center gap-2.5 sm:gap-3 shadow-sm cursor-pointer hover:bg-slate-50 transition-all hover:border-[#F43F5E] active:scale-[0.98]"
             >
-              <div className="p-3 bg-rose-50 rounded-lg text-rose-650">
-                <Clock className="w-5 h-5 text-rose-600" />
+              <div className="p-2.5 sm:p-3 bg-rose-50 rounded-lg text-rose-650 shrink-0">
+                <Clock className="w-4 h-4 sm:w-5 sm:h-5 text-rose-600" />
               </div>
-              <div>
-                <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Pending Tasks</div>
+              <div className="min-w-0">
+                <div className="text-[9px] sm:text-[10px] text-slate-400 font-bold uppercase tracking-wider truncate">Pending Tasks</div>
                 <div className="flex items-baseline gap-1.5">
-                  <span className="text-xl font-bold font-serif text-slate-800">{visualStats.totalTasksPending}</span>
+                  <span className="text-lg sm:text-xl font-bold font-serif text-slate-800">{visualStats.totalTasksPending}</span>
                   <span className="text-[10px] text-rose-500 font-bold">
                     {(() => {
                       const tot = visualStats.totalTasksDone + visualStats.totalTasksPending;
@@ -4836,25 +4864,25 @@ export function PerformanceCompliance({
 
             <div
               onClick={() => setSelectedDashboardCategory("payments")}
-              className="bg-white border border-slate-200 p-4 rounded-xl flex items-center gap-3 shadow-sm cursor-pointer hover:bg-slate-50 transition-all hover:border-indigo-400 active:scale-[0.98]"
+              className="bg-white border border-slate-200 p-3 sm:p-4 rounded-xl flex items-center gap-2.5 sm:gap-3 shadow-sm cursor-pointer hover:bg-slate-50 transition-all hover:border-indigo-400 active:scale-[0.98]"
             >
-              <div className="p-3 bg-amber-50 rounded-lg text-amber-650">
-                <Banknote className="w-5 h-5 text-amber-600" />
+              <div className="p-2.5 sm:p-3 bg-amber-50 rounded-lg text-amber-650 shrink-0">
+                <Banknote className="w-4 h-4 sm:w-5 sm:h-5 text-amber-600" />
               </div>
-              <div>
-                <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Payments Recovered</div>
-                <div className="text-xl font-bold font-serif text-slate-800">Rs. {visualStats.totalPayments.toLocaleString()}</div>
+              <div className="min-w-0">
+                <div className="text-[9px] sm:text-[10px] text-slate-400 font-bold uppercase tracking-wider truncate">Payments Recovered</div>
+                <div className="text-lg sm:text-xl font-bold font-serif text-slate-800 truncate">Rs. {visualStats.totalPayments.toLocaleString()}</div>
               </div>
             </div>
           </div>
 
           {/* Employee Work Summary Table */}
-          <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
-            <div className="flex justify-between items-center border-b border-slate-100 pb-3 mb-4">
+          <div className="bg-white border border-slate-200 rounded-xl p-3.5 sm:p-5 shadow-sm">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-slate-100 pb-3 mb-4">
               <h3 className="font-serif text-sm font-bold text-slate-800 flex items-center gap-1.5 font-sans">
                 <Briefcase className="w-4 h-4 text-indigo-500" /> Employee Work Summary
               </h3>
-              <div className="flex items-center gap-3">
+              <div className="flex flex-wrap items-center gap-2 sm:gap-3 w-full md:w-auto">
                 <button
                   onClick={exportMasterEmployeeReport}
                   disabled={exportingMasterReport}
@@ -4871,21 +4899,21 @@ export function PerformanceCompliance({
                 >
                   <FileSpreadsheet className="w-3.5 h-3.5" /> Export Summary
                 </button>
-                <div className="flex items-center gap-2 bg-slate-50 border border-slate-250 rounded-lg px-2.5 py-1 shadow-inner">
-                  <Search className="w-3.5 h-3.5 text-slate-400" />
+                <div className="flex items-center gap-2 bg-slate-50 border border-slate-250 rounded-lg px-2.5 py-1 shadow-inner w-full md:w-56">
+                  <Search className="w-3.5 h-3.5 text-slate-400 shrink-0" />
                   <input
                     type="text"
                     placeholder="Search staff by name or email..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="bg-transparent border-none focus:outline-none text-xs text-slate-800 font-semibold w-48 placeholder:font-normal"
+                    className="bg-transparent border-none focus:outline-none text-xs text-slate-800 font-semibold w-full placeholder:font-normal"
                   />
                 </div>
               </div>
             </div>
 
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs border-collapse">
+            <div className="overflow-x-auto -mx-3 sm:mx-0">
+              <table className="w-full text-left text-xs border-collapse min-w-[750px]">
                 <thead>
                   <tr className="border-b border-slate-200 bg-slate-50/50 text-slate-500 font-bold uppercase tracking-wider text-[10px]">
                     <th className="py-3 px-4">Employee</th>
@@ -4952,10 +4980,10 @@ export function PerformanceCompliance({
                       };
 
                       const isInactiveEmpRow = (() => {
-                            const dbU = users.find((u: any) => u.id?.toString() === emp.id.toString());
-                            const st = (dbU?.status || emp.role || "active").toLowerCase();
-                            return st === "inactive" || st === "archived";
-                          })();
+                        const dbU = users.find((u: any) => u.id?.toString() === emp.id.toString());
+                        const st = (dbU?.status || emp.role || "active").toLowerCase();
+                        return st === "inactive" || st === "archived";
+                      })();
 
                       return (
                         <React.Fragment key={emp.id}>
@@ -4966,8 +4994,7 @@ export function PerformanceCompliance({
                                 [emp.id]: !prev[emp.id]
                               }));
                             }}
-                            className={`hover:bg-indigo-50/15 cursor-pointer transition-colors ${
-                              isInactiveEmpRow
+                            className={`hover:bg-indigo-50/15 cursor-pointer transition-colors ${isInactiveEmpRow
                                 ? "bg-rose-50/70 border-l-2 border-l-rose-400"
                                 : expandedUserRows[emp.id] ? "bg-indigo-50/10 font-bold" : ""
                               }`}
@@ -5400,7 +5427,7 @@ export function PerformanceCompliance({
               onClick={() => setSelectedDetailUser(null)}
             >
               <div
-                className="bg-white border border-slate-200 rounded-2xl w-full max-w-2xl shadow-2xl overflow-hidden flex flex-col p-5 font-sans max-h-[85vh]"
+                className="bg-white border border-slate-200 rounded-2xl w-full max-w-[calc(100vw-32px)] sm:max-w-2xl shadow-2xl overflow-hidden flex flex-col p-4 sm:p-5 font-sans max-h-[85vh]"
                 onClick={(e) => e.stopPropagation()}
               >
                 <div className="flex justify-between items-start border-b border-slate-200 pb-4 mb-4">
@@ -5680,7 +5707,7 @@ export function PerformanceCompliance({
               onClick={() => setSelectedDetailBranch(null)}
             >
               <div
-                className="bg-white border border-slate-200 rounded-2xl w-full max-w-2xl shadow-2xl overflow-hidden flex flex-col p-5 font-sans max-h-[85vh]"
+                className="bg-white border border-slate-200 rounded-2xl w-full max-w-[calc(100vw-32px)] sm:max-w-2xl shadow-2xl overflow-hidden flex flex-col p-4 sm:p-5 font-sans max-h-[85vh]"
                 onClick={(e) => e.stopPropagation()}
               >
                 <div className="flex justify-between items-start border-b border-slate-200 pb-4 mb-4">
@@ -5774,7 +5801,7 @@ export function PerformanceCompliance({
               onClick={() => setSelectedDashboardCategory(null)}
             >
               <div
-                className="bg-white border border-slate-200 rounded-2xl w-full max-w-2xl shadow-2xl overflow-hidden flex flex-col p-5 font-sans max-h-[85vh]"
+                className="bg-white border border-slate-200 rounded-2xl w-full max-w-[calc(100vw-32px)] sm:max-w-2xl shadow-2xl overflow-hidden flex flex-col p-4 sm:p-5 font-sans max-h-[85vh]"
                 onClick={(e) => e.stopPropagation()}
               >
                 {/* Header */}
@@ -5804,9 +5831,9 @@ export function PerformanceCompliance({
                   {/* Staff List */}
                   {selectedDashboardCategory === "staff" && (
                     <div className="space-y-3">
-                      <div className="bg-slate-50 border border-slate-150 rounded-xl p-3 font-semibold text-slate-700 grid grid-cols-4 gap-2">
+                      <div className="bg-slate-50 border border-slate-150 rounded-xl p-3 font-semibold text-slate-700 grid grid-cols-2 sm:grid-cols-4 gap-2">
                         <span>Staff Member</span>
-                        <span>Department</span>
+                        <span className="hidden sm:inline">Department</span>
                         <span className="text-center">Status</span>
                         <span className="text-right">Action</span>
                       </div>
@@ -5814,12 +5841,12 @@ export function PerformanceCompliance({
                         {visualStats.employeesData.map((emp: any) => {
                           const isActive = emp.sodCount > 0 || emp.eodCount > 0 || emp.callsCount > 0;
                           return (
-                            <div key={emp.id} className="bg-white border border-slate-105 rounded-xl p-3 grid grid-cols-4 gap-2 items-center hover:bg-slate-50 transition-colors shadow-sm">
+                            <div key={emp.id} className="bg-white border border-slate-105 rounded-xl p-3 grid grid-cols-2 sm:grid-cols-4 gap-2 items-center hover:bg-slate-50 transition-colors shadow-sm">
                               <div>
                                 <div className="font-bold text-slate-800">{emp.name}</div>
-                                <div className="text-[10px] text-slate-405 font-mono">{emp.email}</div>
+                                <div className="text-[10px] text-slate-405 font-mono truncate">{emp.email}</div>
                               </div>
-                              <span className="font-medium text-slate-600">{emp.department}</span>
+                              <span className="font-medium text-slate-600 hidden sm:inline">{emp.department}</span>
                               <div className="text-center">
                                 <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider ${isActive ? "bg-emerald-50 text-emerald-700 border border-emerald-200" : "bg-slate-100 text-slate-500 border border-slate-200"
                                   }`}>
@@ -6153,18 +6180,18 @@ export function PerformanceCompliance({
           )}
         </div>
       ) : activeSubTab === "attendance-calendar" ? (
-        <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm flex flex-col text-slate-800">
+        <div className="bg-white border border-slate-200 rounded-xl p-3.5 sm:p-6 shadow-sm flex flex-col text-slate-800">
           {/* Header & Filter */}
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-100 pb-4 mb-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3.5 mb-4">
             <div className="flex items-center gap-2">
-              <span className="text-sm font-black text-slate-800 tracking-wide uppercase font-mono">
+              <span className="text-xs sm:text-sm font-black text-slate-800 tracking-wide uppercase font-mono">
                 📅 Attendance Calendar: {monthsList[calendarMonth]} {calendarYear}
               </span>
             </div>
             {isOwner && (
-              <div className="flex flex-wrap gap-3 items-center">
+              <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 items-stretch sm:items-center w-full sm:w-auto">
                 <select
-                  className="bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs font-bold focus:outline-none focus:border-[#714B67] text-slate-800"
+                  className="bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 sm:py-2 text-xs font-bold focus:outline-none focus:border-[#714B67] text-slate-800 w-full sm:w-auto"
                   value={selectedCompany}
                   onChange={(e) => {
                     setSelectedCompany(e.target.value);
@@ -6179,7 +6206,7 @@ export function PerformanceCompliance({
                   ))}
                 </select>
                 <select
-                  className="bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs font-bold focus:outline-none focus:border-[#714B67] text-slate-800"
+                  className="bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 sm:py-2 text-xs font-bold focus:outline-none focus:border-[#714B67] text-slate-800 w-full sm:w-auto"
                   value={selectedUser}
                   onChange={(e) => setSelectedUser(e.target.value)}
                 >
@@ -6206,21 +6233,21 @@ export function PerformanceCompliance({
           </div>
 
           {/* Month Navigation */}
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center justify-between mb-4 gap-2">
             <button
               onClick={handlePrevMonth}
-              className="bg-slate-100 hover:bg-slate-200 text-slate-800 px-3 py-1.5 rounded-lg text-xs font-black transition-all"
+              className="bg-slate-100 hover:bg-slate-200 text-slate-800 px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-black transition-all shrink-0"
             >
-              ← Previous Month
+              ← Prev
             </button>
-            <span className="text-sm font-black text-[#714B67] font-mono">
+            <span className="text-xs sm:text-sm font-black text-[#714B67] font-mono text-center">
               {monthsList[calendarMonth]} {calendarYear}
             </span>
             <button
               onClick={handleNextMonth}
-              className="bg-slate-100 hover:bg-slate-200 text-slate-800 px-3 py-1.5 rounded-lg text-xs font-black transition-all"
+              className="bg-slate-100 hover:bg-slate-200 text-slate-800 px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-black transition-all shrink-0"
             >
-              Next Month →
+              Next →
             </button>
           </div>
 
@@ -6230,30 +6257,32 @@ export function PerformanceCompliance({
               <span className="text-xs font-semibold text-slate-500">Loading attendance calendar...</span>
             </div>
           ) : (
-            <>
-              {/* Weekday headers */}
-              <div className="grid grid-cols-7 gap-2 mb-2 text-center">
-                {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day, idx) => (
-                  <div
-                    key={day}
-                    className={`text-[9px] uppercase font-black font-mono tracking-wider py-1.5 rounded-lg ${idx === 0 ? "text-rose-500 bg-rose-50" : "text-slate-500 bg-slate-50"
-                      }`}
-                  >
-                    {day}
-                  </div>
-                ))}
-              </div>
+            <div className="overflow-x-auto -mx-1 sm:mx-0">
+              <div className="min-w-[480px] sm:min-w-0">
+                {/* Weekday headers */}
+                <div className="grid grid-cols-7 gap-1.5 sm:gap-2 mb-2 text-center">
+                  {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day, idx) => (
+                    <div
+                      key={day}
+                      className={`text-[8px] sm:text-[9px] uppercase font-black font-mono tracking-wider py-1 sm:py-1.5 rounded-lg ${idx === 0 ? "text-rose-500 bg-rose-50" : "text-slate-500 bg-slate-50"
+                        }`}
+                    >
+                      {day}
+                    </div>
+                  ))}
+                </div>
 
-              {/* Month grid */}
-              <div className="grid grid-cols-7 gap-2">
-                {renderCalendarDays()}
+                {/* Month grid */}
+                <div className="grid grid-cols-7 gap-1.5 sm:gap-2">
+                  {renderCalendarDays()}
+                </div>
               </div>
-            </>
+            </div>
           )}
 
           {/* Legend */}
-          <div className="mt-6 border-t border-slate-100 pt-4 flex flex-wrap gap-4 items-center justify-between text-[10px] font-bold text-slate-500">
-            <div className="flex flex-wrap gap-4">
+          <div className="mt-6 border-t border-slate-100 pt-4 flex flex-col sm:flex-row gap-3 sm:gap-4 items-start sm:items-center justify-between text-[10px] font-bold text-slate-500">
+            <div className="flex flex-wrap gap-3 sm:gap-4">
               <div className="flex items-center gap-1.5">
                 <span className="w-3 h-3 rounded-full bg-emerald-100 border border-emerald-300 block"></span>
                 <span>Present</span>
@@ -6287,12 +6316,12 @@ export function PerformanceCompliance({
       ) : (
         <>
           {/* Filters Bar */}
-          <div className="flex justify-between items-center bg-white border border-[#E8E4DF] rounded-xl p-4 shadow-sm mb-6">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center bg-white border border-[#E8E4DF] rounded-xl p-3.5 sm:p-4 shadow-sm mb-6 gap-3">
             <span style={{ fontFamily: "'Playfair Display', serif" }} className="font-serif text-sm font-bold lowercase first-letter:uppercase text-[#1C1C1A]">
               📋 {activeSubTab === "sod" ? "Start of day (SOD) registry" : "End of day (EOD) registry"}
             </span>
 
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto justify-end">
               {/* Filter Reports Button */}
               <div className="relative">
                 <button
@@ -6301,7 +6330,7 @@ export function PerformanceCompliance({
                     setShowFilters(!showFilters);
                     setShowColumnPicker(false);
                   }}
-                  className={`flex items-center gap-2 border px-4 py-2 text-xs font-bold transition-all rounded-xl shadow-sm focus:outline-none ${showFilters
+                  className={`flex items-center gap-2 border px-3.5 py-2 text-xs font-bold transition-all rounded-xl shadow-sm focus:outline-none ${showFilters
                     ? "bg-[#C9A84C] border-[#C9A84C] text-[#FCFBF9]"
                     : "bg-[#FCFBF9] hover:bg-[#F5F2EC] border-[#E8E4DF] text-[#1C1C1A]"
                     }`}
@@ -6315,7 +6344,7 @@ export function PerformanceCompliance({
 
                 {/* Floating Filter Popover */}
                 {showFilters && (
-                  <div className="absolute right-0 mt-3 z-50 bg-[#FCFBF9] border border-[#E8E4DF] shadow-[0_25px_60px_-15px_rgba(0,0,0,0.15)] rounded-2xl p-5 w-[320px] space-y-4 text-left normal-case font-sans">
+                  <div className="absolute right-0 mt-3 z-50 bg-[#FCFBF9] border border-[#E8E4DF] shadow-[0_25px_60px_-15px_rgba(0,0,0,0.15)] rounded-2xl p-4 sm:p-5 w-[calc(100vw-32px)] sm:w-[320px] space-y-4 text-left normal-case font-sans">
                     <div className="flex justify-between items-center border-b border-[#E8E4DF] pb-2">
                       <span className="text-xs font-bold text-[#1C1C1A] tracking-wider uppercase font-mono">Filter Reports</span>
                       <button
@@ -6411,7 +6440,10 @@ export function PerformanceCompliance({
                           }}
                         >
                           <option value="overall">Overall Date Filter</option>
+                          <option value="today">Today</option>
+                          <option value="yesterday">Yesterday</option>
                           <option value="current-month">Current Month</option>
+                          <option value="last-month">Last Month</option>
                           <option value="custom">Custom Range</option>
                         </select>
                       </div>
@@ -6558,11 +6590,10 @@ export function PerformanceCompliance({
                         return (
                           <label
                             key={col.key}
-                            className={`flex items-center justify-between p-2 rounded-xl border text-xs cursor-pointer transition-all ${
-                              isChecked
+                            className={`flex items-center justify-between p-2 rounded-xl border text-xs cursor-pointer transition-all ${isChecked
                                 ? "bg-purple-50/70 border-purple-200 text-purple-950 font-bold"
                                 : "bg-white border-slate-200 text-slate-500 hover:bg-slate-50 font-medium"
-                            }`}
+                              }`}
                           >
                             <span className="flex items-center gap-2">
                               <input
@@ -6616,7 +6647,7 @@ export function PerformanceCompliance({
               </div>
             ) : (
               <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs border-collapse">
+                <table className="w-full text-left text-xs border-collapse min-w-[800px]">
                   <thead>
                     <tr className="border-b border-slate-200 bg-slate-50 text-slate-450 font-black uppercase font-mono tracking-wider">
                       {isOwner && <th className="py-3.5 px-4 text-left">Employee</th>}
@@ -6660,11 +6691,10 @@ export function PerformanceCompliance({
                         <React.Fragment key={rowKey}>
                           <tr
                             onClick={toggleRow}
-                            className={`hover:bg-slate-50/50 cursor-pointer transition-all ${
-                              isInactiveRow
+                            className={`hover:bg-slate-50/50 cursor-pointer transition-all ${isInactiveRow
                                 ? "bg-rose-50/70 border-l-2 border-l-rose-400"
                                 : isExpanded ? "bg-slate-50/30 font-bold" : ""
-                            }`}
+                              }`}
                           >
                             {isOwner && (
                               <td className="py-3.5 px-4">
@@ -7135,7 +7165,7 @@ export function LeaveRequestTab({ sessionUser, initialSearchFilter }: { sessionU
   const userRole = sessionUser?.role;
   const isManager = userRole === "Department Manager";
   const isHR = ["HR Head", "HR Executive"].includes(userRole);
-  const isOwnerOrDirector = userRole === "Owner" || userRole === "Director";
+  const isOwnerOrDirector = userRole === "Owner" || userRole === "Director" || String(userRole || "").toLowerCase().includes("owner");
 
   // Form states
   const [leaveType, setLeaveType] = useState("Casual Leave");

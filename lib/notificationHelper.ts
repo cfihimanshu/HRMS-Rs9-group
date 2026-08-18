@@ -47,13 +47,13 @@ export async function sendRequestNotification({
       }
     }
 
-    // Find Owners
-    const owners = await User.findAll({
-      where: {
-        role: "Owner",
-        status: "active"
-      }
+    // Find Owners (case-insensitive role check)
+    const allActiveUsers = await User.findAll({
+      where: { status: "active" },
+      attributes: ["id", "role"],
+      raw: true
     });
+    const owners = allActiveUsers.filter((u: any) => String(u.role || "").toLowerCase().includes("owner"));
 
     // Find Department Managers of applicant's department
     const managers: any[] = [];

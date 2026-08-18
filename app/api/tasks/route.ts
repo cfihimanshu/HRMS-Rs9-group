@@ -423,36 +423,54 @@ export async function GET(req: Request) {
     const filterDate = searchParams.get("date");
     const range = searchParams.get("range");
 
+    const formatLocalYYYYMMDD = (d: Date) => {
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, "0");
+      const day = String(d.getDate()).padStart(2, "0");
+      return `${y}-${m}-${day}`;
+    };
+
     let query: any = {};
     if (filterDate) {
-      const targetDate = new Date(filterDate);
-      targetDate.setUTCHours(0, 0, 0, 0);
-      const nextDay = new Date(targetDate);
-      nextDay.setDate(nextDay.getDate() + 1);
-      query.date = { [Op.gte]: targetDate, [Op.lt]: nextDay };
+      const targetDateStr = filterDate.substring(0, 10);
+      const startD = new Date(`${targetDateStr}T00:00:00`);
+      const endD = new Date(`${targetDateStr}T23:59:59.999`);
+      query[Op.or] = [
+        { date: targetDateStr },
+        { createdAt: { [Op.gte]: startD, [Op.lte]: endD } },
+        { scheduledAt: { [Op.gte]: startD, [Op.lte]: endD } }
+      ];
     } else if (range === "today") {
-      const targetDate = new Date();
-      targetDate.setHours(0, 0, 0, 0);
-      const nextDay = new Date(targetDate);
-      nextDay.setDate(nextDay.getDate() + 1);
-      query.date = { [Op.gte]: targetDate, [Op.lt]: nextDay };
+      const todayStr = formatLocalYYYYMMDD(new Date());
+      const startD = new Date(`${todayStr}T00:00:00`);
+      const endD = new Date(`${todayStr}T23:59:59.999`);
+      query[Op.or] = [
+        { date: todayStr },
+        { createdAt: { [Op.gte]: startD, [Op.lte]: endD } },
+        { scheduledAt: { [Op.gte]: startD, [Op.lte]: endD } }
+      ];
     } else if (range === "recent" || range === "3days") {
       const recentDate = new Date();
       recentDate.setDate(recentDate.getDate() - 3);
       recentDate.setHours(0, 0, 0, 0);
-      query.date = { [Op.gte]: recentDate };
+      query[Op.or] = [
+        { date: { [Op.gte]: formatLocalYYYYMMDD(recentDate) } },
+        { createdAt: { [Op.gte]: recentDate } }
+      ];
     }
 
-    // Owner sees all tasks.
-    // Managers (Department Manager or Reporting Manager) see their own tasks, tasks of their subordinates, and forwarded tasks.
-    // Employees see their own tasks and forwarded tasks.
-    if (userRole !== "Owner") {
+    // Owner & Director see all tasks across all departments/companies.
+    // Managers (Department Manager or Reporting Manager) see their own tasks, tasks of their subordinates, tasks of their department, and forwarded tasks.
+    const roleLower = userRole.toLowerCase();
+    const isTopAdmin = ["owner", "director"].includes(roleLower);
+
+    if (!isTopAdmin) {
       const managedUserIds = [userId];
       const loggedInProfile = await EmployeeProfile.findOne({ where: { user: userId } });
       const userName = session.user.name;
 
       const promises: Promise<any>[] = [];
-      if (userRole === "Department Manager" && loggedInProfile?.department) {
+      if ((roleLower.includes("manager") || roleLower.includes("head") || roleLower.includes("dsm")) && loggedInProfile?.department) {
         promises.push(
           EmployeeProfile.findAll({
             where: { department: loggedInProfile.department },
@@ -467,7 +485,12 @@ export async function GET(req: Request) {
       if (userName) {
         promises.push(
           EmployeeProfile.findAll({
-            where: { reportingManager: userName },
+            where: {
+              [Op.or]: [
+                { reportingManager: userName },
+                { reportingManager: { [Op.like]: `%${userName.trim()}%` } }
+              ]
+            },
             attributes: ["user"],
             raw: true
           })
@@ -491,6 +514,7 @@ export async function GET(req: Request) {
 
       query[Op.or] = [
         { employee: { [Op.in]: managedUserIds } },
+        { assignedBy: userId },
         { forwardedTo: userId }
       ];
     }
@@ -949,15 +973,49 @@ export async function PUT(req: Request) {
       task.timerStart = null;
     }
 
-    // Validation: To complete a task, progressNotes must be filled
+    // Mandatory Validation: To complete a task, BOTH Progress Notes AND Proof of Work attachment MUST be present!
     if (status === "Completed") {
-      const notesToCheck = progressNotes !== undefined ? progressNotes : task.progressNotes;
-      if (!notesToCheck || !notesToCheck.trim()) {
-        if (isOwnerOrAdmin) {
-          task.progressNotes = "Task completed by management";
-        } else {
-          return NextResponse.json({ success: false, error: "Please write Progress Notes before marking this task as Completed." }, { status: 400 });
+      const notesRaw = progressNotes !== undefined ? progressNotes : task.progressNotes;
+      const proofRaw = proofAttachment !== undefined ? proofAttachment : task.proofAttachment;
+
+      const isNotesPresent = (val: any): boolean => {
+        if (!val) return false;
+        const str = String(val).trim();
+        if (!str || str === "[]" || str === "{}") return false;
+        if (str.startsWith("[")) {
+          try {
+            const parsed = JSON.parse(str);
+            return Array.isArray(parsed) && parsed.length > 0 && parsed.some((n: any) => Boolean(n && (typeof n === "string" ? n.trim() : (n.note || n.text))));
+          } catch (e) {}
         }
+        return true;
+      };
+
+      const isProofPresent = (val: any): boolean => {
+        if (!val) return false;
+        const str = String(val).trim();
+        if (!str || str === "[]" || str === "{}") return false;
+        if (str.startsWith("[")) {
+          try {
+            const parsed = JSON.parse(str);
+            return Array.isArray(parsed) && parsed.length > 0 && parsed.some((p: any) => Boolean(p && (typeof p === "string" ? p.trim() : (p.url || p.src))));
+          } catch (e) {}
+        }
+        return true;
+      };
+
+      const hasNotes = isNotesPresent(notesRaw);
+      const hasProof = isProofPresent(proofRaw);
+
+      if (!hasNotes || !hasProof) {
+        const missingItems: string[] = [];
+        if (!hasNotes) missingItems.push("Progress Notes");
+        if (!hasProof) missingItems.push("Proof of Work (Attachment/Screenshot)");
+
+        return NextResponse.json({
+          success: false,
+          error: `Cannot mark task as Completed! Missing mandatory requirement(s): ${missingItems.join(" AND ")}. Please add Progress Notes AND upload Proof of Work before completing.`
+        }, { status: 400 });
       }
     }
 

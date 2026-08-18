@@ -1052,17 +1052,10 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
   // Get all unique roles of actually created users/employees across all companies
   const uniqueRoleNames = Array.from(new Set(employees.map((emp: any) => emp.role).filter(Boolean))).sort();
 
-  // Employees in the same company (for Department Manager dropdown, showing all departments of the company)
+  // Employees/Managers across all companies for Department Reporting Manager dropdown
   const deptEmployeesForManager = employees.filter((emp: any) => {
-    if ((emp.status || "").toLowerCase() === "inactive") return false;
-    let compMatch = true;
-    if (formData.companyId) {
-      let empComps: any[] = [];
-      if (Array.isArray(emp.companies)) empComps = emp.companies;
-      else if (typeof emp.companies === "string") { try { empComps = JSON.parse(emp.companies); } catch { empComps = []; } }
-      compMatch = empComps.some((c: any) => (typeof c === "string" ? c : c?.id?.toString()) === formData.companyId);
-    }
-    return compMatch;
+    const statusLower = (emp.status || "").toLowerCase();
+    return statusLower !== "inactive" && statusLower !== "archived";
   });
 
   // Manager-role users in selected company (for Assign Manager dropdown)
@@ -1118,16 +1111,10 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
   const editRolesList = getRolesForDept(editForm.department);
 
   const editDeptEmployees = employees.filter((emp: any) => {
-    if (emp.employeeProfile?.employeeId === editForm.employeeId) return false;
-
-    const currentCompanyId = editForm.companyId || (employees.find(e => e.employeeProfile?.employeeId === editForm.employeeId)?.employeeProfile?.companyId || "");
-    if (!currentCompanyId) return true;
-
-    let empComps: any[] = [];
-    if (Array.isArray(emp.companies)) empComps = emp.companies;
-    else if (typeof emp.companies === "string") { try { empComps = JSON.parse(emp.companies); } catch { empComps = []; } }
-
-    return empComps.some((c: any) => (typeof c === "string" ? c : c?.id?.toString()) === currentCompanyId);
+    const statusLower = (emp.status || "").toLowerCase();
+    if (statusLower === "inactive" || statusLower === "archived") return false;
+    if (emp.id === editForm.employeeId || emp.employeeProfile?.employeeId === editForm.employeeId) return false;
+    return true;
   });
 
   return (
@@ -1502,9 +1489,20 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
                             className={`w-full p-2.5 rounded-lg border text-sm font-bold focus:border-amber-500 focus:outline-none transition-all ${isDark ? "bg-gray-800 border-gray-700 text-white" : "bg-white border-slate-300 hover:border-amber-400"}`}
                           >
                             <option value="">— No direct dept. manager —</option>
-                            {deptEmployeesForManager.map((emp: any) => (
-                              <option key={emp.id} value={emp.name}>{emp.name} ({emp.role})</option>
-                            ))}
+                            {deptEmployeesForManager.map((emp: any) => {
+                              const companyName = emp.companyName || emp.companyCode || (companies.find((c: any) => {
+                                let empComps: any[] = [];
+                                if (Array.isArray(emp.companies)) empComps = emp.companies;
+                                else if (typeof emp.companies === "string") { try { empComps = JSON.parse(emp.companies); } catch {} }
+                                return empComps.some((comp: any) => (typeof comp === "string" ? comp : comp?.id?.toString()) === String(c.id));
+                              })?.name) || "";
+
+                              return (
+                                <option key={emp.id} value={emp.name}>
+                                  {emp.name} ({emp.role || "Employee"}){companyName ? ` — ${companyName}` : ""}
+                                </option>
+                              );
+                            })}
                           </select>
                         </div>
                       ) : (
@@ -2118,7 +2116,37 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
                     <label className="block text-xs font-bold mb-1.5 text-slate-700 dark:text-gray-300">Company *</label>
                     <select
                       value={editForm.companyId || (employees.find(emp => emp.id === editForm.employeeId)?.employeeProfile?.companyId || "")}
-                      onChange={(e) => setEditForm(prev => ({ ...prev, companyId: e.target.value }))}
+                      onChange={async (e) => {
+                        const selectedCompanyId = e.target.value;
+                        if (!selectedCompanyId) {
+                          setEditForm(prev => ({ ...prev, companyId: "" }));
+                          return;
+                        }
+                        const compObj = companies.find((c: any) => String(c.id) === String(selectedCompanyId));
+                        if (compObj) {
+                          try {
+                            const res = await fetch(`/api/employees/next-id?companyId=${selectedCompanyId}`);
+                            const data = await res.json();
+                            if (data.success && data.employeeId) {
+                              setEditForm(prev => ({ ...prev, companyId: selectedCompanyId, employeeId: data.employeeId }));
+                            } else {
+                              const codePrefix = compObj.code || compObj.name.substring(0, 3).toUpperCase();
+                              const currentId = editForm.employeeId || "";
+                              const seqMatch = currentId.match(/(\d+)$/);
+                              const seqStr = seqMatch ? seqMatch[1] : "001";
+                              setEditForm(prev => ({ ...prev, companyId: selectedCompanyId, employeeId: `${codePrefix}-${seqStr.padStart(3, "0")}` }));
+                            }
+                          } catch {
+                            const codePrefix = compObj.code || compObj.name.substring(0, 3).toUpperCase();
+                            const currentId = editForm.employeeId || "";
+                            const seqMatch = currentId.match(/(\d+)$/);
+                            const seqStr = seqMatch ? seqMatch[1] : "001";
+                            setEditForm(prev => ({ ...prev, companyId: selectedCompanyId, employeeId: `${codePrefix}-${seqStr.padStart(3, "0")}` }));
+                          }
+                        } else {
+                          setEditForm(prev => ({ ...prev, companyId: selectedCompanyId }));
+                        }
+                      }}
                       className={`w-full p-2.5 rounded-lg border text-sm focus:border-indigo-500 focus:outline-none ${isDark ? "bg-gray-800 border-gray-700 text-white" : "bg-slate-50 border-slate-200 font-semibold"}`}
                     >
                       <option value="">-- Assigned Company --</option>
@@ -2375,9 +2403,20 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
                       className={`w-full p-2.5 rounded-lg border text-sm focus:border-indigo-500 focus:outline-none ${isDark ? "bg-gray-800 border-gray-700 text-white" : "bg-slate-50 border-slate-200"}`}
                     >
                       <option value="">— No direct dept. manager —</option>
-                      {editDeptEmployees.map((emp: any) => (
-                        <option key={emp.id} value={emp.name}>{emp.name} ({emp.role})</option>
-                      ))}
+                      {editDeptEmployees.map((emp: any) => {
+                        const companyName = emp.companyName || emp.companyCode || (companies.find((c: any) => {
+                          let empComps: any[] = [];
+                          if (Array.isArray(emp.companies)) empComps = emp.companies;
+                          else if (typeof emp.companies === "string") { try { empComps = JSON.parse(emp.companies); } catch {} }
+                          return empComps.some((comp: any) => (typeof comp === "string" ? comp : comp?.id?.toString()) === String(c.id));
+                        })?.name) || "";
+
+                        return (
+                          <option key={emp.id} value={emp.name}>
+                            {emp.name} ({emp.role || "Employee"}){companyName ? ` — ${companyName}` : ""}
+                          </option>
+                        );
+                      })}
                     </select>
                   </div>
 

@@ -97,7 +97,7 @@ export function HiringApproval({
   };
 
   const isHR = userRole === "HR Head" || userRole === "HR Executive" || userRole === "HR";
-  const isAllowedRequisition = userRole === "Owner" || userRole === "Director" || userRole === "HR Head" || userRole === "Department Manager";
+  const isAllowedRequisition = userRole === "Owner" || userRole === "Director" || userRole === "HR Head" || userRole === "Department Manager" || String(userRole || "").toLowerCase().includes("owner");
   const hrVisibleStatuses = ["Pending HR Sourcing Review", "Approved — Pending HR Post", "Job Posted"];
   const visibleRequisitions = isHR
     ? requisitions.filter((req) => hrVisibleStatuses.includes(req.status))
@@ -209,11 +209,10 @@ export function HiringApproval({
                   setActiveTab(s.tabId);
                 }
               }}
-              className={`p-4 rounded-xl shadow-xs transition-all border cursor-pointer select-none group hover:scale-[1.02] hover:shadow-md ${
-                isSelected
+              className={`p-4 rounded-xl shadow-xs transition-all border cursor-pointer select-none group hover:scale-[1.02] hover:shadow-md ${isSelected
                   ? `bg-${s.color}-500/25 border-${s.color}-500 ring-2 ring-${s.color}-500/50 scale-[1.02]`
                   : `bg-${s.color}-500/10 border-${s.color}-500/20 hover:border-${s.color}-500/50`
-              } ${isLocked ? "opacity-50 cursor-not-allowed" : ""}`}
+                } ${isLocked ? "opacity-50 cursor-not-allowed" : ""}`}
             >
               <div className="flex items-center justify-between">
                 <div className={`text-[9px] font-black uppercase text-${s.color}-600 tracking-widest font-mono`}>{s.label}</div>
@@ -2960,7 +2959,7 @@ export function InterviewsQueue({ triggerToast }: { triggerToast: (msg: string) 
 
   const filteredInterviews = interviews.filter((item) => {
     if (!item) return false;
-    
+
     // If Custom Date is selected, filter by date range
     if (statusFilter === "CustomDate") {
       if (item.scheduleTime) {
@@ -3234,7 +3233,7 @@ export function InterviewsQueue({ triggerToast }: { triggerToast: (msg: string) 
             <div className="flex flex-col gap-4 pb-2 border-b border-slate-100">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                 <h3 className="text-xs font-black uppercase text-slate-400 tracking-wider font-mono">Scheduled Assessment Feed</h3>
-                
+
                 <div className="flex items-center gap-2 flex-wrap">
                   {/* Reset Filters Action */}
                   {(statusFilter !== "All" || startDateFilter || endDateFilter) && (
@@ -3256,11 +3255,10 @@ export function InterviewsQueue({ triggerToast }: { triggerToast: (msg: string) 
                     <button
                       type="button"
                       onClick={() => setShowDropdown(!showDropdown)}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-black border transition-all flex items-center gap-1.5 shadow-sm active:scale-95 ${
-                        showDropdown || (statusFilter !== "All")
+                      className={`px-3 py-1.5 rounded-lg text-xs font-black border transition-all flex items-center gap-1.5 shadow-sm active:scale-95 ${showDropdown || (statusFilter !== "All")
                           ? "bg-[#714B67] text-white border-[#714B67]"
                           : "bg-white text-slate-700 border-slate-250 hover:bg-slate-50"
-                      }`}
+                        }`}
                     >
                       <Filter className="w-3.5 h-3.5" /> Filter{statusFilter !== "All" ? `: ${statusFilter === "CustomDate" ? "Custom Date" : statusFilter}` : ""}
                     </button>
@@ -3289,9 +3287,8 @@ export function InterviewsQueue({ triggerToast }: { triggerToast: (msg: string) 
                                   setEndDateFilter("");
                                 }
                               }}
-                              className={`w-full text-left px-3 py-2 hover:bg-slate-50 transition-colors ${
-                                statusFilter === opt.value ? "text-[#714B67] bg-[#714B67]/5 font-black" : ""
-                              }`}
+                              className={`w-full text-left px-3 py-2 hover:bg-slate-50 transition-colors ${statusFilter === opt.value ? "text-[#714B67] bg-[#714B67]/5 font-black" : ""
+                                }`}
                             >
                               {opt.label}
                             </button>
@@ -3434,8 +3431,7 @@ export function InterviewsQueue({ triggerToast }: { triggerToast: (msg: string) 
                               {formatInterviewTime(item.scheduleTime)}
                             </td>
                             <td className="py-3 px-2">
-                              <span className={`text-[9px] font-bold px-2 py-0.5 rounded border ${
-                                item.status === "Selected" || item.status === "Hired"
+                              <span className={`text-[9px] font-bold px-2 py-0.5 rounded border ${item.status === "Selected" || item.status === "Hired"
                                   ? "bg-emerald-50 border-emerald-250 text-emerald-600 font-bold"
                                   : item.status === "Pending"
                                     ? "bg-amber-50 border-amber-250 text-amber-600"

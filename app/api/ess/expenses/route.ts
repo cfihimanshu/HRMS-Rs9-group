@@ -24,10 +24,13 @@ export async function GET(request: Request) {
     await sequelize.authenticate();
     await Expense.sync();
 
+    const roleLower = String(userRole || "").toLowerCase();
+    const isOwner = roleLower.includes("owner");
+
     const { getAuthorizedApplicantIdsForApprover } = await import("@/lib/approvalRouting");
     let whereClause: any = {};
     const { isGeneralApprover, overrideApplicantIds } = await getAuthorizedApplicantIdsForApprover("expense_claims", userId, userRole);
-    if (isGeneralApprover) {
+    if (isOwner || isGeneralApprover) {
       whereClause = {};
     } else if (overrideApplicantIds.length > 0) {
       whereClause = {

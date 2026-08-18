@@ -8,6 +8,8 @@ import TaskLog from "@/models/sequelize/TaskLog";
 import User from "@/models/sequelize/User";
 import { Op } from "sequelize";
 
+import EmployeeProfile from "@/models/sequelize/EmployeeProfile";
+
 // GET: Fetch BDA leads with optional filtering
 export async function GET(req: Request) {
   try {
@@ -22,6 +24,7 @@ export async function GET(req: Request) {
 
     await sequelize.authenticate();
     await BdaLead.sync({ alter: true }).catch(() => {});
+    await EmployeeProfile.sync({ alter: true }).catch(() => {});
 
     const { searchParams } = new URL(req.url);
     const search = searchParams.get("search") || "";
@@ -30,14 +33,38 @@ export async function GET(req: Request) {
 
     const where: any = {};
 
-    // Role-based visibility
-    const isManagerial = ["owner", "director", "hr head", "hr executive", "department manager", "operation manager"].some(
+    // Role-based & Reporting Manager visibility
+    let isManagerial = ["owner", "director", "hr head", "hr executive", "department manager", "operation manager", "manager", "dsm", "head"].some(
       r => roleLower.includes(r)
-    );
+    ) || roleLower.includes("manager");
 
     if (!isManagerial) {
-      // BDAs / Regular staff only see leads assigned to them
-      where.assignedTo = userId;
+      // Check if current user is assigned as reportingManager to ANY employee in EmployeeProfile
+      const userName = (session.user as any).name;
+      if (userName) {
+        try {
+          const isRepMgr = await EmployeeProfile.findOne({
+            where: {
+              [Op.or]: [
+                { reportingManager: userName },
+                { reportingManager: { [Op.like]: `%${userName.trim()}%` } }
+              ]
+            },
+            raw: true
+          });
+          if (isRepMgr) {
+            isManagerial = true;
+          }
+        } catch (_) {}
+      }
+    }
+
+    if (!isManagerial) {
+      // BDAs / Regular staff see leads assigned to them OR created by them
+      where[Op.or] = [
+        { assignedTo: userId },
+        { assignedBy: userId }
+      ];
     } else if (assignedTo) {
       if (assignedTo === "unassigned") {
         where.assignedTo = { [Op.or]: [null, ""] };
@@ -63,7 +90,7 @@ export async function GET(req: Request) {
 
     const leads = await BdaLead.findAll({
       where,
-      order: [["id", "ASC"]],
+      order: [["id", "DESC"]],
     });
 
     // Auto-reformat IDs and recover converted services from TaskLogs history if lost
@@ -217,6 +244,22 @@ export async function POST(req: Request) {
       if (ph) batchPhoneSet.add(ph);
       if (emLower) batchEmailSet.add(emLower);
 
+      const creatorUserId = (session.user as any).id;
+      const creatorUserName = (session.user as any).name || "BDA User";
+      const creatorRole = (session.user as any).role || "Employee";
+      const isCreatorManagerial = ["owner", "director", "hr head", "hr executive", "department manager", "operation manager"].some(
+        r => (creatorRole || "").toLowerCase().includes(r)
+      );
+
+      let targetAssignedTo = item.assignedTo || null;
+      let targetAssignedToName = item.assignedToName || null;
+
+      // If no target specified and creator is BDA / non-managerial (or autoAssign requested), auto-assign to creator
+      if (!targetAssignedTo && (!isCreatorManagerial || item.autoAssignToCreator)) {
+        targetAssignedTo = creatorUserId;
+        targetAssignedToName = creatorUserName;
+      }
+
       const currentNum = baseNum + createdLeads.length + 1;
       const leadId = `BDALEAD-${String(currentNum).padStart(3, "0")}`;
 
@@ -227,16 +270,60 @@ export async function POST(req: Request) {
         email: em,
         companyName: compName,
         city: (item.city || item.location || "").trim(),
-        source: item.source || "Excel Import",
-        status: item.assignedTo ? "Assigned" : (item.status || "New"),
+        source: item.source || "Manual Add",
+        status: targetAssignedTo ? "Assigned" : (item.status || "New"),
         salesReason: (item.salesReason || item.reason || "").trim(),
-        assignedTo: item.assignedTo || null,
-        assignedToName: item.assignedToName || null,
-        assignedBy: item.assignedTo ? (session.user as any).id : null,
-        assignedAt: item.assignedTo ? new Date() : null,
+        assignedTo: targetAssignedTo || null,
+        assignedToName: targetAssignedToName || null,
+        assignedBy: creatorUserId,
+        assignedAt: targetAssignedTo ? new Date() : null,
         remarks: (item.remarks || item.notes || "").trim(),
         rawExtraJson: item.rawExtraJson ? (typeof item.rawExtraJson === "string" ? item.rawExtraJson : JSON.stringify(item.rawExtraJson)) : null,
       });
+
+      // If lead is assigned, auto-create TaskLog entry for target BDA
+      if (targetAssignedTo) {
+        try {
+          const taskDescription = [
+            `Call Mode: Outgoing Call`,
+            newLead.name ? `Person Name: ${newLead.name}` : "",
+            newLead.phone ? `Contact No: ${newLead.phone}` : "",
+            newLead.companyName ? `Company Name: ${newLead.companyName}` : "",
+            newLead.email ? `Email: ${newLead.email}` : "",
+            newLead.city ? `Location: ${newLead.city}` : "",
+            newLead.salesReason ? `Reason: ${newLead.salesReason}` : `Reason: Pitching`,
+            `Lead Status: ${newLead.status || "Assigned"}`,
+            `Lead Reference: ${newLead.leadId}`,
+            newLead.remarks ? `Remarks: ${newLead.remarks}` : ""
+          ].filter(Boolean).join("\n");
+
+          const taskId = await TaskLog.generateNextTaskId(targetAssignedTo);
+          await TaskLog.create({
+            id: taskId,
+            employee: targetAssignedTo,
+            assignedBy: creatorUserId,
+            date: new Date(),
+            taskTitle: "Sales",
+            taskType: "Call",
+            description: taskDescription,
+            status: "Pending",
+            scheduledAt: new Date(),
+            timerState: "Stopped",
+            timerStart: null,
+            elapsedSeconds: 0,
+            personName: newLead.name || null,
+            contactNo: newLead.phone || null,
+            companyName: newLead.companyName || null,
+            emailAddress: newLead.email || null,
+            visitLocation: newLead.city || null,
+            salesReason: newLead.salesReason || "Pitching",
+            callStatus: "Assigned",
+            leadStatus: newLead.status || "Assigned"
+          });
+        } catch (tErr) {
+          console.warn("Failed to auto-create TaskLog for new lead:", tErr);
+        }
+      }
 
       createdLeads.push(newLead);
     }
@@ -373,30 +460,39 @@ export async function PUT(req: Request) {
         if (remarks) {
           noteText += ` | Remarks: ${remarks}`;
         }
-
         for (const task of associatedTasks) {
-          // 1. Append Progress Note
-          let currentNotesList: any[] = [];
-          if (task.progressNotes) {
-            try {
-              const parsed = JSON.parse(task.progressNotes);
-              currentNotesList = Array.isArray(parsed) ? parsed : [{ id: 'legacy_' + Date.now(), note: task.progressNotes, createdAt: new Date().toISOString(), userName: "System" }];
-            } catch {
-              currentNotesList = [{ id: 'legacy_' + Date.now(), note: task.progressNotes, createdAt: new Date().toISOString(), userName: "System" }];
+          const prevLeadStatus = task.leadStatus || task.callStatus;
+          const isStatusChanged = status !== undefined && status !== prevLeadStatus;
+
+          // 1. Append Progress Note only if status actually changed or new remarks provided
+          if (isStatusChanged || remarks) {
+            let currentNotesList: any[] = [];
+            if (task.progressNotes) {
+              try {
+                const parsed = JSON.parse(task.progressNotes);
+                currentNotesList = Array.isArray(parsed) ? parsed : [{ id: 'legacy_' + Date.now(), note: task.progressNotes, createdAt: new Date().toISOString(), userName: "System" }];
+              } catch {
+                currentNotesList = [{ id: 'legacy_' + Date.now(), note: task.progressNotes, createdAt: new Date().toISOString(), userName: "System" }];
+              }
+            }
+
+            const lastNoteObj = currentNotesList.length > 0 ? currentNotesList[currentNotesList.length - 1] : null;
+            const lastNoteText = lastNoteObj ? (typeof lastNoteObj === 'string' ? lastNoteObj : lastNoteObj.note) : "";
+
+            // Avoid pushing duplicate consecutive note text
+            if (!lastNoteText || lastNoteText.trim() !== noteText.trim()) {
+              const newNoteObj = {
+                id: 'note_lead_' + Date.now() + '_' + Math.random().toString(36).substring(2, 5),
+                note: noteText,
+                createdAt: new Date().toISOString(),
+                userName: updaterName
+              };
+              currentNotesList.push(newNoteObj);
+              task.progressNotes = JSON.stringify(currentNotesList);
             }
           }
 
-          const newNoteObj = {
-            id: 'note_lead_' + Date.now() + '_' + Math.random().toString(36).substring(2, 5),
-            note: noteText,
-            createdAt: new Date().toISOString(),
-            userName: updaterName
-          };
-
-          currentNotesList.push(newNoteObj);
-          task.progressNotes = JSON.stringify(currentNotesList);
-
-          // 2. Attach Proof Attachments
+          // 2. Attach Proof Attachments with STRICT Deduplication
           if (attachmentsJson) {
             let existingAtts: any[] = [];
             if (task.proofAttachment) {
@@ -404,16 +500,47 @@ export async function PUT(req: Request) {
                 const parsedProof = JSON.parse(task.proofAttachment);
                 existingAtts = Array.isArray(parsedProof) ? parsedProof : [{ url: task.proofAttachment, name: "Attachment" }];
               } catch {
-                existingAtts = [{ url: task.proofAttachment, name: "Attachment" }];
+                existingAtts = task.proofAttachment ? [{ url: task.proofAttachment, name: "Attachment" }] : [];
               }
             }
+
+            let incomingAtts: any[] = [];
             try {
               const newAtts = typeof attachmentsJson === "string" ? JSON.parse(attachmentsJson) : attachmentsJson;
               if (Array.isArray(newAtts)) {
-                existingAtts = [...existingAtts, ...newAtts];
+                incomingAtts = newAtts;
+              } else if (newAtts && typeof newAtts === "object") {
+                incomingAtts = [newAtts];
               }
             } catch {}
-            task.proofAttachment = JSON.stringify(existingAtts);
+
+            // Deduplicate attachments by url or name
+            const attMap = new Map<string, any>();
+            const addAttachmentToMap = (a: any) => {
+              if (!a) return;
+              const url = typeof a === "string" ? a : (a.url || a.src || "");
+              const name = typeof a === "string" ? "Attachment" : (a.name || "Attachment");
+              const key = (url || name || JSON.stringify(a)).toString().trim();
+              if (!key) return;
+
+              const itemObj = typeof a === "string" ? { name: "Attachment", url: a } : a;
+
+              if (attMap.has(key)) {
+                const existing = attMap.get(key);
+                const existingName = typeof existing === "string" ? "Attachment" : (existing?.name || "Attachment");
+                if (existingName === "Attachment" && name !== "Attachment") {
+                  attMap.set(key, itemObj);
+                }
+              } else {
+                attMap.set(key, itemObj);
+              }
+            };
+
+            existingAtts.forEach(addAttachmentToMap);
+            incomingAtts.forEach(addAttachmentToMap);
+
+            const mergedAtts = Array.from(attMap.values());
+            task.proofAttachment = mergedAtts.length > 0 ? JSON.stringify(mergedAtts) : null;
           }
 
           // 3. Update task lead info fields & dynamic lead status
@@ -428,18 +555,9 @@ export async function PUT(req: Request) {
             task.callStatus = lead.status;
             task.leadStatus = lead.status;
 
-            // Automatically sync task execution status (Pending / In Progress / Completed)
-            if (lead.status === "Converted" || lead.status === "Lost") {
-              task.status = "Completed";
-              if (task.timerState === "Running") {
-                task.timerState = "Stopped";
-              }
-            } else if (lead.status === "In Progress" || lead.status === "Qualified") {
-              if (task.status === "Pending") {
-                task.status = "In Progress";
-              }
-            } else if (lead.status === "Assigned") {
-              if (!task.status) task.status = "Pending";
+            // Sync task lead status - NEVER auto-complete task automatically; keep task in progress so user can mark complete manually
+            if (task.status === "Pending" || !task.status) {
+              task.status = "In Progress";
             }
 
             // Sync description text if it has a Status: or Lead Status: line

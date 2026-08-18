@@ -655,9 +655,23 @@ export async function GET(req: Request) {
 
     const getFormattedDateKey = (raw: any) => {
       if (!raw) return null;
-      if (raw instanceof Date) return raw.toISOString().substring(0, 10);
+      if (raw instanceof Date) {
+        const y = raw.getFullYear();
+        const m = String(raw.getMonth() + 1).padStart(2, "0");
+        const day = String(raw.getDate()).padStart(2, "0");
+        return `${y}-${m}-${day}`;
+      }
       const str = String(raw).trim();
-      if (str.includes("T")) return str.substring(0, 10);
+      if (str.includes("T")) {
+        const parsed = new Date(str);
+        if (!isNaN(parsed.getTime())) {
+          const y = parsed.getFullYear();
+          const m = String(parsed.getMonth() + 1).padStart(2, "0");
+          const day = String(parsed.getDate()).padStart(2, "0");
+          return `${y}-${m}-${day}`;
+        }
+        return str.substring(0, 10);
+      }
       const parsed = new Date(str);
       if (!isNaN(parsed.getTime())) {
         const y = parsed.getFullYear();

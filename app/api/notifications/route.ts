@@ -15,13 +15,6 @@ export async function GET(req: Request) {
 
     const userId = (session.user as any).id;
 
-    try {
-      await sequelize.authenticate();
-      await Notification.sync();
-    } catch (syncErr: any) {
-      console.warn("Notification sync warning:", syncErr.message);
-    }
-
     let records: any[] = [];
     let unreadCount = 0;
     try {
@@ -35,7 +28,15 @@ export async function GET(req: Request) {
         where: { recipient: userId, read: false }
       });
     } catch (dbErr: any) {
-      console.warn("Notification query error:", dbErr.message);
+      console.warn("Notification query error, attempting sync fallback:", dbErr.message);
+      try {
+        await Notification.sync();
+        records = await Notification.findAll({
+          where: { recipient: userId },
+          order: [["createdAt", "DESC"]],
+          limit: 50,
+        });
+      } catch (fallbackErr) {}
     }
 
     return NextResponse.json({ success: true, data: records || [], unreadCount });
