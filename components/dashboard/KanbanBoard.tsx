@@ -692,24 +692,43 @@ export default function KanbanBoard({
     const task = tasks.find(t => t.id === taskId);
     if (!task) return;
 
-    // Guard: cannot complete without progressNotes and proofAttachment
+    // Strict Guard: Cannot complete without BOTH Progress Notes AND Proof of Work attachment
     if (newStatus === "Completed") {
-      let proofUrls: string[] = [];
-      if (task.proofAttachment) {
-        if (task.proofAttachment.startsWith('[') && task.proofAttachment.endsWith(']')) {
+      const isNotesPresent = (val: any): boolean => {
+        if (!val) return false;
+        const str = String(val).trim();
+        if (!str || str === "[]" || str === "{}") return false;
+        if (str.startsWith("[")) {
           try {
-            proofUrls = JSON.parse(task.proofAttachment);
-          } catch (_) {
-            proofUrls = [task.proofAttachment];
-          }
-        } else {
-          proofUrls = task.proofAttachment.split(',').map((u: string) => u.trim()).filter(Boolean);
+            const parsed = JSON.parse(str);
+            return Array.isArray(parsed) && parsed.length > 0 && parsed.some((n: any) => Boolean(n && (typeof n === "string" ? n.trim() : (n.note || n.text))));
+          } catch (e) {}
         }
-      }
-      const hasProof = proofUrls.length > 0;
+        return true;
+      };
 
-      if (!task.progressNotes?.trim() || !hasProof) {
-        alert("To complete this task, you must provide Progress Notes AND upload Proof of Work (Screenshot/Photo). Please open the task to do this.");
+      const isProofPresent = (val: any): boolean => {
+        if (!val) return false;
+        const str = String(val).trim();
+        if (!str || str === "[]" || str === "{}") return false;
+        if (str.startsWith("[")) {
+          try {
+            const parsed = JSON.parse(str);
+            return Array.isArray(parsed) && parsed.length > 0 && parsed.some((p: any) => Boolean(p && (typeof p === "string" ? p.trim() : (p.url || p.src))));
+          } catch (e) {}
+        }
+        return true;
+      };
+
+      const hasNotes = isNotesPresent(task.progressNotes);
+      const hasProof = isProofPresent(task.proofAttachment);
+
+      if (!hasNotes || !hasProof) {
+        const missingItems: string[] = [];
+        if (!hasNotes) missingItems.push("Progress Notes");
+        if (!hasProof) missingItems.push("Proof of Work (Attachment/Screenshot)");
+
+        alert(`⚠️ Cannot mark task as Completed!\n\nMissing requirement(s): ${missingItems.join(" AND ")}.\n\nPlease open the task, write a Progress Note AND upload Proof of Work before marking as Completed.`);
         openTask(task);
         return;
       }
@@ -823,24 +842,31 @@ export default function KanbanBoard({
   const getLiveElapsed = (task: Task): number => {
     if (!task) return 0;
 
-    const baseSeconds = Number(task.elapsedSeconds) || 0;
-
+    // Completed Task: Display total time duration taken from creation to completion
     if (task.status === "Completed") {
-      return Math.max(0, baseSeconds);
+      let completedElapsed = Number(task.elapsedSeconds) || 0;
+      if (completedElapsed <= 0) {
+        const createMs = new Date(task.createdAt || task.date).getTime();
+        const endMs = (task as any).completedAt
+          ? new Date((task as any).completedAt).getTime()
+          : (task.updatedAt ? new Date(task.updatedAt).getTime() : Date.now());
+        if (!isNaN(createMs) && createMs > 0 && endMs > createMs) {
+          completedElapsed = Math.floor((endMs - createMs) / 1000);
+        }
+      }
+      return Math.max(0, completedElapsed);
     }
 
+    // Active Task (Pending / In Progress): Live timer runs continuously from creation timestamp
     const nowMs = Date.now();
-    const refTimeStr = task.updatedAt || task.createdAt || task.date;
-    const refMs = refTimeStr ? new Date(refTimeStr).getTime() : nowMs;
-    
-    let liveDiff = 0;
-    if (!isNaN(refMs) && refMs > 0 && refMs <= nowMs) {
-      const diff = Math.floor((nowMs - refMs) / 1000);
-      if (diff <= 86400) {
-        liveDiff = Math.max(0, diff);
-      }
+    const createTimeStr = task.createdAt || task.date || task.updatedAt;
+    const createMs = createTimeStr ? new Date(createTimeStr).getTime() : nowMs;
+
+    if (!isNaN(createMs) && createMs > 0 && createMs <= nowMs) {
+      return Math.max(0, Math.floor((nowMs - createMs) / 1000));
     }
-    return baseSeconds + liveDiff;
+
+    return Math.max(0, Number(task.elapsedSeconds) || 0);
   };
 
   const timerAction = async (task: Task, action: "start" | "pause" | "stop") => {
@@ -1297,6 +1323,7 @@ export default function KanbanBoard({
 
   const [filterUser, setFilterUser] = useState(initialUserFilter || "All");
   const [filterDate, setFilterDate] = useState(initialDateFilter || "");
+  const [datePreset, setDatePreset] = useState<string>(initialDateFilter ? "custom" : "all");
   const [searchQuery, setSearchQuery] = useState(initialSearchFilter || "");
 
   useEffect(() => {
@@ -1306,12 +1333,48 @@ export default function KanbanBoard({
   }, [initialUserFilter]);
 
   useEffect(() => {
-    setFilterDate(initialDateFilter || "");
+    if (initialDateFilter) {
+      setFilterDate(initialDateFilter);
+      setDatePreset("custom");
+      setStartDate(initialDateFilter);
+      setEndDate(initialDateFilter);
+    }
   }, [initialDateFilter]);
 
   useEffect(() => {
     setSearchQuery(initialSearchFilter || "");
   }, [initialSearchFilter]);
+
+  const formatLocalYYYYMMDD = (d: Date) => {
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  };
+
+  const handleDatePresetChange = (preset: string) => {
+    setDatePreset(preset);
+    const now = new Date();
+    if (preset === "month") {
+      const firstDay = formatLocalYYYYMMDD(new Date(now.getFullYear(), now.getMonth(), 1));
+      const lastDay = formatLocalYYYYMMDD(new Date(now.getFullYear(), now.getMonth() + 1, 0));
+      setStartDate(firstDay);
+      setEndDate(lastDay);
+      setFilterDate("");
+    } else if (preset === "last_month") {
+      const firstDay = formatLocalYYYYMMDD(new Date(now.getFullYear(), now.getMonth() - 1, 1));
+      const lastDay = formatLocalYYYYMMDD(new Date(now.getFullYear(), now.getMonth(), 0));
+      setStartDate(firstDay);
+      setEndDate(lastDay);
+      setFilterDate("");
+    } else if (preset === "all") {
+      setStartDate("");
+      setEndDate("");
+      setFilterDate("");
+    } else if (preset === "custom") {
+      setFilterDate("");
+    }
+  };
 
   const uniqueUsers = Array.from(new Set(tasks.map(t => (t.employee as any)?.name).filter(Boolean)));
 
@@ -1321,16 +1384,27 @@ export default function KanbanBoard({
     let matchUser = filterUser === "All" || tEmpName === selUser;
 
     let matchDate = true;
-    if (filterDate) {
-      const taskDate = t.date ? new Date(t.date) : (t.createdAt ? new Date(t.createdAt) : null);
-      if (taskDate) {
-        // adjust to local date string matching yyyy-mm-dd
+    const rawTaskDate = t.scheduledAt || t.date || t.createdAt;
+    if (rawTaskDate) {
+      const taskDate = new Date(rawTaskDate);
+      if (!isNaN(taskDate.getTime())) {
         const offset = taskDate.getTimezoneOffset() * 60000;
-        const localDate = new Date(taskDate.getTime() - offset).toISOString().split("T")[0];
-        if (localDate !== filterDate) matchDate = false;
-      } else {
+        const localDateStr = new Date(taskDate.getTime() - offset).toISOString().split("T")[0];
+
+        if (datePreset === "custom" || startDate || endDate) {
+          if (startDate && localDateStr < startDate) matchDate = false;
+          if (endDate && localDateStr > endDate) matchDate = false;
+        } else if (datePreset === "month" || datePreset === "last_month") {
+          if (startDate && localDateStr < startDate) matchDate = false;
+          if (endDate && localDateStr > endDate) matchDate = false;
+        } else if (filterDate) {
+          if (localDateStr !== filterDate) matchDate = false;
+        }
+      } else if (filterDate || startDate || endDate || datePreset !== "all") {
         matchDate = false;
       }
+    } else if (filterDate || startDate || endDate || datePreset !== "all") {
+      matchDate = false;
     }
 
     let matchQuery = true;
@@ -1860,21 +1934,53 @@ export default function KanbanBoard({
               ))}
             </select>
           )}
-          <input
-            type="date"
-            className="bg-white border border-slate-200 text-slate-700 text-[10px] font-black uppercase tracking-wider rounded-lg px-3 py-2 focus:outline-none focus:border-[#714B67] shadow-sm cursor-pointer"
-            value={filterDate}
-            onChange={e => setFilterDate(e.target.value)}
-            title="Filter by Date"
-          />
-          {filterDate && (
-            <button
-              onClick={() => setFilterDate("")}
-              className="text-[10px] text-slate-400 hover:text-slate-600 font-bold uppercase tracking-wider -ml-1"
+          {/* Date Range Preset Selector */}
+          <div className="flex items-center gap-1.5 bg-white border border-slate-200 rounded-lg p-1 shadow-sm">
+            <Calendar className="w-3.5 h-3.5 text-[#714B67] ml-1.5 shrink-0" />
+            <select
+              className="bg-transparent text-slate-700 text-[10px] font-black uppercase tracking-wider focus:outline-none cursor-pointer pr-1"
+              value={datePreset}
+              onChange={e => handleDatePresetChange(e.target.value)}
+              title="Filter tasks by date range"
             >
-              Clear
-            </button>
-          )}
+              <option value="all">All Time</option>
+              <option value="month">Current Month</option>
+              <option value="last_month">Last Month</option>
+              <option value="custom">Custom Range</option>
+            </select>
+
+            {/* Custom Range Inputs if custom selected */}
+            {datePreset === "custom" && (
+              <div className="flex items-center gap-1 border-l border-slate-200 pl-1.5 ml-0.5">
+                <input
+                  type="date"
+                  className="text-[10px] font-bold text-slate-700 border border-slate-200 rounded px-1.5 py-0.5 focus:outline-none focus:border-[#714B67]"
+                  value={startDate}
+                  onChange={e => setStartDate(e.target.value)}
+                  title="From Date"
+                />
+                <span className="text-[9px] font-bold text-slate-400">to</span>
+                <input
+                  type="date"
+                  className="text-[10px] font-bold text-slate-700 border border-slate-200 rounded px-1.5 py-0.5 focus:outline-none focus:border-[#714B67]"
+                  value={endDate}
+                  onChange={e => setEndDate(e.target.value)}
+                  title="To Date"
+                />
+              </div>
+            )}
+
+            {datePreset !== "all" && (
+              <button
+                type="button"
+                onClick={() => handleDatePresetChange("all")}
+                className="text-[10px] text-slate-400 hover:text-rose-600 font-bold uppercase tracking-wider px-1 cursor-pointer"
+                title="Reset Date Filter"
+              >
+                ✕
+              </button>
+            )}
+          </div>
           <div className="flex bg-slate-100 rounded-lg p-1 shadow-sm border border-slate-200">
             <button
               onClick={() => setViewMode("kanban")}

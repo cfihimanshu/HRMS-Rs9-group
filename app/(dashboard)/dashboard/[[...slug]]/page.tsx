@@ -79,6 +79,12 @@ export default function UnifiedEnterpriseDashboard() {
   const rawRole = (session?.user as any)?.role || "Employee";
   const userRole = normalizeRole(rawRole);
 
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   // Active navigation tab matching hr.html panel toggles
   const [activeTab, setActiveTab] = useState<string>(() => routeParams?.slug?.[0] || "dashboard");
   const [businessLeadsFilter, setBusinessLeadsFilter] = useState<string>("All");
@@ -1108,7 +1114,7 @@ export default function UnifiedEnterpriseDashboard() {
     }
   };
 
-  if (status === "loading" || loading) {
+  if (!mounted || status === "loading" || loading) {
     return (
       <div className="min-h-screen bg-[#FCFBF9] flex flex-col justify-center items-center select-none overflow-hidden relative">
         {/* Decorative Background */}

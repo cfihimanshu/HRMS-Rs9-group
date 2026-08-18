@@ -208,7 +208,7 @@ function CalendarDatePicker({
           <div className="grid grid-cols-7 gap-1 text-center text-xs">
             {daysGrid.map((day, idx) => {
               if (day === null) return <div key={`empty-${idx}`} />;
-              
+
               const isSelected = selDay === day && selMonth === activeMonth && selYear === activeYear;
               const isToday = new Date().getDate() === day && new Date().getMonth() === activeMonth && new Date().getFullYear() === activeYear;
 
@@ -217,13 +217,12 @@ function CalendarDatePicker({
                   key={`day-${day}`}
                   type="button"
                   onClick={() => handleSelectDay(day)}
-                  className={`py-1.5 rounded-lg font-bold transition-all ${
-                    isSelected
+                  className={`py-1.5 rounded-lg font-bold transition-all ${isSelected
                       ? "bg-indigo-600 text-white shadow-sm shadow-indigo-600/20"
                       : isToday
-                      ? "bg-indigo-50 text-indigo-700 border border-indigo-200"
-                      : "hover:bg-slate-100 text-slate-600"
-                  }`}
+                        ? "bg-indigo-50 text-indigo-700 border border-indigo-200"
+                        : "hover:bg-slate-100 text-slate-600"
+                    }`}
                 >
                   {day}
                 </button>
@@ -810,9 +809,9 @@ export default function NoticeBoardView({
             if (uploadResult.success && uploadResult.url) {
               const fileType = file.type.startsWith("image/") ? "image"
                 : file.type === "application/pdf" ? "pdf"
-                : file.type.includes("sheet") || file.type.includes("excel") ? "excel"
-                : file.type.startsWith("audio/") || file.type.startsWith("video/") ? "recording"
-                : "file";
+                  : file.type.includes("sheet") || file.type.includes("excel") ? "excel"
+                    : file.type.startsWith("audio/") || file.type.startsWith("video/") ? "recording"
+                      : "file";
               allAttachments.push({ name: file.name, url: uploadResult.url, type: fileType });
             } else {
               triggerToast(`Warning: Could not upload "${file.name}". Continuing without it.`);
@@ -1062,7 +1061,7 @@ export default function NoticeBoardView({
           try {
             const parsed = JSON.parse(n.billingAttachments);
             if (Array.isArray(parsed)) return parsed.map((a: any) => a.url).join(", ");
-          } catch (_) {}
+          } catch (_) { }
           return "";
         }
       });
@@ -1265,11 +1264,11 @@ export default function NoticeBoardView({
       const typeRecord = noticeTypes.find(t => t.id?.toString() === n.noticeTypeId?.toString());
       const typeName = typeRecord ? typeRecord.name : (n.noticeType || "");
       const searchStr = `${bank?.bankName || ""} ${branch?.branchName || ""} ${typeName} ${n.broughtBy || ""} ${n.billNo || ""}`.toLowerCase();
-      
+
       if (searchQuery.trim() && !searchStr.includes(searchQuery.toLowerCase())) {
         return false;
       }
- 
+
       // 2. Excel Column Filters
       // Bank filter
       if (selectedFilters.bank?.length > 0) {
@@ -1383,7 +1382,7 @@ export default function NoticeBoardView({
           try {
             const parsed = JSON.parse(n.billingAttachments);
             hasAtt = Array.isArray(parsed) && parsed.length > 0;
-          } catch (_) {}
+          } catch (_) { }
         }
         const val = hasAtt ? "Has Attachments" : "No Attachments";
         if (!selectedFilters.billingAttachments.includes(val)) return false;
@@ -1393,14 +1392,14 @@ export default function NoticeBoardView({
         const billAmt = parseFloat(n.billAmount) || 0;
         const deduction = (parseFloat(n.tdsDeduction) || 0) + (parseFloat(n.gstDeduction) || 0) + (parseFloat(n.expenses) || 0);
         const grossProfit = billAmt - deduction;
-        
+
         let gpCat = "No Profit/Loss (= 0)";
         if (grossProfit > 0) gpCat = "Profit (> 0)";
         else if (grossProfit < 0) gpCat = "Loss (< 0)";
-        
+
         if (!selectedFilters.gp.includes(gpCat)) return false;
       }
- 
+
       return true;
     });
   }, [notices, searchQuery, selectedFilters, banksList, branchesList, noticeTypes]);
@@ -1482,8 +1481,8 @@ export default function NoticeBoardView({
                       disabled={!form.bankId}
                       placeholder={form.bankId ? "Search & Select Branch..." : "Select Bank First..."}
                       value={
-                        showBranchDropdown 
-                          ? branchSearch 
+                        showBranchDropdown
+                          ? branchSearch
                           : (branchesList.find(br => br.branchCode === form.branchId)?.branchName || "")
                       }
                       onFocus={() => {
@@ -1506,8 +1505,8 @@ export default function NoticeBoardView({
                   {showBranchDropdown && form.bankId && (
                     <div className="absolute left-0 right-0 mt-1 max-h-48 overflow-y-auto bg-white border border-slate-200 rounded-lg shadow-xl z-[9999] text-xs font-semibold text-slate-700 divide-y divide-slate-50">
                       {(() => {
-                        const searchFiltered = filteredBranches.filter(br => 
-                          !branchSearch.trim() || 
+                        const searchFiltered = filteredBranches.filter(br =>
+                          !branchSearch.trim() ||
                           br.branchName.toLowerCase().includes(branchSearch.toLowerCase()) ||
                           br.branchCode.toLowerCase().includes(branchSearch.toLowerCase())
                         );
@@ -1817,7 +1816,7 @@ export default function NoticeBoardView({
             <div className="flex flex-wrap items-center gap-2.5">
               <h3 className="font-serif text-base text-slate-800 flex items-center gap-2">
                 <FileText className="w-5 h-5 text-indigo-750" />
-                NOTICE TRACKING BOARD
+                Notice Tracking Board
               </h3>
               <span className="text-xs font-bold text-slate-600 bg-slate-100 border border-slate-200 px-3 py-1 rounded-xl">
                 Showing <strong className="text-indigo-700">{filteredNotices.length}</strong> of <strong className="text-slate-800">{notices.length}</strong> notices
@@ -2000,955 +1999,955 @@ export default function NoticeBoardView({
                   }
                 `}</style>
                 <table className="notice-tracking-table min-w-[2800px] w-full text-left border-collapse text-[11px] font-sans">
-                <thead>
-                  <tr className="bg-slate-50 border-b border-[#E8E4DF] text-[9px] uppercase tracking-wider text-slate-500 font-black sticky top-0 z-20 shadow-2xs">
-                    {visibleColumns.bankBranch && (
-                      <th className="px-3 py-2.5 relative sticky left-0 z-30 bg-slate-50 shadow-[2px_0_5px_rgba(0,0,0,0.05)]">
-                        <div className="flex items-center justify-between gap-1">
-                          <span>BANK/BRANCH</span>
-                          <button
-                            type="button"
-                            onClick={() => setActiveFilterKey(activeFilterKey === "bank" ? null : "bank")}
-                            className="p-0.5 rounded hover:bg-slate-200 transition-colors"
-                          >
-                            <Filter className={`w-3.5 h-3.5 ${selectedFilters.bank.length > 0 ? "text-indigo-650 fill-indigo-100" : "text-slate-450"}`} />
-                          </button>
-                        </div>
-                        {activeFilterKey === "bank" && (
-                          <HeaderFilter
-                            filterKey="bank"
-                            options={uniqueBanks}
-                            selectedValues={selectedFilters.bank}
-                            onChange={vals => setSelectedFilters(prev => ({ ...prev, bank: vals }))}
-                            onClose={() => setActiveFilterKey(null)}
-                          />
-                        )}
-                      </th>
-                    )}
-                    {visibleColumns.noticeType && (
-                      <th className="px-3 py-2.5 relative">
-                        <div className="flex items-center justify-between gap-1">
-                          <span>NOTICE TYPE</span>
-                          <button
-                            type="button"
-                            onClick={() => setActiveFilterKey(activeFilterKey === "noticeType" ? null : "noticeType")}
-                            className="p-0.5 rounded hover:bg-slate-200 transition-colors"
-                          >
-                            <Filter className={`w-3.5 h-3.5 ${selectedFilters.noticeType.length > 0 ? "text-indigo-650 fill-indigo-100" : "text-slate-450"}`} />
-                          </button>
-                        </div>
-                        {activeFilterKey === "noticeType" && (
-                          <HeaderFilter
-                            filterKey="noticeType"
-                            options={uniqueNoticeTypes}
-                            selectedValues={selectedFilters.noticeType}
-                            onChange={vals => setSelectedFilters(prev => ({ ...prev, noticeType: vals }))}
-                            onClose={() => setActiveFilterKey(null)}
-                          />
-                        )}
-                      </th>
-                    )}
-                    {visibleColumns.orderDate && (
-                      <th className="px-3 py-2.5 relative">
-                        <div className="flex items-center justify-between gap-1">
-                          <span>ORDER DATE</span>
-                          <button
-                            type="button"
-                            onClick={() => setActiveFilterKey(activeFilterKey === "orderDate" ? null : "orderDate")}
-                            className="p-0.5 rounded hover:bg-slate-200 transition-colors"
-                          >
-                            <Filter className={`w-3.5 h-3.5 ${selectedFilters.orderDate.length > 0 ? "text-indigo-650 fill-indigo-100" : "text-slate-450"}`} />
-                          </button>
-                        </div>
-                        {activeFilterKey === "orderDate" && (
-                          <HeaderFilter
-                            filterKey="orderDate"
-                            options={uniqueOrderDates}
-                            selectedValues={selectedFilters.orderDate}
-                            onChange={vals => setSelectedFilters(prev => ({ ...prev, orderDate: vals }))}
-                            onClose={() => setActiveFilterKey(null)}
-                          />
-                        )}
-                      </th>
-                    )}
-                    {visibleColumns.noticeDate && (
-                      <th className="px-3 py-2.5 relative">
-                        <div className="flex items-center justify-between gap-1">
-                          <span>NOTICE DATE</span>
-                          <button
-                            type="button"
-                            onClick={() => setActiveFilterKey(activeFilterKey === "noticeDate" ? null : "noticeDate")}
-                            className="p-0.5 rounded hover:bg-slate-200 transition-colors"
-                          >
-                            <Filter className={`w-3.5 h-3.5 ${selectedFilters.noticeDate.length > 0 ? "text-indigo-650 fill-indigo-100" : "text-slate-450"}`} />
-                          </button>
-                        </div>
-                        {activeFilterKey === "noticeDate" && (
-                          <HeaderFilter
-                            filterKey="noticeDate"
-                            options={uniqueNoticeDates}
-                            selectedValues={selectedFilters.noticeDate}
-                            onChange={vals => setSelectedFilters(prev => ({ ...prev, noticeDate: vals }))}
-                            onClose={() => setActiveFilterKey(null)}
-                          />
-                        )}
-                      </th>
-                    )}
-                    {visibleColumns.qty && (
-                      <th className="px-3 py-2.5 relative text-center">
-                        <div className="flex items-center justify-center gap-1">
-                          <span>QTY</span>
-                          <button
-                            type="button"
-                            onClick={() => setActiveFilterKey(activeFilterKey === "qty" ? null : "qty")}
-                            className="p-0.5 rounded hover:bg-slate-200 transition-colors"
-                          >
-                            <Filter className={`w-3.5 h-3.5 ${selectedFilters.qty.length > 0 ? "text-indigo-650 fill-indigo-100" : "text-slate-450"}`} />
-                          </button>
-                        </div>
-                        {activeFilterKey === "qty" && (
-                          <HeaderFilter
-                            filterKey="qty"
-                            options={uniqueQties}
-                            selectedValues={selectedFilters.qty}
-                            onChange={vals => setSelectedFilters(prev => ({ ...prev, qty: vals }))}
-                            onClose={() => setActiveFilterKey(null)}
-                          />
-                        )}
-                      </th>
-                    )}
-                    {visibleColumns.broughtBy && (
-                      <th className="px-3 py-2.5 relative">
-                        <div className="flex items-center justify-between gap-1">
-                          <span>BROUGHT BY</span>
-                          <button
-                            type="button"
-                            onClick={() => setActiveFilterKey(activeFilterKey === "broughtBy" ? null : "broughtBy")}
-                            className="p-0.5 rounded hover:bg-slate-200 transition-colors"
-                          >
-                            <Filter className={`w-3.5 h-3.5 ${selectedFilters.broughtBy.length > 0 ? "text-indigo-650 fill-indigo-100" : "text-slate-450"}`} />
-                          </button>
-                        </div>
-                        {activeFilterKey === "broughtBy" && (
-                          <HeaderFilter
-                            filterKey="broughtBy"
-                            options={uniqueBroughtBy}
-                            selectedValues={selectedFilters.broughtBy}
-                            onChange={vals => setSelectedFilters(prev => ({ ...prev, broughtBy: vals }))}
-                            onClose={() => setActiveFilterKey(null)}
-                          />
-                        )}
-                      </th>
-                    )}
-                    {visibleColumns.noOfPrint && (
-                      <th className="px-3 py-2.5 relative text-center">
-                        <div className="flex items-center justify-center gap-1">
-                          <span>NO. OF PRINT</span>
-                          <button
-                            type="button"
-                            onClick={() => setActiveFilterKey(activeFilterKey === "noOfPrint" ? null : "noOfPrint")}
-                            className="p-0.5 rounded hover:bg-slate-200 transition-colors"
-                          >
-                            <Filter className={`w-3.5 h-3.5 ${selectedFilters.noOfPrint.length > 0 ? "text-indigo-650 fill-indigo-100" : "text-slate-450"}`} />
-                          </button>
-                        </div>
-                        {activeFilterKey === "noOfPrint" && (
-                          <HeaderFilter
-                            filterKey="noOfPrint"
-                            options={uniqueNoOfPrint}
-                            selectedValues={selectedFilters.noOfPrint}
-                            onChange={vals => setSelectedFilters(prev => ({ ...prev, noOfPrint: vals }))}
-                            onClose={() => setActiveFilterKey(null)}
-                          />
-                        )}
-                      </th>
-                    )}
-                    {visibleColumns.printedBy && (
-                      <th className="px-3 py-2.5 relative">
-                        <div className="flex items-center justify-between gap-1">
-                          <span>PRINTED BY</span>
-                          <button
-                            type="button"
-                            onClick={() => setActiveFilterKey(activeFilterKey === "printedBy" ? null : "printedBy")}
-                            className="p-0.5 rounded hover:bg-slate-200 transition-colors"
-                          >
-                            <Filter className={`w-3.5 h-3.5 ${selectedFilters.printedBy.length > 0 ? "text-indigo-650 fill-indigo-100" : "text-slate-450"}`} />
-                          </button>
-                        </div>
-                        {activeFilterKey === "printedBy" && (
-                          <HeaderFilter
-                            filterKey="printedBy"
-                            options={uniquePrintedBy}
-                            selectedValues={selectedFilters.printedBy}
-                            onChange={vals => setSelectedFilters(prev => ({ ...prev, printedBy: vals }))}
-                            onClose={() => setActiveFilterKey(null)}
-                          />
-                        )}
-                      </th>
-                    )}
-                    {visibleColumns.noOfScan && (
-                      <th className="px-3 py-2.5 relative text-center">
-                        <div className="flex items-center justify-center gap-1">
-                          <span>NO. OF SCAN</span>
-                          <button
-                            type="button"
-                            onClick={() => setActiveFilterKey(activeFilterKey === "noOfScan" ? null : "noOfScan")}
-                            className="p-0.5 rounded hover:bg-slate-200 transition-colors"
-                          >
-                            <Filter className={`w-3.5 h-3.5 ${selectedFilters.noOfScan.length > 0 ? "text-indigo-650 fill-indigo-100" : "text-slate-450"}`} />
-                          </button>
-                        </div>
-                        {activeFilterKey === "noOfScan" && (
-                          <HeaderFilter
-                            filterKey="noOfScan"
-                            options={uniqueNoOfScan}
-                            selectedValues={selectedFilters.noOfScan}
-                            onChange={vals => setSelectedFilters(prev => ({ ...prev, noOfScan: vals }))}
-                            onClose={() => setActiveFilterKey(null)}
-                          />
-                        )}
-                      </th>
-                    )}
-                    {visibleColumns.scannedBy && (
-                      <th className="px-3 py-2.5 relative">
-                        <div className="flex items-center justify-between gap-1">
-                          <span>SCANNED BY</span>
-                          <button
-                            type="button"
-                            onClick={() => setActiveFilterKey(activeFilterKey === "scannedBy" ? null : "scannedBy")}
-                            className="p-0.5 rounded hover:bg-slate-200 transition-colors"
-                          >
-                            <Filter className={`w-3.5 h-3.5 ${selectedFilters.scannedBy.length > 0 ? "text-indigo-650 fill-indigo-100" : "text-slate-450"}`} />
-                          </button>
-                        </div>
-                        {activeFilterKey === "scannedBy" && (
-                          <HeaderFilter
-                            filterKey="scannedBy"
-                            options={uniqueScannedBy}
-                            selectedValues={selectedFilters.scannedBy}
-                            onChange={vals => setSelectedFilters(prev => ({ ...prev, scannedBy: vals }))}
-                            onClose={() => setActiveFilterKey(null)}
-                          />
-                        )}
-                      </th>
-                    )}
-                    {visibleColumns.noticeRenameBy && (
-                      <th className="px-3 py-2.5 relative">
-                        <div className="flex items-center justify-between gap-1">
-                          <span>RENAME BY</span>
-                          <button
-                            type="button"
-                            onClick={() => setActiveFilterKey(activeFilterKey === "noticeRenameBy" ? null : "noticeRenameBy")}
-                            className="p-0.5 rounded hover:bg-slate-200 transition-colors"
-                          >
-                            <Filter className={`w-3.5 h-3.5 ${selectedFilters.noticeRenameBy.length > 0 ? "text-indigo-650 fill-indigo-100" : "text-slate-450"}`} />
-                          </button>
-                        </div>
-                        {activeFilterKey === "noticeRenameBy" && (
-                          <HeaderFilter
-                            filterKey="noticeRenameBy"
-                            options={uniqueNoticeRenameBy}
-                            selectedValues={selectedFilters.noticeRenameBy}
-                            onChange={vals => setSelectedFilters(prev => ({ ...prev, noticeRenameBy: vals }))}
-                            onClose={() => setActiveFilterKey(null)}
-                          />
-                        )}
-                      </th>
-                    )}
-                    {visibleColumns.dispatchedBy && (
-                      <th className="px-3 py-2.5 relative">
-                        <div className="flex items-center justify-between gap-1">
-                          <span>DISPATCHED BY</span>
-                          <button
-                            type="button"
-                            onClick={() => setActiveFilterKey(activeFilterKey === "dispatchedBy" ? null : "dispatchedBy")}
-                            className="p-0.5 rounded hover:bg-slate-200 transition-colors"
-                          >
-                            <Filter className={`w-3.5 h-3.5 ${selectedFilters.dispatchedBy.length > 0 ? "text-indigo-650 fill-indigo-100" : "text-slate-450"}`} />
-                          </button>
-                        </div>
-                        {activeFilterKey === "dispatchedBy" && (
-                          <HeaderFilter
-                            filterKey="dispatchedBy"
-                            options={uniqueDispatchedBy}
-                            selectedValues={selectedFilters.dispatchedBy}
-                            onChange={vals => setSelectedFilters(prev => ({ ...prev, dispatchedBy: vals }))}
-                            onClose={() => setActiveFilterKey(null)}
-                          />
-                        )}
-                      </th>
-                    )}
-                    {visibleColumns.handover && (
-                      <th className="px-3 py-2.5 relative">
-                        <div className="flex items-center justify-between gap-1">
-                          <span>HANDOVER</span>
-                          <button
-                            type="button"
-                            onClick={() => setActiveFilterKey(activeFilterKey === "handover" ? null : "handover")}
-                            className="p-0.5 rounded hover:bg-slate-200 transition-colors"
-                          >
-                            <Filter className={`w-3.5 h-3.5 ${selectedFilters.handover.length > 0 ? "text-indigo-650 fill-indigo-100" : "text-slate-450"}`} />
-                          </button>
-                        </div>
-                        {activeFilterKey === "handover" && (
-                          <HeaderFilter
-                            filterKey="handover"
-                            options={uniqueHandover}
-                            selectedValues={selectedFilters.handover}
-                            onChange={vals => setSelectedFilters(prev => ({ ...prev, handover: vals }))}
-                            onClose={() => setActiveFilterKey(null)}
-                          />
-                        )}
-                      </th>
-                    )}
-                    {/* BILL DATE */}
-                    {visibleColumns.billDate && (
-                      <th className="px-3 py-2.5 relative">
-                        <div className="flex items-center justify-between gap-1">
-                          <span>BILL DATE</span>
-                          <button
-                            type="button"
-                            onClick={() => setActiveFilterKey(activeFilterKey === "billDate" ? null : "billDate")}
-                            className="p-0.5 rounded hover:bg-slate-200 transition-colors"
-                          >
-                            <Filter className={`w-3.5 h-3.5 ${selectedFilters.billDate.length > 0 ? "text-indigo-650 fill-indigo-100" : "text-slate-455"}`} />
-                          </button>
-                        </div>
-                        {activeFilterKey === "billDate" && (
-                          <HeaderFilter
-                            filterKey="billDate"
-                            options={uniqueBillDates}
-                            selectedValues={selectedFilters.billDate}
-                            onChange={vals => setSelectedFilters(prev => ({ ...prev, billDate: vals }))}
-                            onClose={() => setActiveFilterKey(null)}
-                          />
-                        )}
-                      </th>
-                    )}
+                  <thead>
+                    <tr className="bg-slate-50 border-b border-[#E8E4DF] text-[9px] uppercase tracking-wider text-slate-500 font-black sticky top-0 z-20 shadow-2xs">
+                      {visibleColumns.bankBranch && (
+                        <th className="px-3 py-2.5 relative sticky left-0 z-30 bg-slate-50 shadow-[2px_0_5px_rgba(0,0,0,0.05)]">
+                          <div className="flex items-center justify-between gap-1">
+                            <span>BANK/BRANCH</span>
+                            <button
+                              type="button"
+                              onClick={() => setActiveFilterKey(activeFilterKey === "bank" ? null : "bank")}
+                              className="p-0.5 rounded hover:bg-slate-200 transition-colors"
+                            >
+                              <Filter className={`w-3.5 h-3.5 ${selectedFilters.bank.length > 0 ? "text-indigo-650 fill-indigo-100" : "text-slate-450"}`} />
+                            </button>
+                          </div>
+                          {activeFilterKey === "bank" && (
+                            <HeaderFilter
+                              filterKey="bank"
+                              options={uniqueBanks}
+                              selectedValues={selectedFilters.bank}
+                              onChange={vals => setSelectedFilters(prev => ({ ...prev, bank: vals }))}
+                              onClose={() => setActiveFilterKey(null)}
+                            />
+                          )}
+                        </th>
+                      )}
+                      {visibleColumns.noticeType && (
+                        <th className="px-3 py-2.5 relative">
+                          <div className="flex items-center justify-between gap-1">
+                            <span>NOTICE TYPE</span>
+                            <button
+                              type="button"
+                              onClick={() => setActiveFilterKey(activeFilterKey === "noticeType" ? null : "noticeType")}
+                              className="p-0.5 rounded hover:bg-slate-200 transition-colors"
+                            >
+                              <Filter className={`w-3.5 h-3.5 ${selectedFilters.noticeType.length > 0 ? "text-indigo-650 fill-indigo-100" : "text-slate-450"}`} />
+                            </button>
+                          </div>
+                          {activeFilterKey === "noticeType" && (
+                            <HeaderFilter
+                              filterKey="noticeType"
+                              options={uniqueNoticeTypes}
+                              selectedValues={selectedFilters.noticeType}
+                              onChange={vals => setSelectedFilters(prev => ({ ...prev, noticeType: vals }))}
+                              onClose={() => setActiveFilterKey(null)}
+                            />
+                          )}
+                        </th>
+                      )}
+                      {visibleColumns.orderDate && (
+                        <th className="px-3 py-2.5 relative">
+                          <div className="flex items-center justify-between gap-1">
+                            <span>ORDER DATE</span>
+                            <button
+                              type="button"
+                              onClick={() => setActiveFilterKey(activeFilterKey === "orderDate" ? null : "orderDate")}
+                              className="p-0.5 rounded hover:bg-slate-200 transition-colors"
+                            >
+                              <Filter className={`w-3.5 h-3.5 ${selectedFilters.orderDate.length > 0 ? "text-indigo-650 fill-indigo-100" : "text-slate-450"}`} />
+                            </button>
+                          </div>
+                          {activeFilterKey === "orderDate" && (
+                            <HeaderFilter
+                              filterKey="orderDate"
+                              options={uniqueOrderDates}
+                              selectedValues={selectedFilters.orderDate}
+                              onChange={vals => setSelectedFilters(prev => ({ ...prev, orderDate: vals }))}
+                              onClose={() => setActiveFilterKey(null)}
+                            />
+                          )}
+                        </th>
+                      )}
+                      {visibleColumns.noticeDate && (
+                        <th className="px-3 py-2.5 relative">
+                          <div className="flex items-center justify-between gap-1">
+                            <span>NOTICE DATE</span>
+                            <button
+                              type="button"
+                              onClick={() => setActiveFilterKey(activeFilterKey === "noticeDate" ? null : "noticeDate")}
+                              className="p-0.5 rounded hover:bg-slate-200 transition-colors"
+                            >
+                              <Filter className={`w-3.5 h-3.5 ${selectedFilters.noticeDate.length > 0 ? "text-indigo-650 fill-indigo-100" : "text-slate-450"}`} />
+                            </button>
+                          </div>
+                          {activeFilterKey === "noticeDate" && (
+                            <HeaderFilter
+                              filterKey="noticeDate"
+                              options={uniqueNoticeDates}
+                              selectedValues={selectedFilters.noticeDate}
+                              onChange={vals => setSelectedFilters(prev => ({ ...prev, noticeDate: vals }))}
+                              onClose={() => setActiveFilterKey(null)}
+                            />
+                          )}
+                        </th>
+                      )}
+                      {visibleColumns.qty && (
+                        <th className="px-3 py-2.5 relative text-center">
+                          <div className="flex items-center justify-center gap-1">
+                            <span>QTY</span>
+                            <button
+                              type="button"
+                              onClick={() => setActiveFilterKey(activeFilterKey === "qty" ? null : "qty")}
+                              className="p-0.5 rounded hover:bg-slate-200 transition-colors"
+                            >
+                              <Filter className={`w-3.5 h-3.5 ${selectedFilters.qty.length > 0 ? "text-indigo-650 fill-indigo-100" : "text-slate-450"}`} />
+                            </button>
+                          </div>
+                          {activeFilterKey === "qty" && (
+                            <HeaderFilter
+                              filterKey="qty"
+                              options={uniqueQties}
+                              selectedValues={selectedFilters.qty}
+                              onChange={vals => setSelectedFilters(prev => ({ ...prev, qty: vals }))}
+                              onClose={() => setActiveFilterKey(null)}
+                            />
+                          )}
+                        </th>
+                      )}
+                      {visibleColumns.broughtBy && (
+                        <th className="px-3 py-2.5 relative">
+                          <div className="flex items-center justify-between gap-1">
+                            <span>BROUGHT BY</span>
+                            <button
+                              type="button"
+                              onClick={() => setActiveFilterKey(activeFilterKey === "broughtBy" ? null : "broughtBy")}
+                              className="p-0.5 rounded hover:bg-slate-200 transition-colors"
+                            >
+                              <Filter className={`w-3.5 h-3.5 ${selectedFilters.broughtBy.length > 0 ? "text-indigo-650 fill-indigo-100" : "text-slate-450"}`} />
+                            </button>
+                          </div>
+                          {activeFilterKey === "broughtBy" && (
+                            <HeaderFilter
+                              filterKey="broughtBy"
+                              options={uniqueBroughtBy}
+                              selectedValues={selectedFilters.broughtBy}
+                              onChange={vals => setSelectedFilters(prev => ({ ...prev, broughtBy: vals }))}
+                              onClose={() => setActiveFilterKey(null)}
+                            />
+                          )}
+                        </th>
+                      )}
+                      {visibleColumns.noOfPrint && (
+                        <th className="px-3 py-2.5 relative text-center">
+                          <div className="flex items-center justify-center gap-1">
+                            <span>NO. OF PRINT</span>
+                            <button
+                              type="button"
+                              onClick={() => setActiveFilterKey(activeFilterKey === "noOfPrint" ? null : "noOfPrint")}
+                              className="p-0.5 rounded hover:bg-slate-200 transition-colors"
+                            >
+                              <Filter className={`w-3.5 h-3.5 ${selectedFilters.noOfPrint.length > 0 ? "text-indigo-650 fill-indigo-100" : "text-slate-450"}`} />
+                            </button>
+                          </div>
+                          {activeFilterKey === "noOfPrint" && (
+                            <HeaderFilter
+                              filterKey="noOfPrint"
+                              options={uniqueNoOfPrint}
+                              selectedValues={selectedFilters.noOfPrint}
+                              onChange={vals => setSelectedFilters(prev => ({ ...prev, noOfPrint: vals }))}
+                              onClose={() => setActiveFilterKey(null)}
+                            />
+                          )}
+                        </th>
+                      )}
+                      {visibleColumns.printedBy && (
+                        <th className="px-3 py-2.5 relative">
+                          <div className="flex items-center justify-between gap-1">
+                            <span>PRINTED BY</span>
+                            <button
+                              type="button"
+                              onClick={() => setActiveFilterKey(activeFilterKey === "printedBy" ? null : "printedBy")}
+                              className="p-0.5 rounded hover:bg-slate-200 transition-colors"
+                            >
+                              <Filter className={`w-3.5 h-3.5 ${selectedFilters.printedBy.length > 0 ? "text-indigo-650 fill-indigo-100" : "text-slate-450"}`} />
+                            </button>
+                          </div>
+                          {activeFilterKey === "printedBy" && (
+                            <HeaderFilter
+                              filterKey="printedBy"
+                              options={uniquePrintedBy}
+                              selectedValues={selectedFilters.printedBy}
+                              onChange={vals => setSelectedFilters(prev => ({ ...prev, printedBy: vals }))}
+                              onClose={() => setActiveFilterKey(null)}
+                            />
+                          )}
+                        </th>
+                      )}
+                      {visibleColumns.noOfScan && (
+                        <th className="px-3 py-2.5 relative text-center">
+                          <div className="flex items-center justify-center gap-1">
+                            <span>NO. OF SCAN</span>
+                            <button
+                              type="button"
+                              onClick={() => setActiveFilterKey(activeFilterKey === "noOfScan" ? null : "noOfScan")}
+                              className="p-0.5 rounded hover:bg-slate-200 transition-colors"
+                            >
+                              <Filter className={`w-3.5 h-3.5 ${selectedFilters.noOfScan.length > 0 ? "text-indigo-650 fill-indigo-100" : "text-slate-450"}`} />
+                            </button>
+                          </div>
+                          {activeFilterKey === "noOfScan" && (
+                            <HeaderFilter
+                              filterKey="noOfScan"
+                              options={uniqueNoOfScan}
+                              selectedValues={selectedFilters.noOfScan}
+                              onChange={vals => setSelectedFilters(prev => ({ ...prev, noOfScan: vals }))}
+                              onClose={() => setActiveFilterKey(null)}
+                            />
+                          )}
+                        </th>
+                      )}
+                      {visibleColumns.scannedBy && (
+                        <th className="px-3 py-2.5 relative">
+                          <div className="flex items-center justify-between gap-1">
+                            <span>SCANNED BY</span>
+                            <button
+                              type="button"
+                              onClick={() => setActiveFilterKey(activeFilterKey === "scannedBy" ? null : "scannedBy")}
+                              className="p-0.5 rounded hover:bg-slate-200 transition-colors"
+                            >
+                              <Filter className={`w-3.5 h-3.5 ${selectedFilters.scannedBy.length > 0 ? "text-indigo-650 fill-indigo-100" : "text-slate-450"}`} />
+                            </button>
+                          </div>
+                          {activeFilterKey === "scannedBy" && (
+                            <HeaderFilter
+                              filterKey="scannedBy"
+                              options={uniqueScannedBy}
+                              selectedValues={selectedFilters.scannedBy}
+                              onChange={vals => setSelectedFilters(prev => ({ ...prev, scannedBy: vals }))}
+                              onClose={() => setActiveFilterKey(null)}
+                            />
+                          )}
+                        </th>
+                      )}
+                      {visibleColumns.noticeRenameBy && (
+                        <th className="px-3 py-2.5 relative">
+                          <div className="flex items-center justify-between gap-1">
+                            <span>RENAME BY</span>
+                            <button
+                              type="button"
+                              onClick={() => setActiveFilterKey(activeFilterKey === "noticeRenameBy" ? null : "noticeRenameBy")}
+                              className="p-0.5 rounded hover:bg-slate-200 transition-colors"
+                            >
+                              <Filter className={`w-3.5 h-3.5 ${selectedFilters.noticeRenameBy.length > 0 ? "text-indigo-650 fill-indigo-100" : "text-slate-450"}`} />
+                            </button>
+                          </div>
+                          {activeFilterKey === "noticeRenameBy" && (
+                            <HeaderFilter
+                              filterKey="noticeRenameBy"
+                              options={uniqueNoticeRenameBy}
+                              selectedValues={selectedFilters.noticeRenameBy}
+                              onChange={vals => setSelectedFilters(prev => ({ ...prev, noticeRenameBy: vals }))}
+                              onClose={() => setActiveFilterKey(null)}
+                            />
+                          )}
+                        </th>
+                      )}
+                      {visibleColumns.dispatchedBy && (
+                        <th className="px-3 py-2.5 relative">
+                          <div className="flex items-center justify-between gap-1">
+                            <span>DISPATCHED BY</span>
+                            <button
+                              type="button"
+                              onClick={() => setActiveFilterKey(activeFilterKey === "dispatchedBy" ? null : "dispatchedBy")}
+                              className="p-0.5 rounded hover:bg-slate-200 transition-colors"
+                            >
+                              <Filter className={`w-3.5 h-3.5 ${selectedFilters.dispatchedBy.length > 0 ? "text-indigo-650 fill-indigo-100" : "text-slate-450"}`} />
+                            </button>
+                          </div>
+                          {activeFilterKey === "dispatchedBy" && (
+                            <HeaderFilter
+                              filterKey="dispatchedBy"
+                              options={uniqueDispatchedBy}
+                              selectedValues={selectedFilters.dispatchedBy}
+                              onChange={vals => setSelectedFilters(prev => ({ ...prev, dispatchedBy: vals }))}
+                              onClose={() => setActiveFilterKey(null)}
+                            />
+                          )}
+                        </th>
+                      )}
+                      {visibleColumns.handover && (
+                        <th className="px-3 py-2.5 relative">
+                          <div className="flex items-center justify-between gap-1">
+                            <span>HANDOVER</span>
+                            <button
+                              type="button"
+                              onClick={() => setActiveFilterKey(activeFilterKey === "handover" ? null : "handover")}
+                              className="p-0.5 rounded hover:bg-slate-200 transition-colors"
+                            >
+                              <Filter className={`w-3.5 h-3.5 ${selectedFilters.handover.length > 0 ? "text-indigo-650 fill-indigo-100" : "text-slate-450"}`} />
+                            </button>
+                          </div>
+                          {activeFilterKey === "handover" && (
+                            <HeaderFilter
+                              filterKey="handover"
+                              options={uniqueHandover}
+                              selectedValues={selectedFilters.handover}
+                              onChange={vals => setSelectedFilters(prev => ({ ...prev, handover: vals }))}
+                              onClose={() => setActiveFilterKey(null)}
+                            />
+                          )}
+                        </th>
+                      )}
+                      {/* BILL DATE */}
+                      {visibleColumns.billDate && (
+                        <th className="px-3 py-2.5 relative">
+                          <div className="flex items-center justify-between gap-1">
+                            <span>BILL DATE</span>
+                            <button
+                              type="button"
+                              onClick={() => setActiveFilterKey(activeFilterKey === "billDate" ? null : "billDate")}
+                              className="p-0.5 rounded hover:bg-slate-200 transition-colors"
+                            >
+                              <Filter className={`w-3.5 h-3.5 ${selectedFilters.billDate.length > 0 ? "text-indigo-650 fill-indigo-100" : "text-slate-455"}`} />
+                            </button>
+                          </div>
+                          {activeFilterKey === "billDate" && (
+                            <HeaderFilter
+                              filterKey="billDate"
+                              options={uniqueBillDates}
+                              selectedValues={selectedFilters.billDate}
+                              onChange={vals => setSelectedFilters(prev => ({ ...prev, billDate: vals }))}
+                              onClose={() => setActiveFilterKey(null)}
+                            />
+                          )}
+                        </th>
+                      )}
 
-                    {/* BILL NO */}
-                    {visibleColumns.billNo && (
-                      <th className="px-3 py-2.5 relative">
-                        <div className="flex items-center justify-between gap-1">
-                          <span>BILL NO</span>
-                          <button
-                            type="button"
-                            onClick={() => setActiveFilterKey(activeFilterKey === "billNo" ? null : "billNo")}
-                            className="p-0.5 rounded hover:bg-slate-200 transition-colors"
-                          >
-                            <Filter className={`w-3.5 h-3.5 ${selectedFilters.billNo.length > 0 ? "text-indigo-650 fill-indigo-100" : "text-slate-455"}`} />
-                          </button>
-                        </div>
-                        {activeFilterKey === "billNo" && (
-                          <HeaderFilter
-                            filterKey="billNo"
-                            options={uniqueBillNos}
-                            selectedValues={selectedFilters.billNo}
-                            onChange={vals => setSelectedFilters(prev => ({ ...prev, billNo: vals }))}
-                            onClose={() => setActiveFilterKey(null)}
-                          />
-                        )}
-                      </th>
-                    )}
+                      {/* BILL NO */}
+                      {visibleColumns.billNo && (
+                        <th className="px-3 py-2.5 relative">
+                          <div className="flex items-center justify-between gap-1">
+                            <span>BILL NO</span>
+                            <button
+                              type="button"
+                              onClick={() => setActiveFilterKey(activeFilterKey === "billNo" ? null : "billNo")}
+                              className="p-0.5 rounded hover:bg-slate-200 transition-colors"
+                            >
+                              <Filter className={`w-3.5 h-3.5 ${selectedFilters.billNo.length > 0 ? "text-indigo-650 fill-indigo-100" : "text-slate-455"}`} />
+                            </button>
+                          </div>
+                          {activeFilterKey === "billNo" && (
+                            <HeaderFilter
+                              filterKey="billNo"
+                              options={uniqueBillNos}
+                              selectedValues={selectedFilters.billNo}
+                              onChange={vals => setSelectedFilters(prev => ({ ...prev, billNo: vals }))}
+                              onClose={() => setActiveFilterKey(null)}
+                            />
+                          )}
+                        </th>
+                      )}
 
-                    {/* BILL AMOUNT */}
-                    {visibleColumns.billAmount && (
-                      <th className="px-3 py-2.5 relative">
-                        <div className="flex items-center justify-between gap-1">
-                          <span>BILL AMOUNT</span>
-                          <button
-                            type="button"
-                            onClick={() => setActiveFilterKey(activeFilterKey === "billAmount" ? null : "billAmount")}
-                            className="p-0.5 rounded hover:bg-slate-200 transition-colors"
-                          >
-                            <Filter className={`w-3.5 h-3.5 ${selectedFilters.billAmount.length > 0 ? "text-indigo-650 fill-indigo-100" : "text-slate-455"}`} />
-                          </button>
-                        </div>
-                        {activeFilterKey === "billAmount" && (
-                          <HeaderFilter
-                            filterKey="billAmount"
-                            options={uniqueBillAmounts}
-                            selectedValues={selectedFilters.billAmount}
-                            onChange={vals => setSelectedFilters(prev => ({ ...prev, billAmount: vals }))}
-                            onClose={() => setActiveFilterKey(null)}
-                          />
-                        )}
-                      </th>
-                    )}
+                      {/* BILL AMOUNT */}
+                      {visibleColumns.billAmount && (
+                        <th className="px-3 py-2.5 relative">
+                          <div className="flex items-center justify-between gap-1">
+                            <span>BILL AMOUNT</span>
+                            <button
+                              type="button"
+                              onClick={() => setActiveFilterKey(activeFilterKey === "billAmount" ? null : "billAmount")}
+                              className="p-0.5 rounded hover:bg-slate-200 transition-colors"
+                            >
+                              <Filter className={`w-3.5 h-3.5 ${selectedFilters.billAmount.length > 0 ? "text-indigo-650 fill-indigo-100" : "text-slate-455"}`} />
+                            </button>
+                          </div>
+                          {activeFilterKey === "billAmount" && (
+                            <HeaderFilter
+                              filterKey="billAmount"
+                              options={uniqueBillAmounts}
+                              selectedValues={selectedFilters.billAmount}
+                              onChange={vals => setSelectedFilters(prev => ({ ...prev, billAmount: vals }))}
+                              onClose={() => setActiveFilterKey(null)}
+                            />
+                          )}
+                        </th>
+                      )}
 
-                    {/* MAILED TO BM */}
-                    {visibleColumns.billMailedToBM && (
-                      <th className="px-3 py-2.5 relative">
-                        <div className="flex items-center justify-between gap-1">
-                          <span>MAILED TO BM</span>
-                          <button
-                            type="button"
-                            onClick={() => setActiveFilterKey(activeFilterKey === "billMailedToBM" ? null : "billMailedToBM")}
-                            className="p-0.5 rounded hover:bg-slate-200 transition-colors"
-                          >
-                            <Filter className={`w-3.5 h-3.5 ${selectedFilters.billMailedToBM.length > 0 ? "text-indigo-650 fill-indigo-100" : "text-slate-455"}`} />
-                          </button>
-                        </div>
-                        {activeFilterKey === "billMailedToBM" && (
-                          <HeaderFilter
-                            filterKey="billMailedToBM"
-                            options={uniqueBillMailedToBM}
-                            selectedValues={selectedFilters.billMailedToBM}
-                            onChange={vals => setSelectedFilters(prev => ({ ...prev, billMailedToBM: vals }))}
-                            onClose={() => setActiveFilterKey(null)}
-                          />
-                        )}
-                      </th>
-                    )}
+                      {/* MAILED TO BM */}
+                      {visibleColumns.billMailedToBM && (
+                        <th className="px-3 py-2.5 relative">
+                          <div className="flex items-center justify-between gap-1">
+                            <span>MAILED TO BM</span>
+                            <button
+                              type="button"
+                              onClick={() => setActiveFilterKey(activeFilterKey === "billMailedToBM" ? null : "billMailedToBM")}
+                              className="p-0.5 rounded hover:bg-slate-200 transition-colors"
+                            >
+                              <Filter className={`w-3.5 h-3.5 ${selectedFilters.billMailedToBM.length > 0 ? "text-indigo-650 fill-indigo-100" : "text-slate-455"}`} />
+                            </button>
+                          </div>
+                          {activeFilterKey === "billMailedToBM" && (
+                            <HeaderFilter
+                              filterKey="billMailedToBM"
+                              options={uniqueBillMailedToBM}
+                              selectedValues={selectedFilters.billMailedToBM}
+                              onChange={vals => setSelectedFilters(prev => ({ ...prev, billMailedToBM: vals }))}
+                              onClose={() => setActiveFilterKey(null)}
+                            />
+                          )}
+                        </th>
+                      )}
 
-                    {/* PAID DATE */}
-                    {visibleColumns.paymentRcvdDate && (
-                      <th className="px-3 py-2.5 relative">
-                        <div className="flex items-center justify-between gap-1">
-                          <span>PAID DATE</span>
-                          <button
-                            type="button"
-                            onClick={() => setActiveFilterKey(activeFilterKey === "paymentRcvdDate" ? null : "paymentRcvdDate")}
-                            className="p-0.5 rounded hover:bg-slate-200 transition-colors"
-                          >
-                            <Filter className={`w-3.5 h-3.5 ${selectedFilters.paymentRcvdDate.length > 0 ? "text-indigo-650 fill-indigo-100" : "text-slate-455"}`} />
-                          </button>
-                        </div>
-                        {activeFilterKey === "paymentRcvdDate" && (
-                          <HeaderFilter
-                            filterKey="paymentRcvdDate"
-                            options={uniquePaymentRcvdDates}
-                            selectedValues={selectedFilters.paymentRcvdDate}
-                            onChange={vals => setSelectedFilters(prev => ({ ...prev, paymentRcvdDate: vals }))}
-                            onClose={() => setActiveFilterKey(null)}
-                          />
-                        )}
-                      </th>
-                    )}
+                      {/* PAID DATE */}
+                      {visibleColumns.paymentRcvdDate && (
+                        <th className="px-3 py-2.5 relative">
+                          <div className="flex items-center justify-between gap-1">
+                            <span>PAID DATE</span>
+                            <button
+                              type="button"
+                              onClick={() => setActiveFilterKey(activeFilterKey === "paymentRcvdDate" ? null : "paymentRcvdDate")}
+                              className="p-0.5 rounded hover:bg-slate-200 transition-colors"
+                            >
+                              <Filter className={`w-3.5 h-3.5 ${selectedFilters.paymentRcvdDate.length > 0 ? "text-indigo-650 fill-indigo-100" : "text-slate-455"}`} />
+                            </button>
+                          </div>
+                          {activeFilterKey === "paymentRcvdDate" && (
+                            <HeaderFilter
+                              filterKey="paymentRcvdDate"
+                              options={uniquePaymentRcvdDates}
+                              selectedValues={selectedFilters.paymentRcvdDate}
+                              onChange={vals => setSelectedFilters(prev => ({ ...prev, paymentRcvdDate: vals }))}
+                              onClose={() => setActiveFilterKey(null)}
+                            />
+                          )}
+                        </th>
+                      )}
 
-                    {/* PAID AMOUNT */}
-                    {visibleColumns.amountRcvd && (
-                      <th className="px-3 py-2.5 relative">
-                        <div className="flex items-center justify-between gap-1">
-                          <span>PAID AMOUNT</span>
-                          <button
-                            type="button"
-                            onClick={() => setActiveFilterKey(activeFilterKey === "amountRcvd" ? null : "amountRcvd")}
-                            className="p-0.5 rounded hover:bg-slate-200 transition-colors"
-                          >
-                            <Filter className={`w-3.5 h-3.5 ${selectedFilters.amountRcvd.length > 0 ? "text-indigo-650 fill-indigo-100" : "text-slate-455"}`} />
-                          </button>
-                        </div>
-                        {activeFilterKey === "amountRcvd" && (
-                          <HeaderFilter
-                            filterKey="amountRcvd"
-                            options={uniqueAmountRcvds}
-                            selectedValues={selectedFilters.amountRcvd}
-                            onChange={vals => setSelectedFilters(prev => ({ ...prev, amountRcvd: vals }))}
-                            onClose={() => setActiveFilterKey(null)}
-                          />
-                        )}
-                      </th>
-                    )}
+                      {/* PAID AMOUNT */}
+                      {visibleColumns.amountRcvd && (
+                        <th className="px-3 py-2.5 relative">
+                          <div className="flex items-center justify-between gap-1">
+                            <span>PAID AMOUNT</span>
+                            <button
+                              type="button"
+                              onClick={() => setActiveFilterKey(activeFilterKey === "amountRcvd" ? null : "amountRcvd")}
+                              className="p-0.5 rounded hover:bg-slate-200 transition-colors"
+                            >
+                              <Filter className={`w-3.5 h-3.5 ${selectedFilters.amountRcvd.length > 0 ? "text-indigo-650 fill-indigo-100" : "text-slate-455"}`} />
+                            </button>
+                          </div>
+                          {activeFilterKey === "amountRcvd" && (
+                            <HeaderFilter
+                              filterKey="amountRcvd"
+                              options={uniqueAmountRcvds}
+                              selectedValues={selectedFilters.amountRcvd}
+                              onChange={vals => setSelectedFilters(prev => ({ ...prev, amountRcvd: vals }))}
+                              onClose={() => setActiveFilterKey(null)}
+                            />
+                          )}
+                        </th>
+                      )}
 
-                    {/* TDS DEDUCTION */}
-                    {visibleColumns.tdsDeduction && (
-                      <th className="px-3 py-2.5 relative">
-                        <div className="flex items-center justify-between gap-1">
-                          <span>TDS DEDUCTION</span>
-                          <button
-                            type="button"
-                            onClick={() => setActiveFilterKey(activeFilterKey === "tdsDeduction" ? null : "tdsDeduction")}
-                            className="p-0.5 rounded hover:bg-slate-200 transition-colors"
-                          >
-                            <Filter className={`w-3.5 h-3.5 ${selectedFilters.tdsDeduction.length > 0 ? "text-indigo-650 fill-indigo-100" : "text-slate-455"}`} />
-                          </button>
-                        </div>
-                        {activeFilterKey === "tdsDeduction" && (
-                          <HeaderFilter
-                            filterKey="tdsDeduction"
-                            options={uniqueTdsDeductions}
-                            selectedValues={selectedFilters.tdsDeduction}
-                            onChange={vals => setSelectedFilters(prev => ({ ...prev, tdsDeduction: vals }))}
-                            onClose={() => setActiveFilterKey(null)}
-                          />
-                        )}
-                      </th>
-                    )}
+                      {/* TDS DEDUCTION */}
+                      {visibleColumns.tdsDeduction && (
+                        <th className="px-3 py-2.5 relative">
+                          <div className="flex items-center justify-between gap-1">
+                            <span>TDS DEDUCTION</span>
+                            <button
+                              type="button"
+                              onClick={() => setActiveFilterKey(activeFilterKey === "tdsDeduction" ? null : "tdsDeduction")}
+                              className="p-0.5 rounded hover:bg-slate-200 transition-colors"
+                            >
+                              <Filter className={`w-3.5 h-3.5 ${selectedFilters.tdsDeduction.length > 0 ? "text-indigo-650 fill-indigo-100" : "text-slate-455"}`} />
+                            </button>
+                          </div>
+                          {activeFilterKey === "tdsDeduction" && (
+                            <HeaderFilter
+                              filterKey="tdsDeduction"
+                              options={uniqueTdsDeductions}
+                              selectedValues={selectedFilters.tdsDeduction}
+                              onChange={vals => setSelectedFilters(prev => ({ ...prev, tdsDeduction: vals }))}
+                              onClose={() => setActiveFilterKey(null)}
+                            />
+                          )}
+                        </th>
+                      )}
 
-                    {/* GST DEDUCTION */}
-                    {visibleColumns.gstDeduction && (
-                      <th className="px-3 py-2.5 relative">
-                        <div className="flex items-center justify-between gap-1">
-                          <span>GST DEDUCTION</span>
-                          <button
-                            type="button"
-                            onClick={() => setActiveFilterKey(activeFilterKey === "gstDeduction" ? null : "gstDeduction")}
-                            className="p-0.5 rounded hover:bg-slate-200 transition-colors"
-                          >
-                            <Filter className={`w-3.5 h-3.5 ${selectedFilters.gstDeduction.length > 0 ? "text-indigo-650 fill-indigo-100" : "text-slate-455"}`} />
-                          </button>
-                        </div>
-                        {activeFilterKey === "gstDeduction" && (
-                          <HeaderFilter
-                            filterKey="gstDeduction"
-                            options={uniqueGstDeductions}
-                            selectedValues={selectedFilters.gstDeduction}
-                            onChange={vals => setSelectedFilters(prev => ({ ...prev, gstDeduction: vals }))}
-                            onClose={() => setActiveFilterKey(null)}
-                          />
-                        )}
-                      </th>
-                    )}
+                      {/* GST DEDUCTION */}
+                      {visibleColumns.gstDeduction && (
+                        <th className="px-3 py-2.5 relative">
+                          <div className="flex items-center justify-between gap-1">
+                            <span>GST DEDUCTION</span>
+                            <button
+                              type="button"
+                              onClick={() => setActiveFilterKey(activeFilterKey === "gstDeduction" ? null : "gstDeduction")}
+                              className="p-0.5 rounded hover:bg-slate-200 transition-colors"
+                            >
+                              <Filter className={`w-3.5 h-3.5 ${selectedFilters.gstDeduction.length > 0 ? "text-indigo-650 fill-indigo-100" : "text-slate-455"}`} />
+                            </button>
+                          </div>
+                          {activeFilterKey === "gstDeduction" && (
+                            <HeaderFilter
+                              filterKey="gstDeduction"
+                              options={uniqueGstDeductions}
+                              selectedValues={selectedFilters.gstDeduction}
+                              onChange={vals => setSelectedFilters(prev => ({ ...prev, gstDeduction: vals }))}
+                              onClose={() => setActiveFilterKey(null)}
+                            />
+                          )}
+                        </th>
+                      )}
 
-                    {/* EXPENSES */}
-                    {visibleColumns.expenses && (
-                      <th className="px-3 py-2.5 relative">
-                        <div className="flex items-center justify-between gap-1">
-                          <span>EXPENSES</span>
-                          <button
-                            type="button"
-                            onClick={() => setActiveFilterKey(activeFilterKey === "expenses" ? null : "expenses")}
-                            className="p-0.5 rounded hover:bg-slate-200 transition-colors"
-                          >
-                            <Filter className={`w-3.5 h-3.5 ${selectedFilters.expenses.length > 0 ? "text-indigo-650 fill-indigo-100" : "text-slate-455"}`} />
-                          </button>
-                        </div>
-                        {activeFilterKey === "expenses" && (
-                          <HeaderFilter
-                            filterKey="expenses"
-                            options={uniqueExpenses}
-                            selectedValues={selectedFilters.expenses}
-                            onChange={vals => setSelectedFilters(prev => ({ ...prev, expenses: vals }))}
-                            onClose={() => setActiveFilterKey(null)}
-                          />
-                        )}
-                      </th>
-                    )}
+                      {/* EXPENSES */}
+                      {visibleColumns.expenses && (
+                        <th className="px-3 py-2.5 relative">
+                          <div className="flex items-center justify-between gap-1">
+                            <span>EXPENSES</span>
+                            <button
+                              type="button"
+                              onClick={() => setActiveFilterKey(activeFilterKey === "expenses" ? null : "expenses")}
+                              className="p-0.5 rounded hover:bg-slate-200 transition-colors"
+                            >
+                              <Filter className={`w-3.5 h-3.5 ${selectedFilters.expenses.length > 0 ? "text-indigo-650 fill-indigo-100" : "text-slate-455"}`} />
+                            </button>
+                          </div>
+                          {activeFilterKey === "expenses" && (
+                            <HeaderFilter
+                              filterKey="expenses"
+                              options={uniqueExpenses}
+                              selectedValues={selectedFilters.expenses}
+                              onChange={vals => setSelectedFilters(prev => ({ ...prev, expenses: vals }))}
+                              onClose={() => setActiveFilterKey(null)}
+                            />
+                          )}
+                        </th>
+                      )}
 
-                    {/* BILL ATTACHMENTS */}
-                    {visibleColumns.billingAttachments && (
-                      <th className="px-3 py-2.5 relative">
-                        <div className="flex items-center justify-between gap-1">
-                          <span>BILL ATTACHMENTS</span>
-                          <button
-                            type="button"
-                            onClick={() => setActiveFilterKey(activeFilterKey === "billingAttachments" ? null : "billingAttachments")}
-                            className="p-0.5 rounded hover:bg-slate-200 transition-colors"
-                          >
-                            <Filter className={`w-3.5 h-3.5 ${selectedFilters.billingAttachments.length > 0 ? "text-indigo-650 fill-indigo-100" : "text-slate-455"}`} />
-                          </button>
-                        </div>
-                        {activeFilterKey === "billingAttachments" && (
-                          <HeaderFilter
-                            filterKey="billingAttachments"
-                            options={uniqueBillingAttachmentsOpts}
-                            selectedValues={selectedFilters.billingAttachments}
-                            onChange={vals => setSelectedFilters(prev => ({ ...prev, billingAttachments: vals }))}
-                            onClose={() => setActiveFilterKey(null)}
-                          />
-                        )}
-                      </th>
-                    )}
-                    {visibleColumns.gp && (
-                      <th className="px-3 py-2.5 relative text-right font-black">
-                        <div className="flex items-center justify-end gap-1">
-                          <span>GP</span>
-                          <button
-                            type="button"
-                            onClick={() => setActiveFilterKey(activeFilterKey === "gp" ? null : "gp")}
-                            className="p-0.5 rounded hover:bg-slate-200 transition-colors"
-                          >
-                            <Filter className={`w-3.5 h-3.5 ${selectedFilters.gp.length > 0 ? "text-indigo-650 fill-indigo-100" : "text-slate-450"}`} />
-                          </button>
-                        </div>
-                        {activeFilterKey === "gp" && (
-                          <HeaderFilter
-                            filterKey="gp"
-                            options={uniqueGPOpts}
-                            selectedValues={selectedFilters.gp}
-                            onChange={vals => setSelectedFilters(prev => ({ ...prev, gp: vals }))}
-                            onClose={() => setActiveFilterKey(null)}
-                          />
-                        )}
-                      </th>
-                    )}
-                    <th className="px-1 py-2.5 text-right font-black w-[150px] min-w-[150px]">ACTIONS</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-[#E8E4DF] text-xs font-semibold text-slate-700">
-                  {filteredNotices.length === 0 ? (
-                    <tr>
-                      <td colSpan={visibleColumnsCount} className="text-center py-16 text-slate-400 text-xs uppercase tracking-wider font-bold">
-                        <div className="flex flex-col items-center gap-3">
-                          <span>No Notice Records Found.</span>
-                          <button
-                            type="button"
-                            onClick={() => setSelectedFilters({
-                              bank: [],
-                              noticeType: [],
-                              orderDate: [],
-                              noticeDate: [],
-                              qty: [],
-                              broughtBy: [],
-                              noOfPrint: [],
-                              printedBy: [],
-                              noOfScan: [],
-                              scannedBy: [],
-                              noticeRenameBy: [],
-                              dispatchedBy: [],
-                              handover: [],
-                              billDate: [],
-                              billNo: [],
-                              billAmount: [],
-                              billMailedToBM: [],
-                              paymentRcvdDate: [],
-                              amountRcvd: [],
-                              tdsDeduction: [],
-                              gstDeduction: [],
-                              expenses: [],
-                              billingAttachments: [],
-                              gp: [],
-                            })}
-                            className="px-3.5 py-2 bg-slate-50 hover:bg-slate-100 text-slate-650 rounded-xl text-[10px] font-bold uppercase tracking-wider transition-colors border border-[#E8E4DF] shadow-sm"
-                          >
-                            Clear All Filters
-                          </button>
-                        </div>
-                      </td>
+                      {/* BILL ATTACHMENTS */}
+                      {visibleColumns.billingAttachments && (
+                        <th className="px-3 py-2.5 relative">
+                          <div className="flex items-center justify-between gap-1">
+                            <span>BILL ATTACHMENTS</span>
+                            <button
+                              type="button"
+                              onClick={() => setActiveFilterKey(activeFilterKey === "billingAttachments" ? null : "billingAttachments")}
+                              className="p-0.5 rounded hover:bg-slate-200 transition-colors"
+                            >
+                              <Filter className={`w-3.5 h-3.5 ${selectedFilters.billingAttachments.length > 0 ? "text-indigo-650 fill-indigo-100" : "text-slate-455"}`} />
+                            </button>
+                          </div>
+                          {activeFilterKey === "billingAttachments" && (
+                            <HeaderFilter
+                              filterKey="billingAttachments"
+                              options={uniqueBillingAttachmentsOpts}
+                              selectedValues={selectedFilters.billingAttachments}
+                              onChange={vals => setSelectedFilters(prev => ({ ...prev, billingAttachments: vals }))}
+                              onClose={() => setActiveFilterKey(null)}
+                            />
+                          )}
+                        </th>
+                      )}
+                      {visibleColumns.gp && (
+                        <th className="px-3 py-2.5 relative text-right font-black">
+                          <div className="flex items-center justify-end gap-1">
+                            <span>GP</span>
+                            <button
+                              type="button"
+                              onClick={() => setActiveFilterKey(activeFilterKey === "gp" ? null : "gp")}
+                              className="p-0.5 rounded hover:bg-slate-200 transition-colors"
+                            >
+                              <Filter className={`w-3.5 h-3.5 ${selectedFilters.gp.length > 0 ? "text-indigo-650 fill-indigo-100" : "text-slate-450"}`} />
+                            </button>
+                          </div>
+                          {activeFilterKey === "gp" && (
+                            <HeaderFilter
+                              filterKey="gp"
+                              options={uniqueGPOpts}
+                              selectedValues={selectedFilters.gp}
+                              onChange={vals => setSelectedFilters(prev => ({ ...prev, gp: vals }))}
+                              onClose={() => setActiveFilterKey(null)}
+                            />
+                          )}
+                        </th>
+                      )}
+                      <th className="px-1 py-2.5 text-right font-black w-[150px] min-w-[150px]">ACTIONS</th>
                     </tr>
-                  ) : (
-                    filteredNotices.map((n) => {
-                    const bank = banksList.find(b => b.id?.toString() === n.bankId?.toString());
-                    const branch = branchesList.find(br => br.branchCode === n.branchId?.toString());
- 
-                    // GP = billAmount - (TDS + GST + expenses)
-                    const billAmt = parseFloat(n.billAmount) || 0;
-                    const deduction = (parseFloat(n.tdsDeduction) || 0) + (parseFloat(n.gstDeduction) || 0) + (parseFloat(n.expenses) || 0);
-                    const grossProfit = billAmt - deduction;
- 
-                    return (
-                      <tr key={n.id} className="hover:bg-slate-50/50 transition-colors">
-                        {/* BANK/BRANCH */}
-                        {visibleColumns.bankBranch && (
-                          <td className="allow-wrap px-3 py-3 max-w-[180px] sticky left-0 z-10 bg-white shadow-[2px_0_5px_rgba(0,0,0,0.05)]">
-                            <div className="font-extrabold text-slate-900 truncate">{bank?.bankName || "Unknown Bank"}</div>
-                            <div className="text-[10px] text-slate-500 truncate mt-0.5">
-                              {branch?.branchName || "Unknown Branch"} ({n.branchId})
-                            </div>
-                          </td>
-                        )}
- 
-                        {/* NOTICE TYPE */}
-                        {visibleColumns.noticeType && (
-                          <td className="px-3 py-3">
-                            <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-50 text-indigo-850 border border-indigo-100">
-                              {noticeTypes.find(t => t.id?.toString() === n.noticeTypeId?.toString())?.name || n.noticeType || "-"}
-                            </span>
-                          </td>
-                        )}
- 
-                        {/* ORDER DATE */}
-                        {visibleColumns.orderDate && (
-                          <td className="px-3 py-3 text-[11px] font-mono">
-                            {n.noticeOrderDate ? new Date(n.noticeOrderDate).toLocaleDateString('en-IN') : "-"}
-                          </td>
-                        )}
-
-                        {/* NOTICE DATE */}
-                        {visibleColumns.noticeDate && (
-                          <td className="px-3 py-3 text-[11px] font-mono">
-                            {n.noticeDate ? new Date(n.noticeDate).toLocaleDateString('en-IN') : "-"}
-                          </td>
-                        )}
- 
-                        {/* QTY */}
-                        {visibleColumns.qty && (
-                          <td className="px-3 py-3 font-mono font-bold text-slate-800 text-center text-sm">
-                            {n.quantity || 1}
-                          </td>
-                        )}
- 
-                        {/* BROUGHT BY */}
-                        {visibleColumns.broughtBy && (
-                          <td className="px-3 py-3 text-slate-700 font-semibold truncate max-w-[120px]">
-                            {n.broughtBy || <span className="text-slate-350">-</span>}
-                          </td>
-                        )}
- 
-                        {/* NO. OF PRINT */}
-                        {visibleColumns.noOfPrint && (
-                          <td className="px-3 py-3 text-center font-mono font-bold text-slate-650">
-                            {n.noOfPrint || 0}
-                          </td>
-                        )}
- 
-                        {/* PRINTED BY */}
-                        {visibleColumns.printedBy && (
-                          <td className="px-3 py-3 text-slate-700 font-semibold truncate max-w-[120px]">
-                            {n.printedBy || <span className="text-slate-350">-</span>}
-                          </td>
-                        )}
- 
-                        {/* NO. OF SCAN */}
-                        {visibleColumns.noOfScan && (
-                          <td className="px-3 py-3 text-center font-mono font-bold text-slate-650">
-                            {n.noOfScan || 0}
-                          </td>
-                        )}
- 
-                        {/* SCANNED BY */}
-                        {visibleColumns.scannedBy && (
-                          <td className="px-3 py-3 text-slate-700 font-semibold truncate max-w-[120px]">
-                            {n.scannedBy || <span className="text-slate-350">-</span>}
-                          </td>
-                        )}
- 
-                        {/* NOTICE RENAME BY */}
-                        {visibleColumns.noticeRenameBy && (
-                          <td className="px-3 py-3 text-slate-700 font-semibold truncate max-w-[120px]">
-                            {n.noticeRenameBy || <span className="text-slate-350">-</span>}
-                          </td>
-                        )}
- 
-                        {/* DISPATCHED BY */}
-                        {visibleColumns.dispatchedBy && (
-                          <td className="px-3 py-3 text-slate-700 font-semibold truncate max-w-[120px]">
-                            {n.dispatchedBy || <span className="text-slate-350">-</span>}
-                          </td>
-                        )}
- 
-                        {/* HANDOVER */}
-                        {visibleColumns.handover && (
-                          <td className="px-3 py-3 leading-normal">
-                            <div className="flex flex-col gap-1.5 items-start">
-                              {n.documentUrl && (
-                                <a
-                                  href={n.documentUrl}
-                                  target="_blank"
-                                  rel="noreferrer"
-                                  className="inline-flex items-center gap-1 font-bold text-emerald-700 hover:text-emerald-900 bg-emerald-50/70 px-2 py-0.5 rounded border border-emerald-100 text-[10px]"
-                                >
-                                  <Paperclip className="w-2.5 h-2.5" /> Softcopy
-                                </a>
-                              )}
-                              <div>
-                                {n.handoverTo ? (
-                                  <span className="inline-flex items-center gap-1 text-emerald-700 font-extrabold text-[10px] bg-emerald-50 px-2 py-0.5 rounded border border-emerald-100">
-                                    <CheckCircle className="w-3 h-3 text-emerald-500" /> Handed Over
-                                  </span>
-                                ) : (
-                                  <span className="inline-flex items-center gap-1 text-slate-400 italic text-[10px] bg-slate-50 px-2 py-0.5 rounded border border-slate-200">
-                                    Pending
-                                  </span>
-                                )}
-                              </div>
-                            </div>
-                          </td>
-                        )}
- 
-                        {/* BILL DATE */}
-                        {visibleColumns.billDate && (
-                          <td className="px-3 py-3 text-[11px] font-mono">
-                            {n.billDate ? new Date(n.billDate).toLocaleDateString('en-IN') : "-"}
-                          </td>
-                        )}
-
-                        {/* BILL NO */}
-                        {visibleColumns.billNo && (
-                          <td className="px-3 py-3 text-[11px] font-mono font-bold text-slate-800">
-                            {n.billNo || <span className="text-slate-400">-</span>}
-                          </td>
-                        )}
-
-                        {/* BILL AMOUNT */}
-                        {visibleColumns.billAmount && (
-                          <td className="px-3 py-3 text-[11px] font-mono font-black text-slate-800">
-                            {n.billAmount ? `₹${parseFloat(n.billAmount).toLocaleString('en-IN')}` : <span className="text-slate-400">-</span>}
-                          </td>
-                        )}
-
-                        {/* MAILED TO BM */}
-                        {visibleColumns.billMailedToBM && (
-                          <td className="px-3 py-3">
-                            {n.billMailedToBM ? (
-                              <span className="px-2 py-0.5 rounded text-[9px] font-black bg-emerald-50 text-emerald-700 border border-emerald-100">
-                                ✓ Mailed
-                              </span>
-                            ) : (
-                              <span className="px-2 py-0.5 rounded text-[9px] font-bold bg-slate-50 text-slate-400 border border-slate-100">
-                                Pending
-                              </span>
-                            )}
-                          </td>
-                        )}
-
-                        {/* PAID DATE */}
-                        {visibleColumns.paymentRcvdDate && (
-                          <td className="px-3 py-3 text-[11px] font-mono">
-                            {n.paymentRcvdDate ? new Date(n.paymentRcvdDate).toLocaleDateString('en-IN') : "-"}
-                          </td>
-                        )}
-
-                        {/* PAID AMOUNT */}
-                        {visibleColumns.amountRcvd && (
-                          <td className="px-3 py-3 text-[11px] font-mono font-bold text-emerald-700">
-                            {n.amountRcvd ? `₹${parseFloat(n.amountRcvd).toLocaleString('en-IN')}` : <span className="text-slate-400">-</span>}
-                          </td>
-                        )}
-
-                        {/* TDS DEDUCTION */}
-                        {visibleColumns.tdsDeduction && (
-                          <td className="px-3 py-3 text-[11px] font-mono text-rose-700">
-                            {n.tdsDeduction ? `₹${parseFloat(n.tdsDeduction).toLocaleString('en-IN')}` : <span className="text-slate-400">-</span>}
-                          </td>
-                        )}
-
-                        {/* GST DEDUCTION */}
-                        {visibleColumns.gstDeduction && (
-                          <td className="px-3 py-3 text-[11px] font-mono text-rose-700">
-                            {n.gstDeduction ? `₹${parseFloat(n.gstDeduction).toLocaleString('en-IN')}` : <span className="text-slate-400">-</span>}
-                          </td>
-                        )}
-
-                        {/* EXPENSES */}
-                        {visibleColumns.expenses && (
-                          <td className="px-3 py-3 text-[11px] font-mono text-rose-700">
-                            {n.expenses ? `₹${parseFloat(n.expenses).toLocaleString('en-IN')}` : <span className="text-slate-400">-</span>}
-                          </td>
-                        )}
-
-                        {/* BILL ATTACHMENTS */}
-                        {visibleColumns.billingAttachments && (
-                          <td className="px-3 py-3">
-                            {(() => {
-                              if (!n.billingAttachments) return <span className="text-slate-350">-</span>;
-                              try {
-                                const parsed = JSON.parse(n.billingAttachments);
-                                if (!Array.isArray(parsed) || parsed.length === 0) return <span className="text-slate-350">-</span>;
-                                return (
-                                  <div className="flex items-center gap-1">
-                                    {parsed.map((att: any, attIdx: number) => {
-                                      const isImg = att.type === "image";
-                                      if (isImg) {
-                                        return (
-                                          <img
-                                            key={attIdx}
-                                            src={att.url}
-                                            alt={att.name}
-                                            className="w-6 h-6 object-cover rounded border border-slate-200 cursor-zoom-in hover:scale-110 transition-transform"
-                                            onClick={() => window.open(att.url, "_blank")}
-                                            title={`Preview: ${att.name}`}
-                                          />
-                                        );
-                                      }
-                                      const icon = att.type === "pdf" ? "📄" : att.type === "excel" ? "📊" : att.type === "recording" ? "🎵" : "📎";
-                                      return (
-                                        <a
-                                          key={attIdx}
-                                          href={att.url}
-                                          target="_blank"
-                                          rel="noreferrer"
-                                          className="w-6 h-6 flex items-center justify-center bg-slate-50 border border-slate-200 rounded text-xs hover:bg-slate-100 transition-colors"
-                                          title={`Open: ${att.name}`}
-                                        >
-                                          {icon}
-                                        </a>
-                                      );
-                                    })}
-                                  </div>
-                                );
-                              } catch (_) {
-                                return <span className="text-slate-350">-</span>;
-                              }
-                            })()}
-                          </td>
-                        )}
- 
-                        {/* GP */}
-                        {visibleColumns.gp && (
-                          <td className="px-3 py-3">
-                            {n.billAmount !== null && n.billAmount !== undefined ? (
-                              <>
-                                <div className={`font-black font-mono ${grossProfit >= 0 ? 'text-emerald-700' : 'text-rose-700'}`}>
-                                  ₹{grossProfit.toLocaleString('en-IN')}
-                                </div>
-                                {n.amountRcvd > 0 && (
-                                  <div className="text-[9px] text-slate-500 mt-0.5">
-                                    Recd: ₹{parseFloat(n.amountRcvd).toLocaleString('en-IN')}
-                                  </div>
-                                )}
-                              </>
-                            ) : (
-                              <span className="text-slate-400 font-mono">-</span>
-                            )}
-                          </td>
-                        )}
- 
-                        {/* ACTIONS */}
-                        <td className="px-1 py-2 text-right w-[100px] min-w-[100px]">
-                          <div className="flex flex-col items-end gap-1 w-full">
-                            {/* Top row: 2 workflow actions */}
-                            <div className="flex items-center gap-1">
-                              <button
-                                type="button"
-                                onClick={() => handleOpenHandoverModal(n)}
-                                className={`p-1 rounded border transition-all flex items-center justify-center ${n.handoverTo
-                                    ? 'border-emerald-250 text-emerald-700 bg-emerald-50 hover:bg-emerald-100'
-                                    : 'border-slate-250 text-slate-500 bg-slate-50 hover:bg-slate-100 hover:text-slate-700'
-                                  }`}
-                                title={n.handoverTo ? `Handed Over to ${n.handoverTo} (Click to Edit)` : "Click to Handover Notice"}
-                              >
-                                <UserCheck className="w-3.5 h-3.5" />
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => handleOpenBillingModal(n)}
-                                className={`p-1 rounded border transition-all flex items-center justify-center ${(n.billNo || parseFloat(n.billAmount) > 0)
-                                    ? 'border-indigo-250 text-indigo-700 bg-indigo-50 hover:bg-indigo-100'
-                                    : 'border-amber-250 text-amber-700 bg-amber-50 hover:bg-amber-100 hover:text-amber-850'
-                                  }`}
-                                title={(n.billNo || parseFloat(n.billAmount) > 0) ? `Billed (Click to Edit Billing)` : "Click to Add Billing"}
-                              >
-                                <DollarSign className="w-3.5 h-3.5" />
-                              </button>
-                            </div>
-
-                            {/* Bottom row: 3 utility actions */}
-                            <div className="flex items-center gap-1">
-                              <button
-                                type="button"
-                                onClick={() => setViewingNotice(n)}
-                                className="p-1 text-slate-550 hover:text-indigo-650 hover:bg-slate-100 rounded border border-slate-200 bg-white transition-colors"
-                                title="View Details"
-                              >
-                                <Eye className="w-3.5 h-3.5" />
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => handleEdit(n)}
-                                className="p-1 text-slate-550 hover:text-indigo-650 hover:bg-slate-100 rounded border border-slate-200 bg-white transition-colors"
-                                title="Edit Notice"
-                              >
-                                <Edit3 className="w-3.5 h-3.5" />
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => handleDelete(n.id)}
-                                className="p-1 text-slate-550 hover:text-rose-600 hover:bg-rose-50 rounded border border-slate-200 bg-white transition-colors"
-                                title="Delete Notice"
-                              >
-                                <Trash2 className="w-3.5 h-3.5" />
-                              </button>
-                            </div>
+                  </thead>
+                  <tbody className="divide-y divide-[#E8E4DF] text-xs font-semibold text-slate-700">
+                    {filteredNotices.length === 0 ? (
+                      <tr>
+                        <td colSpan={visibleColumnsCount} className="text-center py-16 text-slate-400 text-xs uppercase tracking-wider font-bold">
+                          <div className="flex flex-col items-center gap-3">
+                            <span>No Notice Records Found.</span>
+                            <button
+                              type="button"
+                              onClick={() => setSelectedFilters({
+                                bank: [],
+                                noticeType: [],
+                                orderDate: [],
+                                noticeDate: [],
+                                qty: [],
+                                broughtBy: [],
+                                noOfPrint: [],
+                                printedBy: [],
+                                noOfScan: [],
+                                scannedBy: [],
+                                noticeRenameBy: [],
+                                dispatchedBy: [],
+                                handover: [],
+                                billDate: [],
+                                billNo: [],
+                                billAmount: [],
+                                billMailedToBM: [],
+                                paymentRcvdDate: [],
+                                amountRcvd: [],
+                                tdsDeduction: [],
+                                gstDeduction: [],
+                                expenses: [],
+                                billingAttachments: [],
+                                gp: [],
+                              })}
+                              className="px-3.5 py-2 bg-slate-50 hover:bg-slate-100 text-slate-650 rounded-xl text-[10px] font-bold uppercase tracking-wider transition-colors border border-[#E8E4DF] shadow-sm"
+                            >
+                              Clear All Filters
+                            </button>
                           </div>
                         </td>
                       </tr>
-                    );
-                  })
-                )}
-              </tbody>
-              </table>
+                    ) : (
+                      filteredNotices.map((n) => {
+                        const bank = banksList.find(b => b.id?.toString() === n.bankId?.toString());
+                        const branch = branchesList.find(br => br.branchCode === n.branchId?.toString());
+
+                        // GP = billAmount - (TDS + GST + expenses)
+                        const billAmt = parseFloat(n.billAmount) || 0;
+                        const deduction = (parseFloat(n.tdsDeduction) || 0) + (parseFloat(n.gstDeduction) || 0) + (parseFloat(n.expenses) || 0);
+                        const grossProfit = billAmt - deduction;
+
+                        return (
+                          <tr key={n.id} className="hover:bg-slate-50/50 transition-colors">
+                            {/* BANK/BRANCH */}
+                            {visibleColumns.bankBranch && (
+                              <td className="allow-wrap px-3 py-3 max-w-[180px] sticky left-0 z-10 bg-white shadow-[2px_0_5px_rgba(0,0,0,0.05)]">
+                                <div className="font-extrabold text-slate-900 truncate">{bank?.bankName || "Unknown Bank"}</div>
+                                <div className="text-[10px] text-slate-500 truncate mt-0.5">
+                                  {branch?.branchName || "Unknown Branch"} ({n.branchId})
+                                </div>
+                              </td>
+                            )}
+
+                            {/* NOTICE TYPE */}
+                            {visibleColumns.noticeType && (
+                              <td className="px-3 py-3">
+                                <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-50 text-indigo-850 border border-indigo-100">
+                                  {noticeTypes.find(t => t.id?.toString() === n.noticeTypeId?.toString())?.name || n.noticeType || "-"}
+                                </span>
+                              </td>
+                            )}
+
+                            {/* ORDER DATE */}
+                            {visibleColumns.orderDate && (
+                              <td className="px-3 py-3 text-[11px] font-mono">
+                                {n.noticeOrderDate ? new Date(n.noticeOrderDate).toLocaleDateString('en-IN') : "-"}
+                              </td>
+                            )}
+
+                            {/* NOTICE DATE */}
+                            {visibleColumns.noticeDate && (
+                              <td className="px-3 py-3 text-[11px] font-mono">
+                                {n.noticeDate ? new Date(n.noticeDate).toLocaleDateString('en-IN') : "-"}
+                              </td>
+                            )}
+
+                            {/* QTY */}
+                            {visibleColumns.qty && (
+                              <td className="px-3 py-3 font-mono font-bold text-slate-800 text-center text-sm">
+                                {n.quantity || 1}
+                              </td>
+                            )}
+
+                            {/* BROUGHT BY */}
+                            {visibleColumns.broughtBy && (
+                              <td className="px-3 py-3 text-slate-700 font-semibold truncate max-w-[120px]">
+                                {n.broughtBy || <span className="text-slate-350">-</span>}
+                              </td>
+                            )}
+
+                            {/* NO. OF PRINT */}
+                            {visibleColumns.noOfPrint && (
+                              <td className="px-3 py-3 text-center font-mono font-bold text-slate-650">
+                                {n.noOfPrint || 0}
+                              </td>
+                            )}
+
+                            {/* PRINTED BY */}
+                            {visibleColumns.printedBy && (
+                              <td className="px-3 py-3 text-slate-700 font-semibold truncate max-w-[120px]">
+                                {n.printedBy || <span className="text-slate-350">-</span>}
+                              </td>
+                            )}
+
+                            {/* NO. OF SCAN */}
+                            {visibleColumns.noOfScan && (
+                              <td className="px-3 py-3 text-center font-mono font-bold text-slate-650">
+                                {n.noOfScan || 0}
+                              </td>
+                            )}
+
+                            {/* SCANNED BY */}
+                            {visibleColumns.scannedBy && (
+                              <td className="px-3 py-3 text-slate-700 font-semibold truncate max-w-[120px]">
+                                {n.scannedBy || <span className="text-slate-350">-</span>}
+                              </td>
+                            )}
+
+                            {/* NOTICE RENAME BY */}
+                            {visibleColumns.noticeRenameBy && (
+                              <td className="px-3 py-3 text-slate-700 font-semibold truncate max-w-[120px]">
+                                {n.noticeRenameBy || <span className="text-slate-350">-</span>}
+                              </td>
+                            )}
+
+                            {/* DISPATCHED BY */}
+                            {visibleColumns.dispatchedBy && (
+                              <td className="px-3 py-3 text-slate-700 font-semibold truncate max-w-[120px]">
+                                {n.dispatchedBy || <span className="text-slate-350">-</span>}
+                              </td>
+                            )}
+
+                            {/* HANDOVER */}
+                            {visibleColumns.handover && (
+                              <td className="px-3 py-3 leading-normal">
+                                <div className="flex flex-col gap-1.5 items-start">
+                                  {n.documentUrl && (
+                                    <a
+                                      href={n.documentUrl}
+                                      target="_blank"
+                                      rel="noreferrer"
+                                      className="inline-flex items-center gap-1 font-bold text-emerald-700 hover:text-emerald-900 bg-emerald-50/70 px-2 py-0.5 rounded border border-emerald-100 text-[10px]"
+                                    >
+                                      <Paperclip className="w-2.5 h-2.5" /> Softcopy
+                                    </a>
+                                  )}
+                                  <div>
+                                    {n.handoverTo ? (
+                                      <span className="inline-flex items-center gap-1 text-emerald-700 font-extrabold text-[10px] bg-emerald-50 px-2 py-0.5 rounded border border-emerald-100">
+                                        <CheckCircle className="w-3 h-3 text-emerald-500" /> Handed Over
+                                      </span>
+                                    ) : (
+                                      <span className="inline-flex items-center gap-1 text-slate-400 italic text-[10px] bg-slate-50 px-2 py-0.5 rounded border border-slate-200">
+                                        Pending
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                              </td>
+                            )}
+
+                            {/* BILL DATE */}
+                            {visibleColumns.billDate && (
+                              <td className="px-3 py-3 text-[11px] font-mono">
+                                {n.billDate ? new Date(n.billDate).toLocaleDateString('en-IN') : "-"}
+                              </td>
+                            )}
+
+                            {/* BILL NO */}
+                            {visibleColumns.billNo && (
+                              <td className="px-3 py-3 text-[11px] font-mono font-bold text-slate-800">
+                                {n.billNo || <span className="text-slate-400">-</span>}
+                              </td>
+                            )}
+
+                            {/* BILL AMOUNT */}
+                            {visibleColumns.billAmount && (
+                              <td className="px-3 py-3 text-[11px] font-mono font-black text-slate-800">
+                                {n.billAmount ? `₹${parseFloat(n.billAmount).toLocaleString('en-IN')}` : <span className="text-slate-400">-</span>}
+                              </td>
+                            )}
+
+                            {/* MAILED TO BM */}
+                            {visibleColumns.billMailedToBM && (
+                              <td className="px-3 py-3">
+                                {n.billMailedToBM ? (
+                                  <span className="px-2 py-0.5 rounded text-[9px] font-black bg-emerald-50 text-emerald-700 border border-emerald-100">
+                                    ✓ Mailed
+                                  </span>
+                                ) : (
+                                  <span className="px-2 py-0.5 rounded text-[9px] font-bold bg-slate-50 text-slate-400 border border-slate-100">
+                                    Pending
+                                  </span>
+                                )}
+                              </td>
+                            )}
+
+                            {/* PAID DATE */}
+                            {visibleColumns.paymentRcvdDate && (
+                              <td className="px-3 py-3 text-[11px] font-mono">
+                                {n.paymentRcvdDate ? new Date(n.paymentRcvdDate).toLocaleDateString('en-IN') : "-"}
+                              </td>
+                            )}
+
+                            {/* PAID AMOUNT */}
+                            {visibleColumns.amountRcvd && (
+                              <td className="px-3 py-3 text-[11px] font-mono font-bold text-emerald-700">
+                                {n.amountRcvd ? `₹${parseFloat(n.amountRcvd).toLocaleString('en-IN')}` : <span className="text-slate-400">-</span>}
+                              </td>
+                            )}
+
+                            {/* TDS DEDUCTION */}
+                            {visibleColumns.tdsDeduction && (
+                              <td className="px-3 py-3 text-[11px] font-mono text-rose-700">
+                                {n.tdsDeduction ? `₹${parseFloat(n.tdsDeduction).toLocaleString('en-IN')}` : <span className="text-slate-400">-</span>}
+                              </td>
+                            )}
+
+                            {/* GST DEDUCTION */}
+                            {visibleColumns.gstDeduction && (
+                              <td className="px-3 py-3 text-[11px] font-mono text-rose-700">
+                                {n.gstDeduction ? `₹${parseFloat(n.gstDeduction).toLocaleString('en-IN')}` : <span className="text-slate-400">-</span>}
+                              </td>
+                            )}
+
+                            {/* EXPENSES */}
+                            {visibleColumns.expenses && (
+                              <td className="px-3 py-3 text-[11px] font-mono text-rose-700">
+                                {n.expenses ? `₹${parseFloat(n.expenses).toLocaleString('en-IN')}` : <span className="text-slate-400">-</span>}
+                              </td>
+                            )}
+
+                            {/* BILL ATTACHMENTS */}
+                            {visibleColumns.billingAttachments && (
+                              <td className="px-3 py-3">
+                                {(() => {
+                                  if (!n.billingAttachments) return <span className="text-slate-350">-</span>;
+                                  try {
+                                    const parsed = JSON.parse(n.billingAttachments);
+                                    if (!Array.isArray(parsed) || parsed.length === 0) return <span className="text-slate-350">-</span>;
+                                    return (
+                                      <div className="flex items-center gap-1">
+                                        {parsed.map((att: any, attIdx: number) => {
+                                          const isImg = att.type === "image";
+                                          if (isImg) {
+                                            return (
+                                              <img
+                                                key={attIdx}
+                                                src={att.url}
+                                                alt={att.name}
+                                                className="w-6 h-6 object-cover rounded border border-slate-200 cursor-zoom-in hover:scale-110 transition-transform"
+                                                onClick={() => window.open(att.url, "_blank")}
+                                                title={`Preview: ${att.name}`}
+                                              />
+                                            );
+                                          }
+                                          const icon = att.type === "pdf" ? "📄" : att.type === "excel" ? "📊" : att.type === "recording" ? "🎵" : "📎";
+                                          return (
+                                            <a
+                                              key={attIdx}
+                                              href={att.url}
+                                              target="_blank"
+                                              rel="noreferrer"
+                                              className="w-6 h-6 flex items-center justify-center bg-slate-50 border border-slate-200 rounded text-xs hover:bg-slate-100 transition-colors"
+                                              title={`Open: ${att.name}`}
+                                            >
+                                              {icon}
+                                            </a>
+                                          );
+                                        })}
+                                      </div>
+                                    );
+                                  } catch (_) {
+                                    return <span className="text-slate-350">-</span>;
+                                  }
+                                })()}
+                              </td>
+                            )}
+
+                            {/* GP */}
+                            {visibleColumns.gp && (
+                              <td className="px-3 py-3">
+                                {n.billAmount !== null && n.billAmount !== undefined ? (
+                                  <>
+                                    <div className={`font-black font-mono ${grossProfit >= 0 ? 'text-emerald-700' : 'text-rose-700'}`}>
+                                      ₹{grossProfit.toLocaleString('en-IN')}
+                                    </div>
+                                    {n.amountRcvd > 0 && (
+                                      <div className="text-[9px] text-slate-500 mt-0.5">
+                                        Recd: ₹{parseFloat(n.amountRcvd).toLocaleString('en-IN')}
+                                      </div>
+                                    )}
+                                  </>
+                                ) : (
+                                  <span className="text-slate-400 font-mono">-</span>
+                                )}
+                              </td>
+                            )}
+
+                            {/* ACTIONS */}
+                            <td className="px-1 py-2 text-right w-[100px] min-w-[100px]">
+                              <div className="flex flex-col items-end gap-1 w-full">
+                                {/* Top row: 2 workflow actions */}
+                                <div className="flex items-center gap-1">
+                                  <button
+                                    type="button"
+                                    onClick={() => handleOpenHandoverModal(n)}
+                                    className={`p-1 rounded border transition-all flex items-center justify-center ${n.handoverTo
+                                      ? 'border-emerald-250 text-emerald-700 bg-emerald-50 hover:bg-emerald-100'
+                                      : 'border-slate-250 text-slate-500 bg-slate-50 hover:bg-slate-100 hover:text-slate-700'
+                                      }`}
+                                    title={n.handoverTo ? `Handed Over to ${n.handoverTo} (Click to Edit)` : "Click to Handover Notice"}
+                                  >
+                                    <UserCheck className="w-3.5 h-3.5" />
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleOpenBillingModal(n)}
+                                    className={`p-1 rounded border transition-all flex items-center justify-center ${(n.billNo || parseFloat(n.billAmount) > 0)
+                                      ? 'border-indigo-250 text-indigo-700 bg-indigo-50 hover:bg-indigo-100'
+                                      : 'border-amber-250 text-amber-700 bg-amber-50 hover:bg-amber-100 hover:text-amber-850'
+                                      }`}
+                                    title={(n.billNo || parseFloat(n.billAmount) > 0) ? `Billed (Click to Edit Billing)` : "Click to Add Billing"}
+                                  >
+                                    <DollarSign className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
+
+                                {/* Bottom row: 3 utility actions */}
+                                <div className="flex items-center gap-1">
+                                  <button
+                                    type="button"
+                                    onClick={() => setViewingNotice(n)}
+                                    className="p-1 text-slate-550 hover:text-indigo-650 hover:bg-slate-100 rounded border border-slate-200 bg-white transition-colors"
+                                    title="View Details"
+                                  >
+                                    <Eye className="w-3.5 h-3.5" />
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleEdit(n)}
+                                    className="p-1 text-slate-550 hover:text-indigo-650 hover:bg-slate-100 rounded border border-slate-200 bg-white transition-colors"
+                                    title="Edit Notice"
+                                  >
+                                    <Edit3 className="w-3.5 h-3.5" />
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleDelete(n.id)}
+                                    className="p-1 text-slate-550 hover:text-rose-600 hover:bg-rose-50 rounded border border-slate-200 bg-white transition-colors"
+                                    title="Delete Notice"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })
+                    )}
+                  </tbody>
+                </table>
               </>
             )}
           </div>

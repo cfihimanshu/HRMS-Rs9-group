@@ -26,18 +26,19 @@ export async function GET(req: Request) {
       return NextResponse.json({ success: false, error: "Company not found" }, { status: 404 });
     }
 
-    const getCompanyPrefix = (name: string) => {
-      const upper = name.toUpperCase();
+    const getCompanyPrefix = (name: string, code?: string) => {
+      if (code && code.trim()) return code.trim().toUpperCase();
+      const upper = (name || "").toUpperCase();
       if (upper.includes("CFI") || upper.includes("CHARTERED")) return "CFI";
       if (upper.includes("RAA") || upper.includes("RUKSANA")) return "RAA";
       if (upper.includes("CTPL") || upper.includes("CITILINE")) return "CTP";
       if (upper.includes("ATPL") || upper.includes("ACOLYTE")) return "ATP";
-      if (upper.includes("RNPL") || upper.includes("RUHAN")) return "RNP";
+      if (upper.includes("RNPL") || upper.includes("RUHAN")) return "RNPL";
       if (upper.includes("MVPL") || upper.includes("MAVICS")) return "MVP";
       return name.replace(/[^a-zA-Z]/g, "").substring(0, 3).toUpperCase().padEnd(3, "X");
     };
 
-    const prefix = getCompanyPrefix(company.name);
+    const prefix = getCompanyPrefix(company.name, (company as any).code);
     
     const profiles = await EmployeeProfile.findAll({ 
       where: { 

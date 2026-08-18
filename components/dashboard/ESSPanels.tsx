@@ -1429,13 +1429,17 @@ export function ESSLeaves({ user, triggerToast, stats, initialSearchFilter }: ES
 export function ESSPayroll({ user, triggerToast }: ESSProps) {
   const [employees, setEmployees] = useState<any[]>([]);
   const [selectedEmpId, setSelectedEmpId] = useState("");
-  const [baseSalary, setBaseSalary] = useState(13000);
+  const [baseSalary, setBaseSalary] = useState<number | "">(13000);
   const monthsList = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
   const [payrollMonth, setPayrollMonth] = useState(monthsList[new Date().getMonth()]);
-  const [payrollYear, setPayrollYear] = useState(new Date().getFullYear());
+  const [payrollYear, setPayrollYear] = useState<number | "">(new Date().getFullYear());
   const [processedPayslips, setProcessedPayslips] = useState<any[]>([]);
   const [sodReports, setSodReports] = useState<any[]>([]);
   const [eodReports, setEodReports] = useState<any[]>([]);
+  const [leaveReports, setLeaveReports] = useState<any[]>([]);
+  const [fineReports, setFineReports] = useState<any[]>([]);
+  const [paidLeavesInput, setPaidLeavesInput] = useState<number | "">(0);
+  const [absentFineOverride, setAbsentFineOverride] = useState<number | "">("");
   const [calcBase, setCalcBase] = useState(true);
   const [calcOvertime, setCalcOvertime] = useState(true);
 
@@ -1449,8 +1453,25 @@ export function ESSPayroll({ user, triggerToast }: ESSProps) {
   };
 
   const selectedMonthIndex = useMemo(() => {
-    return monthMap[payrollMonth] ?? 2;
+    return monthMap[payrollMonth] ?? new Date().getMonth();
   }, [payrollMonth]);
+
+  const numericYear = useMemo(() => {
+    return typeof payrollYear === "number" && !isNaN(payrollYear) && payrollYear > 0 ? payrollYear : new Date().getFullYear();
+  }, [payrollYear]);
+
+  const daysInSelectedMonth = useMemo(() => {
+    return new Date(numericYear, selectedMonthIndex + 1, 0).getDate();
+  }, [payrollMonth, numericYear, selectedMonthIndex]);
+
+  const sundaysInSelectedMonth = useMemo(() => {
+    let count = 0;
+    for (let day = 1; day <= daysInSelectedMonth; day++) {
+      const d = new Date(numericYear, selectedMonthIndex, day);
+      if (d.getDay() === 0) count++;
+    }
+    return count;
+  }, [daysInSelectedMonth, numericYear, selectedMonthIndex]);
 
   const employeeSods = useMemo(() => {
     if (!selectedEmpId) return [];
@@ -1458,9 +1479,9 @@ export function ESSPayroll({ user, triggerToast }: ESSProps) {
       const empIdStr = report.employee?.id ? String(report.employee.id) : String(report.employee || "");
       if (empIdStr !== String(selectedEmpId)) return false;
       const d = new Date(report.date || report.createdAt);
-      return d.getMonth() === selectedMonthIndex && d.getFullYear() === payrollYear;
+      return d.getMonth() === selectedMonthIndex && d.getFullYear() === numericYear;
     });
-  }, [sodReports, selectedEmpId, selectedMonthIndex, payrollYear]);
+  }, [sodReports, selectedEmpId, selectedMonthIndex, numericYear]);
 
   const employeeEods = useMemo(() => {
     if (!selectedEmpId) return [];
@@ -1468,9 +1489,57 @@ export function ESSPayroll({ user, triggerToast }: ESSProps) {
       const empIdStr = report.employee?.id ? String(report.employee.id) : String(report.employee || "");
       if (empIdStr !== String(selectedEmpId)) return false;
       const d = new Date(report.date || report.createdAt);
-      return d.getMonth() === selectedMonthIndex && d.getFullYear() === payrollYear;
+      return d.getMonth() === selectedMonthIndex && d.getFullYear() === numericYear;
     });
-  }, [eodReports, selectedEmpId, selectedMonthIndex, payrollYear]);
+  }, [eodReports, selectedEmpId, selectedMonthIndex, numericYear]);
+
+  const employeeLeaves = useMemo(() => {
+    if (!selectedEmpId) return [];
+    return leaveReports.filter((leave: any) => {
+      const empIdStr = leave.employee ? (typeof leave.employee === "object" ? String(leave.employee.id || "") : String(leave.employee)) : "";
+      if (empIdStr !== String(selectedEmpId)) return false;
+
+      const st = (leave.status || leave.hrStatus || "").toLowerCase();
+      if (st.includes("reject")) return false; // Ignore rejected leave applications
+
+      const start = new Date(leave.startDate || leave.createdAt);
+      const end = new Date(leave.endDate || leave.startDate || leave.createdAt);
+
+      const startInMonth = start.getMonth() === selectedMonthIndex && start.getFullYear() === numericYear;
+      const endInMonth = end.getMonth() === selectedMonthIndex && end.getFullYear() === numericYear;
+
+      return startInMonth || endInMonth;
+    });
+  }, [leaveReports, selectedEmpId, selectedMonthIndex, numericYear]);
+
+  const totalAppliedLeaveDays = useMemo(() => {
+    return employeeLeaves.reduce((sum: number, l: any) => sum + Number(l.days || 1), 0);
+  }, [employeeLeaves]);
+
+  const employeeFines = useMemo(() => {
+    if (!selectedEmpId) return [];
+    return fineReports.filter((fine: any) => {
+      const empIdStr = fine.employee ? String(fine.employee) : "";
+      if (empIdStr !== String(selectedEmpId)) return false;
+
+      const fineDate = new Date(fine.date || fine.createdAt);
+      return fineDate.getMonth() === selectedMonthIndex && fineDate.getFullYear() === numericYear;
+    });
+  }, [fineReports, selectedEmpId, selectedMonthIndex, numericYear]);
+
+  const totalImposedAbsentFineAmount = useMemo(() => {
+    return employeeFines.reduce((sum: number, f: any) => sum + Number(f.amount || 0), 0);
+  }, [employeeFines]);
+
+  // Sync paidLeavesInput & reset absentFineOverride whenever selected employee or month changes
+  useEffect(() => {
+    const approvedPaidLeaves = employeeLeaves
+      .filter((l: any) => (l.type || "").toLowerCase() !== "unpaid leave")
+      .reduce((sum: number, l: any) => sum + Number(l.days || 1), 0);
+
+    setPaidLeavesInput(approvedPaidLeaves);
+    setAbsentFineOverride("");
+  }, [selectedEmpId, selectedMonthIndex, payrollYear, employeeLeaves]);
 
   const getLocalDateString = (dateObj: any) => {
     const d = new Date(dateObj);
@@ -1523,18 +1592,47 @@ export function ESSPayroll({ user, triggerToast }: ESSProps) {
       totalOtMinutes += otMins;
     });
 
+    const registeredWorkDays = Object.keys(summary).length;
+    const numPaidLeaves = Number(paidLeavesInput || 0);
+
+    // Total Payable Days = Present Worked Days + Weekly Offs (Sundays) + Paid Leaves (capped at 30 days standard)
+    // If no SOD/EOD entries exist yet for employee in month, default to full month minus unpaid leaves
+    let payableDays = registeredWorkDays > 0
+      ? Math.min(30, registeredWorkDays + sundaysInSelectedMonth + numPaidLeaves)
+      : Math.min(30, 30 - Math.max(0, totalAppliedLeaveDays - numPaidLeaves));
+
+    if (payableDays < 0) payableDays = 0;
+
+    // Unpaid leaves / LOP days = Total applied leaves in month minus marked Paid Leaves
+    const unpaidLeaveDays = Math.max(0, 30 - payableDays);
+
     return {
       days: summary,
+      registeredWorkDays,
+      payableDays,
+      unpaidLeaveDays,
+      numPaidLeaves,
       totalMinutes,
       totalBaseMinutes,
       totalOtMinutes
     };
-  }, [employeeSods, employeeEods]);
+  }, [employeeSods, employeeEods, sundaysInSelectedMonth, paidLeavesInput, totalAppliedLeaveDays]);
 
-  const perDaySalary = baseSalary / 30;
+  const numBaseSalary = Number(baseSalary || 0);
+  // Base Salary is constant (e.g. 13,000) across 28, 30, or 31 day months, based on standard 30 days per-day rate
+  const perDaySalary = numBaseSalary / 30;
   const perMinuteSalary = perDaySalary / 540;
 
-  const calculatedBaseAmount = calcBase ? Math.round(dailyWorkSummary.totalBaseMinutes * perMinuteSalary) : 0;
+  // Unpaid absent days fine calculated from leaves
+  const calculatedUnpaidFine = Math.round(dailyWorkSummary.unpaidLeaveDays * perDaySalary);
+
+  // Dynamic Absent Fine: Automatically fetches imposed absent fines from "Impose Absent Fine" form + unpaid absent days
+  const dynamicFetchedAbsentFine = Math.max(calculatedUnpaidFine, totalImposedAbsentFineAmount);
+
+  // Absent Fine Amount used in salary deduction (supports manual override if HR edits)
+  const absentFineAmount = absentFineOverride !== "" ? Number(absentFineOverride) : dynamicFetchedAbsentFine;
+
+  const calculatedBaseAmount = calcBase ? Math.max(0, Math.round(numBaseSalary - absentFineAmount)) : 0;
   const calculatedOtAmount = calcOvertime ? Math.round(dailyWorkSummary.totalOtMinutes * perMinuteSalary) : 0;
 
   const calculatedNetSalary = calculatedBaseAmount + calculatedOtAmount;
@@ -1546,41 +1644,83 @@ export function ESSPayroll({ user, triggerToast }: ESSProps) {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const pRes = await fetch("/api/payroll");
-      const pData = await pRes.json();
-      if (pData.success) {
-        setProcessedPayslips(pData.data || []);
-      }
+      // Fetch employee list, payroll list, work reports, leaves, and imposed fines in parallel for instant rendering
+      const [empRes, pRes, res, leaveRes, fineRes] = await Promise.all([
+        fetch("/api/employees?all=true").catch(() => null),
+        fetch("/api/payroll").catch(() => null),
+        fetch("/api/reports/work-report").catch(() => null),
+        fetch("/api/leaves").catch(() => null),
+        fetch("/api/fines").catch(() => null)
+      ]);
 
-      const res = await fetch("/api/reports/work-report");
-      const rData = await res.json();
-      if (rData.success && rData.data) {
-        setSodReports(rData.data.sod || []);
-        setEodReports(rData.data.eod || []);
-      }
-
-      // Fetch employees list (only active employees for payroll calculation)
-      try {
-        const empRes = await fetch("/api/employees?all=true");
-        const empData = await empRes.json();
-        if (empData.success && Array.isArray(empData.data) && empData.data.length > 0) {
-          const activeEmployees = empData.data.filter((e: any) => {
-            if (!e || !(e.id || e._id)) return false;
-            const st = (e.status || e.employeeProfile?.status || "active").toLowerCase();
-            return !["inactive", "archived", "terminated", "disabled", "exited"].includes(st);
-          });
-          setEmployees(activeEmployees);
-          if (activeEmployees.length > 0) {
-            const firstId = String(activeEmployees[0].id || activeEmployees[0]._id || "");
-            setSelectedEmpId(prev => prev || firstId);
-            setBaseSalary(activeEmployees[0].employeeProfile?.baseSalary || 13000);
+      if (empRes) {
+        try {
+          const empData = await empRes.json();
+          if (empData.success && Array.isArray(empData.data) && empData.data.length > 0) {
+            const activeEmployees = empData.data.filter((e: any) => {
+              if (!e || !(e.id || e._id)) return false;
+              const st = (e.status || e.employeeProfile?.status || "active").toLowerCase();
+              return !["inactive", "archived", "terminated", "disabled", "exited"].includes(st);
+            });
+            setEmployees(activeEmployees);
+            if (activeEmployees.length > 0) {
+              const firstId = String(activeEmployees[0].id || activeEmployees[0]._id || "");
+              setSelectedEmpId(prev => prev || firstId);
+              const bSal = activeEmployees[0].employeeProfile?.baseSalary || activeEmployees[0].baseSalary || 13000;
+              setBaseSalary(Number(bSal));
+            }
+          } else if (user?.id) {
+            setSelectedEmpId(String(user.id));
           }
-        } else if (user?.id) {
-          setSelectedEmpId(String(user.id));
+        } catch (eErr) {
+          console.error("Error parsing employees list:", eErr);
+          if (user?.id) setSelectedEmpId(String(user.id));
         }
-      } catch (eErr) {
-        console.error("Error loading employees list:", eErr);
-        if (user?.id) setSelectedEmpId(String(user.id));
+      }
+
+      if (pRes) {
+        try {
+          const pData = await pRes.json();
+          if (pData.success) {
+            setProcessedPayslips(pData.data || []);
+          }
+        } catch (pErr) {
+          console.error("Error parsing payroll data:", pErr);
+        }
+      }
+
+      if (res) {
+        try {
+          const rData = await res.json();
+          if (rData.success && rData.data) {
+            setSodReports(rData.data.sod || []);
+            setEodReports(rData.data.eod || []);
+          }
+        } catch (rErr) {
+          console.error("Error parsing work report data:", rErr);
+        }
+      }
+
+      if (leaveRes) {
+        try {
+          const lData = await leaveRes.json();
+          if (lData.success && Array.isArray(lData.data)) {
+            setLeaveReports(lData.data);
+          }
+        } catch (lErr) {
+          console.error("Error parsing leaves data:", lErr);
+        }
+      }
+
+      if (fineRes) {
+        try {
+          const fData = await fineRes.json();
+          if (fData.success && Array.isArray(fData.data)) {
+            setFineReports(fData.data);
+          }
+        } catch (fErr) {
+          console.error("Error parsing fines data:", fErr);
+        }
       }
     } catch (err) {
       console.error("Error fetching payroll data:", err);
@@ -1593,9 +1733,9 @@ export function ESSPayroll({ user, triggerToast }: ESSProps) {
     setSelectedEmpId(String(empId));
     const emp = employees.find(e => String(e.id) === String(empId));
     if (emp && emp.employeeProfile?.baseSalary) {
-      setBaseSalary(emp.employeeProfile.baseSalary);
+      setBaseSalary(Number(emp.employeeProfile.baseSalary));
     } else if (emp && emp.baseSalary) {
-      setBaseSalary(emp.baseSalary);
+      setBaseSalary(Number(emp.baseSalary));
     } else {
       setBaseSalary(13000);
     }
@@ -1732,8 +1872,8 @@ export function ESSPayroll({ user, triggerToast }: ESSProps) {
                   <input
                     type="number"
                     value={payrollYear}
-                    onChange={(e) => setPayrollYear(Number(e.target.value))}
-                    className="w-full bg-[#FCFBF9] border border-[#E8E4DF] focus:border-[#C9A84C] p-2.5 rounded-lg text-xs mt-1 text-[#1C1C1A] outline-none"
+                    onChange={(e) => setPayrollYear(e.target.value === "" ? "" : Number(e.target.value))}
+                    className="w-full bg-[#FCFBF9] border border-[#E8E4DF] focus:border-[#C9A84C] p-2.5 rounded-lg text-xs mt-1 text-[#1C1C1A] outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                     required
                   />
                 </div>
@@ -1745,8 +1885,9 @@ export function ESSPayroll({ user, triggerToast }: ESSProps) {
                   <input
                     type="number"
                     value={baseSalary}
-                    onChange={(e) => setBaseSalary(Number(e.target.value))}
-                    className="w-full bg-[#FCFBF9] border border-[#E8E4DF] focus:border-[#C9A84C] p-2 rounded text-xs mt-1 font-bold text-[#1C1C1A] outline-none"
+                    onChange={(e) => setBaseSalary(e.target.value === "" ? "" : Number(e.target.value))}
+                    className="w-full bg-[#FCFBF9] border border-[#E8E4DF] focus:border-[#C9A84C] p-2 rounded text-xs mt-1 font-bold text-[#1C1C1A] outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                    placeholder="Enter Base Salary"
                     required
                   />
                 </div>
@@ -1768,6 +1909,103 @@ export function ESSPayroll({ user, triggerToast }: ESSProps) {
                     {dailyWorkSummary.totalBaseMinutes} + {dailyWorkSummary.totalOtMinutes} mins
                   </div>
                 </div>
+              </div>
+
+              {/* Month Leaves & Imposed Absent Fines Record Section */}
+              <div className="p-4 bg-[#FAFAF7] rounded-xl border border-[#E8E4DF] space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[#E8E4DF] pb-2">
+                  <div>
+                    <span className="text-[10px] uppercase font-bold text-[#C9A84C] tracking-wider block">
+                      🌴 Month Leaves & ⚠️ Imposed Fines ({payrollMonth} {payrollYear})
+                    </span>
+                    <span className="text-xs font-bold text-[#1C1C1A]">
+                      Leaves: <span className="text-[#714B67]">{totalAppliedLeaveDays} Days</span> | Imposed Fines: <span className="text-rose-700">₹{totalImposedAbsentFineAmount.toLocaleString()}</span>
+                    </span>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-4">
+                    <div className="flex items-center gap-2">
+                      <label className="text-[9px] uppercase font-bold text-[#9C9890] tracking-wider whitespace-nowrap">
+                        Mark Paid Leaves:
+                      </label>
+                      <input
+                        type="number"
+                        min="0"
+                        max={daysInSelectedMonth}
+                        value={paidLeavesInput}
+                        onChange={(e) => setPaidLeavesInput(e.target.value === "" ? "" : Math.max(0, Number(e.target.value)))}
+                        className="w-20 bg-[#FCFBF9] border border-[#E8E4DF] focus:border-[#C9A84C] px-2 py-1 rounded text-xs font-bold text-[#1C1C1A] outline-none shadow-inner [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                        placeholder="0"
+                      />
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <label className="text-[9px] uppercase font-bold text-rose-700 tracking-wider whitespace-nowrap">
+                        Absent Fine (₹):
+                      </label>
+                      <input
+                        type="number"
+                        min="0"
+                        value={absentFineOverride !== "" ? absentFineOverride : absentFineAmount}
+                        onChange={(e) => setAbsentFineOverride(e.target.value === "" ? "" : Math.max(0, Number(e.target.value)))}
+                        className="w-28 bg-[#FCFBF9] border border-rose-300 focus:border-rose-600 px-2.5 py-1 rounded text-xs font-bold text-rose-700 outline-none shadow-inner [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                        placeholder={String(dynamicFetchedAbsentFine)}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Display Individual Imposed Absent Fines */}
+                {employeeFines.length > 0 && (
+                  <div className="space-y-1.5">
+                    <span className="text-[9px] uppercase font-bold text-rose-700 tracking-wider block">
+                      ⚠️ Imposed Absent Fines (From Impose Absent Fine Form):
+                    </span>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                      {employeeFines.map((f: any, idx: number) => (
+                        <div key={idx} className="bg-rose-50/60 border border-rose-200 p-2 rounded-lg flex justify-between items-center text-rose-900 shadow-sm">
+                          <div>
+                            <span className="font-bold block">₹{f.amount} Fine</span>
+                            <span className="text-[10px] text-rose-700 block font-mono">
+                              {f.date ? new Date(f.date).toLocaleDateString("en-IN") : ""} {f.reason ? `• ${f.reason}` : ""}
+                            </span>
+                          </div>
+                          <span className="px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-wider bg-rose-200 text-rose-800">
+                            Imposed
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Display Registered Month Leaves */}
+                {employeeLeaves.length > 0 && (
+                  <div className="space-y-1.5">
+                    <span className="text-[9px] uppercase font-bold text-[#C9A84C] tracking-wider block">
+                      🌴 Month Leave Applications:
+                    </span>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                      {employeeLeaves.map((l: any, idx: number) => (
+                        <div key={idx} className="bg-white border border-[#E8E4DF] p-2 rounded-lg flex justify-between items-center shadow-sm">
+                          <div>
+                            <span className="font-bold text-[#1C1C1A]">{l.type || "Leave"}</span>
+                            <span className="text-[10px] text-[#9C9890] block font-mono">
+                              {l.startDate ? new Date(l.startDate).toLocaleDateString("en-IN") : ""} to {l.endDate ? new Date(l.endDate).toLocaleDateString("en-IN") : ""}
+                            </span>
+                          </div>
+                          <span className="px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-[#F4EFE6] text-[#714B67] border border-[#E8E4DF]">
+                            {l.days || 1} Days
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {employeeLeaves.length === 0 && employeeFines.length === 0 && (
+                  <div className="text-[11px] text-[#9C9890] italic">
+                    No leave applications or imposed fines registered for this employee in {payrollMonth} {payrollYear}.
+                  </div>
+                )}
               </div>
 
               {/* Checkboxes Row */}
@@ -1797,26 +2035,61 @@ export function ESSPayroll({ user, triggerToast }: ESSProps) {
               <div className="border border-[#E8E4DF] rounded-xl p-4 space-y-3 bg-[#FCFBF9]">
                 <div className="flex justify-between border-b border-[#E8E4DF]/50 pb-2 text-[11px] font-medium">
                   <div className="text-[#5D5B57]">
-                    Total Registered SOD/EOD Working Days:
+                    Base Monthly Salary:
                   </div>
                   <div className="text-[#1C1C1A] font-bold">
-                    {Object.keys(dailyWorkSummary.days).length} Days
+                    ₹{baseSalary.toLocaleString()} ({payrollMonth} {payrollYear})
                   </div>
                 </div>
                 <div className="flex justify-between border-b border-[#E8E4DF]/50 pb-2 text-[11px] font-medium">
                   <div className="text-[#5D5B57]">
-                    Accumulated Working Time (Base + OT):
+                    Per-Day Salary Rate (Standard 30 Days):
                   </div>
                   <div className="text-[#1C1C1A] font-bold">
-                    {(dailyWorkSummary.totalMinutes / 60).toFixed(1)} Hours ({dailyWorkSummary.totalBaseMinutes} + {dailyWorkSummary.totalOtMinutes} Mins)
+                    ₹{perDaySalary.toFixed(2)} / day
                   </div>
                 </div>
                 <div className="flex justify-between border-b border-[#E8E4DF]/50 pb-2 text-[11px] font-medium">
                   <div className="text-[#5D5B57]">
-                    Base Salary Portion {calcBase ? "✅" : "❌"}:
+                    Attendance & Present Days Breakdown:
                   </div>
                   <div className="text-[#1C1C1A] font-bold">
-                    ₹{calculatedBaseAmount.toLocaleString()} <span className="text-[9px] text-[#9C9890]">({dailyWorkSummary.totalBaseMinutes} mins)</span>
+                    {dailyWorkSummary.registeredWorkDays} Days Present (SOD/EOD) + {sundaysInSelectedMonth} Sundays + {dailyWorkSummary.numPaidLeaves} Paid Leaves
+                  </div>
+                </div>
+                <div className="flex justify-between border-b border-[#E8E4DF]/50 pb-2 text-[11px] font-medium">
+                  <div className="text-[#5D5B57]">
+                    Calculated Total Payable Days:
+                  </div>
+                  <div className="text-[#1C1C1A] font-bold">
+                    {dailyWorkSummary.payableDays} Paid Days <span className="text-[9px] text-[#9C9890]">({dailyWorkSummary.unpaidLeaveDays} Unpaid Absent Days)</span>
+                  </div>
+                </div>
+                {absentFineAmount > 0 ? (
+                  <div className="flex justify-between border-b border-[#E8E4DF]/50 pb-2 text-[11px] font-medium text-rose-700">
+                    <div>
+                      Absent Fine Deduction (Deducted for {dailyWorkSummary.unpaidLeaveDays} Unpaid Days / Imposed Fines):
+                    </div>
+                    <div className="font-bold">
+                      - ₹{absentFineAmount.toLocaleString()}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex justify-between border-b border-[#E8E4DF]/50 pb-2 text-[11px] font-medium text-emerald-700">
+                    <div>
+                      Absent Fine Deduction:
+                    </div>
+                    <div className="font-bold">
+                      ₹0 (100% Full Attendance Retained)
+                    </div>
+                  </div>
+                )}
+                <div className="flex justify-between border-b border-[#E8E4DF]/50 pb-2 text-[11px] font-medium">
+                  <div className="text-[#5D5B57]">
+                    Earned Base Salary {calcBase ? "✅" : "❌"}:
+                  </div>
+                  <div className="text-[#1C1C1A] font-bold">
+                    ₹{calculatedBaseAmount.toLocaleString()}
                   </div>
                 </div>
                 <div className="flex justify-between border-b border-[#E8E4DF]/50 pb-2 text-[11px] font-medium">
@@ -1825,17 +2098,9 @@ export function ESSPayroll({ user, triggerToast }: ESSProps) {
                   </div>
                   <div className="text-[#1C1C1A] font-bold">
                     {calculatedOtAmount > 0
-                      ? `₹${calculatedOtAmount.toLocaleString()} (${dailyWorkSummary.totalOtMinutes} mins)`
+                      ? `+ ₹${calculatedOtAmount.toLocaleString()} (${dailyWorkSummary.totalOtMinutes} mins OT)`
                       : "—"
                     }
-                  </div>
-                </div>
-                <div className="flex justify-between border-b border-[#E8E4DF]/50 pb-2 text-[11px] font-medium">
-                  <div className="text-[#5D5B57]">
-                    Per-Minute Salary Rate:
-                  </div>
-                  <div className="text-[#1C1C1A] font-bold">
-                    ₹{perMinuteSalary.toFixed(4)} / min
                   </div>
                 </div>
                 <div className="flex justify-between pt-2 text-xs font-bold uppercase tracking-widest text-[#1C1C1A]">
@@ -1862,23 +2127,23 @@ export function ESSPayroll({ user, triggerToast }: ESSProps) {
 
             <div className="text-[11px] leading-relaxed space-y-3 font-medium text-[#5D5B57]">
               <div className="p-3 bg-[#FAFAF7] rounded-lg border border-[#E8E4DF]">
-                <span className="font-semibold text-[#1C1C1A] block mb-1">📅 Base Month Standard</span>
-                Month is calculated on a standard of <strong className="text-[#C9A84C]">30 Calendar Days</strong>.
+                <span className="font-semibold text-[#1C1C1A] block mb-1">📅 Constant Base Monthly Salary</span>
+                Base Salary remains constant.
               </div>
 
               <div className="p-3 bg-[#FAFAF7] rounded-lg border border-[#E8E4DF]">
-                <span className="font-semibold text-[#1C1C1A] block mb-1">⏱️ Per-Day </span>
-                Per-Day Salary = Base Salary ÷ 30 calendar days.
+                <span className="font-semibold text-[#1C1C1A] block mb-1">⚠️ Dynamic Imposed Absent Fine</span>
+                Absent Fines imposed via "Impose Absent Fine" form & unpaid absent days are dynamically fetched and deducted from the Base Salary.
               </div>
 
               <div className="p-3 bg-[#FAFAF7] rounded-lg border border-[#E8E4DF]">
-                <span className="font-semibold text-[#1C1C1A] block mb-1">⏰ Per-Minute </span>
-                Per-Minute Salary = Per-Day Salary ÷ 540 minutes (based on standard 9-hour shift).
+                <span className="font-semibold text-[#1C1C1A] block mb-1">🌴 Paid Leave Benefit</span>
+                Marking a leave as Paid Leave waives the daily absent fine and retains full salary.
               </div>
 
               <div className="p-3 bg-[#FAFAF7] rounded-lg border border-[#E8E4DF]">
-                <span className="font-semibold text-[#1C1C1A] block mb-1">📊 Dynamic SOD/EOD Tracking</span>
-                Calculates actual working minutes between EOD and SOD report submissions daily, and sums them up for the final payout.
+                <span className="font-semibold text-[#1C1C1A] block mb-1">⏰ Overtime Payout</span>
+                Adds overtime pay for extra working minutes calculated at (Per-Day ÷ 540) rate when enabled.
               </div>
             </div>
           </div>
@@ -2077,7 +2342,7 @@ export function ESSExpenses({ user, triggerToast }: ESSProps) {
   const [uploadingReceipt, setUploadingReceipt] = useState<boolean>(false);
   const [submitting, setSubmitting] = useState<boolean>(false);
 
-  const isOwnerOrAdmin = user?.role === "Owner" || user?.role === "Admin" || user?.role === "HR";
+  const isOwnerOrAdmin = user?.role === "Owner" || user?.role === "Admin" || user?.role === "HR" || String(user?.role || "").toLowerCase().includes("owner");
 
   const fetchClaims = async () => {
     setLoading(true);

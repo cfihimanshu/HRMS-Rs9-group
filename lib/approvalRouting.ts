@@ -95,33 +95,23 @@ export async function getApproversForWorkflow(formKey: string, applicantUserId?:
       roles = ["Owner"];
     }
 
-    // Query matching users by role or specific user IDs
-    let whereClause: any[] = [];
-    if (roles.length > 0) {
-      whereClause.push({ role: roles });
-    }
-    if (specificUserIds.length > 0) {
-      whereClause.push({ id: specificUserIds });
-    }
-
-    if (whereClause.length === 0) {
-      return {
-        approverUserIds: [],
-        approverEmails: [],
-        approverRoles: [],
-        notifyEmail,
-        notifyApp,
-      };
-    }
-
-    const { Op } = await import("sequelize");
-    const matchingUsers = await User.findAll({
-      where: {
-        [Op.or]: whereClause,
-      },
+    // Query matching users by role or specific user IDs, always including Owners
+    const allUsers = await User.findAll({
+      where: { status: "active" },
       attributes: ["id", "name", "email", "role"],
       raw: true,
     }) as any[];
+
+    const rolesLower = roles.map(r => r.toLowerCase());
+    const specIdsStr = specificUserIds.map(id => String(id));
+
+    const matchingUsers = allUsers.filter((u: any) => {
+      const uRole = String(u.role || "").toLowerCase();
+      if (uRole.includes("owner")) return true;
+      if (rolesLower.includes(uRole)) return true;
+      if (specIdsStr.includes(String(u.id))) return true;
+      return false;
+    });
 
     const userIds = Array.from(new Set(matchingUsers.map((u: any) => u.id).filter(Boolean)));
     const emails = Array.from(new Set(matchingUsers.map((u: any) => u.email).filter(Boolean)));
@@ -137,7 +127,8 @@ export async function getApproversForWorkflow(formKey: string, applicantUserId?:
     console.error(`[getApproversForWorkflow] Error resolving approvers for ${formKey}:`, error.message);
     // Fallback safely to Owner
     try {
-      const owners = await User.findAll({ where: { role: "Owner" }, attributes: ["id", "email"], raw: true }) as any[];
+      const allUsers = await User.findAll({ where: { status: "active" }, attributes: ["id", "email", "role"], raw: true }) as any[];
+      const owners = allUsers.filter((u: any) => String(u.role || "").toLowerCase().includes("owner"));
       return {
         approverUserIds: owners.map((o: any) => o.id),
         approverEmails: owners.map((o: any) => o.email).filter(Boolean),
@@ -157,8 +148,11 @@ export async function getApproversForWorkflow(formKey: string, applicantUserId?:
  */
 export async function isUserAuthorizedApprover(formKey: string, userId: string, userRole: string, applicantUserId?: string): Promise<boolean> {
   try {
+    const roleLower = String(userRole || "").toLowerCase();
+    if (roleLower.includes("owner")) return true;
+
     const routing = await getApproversForWorkflow(formKey, applicantUserId);
-    const roleMatch = routing.approverRoles.some(r => r.toLowerCase() === userRole.toLowerCase());
+    const roleMatch = routing.approverRoles.some(r => r.toLowerCase() === roleLower);
     const userMatch = routing.approverUserIds.includes(String(userId));
     return roleMatch || userMatch;
   } catch (error) {
@@ -178,6 +172,9 @@ export async function getAuthorizedApplicantIdsForApprover(
   overrideApplicantIds: string[];
 }> {
   try {
+    const roleLower = String(userRole || "").toLowerCase();
+    const isOwner = roleLower.includes("owner");
+
     await sequelize.authenticate();
     await ApprovalMatrix.sync();
 
@@ -195,9 +192,9 @@ export async function getAuthorizedApplicantIdsForApprover(
       roles = def.roles;
     }
 
-    const roleMatch = roles.some((r: string) => r.toLowerCase() === userRole.toLowerCase());
+    const roleMatch = roles.some((r: string) => r.toLowerCase() === roleLower);
     const userMatch = specificUserIds.some((id: string) => String(id) === String(userId));
-    const isGeneralApprover = roleMatch || userMatch;
+    const isGeneralApprover = isOwner || roleMatch || userMatch;
 
     const overrideApplicantIds: string[] = [];
     if (Array.isArray(userOverrides)) {
