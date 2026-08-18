@@ -31,7 +31,7 @@ export async function GET(req: Request) {
     let managedUserIds: any[] = [userId];
 
     const normRole = (role || "").toString().trim().toLowerCase();
-    const isGlobalManager = ["owner", "director", "hr head", "hr-head", "hr executive", "hr-executive", "cfo", "legal head", "it admin"].includes(normRole);
+    const isGlobalManager = ["owner", "director", "hr head", "hr-head", "hr executive", "hr-executive", "cfo", "legal head", "it admin"].some(r => normRole.includes(r)) || normRole.includes("owner");
 
     if (!isGlobalManager) {
       // 1. Get logged-in user's profile to check department
@@ -72,12 +72,23 @@ export async function GET(req: Request) {
       const todayStart = new Date();
       todayStart.setHours(0, 0, 0, 0);
       const todayEnd = new Date(todayStart);
-      todayEnd.setDate(todayEnd.getDate() + 1);
+      todayEnd.setHours(23, 59, 59, 999);
 
-      filter.date = { [Op.gte]: todayStart, [Op.lt]: todayEnd };
+      filter.date = { [Op.gte]: todayStart, [Op.lte]: todayEnd };
       
       const todayStr = new Date().toISOString().split("T")[0];
       fieldVisitFilter.date = todayStr;
+    } else if (range === "yesterday") {
+      const yestStart = new Date();
+      yestStart.setDate(yestStart.getDate() - 1);
+      yestStart.setHours(0, 0, 0, 0);
+      const yestEnd = new Date(yestStart);
+      yestEnd.setHours(23, 59, 59, 999);
+
+      filter.date = { [Op.gte]: yestStart, [Op.lte]: yestEnd };
+
+      const yestStr = yestStart.toISOString().split("T")[0];
+      fieldVisitFilter.date = yestStr;
     } else if (range === "recent" || range === "3days") {
       const recentStart = new Date();
       recentStart.setDate(recentStart.getDate() - 3);
@@ -99,6 +110,16 @@ export async function GET(req: Request) {
       const startStr = start.toISOString().split("T")[0];
       const endStr = end.toISOString().split("T")[0];
       fieldVisitFilter.date = { [Op.gte]: startStr, [Op.lt]: endStr };
+    } else if (range === "last-month") {
+      const now = new Date();
+      const start = new Date(now.getFullYear(), now.getMonth() - 1, 1, 0, 0, 0, 0);
+      const end = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999);
+
+      filter.date = { [Op.gte]: start, [Op.lte]: end };
+
+      const startStr = start.toISOString().split("T")[0];
+      const endStr = end.toISOString().split("T")[0];
+      fieldVisitFilter.date = { [Op.gte]: startStr, [Op.lte]: endStr };
     } else if (range === "custom") {
       const startParam = searchParams.get("startDate");
       const endParam = searchParams.get("endDate");

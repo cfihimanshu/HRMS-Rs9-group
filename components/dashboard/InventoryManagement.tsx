@@ -155,7 +155,7 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
   // Action roles mapping
   const loggedRole = (sessionUser?.role || "").toLowerCase();
   const loggedDept = (sessionUser?.department || "").toLowerCase();
-  const isOwner = ["owner", "director"].includes(loggedRole);
+  const isOwner = loggedRole.includes("owner") || loggedRole.includes("director");
   const isAdminDept = loggedDept.includes("administration");
 
   // Purchase Requests States
@@ -391,7 +391,7 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
     let parsedCustom: any = {};
     try {
       parsedCustom = asset.customFields ? JSON.parse(asset.customFields) : {};
-    } catch (_) {}
+    } catch (_) { }
 
     const fields = parsedCustom.assetFields || {};
     const companyName = companies.find(c => String(c.id) === String(asset.companyId))?.name || "General Stock";
@@ -457,7 +457,7 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
       if (targetAssetId) {
         const match = inventory.find(
           a => String(a.id).toLowerCase().trim() === targetAssetId.toLowerCase().trim() ||
-               String(a.oldAssetId || "").toLowerCase().trim() === targetAssetId.toLowerCase().trim()
+            String(a.oldAssetId || "").toLowerCase().trim() === targetAssetId.toLowerCase().trim()
         );
         if (match) {
           setViewingAsset(match);
@@ -465,7 +465,7 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
         // Clean URL to prevent infinite re-fetching loops
         try {
           window.history.replaceState({}, "", window.location.pathname);
-        } catch (_) {}
+        } catch (_) { }
       }
     }
   }, [inventory]);
@@ -484,7 +484,7 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
         const parsedUrl = new URL(targetId);
         const paramId = parsedUrl.searchParams.get("assetId");
         if (paramId) targetId = paramId;
-      } catch (_) {}
+      } catch (_) { }
     }
 
     const queryLower = targetId.toLowerCase().trim();
@@ -843,8 +843,8 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
       const targetAssets = singleAsset
         ? [singleAsset]
         : selectedAssetIds
-            .map(id => inventory.find(a => String(a.id) === String(id)))
-            .filter(Boolean);
+          .map(id => inventory.find(a => String(a.id) === String(id)))
+          .filter(Boolean);
 
       if (targetAssets.length === 0) {
         triggerToast("No assets selected for PDF download");
@@ -937,7 +937,7 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
             }
           });
 
-          doc.save(`Assets_QR_Tags_Sheet_${new Date().toISOString().slice(0,10)}.pdf`);
+          doc.save(`Assets_QR_Tags_Sheet_${new Date().toISOString().slice(0, 10)}.pdf`);
         }
       } else {
         // Full Specification Sheets (1 Page per Asset) with Pristine Corporate UI
@@ -981,7 +981,7 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
           let parsedCustom: any = {};
           try {
             parsedCustom = asset.customFields ? JSON.parse(asset.customFields) : {};
-          } catch (_) {}
+          } catch (_) { }
           const fields = parsedCustom.assetFields || {};
           const emails = (parsedCustom.emailsList || []).filter(Boolean);
           const notesStr = asset.notes || "";
@@ -1077,7 +1077,7 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
               doc.setDrawColor(203, 213, 225);
               doc.roundedRect(14, startY, 48, 48, 2, 2, "S");
               doc.addImage(asset.photoUrl, "JPEG", 15, startY + 1, 46, 46);
-            } catch (_) {}
+            } catch (_) { }
           }
 
           const tableX = hasPhoto ? 66 : 14;
@@ -1132,7 +1132,7 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
           doc.roundedRect(tableX, startY, tableW, currentY - startY, 2, 2, "S");
         });
 
-        doc.save(singleAsset ? `Asset_Specification_${singleAsset.id}.pdf` : `Assets_Specification_Sheets_${new Date().toISOString().slice(0,10)}.pdf`);
+        doc.save(singleAsset ? `Asset_Specification_${singleAsset.id}.pdf` : `Assets_Specification_Sheets_${new Date().toISOString().slice(0, 10)}.pdf`);
       }
 
       triggerToast("PDF document downloaded successfully!");
@@ -2067,9 +2067,9 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
       || (selectedStatus === "Available" && (asset.status === "Available" || !asset.status || asset.status === "Unassigned"));
     const matchesAssignee = selectedAssignee === "all"
       || (selectedAssignee === "unassigned"
-          ? (!asset.assignedToUserId && !asset.assignedToName)
-          : (String(asset.assignedToUserId) === selectedAssignee || String(asset.assignedToName) === selectedAssignee)
-         );
+        ? (!asset.assignedToUserId && !asset.assignedToName)
+        : (String(asset.assignedToUserId) === selectedAssignee || String(asset.assignedToName) === selectedAssignee)
+      );
     const assignedDay = asset.assignedAt ? String(asset.assignedAt).slice(0, 10) : "";
     const handoverDay = asset.handoverDate ? String(asset.handoverDate).slice(0, 10) : "";
     const matchesAssignedDate = (!assignedFrom || (assignedDay && assignedDay >= assignedFrom))
@@ -2089,71 +2089,71 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
 
     try {
       const XLSX = await import("xlsx");
-    const exportRows = filteredInventory.map((asset: any) => {
-      const companyObj = companies.find((c) => String(c.id) === String(asset.companyId));
-      const companyName = companyObj ? companyObj.name : (asset.companyId ? "Assigned Company" : "General Stock");
+      const exportRows = filteredInventory.map((asset: any) => {
+        const companyObj = companies.find((c) => String(c.id) === String(asset.companyId));
+        const companyName = companyObj ? companyObj.name : (asset.companyId ? "Assigned Company" : "General Stock");
 
-      // Format Notes cleanly without giant vertical newline padding
-      const cleanNotes = (asset.notes || asset.customNotes || "")
-        .replace(/(\r\n|\n|\r)/gm, " | ")
-        .replace(/\s+/g, " ")
-        .trim();
+        // Format Notes cleanly without giant vertical newline padding
+        const cleanNotes = (asset.notes || asset.customNotes || "")
+          .replace(/(\r\n|\n|\r)/gm, " | ")
+          .replace(/\s+/g, " ")
+          .trim();
 
-      // Format Assignment History cleanly
-      const historyStr = (asset.assignmentHistory || [])
-        .map((entry: any) => `${entry.action || 'Assign'}: ${entry.fromUserName || "Stock"} -> ${entry.toUserName || "Stock"} (${entry.assignedDate || "-"})`)
-        .join(" | ");
+        // Format Assignment History cleanly
+        const historyStr = (asset.assignmentHistory || [])
+          .map((entry: any) => `${entry.action || 'Assign'}: ${entry.fromUserName || "Stock"} -> ${entry.toUserName || "Stock"} (${entry.assignedDate || "-"})`)
+          .join(" | ");
 
-      return {
-        "Asset ID": asset.id || "—",
-        "Old Asset ID": asset.oldAssetId || "—",
-        "Category": asset.assetType || "General",
-        "Asset Description & Model": asset.assetDetail || "—",
-        "Serial Number / IMEI": asset.serialNumber || "—",
-        "Company": companyName,
-        "Condition": asset.condition || "Good",
-        "Inventory Status": asset.status || "Available",
-        "Assigned To": asset.assignedToName || (asset.assignedToUserId ? `User #${asset.assignedToUserId}` : "Unassigned / Stock"),
-        "Assigned Date": asset.assignedAt ? new Date(asset.assignedAt).toLocaleDateString("en-IN") : "—",
-        "Handover Date": asset.handoverDate ? new Date(asset.handoverDate).toLocaleDateString("en-IN") : "—",
-        "Purchase Date": asset.purchaseDate ? new Date(asset.purchaseDate).toLocaleDateString("en-IN") : "—",
-        "Purchase Value (₹)": asset.purchaseValue ? Number(asset.purchaseValue) : 0,
-        "Company / Notes": cleanNotes || "—",
-        "Registered By": asset.registeredBy || "System",
-        "Created At": asset.createdAt ? new Date(asset.createdAt).toLocaleDateString("en-IN") : "—",
-        "Assignment History": historyStr || "—"
-      };
-    });
-
-    const ws = XLSX.utils.json_to_sheet(exportRows);
-    if (exportRows.length > 0) {
-      const colKeys = Object.keys(exportRows[0]);
-      ws['!cols'] = colKeys.map((key) => {
-        let maxLen = key.length;
-        exportRows.forEach((r) => {
-          const valStr = r[key as keyof typeof r] !== undefined && r[key as keyof typeof r] !== null ? String(r[key as keyof typeof r]) : "";
-          if (valStr.length > maxLen) maxLen = valStr.length;
-        });
-        return { wch: Math.min(Math.max(maxLen + 6, 16), 65) };
+        return {
+          "Asset ID": asset.id || "—",
+          "Old Asset ID": asset.oldAssetId || "—",
+          "Category": asset.assetType || "General",
+          "Asset Description & Model": asset.assetDetail || "—",
+          "Serial Number / IMEI": asset.serialNumber || "—",
+          "Company": companyName,
+          "Condition": asset.condition || "Good",
+          "Inventory Status": asset.status || "Available",
+          "Assigned To": asset.assignedToName || (asset.assignedToUserId ? `User #${asset.assignedToUserId}` : "Unassigned / Stock"),
+          "Assigned Date": asset.assignedAt ? new Date(asset.assignedAt).toLocaleDateString("en-IN") : "—",
+          "Handover Date": asset.handoverDate ? new Date(asset.handoverDate).toLocaleDateString("en-IN") : "—",
+          "Purchase Date": asset.purchaseDate ? new Date(asset.purchaseDate).toLocaleDateString("en-IN") : "—",
+          "Purchase Value (₹)": asset.purchaseValue ? Number(asset.purchaseValue) : 0,
+          "Company / Notes": cleanNotes || "—",
+          "Registered By": asset.registeredBy || "System",
+          "Created At": asset.createdAt ? new Date(asset.createdAt).toLocaleDateString("en-IN") : "—",
+          "Assignment History": historyStr || "—"
+        };
       });
-    }
 
-    const csvString = XLSX.utils.sheet_to_csv(ws);
-    const blob = new Blob([csvString], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.setAttribute("href", url);
-    link.setAttribute("download", `Asset_Inventory_Report_${new Date().toISOString().split("T")[0]}.csv`);
-    link.style.visibility = "hidden";
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    triggerToast(`${filteredInventory.length} inventory record(s) exported successfully`);
-  } catch (err: any) {
-    console.error("Failed to export Inventory CSV:", err);
-    triggerToast("Inventory export failed: " + (err.message || "Unknown error"));
-  }
-};
+      const ws = XLSX.utils.json_to_sheet(exportRows);
+      if (exportRows.length > 0) {
+        const colKeys = Object.keys(exportRows[0]);
+        ws['!cols'] = colKeys.map((key) => {
+          let maxLen = key.length;
+          exportRows.forEach((r) => {
+            const valStr = r[key as keyof typeof r] !== undefined && r[key as keyof typeof r] !== null ? String(r[key as keyof typeof r]) : "";
+            if (valStr.length > maxLen) maxLen = valStr.length;
+          });
+          return { wch: Math.min(Math.max(maxLen + 6, 16), 65) };
+        });
+      }
+
+      const csvString = XLSX.utils.sheet_to_csv(ws);
+      const blob = new Blob([csvString], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.setAttribute("href", url);
+      link.setAttribute("download", `Asset_Inventory_Report_${new Date().toISOString().split("T")[0]}.csv`);
+      link.style.visibility = "hidden";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      triggerToast(`${filteredInventory.length} inventory record(s) exported successfully`);
+    } catch (err: any) {
+      console.error("Failed to export Inventory CSV:", err);
+      triggerToast("Inventory export failed: " + (err.message || "Unknown error"));
+    }
+  };
 
   // Calculate quick stats
   const totalCount = inventory.length;
@@ -2236,8 +2236,8 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
         <button
           onClick={() => setActiveSubTab("stock")}
           className={`pb-2.5 px-4 text-xs font-black tracking-wider uppercase border-b-2 transition-all ${activeSubTab === "stock"
-              ? "border-[#C9A84C] text-[#1C1C1A]"
-              : "border-transparent text-[#9C9890] hover:text-[#5D5B57]"
+            ? "border-[#C9A84C] text-[#1C1C1A]"
+            : "border-transparent text-[#9C9890] hover:text-[#5D5B57]"
             }`}
         >
           Inventory Stock
@@ -2245,8 +2245,8 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
         <button
           onClick={() => setActiveSubTab("purchases")}
           className={`pb-2.5 px-4 text-xs font-black tracking-wider uppercase border-b-2 transition-all flex items-center gap-1.5 ${activeSubTab === "purchases"
-              ? "border-[#C9A84C] text-[#1C1C1A]"
-              : "border-transparent text-[#9C9890] hover:text-[#5D5B57]"
+            ? "border-[#C9A84C] text-[#1C1C1A]"
+            : "border-transparent text-[#9C9890] hover:text-[#5D5B57]"
             }`}
         >
           Purchase Requests
@@ -2271,11 +2271,10 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
             setSearchQuery("");
             triggerToast("Reset inventory filters - showing all stock");
           }}
-          className={`bg-[#FCFBF9] border p-4 rounded-xl flex items-center justify-between cursor-pointer transition-all hover:border-indigo-400 hover:shadow-md ${
-            selectedStatus === "all" && selectedCondition === "all" && !searchQuery
+          className={`bg-[#FCFBF9] border p-4 rounded-xl flex items-center justify-between cursor-pointer transition-all hover:border-indigo-400 hover:shadow-md ${selectedStatus === "all" && selectedCondition === "all" && !searchQuery
               ? "border-indigo-500 ring-2 ring-indigo-500/20 bg-indigo-50/20"
               : "border-[#E8E4DF]"
-          }`}
+            }`}
           title="Click to reset all filters and view all inventory stock"
         >
           <div className="flex items-center gap-3">
@@ -2299,11 +2298,10 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
               triggerToast("Filtered: Available Stock");
             }
           }}
-          className={`bg-[#FCFBF9] border p-4 rounded-xl flex items-center justify-between cursor-pointer transition-all hover:border-emerald-400 hover:shadow-md ${
-            selectedStatus === "Available"
+          className={`bg-[#FCFBF9] border p-4 rounded-xl flex items-center justify-between cursor-pointer transition-all hover:border-emerald-400 hover:shadow-md ${selectedStatus === "Available"
               ? "border-emerald-500 ring-2 ring-emerald-500/20 bg-emerald-50/40"
               : "border-[#E8E4DF]"
-          }`}
+            }`}
           title="Click to filter Available / Unassigned stock"
         >
           <div className="flex items-center gap-3">
@@ -2329,11 +2327,10 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
               triggerToast("Filtered: Brand New Condition Stock");
             }
           }}
-          className={`bg-[#FCFBF9] border p-4 rounded-xl flex items-center justify-between cursor-pointer transition-all hover:border-sky-400 hover:shadow-md ${
-            selectedCondition === "Brand New" || selectedCondition === "New"
+          className={`bg-[#FCFBF9] border p-4 rounded-xl flex items-center justify-between cursor-pointer transition-all hover:border-sky-400 hover:shadow-md ${selectedCondition === "Brand New" || selectedCondition === "New"
               ? "border-sky-500 ring-2 ring-sky-500/20 bg-sky-50/40"
               : "border-[#E8E4DF]"
-          }`}
+            }`}
           title="Click to filter Brand New condition assets"
         >
           <div className="flex items-center gap-3">
@@ -2359,11 +2356,10 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
               triggerToast("Filtered: In Use / Assigned Assets");
             }
           }}
-          className={`bg-[#FCFBF9] border p-4 rounded-xl flex items-center justify-between cursor-pointer transition-all hover:border-amber-400 hover:shadow-md ${
-            selectedStatus === "In Use" || selectedStatus === "Assigned"
+          className={`bg-[#FCFBF9] border p-4 rounded-xl flex items-center justify-between cursor-pointer transition-all hover:border-amber-400 hover:shadow-md ${selectedStatus === "In Use" || selectedStatus === "Assigned"
               ? "border-amber-500 ring-2 ring-amber-500/20 bg-amber-50/40"
               : "border-[#E8E4DF]"
-          }`}
+            }`}
           title="Click to filter In Use / Assigned assets"
         >
           <div className="flex items-center gap-3">
@@ -2509,1416 +2505,1416 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
                 <span className="w-2 h-2 rounded-full bg-emerald-500"></span> 2. Specifications ({registerForm.assetType || "General"})
               </div>
 
-            {typeClean === "sim card" || typeClean === "sim" ? (
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <div>
-                  <label className="block text-[9px] uppercase tracking-wider text-black font-normal mb-1">SIM Mobile Number *</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="e.g. 9876543210"
-                    value={assetFields.simMobile || ""}
-                    onChange={(e) => setAssetFields(p => ({ ...p, simMobile: e.target.value }))}
-                    className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-black focus:outline-none transition-all font-normal"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[9px] uppercase tracking-wider text-black font-normal mb-1">SIM Status (Active / Inactive) *</label>
-                  <select
-                    value={assetFields.simStatus || "Active"}
-                    onChange={(e) => setAssetFields(p => ({ ...p, simStatus: e.target.value }))}
-                    className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-black focus:outline-none transition-all font-normal"
-                  >
-                    <option value="Active">Active</option>
-                    <option value="Inactive">Inactive</option>
-                    <option value="Blocked / Suspended">Blocked / Suspended</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-[9px] uppercase tracking-wider text-black font-normal mb-1">Telecom Operator *</label>
-                  <select
-                    value={assetFields.simOperator || "Jio"}
-                    onChange={(e) => setAssetFields(p => ({ ...p, simOperator: e.target.value }))}
-                    className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-black focus:outline-none transition-all font-normal"
-                  >
-                    <option value="Jio">Jio</option>
-                    <option value="Airtel">Airtel</option>
-                    <option value="Vodafone Idea (Vi)">Vodafone Idea (Vi)</option>
-                    <option value="BSNL">BSNL</option>
-                    <option value="Other">Other</option>
-                  </select>
-                  {assetFields.simOperator === "Other" && (
-                    <input
-                      type="text"
-                      placeholder="Specify custom operator..."
-                      value={assetFields.simOperatorCustom || ""}
-                      onChange={(e) => setAssetFields(p => ({ ...p, simOperatorCustom: e.target.value }))}
-                      className="mt-1.5 w-full bg-white border border-[#C9A84C] focus:border-[#C9A84C] rounded-lg px-3 py-1.5 text-xs text-black font-normal"
-                    />
-                  )}
-                </div>
-                <div>
-                  <label className="block text-[9px] uppercase tracking-wider text-black font-normal mb-1">Network Type</label>
-                  <select
-                    value={assetFields.simNetwork || "5G"}
-                    onChange={(e) => setAssetFields(p => ({ ...p, simNetwork: e.target.value }))}
-                    className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-black focus:outline-none transition-all font-normal"
-                  >
-                    <option value="5G">5G</option>
-                    <option value="4G">4G</option>
-                    <option value="3G">3G</option>
-                    <option value="Other">Other</option>
-                  </select>
-                  {assetFields.simNetwork === "Other" && (
-                    <input
-                      type="text"
-                      placeholder="Specify custom network..."
-                      value={assetFields.simNetworkCustom || ""}
-                      onChange={(e) => setAssetFields(p => ({ ...p, simNetworkCustom: e.target.value }))}
-                      className="mt-1.5 w-full bg-white border border-[#C9A84C] focus:border-[#C9A84C] rounded-lg px-3 py-1.5 text-xs text-black font-normal"
-                    />
-                  )}
-                </div>
-                <div>
-                  <label className="block text-[9px] uppercase tracking-wider text-black font-normal mb-1">SIM Card Number / ICCID</label>
-                  <input
-                    type="text"
-                    placeholder="e.g. 89910000..."
-                    value={assetFields.simIccid || ""}
-                    onChange={(e) => setAssetFields(p => ({ ...p, simIccid: e.target.value }))}
-                    className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-black focus:outline-none transition-all font-mono font-normal"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[9px] uppercase tracking-wider text-black font-normal mb-1">Plan Type & Recharge</label>
-                  <select
-                    value={assetFields.simPlanType || "Postpaid (Corporate Plan)"}
-                    onChange={(e) => setAssetFields(p => ({ ...p, simPlanType: e.target.value }))}
-                    className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-black focus:outline-none transition-all font-normal"
-                  >
-                    <option value="Postpaid (Corporate Plan)">Postpaid (Corporate Plan)</option>
-                    <option value="Prepaid (Monthly)">Prepaid (Monthly)</option>
-                    <option value="Prepaid (Annual)">Prepaid (Annual)</option>
-                    <option value="Data SIM Only">Data SIM Only</option>
-                    <option value="Other">Other</option>
-                  </select>
-                  {assetFields.simPlanType === "Other" && (
-                    <input
-                      type="text"
-                      placeholder="Specify custom plan..."
-                      value={assetFields.simPlanTypeCustom || ""}
-                      onChange={(e) => setAssetFields(p => ({ ...p, simPlanTypeCustom: e.target.value }))}
-                      className="mt-1.5 w-full bg-white border border-[#C9A84C] focus:border-[#C9A84C] rounded-lg px-3 py-1.5 text-xs text-black font-normal"
-                    />
-                  )}
-                </div>
-                <div>
-                  <label className="block text-[9px] uppercase tracking-wider text-black font-normal mb-1">SIM PUK Code / PIN</label>
-                  <input
-                    type="text"
-                    placeholder="e.g. PUK: 12345678"
-                    value={assetFields.simPuk || ""}
-                    onChange={(e) => setAssetFields(p => ({ ...p, simPuk: e.target.value }))}
-                    className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-black focus:outline-none transition-all font-mono font-normal"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[9px] uppercase tracking-wider text-black font-normal mb-1">KYC / Registered Account Holder</label>
-                  <input
-                    type="text"
-                    placeholder="e.g. CFI Corporate Account"
-                    value={assetFields.simKycName || ""}
-                    onChange={(e) => setAssetFields(p => ({ ...p, simKycName: e.target.value }))}
-                    className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-black focus:outline-none transition-all font-normal"
-                  />
-                </div>
-              </div>
-            ) : typeClean === "laptop" ? (
-              <div className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {typeClean === "sim card" || typeClean === "sim" ? (
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                   <div>
-                    <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Laptop Brand & Model *</label>
+                    <label className="block text-[9px] uppercase tracking-wider text-black font-normal mb-1">SIM Mobile Number *</label>
                     <input
                       type="text"
                       required
-                      placeholder="e.g. HP EliteBook 840 G8"
-                      value={assetFields.laptopModel || ""}
-                      onChange={(e) => setAssetFields(p => ({ ...p, laptopModel: e.target.value }))}
+                      placeholder="e.g. 9876543210"
+                      value={assetFields.simMobile || ""}
+                      onChange={(e) => setAssetFields(p => ({ ...p, simMobile: e.target.value }))}
+                      className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-black focus:outline-none transition-all font-normal"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[9px] uppercase tracking-wider text-black font-normal mb-1">SIM Status (Active / Inactive) *</label>
+                    <select
+                      value={assetFields.simStatus || "Active"}
+                      onChange={(e) => setAssetFields(p => ({ ...p, simStatus: e.target.value }))}
+                      className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-black focus:outline-none transition-all font-normal"
+                    >
+                      <option value="Active">Active</option>
+                      <option value="Inactive">Inactive</option>
+                      <option value="Blocked / Suspended">Blocked / Suspended</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-[9px] uppercase tracking-wider text-black font-normal mb-1">Telecom Operator *</label>
+                    <select
+                      value={assetFields.simOperator || "Jio"}
+                      onChange={(e) => setAssetFields(p => ({ ...p, simOperator: e.target.value }))}
+                      className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-black focus:outline-none transition-all font-normal"
+                    >
+                      <option value="Jio">Jio</option>
+                      <option value="Airtel">Airtel</option>
+                      <option value="Vodafone Idea (Vi)">Vodafone Idea (Vi)</option>
+                      <option value="BSNL">BSNL</option>
+                      <option value="Other">Other</option>
+                    </select>
+                    {assetFields.simOperator === "Other" && (
+                      <input
+                        type="text"
+                        placeholder="Specify custom operator..."
+                        value={assetFields.simOperatorCustom || ""}
+                        onChange={(e) => setAssetFields(p => ({ ...p, simOperatorCustom: e.target.value }))}
+                        className="mt-1.5 w-full bg-white border border-[#C9A84C] focus:border-[#C9A84C] rounded-lg px-3 py-1.5 text-xs text-black font-normal"
+                      />
+                    )}
+                  </div>
+                  <div>
+                    <label className="block text-[9px] uppercase tracking-wider text-black font-normal mb-1">Network Type</label>
+                    <select
+                      value={assetFields.simNetwork || "5G"}
+                      onChange={(e) => setAssetFields(p => ({ ...p, simNetwork: e.target.value }))}
+                      className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-black focus:outline-none transition-all font-normal"
+                    >
+                      <option value="5G">5G</option>
+                      <option value="4G">4G</option>
+                      <option value="3G">3G</option>
+                      <option value="Other">Other</option>
+                    </select>
+                    {assetFields.simNetwork === "Other" && (
+                      <input
+                        type="text"
+                        placeholder="Specify custom network..."
+                        value={assetFields.simNetworkCustom || ""}
+                        onChange={(e) => setAssetFields(p => ({ ...p, simNetworkCustom: e.target.value }))}
+                        className="mt-1.5 w-full bg-white border border-[#C9A84C] focus:border-[#C9A84C] rounded-lg px-3 py-1.5 text-xs text-black font-normal"
+                      />
+                    )}
+                  </div>
+                  <div>
+                    <label className="block text-[9px] uppercase tracking-wider text-black font-normal mb-1">SIM Card Number / ICCID</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. 89910000..."
+                      value={assetFields.simIccid || ""}
+                      onChange={(e) => setAssetFields(p => ({ ...p, simIccid: e.target.value }))}
+                      className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-black focus:outline-none transition-all font-mono font-normal"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[9px] uppercase tracking-wider text-black font-normal mb-1">Plan Type & Recharge</label>
+                    <select
+                      value={assetFields.simPlanType || "Postpaid (Corporate Plan)"}
+                      onChange={(e) => setAssetFields(p => ({ ...p, simPlanType: e.target.value }))}
+                      className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-black focus:outline-none transition-all font-normal"
+                    >
+                      <option value="Postpaid (Corporate Plan)">Postpaid (Corporate Plan)</option>
+                      <option value="Prepaid (Monthly)">Prepaid (Monthly)</option>
+                      <option value="Prepaid (Annual)">Prepaid (Annual)</option>
+                      <option value="Data SIM Only">Data SIM Only</option>
+                      <option value="Other">Other</option>
+                    </select>
+                    {assetFields.simPlanType === "Other" && (
+                      <input
+                        type="text"
+                        placeholder="Specify custom plan..."
+                        value={assetFields.simPlanTypeCustom || ""}
+                        onChange={(e) => setAssetFields(p => ({ ...p, simPlanTypeCustom: e.target.value }))}
+                        className="mt-1.5 w-full bg-white border border-[#C9A84C] focus:border-[#C9A84C] rounded-lg px-3 py-1.5 text-xs text-black font-normal"
+                      />
+                    )}
+                  </div>
+                  <div>
+                    <label className="block text-[9px] uppercase tracking-wider text-black font-normal mb-1">SIM PUK Code / PIN</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. PUK: 12345678"
+                      value={assetFields.simPuk || ""}
+                      onChange={(e) => setAssetFields(p => ({ ...p, simPuk: e.target.value }))}
+                      className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-black focus:outline-none transition-all font-mono font-normal"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[9px] uppercase tracking-wider text-black font-normal mb-1">KYC / Registered Account Holder</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. CFI Corporate Account"
+                      value={assetFields.simKycName || ""}
+                      onChange={(e) => setAssetFields(p => ({ ...p, simKycName: e.target.value }))}
+                      className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-black focus:outline-none transition-all font-normal"
+                    />
+                  </div>
+                </div>
+              ) : typeClean === "laptop" ? (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Laptop Brand & Model *</label>
+                      <input
+                        type="text"
+                        required
+                        placeholder="e.g. HP EliteBook 840 G8"
+                        value={assetFields.laptopModel || ""}
+                        onChange={(e) => setAssetFields(p => ({ ...p, laptopModel: e.target.value }))}
+                        className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Processor / RAM / Storage *</label>
+                      <input
+                        type="text"
+                        required
+                        placeholder="e.g. Intel i5, 16GB RAM, 512GB SSD"
+                        value={assetFields.laptopSpecs || ""}
+                        onChange={(e) => setAssetFields(p => ({ ...p, laptopSpecs: e.target.value }))}
+                        className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Serial Number</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. SN-H1G4691X"
+                        value={assetFields.laptopSerial || ""}
+                        onChange={(e) => setAssetFields(p => ({ ...p, laptopSerial: e.target.value }))}
+                        className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-mono"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div>
+                      <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Operating System (OS)</label>
+                      <select
+                        value={assetFields.laptopOs || "Windows 11 Pro"}
+                        onChange={(e) => setAssetFields(p => ({ ...p, laptopOs: e.target.value }))}
+                        className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                      >
+                        <option value="Windows 11 Pro">Windows 11 Pro</option>
+                        <option value="Windows 10 Pro">Windows 10 Pro</option>
+                        <option value="macOS">macOS</option>
+                        <option value="Ubuntu Linux">Ubuntu Linux</option>
+                        <option value="DOS / No OS">DOS / No OS</option>
+                        <option value="Other">Other</option>
+                      </select>
+                      {assetFields.laptopOs === "Other" && (
+                        <input
+                          type="text"
+                          placeholder="Specify custom OS..."
+                          value={assetFields.laptopOsCustom || ""}
+                          onChange={(e) => setAssetFields(p => ({ ...p, laptopOsCustom: e.target.value }))}
+                          className="mt-1.5 w-full bg-white border border-[#C9A84C] focus:border-[#C9A84C] rounded-lg px-3 py-1.5 text-xs text-[#1C1C1A] font-semibold"
+                        />
+                      )}
+                    </div>
+                    <div>
+                      <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Computer / Host Name</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. CFI-LAP-042"
+                        value={assetFields.laptopHostName || ""}
+                        onChange={(e) => setAssetFields(p => ({ ...p, laptopHostName: e.target.value }))}
+                        className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-mono"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Original Charger Included?</label>
+                      <select
+                        value={assetFields.laptopCharger || "Yes"}
+                        onChange={(e) => setAssetFields(p => ({ ...p, laptopCharger: e.target.value }))}
+                        className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                      >
+                        <option value="Yes">Yes (Original Charger)</option>
+                        <option value="No">No Charger</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Bag & Mouse Issued?</label>
+                      <select
+                        value={assetFields.laptopBag || "Bag & Mouse"}
+                        onChange={(e) => setAssetFields(p => ({ ...p, laptopBag: e.target.value }))}
+                        className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                      >
+                        <option value="Bag & Mouse">Bag & Mouse</option>
+                        <option value="Bag Only">Bag Only</option>
+                        <option value="Mouse Only">Mouse Only</option>
+                        <option value="None">None</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="max-w-md">
+                    <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Admin Password / Passcode</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Admin@123 / Passcode"
+                      value={assetFields.laptopPassword || ""}
+                      onChange={(e) => setAssetFields(p => ({ ...p, laptopPassword: e.target.value }))}
+                      className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-mono"
+                    />
+                  </div>
+
+                  <div className="max-w-md">
+                    <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Logged-in Email IDs</label>
+                    <div className="space-y-2">
+                      {emailsList.map((email, index) => (
+                        <div key={index} className="flex gap-2 items-center">
+                          <input
+                            type="email"
+                            placeholder="e.g. user@company.com"
+                            value={email}
+                            onChange={(e) => {
+                              const newList = [...emailsList];
+                              newList[index] = e.target.value;
+                              setEmailsList(newList);
+                            }}
+                            className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                          />
+                          {emailsList.length > 1 && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const newList = emailsList.filter((_, i) => i !== index);
+                                setEmailsList(newList);
+                              }}
+                              className="px-2.5 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-lg text-xs font-bold transition-all border border-rose-100 animate-fade-in"
+                            >
+                              Remove
+                            </button>
+                          )}
+                        </div>
+                      ))}
+                      <button
+                        type="button"
+                        onClick={() => setEmailsList([...emailsList, ""])}
+                        className="mt-1 px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-[10px] font-bold rounded-lg transition-all border border-indigo-150 flex items-center gap-1.5 w-fit"
+                      >
+                        + Add Email ID
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ) : typeClean === "computer" || typeClean === "desktop computer" || typeClean === "pc" ? (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Computer Brand & Model *</label>
+                      <input
+                        type="text"
+                        required
+                        placeholder="e.g. Dell OptiPlex 7090 / Custom Assembled PC"
+                        value={assetFields.compModel || ""}
+                        onChange={(e) => setAssetFields(p => ({ ...p, compModel: e.target.value }))}
+                        className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Processor / RAM / Storage *</label>
+                      <input
+                        type="text"
+                        required
+                        placeholder="e.g. Intel i5 12th Gen, 16GB RAM, 512GB SSD"
+                        value={assetFields.compSpecs || ""}
+                        onChange={(e) => setAssetFields(p => ({ ...p, compSpecs: e.target.value }))}
+                        className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Serial Number / Asset Tag</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. SN-COM9982"
+                        value={assetFields.compSerial || ""}
+                        onChange={(e) => setAssetFields(p => ({ ...p, compSerial: e.target.value }))}
+                        className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-mono"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Operating System (OS)</label>
+                      <select
+                        value={assetFields.compOs || "Windows 11 Pro"}
+                        onChange={(e) => setAssetFields(p => ({ ...p, compOs: e.target.value }))}
+                        className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                      >
+                        <option value="Windows 11 Pro">Windows 11 Pro</option>
+                        <option value="Windows 10 Pro">Windows 10 Pro</option>
+                        <option value="macOS / Mac mini">macOS / Mac mini</option>
+                        <option value="Ubuntu / Linux">Ubuntu / Linux</option>
+                        <option value="Other">Other</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Host Name / Computer Name</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. PC-DESK-001"
+                        value={assetFields.compHostName || ""}
+                        onChange={(e) => setAssetFields(p => ({ ...p, compHostName: e.target.value }))}
+                        className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-mono"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Computer Password / Passcode</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. Admin@123 / 4492"
+                        value={assetFields.compPassword || ""}
+                        onChange={(e) => setAssetFields(p => ({ ...p, compPassword: e.target.value }))}
+                        className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-mono font-semibold"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4 bg-slate-50/80 p-3 rounded-xl border border-slate-200">
+                    <div>
+                      <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Monitor Details & Size</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. Dell 22 Inch LED / S/N: MON-991"
+                        value={assetFields.compMonitor || ""}
+                        onChange={(e) => setAssetFields(p => ({ ...p, compMonitor: e.target.value }))}
+                        className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Keyboard Details & Model</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. Dell USB Wired KB / S/N: KB-401"
+                        value={assetFields.compKeyboard || ""}
+                        onChange={(e) => setAssetFields(p => ({ ...p, compKeyboard: e.target.value }))}
+                        className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Mouse Details & Model</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. Dell Optical USB Mouse / Wireless"
+                        value={assetFields.compMouse || ""}
+                        onChange={(e) => setAssetFields(p => ({ ...p, compMouse: e.target.value }))}
+                        className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Other Peripherals & Accessories</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. Headset, UPS, WebCam, Dongle..."
+                        value={assetFields.compPeripherals || ""}
+                        onChange={(e) => setAssetFields(p => ({ ...p, compPeripherals: e.target.value }))}
+                        className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="max-w-md">
+                    <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Logged-in Email IDs</label>
+                    <div className="space-y-2">
+                      {emailsList.map((email, index) => (
+                        <div key={index} className="flex gap-2 items-center">
+                          <input
+                            type="email"
+                            placeholder="e.g. user@company.com"
+                            value={email}
+                            onChange={(e) => {
+                              const newList = [...emailsList];
+                              newList[index] = e.target.value;
+                              setEmailsList(newList);
+                            }}
+                            className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                          />
+                          {emailsList.length > 1 && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const newList = emailsList.filter((_, i) => i !== index);
+                                setEmailsList(newList);
+                              }}
+                              className="px-2.5 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-lg text-xs font-bold transition-all border border-rose-100 animate-fade-in"
+                            >
+                              Remove
+                            </button>
+                          )}
+                        </div>
+                      ))}
+                      <button
+                        type="button"
+                        onClick={() => setEmailsList([...emailsList, ""])}
+                        className="mt-1 px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-[10px] font-bold rounded-lg transition-all border border-indigo-150 flex items-center gap-1.5 w-fit"
+                      >
+                        + Add Email ID
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ) : typeClean === "cpu" || typeClean === "cpu tower" || typeClean === "cabinet" ? (
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                  <div>
+                    <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">CPU Brand & Cabinet Model *</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. HP ProDesk / Custom Assembled"
+                      value={assetFields.cpuModel || ""}
+                      onChange={(e) => setAssetFields(p => ({ ...p, cpuModel: e.target.value }))}
                       className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
                     />
                   </div>
                   <div>
-                    <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Processor / RAM / Storage *</label>
+                    <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Processor / RAM / SSD *</label>
                     <input
                       type="text"
                       required
-                      placeholder="e.g. Intel i5, 16GB RAM, 512GB SSD"
-                      value={assetFields.laptopSpecs || ""}
-                      onChange={(e) => setAssetFields(p => ({ ...p, laptopSpecs: e.target.value }))}
+                      placeholder="e.g. Core i5 12th Gen, 16GB RAM, 512GB SSD"
+                      value={assetFields.cpuSpecs || ""}
+                      onChange={(e) => setAssetFields(p => ({ ...p, cpuSpecs: e.target.value }))}
                       className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
                     />
                   </div>
                   <div>
-                    <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Serial Number</label>
+                    <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Graphics Card (GPU)</label>
                     <input
                       type="text"
-                      placeholder="e.g. SN-H1G4691X"
-                      value={assetFields.laptopSerial || ""}
-                      onChange={(e) => setAssetFields(p => ({ ...p, laptopSerial: e.target.value }))}
+                      placeholder="e.g. NVIDIA GTX 1650 / Integrated"
+                      value={assetFields.cpuGraphics || ""}
+                      onChange={(e) => setAssetFields(p => ({ ...p, cpuGraphics: e.target.value }))}
+                      className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Serial Number / Cabinet Tag</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. CPU-SN-8812"
+                      value={assetFields.cpuSerial || ""}
+                      onChange={(e) => setAssetFields(p => ({ ...p, cpuSerial: e.target.value }))}
                       className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-mono"
                     />
                   </div>
                 </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              ) : typeClean === "mouse" ? (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div>
-                    <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Operating System (OS)</label>
+                    <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Mouse Brand & Model *</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. Logitech B100 / HP Wireless Mouse"
+                      value={assetFields.mouseBrand || ""}
+                      onChange={(e) => setAssetFields(p => ({ ...p, mouseBrand: e.target.value }))}
+                      className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Connectivity Type *</label>
                     <select
-                      value={assetFields.laptopOs || "Windows 11 Pro"}
-                      onChange={(e) => setAssetFields(p => ({ ...p, laptopOs: e.target.value }))}
+                      value={assetFields.mouseType || "Wired USB"}
+                      onChange={(e) => setAssetFields(p => ({ ...p, mouseType: e.target.value }))}
                       className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
                     >
-                      <option value="Windows 11 Pro">Windows 11 Pro</option>
-                      <option value="Windows 10 Pro">Windows 10 Pro</option>
-                      <option value="macOS">macOS</option>
-                      <option value="Ubuntu Linux">Ubuntu Linux</option>
-                      <option value="DOS / No OS">DOS / No OS</option>
-                      <option value="Other">Other</option>
+                      <option value="Wired USB">Wired USB</option>
+                      <option value="Wireless (USB Dongle)">Wireless (USB Dongle)</option>
+                      <option value="Bluetooth">Bluetooth</option>
+                      <option value="Optical Gaming Mouse">Optical Gaming Mouse</option>
                     </select>
-                    {assetFields.laptopOs === "Other" && (
+                  </div>
+                  <div>
+                    <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Serial Number / Tag (Optional)</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. S/N: MS-9918"
+                      value={assetFields.mouseSerial || ""}
+                      onChange={(e) => setAssetFields(p => ({ ...p, mouseSerial: e.target.value }))}
+                      className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-mono"
+                    />
+                  </div>
+                </div>
+              ) : typeClean === "keyboard" ? (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Keyboard Brand & Model *</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. Logitech K120 / Dell Multimedia"
+                      value={assetFields.kbBrand || ""}
+                      onChange={(e) => setAssetFields(p => ({ ...p, kbBrand: e.target.value }))}
+                      className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Connectivity / Key Type *</label>
+                    <select
+                      value={assetFields.kbType || "Wired USB"}
+                      onChange={(e) => setAssetFields(p => ({ ...p, kbType: e.target.value }))}
+                      className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                    >
+                      <option value="Wired USB">Wired USB</option>
+                      <option value="Wireless (USB Dongle)">Wireless (USB Dongle)</option>
+                      <option value="Bluetooth">Bluetooth</option>
+                      <option value="Mechanical Keyboard">Mechanical Keyboard</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Serial Number / Tag (Optional)</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. S/N: KB-4412"
+                      value={assetFields.kbSerial || ""}
+                      onChange={(e) => setAssetFields(p => ({ ...p, kbSerial: e.target.value }))}
+                      className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-mono"
+                    />
+                  </div>
+                </div>
+              ) : typeClean === "monitor / display" || typeClean === "monitor" || typeClean === "display" ? (
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                  <div>
+                    <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Monitor Brand & Model *</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. Dell P2419H / LG IPS Monitor"
+                      value={assetFields.monBrand || ""}
+                      onChange={(e) => setAssetFields(p => ({ ...p, monBrand: e.target.value }))}
+                      className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Display Size (Inches) *</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. 21.5 Inch / 24 Inch / 27 Inch"
+                      value={assetFields.monSize || ""}
+                      onChange={(e) => setAssetFields(p => ({ ...p, monSize: e.target.value }))}
+                      className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Resolution & Panel</label>
+                    <select
+                      value={assetFields.monResolution || "Full HD (1080p)"}
+                      onChange={(e) => setAssetFields(p => ({ ...p, monResolution: e.target.value }))}
+                      className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                    >
+                      <option value="Full HD (1080p)">Full HD (1080p)</option>
+                      <option value="2K (1440p)">2K (1440p)</option>
+                      <option value="4K UHD">4K UHD</option>
+                      <option value="HD (720p)">HD (720p)</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Serial Number *</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. CN-0V11X-9901"
+                      value={assetFields.monSerial || ""}
+                      onChange={(e) => setAssetFields(p => ({ ...p, monSerial: e.target.value }))}
+                      className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-mono"
+                    />
+                  </div>
+                </div>
+              ) : typeClean === "mobile phone" ? (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Phone Brand & Model *</label>
                       <input
                         type="text"
-                        placeholder="Specify custom OS..."
-                        value={assetFields.laptopOsCustom || ""}
-                        onChange={(e) => setAssetFields(p => ({ ...p, laptopOsCustom: e.target.value }))}
+                        required
+                        placeholder="e.g. Tecno Spark6GO"
+                        value={assetFields.phoneModel || ""}
+                        onChange={(e) => setAssetFields(p => ({ ...p, phoneModel: e.target.value }))}
+                        className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">RAM & Storage</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. 4GB/64GB"
+                        value={assetFields.phoneSpecs || ""}
+                        onChange={(e) => setAssetFields(p => ({ ...p, phoneSpecs: e.target.value }))}
+                        className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Phone Lock Passcode / Pattern</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. 1234 / Pattern"
+                        value={assetFields.phonePassword || ""}
+                        onChange={(e) => setAssetFields(p => ({ ...p, phonePassword: e.target.value }))}
+                        className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-mono"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">IMEI Number 1 *</label>
+                      <input
+                        type="text"
+                        required
+                        placeholder="e.g. 358743619730982"
+                        value={assetFields.phoneImei1 || ""}
+                        onChange={(e) => setAssetFields(p => ({ ...p, phoneImei1: e.target.value }))}
+                        className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-mono"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">IMEI Number 2</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. 358743619730990 (Optional)"
+                        value={assetFields.phoneImei2 || ""}
+                        onChange={(e) => setAssetFields(p => ({ ...p, phoneImei2: e.target.value }))}
+                        className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-mono"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">SIM Slots Used</label>
+                      <select
+                        value={assetFields.phoneSimSlots || "None"}
+                        onChange={(e) => setAssetFields(p => ({ ...p, phoneSimSlots: e.target.value }))}
+                        className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                      >
+                        <option value="None">None</option>
+                        <option value="1 SIM">1 SIM</option>
+                        <option value="2 SIMs">2 SIMs</option>
+                      </select>
+                    </div>
+                    {(assetFields.phoneSimSlots === "1 SIM" || assetFields.phoneSimSlots === "2 SIMs") && (
+                      <div className="bg-[#FCFBF9] border border-[#E8E4DF] p-3 rounded-lg space-y-2">
+                        <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold">SIM 1 Config</label>
+                        <div className="grid grid-cols-2 gap-2">
+                          <div>
+                            <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">SIM 1 Mobile Number *</label>
+                            <input
+                              type="text"
+                              required
+                              placeholder="e.g. 9876543210"
+                              value={assetFields.phoneSim1No || ""}
+                              onChange={(e) => setAssetFields(p => ({ ...p, phoneSim1No: e.target.value }))}
+                              className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">SIM 1 Company / Operator</label>
+                            <select
+                              value={["Jio", "Airtel", "Vodafone Idea (Vi)", "BSNL"].includes(assetFields.phoneSim1Operator || "") ? assetFields.phoneSim1Operator : "Other"}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                setAssetFields(p => ({ ...p, phoneSim1Operator: val, phoneSim1OperatorCustom: val === "Other" ? (p.phoneSim1OperatorCustom || "") : "" }));
+                              }}
+                              className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                            >
+                              <option value="Jio">Jio</option>
+                              <option value="Airtel">Airtel</option>
+                              <option value="Vodafone Idea (Vi)">Vodafone Idea (Vi)</option>
+                              <option value="BSNL">BSNL</option>
+                              <option value="Other">Other (Custom Company)</option>
+                            </select>
+                            {(assetFields.phoneSim1Operator === "Other" || (!["Jio", "Airtel", "Vodafone Idea (Vi)", "BSNL"].includes(assetFields.phoneSim1Operator || "") && assetFields.phoneSim1Operator)) && (
+                              <input
+                                type="text"
+                                required
+                                placeholder="Enter SIM Company Name..."
+                                value={assetFields.phoneSim1OperatorCustom !== undefined ? assetFields.phoneSim1OperatorCustom : (["Jio", "Airtel", "Vodafone Idea (Vi)", "BSNL", "Other"].includes(assetFields.phoneSim1Operator || "") ? "" : assetFields.phoneSim1Operator || "")}
+                                onChange={(e) => setAssetFields(p => ({ ...p, phoneSim1OperatorCustom: e.target.value }))}
+                                className="mt-1.5 w-full bg-white border border-[#C9A84C] focus:border-[#C9A84C] rounded-lg px-3 py-1.5 text-xs text-[#1C1C1A] placeholder-[#9C9890] focus:outline-none font-semibold shadow-sm"
+                              />
+                            )}
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2">
+                          <div>
+                            <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">WhatsApp On?</label>
+                            <select
+                              value={assetFields.phoneSim1Whatsapp || "No"}
+                              onChange={(e) => setAssetFields(p => ({ ...p, phoneSim1Whatsapp: e.target.value }))}
+                              className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                            >
+                              <option value="No">No</option>
+                              <option value="Yes">Yes</option>
+                            </select>
+                          </div>
+                          {assetFields.phoneSim1Whatsapp === "Yes" && (
+                            <div>
+                              <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">WhatsApp Type</label>
+                              <select
+                                value={assetFields.phoneSim1WhatsappType || "Personal"}
+                                onChange={(e) => setAssetFields(p => ({ ...p, phoneSim1WhatsappType: e.target.value }))}
+                                className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                              >
+                                <option value="Personal">Personal</option>
+                                <option value="Business">Business</option>
+                              </select>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                    {assetFields.phoneSimSlots === "2 SIMs" && (
+                      <div className="bg-[#FCFBF9] border border-[#E8E4DF] p-3 rounded-lg space-y-2">
+                        <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold">SIM 2 Config</label>
+                        <div className="grid grid-cols-2 gap-2">
+                          <div>
+                            <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">SIM 2 Mobile Number *</label>
+                            <input
+                              type="text"
+                              required
+                              placeholder="e.g. 9876543211"
+                              value={assetFields.phoneSim2No || ""}
+                              onChange={(e) => setAssetFields(p => ({ ...p, phoneSim2No: e.target.value }))}
+                              className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">SIM 2 Company / Operator</label>
+                            <select
+                              value={["Jio", "Airtel", "Vodafone Idea (Vi)", "BSNL"].includes(assetFields.phoneSim2Operator || "") ? assetFields.phoneSim2Operator : "Other"}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                setAssetFields(p => ({ ...p, phoneSim2Operator: val, phoneSim2OperatorCustom: val === "Other" ? (p.phoneSim2OperatorCustom || "") : "" }));
+                              }}
+                              className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                            >
+                              <option value="Jio">Jio</option>
+                              <option value="Airtel">Airtel</option>
+                              <option value="Vodafone Idea (Vi)">Vodafone Idea (Vi)</option>
+                              <option value="BSNL">BSNL</option>
+                              <option value="Other">Other (Custom Company)</option>
+                            </select>
+                            {(assetFields.phoneSim2Operator === "Other" || (!["Jio", "Airtel", "Vodafone Idea (Vi)", "BSNL"].includes(assetFields.phoneSim2Operator || "") && assetFields.phoneSim2Operator)) && (
+                              <input
+                                type="text"
+                                required
+                                placeholder="Enter SIM Company Name..."
+                                value={assetFields.phoneSim2OperatorCustom !== undefined ? assetFields.phoneSim2OperatorCustom : (["Jio", "Airtel", "Vodafone Idea (Vi)", "BSNL", "Other"].includes(assetFields.phoneSim2Operator || "") ? "" : assetFields.phoneSim2Operator || "")}
+                                onChange={(e) => setAssetFields(p => ({ ...p, phoneSim2OperatorCustom: e.target.value }))}
+                                className="mt-1.5 w-full bg-white border border-[#C9A84C] focus:border-[#C9A84C] rounded-lg px-3 py-1.5 text-xs text-[#1C1C1A] placeholder-[#9C9890] focus:outline-none font-semibold shadow-sm"
+                              />
+                            )}
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2">
+                          <div>
+                            <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">WhatsApp On?</label>
+                            <select
+                              value={assetFields.phoneSim2Whatsapp || "No"}
+                              onChange={(e) => setAssetFields(p => ({ ...p, phoneSim2Whatsapp: e.target.value }))}
+                              className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                            >
+                              <option value="No">No</option>
+                              <option value="Yes">Yes</option>
+                            </select>
+                          </div>
+                          {assetFields.phoneSim2Whatsapp === "Yes" && (
+                            <div>
+                              <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">WhatsApp Type</label>
+                              <select
+                                value={assetFields.phoneSim2WhatsappType || "Personal"}
+                                onChange={(e) => setAssetFields(p => ({ ...p, phoneSim2WhatsappType: e.target.value }))}
+                                className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                              >
+                                <option value="Personal">Personal</option>
+                                <option value="Business">Business</option>
+                              </select>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Standalone / External WhatsApp (Wi-Fi / Separate Number) Section */}
+                  <div className="bg-[#FCFBF9] border border-[#E8E4DF] p-3 rounded-lg space-y-2">
+                    <div className="flex items-center justify-between">
+                      <label className="text-[9px] uppercase tracking-wider text-[#9C9890] font-bold flex items-center gap-1.5">
+                        <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+                        Standalone / External WhatsApp (Without Physical SIM)
+                      </label>
+                      <select
+                        value={assetFields.phoneExternalWhatsapp || "No"}
+                        onChange={(e) => setAssetFields(p => ({ ...p, phoneExternalWhatsapp: e.target.value }))}
+                        className="bg-white border border-[#E8E4DF] rounded-md px-2 py-1 text-[10px] font-bold text-slate-700 focus:outline-none"
+                      >
+                        <option value="No">No (Disabled)</option>
+                        <option value="Yes">Yes (Add External Number)</option>
+                      </select>
+                    </div>
+
+                    {assetFields.phoneExternalWhatsapp === "Yes" && (
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5 pt-1">
+                        <div>
+                          <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">WhatsApp Mobile Number *</label>
+                          <input
+                            type="text"
+                            required
+                            placeholder="e.g. 9876543210"
+                            value={assetFields.phoneExternalWhatsappNo || ""}
+                            onChange={(e) => setAssetFields(p => ({ ...p, phoneExternalWhatsappNo: e.target.value }))}
+                            className="w-full bg-white border border-emerald-300 focus:border-emerald-500 rounded-lg px-3 py-1.5 text-xs text-[#1C1C1A] font-semibold"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">WhatsApp Type *</label>
+                          <select
+                            value={assetFields.phoneExternalWhatsappType || "Business"}
+                            onChange={(e) => setAssetFields(p => ({ ...p, phoneExternalWhatsappType: e.target.value }))}
+                            className="w-full bg-white border border-[#E8E4DF] focus:border-emerald-500 rounded-lg px-3 py-1.5 text-xs text-[#1C1C1A] font-semibold"
+                          >
+                            <option value="Business">WhatsApp Business</option>
+                            <option value="Personal">Personal WhatsApp</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Account Label / Remarks</label>
+                          <input
+                            type="text"
+                            placeholder="e.g. Support WA / Wi-Fi Logged-in"
+                            value={assetFields.phoneExternalWhatsappLabel || ""}
+                            onChange={(e) => setAssetFields(p => ({ ...p, phoneExternalWhatsappLabel: e.target.value }))}
+                            className="w-full bg-white border border-[#E8E4DF] focus:border-emerald-500 rounded-lg px-3 py-1.5 text-xs text-[#1C1C1A] font-semibold"
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Logged-in Social Media Applications Section */}
+                  <div className="bg-[#FCFBF9] border border-[#E8E4DF] p-3 rounded-lg space-y-2">
+                    <div className="flex items-center justify-between">
+                      <label className="text-[9px] uppercase tracking-wider text-[#9C9890] font-bold flex items-center gap-1.5">
+                        <span className="w-2 h-2 rounded-full bg-purple-500"></span>
+                        Logged-in Social Media Applications
+                      </label>
+                      <select
+                        value={assetFields.phoneSocialMedia || "No"}
+                        onChange={(e) => setAssetFields(p => ({ ...p, phoneSocialMedia: e.target.value }))}
+                        className="bg-white border border-[#E8E4DF] rounded-md px-2 py-1 text-[10px] font-bold text-slate-700 focus:outline-none"
+                      >
+                        <option value="No">No (Disabled)</option>
+                        <option value="Yes">Yes (Add Social Media Account)</option>
+                      </select>
+                    </div>
+
+                    {assetFields.phoneSocialMedia === "Yes" && (
+                      <div className="space-y-2 pt-1">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5">
+                          <div>
+                            <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Social Media App *</label>
+                            <select
+                              value={["Instagram", "Facebook", "Telegram", "X (Twitter)", "LinkedIn", "YouTube", "Snapchat"].includes(assetFields.phoneSocialMediaApp || "") ? assetFields.phoneSocialMediaApp : "Other"}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                setAssetFields(p => ({ ...p, phoneSocialMediaApp: val, phoneSocialMediaAppCustom: val === "Other" ? (p.phoneSocialMediaAppCustom || "") : "" }));
+                              }}
+                              className="w-full bg-white border border-purple-300 focus:border-purple-500 rounded-lg px-3 py-1.5 text-xs text-[#1C1C1A] font-semibold"
+                            >
+                              <option value="Instagram">Instagram</option>
+                              <option value="Facebook">Facebook</option>
+                              <option value="Telegram">Telegram</option>
+                              <option value="X (Twitter)">X (Twitter)</option>
+                              <option value="LinkedIn">LinkedIn</option>
+                              <option value="YouTube">YouTube</option>
+                              <option value="Snapchat">Snapchat</option>
+                              <option value="Other">Other</option>
+                            </select>
+                            {(assetFields.phoneSocialMediaApp === "Other" || (!["Instagram", "Facebook", "Telegram", "X (Twitter)", "LinkedIn", "YouTube", "Snapchat"].includes(assetFields.phoneSocialMediaApp || "") && assetFields.phoneSocialMediaApp)) && (
+                              <input
+                                type="text"
+                                required
+                                placeholder="Specify custom app (e.g. Threads)..."
+                                value={assetFields.phoneSocialMediaAppCustom || (assetFields.phoneSocialMediaApp !== "Other" ? assetFields.phoneSocialMediaApp : "") || ""}
+                                onChange={(e) => setAssetFields(p => ({ ...p, phoneSocialMediaAppCustom: e.target.value }))}
+                                className="mt-1.5 w-full bg-white border border-purple-400 focus:border-purple-500 rounded-lg px-3 py-1.5 text-xs text-[#1C1C1A] font-semibold"
+                              />
+                            )}
+                          </div>
+                          <div>
+                            <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Username / Handle</label>
+                            <input
+                              type="text"
+                              placeholder="e.g. @company_official (Optional)"
+                              value={assetFields.phoneSocialMediaUsername || ""}
+                              onChange={(e) => setAssetFields(p => ({ ...p, phoneSocialMediaUsername: e.target.value }))}
+                              className="w-full bg-white border border-[#E8E4DF] focus:border-purple-500 rounded-lg px-3 py-1.5 text-xs text-[#1C1C1A] font-semibold font-mono"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Account Passcode / Password</label>
+                            <input
+                              type="text"
+                              placeholder="e.g. Pass@123 (Optional)"
+                              value={assetFields.phoneSocialMediaPassword || ""}
+                              onChange={(e) => setAssetFields(p => ({ ...p, phoneSocialMediaPassword: e.target.value }))}
+                              className="w-full bg-white border border-[#E8E4DF] focus:border-purple-500 rounded-lg px-3 py-1.5 text-xs text-[#1C1C1A] font-mono"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="max-w-md">
+                    <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Logged-in Email IDs</label>
+                    <div className="space-y-2">
+                      {emailsList.map((email, index) => (
+                        <div key={index} className="flex gap-2 items-center">
+                          <input
+                            type="email"
+                            placeholder="e.g. user@company.com"
+                            value={email}
+                            onChange={(e) => {
+                              const newList = [...emailsList];
+                              newList[index] = e.target.value;
+                              setEmailsList(newList);
+                            }}
+                            className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                          />
+                          {emailsList.length > 1 && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const newList = emailsList.filter((_, i) => i !== index);
+                                setEmailsList(newList);
+                              }}
+                              className="px-2.5 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-lg text-xs font-bold transition-all border border-rose-100 animate-fade-in"
+                            >
+                              Remove
+                            </button>
+                          )}
+                        </div>
+                      ))}
+                      <button
+                        type="button"
+                        onClick={() => setEmailsList([...emailsList, ""])}
+                        className="mt-1 px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-[10px] font-bold rounded-lg transition-all border border-indigo-150 flex items-center gap-1.5 w-fit"
+                      >
+                        + Add Email ID
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ) : typeClean === "headset / accessories" ? (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Accessory Name / Brand *</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. Logitech USB Headset H390"
+                      value={assetFields.accName || ""}
+                      onChange={(e) => setAssetFields(p => ({ ...p, accName: e.target.value }))}
+                      className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Accessory Type *</label>
+                    <select
+                      value={assetFields.accType || "Wired"}
+                      onChange={(e) => setAssetFields(p => ({ ...p, accType: e.target.value }))}
+                      className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                    >
+                      <option value="Wired">Wired</option>
+                      <option value="Wireless Bluetooth">Wireless Bluetooth</option>
+                      <option value="USB Dongle">USB Dongle</option>
+                      <option value="Other">Other</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Serial Number / Unique ID</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. SN-ACC12345"
+                      value={assetFields.accSerial || ""}
+                      onChange={(e) => setAssetFields(p => ({ ...p, accSerial: e.target.value }))}
+                      className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-mono"
+                    />
+                  </div>
+                </div>
+              ) : typeClean === "id card / lanyard" ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Employee Name / ID *</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. Rahul Sharma - EMP101"
+                      value={assetFields.idEmployee || ""}
+                      onChange={(e) => setAssetFields(p => ({ ...p, idEmployee: e.target.value }))}
+                      className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Card ID Number / Barcode *</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. ID-887192"
+                      value={assetFields.idBarcode || ""}
+                      onChange={(e) => setAssetFields(p => ({ ...p, idBarcode: e.target.value }))}
+                      className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-mono font-semibold"
+                    />
+                  </div>
+                </div>
+              ) : typeClean === "office chair / table" ? (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Furniture Description *</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. Ergonomic Black Mesh Chair, Adjustable Back"
+                      value={assetFields.furnitureDesc || ""}
+                      onChange={(e) => setAssetFields(p => ({ ...p, furnitureDesc: e.target.value }))}
+                      className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Location / Cabin / Room</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Conference Room A / Cabin 3"
+                      value={assetFields.furnitureLocation || ""}
+                      onChange={(e) => setAssetFields(p => ({ ...p, furnitureLocation: e.target.value }))}
+                      className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Inventory Tag / Asset Tag</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. TAG-CHR-0042"
+                      value={assetFields.furnitureTag || ""}
+                      onChange={(e) => setAssetFields(p => ({ ...p, furnitureTag: e.target.value }))}
+                      className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-mono"
+                    />
+                  </div>
+                </div>
+              ) : typeClean === "router / networking" ? (
+                <div className="space-y-3">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Router Brand & Model *</label>
+                      <input
+                        type="text"
+                        required
+                        placeholder="e.g. TP-Link Archer C6"
+                        value={assetFields.routerModel || ""}
+                        onChange={(e) => setAssetFields(p => ({ ...p, routerModel: e.target.value }))}
+                        className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">MAC Address *</label>
+                      <input
+                        type="text"
+                        required
+                        placeholder="e.g. 00:1A:2B:3C:4D:5E"
+                        value={assetFields.routerMac || ""}
+                        onChange={(e) => setAssetFields(p => ({ ...p, routerMac: e.target.value }))}
+                        className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-mono"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Serial Number</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. SN-RTR99887"
+                        value={assetFields.routerSerial || ""}
+                        onChange={(e) => setAssetFields(p => ({ ...p, routerSerial: e.target.value }))}
+                        className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-mono"
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div>
+                      <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Admin Panel IP</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. 192.168.1.1"
+                        value={assetFields.routerIp || ""}
+                        onChange={(e) => setAssetFields(p => ({ ...p, routerIp: e.target.value }))}
+                        className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-mono"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Admin Username & Password</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. admin / pass123"
+                        value={assetFields.routerAdminPass || ""}
+                        onChange={(e) => setAssetFields(p => ({ ...p, routerAdminPass: e.target.value }))}
+                        className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-mono"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Wi-Fi SSID & Password</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. CFI_5G / Pass@2026"
+                        value={assetFields.routerWifiSsid || ""}
+                        onChange={(e) => setAssetFields(p => ({ ...p, routerWifiSsid: e.target.value }))}
+                        className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">ISP / Broadband Connection</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. Airtel Fiber / BSNL FTTH"
+                        value={assetFields.routerIsp || ""}
+                        onChange={(e) => setAssetFields(p => ({ ...p, routerIsp: e.target.value }))}
+                        className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                      />
+                    </div>
+                  </div>
+                </div>
+              ) : typeClean === "printer / scanner" ? (
+                <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+                  <div>
+                    <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Printer Brand & Model *</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. HP LaserJet Pro M12w"
+                      value={assetFields.printerModel || ""}
+                      onChange={(e) => setAssetFields(p => ({ ...p, printerModel: e.target.value }))}
+                      className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Printer Type *</label>
+                    <select
+                      value={assetFields.printerType || "Laser Printer"}
+                      onChange={(e) => setAssetFields(p => ({ ...p, printerType: e.target.value }))}
+                      className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                    >
+                      <option value="Laser Printer">Laser Printer</option>
+                      <option value="Inkjet Printer">Inkjet Printer</option>
+                      <option value="Flatbed Scanner">Flatbed Scanner</option>
+                      <option value="Multi-Function Printer">Multi-Function Printer</option>
+                      <option value="Other">Other</option>
+                    </select>
+                    {assetFields.printerType === "Other" && (
+                      <input
+                        type="text"
+                        placeholder="Specify custom type..."
+                        value={assetFields.printerTypeCustom || ""}
+                        onChange={(e) => setAssetFields(p => ({ ...p, printerTypeCustom: e.target.value }))}
                         className="mt-1.5 w-full bg-white border border-[#C9A84C] focus:border-[#C9A84C] rounded-lg px-3 py-1.5 text-xs text-[#1C1C1A] font-semibold"
                       />
                     )}
                   </div>
                   <div>
-                    <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Computer / Host Name</label>
-                    <input
-                      type="text"
-                      placeholder="e.g. CFI-LAP-042"
-                      value={assetFields.laptopHostName || ""}
-                      onChange={(e) => setAssetFields(p => ({ ...p, laptopHostName: e.target.value }))}
-                      className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-mono"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Original Charger Included?</label>
-                    <select
-                      value={assetFields.laptopCharger || "Yes"}
-                      onChange={(e) => setAssetFields(p => ({ ...p, laptopCharger: e.target.value }))}
-                      className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
-                    >
-                      <option value="Yes">Yes (Original Charger)</option>
-                      <option value="No">No Charger</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Bag & Mouse Issued?</label>
-                    <select
-                      value={assetFields.laptopBag || "Bag & Mouse"}
-                      onChange={(e) => setAssetFields(p => ({ ...p, laptopBag: e.target.value }))}
-                      className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
-                    >
-                      <option value="Bag & Mouse">Bag & Mouse</option>
-                      <option value="Bag Only">Bag Only</option>
-                      <option value="Mouse Only">Mouse Only</option>
-                      <option value="None">None</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div className="max-w-md">
-                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Admin Password / Passcode</label>
-                  <input
-                    type="text"
-                    placeholder="e.g. Admin@123 / Passcode"
-                    value={assetFields.laptopPassword || ""}
-                    onChange={(e) => setAssetFields(p => ({ ...p, laptopPassword: e.target.value }))}
-                    className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-mono"
-                  />
-                </div>
-
-                <div className="max-w-md">
-                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Logged-in Email IDs</label>
-                  <div className="space-y-2">
-                    {emailsList.map((email, index) => (
-                      <div key={index} className="flex gap-2 items-center">
-                        <input
-                          type="email"
-                          placeholder="e.g. user@company.com"
-                          value={email}
-                          onChange={(e) => {
-                            const newList = [...emailsList];
-                            newList[index] = e.target.value;
-                            setEmailsList(newList);
-                          }}
-                          className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
-                        />
-                        {emailsList.length > 1 && (
-                          <button
-                            type="button"
-                            onClick={() => {
-                              const newList = emailsList.filter((_, i) => i !== index);
-                              setEmailsList(newList);
-                            }}
-                            className="px-2.5 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-lg text-xs font-bold transition-all border border-rose-100 animate-fade-in"
-                          >
-                            Remove
-                          </button>
-                        )}
-                      </div>
-                    ))}
-                    <button
-                      type="button"
-                      onClick={() => setEmailsList([...emailsList, ""])}
-                      className="mt-1 px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-[10px] font-bold rounded-lg transition-all border border-indigo-150 flex items-center gap-1.5 w-fit"
-                    >
-                      + Add Email ID
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ) : typeClean === "computer" || typeClean === "desktop computer" || typeClean === "pc" ? (
-              <div className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div>
-                    <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Computer Brand & Model *</label>
-                    <input
-                      type="text"
-                      required
-                      placeholder="e.g. Dell OptiPlex 7090 / Custom Assembled PC"
-                      value={assetFields.compModel || ""}
-                      onChange={(e) => setAssetFields(p => ({ ...p, compModel: e.target.value }))}
-                      className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Processor / RAM / Storage *</label>
-                    <input
-                      type="text"
-                      required
-                      placeholder="e.g. Intel i5 12th Gen, 16GB RAM, 512GB SSD"
-                      value={assetFields.compSpecs || ""}
-                      onChange={(e) => setAssetFields(p => ({ ...p, compSpecs: e.target.value }))}
-                      className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Serial Number / Asset Tag</label>
-                    <input
-                      type="text"
-                      placeholder="e.g. SN-COM9982"
-                      value={assetFields.compSerial || ""}
-                      onChange={(e) => setAssetFields(p => ({ ...p, compSerial: e.target.value }))}
-                      className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-mono"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div>
-                    <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Operating System (OS)</label>
-                    <select
-                      value={assetFields.compOs || "Windows 11 Pro"}
-                      onChange={(e) => setAssetFields(p => ({ ...p, compOs: e.target.value }))}
-                      className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
-                    >
-                      <option value="Windows 11 Pro">Windows 11 Pro</option>
-                      <option value="Windows 10 Pro">Windows 10 Pro</option>
-                      <option value="macOS / Mac mini">macOS / Mac mini</option>
-                      <option value="Ubuntu / Linux">Ubuntu / Linux</option>
-                      <option value="Other">Other</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Host Name / Computer Name</label>
-                    <input
-                      type="text"
-                      placeholder="e.g. PC-DESK-001"
-                      value={assetFields.compHostName || ""}
-                      onChange={(e) => setAssetFields(p => ({ ...p, compHostName: e.target.value }))}
-                      className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-mono"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Computer Password / Passcode</label>
-                    <input
-                      type="text"
-                      placeholder="e.g. Admin@123 / 4492"
-                      value={assetFields.compPassword || ""}
-                      onChange={(e) => setAssetFields(p => ({ ...p, compPassword: e.target.value }))}
-                      className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-mono font-semibold"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 bg-slate-50/80 p-3 rounded-xl border border-slate-200">
-                  <div>
-                    <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Monitor Details & Size</label>
-                    <input
-                      type="text"
-                      placeholder="e.g. Dell 22 Inch LED / S/N: MON-991"
-                      value={assetFields.compMonitor || ""}
-                      onChange={(e) => setAssetFields(p => ({ ...p, compMonitor: e.target.value }))}
-                      className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Keyboard Details & Model</label>
-                    <input
-                      type="text"
-                      placeholder="e.g. Dell USB Wired KB / S/N: KB-401"
-                      value={assetFields.compKeyboard || ""}
-                      onChange={(e) => setAssetFields(p => ({ ...p, compKeyboard: e.target.value }))}
-                      className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Mouse Details & Model</label>
-                    <input
-                      type="text"
-                      placeholder="e.g. Dell Optical USB Mouse / Wireless"
-                      value={assetFields.compMouse || ""}
-                      onChange={(e) => setAssetFields(p => ({ ...p, compMouse: e.target.value }))}
-                      className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Other Peripherals & Accessories</label>
-                    <input
-                      type="text"
-                      placeholder="e.g. Headset, UPS, WebCam, Dongle..."
-                      value={assetFields.compPeripherals || ""}
-                      onChange={(e) => setAssetFields(p => ({ ...p, compPeripherals: e.target.value }))}
-                      className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
-                    />
-                  </div>
-                </div>
-
-                <div className="max-w-md">
-                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Logged-in Email IDs</label>
-                  <div className="space-y-2">
-                    {emailsList.map((email, index) => (
-                      <div key={index} className="flex gap-2 items-center">
-                        <input
-                          type="email"
-                          placeholder="e.g. user@company.com"
-                          value={email}
-                          onChange={(e) => {
-                            const newList = [...emailsList];
-                            newList[index] = e.target.value;
-                            setEmailsList(newList);
-                          }}
-                          className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
-                        />
-                        {emailsList.length > 1 && (
-                          <button
-                            type="button"
-                            onClick={() => {
-                              const newList = emailsList.filter((_, i) => i !== index);
-                              setEmailsList(newList);
-                            }}
-                            className="px-2.5 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-lg text-xs font-bold transition-all border border-rose-100 animate-fade-in"
-                          >
-                            Remove
-                          </button>
-                        )}
-                      </div>
-                    ))}
-                    <button
-                      type="button"
-                      onClick={() => setEmailsList([...emailsList, ""])}
-                      className="mt-1 px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-[10px] font-bold rounded-lg transition-all border border-indigo-150 flex items-center gap-1.5 w-fit"
-                    >
-                      + Add Email ID
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ) : typeClean === "cpu" || typeClean === "cpu tower" || typeClean === "cabinet" ? (
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <div>
-                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">CPU Brand & Cabinet Model *</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="e.g. HP ProDesk / Custom Assembled"
-                    value={assetFields.cpuModel || ""}
-                    onChange={(e) => setAssetFields(p => ({ ...p, cpuModel: e.target.value }))}
-                    className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Processor / RAM / SSD *</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="e.g. Core i5 12th Gen, 16GB RAM, 512GB SSD"
-                    value={assetFields.cpuSpecs || ""}
-                    onChange={(e) => setAssetFields(p => ({ ...p, cpuSpecs: e.target.value }))}
-                    className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Graphics Card (GPU)</label>
-                  <input
-                    type="text"
-                    placeholder="e.g. NVIDIA GTX 1650 / Integrated"
-                    value={assetFields.cpuGraphics || ""}
-                    onChange={(e) => setAssetFields(p => ({ ...p, cpuGraphics: e.target.value }))}
-                    className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Serial Number / Cabinet Tag</label>
-                  <input
-                    type="text"
-                    placeholder="e.g. CPU-SN-8812"
-                    value={assetFields.cpuSerial || ""}
-                    onChange={(e) => setAssetFields(p => ({ ...p, cpuSerial: e.target.value }))}
-                    className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-mono"
-                  />
-                </div>
-              </div>
-            ) : typeClean === "mouse" ? (
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Mouse Brand & Model *</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="e.g. Logitech B100 / HP Wireless Mouse"
-                    value={assetFields.mouseBrand || ""}
-                    onChange={(e) => setAssetFields(p => ({ ...p, mouseBrand: e.target.value }))}
-                    className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Connectivity Type *</label>
-                  <select
-                    value={assetFields.mouseType || "Wired USB"}
-                    onChange={(e) => setAssetFields(p => ({ ...p, mouseType: e.target.value }))}
-                    className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
-                  >
-                    <option value="Wired USB">Wired USB</option>
-                    <option value="Wireless (USB Dongle)">Wireless (USB Dongle)</option>
-                    <option value="Bluetooth">Bluetooth</option>
-                    <option value="Optical Gaming Mouse">Optical Gaming Mouse</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Serial Number / Tag (Optional)</label>
-                  <input
-                    type="text"
-                    placeholder="e.g. S/N: MS-9918"
-                    value={assetFields.mouseSerial || ""}
-                    onChange={(e) => setAssetFields(p => ({ ...p, mouseSerial: e.target.value }))}
-                    className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-mono"
-                  />
-                </div>
-              </div>
-            ) : typeClean === "keyboard" ? (
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Keyboard Brand & Model *</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="e.g. Logitech K120 / Dell Multimedia"
-                    value={assetFields.kbBrand || ""}
-                    onChange={(e) => setAssetFields(p => ({ ...p, kbBrand: e.target.value }))}
-                    className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Connectivity / Key Type *</label>
-                  <select
-                    value={assetFields.kbType || "Wired USB"}
-                    onChange={(e) => setAssetFields(p => ({ ...p, kbType: e.target.value }))}
-                    className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
-                  >
-                    <option value="Wired USB">Wired USB</option>
-                    <option value="Wireless (USB Dongle)">Wireless (USB Dongle)</option>
-                    <option value="Bluetooth">Bluetooth</option>
-                    <option value="Mechanical Keyboard">Mechanical Keyboard</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Serial Number / Tag (Optional)</label>
-                  <input
-                    type="text"
-                    placeholder="e.g. S/N: KB-4412"
-                    value={assetFields.kbSerial || ""}
-                    onChange={(e) => setAssetFields(p => ({ ...p, kbSerial: e.target.value }))}
-                    className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-mono"
-                  />
-                </div>
-              </div>
-            ) : typeClean === "monitor / display" || typeClean === "monitor" || typeClean === "display" ? (
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <div>
-                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Monitor Brand & Model *</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="e.g. Dell P2419H / LG IPS Monitor"
-                    value={assetFields.monBrand || ""}
-                    onChange={(e) => setAssetFields(p => ({ ...p, monBrand: e.target.value }))}
-                    className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Display Size (Inches) *</label>
-                  <input
-                    type="text"
-                    placeholder="e.g. 21.5 Inch / 24 Inch / 27 Inch"
-                    value={assetFields.monSize || ""}
-                    onChange={(e) => setAssetFields(p => ({ ...p, monSize: e.target.value }))}
-                    className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Resolution & Panel</label>
-                  <select
-                    value={assetFields.monResolution || "Full HD (1080p)"}
-                    onChange={(e) => setAssetFields(p => ({ ...p, monResolution: e.target.value }))}
-                    className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
-                  >
-                    <option value="Full HD (1080p)">Full HD (1080p)</option>
-                    <option value="2K (1440p)">2K (1440p)</option>
-                    <option value="4K UHD">4K UHD</option>
-                    <option value="HD (720p)">HD (720p)</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Serial Number *</label>
-                  <input
-                    type="text"
-                    placeholder="e.g. CN-0V11X-9901"
-                    value={assetFields.monSerial || ""}
-                    onChange={(e) => setAssetFields(p => ({ ...p, monSerial: e.target.value }))}
-                    className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-mono"
-                  />
-                </div>
-              </div>
-            ) : typeClean === "mobile phone" ? (
-              <div className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div>
-                    <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Phone Brand & Model *</label>
-                    <input
-                      type="text"
-                      required
-                      placeholder="e.g. Tecno Spark6GO"
-                      value={assetFields.phoneModel || ""}
-                      onChange={(e) => setAssetFields(p => ({ ...p, phoneModel: e.target.value }))}
-                      className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">RAM & Storage</label>
-                    <input
-                      type="text"
-                      placeholder="e.g. 4GB/64GB"
-                      value={assetFields.phoneSpecs || ""}
-                      onChange={(e) => setAssetFields(p => ({ ...p, phoneSpecs: e.target.value }))}
-                      className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Phone Lock Passcode / Pattern</label>
-                    <input
-                      type="text"
-                      placeholder="e.g. 1234 / Pattern"
-                      value={assetFields.phonePassword || ""}
-                      onChange={(e) => setAssetFields(p => ({ ...p, phonePassword: e.target.value }))}
-                      className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-mono"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">IMEI Number 1 *</label>
-                    <input
-                      type="text"
-                      required
-                      placeholder="e.g. 358743619730982"
-                      value={assetFields.phoneImei1 || ""}
-                      onChange={(e) => setAssetFields(p => ({ ...p, phoneImei1: e.target.value }))}
-                      className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-mono"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">IMEI Number 2</label>
-                    <input
-                      type="text"
-                      placeholder="e.g. 358743619730990 (Optional)"
-                      value={assetFields.phoneImei2 || ""}
-                      onChange={(e) => setAssetFields(p => ({ ...p, phoneImei2: e.target.value }))}
-                      className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-mono"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div>
-                    <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">SIM Slots Used</label>
-                    <select
-                      value={assetFields.phoneSimSlots || "None"}
-                      onChange={(e) => setAssetFields(p => ({ ...p, phoneSimSlots: e.target.value }))}
-                      className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
-                    >
-                      <option value="None">None</option>
-                      <option value="1 SIM">1 SIM</option>
-                      <option value="2 SIMs">2 SIMs</option>
-                    </select>
-                  </div>
-                  {(assetFields.phoneSimSlots === "1 SIM" || assetFields.phoneSimSlots === "2 SIMs") && (
-                    <div className="bg-[#FCFBF9] border border-[#E8E4DF] p-3 rounded-lg space-y-2">
-                      <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold">SIM 1 Config</label>
-                      <div className="grid grid-cols-2 gap-2">
-                        <div>
-                          <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">SIM 1 Mobile Number *</label>
-                          <input
-                            type="text"
-                            required
-                            placeholder="e.g. 9876543210"
-                            value={assetFields.phoneSim1No || ""}
-                            onChange={(e) => setAssetFields(p => ({ ...p, phoneSim1No: e.target.value }))}
-                            className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">SIM 1 Company / Operator</label>
-                          <select
-                            value={["Jio", "Airtel", "Vodafone Idea (Vi)", "BSNL"].includes(assetFields.phoneSim1Operator || "") ? assetFields.phoneSim1Operator : "Other"}
-                            onChange={(e) => {
-                              const val = e.target.value;
-                              setAssetFields(p => ({ ...p, phoneSim1Operator: val, phoneSim1OperatorCustom: val === "Other" ? (p.phoneSim1OperatorCustom || "") : "" }));
-                            }}
-                            className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
-                          >
-                            <option value="Jio">Jio</option>
-                            <option value="Airtel">Airtel</option>
-                            <option value="Vodafone Idea (Vi)">Vodafone Idea (Vi)</option>
-                            <option value="BSNL">BSNL</option>
-                            <option value="Other">Other (Custom Company)</option>
-                          </select>
-                          {(assetFields.phoneSim1Operator === "Other" || (!["Jio", "Airtel", "Vodafone Idea (Vi)", "BSNL"].includes(assetFields.phoneSim1Operator || "") && assetFields.phoneSim1Operator)) && (
-                            <input
-                              type="text"
-                              required
-                              placeholder="Enter SIM Company Name..."
-                              value={assetFields.phoneSim1OperatorCustom !== undefined ? assetFields.phoneSim1OperatorCustom : (["Jio", "Airtel", "Vodafone Idea (Vi)", "BSNL", "Other"].includes(assetFields.phoneSim1Operator || "") ? "" : assetFields.phoneSim1Operator || "")}
-                              onChange={(e) => setAssetFields(p => ({ ...p, phoneSim1OperatorCustom: e.target.value }))}
-                              className="mt-1.5 w-full bg-white border border-[#C9A84C] focus:border-[#C9A84C] rounded-lg px-3 py-1.5 text-xs text-[#1C1C1A] placeholder-[#9C9890] focus:outline-none font-semibold shadow-sm"
-                            />
-                          )}
-                        </div>
-                      </div>
-                      <div className="grid grid-cols-2 gap-2">
-                        <div>
-                          <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">WhatsApp On?</label>
-                          <select
-                            value={assetFields.phoneSim1Whatsapp || "No"}
-                            onChange={(e) => setAssetFields(p => ({ ...p, phoneSim1Whatsapp: e.target.value }))}
-                            className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
-                          >
-                            <option value="No">No</option>
-                            <option value="Yes">Yes</option>
-                          </select>
-                        </div>
-                        {assetFields.phoneSim1Whatsapp === "Yes" && (
-                          <div>
-                            <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">WhatsApp Type</label>
-                            <select
-                              value={assetFields.phoneSim1WhatsappType || "Personal"}
-                              onChange={(e) => setAssetFields(p => ({ ...p, phoneSim1WhatsappType: e.target.value }))}
-                              className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
-                            >
-                              <option value="Personal">Personal</option>
-                              <option value="Business">Business</option>
-                            </select>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  )}
-                  {assetFields.phoneSimSlots === "2 SIMs" && (
-                    <div className="bg-[#FCFBF9] border border-[#E8E4DF] p-3 rounded-lg space-y-2">
-                      <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold">SIM 2 Config</label>
-                      <div className="grid grid-cols-2 gap-2">
-                        <div>
-                          <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">SIM 2 Mobile Number *</label>
-                          <input
-                            type="text"
-                            required
-                            placeholder="e.g. 9876543211"
-                            value={assetFields.phoneSim2No || ""}
-                            onChange={(e) => setAssetFields(p => ({ ...p, phoneSim2No: e.target.value }))}
-                            className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">SIM 2 Company / Operator</label>
-                          <select
-                            value={["Jio", "Airtel", "Vodafone Idea (Vi)", "BSNL"].includes(assetFields.phoneSim2Operator || "") ? assetFields.phoneSim2Operator : "Other"}
-                            onChange={(e) => {
-                              const val = e.target.value;
-                              setAssetFields(p => ({ ...p, phoneSim2Operator: val, phoneSim2OperatorCustom: val === "Other" ? (p.phoneSim2OperatorCustom || "") : "" }));
-                            }}
-                            className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
-                          >
-                            <option value="Jio">Jio</option>
-                            <option value="Airtel">Airtel</option>
-                            <option value="Vodafone Idea (Vi)">Vodafone Idea (Vi)</option>
-                            <option value="BSNL">BSNL</option>
-                            <option value="Other">Other (Custom Company)</option>
-                          </select>
-                          {(assetFields.phoneSim2Operator === "Other" || (!["Jio", "Airtel", "Vodafone Idea (Vi)", "BSNL"].includes(assetFields.phoneSim2Operator || "") && assetFields.phoneSim2Operator)) && (
-                            <input
-                              type="text"
-                              required
-                              placeholder="Enter SIM Company Name..."
-                              value={assetFields.phoneSim2OperatorCustom !== undefined ? assetFields.phoneSim2OperatorCustom : (["Jio", "Airtel", "Vodafone Idea (Vi)", "BSNL", "Other"].includes(assetFields.phoneSim2Operator || "") ? "" : assetFields.phoneSim2Operator || "")}
-                              onChange={(e) => setAssetFields(p => ({ ...p, phoneSim2OperatorCustom: e.target.value }))}
-                              className="mt-1.5 w-full bg-white border border-[#C9A84C] focus:border-[#C9A84C] rounded-lg px-3 py-1.5 text-xs text-[#1C1C1A] placeholder-[#9C9890] focus:outline-none font-semibold shadow-sm"
-                            />
-                          )}
-                        </div>
-                      </div>
-                      <div className="grid grid-cols-2 gap-2">
-                        <div>
-                          <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">WhatsApp On?</label>
-                          <select
-                            value={assetFields.phoneSim2Whatsapp || "No"}
-                            onChange={(e) => setAssetFields(p => ({ ...p, phoneSim2Whatsapp: e.target.value }))}
-                            className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
-                          >
-                            <option value="No">No</option>
-                            <option value="Yes">Yes</option>
-                          </select>
-                        </div>
-                        {assetFields.phoneSim2Whatsapp === "Yes" && (
-                          <div>
-                            <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">WhatsApp Type</label>
-                            <select
-                              value={assetFields.phoneSim2WhatsappType || "Personal"}
-                              onChange={(e) => setAssetFields(p => ({ ...p, phoneSim2WhatsappType: e.target.value }))}
-                              className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
-                            >
-                              <option value="Personal">Personal</option>
-                              <option value="Business">Business</option>
-                            </select>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                {/* Standalone / External WhatsApp (Wi-Fi / Separate Number) Section */}
-                <div className="bg-[#FCFBF9] border border-[#E8E4DF] p-3 rounded-lg space-y-2">
-                  <div className="flex items-center justify-between">
-                    <label className="text-[9px] uppercase tracking-wider text-[#9C9890] font-bold flex items-center gap-1.5">
-                      <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
-                      Standalone / External WhatsApp (Without Physical SIM)
-                    </label>
-                    <select
-                      value={assetFields.phoneExternalWhatsapp || "No"}
-                      onChange={(e) => setAssetFields(p => ({ ...p, phoneExternalWhatsapp: e.target.value }))}
-                      className="bg-white border border-[#E8E4DF] rounded-md px-2 py-1 text-[10px] font-bold text-slate-700 focus:outline-none"
-                    >
-                      <option value="No">No (Disabled)</option>
-                      <option value="Yes">Yes (Add External Number)</option>
-                    </select>
-                  </div>
-
-                  {assetFields.phoneExternalWhatsapp === "Yes" && (
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5 pt-1">
-                      <div>
-                        <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">WhatsApp Mobile Number *</label>
-                        <input
-                          type="text"
-                          required
-                          placeholder="e.g. 9876543210"
-                          value={assetFields.phoneExternalWhatsappNo || ""}
-                          onChange={(e) => setAssetFields(p => ({ ...p, phoneExternalWhatsappNo: e.target.value }))}
-                          className="w-full bg-white border border-emerald-300 focus:border-emerald-500 rounded-lg px-3 py-1.5 text-xs text-[#1C1C1A] font-semibold"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">WhatsApp Type *</label>
-                        <select
-                          value={assetFields.phoneExternalWhatsappType || "Business"}
-                          onChange={(e) => setAssetFields(p => ({ ...p, phoneExternalWhatsappType: e.target.value }))}
-                          className="w-full bg-white border border-[#E8E4DF] focus:border-emerald-500 rounded-lg px-3 py-1.5 text-xs text-[#1C1C1A] font-semibold"
-                        >
-                          <option value="Business">WhatsApp Business</option>
-                          <option value="Personal">Personal WhatsApp</option>
-                        </select>
-                      </div>
-                      <div>
-                        <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Account Label / Remarks</label>
-                        <input
-                          type="text"
-                          placeholder="e.g. Support WA / Wi-Fi Logged-in"
-                          value={assetFields.phoneExternalWhatsappLabel || ""}
-                          onChange={(e) => setAssetFields(p => ({ ...p, phoneExternalWhatsappLabel: e.target.value }))}
-                          className="w-full bg-white border border-[#E8E4DF] focus:border-emerald-500 rounded-lg px-3 py-1.5 text-xs text-[#1C1C1A] font-semibold"
-                        />
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                {/* Logged-in Social Media Applications Section */}
-                <div className="bg-[#FCFBF9] border border-[#E8E4DF] p-3 rounded-lg space-y-2">
-                  <div className="flex items-center justify-between">
-                    <label className="text-[9px] uppercase tracking-wider text-[#9C9890] font-bold flex items-center gap-1.5">
-                      <span className="w-2 h-2 rounded-full bg-purple-500"></span>
-                      Logged-in Social Media Applications
-                    </label>
-                    <select
-                      value={assetFields.phoneSocialMedia || "No"}
-                      onChange={(e) => setAssetFields(p => ({ ...p, phoneSocialMedia: e.target.value }))}
-                      className="bg-white border border-[#E8E4DF] rounded-md px-2 py-1 text-[10px] font-bold text-slate-700 focus:outline-none"
-                    >
-                      <option value="No">No (Disabled)</option>
-                      <option value="Yes">Yes (Add Social Media Account)</option>
-                    </select>
-                  </div>
-
-                  {assetFields.phoneSocialMedia === "Yes" && (
-                    <div className="space-y-2 pt-1">
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5">
-                        <div>
-                          <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Social Media App *</label>
-                          <select
-                            value={["Instagram", "Facebook", "Telegram", "X (Twitter)", "LinkedIn", "YouTube", "Snapchat"].includes(assetFields.phoneSocialMediaApp || "") ? assetFields.phoneSocialMediaApp : "Other"}
-                            onChange={(e) => {
-                              const val = e.target.value;
-                              setAssetFields(p => ({ ...p, phoneSocialMediaApp: val, phoneSocialMediaAppCustom: val === "Other" ? (p.phoneSocialMediaAppCustom || "") : "" }));
-                            }}
-                            className="w-full bg-white border border-purple-300 focus:border-purple-500 rounded-lg px-3 py-1.5 text-xs text-[#1C1C1A] font-semibold"
-                          >
-                            <option value="Instagram">Instagram</option>
-                            <option value="Facebook">Facebook</option>
-                            <option value="Telegram">Telegram</option>
-                            <option value="X (Twitter)">X (Twitter)</option>
-                            <option value="LinkedIn">LinkedIn</option>
-                            <option value="YouTube">YouTube</option>
-                            <option value="Snapchat">Snapchat</option>
-                            <option value="Other">Other</option>
-                          </select>
-                          {(assetFields.phoneSocialMediaApp === "Other" || (!["Instagram", "Facebook", "Telegram", "X (Twitter)", "LinkedIn", "YouTube", "Snapchat"].includes(assetFields.phoneSocialMediaApp || "") && assetFields.phoneSocialMediaApp)) && (
-                            <input
-                              type="text"
-                              required
-                              placeholder="Specify custom app (e.g. Threads)..."
-                              value={assetFields.phoneSocialMediaAppCustom || (assetFields.phoneSocialMediaApp !== "Other" ? assetFields.phoneSocialMediaApp : "") || ""}
-                              onChange={(e) => setAssetFields(p => ({ ...p, phoneSocialMediaAppCustom: e.target.value }))}
-                              className="mt-1.5 w-full bg-white border border-purple-400 focus:border-purple-500 rounded-lg px-3 py-1.5 text-xs text-[#1C1C1A] font-semibold"
-                            />
-                          )}
-                        </div>
-                        <div>
-                          <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Username / Handle</label>
-                          <input
-                            type="text"
-                            placeholder="e.g. @company_official (Optional)"
-                            value={assetFields.phoneSocialMediaUsername || ""}
-                            onChange={(e) => setAssetFields(p => ({ ...p, phoneSocialMediaUsername: e.target.value }))}
-                            className="w-full bg-white border border-[#E8E4DF] focus:border-purple-500 rounded-lg px-3 py-1.5 text-xs text-[#1C1C1A] font-semibold font-mono"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Account Passcode / Password</label>
-                          <input
-                            type="text"
-                            placeholder="e.g. Pass@123 (Optional)"
-                            value={assetFields.phoneSocialMediaPassword || ""}
-                            onChange={(e) => setAssetFields(p => ({ ...p, phoneSocialMediaPassword: e.target.value }))}
-                            className="w-full bg-white border border-[#E8E4DF] focus:border-purple-500 rounded-lg px-3 py-1.5 text-xs text-[#1C1C1A] font-mono"
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                <div className="max-w-md">
-                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Logged-in Email IDs</label>
-                  <div className="space-y-2">
-                    {emailsList.map((email, index) => (
-                      <div key={index} className="flex gap-2 items-center">
-                        <input
-                          type="email"
-                          placeholder="e.g. user@company.com"
-                          value={email}
-                          onChange={(e) => {
-                            const newList = [...emailsList];
-                            newList[index] = e.target.value;
-                            setEmailsList(newList);
-                          }}
-                          className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
-                        />
-                        {emailsList.length > 1 && (
-                          <button
-                            type="button"
-                            onClick={() => {
-                              const newList = emailsList.filter((_, i) => i !== index);
-                              setEmailsList(newList);
-                            }}
-                            className="px-2.5 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-lg text-xs font-bold transition-all border border-rose-100 animate-fade-in"
-                          >
-                            Remove
-                          </button>
-                        )}
-                      </div>
-                    ))}
-                    <button
-                      type="button"
-                      onClick={() => setEmailsList([...emailsList, ""])}
-                      className="mt-1 px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-[10px] font-bold rounded-lg transition-all border border-indigo-150 flex items-center gap-1.5 w-fit"
-                    >
-                      + Add Email ID
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ) : typeClean === "headset / accessories" ? (
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Accessory Name / Brand *</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="e.g. Logitech USB Headset H390"
-                    value={assetFields.accName || ""}
-                    onChange={(e) => setAssetFields(p => ({ ...p, accName: e.target.value }))}
-                    className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Accessory Type *</label>
-                  <select
-                    value={assetFields.accType || "Wired"}
-                    onChange={(e) => setAssetFields(p => ({ ...p, accType: e.target.value }))}
-                    className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
-                  >
-                    <option value="Wired">Wired</option>
-                    <option value="Wireless Bluetooth">Wireless Bluetooth</option>
-                    <option value="USB Dongle">USB Dongle</option>
-                    <option value="Other">Other</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Serial Number / Unique ID</label>
-                  <input
-                    type="text"
-                    placeholder="e.g. SN-ACC12345"
-                    value={assetFields.accSerial || ""}
-                    onChange={(e) => setAssetFields(p => ({ ...p, accSerial: e.target.value }))}
-                    className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-mono"
-                  />
-                </div>
-              </div>
-            ) : typeClean === "id card / lanyard" ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Employee Name / ID *</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="e.g. Rahul Sharma - EMP101"
-                    value={assetFields.idEmployee || ""}
-                    onChange={(e) => setAssetFields(p => ({ ...p, idEmployee: e.target.value }))}
-                    className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Card ID Number / Barcode *</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="e.g. ID-887192"
-                    value={assetFields.idBarcode || ""}
-                    onChange={(e) => setAssetFields(p => ({ ...p, idBarcode: e.target.value }))}
-                    className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-mono font-semibold"
-                  />
-                </div>
-              </div>
-            ) : typeClean === "office chair / table" ? (
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Furniture Description *</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="e.g. Ergonomic Black Mesh Chair, Adjustable Back"
-                    value={assetFields.furnitureDesc || ""}
-                    onChange={(e) => setAssetFields(p => ({ ...p, furnitureDesc: e.target.value }))}
-                    className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Location / Cabin / Room</label>
-                  <input
-                    type="text"
-                    placeholder="e.g. Conference Room A / Cabin 3"
-                    value={assetFields.furnitureLocation || ""}
-                    onChange={(e) => setAssetFields(p => ({ ...p, furnitureLocation: e.target.value }))}
-                    className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Inventory Tag / Asset Tag</label>
-                  <input
-                    type="text"
-                    placeholder="e.g. TAG-CHR-0042"
-                    value={assetFields.furnitureTag || ""}
-                    onChange={(e) => setAssetFields(p => ({ ...p, furnitureTag: e.target.value }))}
-                    className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-mono"
-                  />
-                </div>
-              </div>
-            ) : typeClean === "router / networking" ? (
-              <div className="space-y-3">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div>
-                    <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Router Brand & Model *</label>
-                    <input
-                      type="text"
-                      required
-                      placeholder="e.g. TP-Link Archer C6"
-                      value={assetFields.routerModel || ""}
-                      onChange={(e) => setAssetFields(p => ({ ...p, routerModel: e.target.value }))}
-                      className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">MAC Address *</label>
-                    <input
-                      type="text"
-                      required
-                      placeholder="e.g. 00:1A:2B:3C:4D:5E"
-                      value={assetFields.routerMac || ""}
-                      onChange={(e) => setAssetFields(p => ({ ...p, routerMac: e.target.value }))}
-                      className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-mono"
-                    />
-                  </div>
-                  <div>
                     <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Serial Number</label>
                     <input
                       type="text"
-                      placeholder="e.g. SN-RTR99887"
-                      value={assetFields.routerSerial || ""}
-                      onChange={(e) => setAssetFields(p => ({ ...p, routerSerial: e.target.value }))}
-                      className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-mono"
-                    />
-                  </div>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                  <div>
-                    <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Admin Panel IP</label>
-                    <input
-                      type="text"
-                      placeholder="e.g. 192.168.1.1"
-                      value={assetFields.routerIp || ""}
-                      onChange={(e) => setAssetFields(p => ({ ...p, routerIp: e.target.value }))}
+                      placeholder="e.g. SN-PRN1928 (Optional)"
+                      value={assetFields.printerSerial || ""}
+                      onChange={(e) => setAssetFields(p => ({ ...p, printerSerial: e.target.value }))}
                       className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-mono"
                     />
                   </div>
                   <div>
-                    <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Admin Username & Password</label>
+                    <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Printer IP Address</label>
                     <input
                       type="text"
-                      placeholder="e.g. admin / pass123"
-                      value={assetFields.routerAdminPass || ""}
-                      onChange={(e) => setAssetFields(p => ({ ...p, routerAdminPass: e.target.value }))}
+                      placeholder="e.g. 192.168.1.200"
+                      value={assetFields.printerIp || ""}
+                      onChange={(e) => setAssetFields(p => ({ ...p, printerIp: e.target.value }))}
                       className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-mono"
                     />
                   </div>
                   <div>
-                    <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Wi-Fi SSID & Password</label>
+                    <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Toner / Cartridge Model</label>
                     <input
                       type="text"
-                      placeholder="e.g. CFI_5G / Pass@2026"
-                      value={assetFields.routerWifiSsid || ""}
-                      onChange={(e) => setAssetFields(p => ({ ...p, routerWifiSsid: e.target.value }))}
-                      className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">ISP / Broadband Connection</label>
-                    <input
-                      type="text"
-                      placeholder="e.g. Airtel Fiber / BSNL FTTH"
-                      value={assetFields.routerIsp || ""}
-                      onChange={(e) => setAssetFields(p => ({ ...p, routerIsp: e.target.value }))}
+                      placeholder="e.g. HP 88A / Canon 325"
+                      value={assetFields.printerCartridge || ""}
+                      onChange={(e) => setAssetFields(p => ({ ...p, printerCartridge: e.target.value }))}
                       className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
                     />
                   </div>
                 </div>
-              </div>
-            ) : typeClean === "printer / scanner" ? (
-              <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-                <div>
-                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Printer Brand & Model *</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="e.g. HP LaserJet Pro M12w"
-                    value={assetFields.printerModel || ""}
-                    onChange={(e) => setAssetFields(p => ({ ...p, printerModel: e.target.value }))}
-                    className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
-                  />
+              ) : typeClean?.includes("ac") || typeClean?.includes("air conditioner") ? (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">AC Brand & Model *</label>
+                      <input
+                        type="text"
+                        required
+                        placeholder="e.g. Voltas 1.5 Ton 5-Star Split AC"
+                        value={assetFields.acModel || ""}
+                        onChange={(e) => setAssetFields(p => ({ ...p, acModel: e.target.value }))}
+                        className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">AC Type / Tonnage *</label>
+                      <select
+                        value={assetFields.acTypeTonnage || "1.5 Ton Split AC"}
+                        onChange={(e) => setAssetFields(p => ({ ...p, acTypeTonnage: e.target.value }))}
+                        className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                      >
+                        <option value="1 Ton Split AC">1 Ton Split AC</option>
+                        <option value="1.5 Ton Split AC">1.5 Ton Split AC</option>
+                        <option value="2 Ton Split AC">2 Ton Split AC</option>
+                        <option value="1 Ton Window AC">1 Ton Window AC</option>
+                        <option value="1.5 Ton Window AC">1.5 Ton Window AC</option>
+                        <option value="2 Ton Window AC">2 Ton Window AC</option>
+                        <option value="Cassette AC (Ceiling)">Cassette AC (Ceiling)</option>
+                        <option value="Tower / Portable AC">Tower / Portable AC</option>
+                        <option value="Centralized / VRF System">Centralized / VRF System</option>
+                        <option value="Other">Other</option>
+                      </select>
+                      {assetFields.acTypeTonnage === "Other" && (
+                        <input
+                          type="text"
+                          placeholder="Specify custom tonnage..."
+                          value={assetFields.acTypeTonnageCustom || ""}
+                          onChange={(e) => setAssetFields(p => ({ ...p, acTypeTonnageCustom: e.target.value }))}
+                          className="mt-1.5 w-full bg-white border border-[#C9A84C] rounded-lg px-3 py-1.5 text-xs text-[#1C1C1A] font-semibold"
+                        />
+                      )}
+                    </div>
+                    <div>
+                      <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Cooling Condition / Working Status *</label>
+                      <select
+                        value={assetFields.acCondition || "Excellent Cooling"}
+                        onChange={(e) => setAssetFields(p => ({ ...p, acCondition: e.target.value }))}
+                        className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                      >
+                        <option value="Excellent Cooling">Excellent Cooling</option>
+                        <option value="Good / Normal Cooling">Good / Normal Cooling</option>
+                        <option value="Low Cooling / Gas Leak">Low Cooling / Gas Leak</option>
+                        <option value="Servicing Due">Servicing Due</option>
+                        <option value="Under Repair / Not Working">Under Repair / Not Working</option>
+                        <option value="Scrap / Decommissioned">Scrap / Decommissioned</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Servicing Details */}
+                  <div className="bg-amber-50/50 border border-amber-200 rounded-xl p-3.5 space-y-3">
+                    <div className="text-[10px] font-black uppercase text-amber-900 flex items-center gap-1.5 border-b border-amber-200 pb-1.5">
+                      🛠️ AC Servicing & Maintenance Record
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                      <div>
+                        <label className="block text-[9px] uppercase tracking-wider text-amber-950 font-bold mb-1">Servicing Status * (servecing hui h ki nhi)</label>
+                        <select
+                          value={assetFields.acServicingStatus || "Done (Serviced)"}
+                          onChange={(e) => setAssetFields(p => ({ ...p, acServicingStatus: e.target.value }))}
+                          className="w-full bg-white border border-amber-300 rounded-lg px-3 py-2 text-xs text-black font-semibold"
+                        >
+                          <option value="Done (Serviced)">Yes - Serviced (Hui H)</option>
+                          <option value="Pending / Due">No - Servicing Due (Nahi Hui)</option>
+                          <option value="Under AMC Contract">Under AMC Contract</option>
+                          <option value="Not Required Yet">Not Required Yet (New AC)</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-[9px] uppercase tracking-wider text-amber-950 font-bold mb-1">Last Servicing Date</label>
+                        <input
+                          type="date"
+                          value={assetFields.acLastServicingDate || ""}
+                          onChange={(e) => setAssetFields(p => ({ ...p, acLastServicingDate: e.target.value }))}
+                          className="w-full bg-white border border-amber-300 rounded-lg px-3 py-1.5 text-xs text-black font-semibold"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[9px] uppercase tracking-wider text-amber-950 font-bold mb-1">Servicing Cost Amount (kitne ki hui)</label>
+                        <input
+                          type="number"
+                          placeholder="e.g. 1500"
+                          value={assetFields.acServicingCost || ""}
+                          onChange={(e) => setAssetFields(p => ({ ...p, acServicingCost: e.target.value }))}
+                          className="w-full bg-white border border-amber-300 rounded-lg px-3 py-1.5 text-xs text-black font-bold"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[9px] uppercase tracking-wider text-amber-950 font-bold mb-1">Servicing Vendor / Details</label>
+                        <input
+                          type="text"
+                          placeholder="e.g. Deep Clean & Gas Charge by Urban Company"
+                          value={assetFields.acServicingVendor || ""}
+                          onChange={(e) => setAssetFields(p => ({ ...p, acServicingVendor: e.target.value }))}
+                          className="w-full bg-white border border-amber-300 rounded-lg px-3 py-1.5 text-xs text-black font-normal"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Insurance & Warranty Details */}
+                  <div className="bg-sky-50/50 border border-sky-200 rounded-xl p-3.5 space-y-3">
+                    <div className="text-[10px] font-black uppercase text-sky-900 flex items-center gap-1.5 border-b border-sky-200 pb-1.5">
+                      🛡️ AC Insurance & Warranty Details
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                      <div>
+                        <label className="block text-[9px] uppercase tracking-wider text-sky-950 font-bold mb-1">Insurance Status (insurence details)</label>
+                        <select
+                          value={assetFields.acInsuranceStatus || "Not Insured"}
+                          onChange={(e) => setAssetFields(p => ({ ...p, acInsuranceStatus: e.target.value }))}
+                          className="w-full bg-white border border-sky-300 rounded-lg px-3 py-2 text-xs text-black font-semibold"
+                        >
+                          <option value="Insured">Insured (Active Policy)</option>
+                          <option value="Not Insured">Not Insured</option>
+                          <option value="Expired">Insurance Expired</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-[9px] uppercase tracking-wider text-sky-950 font-bold mb-1">Insurance Provider / Policy No.</label>
+                        <input
+                          type="text"
+                          placeholder="e.g. ICICI Lombard / POL-987456"
+                          value={assetFields.acInsuranceDetails || ""}
+                          onChange={(e) => setAssetFields(p => ({ ...p, acInsuranceDetails: e.target.value }))}
+                          className="w-full bg-white border border-sky-300 rounded-lg px-3 py-1.5 text-xs text-black font-normal"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[9px] uppercase tracking-wider text-sky-950 font-bold mb-1">Insurance Expiry Date</label>
+                        <input
+                          type="date"
+                          value={assetFields.acInsuranceExpiry || ""}
+                          onChange={(e) => setAssetFields(p => ({ ...p, acInsuranceExpiry: e.target.value }))}
+                          className="w-full bg-white border border-sky-300 rounded-lg px-3 py-1.5 text-xs text-black font-semibold"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[9px] uppercase tracking-wider text-sky-950 font-bold mb-1">Compressor Warranty / Details</label>
+                        <input
+                          type="text"
+                          placeholder="e.g. 10 Years Compressor Warranty (Valid till 2034)"
+                          value={assetFields.acWarrantyDetails || ""}
+                          onChange={(e) => setAssetFields(p => ({ ...p, acWarrantyDetails: e.target.value }))}
+                          className="w-full bg-white border border-sky-300 rounded-lg px-3 py-1.5 text-xs text-black font-normal"
+                        />
+                      </div>
+                    </div>
+                  </div>
                 </div>
-                <div>
-                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Printer Type *</label>
-                  <select
-                    value={assetFields.printerType || "Laser Printer"}
-                    onChange={(e) => setAssetFields(p => ({ ...p, printerType: e.target.value }))}
-                    className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
-                  >
-                    <option value="Laser Printer">Laser Printer</option>
-                    <option value="Inkjet Printer">Inkjet Printer</option>
-                    <option value="Flatbed Scanner">Flatbed Scanner</option>
-                    <option value="Multi-Function Printer">Multi-Function Printer</option>
-                    <option value="Other">Other</option>
-                  </select>
-                  {assetFields.printerType === "Other" && (
-                    <input
-                      type="text"
-                      placeholder="Specify custom type..."
-                      value={assetFields.printerTypeCustom || ""}
-                      onChange={(e) => setAssetFields(p => ({ ...p, printerTypeCustom: e.target.value }))}
-                      className="mt-1.5 w-full bg-white border border-[#C9A84C] focus:border-[#C9A84C] rounded-lg px-3 py-1.5 text-xs text-[#1C1C1A] font-semibold"
-                    />
-                  )}
-                </div>
-                <div>
-                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Serial Number</label>
-                  <input
-                    type="text"
-                    placeholder="e.g. SN-PRN1928 (Optional)"
-                    value={assetFields.printerSerial || ""}
-                    onChange={(e) => setAssetFields(p => ({ ...p, printerSerial: e.target.value }))}
-                    className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-mono"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Printer IP Address</label>
-                  <input
-                    type="text"
-                    placeholder="e.g. 192.168.1.200"
-                    value={assetFields.printerIp || ""}
-                    onChange={(e) => setAssetFields(p => ({ ...p, printerIp: e.target.value }))}
-                    className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-mono"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Toner / Cartridge Model</label>
-                  <input
-                    type="text"
-                    placeholder="e.g. HP 88A / Canon 325"
-                    value={assetFields.printerCartridge || ""}
-                    onChange={(e) => setAssetFields(p => ({ ...p, printerCartridge: e.target.value }))}
-                    className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
-                  />
-                </div>
-              </div>
-            ) : typeClean?.includes("ac") || typeClean?.includes("air conditioner") ? (
-              <div className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">AC Brand & Model *</label>
+                    <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Asset Detail / Specification *</label>
                     <input
                       type="text"
                       required
-                      placeholder="e.g. Voltas 1.5 Ton 5-Star Split AC"
-                      value={assetFields.acModel || ""}
-                      onChange={(e) => setAssetFields(p => ({ ...p, acModel: e.target.value }))}
-                      className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
+                      placeholder="e.g. Dell Latitude 5420, 16GB RAM, 512GB SSD"
+                      value={registerForm.assetDetail}
+                      onChange={(e) => setRegisterForm(p => ({ ...p, assetDetail: e.target.value }))}
+                      className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all"
                     />
                   </div>
                   <div>
-                    <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">AC Type / Tonnage *</label>
-                    <select
-                      value={assetFields.acTypeTonnage || "1.5 Ton Split AC"}
-                      onChange={(e) => setAssetFields(p => ({ ...p, acTypeTonnage: e.target.value }))}
-                      className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
-                    >
-                      <option value="1 Ton Split AC">1 Ton Split AC</option>
-                      <option value="1.5 Ton Split AC">1.5 Ton Split AC</option>
-                      <option value="2 Ton Split AC">2 Ton Split AC</option>
-                      <option value="1 Ton Window AC">1 Ton Window AC</option>
-                      <option value="1.5 Ton Window AC">1.5 Ton Window AC</option>
-                      <option value="2 Ton Window AC">2 Ton Window AC</option>
-                      <option value="Cassette AC (Ceiling)">Cassette AC (Ceiling)</option>
-                      <option value="Tower / Portable AC">Tower / Portable AC</option>
-                      <option value="Centralized / VRF System">Centralized / VRF System</option>
-                      <option value="Other">Other</option>
-                    </select>
-                    {assetFields.acTypeTonnage === "Other" && (
-                      <input
-                        type="text"
-                        placeholder="Specify custom tonnage..."
-                        value={assetFields.acTypeTonnageCustom || ""}
-                        onChange={(e) => setAssetFields(p => ({ ...p, acTypeTonnageCustom: e.target.value }))}
-                        className="mt-1.5 w-full bg-white border border-[#C9A84C] rounded-lg px-3 py-1.5 text-xs text-[#1C1C1A] font-semibold"
-                      />
-                    )}
-                  </div>
-                  <div>
-                    <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Cooling Condition / Working Status *</label>
-                    <select
-                      value={assetFields.acCondition || "Excellent Cooling"}
-                      onChange={(e) => setAssetFields(p => ({ ...p, acCondition: e.target.value }))}
-                      className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-semibold"
-                    >
-                      <option value="Excellent Cooling">Excellent Cooling</option>
-                      <option value="Good / Normal Cooling">Good / Normal Cooling</option>
-                      <option value="Low Cooling / Gas Leak">Low Cooling / Gas Leak</option>
-                      <option value="Servicing Due">Servicing Due</option>
-                      <option value="Under Repair / Not Working">Under Repair / Not Working</option>
-                      <option value="Scrap / Decommissioned">Scrap / Decommissioned</option>
-                    </select>
+                    <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Serial Number / Unique Identifier</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. SN-H1G4691X, MAC Address, etc."
+                      value={registerForm.serialNumber}
+                      onChange={(e) => setRegisterForm(p => ({ ...p, serialNumber: e.target.value }))}
+                      className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-mono"
+                    />
                   </div>
                 </div>
-
-                {/* Servicing Details */}
-                <div className="bg-amber-50/50 border border-amber-200 rounded-xl p-3.5 space-y-3">
-                  <div className="text-[10px] font-black uppercase text-amber-900 flex items-center gap-1.5 border-b border-amber-200 pb-1.5">
-                    🛠️ AC Servicing & Maintenance Record
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-                    <div>
-                      <label className="block text-[9px] uppercase tracking-wider text-amber-950 font-bold mb-1">Servicing Status * (servecing hui h ki nhi)</label>
-                      <select
-                        value={assetFields.acServicingStatus || "Done (Serviced)"}
-                        onChange={(e) => setAssetFields(p => ({ ...p, acServicingStatus: e.target.value }))}
-                        className="w-full bg-white border border-amber-300 rounded-lg px-3 py-2 text-xs text-black font-semibold"
-                      >
-                        <option value="Done (Serviced)">Yes - Serviced (Hui H)</option>
-                        <option value="Pending / Due">No - Servicing Due (Nahi Hui)</option>
-                        <option value="Under AMC Contract">Under AMC Contract</option>
-                        <option value="Not Required Yet">Not Required Yet (New AC)</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-[9px] uppercase tracking-wider text-amber-950 font-bold mb-1">Last Servicing Date</label>
-                      <input
-                        type="date"
-                        value={assetFields.acLastServicingDate || ""}
-                        onChange={(e) => setAssetFields(p => ({ ...p, acLastServicingDate: e.target.value }))}
-                        className="w-full bg-white border border-amber-300 rounded-lg px-3 py-1.5 text-xs text-black font-semibold"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-[9px] uppercase tracking-wider text-amber-950 font-bold mb-1">Servicing Cost Amount (kitne ki hui)</label>
-                      <input
-                        type="number"
-                        placeholder="e.g. 1500"
-                        value={assetFields.acServicingCost || ""}
-                        onChange={(e) => setAssetFields(p => ({ ...p, acServicingCost: e.target.value }))}
-                        className="w-full bg-white border border-amber-300 rounded-lg px-3 py-1.5 text-xs text-black font-bold"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-[9px] uppercase tracking-wider text-amber-950 font-bold mb-1">Servicing Vendor / Details</label>
-                      <input
-                        type="text"
-                        placeholder="e.g. Deep Clean & Gas Charge by Urban Company"
-                        value={assetFields.acServicingVendor || ""}
-                        onChange={(e) => setAssetFields(p => ({ ...p, acServicingVendor: e.target.value }))}
-                        className="w-full bg-white border border-amber-300 rounded-lg px-3 py-1.5 text-xs text-black font-normal"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                {/* Insurance & Warranty Details */}
-                <div className="bg-sky-50/50 border border-sky-200 rounded-xl p-3.5 space-y-3">
-                  <div className="text-[10px] font-black uppercase text-sky-900 flex items-center gap-1.5 border-b border-sky-200 pb-1.5">
-                    🛡️ AC Insurance & Warranty Details
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-                    <div>
-                      <label className="block text-[9px] uppercase tracking-wider text-sky-950 font-bold mb-1">Insurance Status (insurence details)</label>
-                      <select
-                        value={assetFields.acInsuranceStatus || "Not Insured"}
-                        onChange={(e) => setAssetFields(p => ({ ...p, acInsuranceStatus: e.target.value }))}
-                        className="w-full bg-white border border-sky-300 rounded-lg px-3 py-2 text-xs text-black font-semibold"
-                      >
-                        <option value="Insured">Insured (Active Policy)</option>
-                        <option value="Not Insured">Not Insured</option>
-                        <option value="Expired">Insurance Expired</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-[9px] uppercase tracking-wider text-sky-950 font-bold mb-1">Insurance Provider / Policy No.</label>
-                      <input
-                        type="text"
-                        placeholder="e.g. ICICI Lombard / POL-987456"
-                        value={assetFields.acInsuranceDetails || ""}
-                        onChange={(e) => setAssetFields(p => ({ ...p, acInsuranceDetails: e.target.value }))}
-                        className="w-full bg-white border border-sky-300 rounded-lg px-3 py-1.5 text-xs text-black font-normal"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-[9px] uppercase tracking-wider text-sky-950 font-bold mb-1">Insurance Expiry Date</label>
-                      <input
-                        type="date"
-                        value={assetFields.acInsuranceExpiry || ""}
-                        onChange={(e) => setAssetFields(p => ({ ...p, acInsuranceExpiry: e.target.value }))}
-                        className="w-full bg-white border border-sky-300 rounded-lg px-3 py-1.5 text-xs text-black font-semibold"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-[9px] uppercase tracking-wider text-sky-950 font-bold mb-1">Compressor Warranty / Details</label>
-                      <input
-                        type="text"
-                        placeholder="e.g. 10 Years Compressor Warranty (Valid till 2034)"
-                        value={assetFields.acWarrantyDetails || ""}
-                        onChange={(e) => setAssetFields(p => ({ ...p, acWarrantyDetails: e.target.value }))}
-                        className="w-full bg-white border border-sky-300 rounded-lg px-3 py-1.5 text-xs text-black font-normal"
-                      />
-                    </div>
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Asset Detail / Specification *</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="e.g. Dell Latitude 5420, 16GB RAM, 512GB SSD"
-                    value={registerForm.assetDetail}
-                    onChange={(e) => setRegisterForm(p => ({ ...p, assetDetail: e.target.value }))}
-                    className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Serial Number / Unique Identifier</label>
-                  <input
-                    type="text"
-                    placeholder="e.g. SN-H1G4691X, MAC Address, etc."
-                    value={registerForm.serialNumber}
-                    onChange={(e) => setRegisterForm(p => ({ ...p, serialNumber: e.target.value }))}
-                    className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs text-[#1C1C1A] focus:outline-none transition-all font-mono"
-                  />
-                </div>
-              </div>
-            )}
+              )}
 
             </div>
 
@@ -4448,12 +4444,12 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
                         <td className="p-3">
                           <div className="flex flex-col gap-1">
                             <span className={`inline-flex items-center w-fit text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border ${req.status === "Pending Owner Approval"
-                                ? "bg-amber-50 text-amber-700 border-amber-200"
-                                : req.status === "Approved"
-                                  ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-                                  : req.status === "Rejected"
-                                    ? "bg-rose-50 text-rose-700 border-rose-200"
-                                    : "bg-blue-50 text-blue-700 border-blue-200"
+                              ? "bg-amber-50 text-amber-700 border-amber-200"
+                              : req.status === "Approved"
+                                ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                                : req.status === "Rejected"
+                                  ? "bg-rose-50 text-rose-700 border-rose-200"
+                                  : "bg-blue-50 text-blue-700 border-blue-200"
                               }`}>
                               {req.status}
                             </span>

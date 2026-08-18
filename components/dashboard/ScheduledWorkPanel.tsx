@@ -16,7 +16,10 @@ import {
   ChevronLeft,
   ChevronRight,
   Eye,
-  X
+  X,
+  Filter,
+  ChevronDown,
+  SlidersHorizontal
 } from "lucide-react";
 
 interface ScheduledWorkPanelProps {
@@ -137,6 +140,66 @@ export default function ScheduledWorkPanel({ sessionUser, triggerToast }: Schedu
   const [toDate, setToDate] = useState(() => getCurrentMonthDates().lastDay);
   const [typeFilter, setTypeFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [employeeFilter, setEmployeeFilter] = useState("all");
+  const [datePreset, setDatePreset] = useState<string>("month");
+
+  // Unified Filter Popover Toggle State & Active Count
+  const [showFilterModal, setShowFilterModal] = useState(false);
+
+  const activeFilterCount = [
+    Boolean(fromDate || toDate),
+    typeFilter !== "all",
+    statusFilter !== "all",
+    employeeFilter !== "all"
+  ].filter(Boolean).length;
+
+  const handlePresetChange = (preset: string) => {
+    const todayStr = formatLocalYYYYMMDD(new Date());
+    if (preset === "today") {
+      setDatePreset("today");
+      setFromDate(todayStr);
+      setToDate(todayStr);
+    } else if (preset === "week") {
+      setDatePreset("week");
+      const now = new Date();
+      const dayOfWeek = now.getDay();
+      const first = new Date(now.getFullYear(), now.getMonth(), now.getDate() - dayOfWeek);
+      const last = new Date(now.getFullYear(), now.getMonth(), now.getDate() - dayOfWeek + 6);
+      setFromDate(formatLocalYYYYMMDD(first));
+      setToDate(formatLocalYYYYMMDD(last));
+    } else if (preset === "month") {
+      setDatePreset("month");
+      const { firstDay, lastDay } = getCurrentMonthDates();
+      setFromDate(firstDay);
+      setToDate(lastDay);
+    } else if (preset === "last_month") {
+      setDatePreset("last_month");
+      const now = new Date();
+      const firstDay = formatLocalYYYYMMDD(new Date(now.getFullYear(), now.getMonth() - 1, 1));
+      const lastDay = formatLocalYYYYMMDD(new Date(now.getFullYear(), now.getMonth(), 0));
+      setFromDate(firstDay);
+      setToDate(lastDay);
+    } else if (preset === "all") {
+      setDatePreset("all");
+      setFromDate("");
+      setToDate("");
+    } else if (preset === "custom") {
+      setDatePreset("custom");
+    }
+    setCurrentPage(1);
+  };
+
+  // Dynamically extract unique employee/user names present in current schedule dataset
+  const uniqueEmployees = React.useMemo(() => {
+    const namesMap = new Map<string, string>();
+    schedules.forEach(item => {
+      const empName = (item.user?.name || item.employeeId || "").toString().trim();
+      if (empName && empName !== "N/A" && empName !== "—") {
+        namesMap.set(empName.toLowerCase(), empName);
+      }
+    });
+    return Array.from(namesMap.values()).sort((a, b) => a.localeCompare(b));
+  }, [schedules]);
 
   // Pagination State
   const [currentPage, setCurrentPage] = useState(1);
@@ -315,7 +378,15 @@ export default function ScheduledWorkPanel({ sessionUser, triggerToast }: Schedu
       }
     }
 
-    // 3. Search Term Filter
+    // 3. Employee / User Name Filter
+    if (employeeFilter !== "all") {
+      const empName = (item.user?.name || item.employeeId || "").toString().trim().toLowerCase();
+      if (empName !== employeeFilter.trim().toLowerCase()) {
+        return false;
+      }
+    }
+
+    // 4. Search Term Filter
     if (!searchTerm.trim()) return true;
     const term = searchTerm.toLowerCase();
     const empName = item.user?.name || item.employeeId || "";
@@ -477,8 +548,8 @@ export default function ScheduledWorkPanel({ sessionUser, triggerToast }: Schedu
       {/* Summary KPI Cards (Clickable Filter Shortcuts) */}
       <div className="grid grid-cols-2 sm:grid-cols-6 gap-2.5">
         <div
-          onClick={() => { setStatusFilter("all"); setTypeFilter("all"); setCurrentPage(1); }}
-          className={`bg-white border p-3 rounded-xl shadow-2xs space-y-1 cursor-pointer transition-all hover:scale-[1.02] hover:shadow-md ${statusFilter === "all" && typeFilter === "all" ? "border-purple-600 ring-2 ring-purple-600/20 bg-purple-50/20" : "border-purple-100"
+          onClick={() => { setStatusFilter("all"); setTypeFilter("all"); setEmployeeFilter("all"); setCurrentPage(1); }}
+          className={`bg-white border p-3 rounded-xl shadow-2xs space-y-1 cursor-pointer transition-all hover:scale-[1.02] hover:shadow-md ${statusFilter === "all" && typeFilter === "all" && employeeFilter === "all" ? "border-purple-600 ring-2 ring-purple-600/20 bg-purple-50/20" : "border-purple-100"
             }`}
         >
           <span className="text-[10px] font-black uppercase text-slate-500 font-mono tracking-wider">Total Schedules</span>
@@ -543,108 +614,270 @@ export default function ScheduledWorkPanel({ sessionUser, triggerToast }: Schedu
         </div>
       </div>
 
-      {/* Filter Bar with From - To Date Range */}
-      <div className="bg-white border border-purple-200/80 p-3 rounded-xl shadow-2xs space-y-2.5">
-        <div className="flex flex-wrap items-center gap-2.5">
-          {/* Search Box */}
-          <div className="flex-1 min-w-[200px] relative">
-            <Search className="w-4 h-4 absolute left-2.5 top-2 text-slate-400" />
-            <input
-              type="text"
-              value={searchTerm}
-              onChange={e => { setSearchTerm(e.target.value); setCurrentPage(1); }}
-              placeholder="Search employee, bank, branch, AO, RBO, case..."
-              className="w-full pl-8 pr-3 py-1.5 border border-slate-300 rounded-lg text-xs font-bold text-slate-800 focus:outline-none focus:border-purple-600"
-            />
+      {/* Filter Header Row matching reference screenshot layout */}
+      <div className="bg-white border border-slate-200/80 p-3 rounded-2xl shadow-2xs space-y-2.5 relative">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          {/* Left Date Preset Pills */}
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <button
+              type="button"
+              onClick={() => handlePresetChange("month")}
+              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                datePreset === "month"
+                  ? "bg-[#714B67] text-white shadow-xs font-extrabold"
+                  : "bg-slate-100/80 text-slate-700 hover:bg-slate-200/80 border border-slate-200"
+              }`}
+            >
+              Current Month
+            </button>
+            <button
+              type="button"
+              onClick={() => handlePresetChange("last_month")}
+              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                datePreset === "last_month"
+                  ? "bg-[#714B67] text-white shadow-xs font-extrabold"
+                  : "bg-slate-100/80 text-slate-700 hover:bg-slate-200/80 border border-slate-200"
+              }`}
+            >
+              Last Month
+            </button>
+            <button
+              type="button"
+              onClick={() => handlePresetChange("all")}
+              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                datePreset === "all"
+                  ? "bg-[#714B67] text-white shadow-xs font-extrabold"
+                  : "bg-slate-100/80 text-slate-700 hover:bg-slate-200/80 border border-slate-200"
+              }`}
+            >
+              All Time
+            </button>
           </div>
 
-          {/* Date Range Filter: From & To */}
-          <div className="flex items-center gap-1.5 bg-purple-50/50 p-1.5 rounded-lg border border-purple-200">
-            <Calendar className="w-3.5 h-3.5 text-purple-700" />
-            <div className="flex items-center gap-1">
-              <span className="text-[9px] font-bold uppercase text-slate-600">From:</span>
-              <input
-                type="date"
-                value={fromDate}
-                onChange={e => { setFromDate(e.target.value); setCurrentPage(1); }}
-                className="border border-slate-300 rounded px-1.5 py-0.5 text-xs font-bold text-slate-800 focus:outline-none focus:border-purple-600 bg-white"
-              />
-            </div>
-            <div className="flex items-center gap-1">
-              <span className="text-[9px] font-bold uppercase text-slate-600">To:</span>
-              <input
-                type="date"
-                value={toDate}
-                onChange={e => { setToDate(e.target.value); setCurrentPage(1); }}
-                className="border border-slate-300 rounded px-1.5 py-0.5 text-xs font-bold text-slate-800 focus:outline-none focus:border-purple-600 bg-white"
-              />
-            </div>
-            <div className="flex items-center gap-1 ml-1">
-              <button
-                onClick={() => setQuickDateRange("today")}
-                className="text-[9px] font-extrabold bg-purple-100 text-purple-900 px-1.5 py-0.5 rounded hover:bg-purple-200"
-              >
-                Today
-              </button>
-              <button
-                onClick={() => setQuickDateRange("week")}
-                className="text-[9px] font-extrabold bg-purple-100 text-purple-900 px-1.5 py-0.5 rounded hover:bg-purple-200"
-              >
-                Week
-              </button>
-              <button
-                onClick={() => setQuickDateRange("month")}
-                className="text-[9px] font-extrabold bg-purple-700 text-white px-2 py-0.5 rounded shadow-2xs"
-              >
-                Current Month
-              </button>
-              {(fromDate || toDate) ? (
-                <button
-                  onClick={() => setQuickDateRange("clear")}
-                  className="text-[9px] font-extrabold bg-slate-100 text-slate-700 hover:bg-slate-200 px-2 py-0.5 rounded border border-slate-200"
-                  title="View All Time / Past Months Data"
-                >
-                  All Time
-                </button>
-              ) : (
-                <span className="text-[9px] font-extrabold bg-emerald-100 text-emerald-800 px-1.5 py-0.5 rounded">All Time</span>
+          {/* Right Filter Button */}
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setShowFilterModal(!showFilterModal)}
+              className={`px-4 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-2 shadow-sm cursor-pointer ${
+                activeFilterCount > 0 || showFilterModal
+                  ? "bg-[#c49a45] text-white hover:bg-[#b28938] border border-[#a88236]"
+                  : "bg-[#c49a45] text-white hover:bg-[#b28938] border border-[#a88236]"
+              }`}
+            >
+              <Filter className="w-4 h-4 text-white" />
+              <span>Filter Schedules</span>
+              {activeFilterCount > 0 && (
+                <span className="bg-white text-[#c49a45] font-black text-[10px] w-4 h-4 rounded-full flex items-center justify-center">
+                  {activeFilterCount}
+                </span>
               )}
-            </div>
-          </div>
+            </button>
 
-          {/* Type Filter */}
-          <div className="flex items-center gap-1">
-            <label className="text-[10px] font-bold uppercase text-slate-500 font-mono">Type:</label>
-            <select
-              value={typeFilter}
-              onChange={e => { setTypeFilter(e.target.value); setCurrentPage(1); }}
-              className="border border-slate-300 rounded-lg p-1.5 text-xs font-bold text-slate-800 focus:outline-none focus:border-purple-600 bg-white"
-            >
-              <option value="all">All Types</option>
-              <option value="General">General</option>
-              <option value="Bank Related">Bank Related</option>
-              <option value="NBFC">NBFC</option>
-              <option value="Call">Call (Incoming / Outgoing)</option>
-              <option value="Field Visit">Field Visit</option>
-              <option value="Others">Others</option>
-            </select>
-          </div>
+            {/* FILTER POPOVER CARD matching reference screenshot */}
+            {showFilterModal && (
+              <div className="absolute right-0 top-12 z-50 w-80 sm:w-96 bg-white rounded-3xl shadow-2xl border border-stone-200 p-5 space-y-4 animate-in fade-in zoom-in-95 duration-150">
+                {/* Header */}
+                <div className="flex items-center justify-between pb-1 border-b border-stone-100">
+                  <span className="text-xs font-black uppercase tracking-wider text-slate-800 font-mono">
+                    FILTER SCHEDULES
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setShowFilterModal(false)}
+                    className="text-slate-400 hover:text-slate-600 p-1"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
 
-          {/* Status Filter */}
-          <div className="flex items-center gap-1">
-            <label className="text-[10px] font-bold uppercase text-slate-500 font-mono">Status:</label>
-            <select
-              value={statusFilter}
-              onChange={e => { setStatusFilter(e.target.value); setCurrentPage(1); }}
-              className="border border-slate-300 rounded-lg p-1.5 text-xs font-bold text-slate-800 focus:outline-none focus:border-purple-600 bg-white"
-            >
-              <option value="all">All Statuses</option>
-              <option value="Pending">Pending</option>
-              <option value="In Progress">In Progress</option>
-              <option value="Completed">Completed</option>
-            </select>
+                {/* 1. SEARCH KEYWORD */}
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black uppercase text-slate-400 font-mono tracking-wider">
+                    SEARCH KEYWORD
+                  </label>
+                  <input
+                    type="text"
+                    value={searchTerm}
+                    onChange={e => { setSearchTerm(e.target.value); setCurrentPage(1); }}
+                    placeholder="Search employee, bank, branch..."
+                    className="w-full border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-800 focus:outline-none focus:border-[#c49a45] bg-white"
+                  />
+                </div>
+
+                {/* 2. SELECT EMPLOYEE */}
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black uppercase text-slate-400 font-mono tracking-wider">
+                    SELECT EMPLOYEE
+                  </label>
+                  <select
+                    value={employeeFilter}
+                    onChange={e => { setEmployeeFilter(e.target.value); setCurrentPage(1); }}
+                    className="w-full border border-slate-200 rounded-xl p-2.5 text-xs font-bold text-slate-800 focus:outline-none focus:border-[#c49a45] bg-white cursor-pointer"
+                  >
+                    <option value="all">All Employees ({uniqueEmployees.length})</option>
+                    {uniqueEmployees.map(name => (
+                      <option key={name} value={name}>{name}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* 3. WORK TYPE */}
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black uppercase text-slate-400 font-mono tracking-wider">
+                    WORK TYPE
+                  </label>
+                  <select
+                    value={typeFilter}
+                    onChange={e => { setTypeFilter(e.target.value); setCurrentPage(1); }}
+                    className="w-full border border-slate-200 rounded-xl p-2.5 text-xs font-bold text-slate-800 focus:outline-none focus:border-[#c49a45] bg-white cursor-pointer"
+                  >
+                    <option value="all">All Types</option>
+                    <option value="General">General</option>
+                    <option value="Bank Related">Bank Related</option>
+                    <option value="NBFC">NBFC</option>
+                    <option value="Call">Call (Incoming / Outgoing)</option>
+                    <option value="Field Visit">Field Visit</option>
+                    <option value="Others">Others</option>
+                  </select>
+                </div>
+
+                {/* 4. EXECUTION STATUS */}
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black uppercase text-slate-400 font-mono tracking-wider">
+                    APPROVAL STATUS / STATUS
+                  </label>
+                  <select
+                    value={statusFilter}
+                    onChange={e => { setStatusFilter(e.target.value); setCurrentPage(1); }}
+                    className="w-full border border-slate-200 rounded-xl p-2.5 text-xs font-bold text-slate-800 focus:outline-none focus:border-[#c49a45] bg-white cursor-pointer"
+                  >
+                    <option value="all">All Statuses</option>
+                    <option value="Pending">Pending</option>
+                    <option value="In Progress">In Progress</option>
+                    <option value="Completed">Completed</option>
+                  </select>
+                </div>
+
+                {/* 5. DATE PRESET */}
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black uppercase text-slate-400 font-mono tracking-wider">
+                    DATE PRESET
+                  </label>
+                  <select
+                    value={datePreset}
+                    onChange={e => handlePresetChange(e.target.value)}
+                    className="w-full border border-slate-200 rounded-xl p-2.5 text-xs font-bold text-slate-800 focus:outline-none focus:border-[#c49a45] bg-white cursor-pointer"
+                  >
+                    <option value="month">Current Month</option>
+                    <option value="last_month">Last Month</option>
+                    <option value="today">Today</option>
+                    <option value="week">This Week</option>
+                    <option value="all">All Time</option>
+                    <option value="custom">Custom Range</option>
+                  </select>
+                </div>
+
+                {/* Custom Date Range Inputs */}
+                {datePreset === "custom" && (
+                  <div className="grid grid-cols-2 gap-2 pt-1">
+                    <div>
+                      <span className="text-[9px] font-bold text-slate-500 block mb-0.5">From Date:</span>
+                      <input
+                        type="date"
+                        value={fromDate}
+                        onChange={e => { setFromDate(e.target.value); setCurrentPage(1); }}
+                        className="w-full border border-slate-200 rounded-xl px-2 py-1.5 text-xs font-bold text-slate-800 focus:outline-none focus:border-[#c49a45] bg-white"
+                      />
+                    </div>
+                    <div>
+                      <span className="text-[9px] font-bold text-slate-500 block mb-0.5">To Date:</span>
+                      <input
+                        type="date"
+                        value={toDate}
+                        onChange={e => { setToDate(e.target.value); setCurrentPage(1); }}
+                        className="w-full border border-slate-200 rounded-xl px-2 py-1.5 text-xs font-bold text-slate-800 focus:outline-none focus:border-[#c49a45] bg-white"
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {/* Footer Action Buttons matching screenshot */}
+                <div className="grid grid-cols-2 gap-3 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSearchTerm("");
+                      setFromDate("");
+                      setToDate("");
+                      setTypeFilter("all");
+                      setStatusFilter("all");
+                      setEmployeeFilter("all");
+                      setDatePreset("all");
+                      setCurrentPage(1);
+                    }}
+                    className="py-2.5 px-4 bg-white border border-slate-200 rounded-2xl text-xs font-bold text-slate-700 hover:bg-slate-50 transition-all cursor-pointer"
+                  >
+                    Clear All
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowFilterModal(false)}
+                    className="py-2.5 px-4 bg-[#c49a45] hover:bg-[#b28938] text-white rounded-2xl text-xs font-extrabold transition-all shadow-md cursor-pointer"
+                  >
+                    Apply Filters
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
+
+        {/* Active Filter Chips Bar */}
+        {activeFilterCount > 0 && (
+          <div className="flex items-center gap-1.5 flex-wrap pt-1.5 border-t border-slate-100">
+            <span className="text-[10px] font-black text-slate-500 uppercase font-mono">Active Filters:</span>
+            {fromDate && toDate && (
+              <span className="bg-purple-100 text-purple-900 border border-purple-200 text-[10px] font-bold px-2 py-0.5 rounded-md flex items-center gap-1">
+                📅 {fromDate} to {toDate}
+                <X className="w-3 h-3 cursor-pointer hover:text-purple-950" onClick={() => { setFromDate(""); setToDate(""); }} />
+              </span>
+            )}
+            {employeeFilter !== "all" && (
+              <span className="bg-purple-100 text-purple-900 border border-purple-200 text-[10px] font-bold px-2 py-0.5 rounded-md flex items-center gap-1">
+                👤 User: {employeeFilter}
+                <X className="w-3 h-3 cursor-pointer hover:text-purple-950" onClick={() => setEmployeeFilter("all")} />
+              </span>
+            )}
+            {typeFilter !== "all" && (
+              <span className="bg-indigo-100 text-indigo-900 border border-indigo-200 text-[10px] font-bold px-2 py-0.5 rounded-md flex items-center gap-1">
+                🏷️ Type: {typeFilter}
+                <X className="w-3 h-3 cursor-pointer hover:text-indigo-950" onClick={() => setTypeFilter("all")} />
+              </span>
+            )}
+            {statusFilter !== "all" && (
+              <span className="bg-amber-100 text-amber-900 border border-amber-200 text-[10px] font-bold px-2 py-0.5 rounded-md flex items-center gap-1">
+                📌 Status: {statusFilter}
+                <X className="w-3 h-3 cursor-pointer hover:text-amber-950" onClick={() => setStatusFilter("all")} />
+              </span>
+            )}
+            <button
+              onClick={() => {
+                setFromDate("");
+                setToDate("");
+                setTypeFilter("all");
+                setStatusFilter("all");
+                setEmployeeFilter("all");
+                setSearchTerm("");
+                setDatePreset("all");
+                setCurrentPage(1);
+              }}
+              className="text-[10px] font-bold text-slate-500 hover:text-rose-600 underline ml-1 cursor-pointer"
+            >
+              Clear All
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Main Data Table with Compact Padding & Reduced Column Gaps */}

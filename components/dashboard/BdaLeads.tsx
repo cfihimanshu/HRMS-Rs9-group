@@ -35,7 +35,14 @@ import {
   Volume2,
   PlusCircle,
   DollarSign,
-  XCircle
+  XCircle,
+  ChevronDown,
+  ChevronUp,
+  Clock,
+  History,
+  UserCheck,
+  Activity,
+  Calendar
 } from "lucide-react";
 import * as XLSX from "xlsx";
 
@@ -97,6 +104,99 @@ interface BdaLeadsProps {
   sessionUser?: any;
 }
 
+const parseTaskAttachments = (proofAttachment: any): Array<{ name: string; url: string; type?: string }> => {
+  if (!proofAttachment) return [];
+  let rawList: any[] = [];
+  if (Array.isArray(proofAttachment)) {
+    rawList = proofAttachment;
+  } else if (typeof proofAttachment === 'string') {
+    const trimmed = proofAttachment.trim();
+    if (trimmed.startsWith('[') || trimmed.startsWith('{')) {
+      try {
+        const parsed = JSON.parse(trimmed);
+        if (Array.isArray(parsed)) {
+          rawList = parsed;
+        } else if (parsed && typeof parsed === 'object') {
+          rawList = [parsed];
+        }
+      } catch (e) {
+        rawList = [trimmed];
+      }
+    } else {
+      rawList = [trimmed];
+    }
+  }
+
+  const map = new Map<string, { name: string; url: string; type?: string }>();
+  rawList.forEach(a => {
+    if (!a) return;
+    const url = typeof a === 'string' ? a : (a.url || a.src || '');
+    const name = typeof a === 'string' ? 'Attachment' : (a.name || 'Attachment');
+    const type = typeof a === 'string' ? undefined : a.type;
+    const key = url.trim() || name.trim();
+    if (!key) return;
+
+    if (map.has(key)) {
+      const existing = map.get(key)!;
+      if (existing.name === 'Attachment' && name !== 'Attachment') {
+        map.set(key, { name, url, type });
+      }
+    } else {
+      map.set(key, { name, url, type });
+    }
+  });
+
+  return Array.from(map.values());
+};
+
+const parseTaskProgressNotes = (progressNotes: any): Array<{ id?: string; note: string; createdAt?: string; userName?: string }> => {
+  if (!progressNotes) return [];
+  if (Array.isArray(progressNotes)) {
+    return progressNotes.map(n => typeof n === 'string' ? { note: n } : n);
+  }
+  if (typeof progressNotes === 'string') {
+    const trimmed = progressNotes.trim();
+    if (trimmed.startsWith('[') || trimmed.startsWith('{')) {
+      try {
+        const parsed = JSON.parse(trimmed);
+        if (Array.isArray(parsed)) {
+          return parsed.map(n => typeof n === 'string' ? { note: n } : n);
+        } else if (parsed && typeof parsed === 'object') {
+          return [parsed];
+        }
+      } catch (e) {}
+    }
+    return [{ note: trimmed }];
+  }
+  return [];
+};
+
+const openBlobInNewTab = (url: string) => {
+  if (!url) return;
+  if (url.startsWith("data:")) {
+    try {
+      const arr = url.split(",");
+      const mime = arr[0].match(/:(.*?);/)?.[1] || "image/png";
+      const bstr = atob(arr[1]);
+      let n = bstr.length;
+      const u8arr = new Uint8Array(n);
+      while (n--) {
+        u8arr[n] = bstr.charCodeAt(n);
+      }
+      const blob = new Blob([u8arr], { type: mime });
+      const blobUrl = URL.createObjectURL(blob);
+      const newWin = window.open(blobUrl, "_blank");
+      if (!newWin) {
+        window.location.href = blobUrl;
+      }
+      return;
+    } catch (e) {
+      console.error("Error creating blob URL:", e);
+    }
+  }
+  window.open(url, "_blank");
+};
+
 export default function BdaLeads({
   userRole = "Employee",
   triggerToast = (msg: string) => alert(msg),
@@ -106,10 +206,25 @@ export default function BdaLeads({
   const [loading, setLoading] = useState<boolean>(true);
   const [bdas, setBdas] = useState<BdaUserItem[]>([]);
 
+  // Preview Image Lightbox State
+  const [previewImage, setPreviewImage] = useState<{ url: string; title: string } | null>(null);
+
   // Search & Filter States
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
   const [assignmentFilter, setAssignmentFilter] = useState("All");
+
+  // Toggle Columns Filter State
+  const [showColumnToggleMenu, setShowColumnToggleMenu] = useState(false);
+  const [visibleColumns, setVisibleColumns] = useState<{ [key: string]: boolean }>({
+    leadId: true,
+    client: true,
+    company: true,
+    reason: true,
+    assignedBda: true,
+    status: true,
+    actions: true,
+  });
 
   // Selection State for Bulk Operations
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
@@ -126,6 +241,51 @@ export default function BdaLeads({
   const [targetBreakdownStatus, setTargetBreakdownStatus] = useState<"Converted" | "Lost" | "Assigned">("Converted");
   const [activeLead, setActiveLead] = useState<BdaLeadItem | null>(null);
   const [showAllEmployees, setShowAllEmployees] = useState(false);
+
+  // Expanded Row State for Pipeline & Follow-up History Dropdown
+  const [expandedLeadId, setExpandedLeadId] = useState<number | null>(null);
+  const [historyDataMap, setHistoryDataMap] = useState<{
+    [leadId: number]: { loading: boolean; lead: any; tasks: any[] }
+  }>({});
+
+  const toggleRowExpand = async (lead: BdaLeadItem) => {
+    if (expandedLeadId === lead.id) {
+      setExpandedLeadId(null);
+      return;
+    }
+
+    setExpandedLeadId(lead.id);
+
+    // Fetch history from API if not already loaded
+    if (!historyDataMap[lead.id] || !historyDataMap[lead.id].lead) {
+      setHistoryDataMap(prev => ({
+        ...prev,
+        [lead.id]: { loading: true, lead: null, tasks: [] }
+      }));
+
+      try {
+        const res = await fetch(`/api/bda-leads/history?id=${lead.id}`);
+        const data = await res.json();
+        if (data.success) {
+          setHistoryDataMap(prev => ({
+            ...prev,
+            [lead.id]: { loading: false, lead: data.lead, tasks: data.tasks || [] }
+          }));
+        } else {
+          setHistoryDataMap(prev => ({
+            ...prev,
+            [lead.id]: { loading: false, lead: null, tasks: [] }
+          }));
+        }
+      } catch (err) {
+        console.error("Error fetching lead history:", err);
+        setHistoryDataMap(prev => ({
+          ...prev,
+          [lead.id]: { loading: false, lead: null, tasks: [] }
+        }));
+      }
+    }
+  };
 
   // Status Action Modal States (Converted / Lost Popup)
   const [showStatusActionModal, setShowStatusActionModal] = useState(false);
@@ -206,13 +366,14 @@ export default function BdaLeads({
     companyName: "",
     city: "",
     salesReason: "Pitching",
+    customSalesReason: "",
     remarks: ""
   });
 
   const roleLower = (userRole || "").toLowerCase();
-  const isManagerial = ["owner", "director", "hr head", "hr executive", "department manager", "operation manager"].some(
+  const isManagerial = ["owner", "director", "hr head", "hr executive", "department manager", "operation manager", "manager", "dsm", "head"].some(
     r => roleLower.includes(r)
-  );
+  ) || roleLower.includes("manager");
 
   // Fetch Leads & BDAs on mount
   useEffect(() => {
@@ -434,10 +595,19 @@ export default function BdaLeads({
     }
 
     try {
+      const finalSalesReason = manualForm.salesReason === "Other"
+        ? (manualForm.customSalesReason.trim() || "Other")
+        : manualForm.salesReason;
+
+      const payload = {
+        ...manualForm,
+        salesReason: finalSalesReason
+      };
+
       const res = await fetch("/api/bda-leads", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(manualForm)
+        body: JSON.stringify(payload)
       });
       const data = await res.json();
       if (data.success) {
@@ -446,7 +616,7 @@ export default function BdaLeads({
         } else {
           triggerToast?.("✅ Lead created successfully!");
           setShowAddModal(false);
-          setManualForm({ name: "", phone: "", email: "", companyName: "", city: "", salesReason: "Pitching", remarks: "" });
+          setManualForm({ name: "", phone: "", email: "", companyName: "", city: "", salesReason: "Pitching", customSalesReason: "", remarks: "" });
           fetchLeads();
         }
       } else {
@@ -457,23 +627,102 @@ export default function BdaLeads({
     }
   };
 
-  // Export Filtered Leads to Excel (.xlsx)
+  // Export Filtered Leads to Excel (.xlsx) with Attachments, Follow-up History & Summary Sheet
   const handleExportLeads = async () => {
     try {
-      if (!leads || leads.length === 0) {
-        triggerToast?.("No leads available to export!");
+      const targetLeads = selectedIds.length > 0
+        ? leads.filter(l => selectedIds.includes(l.id))
+        : filteredLeads;
+
+      if (!targetLeads || targetLeads.length === 0) {
+        triggerToast?.("No leads available to export matching the current filter!");
         return;
       }
 
-      const exportRows = leads.map((lead: any) => {
+      triggerToast?.("⌛ Preparing Excel export with attachments & follow-up history...");
+
+      // Fetch history for any lead that hasn't been fetched yet
+      const historyMapCopy: { [id: number]: any } = { ...historyDataMap };
+      const missingHistoryIds = targetLeads.filter(l => !historyMapCopy[l.id] || !historyMapCopy[l.id].tasks).map(l => l.id);
+
+      if (missingHistoryIds.length > 0) {
+        await Promise.all(
+          missingHistoryIds.map(async (id) => {
+            try {
+              const res = await fetch(`/api/bda-leads/history?id=${id}`);
+              const data = await res.json();
+              if (data.success) {
+                historyMapCopy[id] = { loading: false, lead: data.lead, tasks: data.tasks || [] };
+              }
+            } catch (e) {}
+          })
+        );
+      }
+
+      const exportRows = targetLeads.map((lead: any) => {
+        // 1. Converted Services Text
         let convertedServicesText = "";
         if (lead.convertedServicesJson) {
           try {
             const services = typeof lead.convertedServicesJson === "string" ? JSON.parse(lead.convertedServicesJson) : lead.convertedServicesJson;
             if (Array.isArray(services)) {
-              convertedServicesText = services.map((s: any) => `${s.serviceName || s.name || "Service"} (₹${s.amount || 0})`).join(", ");
+              convertedServicesText = services.map((s: any) => `${s.serviceName || s.name || "Service"} (₹${s.amount || 0})`).join("; ");
             }
           } catch (e) {}
+        }
+
+        // 2. Attached Image & File URLs
+        let attachmentUrlsText = "";
+        if (lead.attachmentsJson) {
+          try {
+            const atts = typeof lead.attachmentsJson === "string" ? JSON.parse(lead.attachmentsJson) : lead.attachmentsJson;
+            if (Array.isArray(atts) && atts.length > 0) {
+              attachmentUrlsText = atts.map((att: any, idx: number) => {
+                const name = att.name || `Attachment-${idx + 1}`;
+                const url = att.url || att.src || att.blobUrl || "";
+                const displayUrl = url.length > 120 && url.startsWith("data:") ? "[Data URL Image/Media]" : url;
+                return `[${idx + 1}] ${name}: ${displayUrl}`;
+              }).join(" | ");
+            }
+          } catch (e) {}
+        }
+
+        // 3. Task Follow-up History & Progress Notes
+        let followUpHistoryText = "";
+        const historyObj = historyMapCopy[lead.id];
+        if (historyObj && Array.isArray(historyObj.tasks) && historyObj.tasks.length > 0) {
+          followUpHistoryText = historyObj.tasks.map((task: any, tIdx: number) => {
+            const tTitle = task.taskTitle || "Task";
+            const tStatus = task.status || "Pending";
+            const tUser = task.employeeName || "BDA";
+
+            let notesText = "";
+            if (task.progressNotes) {
+              try {
+                const pNotes = typeof task.progressNotes === "string" ? JSON.parse(task.progressNotes) : task.progressNotes;
+                if (Array.isArray(pNotes)) {
+                  notesText = pNotes.map((n: any) => n.note || n.text || "").filter(Boolean).join("; ");
+                } else if (typeof pNotes === "string") {
+                  notesText = pNotes;
+                }
+              } catch (e) {
+                notesText = String(task.progressNotes);
+              }
+            }
+
+            let schedStr = "";
+            if (task.scheduledAt) {
+              try {
+                schedStr = new Date(task.scheduledAt).toLocaleString("en-IN", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" });
+              } catch (e) {}
+            }
+
+            return `[${tIdx + 1}] (${tStatus}) ${tTitle} by ${tUser}${schedStr ? ` (Scheduled: ${schedStr})` : ""}${notesText ? ` - Notes: ${notesText}` : ""}`;
+          }).join(" \n");
+        }
+
+        if (!followUpHistoryText && lead.remarks) {
+          followUpHistoryText = `Remarks: ${lead.remarks}`;
         }
 
         return {
@@ -485,11 +734,15 @@ export default function BdaLeads({
           "City": lead.city || "N/A",
           "Sales Reason": lead.salesReason || "Pitching",
           "Assigned BDA": lead.assignedToName || (lead.assignedTo ? `BDA #${lead.assignedTo}` : "Unassigned"),
-          "Status": lead.status || "New",
+          "Assigned By": historyObj?.lead?.assignedByName || lead.assignedBy || "N/A",
+          "Assigned Date": lead.assignedAt ? new Date(lead.assignedAt).toLocaleString("en-IN") : "N/A",
+          "Status (Stage)": lead.status || "New",
           "Converted Amount (₹)": lead.convertedAmount ? Number(lead.convertedAmount) : 0,
           "Converted Services": convertedServicesText || "N/A",
           "Lost Reason": lead.lostReason || "N/A",
-          "Remarks": lead.remarks || "N/A",
+          "Lead Remarks": lead.remarks || "N/A",
+          "Attached Image / File URLs": attachmentUrlsText || "No Attachments",
+          "Task Follow-up History": followUpHistoryText || "No Follow-up Logs",
           "Created Date": lead.createdAt ? new Date(lead.createdAt).toLocaleDateString("en-IN") : "N/A"
         };
       });
@@ -497,23 +750,43 @@ export default function BdaLeads({
       const worksheet = XLSX.utils.json_to_sheet(exportRows);
 
       // Auto-fit column widths
-      const colKeys = Object.keys(exportRows[0]);
-      worksheet['!cols'] = colKeys.map(key => {
-        let maxLen = key.length;
+      const headers = Object.keys(exportRows[0]);
+      const max_widths = headers.map(h => {
+        let max_len = h.length;
         exportRows.forEach((r: any) => {
-          const valStr = r[key] !== undefined && r[key] !== null ? String(r[key]) : "";
-          if (valStr.length > maxLen) maxLen = valStr.length;
+          const val = String(r[h] || "");
+          const lines = val.split("\n");
+          lines.forEach(l => {
+            if (l.length > max_len) max_len = l.length;
+          });
         });
-        return { wch: Math.max(maxLen + 4, 12) };
+        return { wch: Math.min(Math.max(max_len + 3, 14), 70) };
       });
+      worksheet["!cols"] = max_widths;
+
+      // Summary Sheet
+      const summaryRows = [
+        { Metric: "Total Exported Leads", Value: targetLeads.length },
+        { Metric: "Active Status Filter", Value: statusFilter },
+        { Metric: "Active Assignment Filter", Value: assignmentFilter === "All" ? "All Assignment" : assignmentFilter === "unassigned" ? "Unassigned Only" : assignmentFilter },
+        { Metric: "Active Search Query", Value: searchQuery || "None" },
+        { Metric: "Converted Leads Count", Value: targetLeads.filter(l => l.status === "Converted").length },
+        { Metric: "Total Converted Revenue (₹)", Value: targetLeads.filter(l => l.status === "Converted").reduce((sum, l) => sum + (Number(l.convertedAmount) || 0), 0) },
+        { Metric: "Lost Leads Count", Value: targetLeads.filter(l => l.status === "Lost").length },
+        { Metric: "Export Date & Time", Value: new Date().toLocaleString("en-IN") }
+      ];
+
+      const summaryWorksheet = XLSX.utils.json_to_sheet(summaryRows);
+      summaryWorksheet["!cols"] = [{ wch: 28 }, { wch: 35 }];
 
       const workbook = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(workbook, worksheet, "BDA Leads");
+      XLSX.utils.book_append_sheet(workbook, worksheet, "BDA Leads Details");
+      XLSX.utils.book_append_sheet(workbook, summaryWorksheet, "Export Summary");
 
       const fileDate = new Date().toISOString().split("T")[0];
-      XLSX.writeFile(workbook, `BDA_Leads_Report_${fileDate}.xlsx`);
+      XLSX.writeFile(workbook, `BDA_Leads_Report_${statusFilter.replace(/\s+/g, "_")}_${fileDate}.xlsx`);
 
-      triggerToast?.(`✅ Exported ${leads.length} leads to Excel successfully!`);
+      triggerToast?.(`✅ Exported ${targetLeads.length} leads with attachments & history to Excel!`);
     } catch (err: any) {
       console.error("Export BDA leads error:", err);
       triggerToast?.("Export failed: " + err.message);
@@ -1124,9 +1397,61 @@ export default function BdaLeads({
               </div>
             )}
 
+            {/* Toggle Columns Filter */}
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setShowColumnToggleMenu(!showColumnToggleMenu)}
+                className="flex items-center gap-1.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl px-3 py-1.5 text-xs font-bold text-slate-700 transition-all cursor-pointer shadow-2xs"
+                title="Show/Hide Table Columns"
+              >
+                <Layers className="w-3.5 h-3.5 text-purple-600" />
+                <span>Columns</span>
+                <ChevronDown className={`w-3.5 h-3.5 text-slate-400 transition-transform ${showColumnToggleMenu ? "rotate-180" : ""}`} />
+              </button>
+
+              {showColumnToggleMenu && (
+                <div className="absolute right-0 top-10 z-50 w-52 bg-white rounded-2xl shadow-xl border border-slate-200 p-3 space-y-2 animate-in fade-in zoom-in-95 font-sans">
+                  <div className="flex items-center justify-between pb-1.5 border-b border-slate-100">
+                    <span className="text-[10px] font-black uppercase text-purple-900 tracking-wider flex items-center gap-1">
+                      <Layers className="w-3 h-3 text-purple-600" /> Toggle Columns
+                    </span>
+                    <button
+                      onClick={() => setShowColumnToggleMenu(false)}
+                      className="text-slate-400 hover:text-slate-600 text-xs p-0.5"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+
+                  <div className="space-y-1 max-h-52 overflow-y-auto">
+                    {[
+                      { key: "leadId", label: "Lead ID" },
+                      { key: "client", label: "Client / Contact" },
+                      { key: "company", label: "Company & Location" },
+                      { key: "reason", label: "Sales Reason" },
+                      { key: "assignedBda", label: "Assigned BDA" },
+                      { key: "status", label: "Status" },
+                      { key: "actions", label: "Actions" },
+                    ].map((col) => (
+                      <label key={col.key} className="flex items-center justify-between text-xs font-bold text-slate-700 hover:bg-purple-50/50 p-1.5 rounded-lg cursor-pointer select-none">
+                        <span>{col.label}</span>
+                        <input
+                          type="checkbox"
+                          checked={visibleColumns[col.key] ?? true}
+                          onChange={() => setVisibleColumns(prev => ({ ...prev, [col.key]: !prev[col.key] }))}
+                          className="w-4 h-4 text-purple-600 rounded focus:ring-purple-500 cursor-pointer"
+                        />
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
             <button
               onClick={fetchLeads}
-              className="p-2 text-slate-500 hover:text-purple-700 hover:bg-purple-50 rounded-xl border border-slate-200 transition-all"
+              className="p-2 text-slate-500 hover:text-purple-700 hover:bg-purple-50 rounded-xl border border-slate-200 transition-all cursor-pointer"
               title="Refresh Data"
             >
               <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
@@ -1173,10 +1498,11 @@ export default function BdaLeads({
 
       {/* Main Leads Table */}
       <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
-        <div className="overflow-x-auto">
+        {/* Table Data Container: Vertical Scroll & Sticky Header */}
+        <div className="overflow-x-auto max-h-[620px] overflow-y-auto custom-scrollbar">
           <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="bg-slate-100/70 border-b border-slate-200 text-[10px] font-black uppercase text-slate-500 tracking-wider">
+            <thead className="sticky top-0 z-20 bg-slate-100/95 backdrop-blur-md border-b border-slate-200 shadow-2xs">
+              <tr className="text-[10px] font-black uppercase text-slate-500 tracking-wider">
                 <th className="p-3 w-10 text-center">
                   <input
                     type="checkbox"
@@ -1185,13 +1511,13 @@ export default function BdaLeads({
                     className="w-4 h-4 text-purple-600 rounded focus:ring-purple-500 cursor-pointer"
                   />
                 </th>
-                <th className="p-3">Lead ID</th>
-                <th className="p-3">Client / Contact</th>
-                <th className="p-3">Company & Location</th>
-                <th className="p-3">Reason</th>
-                <th className="p-3">Assigned BDA</th>
-                <th className="p-3">Status</th>
-                <th className="p-3 text-right">Actions</th>
+                {visibleColumns.leadId && <th className="p-3">Lead ID</th>}
+                {visibleColumns.client && <th className="p-3">Client / Contact</th>}
+                {visibleColumns.company && <th className="p-3">Company & Location</th>}
+                {visibleColumns.reason && <th className="p-3">Reason</th>}
+                {visibleColumns.assignedBda && <th className="p-3">Assigned BDA</th>}
+                {visibleColumns.status && <th className="p-3">Status</th>}
+                {visibleColumns.actions && <th className="p-3 text-right">Actions</th>}
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 text-xs font-semibold">
@@ -1211,160 +1537,468 @@ export default function BdaLeads({
               ) : (
                 filteredLeads.map((lead) => {
                   const isSelected = selectedIds.includes(lead.id);
+                  const isExpanded = expandedLeadId === lead.id;
+                  const history = historyDataMap[lead.id];
+
                   return (
-                    <tr
-                      key={lead.id}
-                      className={`hover:bg-purple-50/40 transition-colors ${isSelected ? "bg-purple-50/70" : ""
-                        }`}
-                    >
-                      <td className="p-3 text-center">
-                        <input
-                          type="checkbox"
-                          checked={isSelected}
-                          onChange={() => toggleSelectRow(lead.id)}
-                          className="w-4 h-4 text-purple-600 rounded focus:ring-purple-500 cursor-pointer"
-                        />
-                      </td>
+                    <React.Fragment key={lead.id}>
+                      <tr
+                        onClick={() => toggleRowExpand(lead)}
+                        className={`hover:bg-purple-50/40 transition-colors cursor-pointer select-none ${isSelected ? "bg-purple-50/70" : isExpanded ? "bg-purple-50/40 font-bold" : ""}`}
+                        title="Click anywhere on row to view/hide detailed dropdown"
+                      >
+                        <td className="p-3 text-center" onClick={(e) => e.stopPropagation()}>
+                          <input
+                            type="checkbox"
+                            checked={isSelected}
+                            onChange={() => toggleSelectRow(lead.id)}
+                            className="w-4 h-4 text-purple-600 rounded focus:ring-purple-500 cursor-pointer"
+                          />
+                        </td>
 
-                      {/* Lead ID */}
-                      <td className="p-3 font-mono font-bold text-purple-900 whitespace-nowrap">
-                        <button
-                          onClick={() => { setActiveLead(lead); setShowDetailsModal(true); }}
-                          className="hover:underline text-purple-700 flex items-center gap-1"
-                        >
-                          {lead.leadId}
-                          {lead.rawExtraJson && <span className="w-2 h-2 rounded-full bg-emerald-500" title="Contains extra raw columns" />}
-                        </button>
-                      </td>
-
-                      {/* Client / Contact */}
-                      <td className="p-3">
-                        <div className="font-extrabold text-slate-900">{lead.name}</div>
-                        <div className="flex items-center gap-3 text-[11px] font-bold text-slate-500 mt-0.5">
-                          {lead.phone && (
-                            <span className="flex items-center gap-1">
-                              <Phone className="w-3 h-3 text-slate-400" /> {lead.phone}
-                            </span>
-                          )}
-                          {lead.email && (
-                            <span className="flex items-center gap-1">
-                              <Mail className="w-3 h-3 text-slate-400" /> {lead.email}
-                            </span>
-                          )}
-                        </div>
-                      </td>
-
-                      {/* Company & Location */}
-                      <td className="p-3">
-                        <div className="font-bold text-slate-800 flex items-center gap-1">
-                          {lead.companyName ? (
-                            <>
-                              <Building2 className="w-3.5 h-3.5 text-slate-400" />
-                              {lead.companyName}
-                            </>
-                          ) : (
-                            <span className="text-slate-400 italic">No Company</span>
-                          )}
-                        </div>
-                        {lead.city && (
-                          <div className="text-[11px] font-semibold text-slate-500 flex items-center gap-1 mt-0.5">
-                            <MapPin className="w-3 h-3 text-slate-400" /> {lead.city}
-                          </div>
+                        {/* Lead ID */}
+                        {visibleColumns.leadId && (
+                          <td className="p-3 font-mono font-bold text-purple-900 whitespace-nowrap">
+                            <div className="text-purple-700 flex items-center gap-1">
+                              {lead.leadId}
+                              {lead.rawExtraJson && <span className="w-2 h-2 rounded-full bg-emerald-500" title="Contains extra raw columns" />}
+                            </div>
+                          </td>
                         )}
-                      </td>
 
-                      {/* Reason */}
-                      <td className="p-3">
-                        <span className="bg-slate-100 text-slate-700 px-2 py-1 rounded-md text-[11px] font-bold">
-                          {lead.salesReason || "Pitching"}
-                        </span>
-                      </td>
-
-                      {/* Assigned BDA */}
-                      <td className="p-3">
-                        {lead.assignedToName ? (
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setSelectedIds([lead.id]);
-                              setTargetBdaId(lead.assignedTo || "");
-                              setShowAssignModal(true);
-                            }}
-                            className="flex items-center gap-1.5 bg-blue-50 hover:bg-blue-100 text-blue-800 border border-blue-200 px-2.5 py-1 rounded-xl w-fit transition-all cursor-pointer"
-                            title="Click to re-assign BDA"
-                          >
-                            <UserPlus className="w-3.5 h-3.5 text-blue-600" />
-                            <span className="font-bold text-xs">{lead.assignedToName}</span>
-                          </button>
-                        ) : (
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setSelectedIds([lead.id]);
-                              setTargetBdaId("");
-                              setShowAssignModal(true);
-                            }}
-                            className="bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200 px-2 py-0.5 rounded-lg text-[10px] font-black uppercase transition-all cursor-pointer flex items-center gap-1"
-                            title="Click to assign to BDA"
-                          >
-                            <Plus className="w-3 h-3" />
-                            Unassigned
-                          </button>
+                        {/* Client / Contact */}
+                        {visibleColumns.client && (
+                          <td className="p-3">
+                            <div className="font-extrabold text-slate-900">{lead.name}</div>
+                            <div className="flex items-center gap-3 text-[11px] font-bold text-slate-500 mt-0.5">
+                              {lead.phone && (
+                                <span className="flex items-center gap-1">
+                                  <Phone className="w-3 h-3 text-slate-400" /> {lead.phone}
+                                </span>
+                              )}
+                              {lead.email && (
+                                <span className="flex items-center gap-1">
+                                  <Mail className="w-3 h-3 text-slate-400" /> {lead.email}
+                                </span>
+                              )}
+                            </div>
+                          </td>
                         )}
-                      </td>
 
-                      {/* Status Dropdown */}
-                      <td className="p-3">
-                        <select
-                          value={lead.status}
-                          onChange={(e) => handleUpdateStatus(lead.id, e.target.value)}
-                          className={`text-xs font-bold rounded-lg px-2 py-1 border focus:outline-none ${lead.status === "Converted"
-                              ? "bg-emerald-50 text-emerald-800 border-emerald-300"
-                              : lead.status === "Assigned"
-                                ? "bg-blue-50 text-blue-800 border-blue-300"
-                                : lead.status === "In Progress"
-                                  ? "bg-indigo-50 text-indigo-800 border-indigo-300"
-                                  : lead.status === "Lost"
-                                    ? "bg-rose-50 text-rose-800 border-rose-300"
-                                    : "bg-slate-100 text-slate-800 border-slate-300"
-                            }`}
-                        >
-                          <option value="New">New</option>
-                          <option value="Assigned">Assigned</option>
-                          <option value="In Progress">In Progress</option>
-                          <option value="Qualified">Qualified</option>
-                          <option value="Converted">Converted</option>
-                          <option value="Lost">Lost</option>
-                        </select>
-                      </td>
+                        {/* Company & Location */}
+                        {visibleColumns.company && (
+                          <td className="p-3">
+                            <div className="font-bold text-slate-800 flex items-center gap-1">
+                              {lead.companyName ? (
+                                <>
+                                  <Building2 className="w-3.5 h-3.5 text-slate-400" />
+                                  {lead.companyName}
+                                </>
+                              ) : (
+                                <span className="text-slate-400 italic">No Company</span>
+                              )}
+                            </div>
+                            {lead.city && (
+                              <div className="text-[11px] font-semibold text-slate-500 flex items-center gap-1 mt-0.5">
+                                <MapPin className="w-3 h-3 text-slate-400" /> {lead.city}
+                              </div>
+                            )}
+                          </td>
+                        )}
 
-                      {/* Actions */}
-                      <td className="p-3 text-right">
-                        <div className="flex items-center justify-end gap-1">
-                          <button
-                            onClick={() => handleOpenEditModal(lead, false)}
-                            className="p-1.5 text-slate-500 hover:text-indigo-700 hover:bg-indigo-50 rounded-lg transition-all"
-                            title="View Full Lead & Stage Details"
+                        {/* Reason */}
+                        {visibleColumns.reason && (
+                          <td className="p-3">
+                            <span className="bg-slate-100 text-slate-700 px-2 py-1 rounded-md text-[11px] font-bold">
+                              {lead.salesReason || "Pitching"}
+                            </span>
+                          </td>
+                        )}
+
+                        {/* Assigned BDA */}
+                        {visibleColumns.assignedBda && (
+                          <td className="p-3" onClick={(e) => e.stopPropagation()}>
+                            {lead.assignedToName ? (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setSelectedIds([lead.id]);
+                                  setTargetBdaId(lead.assignedTo || "");
+                                  setShowAssignModal(true);
+                                }}
+                                className="flex items-center gap-1.5 bg-blue-50 hover:bg-blue-100 text-blue-800 border border-blue-200 px-2.5 py-1 rounded-xl w-fit transition-all cursor-pointer"
+                                title="Click to re-assign BDA"
+                              >
+                                <UserPlus className="w-3.5 h-3.5 text-blue-600" />
+                                <span className="font-bold text-xs">{lead.assignedToName}</span>
+                              </button>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setSelectedIds([lead.id]);
+                                  setTargetBdaId("");
+                                  setShowAssignModal(true);
+                                }}
+                                className="bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200 px-2 py-0.5 rounded-lg text-[10px] font-black uppercase transition-all cursor-pointer flex items-center gap-1"
+                                title="Click to assign to BDA"
+                              >
+                                <Plus className="w-3 h-3" />
+                                Unassigned
+                              </button>
+                            )}
+                          </td>
+                        )}
+
+                        {/* Status Dropdown */}
+                        {visibleColumns.status && (
+                          <td className="p-3" onClick={(e) => e.stopPropagation()}>
+                            <select
+                              value={lead.status}
+                              onChange={(e) => handleUpdateStatus(lead.id, e.target.value)}
+                              className={`text-xs font-bold rounded-lg px-2 py-1 border focus:outline-none ${lead.status === "Converted"
+                                  ? "bg-emerald-50 text-emerald-800 border-emerald-300"
+                                  : lead.status === "Assigned"
+                                    ? "bg-blue-50 text-blue-800 border-blue-300"
+                                    : lead.status === "In Progress"
+                                      ? "bg-indigo-50 text-indigo-800 border-indigo-300"
+                                      : lead.status === "Lost"
+                                      ? "bg-rose-50 text-rose-800 border-rose-300"
+                                      : "bg-slate-100 text-slate-800 border-slate-300"
+                              }`}
                           >
-                            <Eye className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() => handleOpenEditModal(lead, true)}
-                            className="p-1.5 text-slate-500 hover:text-purple-700 hover:bg-purple-50 rounded-lg transition-all"
-                            title="Edit Lead Details, Stage Info & Recordings"
-                          >
-                            <Edit className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() => handleDeleteLead(lead.id)}
-                            className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-all"
-                            title="Delete Lead"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
+                            <option value="New">New</option>
+                            <option value="Assigned">Assigned</option>
+                            <option value="In Progress">In Progress</option>
+                            <option value="Qualified">Qualified</option>
+                            <option value="Converted">Converted</option>
+                            <option value="Lost">Lost</option>
+                          </select>
+                        </td>
+                      )}
+
+                        {/* Actions */}
+                        {visibleColumns.actions && (
+                          <td className="p-3 text-right" onClick={(e) => e.stopPropagation()}>
+                            <div className="flex items-center justify-end gap-1">
+                              <button
+                                onClick={() => handleOpenEditModal(lead, false)}
+                                className="p-1.5 text-slate-500 hover:text-indigo-700 hover:bg-indigo-50 rounded-lg transition-all"
+                                title="View Full Lead & Stage Details"
+                              >
+                                <Eye className="w-4 h-4" />
+                              </button>
+                              <button
+                                onClick={() => handleOpenEditModal(lead, true)}
+                                className="p-1.5 text-slate-500 hover:text-purple-700 hover:bg-purple-50 rounded-lg transition-all"
+                                title="Edit Lead Details, Stage Info & Recordings"
+                              >
+                                <Edit className="w-4 h-4" />
+                              </button>
+                              <button
+                                onClick={() => handleDeleteLead(lead.id)}
+                                className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-all"
+                                title="Delete Lead"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
+                          </td>
+                        )}
+                      </tr>
+
+                      {/* Expandable Pipeline Audit & Follow-up History Sub-row */}
+                      {isExpanded && (
+                        <tr className="bg-purple-50/20 animate-fade-in">
+                          <td colSpan={8} className="p-4 bg-gradient-to-r from-purple-50/60 via-slate-50 to-indigo-50/50 border-t border-b border-purple-100 shadow-inner">
+                            <div className="space-y-4 text-xs">
+
+                              {/* Top Bar Summary */}
+                              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 bg-white/95 p-3 rounded-xl border border-purple-100 shadow-2xs">
+                                <div className="flex items-center gap-2">
+                                  <span className="px-2.5 py-1 bg-purple-100 text-purple-800 rounded-lg font-mono font-black text-xs border border-purple-200">
+                                    {lead.leadId}
+                                  </span>
+                                  <div>
+                                    <h4 className="font-extrabold text-slate-900 text-sm">{lead.name}</h4>
+                                    <p className="text-[11px] font-semibold text-slate-500">
+                                      {lead.companyName || "No Company"} {lead.city ? `• ${lead.city}` : ""}
+                                    </p>
+                                  </div>
+                                </div>
+
+                                <div className="flex items-center gap-3">
+                                  <span className="text-[11px] font-bold text-slate-500">
+                                    Created: <span className="text-slate-800 font-mono">{lead.createdAt ? new Date(lead.createdAt).toLocaleDateString("en-IN") : "N/A"}</span>
+                                  </span>
+                                  <span className={`px-2.5 py-1 rounded-lg text-xs font-black uppercase tracking-wider ${
+                                    lead.status === "Converted" ? "bg-emerald-100 text-emerald-800 border border-emerald-300" :
+                                    lead.status === "Lost" ? "bg-rose-100 text-rose-800 border border-rose-300" :
+                                    lead.status === "Assigned" ? "bg-blue-100 text-blue-800 border border-blue-300" :
+                                    "bg-indigo-100 text-indigo-800 border border-indigo-300"
+                                  }`}>
+                                    Stage: {lead.status || "New"}
+                                  </span>
+                                </div>
+                              </div>
+
+                              {/* Grid: Assignment Audit Trail & Task Follow-ups */}
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                
+                                {/* Left: Assignment Audit & Stage Record */}
+                                <div className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-2xs space-y-3">
+                                  <h5 className="text-[11px] font-black uppercase tracking-wider text-purple-900 flex items-center gap-1.5 border-b pb-2">
+                                    <UserCheck className="w-3.5 h-3.5 text-purple-600" />
+                                    Lead Assignment & Audit Trail
+                                  </h5>
+
+                                  <div className="space-y-2 text-xs">
+                                    <div className="p-2.5 bg-purple-50/50 rounded-lg border border-purple-100 flex items-center justify-between">
+                                      <div>
+                                        <span className="text-[10px] font-bold text-slate-400 block uppercase">Assigned BDA User</span>
+                                        <span className="font-extrabold text-slate-800">{lead.assignedToName || "Unassigned"}</span>
+                                      </div>
+                                      {lead.assignedBy && (
+                                        <div className="text-right">
+                                          <span className="text-[10px] font-bold text-slate-400 block uppercase">Assigned By</span>
+                                          <span className="font-extrabold text-purple-700">{history?.lead?.assignedByName || lead.assignedBy}</span>
+                                        </div>
+                                      )}
+                                    </div>
+
+                                    {lead.assignedAt && (
+                                      <div className="text-[11px] font-medium text-slate-600 flex items-center gap-1">
+                                        <Clock className="w-3.5 h-3.5 text-slate-400" />
+                                        Assigned Date: <span className="font-bold text-slate-800">{new Date(lead.assignedAt).toLocaleString("en-IN")}</span>
+                                      </div>
+                                    )}
+
+                                    {lead.salesReason && (
+                                      <div className="text-[11px] font-medium text-slate-600">
+                                        Sales Reason: <span className="font-bold text-slate-800">{lead.salesReason}</span>
+                                      </div>
+                                    )}
+
+                                    {lead.remarks && (
+                                      <div className="p-2 bg-slate-50 rounded-lg border border-slate-200 text-[11px]">
+                                        <span className="font-bold text-slate-700 block">Lead Remarks:</span>
+                                        <p className="text-slate-600 font-medium italic mt-0.5">{lead.remarks}</p>
+                                      </div>
+                                    )}
+
+                                    {/* Converted Services Details if Converted */}
+                                    {lead.status === "Converted" && (
+                                      <div className="p-2.5 bg-emerald-50 rounded-xl border border-emerald-200 space-y-1.5">
+                                        <span className="text-[10px] font-black uppercase text-emerald-800 tracking-wider block">
+                                          🎉 Client Converted Services Details:
+                                        </span>
+                                        <div className="text-xs font-bold text-emerald-900">
+                                          Total Amount: ₹ {lead.convertedAmount ? lead.convertedAmount.toLocaleString('en-IN') : 0}
+                                        </div>
+                                      </div>
+                                    )}
+
+                                    {/* Lost Reason if Lost */}
+                                    {lead.status === "Lost" && lead.lostReason && (
+                                      <div className="p-2.5 bg-rose-50 rounded-xl border border-rose-200">
+                                        <span className="text-[10px] font-black uppercase text-rose-800 tracking-wider block">
+                                          ❌ Lost Reason:
+                                        </span>
+                                        <p className="text-xs font-bold text-rose-900 mt-1">{lead.lostReason}</p>
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+
+                                {/* Right: Corresponding Task & Follow-up History */}
+                                <div className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-2xs space-y-3">
+                                  <h5 className="text-[11px] font-black uppercase tracking-wider text-indigo-900 flex items-center justify-between border-b pb-2">
+                                    <span className="flex items-center gap-1.5">
+                                      <History className="w-3.5 h-3.5 text-indigo-600" />
+                                      Task Follow-up History ({history?.tasks?.length || 0})
+                                    </span>
+                                  </h5>
+
+                                  {history?.loading ? (
+                                    <div className="p-4 text-center text-slate-400 font-semibold italic flex items-center justify-center gap-2">
+                                      <RefreshCw className="w-4 h-4 animate-spin text-purple-600" />
+                                      Fetching task follow-up history...
+                                    </div>
+                                  ) : !history?.tasks || history.tasks.length === 0 ? (
+                                    <div className="p-4 text-center text-slate-400 font-medium italic bg-slate-50 rounded-lg border border-dashed">
+                                      No task follow-up logs recorded yet for this lead.
+                                    </div>
+                                  ) : (
+                                    <div className="space-y-3 max-h-72 overflow-y-auto custom-scrollbar pr-1">
+                                      {history.tasks.map((task: any, tIdx: number) => (
+                                        <div key={tIdx} className="p-3 bg-slate-50 rounded-xl border border-slate-200 text-xs space-y-2.5 shadow-2xs">
+                                          
+                                          {/* Task Header */}
+                                          <div className="flex flex-wrap items-center justify-between gap-1 border-b border-slate-200/70 pb-2">
+                                            <div>
+                                              <span className="font-extrabold text-indigo-900 block">{task.taskTitle || "Sales"} ({task.id})</span>
+                                              <span className="text-[11px] font-bold text-slate-600">
+                                                BDA User: <span className="text-purple-700">{task.employeeName}</span>
+                                              </span>
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                              <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider ${
+                                                task.status === "Completed" ? "bg-emerald-100 text-emerald-800 border border-emerald-300" :
+                                                task.status === "In Progress" ? "bg-blue-100 text-blue-800 border border-blue-300" :
+                                                "bg-amber-100 text-amber-800 border border-amber-300"
+                                              }`}>
+                                                {task.status || "Pending"}
+                                              </span>
+                                            </div>
+                                          </div>
+
+                                          {/* Latest Scheduled Date if set */}
+                                          {task.scheduledAt && (
+                                            <div className="p-2 bg-indigo-50/70 rounded-lg border border-indigo-100 flex items-center justify-between text-[11px]">
+                                              <span className="font-bold text-indigo-900 flex items-center gap-1">
+                                                <Clock className="w-3.5 h-3.5 text-indigo-600" /> Latest Scheduled Follow-up:
+                                              </span>
+                                              <span className="font-extrabold text-indigo-800 font-mono">
+                                                {new Date(task.scheduledAt).toLocaleString("en-IN", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit", hour12: true })}
+                                              </span>
+                                            </div>
+                                          )}
+
+                                          {/* Scheduled Follow-ups History List */}
+                                          {Array.isArray(task.followUpHistory) && task.followUpHistory.length > 0 && (
+                                            <div className="space-y-1.5 bg-white p-2.5 rounded-lg border border-slate-200">
+                                              <span className="text-[10px] uppercase font-black tracking-wider text-purple-700 block">
+                                                📅 Scheduled Follow-ups History ({task.followUpHistory.length}):
+                                              </span>
+                                              <div className="space-y-1.5">
+                                                {task.followUpHistory.map((h: any, hIdx: number) => (
+                                                  <div key={h.id || hIdx} className="p-2 bg-purple-50/60 rounded-md border border-purple-100 flex flex-col sm:flex-row sm:items-center justify-between gap-1 text-[11px] font-semibold text-slate-800">
+                                                    <span className="flex items-center gap-1.5 font-mono">
+                                                      <Clock className="w-3 h-3 text-purple-600 shrink-0" />
+                                                      {h.scheduledAt || h.createdAt ? new Date(h.scheduledAt || h.createdAt).toLocaleString("en-IN", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit", hour12: true }) : "N/A"}
+                                                    </span>
+                                                    <span className="text-[9px] font-black uppercase text-purple-800 bg-purple-100 px-2 py-0.5 rounded-full border border-purple-200 w-fit">
+                                                      BY {h.userName || "System"}
+                                                    </span>
+                                                  </div>
+                                                ))}
+                                              </div>
+                                            </div>
+                                          )}
+
+                                          {/* Progress Notes History Timeline */}
+                                          {(() => {
+                                            const notes = parseTaskProgressNotes(task.progressNotes);
+                                            if (notes.length === 0) return null;
+
+                                            return (
+                                              <div className="text-[11px] text-slate-700 bg-white p-2.5 rounded-lg border border-slate-200 space-y-1.5">
+                                                <span className="font-extrabold text-slate-900 flex items-center gap-1.5 border-b border-slate-100 pb-1">
+                                                  <FileText className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
+                                                  Progress Notes History ({notes.length}):
+                                                </span>
+                                                <div className="space-y-1.5">
+                                                  {notes.map((n: any, nIdx: number) => (
+                                                    <div key={n.id || nIdx} className="p-2 bg-slate-50/70 rounded-md border border-slate-100 space-y-0.5">
+                                                      <div className="flex items-center justify-between text-[10px]">
+                                                        <span className="font-bold text-indigo-800">{n.userName || task.employeeName || "User"}</span>
+                                                        {n.createdAt && (
+                                                          <span className="text-slate-400 font-mono">
+                                                            {new Date(n.createdAt).toLocaleString("en-IN", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit", hour12: true })}
+                                                          </span>
+                                                        )}
+                                                      </div>
+                                                      <p className="text-slate-700 font-medium whitespace-pre-wrap leading-relaxed">
+                                                        {n.note || (typeof n === 'string' ? n : '')}
+                                                      </p>
+                                                    </div>
+                                                  ))}
+                                                </div>
+                                              </div>
+                                            );
+                                          })()}
+
+                                          {/* Proof of Work / Attachments (Multiple Supported & Fully Viewable) */}
+                                          {(() => {
+                                            const attachments = parseTaskAttachments(task.proofAttachment);
+                                            if (attachments.length === 0) return null;
+
+                                            return (
+                                              <div className="p-2.5 bg-white rounded-lg border border-purple-200 space-y-2">
+                                                <span className="text-[10px] font-black uppercase tracking-wider text-purple-800 flex items-center gap-1">
+                                                  <Paperclip className="w-3.5 h-3.5 text-purple-600" />
+                                                  Proof of Work / Attachments ({attachments.length}):
+                                                </span>
+                                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                                  {attachments.map((att: any, attIdx: number) => {
+                                                    const rawUrl = att.url || "";
+                                                    const fixedUrl = fixAudioDataUrl(rawUrl, att.name, att.type);
+                                                    const isAudio = fixedUrl.startsWith("data:audio") || rawUrl.endsWith(".mp3") || rawUrl.endsWith(".m4a") || rawUrl.endsWith(".aac");
+                                                    const isImage = fixedUrl.startsWith("data:image") || rawUrl.match(/\.(png|jpe?g|gif|webp|svg)($|\?)/i);
+
+                                                    return (
+                                                      <div key={attIdx} className="p-2 bg-purple-50/50 rounded-lg border border-purple-100 space-y-1">
+                                                        <span className="text-[10px] font-bold text-slate-700 block truncate" title={att.name || "Attachment"}>
+                                                          {att.name || `Attachment #${attIdx + 1}`}
+                                                        </span>
+
+                                                        {isAudio ? (
+                                                          <audio controls className="w-full h-8 mt-1 rounded-lg">
+                                                            <source src={fixedUrl} />
+                                                          </audio>
+                                                        ) : isImage ? (
+                                                          <div className="space-y-1">
+                                                            <img
+                                                              src={fixedUrl}
+                                                              alt={att.name || "Proof Image"}
+                                                              className="w-full h-28 object-cover rounded-md border border-slate-200 cursor-pointer hover:opacity-90 transition-opacity shadow-2xs"
+                                                              onClick={() => setPreviewImage({ url: fixedUrl, title: att.name || "Proof Image" })}
+                                                            />
+                                                            <div className="flex items-center gap-2 pt-0.5">
+                                                              <button
+                                                                type="button"
+                                                                onClick={() => setPreviewImage({ url: fixedUrl, title: att.name || "Proof Image" })}
+                                                                className="text-[10px] font-bold text-purple-700 hover:underline flex items-center gap-1 cursor-pointer"
+                                                              >
+                                                                <Eye className="w-3 h-3 text-purple-600" /> View Full Image
+                                                              </button>
+                                                              <button
+                                                                type="button"
+                                                                onClick={() => openBlobInNewTab(fixedUrl)}
+                                                                className="text-[10px] font-bold text-indigo-600 hover:underline flex items-center gap-1 cursor-pointer"
+                                                              >
+                                                                <Download className="w-3 h-3 text-indigo-500" /> Open in New Tab
+                                                              </button>
+                                                            </div>
+                                                          </div>
+                                                        ) : (
+                                                          <button
+                                                            type="button"
+                                                            onClick={() => openBlobInNewTab(fixedUrl)}
+                                                            className="text-xs font-bold text-purple-700 hover:underline flex items-center gap-1.5 pt-0.5 cursor-pointer"
+                                                          >
+                                                            <Paperclip className="w-3.5 h-3.5 text-purple-600" /> View / Download Attachment
+                                                          </button>
+                                                        )}
+                                                      </div>
+                                                    );
+                                                  })}
+                                                </div>
+                                              </div>
+                                            );
+                                          })()}
+                                        </div>
+                                      ))}
+                                    </div>
+                                  )}
+                                </div>
+
+                              </div>
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </React.Fragment>
                   );
                 })
               )}
@@ -1910,8 +2544,15 @@ export default function BdaLeads({
                     <div>
                       <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">Sales Reason / Purpose</label>
                       <select
-                        value={activeLead.salesReason || "Pitching"}
-                        onChange={e => setActiveLead({ ...activeLead, salesReason: e.target.value })}
+                        value={["Pitching", "Follow Up", "Client Meeting", "Proposal Shared"].includes(activeLead.salesReason || "") ? activeLead.salesReason : "Other"}
+                        onChange={e => {
+                          const val = e.target.value;
+                          if (val === "Other") {
+                            setActiveLead({ ...activeLead, salesReason: "Other" });
+                          } else {
+                            setActiveLead({ ...activeLead, salesReason: val });
+                          }
+                        }}
                         className="w-full bg-white border border-purple-300 rounded-xl p-2 font-bold text-slate-900 focus:outline-none focus:border-purple-600"
                       >
                         <option value="Pitching">Pitching</option>
@@ -1920,6 +2561,16 @@ export default function BdaLeads({
                         <option value="Proposal Shared">Proposal Shared</option>
                         <option value="Other">Other</option>
                       </select>
+
+                      {(!["Pitching", "Follow Up", "Client Meeting", "Proposal Shared"].includes(activeLead.salesReason || "") || activeLead.salesReason === "Other") && (
+                        <input
+                          type="text"
+                          placeholder="Specify custom sales reason / purpose..."
+                          value={activeLead.salesReason === "Other" ? "" : activeLead.salesReason}
+                          onChange={e => setActiveLead({ ...activeLead, salesReason: e.target.value || "Other" })}
+                          className="w-full bg-white border border-purple-300 rounded-xl p-2 mt-2 font-bold text-slate-900 focus:outline-none focus:border-purple-600 animate-fade-in"
+                        />
+                      )}
                     </div>
                   </div>
 
@@ -2714,6 +3365,17 @@ export default function BdaLeads({
                     <option value="Proposal Shared">Proposal Shared</option>
                     <option value="Other">Other</option>
                   </select>
+
+                  {manualForm.salesReason === "Other" && (
+                    <input
+                      type="text"
+                      required
+                      placeholder="Specify sales reason / purpose..."
+                      value={manualForm.customSalesReason}
+                      onChange={e => setManualForm({ ...manualForm, customSalesReason: e.target.value })}
+                      className="w-full border border-purple-300 rounded-xl p-2 mt-2 font-bold focus:outline-none focus:border-purple-600 animate-fade-in text-slate-900"
+                    />
+                  )}
                 </div>
               </div>
 
@@ -3069,6 +3731,43 @@ export default function BdaLeads({
               </button>
             </div>
 
+          </div>
+        </div>
+      )}
+
+      {/* Fullscreen Image Lightbox Modal */}
+      {previewImage && (
+        <div className="fixed inset-0 z-[100] bg-black/85 backdrop-blur-md flex items-center justify-center p-4 animate-fade-in">
+          <div className="bg-slate-900 rounded-2xl max-w-4xl w-full max-h-[92vh] overflow-hidden flex flex-col shadow-2xl border border-slate-800">
+            <div className="p-4 bg-slate-950 text-white flex items-center justify-between border-b border-slate-800">
+              <h3 className="font-extrabold text-xs flex items-center gap-2 truncate max-w-md">
+                <Eye className="w-4 h-4 text-purple-400 shrink-0" />
+                {previewImage.title}
+              </h3>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => openBlobInNewTab(previewImage.url)}
+                  className="px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 cursor-pointer shadow-md"
+                >
+                  <Download className="w-3.5 h-3.5" /> Open in New Tab
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPreviewImage(null)}
+                  className="p-1.5 hover:bg-slate-800 rounded-xl text-slate-400 hover:text-white transition-all cursor-pointer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+            <div className="p-4 overflow-auto flex-1 flex items-center justify-center bg-slate-950/90 min-h-[300px]">
+              <img
+                src={previewImage.url}
+                alt={previewImage.title}
+                className="max-w-full max-h-[78vh] object-contain rounded-lg shadow-2xl border border-slate-800/80"
+              />
+            </div>
           </div>
         </div>
       )}

@@ -15,10 +15,14 @@ export async function GET(req: Request) {
     }
 
     await sequelize.authenticate();
+    await Payroll.sync().catch(() => {});
 
     const user = (session?.user as any);
-    // Employees see only their payslips, HR sees all
-    const filter = (session.user as any).role === "Employee" ? { employee: (session.user as any).id } : {};
+    const userRole = (user?.role || "").toLowerCase();
+    const isEmployeeOnly = userRole === "employee";
+    
+    // Employees see only their payslips, Managers/HR/Owners see all
+    const filter = isEmployeeOnly ? { employee: String(user.id) } : {};
 
     const payslips = await Payroll.findAll({ 
       where: filter,
@@ -26,7 +30,7 @@ export async function GET(req: Request) {
       raw: true
     });
 
-    const userIds = payslips.map(p => (p as any).employee).filter(Boolean);
+    const userIds = payslips.map(p => String((p as any).employee)).filter(Boolean);
     const users = await User.findAll({
       where: { id: userIds },
       attributes: ['id', 'name', 'email'],
@@ -40,23 +44,24 @@ export async function GET(req: Request) {
     });
 
     const profileMap = profiles.reduce((acc: any, p: any) => {
-      acc[p.user] = p.baseSalary;
+      if (p.user) acc[String(p.user)] = p.baseSalary;
       return acc;
     }, {});
 
     const userMap = users.reduce((acc: any, u: any) => {
-      acc[u.id] = { ...u, baseSalary: profileMap[u.id] || 13000 };
+      if (u.id) acc[String(u.id)] = { ...u, baseSalary: profileMap[String(u.id)] || 13000 };
       return acc;
     }, {});
 
     const data = payslips.map((p: any) => {
       const pJson = { ...p };
-      pJson.employee = userMap[pJson.employee] || null;
+      pJson.employee = userMap[String(pJson.employee)] || null;
       return pJson;
     });
 
     return NextResponse.json({ success: true, data });
   } catch (error: any) {
+    console.error("Error in GET /api/payroll:", error);
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
 }
@@ -65,11 +70,19 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session || !session.user || !(session.user as any).id || !["Owner", "HR Head", "Accounts"].includes((session.user as any).role)) {
+    if (!session || !session.user || !(session.user as any).id) {
       return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
     }
 
+    const userRole = ((session.user as any).role || "").toLowerCase();
+    const canProcess = userRole.includes("owner") || userRole.includes("director") || userRole.includes("hr") || userRole.includes("accounts") || userRole.includes("admin") || userRole.includes("cfo") || userRole.includes("manager");
+    if (!canProcess) {
+      return NextResponse.json({ success: false, error: "Unauthorized access for payroll processing" }, { status: 401 });
+    }
+
     await sequelize.authenticate();
+    await Payroll.sync().catch(() => {});
+
     const { employeeId, month, year, basicPay, hra, conveyance, specialAllowance, pfDeduction, ptDeduction, tdsDeduction } = await req.json();
 
     if (!employeeId || !month || !year) {
@@ -81,10 +94,10 @@ export async function POST(req: Request) {
     const netPay = totalEarnings - totalDeductions;
 
     const payslip = await Payroll.create({
-      id: Date.now().toString(),
-      employee: employeeId,
+      id: `PAY-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+      employee: String(employeeId),
       month,
-      year,
+      year: Number(year),
       basicPay: basicPay || 0,
       hra: hra || 0,
       conveyance: conveyance || 0,
@@ -101,6 +114,7 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ success: true, data: payslip });
   } catch (error: any) {
+    console.error("Error in POST /api/payroll:", error);
     if (error.code === "ER_DUP_ENTRY" || error.code === 11000) {
       return NextResponse.json({ success: false, error: "Payslip already generated for this month" }, { status: 400 });
     }
@@ -112,8 +126,14 @@ export async function POST(req: Request) {
 export async function DELETE(req: Request) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session || !session.user || !(session.user as any).id || !["Owner", "HR Head", "Accounts"].includes((session.user as any).role)) {
+    if (!session || !session.user || !(session.user as any).id) {
       return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
+    }
+
+    const userRole = ((session.user as any).role || "").toLowerCase();
+    const canDelete = userRole.includes("owner") || userRole.includes("director") || userRole.includes("hr") || userRole.includes("accounts") || userRole.includes("admin") || userRole.includes("cfo") || userRole.includes("manager");
+    if (!canDelete) {
+      return NextResponse.json({ success: false, error: "Unauthorized access for payslip deletion" }, { status: 401 });
     }
 
     const { searchParams } = new URL(req.url);
@@ -124,6 +144,7 @@ export async function DELETE(req: Request) {
     }
 
     await sequelize.authenticate();
+    await Payroll.sync().catch(() => {});
 
     const deletedCount = await Payroll.destroy({
       where: { id }
@@ -135,6 +156,7 @@ export async function DELETE(req: Request) {
 
     return NextResponse.json({ success: true, message: "Payslip deleted successfully" });
   } catch (error: any) {
+    console.error("Error in DELETE /api/payroll:", error);
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
 }

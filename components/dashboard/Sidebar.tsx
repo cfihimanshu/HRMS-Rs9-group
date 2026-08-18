@@ -154,7 +154,7 @@ export default function DashboardSidebar({
     }
   });
 
-  if (userRole.toLowerCase().includes("bda") && !effectiveAllowedPageIds.includes("bda-leads")) {
+  if ((userRole.toLowerCase().includes("bda") || userRole.toLowerCase().includes("manager") || userRole.toLowerCase().includes("director") || userRole.toLowerCase().includes("owner")) && !effectiveAllowedPageIds.includes("bda-leads")) {
     effectiveAllowedPageIds.push("bda-leads");
   }
 

@@ -21,15 +21,15 @@ EodReport.init(
       allowNull: true,
     },
     completedWork: {
-      type: DataTypes.STRING,
+      type: DataTypes.TEXT,
       allowNull: true,
     },
     pendingWork: {
-      type: DataTypes.STRING,
+      type: DataTypes.TEXT,
       allowNull: true,
     },
     issues: {
-      type: DataTypes.STRING,
+      type: DataTypes.TEXT,
       allowNull: true,
     },
     escalationNeeded: {
@@ -37,7 +37,7 @@ EodReport.init(
       allowNull: true,
     },
     tomorrowPlan: {
-      type: DataTypes.STRING,
+      type: DataTypes.TEXT,
       allowNull: true,
     },
     selfieUrl: {

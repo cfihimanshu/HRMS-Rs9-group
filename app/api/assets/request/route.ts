@@ -179,7 +179,7 @@ export async function GET(req: Request) {
     const rawRole = dbUser?.role || "Employee";
     const userRole = rawRole.toLowerCase();
 
-    const isOwnerOrDirector = ["owner", "director"].includes(userRole);
+    const isOwnerOrDirector = userRole.includes("owner") || userRole.includes("director");
     const isHR = ["hr head", "hr-head", "hr executive", "hr-executive"].includes(userRole);
     const isDeptManager = userRole === "department manager" || userRole === "department-manager";
 
@@ -197,7 +197,7 @@ export async function GET(req: Request) {
     const { isGeneralApprover, overrideApplicantIds } = await getAuthorizedApplicantIdsForApprover("asset_request", userId, rawRole);
 
     let whereClause: any = {};
-    if (isGeneralApprover) {
+    if (isOwnerOrDirector || isGeneralApprover) {
       whereClause = {};
     } else if (overrideApplicantIds.length > 0) {
       whereClause = {
@@ -222,7 +222,7 @@ export async function GET(req: Request) {
         if (Array.isArray(loggedInUser.companies)) {
           managerCompanies = loggedInUser.companies;
         } else if (typeof loggedInUser.companies === 'string') {
-          try { managerCompanies = JSON.parse(loggedInUser.companies); } catch(e) {}
+          try { managerCompanies = JSON.parse(loggedInUser.companies); } catch (e) { }
         }
       }
 
@@ -303,7 +303,7 @@ export async function GET(req: Request) {
         const purchaseReqs = await AssetPurchaseRequest.findAll({
           order: [["createdAt", "DESC"]]
         });
-        
+
         for (const pr of purchaseReqs) {
           const plain = pr.get({ plain: true });
           const reqUser = await User.findByPk(plain.requested_by, { attributes: ["name"], raw: true });
@@ -478,7 +478,7 @@ export async function POST(req: Request) {
         if (!purchaseRequest) {
           return NextResponse.json({ success: false, error: "Purchase request not found." }, { status: 404 });
         }
-        
+
         let targetStatus = status;
         if (status === "Approved") {
           targetStatus = "Approved";
