@@ -4,28 +4,11 @@ import { authOptions } from "@/lib/auth";
 import sequelize from "@/lib/sequelize";
 import User from "@/models/sequelize/User";
 import EmployeeProfile from "@/models/sequelize/EmployeeProfile";
-import FieldVisit from "@/models/sequelize/FieldVisit";
+import FieldVisit, { ensureFieldVisitSchema } from "@/models/sequelize/FieldVisit";
 import { logAudit } from "@/lib/audit";
-import { Op, DataTypes } from "sequelize";
+import { Op } from "sequelize";
 
 import Department from "@/models/sequelize/Department";
-
-async function ensurePhotoColumns() {
-  try {
-    const qi = sequelize.getQueryInterface();
-    const tableDesc: any = await qi.describeTable("field_visits").catch(() => ({} as any));
-    if (tableDesc) {
-      if (!tableDesc.opening_photo_url) {
-        await qi.addColumn("field_visits", "opening_photo_url", { type: DataTypes.STRING, allowNull: true }).catch(() => {});
-      }
-      if (!tableDesc.closing_photo_url) {
-        await qi.addColumn("field_visits", "closing_photo_url", { type: DataTypes.STRING, allowNull: true }).catch(() => {});
-      }
-    }
-  } catch (colErr) {
-    console.warn("Column check warning in field-visit route:", colErr);
-  }
-}
 
 export async function GET(req: Request) {
   try {
@@ -39,7 +22,7 @@ export async function GET(req: Request) {
     
     await sequelize.authenticate();
     await FieldVisit.sync();
-    await ensurePhotoColumns();
+    await ensureFieldVisitSchema();
 
     const userRole = (session.user as any).role;
     const userId = (session.user as any).id;
@@ -153,7 +136,7 @@ export async function POST(req: Request) {
     await sequelize.authenticate();
     await FieldVisit.sync();
 
-    await ensurePhotoColumns();
+    await ensureFieldVisitSchema();
 
     if (action === "start") {
       const { opening_km, opening_coordinates, opening_location, vehicle_number, fuel_status, photo_url } = body;

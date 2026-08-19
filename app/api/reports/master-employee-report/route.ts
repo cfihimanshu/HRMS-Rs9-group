@@ -11,7 +11,7 @@ import Leave from "@/models/sequelize/Leave";
 import TaskLog from "@/models/sequelize/TaskLog";
 import SodReport from "@/models/sequelize/SodReport";
 import EodReport from "@/models/sequelize/EodReport";
-import FieldVisit from "@/models/sequelize/FieldVisit";
+import FieldVisit, { ensureFieldVisitSchema } from "@/models/sequelize/FieldVisit";
 import LegalRecoverySchedule from "@/models/sequelize/LegalRecoverySchedule";
 import AuditLog from "@/models/sequelize/AuditLog";
 
@@ -25,6 +25,7 @@ export async function GET(req: Request) {
     }
 
     await sequelize.authenticate();
+    await ensureFieldVisitSchema();
     const { searchParams } = new URL(req.url);
     const startDate = searchParams.get("startDate");
     const endDate = searchParams.get("endDate");

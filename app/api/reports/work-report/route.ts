@@ -6,7 +6,7 @@ import sequelize from "@/lib/sequelize";
 import SodReport from "@/models/sequelize/SodReport";
 import EodReport from "@/models/sequelize/EodReport";
 import TaskLog from "@/models/sequelize/TaskLog";
-import FieldVisit from "@/models/sequelize/FieldVisit";
+import FieldVisit, { ensureFieldVisitSchema } from "@/models/sequelize/FieldVisit";
 import User from "@/models/sequelize/User";
 import EmployeeProfile from "@/models/sequelize/EmployeeProfile";
 import Department from "@/models/sequelize/Department";
@@ -18,6 +18,8 @@ export async function GET(req: Request) {
     if (!session || !session.user) {
       return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
     }
+
+    await ensureFieldVisitSchema();
 
     const userId = (session.user as any).id;
     const role = (session.user as any).role;

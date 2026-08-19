@@ -112,4 +112,27 @@ FieldVisit.init(
   }
 );
 
+let fieldVisitColsChecked = false;
+
+export async function ensureFieldVisitSchema() {
+  if (fieldVisitColsChecked) return;
+  try {
+    const [cols]: any[] = await sequelize.query("SHOW COLUMNS FROM field_visits").catch(() => [[]]);
+    if (Array.isArray(cols) && cols.length > 0) {
+      const existingCols = cols.map((c: any) => (c.Field || c.field || "").toLowerCase());
+      if (!existingCols.includes("opening_photo_url")) {
+        await sequelize.query("ALTER TABLE field_visits ADD COLUMN `opening_photo_url` VARCHAR(255) NULL").catch(() => {});
+        console.log("[FIELD_VISITS SCHEMA] Dynamically added opening_photo_url column");
+      }
+      if (!existingCols.includes("closing_photo_url")) {
+        await sequelize.query("ALTER TABLE field_visits ADD COLUMN `closing_photo_url` VARCHAR(255) NULL").catch(() => {});
+        console.log("[FIELD_VISITS SCHEMA] Dynamically added closing_photo_url column");
+      }
+      fieldVisitColsChecked = true;
+    }
+  } catch (err) {
+    console.warn("[FIELD VISIT SCHEMA EVOLUTION] Warning:", err);
+  }
+}
+
 export default FieldVisit;
