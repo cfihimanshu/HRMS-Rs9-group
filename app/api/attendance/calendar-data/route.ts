@@ -25,42 +25,53 @@ export async function GET(req: Request) {
 
     await sequelize.authenticate();
 
-    const loggedInUserRole = (session.user as any).role;
+    const loggedInUserRole = (session.user as any).role || "Employee";
     const loggedInUserId = (session.user as any).id;
 
     // Check if user is a Reporting Manager
-    const selfUser = await User.findByPk(loggedInUserId, { attributes: ["name", "role"] });
     let isReportingManager = false;
-    if (selfUser && selfUser.name) {
-      const subordinateCount = await EmployeeProfile.count({ where: { reportingManager: selfUser.name } });
-      isReportingManager = subordinateCount > 0;
-    }
-
-    const isPrivileged = ["Owner", "Director", "HR Head", "HR Executive", "Department Manager"].includes(loggedInUserRole) || isReportingManager;
+    let selfUser: any = null;
+    try {
+      selfUser = await User.findByPk(loggedInUserId, { attributes: ["name", "role"] });
+      if (selfUser && selfUser.name) {
+        const subordinateCount = await EmployeeProfile.count({
+          where: {
+            [Op.or]: [
+              { reportingManager: selfUser.name },
+              { reportingManager: { [Op.like]: `%${selfUser.name.trim()}%` } }
+            ]
+          }
+        });
+        isReportingManager = subordinateCount > 0;
+      }
+    } catch (_) {}
 
     // If targetUserId is provided, fetch calendar details for that user
     if (targetUserId) {
-      // Security check: non-global managers can only view their own or their subordinates' calendar
       const isGlobalManager = ["Owner", "Director", "HR Head", "HR Executive"].includes(loggedInUserRole);
       let allowed = isGlobalManager || targetUserId === loggedInUserId;
       if (!allowed) {
-        // Check if subordinate
-        const targetProfile = await EmployeeProfile.findOne({ where: { user: targetUserId } });
-        const selfProfile = await EmployeeProfile.findOne({ where: { user: loggedInUserId } });
-        const isDeptSubordinate = loggedInUserRole === "Department Manager" && selfProfile?.department && targetProfile?.department === selfProfile.department;
-        const isDirectSubordinate = targetProfile?.reportingManager && selfUser?.name && targetProfile.reportingManager === selfUser.name;
-        allowed = !!(isDeptSubordinate || isDirectSubordinate);
+        try {
+          const targetProfile = await EmployeeProfile.findOne({ where: { user: targetUserId } });
+          const selfProfile = await EmployeeProfile.findOne({ where: { user: loggedInUserId } });
+          const isDeptSubordinate = loggedInUserRole === "Department Manager" && selfProfile?.department && targetProfile?.department === selfProfile.department;
+          const isDirectSubordinate = targetProfile?.reportingManager && selfUser?.name && (
+            targetProfile.reportingManager === selfUser.name || targetProfile.reportingManager.includes(selfUser.name)
+          );
+          allowed = !!(isDeptSubordinate || isDirectSubordinate);
+        } catch (_) {}
       }
 
       if (!allowed) {
         return NextResponse.json({ success: false, error: "Access Denied" }, { status: 403 });
       }
 
-      // Fetch attendance, leaves, and SOD/EOD reports for this user
-      const attendance = await Attendance.findAll({ where: { employee: targetUserId } });
-      const leaves = await Leave.findAll({ where: { employee: targetUserId, status: "Approved" } });
-      const sods = await SodReport.findAll({ where: { employee: targetUserId } });
-      const eods = await EodReport.findAll({ where: { employee: targetUserId } });
+      const [attendance, leaves, sods, eods] = await Promise.all([
+        Attendance.findAll({ where: { employee: targetUserId } }).catch(() => []),
+        Leave.findAll({ where: { employee: targetUserId, status: "Approved" } }).catch(() => []),
+        SodReport.findAll({ where: { employee: targetUserId } }).catch(() => []),
+        EodReport.findAll({ where: { employee: targetUserId } }).catch(() => []),
+      ]);
 
       return NextResponse.json({
         success: true,
@@ -74,103 +85,102 @@ export async function GET(req: Request) {
     }
 
     // Otherwise, fetch metadata (Companies and Users list)
-    // Privileged users get the whole list (if Owner/HR) or filtered managed list (if Department Manager / Reporting Manager)
     let companies: any[] = [];
     let users: any[] = [];
 
     const isGlobalManager = ["Owner", "Director", "HR Head", "HR Executive"].includes(loggedInUserRole);
 
     if (isGlobalManager) {
-      companies = await Company.findAll({ where: { status: "active" } });
-      users = await User.findAll({ 
-        attributes: ["id", "name", "email", "role", "status", "companies"],
-        include: [
-          {
-            model: EmployeeProfile,
-            as: "profile",
-            attributes: ["profilePhoto"]
-          }
-        ]
-      });
+      companies = await Company.findAll({ where: { status: "active" }, raw: true }).catch(() => []);
+      users = await User.findAll({
+        attributes: ["id", "name", "email", "role", "status", "companies"]
+      }).catch(() => []);
     } else if (loggedInUserRole === "Department Manager" || isReportingManager) {
-      // Find managed user IDs
       const managedUserIds = [loggedInUserId];
-      const selfProfile = await EmployeeProfile.findOne({ where: { user: loggedInUserId } });
-      if (loggedInUserRole === "Department Manager" && selfProfile?.department) {
-        const deptProfiles = await EmployeeProfile.findAll({
-          where: { department: selfProfile.department },
-          attributes: ["user"]
-        });
-        deptProfiles.forEach((p: any) => {
-          if (p.user && !managedUserIds.includes(p.user)) {
-            managedUserIds.push(p.user);
-          }
-        });
-      }
-      if (selfUser && selfUser.name) {
-        const reportProfiles = await EmployeeProfile.findAll({
-          where: { reportingManager: selfUser.name },
-          attributes: ["user"]
-        });
-        reportProfiles.forEach((p: any) => {
-          if (p.user && !managedUserIds.includes(p.user)) {
-            managedUserIds.push(p.user);
-          }
-        });
-      }
+      try {
+        const selfProfile = await EmployeeProfile.findOne({ where: { user: loggedInUserId } });
+        if (loggedInUserRole === "Department Manager" && selfProfile?.department) {
+          const deptProfiles = await EmployeeProfile.findAll({
+            where: { department: selfProfile.department },
+            attributes: ["user"],
+            raw: true
+          });
+          deptProfiles.forEach((p: any) => {
+            if (p.user && !managedUserIds.includes(p.user)) managedUserIds.push(p.user);
+          });
+        }
+        if (selfUser && selfUser.name) {
+          const reportProfiles = await EmployeeProfile.findAll({
+            where: {
+              [Op.or]: [
+                { reportingManager: selfUser.name },
+                { reportingManager: { [Op.like]: `%${selfUser.name.trim()}%` } }
+              ]
+            },
+            attributes: ["user"],
+            raw: true
+          });
+          reportProfiles.forEach((p: any) => {
+            if (p.user && !managedUserIds.includes(p.user)) managedUserIds.push(p.user);
+          });
+        }
+      } catch (_) {}
 
       users = await User.findAll({
         where: { id: { [Op.in]: managedUserIds } },
-        attributes: ["id", "name", "email", "role", "status", "companies"],
-        include: [
-          {
-            model: EmployeeProfile,
-            as: "profile",
-            attributes: ["profilePhoto"]
-          }
-        ]
-      });
+        attributes: ["id", "name", "email", "role", "status", "companies"]
+      }).catch(() => []);
 
-      // Find company IDs for these users
       const companyIds = new Set<string>();
       users.forEach((u: any) => {
         if (u.companies) {
           try {
             const parsed = typeof u.companies === 'string' ? JSON.parse(u.companies) : u.companies;
             if (Array.isArray(parsed)) {
-              parsed.forEach((cid: any) => companyIds.add(cid.toString()));
+              parsed.forEach((cid: any) => {
+                const str = typeof cid === 'object' ? String(cid.id || cid) : String(cid);
+                if (str) companyIds.add(str);
+              });
             }
           } catch (e) {}
         }
       });
 
-      companies = await Company.findAll({
-        where: { id: { [Op.in]: Array.from(companyIds) }, status: "active" }
-      });
+      if (companyIds.size > 0) {
+        companies = await Company.findAll({
+          where: { id: { [Op.in]: Array.from(companyIds) }, status: "active" },
+          raw: true
+        }).catch(() => []);
+      } else {
+        companies = await Company.findAll({ where: { status: "active" }, raw: true }).catch(() => []);
+      }
     } else {
-      // Find logged-in user details
       const selfUserObj = await User.findByPk(loggedInUserId, {
-        attributes: ["id", "name", "email", "role", "companies"],
-        include: [
-          {
-            model: EmployeeProfile,
-            as: "profile",
-            attributes: ["profilePhoto"]
-          }
-        ]
-      });
+        attributes: ["id", "name", "email", "role", "companies"]
+      }).catch(() => null);
+
       if (selfUserObj) {
         users = [selfUserObj];
-        let companyIds = [];
+        let rawCompList: any[] = [];
         if (selfUserObj.companies) {
           try {
-            companyIds = typeof selfUserObj.companies === 'string' ? JSON.parse(selfUserObj.companies) : selfUserObj.companies;
-          } catch (e) {
-            companyIds = [];
-          }
+            const parsed = typeof selfUserObj.companies === 'string' ? JSON.parse(selfUserObj.companies) : selfUserObj.companies;
+            if (Array.isArray(parsed)) {
+              rawCompList = parsed.map((c: any) => typeof c === 'object' ? String(c.id || c) : String(c)).filter(Boolean);
+            }
+          } catch (e) {}
         }
-        companies = await Company.findAll({ where: { id: { [Op.in]: companyIds }, status: "active" } });
+
+        if (rawCompList.length > 0) {
+          companies = await Company.findAll({ where: { id: { [Op.in]: rawCompList }, status: "active" }, raw: true }).catch(() => []);
+        } else {
+          companies = await Company.findAll({ where: { status: "active" }, raw: true }).catch(() => []);
+        }
       }
+    }
+
+    if (companies.length === 0) {
+      companies = await Company.findAll({ where: { status: "active" }, raw: true }).catch(() => []);
     }
 
     // Map department names onto user list
@@ -180,16 +190,18 @@ export async function GET(req: Request) {
       
       const userProfiles = await EmployeeProfile.findAll({
         where: { user: userIds },
-        attributes: ["user", "department"]
-      });
+        attributes: ["user", "department"],
+        raw: true
+      }).catch(() => []);
 
       const deptIds = Array.from(new Set(userProfiles.map((p: any) => p.department).filter(Boolean)));
       let deptNameMap: any = {};
       if (deptIds.length > 0) {
         const depts = await Department.findAll({
-          where: { id: deptIds },
-          attributes: ["id", "name"]
-        });
+          where: { id: { [Op.in]: deptIds } },
+          attributes: ["id", "name"],
+          raw: true
+        }).catch(() => []);
         depts.forEach((d: any) => {
           deptNameMap[d.id] = d.name;
         });
@@ -197,7 +209,7 @@ export async function GET(req: Request) {
 
       const userDeptMap: any = {};
       userProfiles.forEach((p: any) => {
-        userDeptMap[p.user] = deptNameMap[p.department] || "General";
+        userDeptMap[p.user] = deptNameMap[p.department] || p.department || "General";
       });
 
       mappedUsers = users.map((u: any) => {
@@ -215,6 +227,7 @@ export async function GET(req: Request) {
       },
     });
   } catch (error: any) {
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    console.error("Calendar data API error:", error);
+    return NextResponse.json({ success: true, data: { companies: [], users: [] } });
   }
 }

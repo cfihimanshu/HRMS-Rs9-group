@@ -161,18 +161,18 @@ export function ESSDashboard({ user, triggerToast, setActiveTab, toggleModal, st
   return (
     <div className="space-y-7 animate-fade-in text-[#1C1C1A]">
       {/* Top Action Header Bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
         <div>
           <span className="text-[9px] uppercase tracking-widest text-indigo-600 font-bold">Employee Self Service</span>
-          <h1 className="text-2xl font-light text-[#1C1C1A] tracking-wide font-serif" style={{ fontFamily: "'Playfair Display', serif" }}>
+          <h1 className="text-xl sm:text-2xl font-light text-[#1C1C1A] tracking-wide font-serif" style={{ fontFamily: "'Playfair Display', serif" }}>
             Welcome, {user?.name || "Employee"}
           </h1>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3 w-full sm:w-auto">
           {(!stats?.currentUserCompliance?.hasSod) && (
             <button
               onClick={() => toggleModal ? toggleModal("sodModal", true) : setActiveTab?.("attendance")}
-              className="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-lg text-xs font-bold tracking-wider uppercase transition-all shadow-sm flex items-center gap-2"
+              className="flex-1 sm:flex-initial bg-indigo-600 hover:bg-indigo-700 text-white px-4 sm:px-5 py-2 sm:py-2.5 rounded-lg text-xs font-bold tracking-wider uppercase transition-all shadow-sm flex items-center justify-center gap-2"
             >
               <Clock className="w-4 h-4" /> Declare SOD
             </button>
@@ -180,33 +180,33 @@ export function ESSDashboard({ user, triggerToast, setActiveTab, toggleModal, st
           {(stats?.currentUserCompliance?.hasSod && !stats?.currentUserCompliance?.hasEod) && (
             <button
               onClick={() => toggleModal ? toggleModal("eodModal", true) : setActiveTab?.("attendance")}
-              className="bg-[#714B67] hover:bg-[#5F3F56] text-white px-5 py-2.5 rounded-lg text-xs font-bold tracking-wider uppercase transition-all shadow-sm flex items-center gap-2"
+              className="flex-1 sm:flex-initial bg-[#714B67] hover:bg-[#5F3F56] text-white px-4 sm:px-5 py-2 sm:py-2.5 rounded-lg text-xs font-bold tracking-wider uppercase transition-all shadow-sm flex items-center justify-center gap-2"
             >
               <CalendarCheck className="w-4 h-4" /> Submit EOD
             </button>
           )}
           {(stats?.currentUserCompliance?.hasEod) && (
-            <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-4 py-2 rounded-lg border border-emerald-200/80 flex items-center gap-2 shadow-2xs">
+            <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-3.5 sm:px-4 py-2 rounded-lg border border-emerald-200/80 flex items-center gap-2 shadow-2xs">
               <CalendarCheck className="w-4 h-4 text-emerald-600" /> Day Completed
             </span>
           )}
         </div>
       </div>
 
-      {/* 4 Core ESS Metric Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="p-4 border border-[#E8E4DF] rounded-xl bg-[#FCFBF9] shadow-[0_2px_12px_rgba(0,0,0,0.03)] flex flex-col justify-between">
+      {/* 4 Core ESS Metric Cards (2 Per Line on Mobile) */}
+      <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
+        <div className="p-3 sm:p-4 border border-[#E8E4DF] rounded-xl bg-[#FCFBF9] shadow-[0_2px_12px_rgba(0,0,0,0.03)] flex flex-col justify-between">
           <div>
-            <div className="text-[9px] uppercase tracking-wider text-[#8C8880] font-bold flex items-center justify-between">
-              <span>Present Days (This Month)</span>
-              <CalendarCheck className="w-4 h-4 text-indigo-500" />
+            <div className="text-[8px] sm:text-[9px] uppercase tracking-wider text-[#8C8880] font-bold flex items-center justify-between gap-1">
+              <span className="truncate">Present Days</span>
+              <CalendarCheck className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-indigo-500 shrink-0" />
             </div>
-            <div className="text-2xl font-light text-[#1C1C1A] font-serif mt-1 font-mono" style={{ fontFamily: "'Playfair Display', serif" }}>
-              {dynamicStats.presentDays ?? 0} <span className="text-xs text-[#8C8880] font-sans">/ {totalWorkingDaysCount}</span>
+            <div className="text-lg sm:text-2xl font-light text-[#1C1C1A] font-serif mt-1 font-mono" style={{ fontFamily: "'Playfair Display', serif" }}>
+              {dynamicStats.presentDays ?? 0} <span className="text-[10px] sm:text-xs text-[#8C8880] font-sans">/ {totalWorkingDaysCount}</span>
             </div>
           </div>
-          <div className="mt-3 pt-2.5 border-t border-[#E8E4DF]/70 flex items-center justify-between">
-            <span className="text-[9px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-100">
+          <div className="mt-2.5 sm:mt-3 pt-2 sm:pt-2.5 border-t border-[#E8E4DF]/70 flex items-center justify-between">
+            <span className="text-[8px] sm:text-[9px] font-semibold text-emerald-700 bg-emerald-50 px-1.5 sm:px-2 py-0.5 rounded border border-emerald-100 truncate">
               {dynamicStats.attendancePercent ?? 100}% Attendance
             </span>
           </div>
@@ -214,60 +214,60 @@ export function ESSDashboard({ user, triggerToast, setActiveTab, toggleModal, st
 
         <div
           onClick={() => setActiveTab && setActiveTab("leave-request", "Casual Leave")}
-          className="p-4 border border-[#E8E4DF] rounded-xl bg-[#FCFBF9] shadow-[0_2px_12px_rgba(0,0,0,0.03)] flex flex-col justify-between cursor-pointer hover:border-rose-400 hover:scale-[1.01] transition-all group"
+          className="p-3 sm:p-4 border border-[#E8E4DF] rounded-xl bg-[#FCFBF9] shadow-[0_2px_12px_rgba(0,0,0,0.03)] flex flex-col justify-between cursor-pointer hover:border-rose-400 hover:scale-[1.01] transition-all group"
         >
           <div>
-            <div className="text-[9px] uppercase tracking-wider text-[#8C8880] font-bold flex items-center justify-between">
-              <span>Casual Leave Taken</span>
-              <FileText className="w-4 h-4 text-rose-500 group-hover:scale-110 transition-transform" />
+            <div className="text-[8px] sm:text-[9px] uppercase tracking-wider text-[#8C8880] font-bold flex items-center justify-between gap-1">
+              <span className="truncate">Casual Leave (This Month)</span>
+              <FileText className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-rose-500 group-hover:scale-110 transition-transform shrink-0" />
             </div>
-            <div className="text-2xl font-light text-rose-800 font-serif mt-1 font-mono" style={{ fontFamily: "'Playfair Display', serif" }}>
+            <div className="text-lg sm:text-2xl font-light text-rose-800 font-serif mt-1 font-mono" style={{ fontFamily: "'Playfair Display', serif" }}>
               {dynamicStats.casualLeaveTaken ?? 0}
             </div>
           </div>
-          <div className="mt-3 pt-2.5 border-t border-[#E8E4DF]/70 flex items-center justify-between">
-            <span className="text-[9px] font-semibold text-[#5D5B57]">
-              {(dynamicStats.casualLeave ?? 12) - (dynamicStats.casualLeaveTaken ?? 0)} days remaining
+          <div className="mt-2.5 sm:mt-3 pt-2 sm:pt-2.5 border-t border-[#E8E4DF]/70 flex items-center justify-between">
+            <span className="text-[8px] sm:text-[9px] font-semibold text-[#5D5B57] truncate">
+              {(dynamicStats.casualLeave ?? 12) - (dynamicStats.casualLeaveTaken ?? 0)} days left
             </span>
           </div>
         </div>
 
         <div
           onClick={() => setActiveTab && setActiveTab("leave-request", "Sick Leave")}
-          className="p-4 border border-[#E8E4DF] rounded-xl bg-[#FCFBF9] shadow-[0_2px_12px_rgba(0,0,0,0.03)] flex flex-col justify-between cursor-pointer hover:border-emerald-400 hover:scale-[1.01] transition-all group"
+          className="p-3 sm:p-4 border border-[#E8E4DF] rounded-xl bg-[#FCFBF9] shadow-[0_2px_12px_rgba(0,0,0,0.03)] flex flex-col justify-between cursor-pointer hover:border-emerald-400 hover:scale-[1.01] transition-all group"
         >
           <div>
-            <div className="text-[9px] uppercase tracking-wider text-[#8C8880] font-bold flex items-center justify-between">
-              <span>Sick Leave Taken</span>
-              <FileText className="w-4 h-4 text-emerald-500 group-hover:scale-110 transition-transform" />
+            <div className="text-[8px] sm:text-[9px] uppercase tracking-wider text-[#8C8880] font-bold flex items-center justify-between gap-1">
+              <span className="truncate">Sick Leave (This Month)</span>
+              <FileText className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-500 group-hover:scale-110 transition-transform shrink-0" />
             </div>
-            <div className="text-2xl font-light text-emerald-800 font-serif mt-1 font-mono" style={{ fontFamily: "'Playfair Display', serif" }}>
+            <div className="text-lg sm:text-2xl font-light text-emerald-800 font-serif mt-1 font-mono" style={{ fontFamily: "'Playfair Display', serif" }}>
               {dynamicStats.sickLeaveTaken ?? 0}
             </div>
           </div>
-          <div className="mt-3 pt-2.5 border-t border-[#E8E4DF]/70 flex items-center justify-between">
-            <span className="text-[9px] font-semibold text-[#5D5B57]">
-              {(dynamicStats.sickLeave ?? 12) - (dynamicStats.sickLeaveTaken ?? 0)} days remaining
+          <div className="mt-2.5 sm:mt-3 pt-2 sm:pt-2.5 border-t border-[#E8E4DF]/70 flex items-center justify-between">
+            <span className="text-[8px] sm:text-[9px] font-semibold text-[#5D5B57] truncate">
+              {(dynamicStats.sickLeave ?? 12) - (dynamicStats.sickLeaveTaken ?? 0)} days left
             </span>
           </div>
         </div>
 
         <div
           onClick={() => setActiveTab && setActiveTab("tasks", "Pending", user?.name || user?.email)}
-          className="p-4 border border-[#E8E4DF] rounded-xl bg-[#FCFBF9] shadow-[0_2px_12px_rgba(0,0,0,0.03)] flex flex-col justify-between cursor-pointer hover:border-amber-400 hover:scale-[1.01] transition-all group"
+          className="p-3 sm:p-4 border border-[#E8E4DF] rounded-xl bg-[#FCFBF9] shadow-[0_2px_12px_rgba(0,0,0,0.03)] flex flex-col justify-between cursor-pointer hover:border-amber-400 hover:scale-[1.01] transition-all group"
         >
           <div>
-            <div className="text-[9px] uppercase tracking-wider text-[#8C8880] font-bold flex items-center justify-between">
-              <span>Pending Tasks</span>
-              <ListTodo className="w-4 h-4 text-amber-500 group-hover:scale-110 transition-transform" />
+            <div className="text-[8px] sm:text-[9px] uppercase tracking-wider text-[#8C8880] font-bold flex items-center justify-between gap-1">
+              <span className="truncate">Pending Tasks</span>
+              <ListTodo className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-500 group-hover:scale-110 transition-transform shrink-0" />
             </div>
-            <div className="text-2xl font-light text-amber-800 font-serif mt-1 font-mono" style={{ fontFamily: "'Playfair Display', serif" }}>
+            <div className="text-lg sm:text-2xl font-light text-amber-800 font-serif mt-1 font-mono" style={{ fontFamily: "'Playfair Display', serif" }}>
               {pendingCountDisplay}
             </div>
           </div>
-          <div className="mt-3 pt-2.5 border-t border-[#E8E4DF]/70 flex items-center justify-between">
-            <span className={`text-[9px] font-semibold ${pendingCountDisplay > 0 ? "text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-100" : "text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-100"}`}>
-              {pendingCountDisplay > 0 ? `${pendingCountDisplay} tasks requiring action` : "All tasks completed"}
+          <div className="mt-2.5 sm:mt-3 pt-2 sm:pt-2.5 border-t border-[#E8E4DF]/70 flex items-center justify-between">
+            <span className={`text-[8px] sm:text-[9px] font-semibold truncate ${pendingCountDisplay > 0 ? "text-amber-700 bg-amber-50 px-1.5 sm:px-2 py-0.5 rounded border border-amber-100" : "text-emerald-700 bg-emerald-50 px-1.5 sm:px-2 py-0.5 rounded border border-emerald-100"}`}>
+              {pendingCountDisplay > 0 ? `${pendingCountDisplay} tasks action` : "All done"}
             </span>
           </div>
         </div>
@@ -286,7 +286,7 @@ export function ESSDashboard({ user, triggerToast, setActiveTab, toggleModal, st
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 flex-1">
+          <div className="grid grid-cols-2 sm:grid-cols-2 gap-2.5 flex-1">
             {/* Productivity Index */}
             <div className="bg-gradient-to-br from-indigo-50/90 to-purple-50/40 border border-indigo-100/90 rounded-xl p-3 flex flex-col justify-between shadow-2xs">
               <div className="text-[9px] uppercase tracking-wider text-indigo-900 font-extrabold flex items-center justify-between">
@@ -849,16 +849,16 @@ export function ESSDashboard({ user, triggerToast, setActiveTab, toggleModal, st
 
                   <div className="grid grid-cols-2 gap-2 text-xs">
                     <div className="p-3 bg-rose-50 border border-rose-100 rounded-xl text-center">
-                      <div className="text-[9px] uppercase font-bold text-rose-700">Casual Leave Taken</div>
+                      <div className="text-[9px] uppercase font-bold text-rose-700">Casual Leave (This Month)</div>
                       <div className="text-lg font-bold text-rose-900 font-mono mt-1">
-                        {dynamicStats.casualLeaveTaken || 0} / 12 Days
+                        {dynamicStats.casualLeaveTaken || 0} Days Taken
                       </div>
                     </div>
 
                     <div className="p-3 bg-emerald-50 border border-emerald-100 rounded-xl text-center">
-                      <div className="text-[9px] uppercase font-bold text-emerald-700">Sick Leave Taken</div>
+                      <div className="text-[9px] uppercase font-bold text-emerald-700">Sick Leave (This Month)</div>
                       <div className="text-lg font-bold text-emerald-900 font-mono mt-1">
-                        {dynamicStats.sickLeaveTaken || 0} / 12 Days
+                        {dynamicStats.sickLeaveTaken || 0} Days Taken
                       </div>
                     </div>
                   </div>

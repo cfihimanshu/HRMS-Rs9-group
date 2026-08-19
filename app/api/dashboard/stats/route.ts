@@ -374,15 +374,15 @@ export async function GET(req: Request) {
       raw: true
     });
 
-    // Query live SOD, EOD, Fines, AuditLogs, Leaves, Expenses, and AssetRequests tables so any Employee Dashboard activity or data change is included
+    // Query live SOD, EOD, Fines, AuditLogs, Leaves, Expenses, and AssetRequests tables across all companies
     const [recentSods, recentEods, recentFinesList, recentAuditLogs, recentLeaves, recentExpenses, recentAssetRequests] = await Promise.all([
-      SodReport.findAll({ order: [['createdAt', 'DESC']], limit: 25, raw: true }).catch(() => []),
-      EodReport.findAll({ order: [['createdAt', 'DESC']], limit: 25, raw: true }).catch(() => []),
-      AbsentFine.findAll({ order: [['createdAt', 'DESC']], limit: 25, raw: true }).catch(() => []),
-      AuditLog.findAll({ order: [['createdAt', 'DESC']], limit: 30, raw: true }).catch(() => []),
-      Leave.findAll({ order: [['createdAt', 'DESC']], limit: 20, raw: true }).catch(() => []),
-      Expense.findAll({ order: [['createdAt', 'DESC']], limit: 20, raw: true }).catch(() => []),
-      AssetRequest.findAll({ order: [['createdAt', 'DESC']], limit: 20, raw: true }).catch(() => [])
+      SodReport.findAll({ order: [['createdAt', 'DESC']], limit: 50, raw: true }).catch(() => []),
+      EodReport.findAll({ order: [['createdAt', 'DESC']], limit: 50, raw: true }).catch(() => []),
+      AbsentFine.findAll({ order: [['createdAt', 'DESC']], limit: 50, raw: true }).catch(() => []),
+      AuditLog.findAll({ order: [['createdAt', 'DESC']], limit: 100, raw: true }).catch(() => []),
+      Leave.findAll({ order: [['createdAt', 'DESC']], limit: 50, raw: true }).catch(() => []),
+      Expense.findAll({ order: [['createdAt', 'DESC']], limit: 50, raw: true }).catch(() => []),
+      AssetRequest.findAll({ order: [['createdAt', 'DESC']], limit: 50, raw: true }).catch(() => [])
     ]);
 
     const allActorIds = [...new Set([
@@ -391,22 +391,59 @@ export async function GET(req: Request) {
       ...recentEods.map((e: any) => e.employee),
       ...recentFinesList.map((f: any) => f.employee),
       ...recentFinesList.map((f: any) => f.imposedBy),
-      ...recentAuditLogs.map((a: any) => a.user),
+      ...recentAuditLogs.map((a: any) => a.user || a.userId),
       ...recentLeaves.map((l: any) => l.employee),
       ...recentExpenses.map((ex: any) => ex.employee),
       ...recentAssetRequests.map((ar: any) => ar.employee)
-    ].filter(Boolean))];
+    ].filter(Boolean).map(String))];
 
     let userMap: Record<string, { name: string; role: string }> = {};
     if (allActorIds.length > 0) {
-      const users = await User.findAll({ where: { id: { [Op.in]: allActorIds } }, raw: true });
-      users.forEach((u: any) => { if (u && u.id) userMap[String(u.id)] = { name: u.name || "User", role: u.role || "Staff" }; });
+      const [users, profiles] = await Promise.all([
+        User.findAll({
+          where: {
+            [Op.or]: [
+              { id: { [Op.in]: allActorIds } },
+              { email: { [Op.in]: allActorIds } }
+            ]
+          },
+          raw: true
+        }).catch(() => []),
+        EmployeeProfile.findAll({
+          where: {
+            [Op.or]: [
+              { user: { [Op.in]: allActorIds } },
+              { employeeId: { [Op.in]: allActorIds } }
+            ]
+          },
+          raw: true
+        }).catch(() => [])
+      ]);
+
+      const profileMap: Record<string, any> = {};
+      profiles.forEach((p: any) => {
+        if (!p) return;
+        if (p.user) profileMap[String(p.user)] = p;
+        if (p.employeeId) profileMap[String(p.employeeId)] = p;
+      });
+
+      users.forEach((u: any) => {
+        if (!u) return;
+        const prof = profileMap[String(u.id)] || profileMap[String(u.email)];
+        const info = { name: u.name || "User", role: u.role || "Staff" };
+        if (u.id) userMap[String(u.id)] = info;
+        if (u.email) userMap[String(u.email).toLowerCase()] = info;
+        if (u.name) userMap[String(u.name)] = info;
+        if (prof?.employeeId) userMap[String(prof.employeeId)] = info;
+      });
     }
 
     const actList: any[] = dbHrActivities.map((a: any) => {
       let title = a.action ? a.action.replace(/_/g, " ") : "HR Activity";
       const action = a.action;
-      if (action === "CREATE_EMPLOYEE") title = "New Employee Onboarded";
+      if (action === "CREATE_EMPLOYEE") {
+        title = (a.details || "").toLowerCase().includes("bda") || (a.details || "").toLowerCase().includes("sales") ? "New BDA Registered" : "New Employee Onboarded";
+      }
       else if (action === "SCHEDULE_INTERVIEW") title = "Interview Scheduled";
       else if (action === "SUBMIT_INTERVIEW_EVALUATION") title = "Interview Evaluated";
       else if (action === "SUBMIT_VERIFICATION") title = "Document Verified";
@@ -423,9 +460,12 @@ export async function GET(req: Request) {
       else if (action === "TASK_STATUS_CHANGED") title = "Task Status Updated";
       else if (action === "HIRING_APPROVED") title = "Hiring Approved";
       else if (action === "HIRING_REJECTED") title = "Hiring Rejected";
-      else if (action === "EMPLOYEE_UPDATED") title = "Employee Profile Updated";
+      else if (action === "EMPLOYEE_UPDATED" || action === "UPDATE_EMPLOYEE") title = "Employee Directory Updated";
       else if (action === "DEACTIVATE_EMPLOYEE") title = "Employee Deactivated";
       else if (action === "FINE_IMPOSED") title = "Absent Fine Imposed";
+      else if (action === "BDA_LEAD_CREATED") title = "New BDA Lead Added";
+      else if (action === "BDA_LEAD_ASSIGNED") title = "BDA Lead Assigned";
+      else if (action === "BDA_LEAD_UPDATED") title = "BDA Lead Status Updated";
 
       const userInfo = userMap[a.user?.toString()] || (typeof a.user === "object" ? a.user : { name: "System", role: "Staff" });
       const rawTime = a.createdAt || a.timestamp || new Date();
@@ -503,23 +543,43 @@ export async function GET(req: Request) {
 
     // Convert AuditLogs (Employee dashboard & system data changes)
     (recentAuditLogs || []).forEach((audit: any) => {
-      const empId = (audit.user || "").toString();
-      const userInfo = userMap[empId] || { name: "Employee", role: "Staff" };
+      const empId = (audit.user || audit.userId || "").toString();
+      const userInfo = userMap[empId] || { name: audit.userName || "System", role: audit.userRole || "Staff" };
       const ts = resolveTimestamp(audit.createdAt, audit.timestamp);
       let actionTitle = audit.action ? audit.action.replace(/_/g, " ") : "Data Change";
       const actUpper = (audit.action || "").toUpperCase();
-      if (actUpper.includes("UPDATE") || actUpper.includes("EDIT")) actionTitle = "Employee Data Updated";
-      else if (actUpper.includes("CREATE") || actUpper.includes("ADD")) actionTitle = "Employee Record Added";
-      else if (actUpper.includes("DELETE") || actUpper.includes("REMOVE")) actionTitle = "Employee Record Removed";
+      const detLower = (audit.details || "").toLowerCase();
+
+      if (actUpper.includes("CREATE_EMPLOYEE")) {
+        actionTitle = detLower.includes("bda") || detLower.includes("sales") ? "New BDA Registered" : "New Employee Onboarded";
+      } else if (actUpper.includes("UPDATE_EMPLOYEE") || actUpper.includes("EMPLOYEE_UPDATED")) {
+        actionTitle = "Employee Directory Updated";
+      } else if (actUpper.includes("BDA_LEAD_CREATED")) {
+        actionTitle = "New BDA Lead Added";
+      } else if (actUpper.includes("BDA_LEAD_ASSIGNED")) {
+        actionTitle = "BDA Lead Assigned";
+      } else if (actUpper.includes("BDA_LEAD_UPDATED")) {
+        actionTitle = "BDA Lead Status Updated";
+      } else if (actUpper.includes("UPDATE") || actUpper.includes("EDIT")) {
+        actionTitle = "Record Updated";
+      } else if (actUpper.includes("CREATE") || actUpper.includes("ADD")) {
+        actionTitle = "Record Added";
+      } else if (actUpper.includes("DELETE") || actUpper.includes("REMOVE")) {
+        actionTitle = "Record Removed";
+      }
+
+      const cleanDetails = audit.details
+        ? (audit.details.startsWith(userInfo.name) ? audit.details : `${userInfo.name}: ${audit.details}`)
+        : `${userInfo.name} ${audit.action || "updated"} ${audit.entity || "record"}`;
 
       actList.push({
         id: "audit_" + (audit.id || Date.now()),
         title: actionTitle,
-        description: `${userInfo.name} ${audit.details || `${audit.action || "updated"} ${audit.entity || "record"}`}`,
+        description: cleanDetails,
         timestamp: ts,
         action: audit.action || "DATA_CHANGE",
-        actor: userInfo.name,
-        actorRole: userInfo.role || ""
+        actor: userInfo.name || audit.userName || "System",
+        actorRole: userInfo.role || audit.userRole || ""
       });
     });
 
@@ -725,8 +785,8 @@ export async function GET(req: Request) {
     const upcomingHoliday = holidaysList.find(h => h.date >= todayDate) || holidaysList[holidaysList.length - 1];
     const holidayDateStr = upcomingHoliday.date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 
-    // Fetch leaves for this employee to calculate Casual and Sick Leave taken
-    const userLeavesThisMonth = await Leave.findAll({
+    // Fetch leaves for this employee to calculate Casual and Sick Leave taken for current month
+    const userLeavesAll = await Leave.findAll({
       where: {
         employee: { [Op.in]: userKeysForStats }
       },
@@ -735,14 +795,26 @@ export async function GET(req: Request) {
 
     let casualLeaveTaken = 0;
     let sickLeaveTaken = 0;
+    const currMonth = now.getMonth();
+    const currYear = now.getFullYear();
 
-    userLeavesThisMonth.forEach((l: any) => {
-      const lType = String(l.type || l.leaveType || "").toLowerCase();
-      const lDays = Number(l.days || 1) || 1;
-      if (lType.includes("casual") || lType.includes("cl")) {
-        casualLeaveTaken += lDays;
-      } else if (lType.includes("sick") || lType.includes("sl") || lType.includes("medical")) {
-        sickLeaveTaken += lDays;
+    userLeavesAll.forEach((l: any) => {
+      const statusLower = String(l.status || "").toLowerCase();
+      if (statusLower === "rejected") return;
+
+      const dateStr = l.startDate || l.createdAt;
+      if (!dateStr) return;
+      const dObj = new Date(dateStr);
+      if (isNaN(dObj.getTime())) return;
+
+      if (dObj.getMonth() === currMonth && dObj.getFullYear() === currYear) {
+        const lType = String(l.type || l.leaveType || "").toLowerCase();
+        const lDays = Number(l.days || 1) || 1;
+        if (lType.includes("casual") || lType.includes("cl")) {
+          casualLeaveTaken += lDays;
+        } else if (lType.includes("sick") || lType.includes("sl") || lType.includes("medical")) {
+          sickLeaveTaken += lDays;
+        }
       }
     });
     // 8. Department Dashboard metrics

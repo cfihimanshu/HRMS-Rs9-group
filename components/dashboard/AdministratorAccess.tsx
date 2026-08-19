@@ -41,7 +41,9 @@ function UserSearchCombobox({
 
   const filtered = React.useMemo(() => {
     return employees.filter(emp => {
-      if (selectedUserIds.includes(emp.id)) return false;
+      const status = (emp.status || "active").toLowerCase();
+      if (status === "inactive" || status === "archived") return false;
+      if (selectedUserIds.map(String).includes(String(emp.id))) return false;
       if (!query.trim()) return true;
       const q = query.toLowerCase();
       return (
@@ -150,9 +152,13 @@ function MultiEmployeeCheckboxSelect({
   };
 
   const filtered = useMemo(() => {
-    if (!search.trim()) return employees;
+    const activeEmps = employees.filter(emp => {
+      const status = (emp.status || "active").toLowerCase();
+      return status !== "inactive" && status !== "archived";
+    });
+    if (!search.trim()) return activeEmps;
     const q = search.toLowerCase();
-    return employees.filter(emp =>
+    return activeEmps.filter(emp =>
       emp.name?.toLowerCase().includes(q) ||
       emp.email?.toLowerCase().includes(q) ||
       emp.role?.toLowerCase().includes(q)
@@ -170,10 +176,11 @@ function MultiEmployeeCheckboxSelect({
   }, []);
 
   const handleToggle = (id: string) => {
-    if (selectedIds.includes(id)) {
-      onChange(selectedIds.filter(i => i !== id));
+    const strId = String(id);
+    if (selectedIds.map(String).includes(strId)) {
+      onChange(selectedIds.filter(i => String(i) !== strId));
     } else {
-      onChange([...selectedIds, id]);
+      onChange([...selectedIds, strId]);
     }
   };
 
@@ -273,7 +280,7 @@ function MultiEmployeeCheckboxSelect({
           {/* List items with checkboxes */}
           <div className="p-1.5 overflow-y-auto custom-scrollbar divide-y divide-slate-100 flex-1">
             {filtered.map(emp => {
-              const isChecked = selectedIds.includes(emp.id);
+              const isChecked = selectedIds.map(String).includes(String(emp.id));
               return (
                 <label
                   key={emp.id}
@@ -481,7 +488,7 @@ export default function AdministratorAccess({ userRole, triggerToast, sessionUse
     try {
       setLoading(true);
       const [empRes, compRes, deptRes] = await Promise.all([
-        fetch("/api/employees"),
+        fetch("/api/employees?all=true"),
         fetch("/api/companies"),
         fetch("/api/departments")
       ]);
@@ -1403,7 +1410,7 @@ export default function AdministratorAccess({ userRole, triggerToast, sessionUse
                       {(item.approverUsers && item.approverUsers.length > 0) && (
                         <div className="flex flex-wrap gap-2 pt-1">
                           {item.approverUsers.map((uId: string) => {
-                            const targetEmp = employees.find((e: any) => e.id === uId);
+                            const targetEmp = employees.find((e: any) => String(e.id) === String(uId));
                             return (
                               <span
                                 key={uId}

@@ -34,6 +34,14 @@ FieldVisit.init(
       type: DataTypes.STRING, // "lat,lng"
       allowNull: true,
     },
+    opening_photo_url: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    closing_photo_url: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
     vehicle_number: {
       type: DataTypes.STRING,
       allowNull: true,

@@ -9,6 +9,8 @@ import User from "@/models/sequelize/User";
 import { Op } from "sequelize";
 
 import EmployeeProfile from "@/models/sequelize/EmployeeProfile";
+import { logAudit } from "@/lib/audit";
+import { logHRActivity } from "@/lib/hrAudit";
 
 // GET: Fetch BDA leads with optional filtering
 export async function GET(req: Request) {
@@ -30,8 +32,6 @@ export async function GET(req: Request) {
     const search = searchParams.get("search") || "";
     const status = searchParams.get("status") || "";
     const assignedTo = searchParams.get("assignedTo") || "";
-
-    const where: any = {};
 
     // Role-based & Reporting Manager visibility
     let isManagerial = ["owner", "director", "hr head", "hr executive", "department manager", "operation manager", "manager", "dsm", "head"].some(
@@ -59,34 +59,42 @@ export async function GET(req: Request) {
       }
     }
 
+    const whereConditions: any[] = [];
+
     if (!isManagerial) {
       // BDAs / Regular staff see leads assigned to them OR created by them
-      where[Op.or] = [
-        { assignedTo: userId },
-        { assignedBy: userId }
-      ];
+      whereConditions.push({
+        [Op.or]: [
+          { assignedTo: userId },
+          { assignedBy: userId }
+        ]
+      });
     } else if (assignedTo) {
       if (assignedTo === "unassigned") {
-        where.assignedTo = { [Op.or]: [null, ""] };
+        whereConditions.push({ assignedTo: { [Op.or]: [null, ""] } });
       } else {
-        where.assignedTo = assignedTo;
+        whereConditions.push({ assignedTo });
       }
     }
 
     if (status && status !== "All") {
-      where.status = status;
+      whereConditions.push({ status });
     }
 
     if (search) {
-      where[Op.or] = [
-        { name: { [Op.like]: `%${search}%` } },
-        { phone: { [Op.like]: `%${search}%` } },
-        { email: { [Op.like]: `%${search}%` } },
-        { companyName: { [Op.like]: `%${search}%` } },
-        { city: { [Op.like]: `%${search}%` } },
-        { leadId: { [Op.like]: `%${search}%` } },
-      ];
+      whereConditions.push({
+        [Op.or]: [
+          { name: { [Op.like]: `%${search}%` } },
+          { phone: { [Op.like]: `%${search}%` } },
+          { email: { [Op.like]: `%${search}%` } },
+          { companyName: { [Op.like]: `%${search}%` } },
+          { city: { [Op.like]: `%${search}%` } },
+          { leadId: { [Op.like]: `%${search}%` } },
+        ]
+      });
     }
+
+    const where = whereConditions.length > 0 ? { [Op.and]: whereConditions } : {};
 
     const leads = await BdaLead.findAll({
       where,
@@ -332,6 +340,27 @@ export async function POST(req: Request) {
       ? `Imported ${createdLeads.length} new lead(s). ${skippedDuplicatesCount} duplicate lead(s) skipped.`
       : `Successfully imported ${createdLeads.length} lead(s)`;
 
+    if (createdLeads.length > 0) {
+      try {
+        const creatorUserId = (session.user as any).id;
+        const creatorRole = (session.user as any).role || "Employee";
+        await logAudit({
+          userId: creatorUserId,
+          userName: session.user.name,
+          userRole: creatorRole,
+          action: "BDA_LEAD_CREATED",
+          entity: "BdaLead",
+          details: `Added ${createdLeads.length} new BDA lead(s) into sales pipeline`
+        });
+        await logHRActivity({
+          userId: creatorUserId,
+          userRole: creatorRole,
+          action: "BDA_LEAD_CREATED",
+          details: `Added ${createdLeads.length} new BDA lead(s) into sales pipeline`
+        });
+      } catch (_) {}
+    }
+
     return NextResponse.json({
       success: true,
       message: msg,
@@ -420,6 +449,26 @@ export async function PUT(req: Request) {
     }
 
     await lead.save();
+
+    try {
+      const updaterUserId = (session.user as any).id;
+      const updaterRole = (session.user as any).role || "Employee";
+      await logAudit({
+        userId: updaterUserId,
+        userName: session.user.name,
+        userRole: updaterRole,
+        action: "BDA_LEAD_UPDATED",
+        entity: "BdaLead",
+        entityId: String(lead.id),
+        details: `Updated BDA lead '${lead.name || lead.companyName}' status to '${lead.status}'`
+      });
+      await logHRActivity({
+        userId: updaterUserId,
+        userRole: updaterRole,
+        action: "BDA_LEAD_UPDATED",
+        details: `Updated BDA lead '${lead.name || lead.companyName}' status to '${lead.status}'`
+      });
+    } catch (_) {}
 
     // Sync status update, progress notes & attachments to associated TaskLog entry
     try {

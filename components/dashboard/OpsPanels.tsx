@@ -2520,7 +2520,7 @@ export function PerformanceCompliance({
   const [dateFilterType, setDateFilterType] = useState<"overall" | "today" | "yesterday" | "current-month" | "last-month" | "custom">("current-month");
   const [startDateFilter, setStartDateFilter] = useState("");
   const [endDateFilter, setEndDateFilter] = useState("");
-  const [selectedSelfie, setSelectedSelfie] = useState<string | null>(null);
+  const [selectedSelfie, setSelectedSelfie] = useState<any>(null);
 
   // Filters state for Owner
   const [companies, setCompanies] = useState<any[]>([]);
@@ -3145,6 +3145,12 @@ export function PerformanceCompliance({
     if (selectedDept) {
       const department = fullUser?.department || item.employee?.department || "";
       if (department !== selectedDept) return false;
+    }
+    if (selectedUser) {
+      const selUserStr = selectedUser.toString().trim();
+      const itemEmpIdStr = empId.toString().trim();
+      const fullUserIdStr = (fullUser?.id || "").toString().trim();
+      if (itemEmpIdStr !== selUserStr && fullUserIdStr !== selUserStr) return false;
     }
     const status = String(fullUser?.status || item.employee?.status || "active").toLowerCase();
     const inactive = status === "inactive" || status === "archived";
@@ -7034,15 +7040,24 @@ export function PerformanceCompliance({
 
             <div className="flex-1 bg-slate-900 flex items-center justify-center p-4 min-h-[50vh] overflow-hidden">
               {(() => {
-                const url = selectedSelfie.toLowerCase();
+                const raw = selectedSelfie as any;
+                const selfieUrlStr = typeof raw === "string"
+                  ? raw
+                  : (raw && typeof raw === "object"
+                    ? (raw.url || raw.src || raw.path || raw.fileUrl || raw.href || String(raw))
+                    : String(raw || ""));
+
+                const url = selfieUrlStr.toLowerCase();
                 const isPdf = url.includes('application/pdf') || url.includes('.pdf');
                 const isAudio = url.includes('audio/') || url.includes('.mp3') || url.includes('.wav') || url.includes('.m4a') || url.includes('.ogg') || url.includes('.aac') || url.includes('.amr') || url.includes('.opus') || url.includes('.wma');
                 const isVideo = url.includes('video/') || url.includes('.mp4') || url.includes('.webm') || url.includes('.mov') || url.includes('.avi') || url.includes('.mkv');
 
+                const selfieSrc = selfieUrlStr.startsWith("http://localhost/") ? selfieUrlStr.replace("http://localhost/", "http://localhost:3000/") : selfieUrlStr;
+
                 if (isPdf) {
                   return (
                     <iframe
-                      src={selectedSelfie}
+                      src={selfieSrc}
                       className="w-full h-[70vh] rounded bg-white"
                       title="PDF Document"
                     />
@@ -7056,7 +7071,7 @@ export function PerformanceCompliance({
                         <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-slate-300"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path><path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path></svg>
                       </div>
                       <audio controls className="w-full" autoPlay>
-                        <source src={selectedSelfie} />
+                        <source src={selfieSrc} />
                         Your browser does not support the audio element.
                       </audio>
                     </div>
@@ -7066,13 +7081,12 @@ export function PerformanceCompliance({
                 if (isVideo) {
                   return (
                     <video controls className="max-w-full max-h-[70vh] rounded" autoPlay>
-                      <source src={selectedSelfie} />
+                      <source src={selfieSrc} />
                       Your browser does not support the video tag.
                     </video>
                   );
                 }
 
-                const selfieSrc = selectedSelfie.startsWith("http://localhost/") ? selectedSelfie.replace("http://localhost/", "http://localhost:3000/") : selectedSelfie;
                 // Default to Image
                 return (
                   <img
@@ -7824,11 +7838,11 @@ export function LeaveRequestTab({ sessionUser, initialSearchFilter }: { sessionU
 
   return (
     <>
-      <div className="space-y-8 animate-fadeIn text-slate-800">
-        <div className="flex flex-col md:flex-row md:items-start justify-between gap-3">
+      <div className="space-y-6 sm:space-y-8 animate-fadeIn text-slate-800">
+        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
           <div>
-            <h1 className="text-xl font-black text-slate-850">Leave Management Hub</h1>
-            <p className="text-xs text-slate-500 mt-1">
+            <h1 className="text-lg sm:text-xl font-black text-slate-850">Leave Management Hub</h1>
+            <p className="text-xs text-slate-500 mt-0.5 sm:mt-1">
               {canApprove
                 ? "Review, approve, and track department-level or company-level leave applications."
                 : "Submit casual, sick, or unpaid leave requests and track approval history"}
@@ -7837,7 +7851,7 @@ export function LeaveRequestTab({ sessionUser, initialSearchFilter }: { sessionU
           {canImposeFine && (
             <button
               onClick={() => setShowFineModal(true)}
-              className="flex items-center gap-2 bg-rose-600 hover:bg-rose-700 text-white text-xs font-black px-4 py-2 rounded-lg shadow transition-all whitespace-nowrap"
+              className="flex items-center justify-center gap-2 bg-rose-600 hover:bg-rose-700 text-white text-xs font-black px-4 py-2 rounded-lg shadow transition-all whitespace-nowrap w-full sm:w-auto"
             >
               ⚠️ Impose Absent Fine
             </button>
@@ -7845,11 +7859,11 @@ export function LeaveRequestTab({ sessionUser, initialSearchFilter }: { sessionU
         </div>
 
         {/* ── Top Row 2-Column Grid: Apply Leave Form (Left) & Absent Fines History (Right) ── */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6 items-stretch">
 
           {/* Form View for Applicants */}
           {canApply && (
-            <div className="lg:col-span-5 bg-white border border-slate-200 rounded-xl p-6 shadow-sm flex flex-col justify-between">
+            <div className="lg:col-span-5 bg-white border border-slate-200 rounded-xl p-4 sm:p-6 shadow-sm flex flex-col justify-between">
               <div>
                 <h3 className="text-xs font-black tracking-widest text-[#714B67] uppercase font-mono pb-2 border-b border-slate-100 mb-4 flex items-center justify-between">
                   <span>📋 Apply for Leave Request</span>
@@ -7962,7 +7976,7 @@ export function LeaveRequestTab({ sessionUser, initialSearchFilter }: { sessionU
           )}
 
           {/* ── Absent Fines History Section (Right Side - Height Matched with Scrollbar) ── */}
-          <div id="absent-fines-section" className={`${canApply ? "lg:col-span-5" : "lg:col-span-9"} bg-white border border-rose-200/80 rounded-xl p-5 shadow-sm flex flex-col justify-between h-full`}>
+          <div id="absent-fines-section" className={`${canApply ? "lg:col-span-7" : "lg:col-span-12"} bg-white border border-rose-200/80 rounded-xl p-4 sm:p-5 shadow-sm flex flex-col justify-between h-full`}>
             <div>
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-3 border-b border-rose-100 mb-3">
                 <div className="flex items-center gap-2">
@@ -8011,7 +8025,7 @@ export function LeaveRequestTab({ sessionUser, initialSearchFilter }: { sessionU
                 </div>
               ) : (
                 <div className="overflow-y-auto overflow-x-auto custom-scrollbar max-h-[300px]">
-                  <table className="w-full text-left text-xs border-collapse">
+                  <table className="w-full text-left text-xs border-collapse min-w-[480px]">
                     <thead>
                       <tr className="bg-rose-50/80 text-rose-950 text-[10px] uppercase font-black tracking-wider border-b border-rose-100 sticky top-0 bg-rose-50 z-10">
                         {canApprove && <th className="py-2 px-2">Employee</th>}
@@ -8134,8 +8148,8 @@ export function LeaveRequestTab({ sessionUser, initialSearchFilter }: { sessionU
         </div>
 
         {/* List of Leave Requests */}
-        <div className="bg-white border border-[#E8E4DF] rounded-xl p-6 shadow-sm">
-          <h3 className="text-xs font-black tracking-widest text-[#1C1C1A] uppercase font-mono pb-2 border-b border-[#E8E4DF] mb-4 flex flex-wrap items-center justify-between gap-2 relative">
+        <div className="bg-white border border-[#E8E4DF] rounded-xl p-4 sm:p-6 shadow-sm">
+          <h3 className="text-xs font-black tracking-widest text-[#1C1C1A] uppercase font-mono pb-2 border-b border-[#E8E4DF] mb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 relative">
             <div className="flex items-center gap-2 flex-wrap">
               <span style={{ fontFamily: "'Playfair Display', serif" }} className="font-serif text-sm font-bold lowercase first-letter:uppercase text-[#1C1C1A]">
                 📋 {canApprove ? "Leave requests registry" : "Your leave request history"}
@@ -8145,9 +8159,9 @@ export function LeaveRequestTab({ sessionUser, initialSearchFilter }: { sessionU
               </span>
             </div>
 
-            <div className="relative flex items-center gap-2">
+            <div className="relative flex items-center gap-2 flex-wrap">
               {/* Quick Filter Pill Buttons */}
-              <div className="hidden sm:flex items-center gap-1 bg-[#F5F2EC] p-1 rounded-xl border border-[#E8E4DF] text-[10px] font-bold normal-case">
+              <div className="flex flex-wrap items-center gap-1 bg-[#F5F2EC] p-1 rounded-xl border border-[#E8E4DF] text-[10px] font-bold normal-case">
                 <button
                   type="button"
                   onClick={() => {
@@ -8198,118 +8212,120 @@ export function LeaveRequestTab({ sessionUser, initialSearchFilter }: { sessionU
                 )}
               </button>
 
-              {/* Floating Filter Popover */}
+              {/* Floating Filter Popover / Mobile Modal */}
               {showFilters && (
-                <div className="absolute right-0 top-full mt-3 z-50 bg-[#FCFBF9] border border-[#E8E4DF] shadow-[0_25px_60px_-15px_rgba(0,0,0,0.15)] rounded-2xl p-5 w-[320px] space-y-4 text-left normal-case font-sans">
-                  <div className="flex justify-between items-center border-b border-[#E8E4DF] pb-2">
-                    <span className="text-xs font-bold text-[#1C1C1A] tracking-wider uppercase font-mono">Filter Registry</span>
-                    <button
-                      type="button"
-                      onClick={() => setShowFilters(false)}
-                      className="text-[#9C9890] hover:text-[#1C1C1A] transition-colors"
-                    >
-                      <X className="w-4 h-4" />
-                    </button>
-                  </div>
-
-                  <div className="space-y-4 text-xs">
-                    <div>
-                      <label className="text-[9px] uppercase font-bold text-[#9C9890] font-mono tracking-widest block mb-1">Select Employee</label>
-                      <select
-                        className="w-full bg-white border border-[#E8E4DF] rounded-xl p-2.5 text-xs font-bold text-[#1C1C1A] focus:outline-none focus:border-[#C9A84C] focus:ring-1 focus:ring-[#C9A84C]"
-                        value={filterUser}
-                        onChange={(e) => setFilterUser(e.target.value)}
+                <div className="fixed inset-0 bg-black/40 backdrop-blur-xs z-[9999] flex items-center justify-center p-4 sm:p-0 sm:bg-transparent sm:backdrop-blur-none sm:static sm:z-auto" onClick={() => setShowFilters(false)}>
+                  <div className="bg-[#FCFBF9] border border-[#E8E4DF] shadow-[0_25px_60px_-15px_rgba(0,0,0,0.2)] rounded-2xl p-5 w-full max-w-[340px] sm:w-[320px] space-y-4 text-left normal-case font-sans sm:absolute sm:right-0 sm:top-full sm:mt-3 sm:z-50" onClick={(e) => e.stopPropagation()}>
+                    <div className="flex justify-between items-center border-b border-[#E8E4DF] pb-2">
+                      <span className="text-xs font-bold text-[#1C1C1A] tracking-wider uppercase font-mono">Filter Registry</span>
+                      <button
+                        type="button"
+                        onClick={() => setShowFilters(false)}
+                        className="text-[#9C9890] hover:text-[#1C1C1A] transition-colors p-1"
                       >
-                        <option value="">All Employees</option>
-                        {uniqueUsers.map((u) => (
-                          <option key={u.id} value={u.id}>
-                            {u.name}
-                          </option>
-                        ))}
-                      </select>
+                        <X className="w-4 h-4" />
+                      </button>
                     </div>
 
-                    <div>
-                      <label className="text-[9px] uppercase font-bold text-[#9C9890] font-mono tracking-widest block mb-1">Date Period Filter</label>
-                      <select
-                        className="w-full bg-white border border-[#E8E4DF] rounded-xl p-2.5 text-xs font-bold text-[#1C1C1A] focus:outline-none focus:border-[#C9A84C] focus:ring-1 focus:ring-[#C9A84C]"
-                        value={datePreset}
-                        onChange={(e) => {
-                          const val = e.target.value as any;
-                          setDatePreset(val);
-                          if (val !== "custom") {
-                            setFilterStartDate("");
-                            setFilterEndDate("");
-                          }
-                        }}
-                      >
-                        <option value="current_month">📅 Current Month (Default)</option>
-                        <option value="last_month">📅 Last Month</option>
-                        <option value="custom">📅 Custom Date Range</option>
-                        <option value="all">🌐 All Time History</option>
-                      </select>
-                    </div>
-
-                    {datePreset === "custom" && (
-                      <div className="p-3 bg-[#F5F2EC] rounded-xl border border-[#E8E4DF] space-y-3">
-                        <div>
-                          <label className="text-[9px] uppercase font-bold text-[#6B665E] font-mono tracking-widest block mb-1">Start Date (From)</label>
-                          <input
-                            type="date"
-                            className="w-full bg-white border border-[#E8E4DF] rounded-lg p-2 text-xs font-bold text-[#1C1C1A] focus:outline-none focus:border-[#C9A84C]"
-                            value={filterStartDate}
-                            onChange={(e) => setFilterStartDate(e.target.value)}
-                          />
-                        </div>
-                        <div>
-                          <label className="text-[9px] uppercase font-bold text-[#6B665E] font-mono tracking-widest block mb-1">End Date (To)</label>
-                          <input
-                            type="date"
-                            className="w-full bg-white border border-[#E8E4DF] rounded-lg p-2 text-xs font-bold text-[#1C1C1A] focus:outline-none focus:border-[#C9A84C]"
-                            value={filterEndDate}
-                            onChange={(e) => setFilterEndDate(e.target.value)}
-                          />
-                        </div>
+                    <div className="space-y-4 text-xs">
+                      <div>
+                        <label className="text-[9px] uppercase font-bold text-[#9C9890] font-mono tracking-widest block mb-1">Select Employee</label>
+                        <select
+                          className="w-full bg-white border border-[#E8E4DF] rounded-xl p-2.5 text-xs font-bold text-[#1C1C1A] focus:outline-none focus:border-[#C9A84C] focus:ring-1 focus:ring-[#C9A84C]"
+                          value={filterUser}
+                          onChange={(e) => setFilterUser(e.target.value)}
+                        >
+                          <option value="">All Employees</option>
+                          {uniqueUsers.map((u) => (
+                            <option key={u.id} value={u.id}>
+                              {u.name}
+                            </option>
+                          ))}
+                        </select>
                       </div>
-                    )}
 
-                    <div>
-                      <label className="text-[9px] uppercase font-bold text-[#9C9890] font-mono tracking-widest block mb-1">Status</label>
-                      <select
-                        className="w-full bg-white border border-[#E8E4DF] rounded-xl p-2.5 text-xs font-bold text-[#1C1C1A] focus:outline-none focus:border-[#C9A84C] focus:ring-1 focus:ring-[#C9A84C]"
-                        value={filterStatus}
-                        onChange={(e) => setFilterStatus(e.target.value)}
-                      >
-                        <option value="All">All Statuses</option>
-                        <option value="Pending">Pending</option>
-                        <option value="Approved">Approved</option>
-                        <option value="Rejected">Rejected</option>
-                      </select>
+                      <div>
+                        <label className="text-[9px] uppercase font-bold text-[#9C9890] font-mono tracking-widest block mb-1">Date Period Filter</label>
+                        <select
+                          className="w-full bg-white border border-[#E8E4DF] rounded-xl p-2.5 text-xs font-bold text-[#1C1C1A] focus:outline-none focus:border-[#C9A84C] focus:ring-1 focus:ring-[#C9A84C]"
+                          value={datePreset}
+                          onChange={(e) => {
+                            const val = e.target.value as any;
+                            setDatePreset(val);
+                            if (val !== "custom") {
+                              setFilterStartDate("");
+                              setFilterEndDate("");
+                            }
+                          }}
+                        >
+                          <option value="current_month">📅 Current Month (Default)</option>
+                          <option value="last_month">📅 Last Month</option>
+                          <option value="custom">📅 Custom Date Range</option>
+                          <option value="all">🌐 All Time History</option>
+                        </select>
+                      </div>
+
+                      {datePreset === "custom" && (
+                        <div className="p-3 bg-[#F5F2EC] rounded-xl border border-[#E8E4DF] space-y-3">
+                          <div>
+                            <label className="text-[9px] uppercase font-bold text-[#6B665E] font-mono tracking-widest block mb-1">Start Date (From)</label>
+                            <input
+                              type="date"
+                              className="w-full bg-white border border-[#E8E4DF] rounded-lg p-2 text-xs font-bold text-[#1C1C1A] focus:outline-none focus:border-[#C9A84C]"
+                              value={filterStartDate}
+                              onChange={(e) => setFilterStartDate(e.target.value)}
+                            />
+                          </div>
+                          <div>
+                            <label className="text-[9px] uppercase font-bold text-[#6B665E] font-mono tracking-widest block mb-1">End Date (To)</label>
+                            <input
+                              type="date"
+                              className="w-full bg-white border border-[#E8E4DF] rounded-lg p-2 text-xs font-bold text-[#1C1C1A] focus:outline-none focus:border-[#C9A84C]"
+                              value={filterEndDate}
+                              onChange={(e) => setFilterEndDate(e.target.value)}
+                            />
+                          </div>
+                        </div>
+                      )}
+
+                      <div>
+                        <label className="text-[9px] uppercase font-bold text-[#9C9890] font-mono tracking-widest block mb-1">Status</label>
+                        <select
+                          className="w-full bg-white border border-[#E8E4DF] rounded-xl p-2.5 text-xs font-bold text-[#1C1C1A] focus:outline-none focus:border-[#C9A84C] focus:ring-1 focus:ring-[#C9A84C]"
+                          value={filterStatus}
+                          onChange={(e) => setFilterStatus(e.target.value)}
+                        >
+                          <option value="All">All Statuses</option>
+                          <option value="Pending">Pending</option>
+                          <option value="Approved">Approved</option>
+                          <option value="Rejected">Rejected</option>
+                        </select>
+                      </div>
                     </div>
-                  </div>
 
-                  <div className="pt-2 flex gap-3">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setFilterUser("");
-                        setDatePreset("current_month");
-                        setFilterStartDate("");
-                        setFilterEndDate("");
-                        setFilterStatus("All");
-                        setShowFilters(false);
-                      }}
-                      className="flex-1 bg-[#FCFBF9] hover:bg-[#F5F2EC] text-[#6B665E] py-2.5 rounded-xl text-[10px] font-bold transition-all border border-[#E8E4DF]"
-                    >
-                      Reset to Default
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setShowFilters(false)}
-                      className="flex-1 bg-[#C9A84C] hover:bg-[#B5963D] text-[#FCFBF9] py-2.5 rounded-xl text-[10px] font-bold transition-all shadow-md"
-                    >
-                      Apply Filters
-                    </button>
+                    <div className="pt-2 flex gap-3">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setFilterUser("");
+                          setDatePreset("current_month");
+                          setFilterStartDate("");
+                          setFilterEndDate("");
+                          setFilterStatus("All");
+                          setShowFilters(false);
+                        }}
+                        className="flex-1 bg-[#FCFBF9] hover:bg-[#F5F2EC] text-[#6B665E] py-2.5 rounded-xl text-[10px] font-bold transition-all border border-[#E8E4DF]"
+                      >
+                        Reset Default
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setShowFilters(false)}
+                        className="flex-1 bg-[#C9A84C] hover:bg-[#B5963D] text-[#FCFBF9] py-2.5 rounded-xl text-[10px] font-bold transition-all shadow-md"
+                      >
+                        Apply Filters
+                      </button>
+                    </div>
                   </div>
                 </div>
               )}
@@ -8331,7 +8347,7 @@ export function LeaveRequestTab({ sessionUser, initialSearchFilter }: { sessionU
                 </div>
               ) : (
                 <div className="overflow-y-auto overflow-x-auto custom-scrollbar max-h-[360px]">
-                  <table className="w-full text-left text-xs border-collapse">
+                  <table className="w-full text-left text-xs border-collapse min-w-[700px]">
                     <thead>
                       <tr className="border-b border-slate-200 bg-slate-50 text-slate-450 font-black uppercase font-mono tracking-wider sticky top-0 bg-slate-50 z-10">
                         {canApprove && <th className="py-3.5 px-4 text-left">Employee</th>}
