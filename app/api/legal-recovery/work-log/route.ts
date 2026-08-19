@@ -77,7 +77,7 @@ export async function GET(request: Request) {
     if (auth.response) return auth.response;
     const { searchParams } = new URL(request.url);
     const masterId = searchParams.get("masterId");
-    
+
     const isDbConnected = await safeAuthenticate(4000);
     if (!isDbConnected) {
       return NextResponse.json({ success: true, data: [] });
@@ -172,7 +172,7 @@ export async function GET(request: Request) {
       where: whereClause,
       order: [["createdAt", "DESC"]],
     });
-    
+
     return NextResponse.json({ success: true, data: logs });
   } catch (error: any) {
     console.error("GET /api/legal-recovery/work-log error:", error);
@@ -196,7 +196,7 @@ export async function POST(request: Request) {
     // Do not use sync({ alter: true }) here. On wide legacy MySQL tables it
     // rebuilds every VARCHAR column and can exceed InnoDB's 8126-byte row limit.
     await ensureFinancialColumns();
-    
+
     const session = await getServerSession(authOptions);
 
     const empId = data.employeeId || session?.user?.email || "emp_unknown";
@@ -349,11 +349,11 @@ export async function POST(request: Request) {
 
     try {
       await TaskLog.sync();
-      
+
       const countStr = data.noOfCount || "1";
       const categoryStr = data.businessDevOption || data.category || "Legal Recovery Work";
       const subCatStr = data.businessDevSubOption || data.subCategory || "Notice Execution";
-      
+
       const followUpDetailsObj = data.followUpDetails ? (typeof data.followUpDetails === "string" ? JSON.parse(data.followUpDetails) : data.followUpDetails) : null;
       const contactedPersonStr = followUpDetailsObj?.contactedPerson || data.personName || "";
       const billNoStr = data.billNo || followUpDetailsObj?.billNo || "";
@@ -363,7 +363,7 @@ export async function POST(request: Request) {
         : `${categoryStr}: ${subCatStr} (${countStr} Count)`;
 
       const taskDate = targetWorkDateStr;
-      
+
       let taskTime = "10:00 AM";
       if (isBillFollowUp && followUpDetailsObj?.callTime) {
         taskTime = followUpDetailsObj.callTime;
@@ -465,7 +465,7 @@ export async function POST(request: Request) {
       // Dual-sync into LegalRecoverySchedule so task displays in Schedule Work Report for exact work date
       try {
         const LegalRecoverySchedule = (sequelize.models as any).LegalRecoverySchedule || (await import("@/models/sequelize/LegalRecoverySchedule")).default;
-        await LegalRecoverySchedule.sync().catch(() => {});
+        await LegalRecoverySchedule.sync().catch(() => { });
         await LegalRecoverySchedule.create({
           id: "lrs_worklog_" + generatedTaskId,
           employeeId: empId,
@@ -481,8 +481,8 @@ export async function POST(request: Request) {
           status: "Pending",
           createdAt: logDateObj,
           updatedAt: logDateObj
-        }).catch(() => {});
-      } catch (schErr) {}
+        }).catch(() => { });
+      } catch (schErr) { }
 
     } catch (tErr) {
       console.warn("TaskLog creation warning in work-log route:", tErr);
@@ -536,8 +536,8 @@ export async function DELETE(request: Request) {
       await LegalWorkLog.destroy({ where: { id } });
       try {
         await LegalWorkHistory.sync();
-        await LegalWorkHistory.destroy({ where: { id } }).catch(() => {});
-      } catch (hErr) {}
+        await LegalWorkHistory.destroy({ where: { id } }).catch(() => { });
+      } catch (hErr) { }
       return NextResponse.json({ success: true, message: `Work Log #${id} deleted.` });
     }
 
@@ -591,9 +591,9 @@ export async function PUT(request: Request) {
           status: "Completed",
           workDate: entry.workDate || new Date(),
           amount: Number(entry.stageAmount || entry.billAmount || 0) || null
-        }).catch(() => {});
+        }).catch(() => { });
       }
-    } catch (hErr) {}
+    } catch (hErr) { }
 
     return NextResponse.json({ success: true, data: entry });
   } catch (error: any) {

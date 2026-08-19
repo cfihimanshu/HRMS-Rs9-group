@@ -7,6 +7,8 @@ import BdaLead from "@/models/sequelize/BdaLead";
 import TaskLog from "@/models/sequelize/TaskLog";
 import User from "@/models/sequelize/User";
 import { Op } from "sequelize";
+import { logAudit } from "@/lib/audit";
+import { logHRActivity } from "@/lib/hrAudit";
 
 export async function POST(req: Request) {
   try {
@@ -156,6 +158,23 @@ export async function POST(req: Request) {
 
       tasksCreatedCount++;
     }
+
+    try {
+      await logAudit({
+        userId: assignerUserId,
+        userName: session.user.name,
+        userRole: (session.user as any).role,
+        action: "BDA_LEAD_ASSIGNED",
+        entity: "BdaLead",
+        details: `Assigned ${leads.length} BDA Lead(s) to ${bdaName}`
+      });
+      await logHRActivity({
+        userId: assignerUserId,
+        userRole: (session.user as any).role,
+        action: "BDA_LEAD_ASSIGNED",
+        details: `Assigned ${leads.length} BDA Lead(s) to ${bdaName}`
+      });
+    } catch (_) {}
 
     return NextResponse.json({
       success: true,

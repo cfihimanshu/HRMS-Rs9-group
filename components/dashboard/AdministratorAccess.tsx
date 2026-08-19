@@ -1,6 +1,6 @@
 "use client";
 import React, { useState, useEffect, useMemo, useRef } from "react";
-import { Search, Shield, ShieldCheck, ShieldAlert, Key, UserCheck, RefreshCw, CheckSquare, Square, CheckCircle2 } from "lucide-react";
+import { Search, Shield, ShieldCheck, ShieldAlert, Key, UserCheck, RefreshCw, CheckSquare, Square, CheckCircle2, Lock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { normalizeRole } from "@/lib/roles";
 import { CATEGORIES_ORDER, getDynamicMenuCategoriesWithPages } from "@/lib/navigationConfig";
@@ -41,7 +41,9 @@ function UserSearchCombobox({
 
   const filtered = React.useMemo(() => {
     return employees.filter(emp => {
-      if (selectedUserIds.includes(emp.id)) return false;
+      const status = (emp.status || "active").toLowerCase();
+      if (status === "inactive" || status === "archived") return false;
+      if (selectedUserIds.map(String).includes(String(emp.id))) return false;
       if (!query.trim()) return true;
       const q = query.toLowerCase();
       return (
@@ -150,9 +152,13 @@ function MultiEmployeeCheckboxSelect({
   };
 
   const filtered = useMemo(() => {
-    if (!search.trim()) return employees;
+    const activeEmps = employees.filter(emp => {
+      const status = (emp.status || "active").toLowerCase();
+      return status !== "inactive" && status !== "archived";
+    });
+    if (!search.trim()) return activeEmps;
     const q = search.toLowerCase();
-    return employees.filter(emp =>
+    return activeEmps.filter(emp =>
       emp.name?.toLowerCase().includes(q) ||
       emp.email?.toLowerCase().includes(q) ||
       emp.role?.toLowerCase().includes(q)
@@ -170,10 +176,11 @@ function MultiEmployeeCheckboxSelect({
   }, []);
 
   const handleToggle = (id: string) => {
-    if (selectedIds.includes(id)) {
-      onChange(selectedIds.filter(i => i !== id));
+    const strId = String(id);
+    if (selectedIds.map(String).includes(strId)) {
+      onChange(selectedIds.filter(i => String(i) !== strId));
     } else {
-      onChange([...selectedIds, id]);
+      onChange([...selectedIds, strId]);
     }
   };
 
@@ -273,7 +280,7 @@ function MultiEmployeeCheckboxSelect({
           {/* List items with checkboxes */}
           <div className="p-1.5 overflow-y-auto custom-scrollbar divide-y divide-slate-100 flex-1">
             {filtered.map(emp => {
-              const isChecked = selectedIds.includes(emp.id);
+              const isChecked = selectedIds.map(String).includes(String(emp.id));
               return (
                 <label
                   key={emp.id}
@@ -481,7 +488,7 @@ export default function AdministratorAccess({ userRole, triggerToast, sessionUse
     try {
       setLoading(true);
       const [empRes, compRes, deptRes] = await Promise.all([
-        fetch("/api/employees"),
+        fetch("/api/employees?all=true"),
         fetch("/api/companies"),
         fetch("/api/departments")
       ]);
@@ -531,21 +538,28 @@ export default function AdministratorAccess({ userRole, triggerToast, sessionUse
   }, [departments]);
 
   const getEmployeeAccess = (emp: any): string[] => {
-    if (emp.menuAccess && Array.isArray(emp.menuAccess)) {
-      return emp.menuAccess;
+    const empStatus = (emp.status || "active").toLowerCase();
+    if (empStatus === "inactive" || empStatus === "archived") {
+      return [];
     }
-    if (typeof emp.menuAccess === "string") {
+
+    let assignedMenuAccess: string[] | null = null;
+
+    if (Array.isArray(emp.menuAccess)) {
+      assignedMenuAccess = emp.menuAccess;
+    } else if (typeof emp.menuAccess === "string" && emp.menuAccess) {
       try {
         const parsed = JSON.parse(emp.menuAccess);
-        if (Array.isArray(parsed)) return parsed;
+        if (Array.isArray(parsed)) assignedMenuAccess = parsed;
       } catch { }
     }
 
     const role = emp.role || "Employee";
     const systemRole = normalizeRole(role);
-    const roleLower = systemRole.toLowerCase();
+    const roleLower = (systemRole || role || "").toLowerCase();
 
-    if (["owner", "director"].includes(roleLower)) {
+    // 1. Owner & Director always have access to all pages
+    if (["owner", "director"].some(r => roleLower.includes(r))) {
       const allIds: string[] = [];
       menuCategoriesWithPages.forEach(cat => {
         cat.pages.forEach(p => allIds.push(p.id));
@@ -553,56 +567,81 @@ export default function AdministratorAccess({ userRole, triggerToast, sessionUse
       return allIds;
     }
 
-    const defaultIds: string[] = [];
-    const sidebarItems = [
-      { id: "dashboard", roles: ["Owner", "Director"] },
-      { id: "hr-dash", roles: ["Owner", "Director", "HR Head", "HR Executive"] },
-      { id: "dept-dash", roles: ["Owner", "Director", "Department Manager"] },
-      { id: "ess-dashboard", roles: ["Employee"] },
-      { id: "ess-leaves", roles: ["Employee"] },
-      { id: "ess-payroll", roles: ["Owner", "Director", "HR Head", "HR Executive"] },
-      { id: "ess-expenses", roles: ["Owner", "Director", "HR Head", "HR Executive", "Department Manager", "Accounts", "Employee"] },
-      { id: "asset-request", roles: ["Employee", "Owner", "Director", "HR Head", "HR Executive", "Department Manager"] },
-      { id: "hiring", roles: ["Owner", "Director", "HR Head", "HR Executive", "Department Manager", "Accounts"] },
-      { id: "jobs", roles: ["Owner", "Director", "HR Head", "HR Executive"] },
-      { id: "hr-leads", roles: ["Owner", "Director", "HR Head", "HR Executive"] },
-      { id: "business-leads", roles: ["Owner", "Director", "HR Head", "HR Executive"] },
-      { id: "employees", roles: ["Owner", "Director", "HR Head", "HR Executive"] },
-      { id: "bda-directory", roles: ["Owner", "Director", "HR Head", "HR Executive", "Department Manager"] },
-      { id: "bda-leads", roles: ["Owner", "Director", "HR Head", "HR Executive", "Department Manager", "Employee"] },
-      { id: "assets-registry", roles: ["Owner", "Director", "HR Head", "HR Executive"] },
-      { id: "inventory-management", roles: ["Owner"] },
-      { id: "admin-access", roles: ["Owner"] },
-      { id: "document-movement", roles: ["Owner", "Director", "HR Head", "HR Executive", "Department Manager", "IT Admin", "Accounts"] },
-      { id: "vehicle-registry", roles: ["Owner", "Director", "HR Head", "HR Executive", "Department Manager", "IT Admin"] },
-      { id: "legal-recovery", roles: ["Owner"] },
-      { id: "screening", roles: ["Owner", "Director", "HR Head", "HR Executive"] },
-      { id: "interviews", roles: ["Owner", "Director", "HR Head", "HR Executive", "Trainer"] },
-      { id: "verification", roles: ["Owner", "Director", "HR Head", "HR Executive", "RIBP / Risk Officer"] },
-      { id: "onboarding", roles: ["Owner", "Director", "HR Head", "HR Executive"] },
-      { id: "training", roles: ["Owner", "Director", "HR Head", "HR Executive", "Trainer"] },
-      { id: "probation", roles: ["Owner", "Director", "HR Head", "HR Executive", "Trainer"] },
-      { id: "attendance", roles: ["Owner", "Director", "HR Head", "HR Executive", "Department Manager", "Accounts", "Trainer", "IT Admin", "DSM", "RIBP / Risk Officer"] },
-      { id: "tasks", roles: ["Owner", "Director", "HR Head", "HR Executive", "Department Manager", "Accounts", "Trainer", "Employee", "IT Admin", "DSM", "RIBP / Risk Officer"] },
-      { id: "performance", roles: ["Owner", "Director", "HR Head", "HR Executive", "Department Manager", "Employee"] },
-      { id: "live-tracking", roles: ["Owner", "Director", "HR Head", "Department Manager"] },
-      { id: "field-visit", roles: ["Owner", "Director", "HR Head", "HR Executive", "Department Manager", "Employee"] },
-      { id: "leave-request", roles: ["Owner", "Director", "HR Head", "HR Executive", "Department Manager", "Accounts", "Trainer", "Employee", "IT Admin", "DSM", "RIBP / Risk Officer", "Business Associate", "Vendor", "Franchisee", "Territory Partner"] },
-      { id: "associates", roles: ["Owner", "Director", "HR Head", "Franchisee", "Territory Partner", "Business Associate"] },
-      { id: "vendors", roles: ["Owner", "Director", "HR Head", "Accounts", "Vendor"] },
-      { id: "franchise", roles: ["Owner", "Director", "HR Head", "Accounts", "Franchisee", "Territory Partner"] },
-      { id: "grievance", roles: ["Owner", "Director", "HR Head", "HR Executive", "Department Manager", "Accounts", "Trainer", "Business Associate", "Vendor", "Franchisee", "Territory Partner"] },
-      { id: "risks", roles: ["Owner", "Director", "HR Head", "RIBP / Risk Officer"] },
-      { id: "exit", roles: ["Owner", "Director", "HR Head", "Employee"] }
+    const effectivePageIds = new Set<string>();
+
+    // 2. If explicit menuAccess has items, start with those
+    if (assignedMenuAccess && assignedMenuAccess.length > 0) {
+      assignedMenuAccess.forEach(id => effectivePageIds.add(id));
+    } else {
+      // 3. Otherwise calculate default role permissions
+      const sidebarItems = [
+        { id: "dashboard", roles: ["Owner", "Director"] },
+        { id: "hr-dash", roles: ["Owner", "Director", "HR Head", "HR Executive"] },
+        { id: "dept-dash", roles: ["Owner", "Director", "Department Manager"] },
+        { id: "ess-dashboard", roles: ["Employee"] },
+        { id: "ess-leaves", roles: ["Employee"] },
+        { id: "ess-payroll", roles: ["Owner", "Director", "HR Head", "HR Executive"] },
+        { id: "ess-expenses", roles: ["Owner", "Director", "HR Head", "HR Executive", "Department Manager", "Accounts", "Employee"] },
+        { id: "asset-request", roles: ["Employee", "Owner", "Director", "HR Head", "HR Executive", "Department Manager"] },
+        { id: "hiring", roles: ["Owner", "Director", "HR Head", "HR Executive", "Department Manager", "Accounts"] },
+        { id: "jobs", roles: ["Owner", "Director", "HR Head", "HR Executive"] },
+        { id: "hr-leads", roles: ["Owner", "Director", "HR Head", "HR Executive"] },
+        { id: "business-leads", roles: ["Owner", "Director", "HR Head", "HR Executive"] },
+        { id: "employees", roles: ["Owner", "Director", "HR Head", "HR Executive"] },
+        { id: "bda-directory", roles: ["Owner", "Director", "HR Head", "HR Executive", "Department Manager"] },
+        { id: "bda-leads", roles: ["Owner", "Director", "HR Head", "HR Executive", "Department Manager", "Employee", "BDA"] },
+        { id: "assets-registry", roles: ["Owner", "Director", "HR Head", "HR Executive"] },
+        { id: "inventory-management", roles: ["Owner"] },
+        { id: "admin-access", roles: ["Owner", "Director", "Admin"] },
+        { id: "document-movement", roles: ["Owner", "Director", "HR Head", "HR Executive", "Department Manager", "IT Admin", "Accounts", "Admin", "Office Administrator", "Facility Manager"] },
+        { id: "vehicle-registry", roles: ["Owner", "Director", "HR Head", "HR Executive", "Department Manager", "IT Admin"] },
+        { id: "legal-recovery", roles: ["Owner", "Director", "Legal Recovery", "Recovery Manager", "CCO"] },
+        { id: "screening", roles: ["Owner", "Director", "HR Head", "HR Executive"] },
+        { id: "interviews", roles: ["Owner", "Director", "HR Head", "HR Executive", "Trainer"] },
+        { id: "verification", roles: ["Owner", "Director", "HR Head", "HR Executive", "RIBP / Risk Officer"] },
+        { id: "onboarding", roles: ["Owner", "Director", "HR Head", "HR Executive"] },
+        { id: "training", roles: ["Owner", "Director", "HR Head", "HR Executive", "Trainer"] },
+        { id: "probation", roles: ["Owner", "Director", "HR Head", "HR Executive", "Trainer"] },
+        { id: "attendance", roles: ["Owner", "Director", "HR Head", "HR Executive", "Department Manager", "Accounts", "Trainer", "IT Admin", "DSM", "RIBP / Risk Officer"] },
+        { id: "tasks", roles: ["Owner", "Director", "HR Head", "HR Executive", "Department Manager", "Accounts", "Trainer", "Employee", "IT Admin", "DSM", "RIBP / Risk Officer"] },
+        { id: "performance", roles: ["Owner", "Director", "HR Head", "HR Executive", "Department Manager", "Employee"] },
+        { id: "live-tracking", roles: ["Owner", "Director", "HR Head", "Department Manager"] },
+        { id: "field-visit", roles: ["Owner", "Director", "HR Head", "HR Executive", "Department Manager", "Employee"] },
+        { id: "leave-request", roles: ["Owner", "Director", "HR Head", "HR Executive", "Department Manager", "Accounts", "Trainer", "Employee", "IT Admin", "DSM", "RIBP / Risk Officer", "Business Associate", "Vendor", "Franchisee", "Territory Partner"] },
+        { id: "associates", roles: ["Owner", "Director", "HR Head", "Franchisee", "Territory Partner", "Business Associate"] },
+        { id: "vendors", roles: ["Owner", "Director", "HR Head", "Accounts", "Vendor"] },
+        { id: "franchise", roles: ["Owner", "Director", "HR Head", "Accounts", "Franchisee", "Territory Partner"] },
+        { id: "grievance", roles: ["Owner", "Director", "HR Head", "HR Executive", "Department Manager", "Accounts", "Trainer", "Business Associate", "Vendor", "Franchisee", "Territory Partner"] },
+        { id: "risks", roles: ["Owner", "Director", "HR Head", "RIBP / Risk Officer"] },
+        { id: "exit", roles: ["Owner", "Director", "HR Head", "Employee"] }
+      ];
+
+      sidebarItems.forEach(item => {
+        if (item.roles.some(r => roleLower.includes(r.toLowerCase()))) {
+          effectivePageIds.add(item.id);
+        }
+      });
+    }
+
+    // 4. Always include basic ESS self-service default pages accessible to all staff
+    const DEFAULT_ESS_PAGES = [
+      "ess-dashboard",
+      "ess-leaves",
+      "ess-expenses",
+      "asset-request",
+      "tasks",
+      "performance",
+      "field-visit",
+      "leave-request",
+      "exit"
     ];
+    DEFAULT_ESS_PAGES.forEach(id => effectivePageIds.add(id));
 
-    sidebarItems.forEach(item => {
-      if (item.roles.some(r => r.toLowerCase() === roleLower)) {
-        defaultIds.push(item.id);
-      }
-    });
+    if (roleLower.includes("bda") || roleLower.includes("sales") || roleLower.includes("manager")) {
+      effectivePageIds.add("bda-leads");
+    }
 
-    return defaultIds;
+    return Array.from(effectivePageIds);
   };
 
   const displayEmployees = useMemo(() => {
@@ -952,6 +991,8 @@ export default function AdministratorAccess({ userRole, triggerToast, sessionUse
                   <tbody className="divide-y divide-[#E8E4DF] text-xs">
                     {displayEmployees.map((emp) => {
                       const isUserSaving = savingUserId === emp.id;
+                      const empStatus = (emp.status || "active").toLowerCase();
+                      const isInactiveOrArchived = empStatus === "inactive" || empStatus === "archived";
 
                       const isCurrentlyAdmin = emp.employeeProfile?.department?.id === adminDept?.id ||
                         emp.employeeProfile?.department === adminDept?.id ||
@@ -971,11 +1012,25 @@ export default function AdministratorAccess({ userRole, triggerToast, sessionUse
                       const initial = emp.name ? emp.name.charAt(0).toUpperCase() : "?";
 
                       return (
-                        <tr key={emp.id} className={cn("hover:bg-[#FAFAF7]/50 transition-colors", isUserSaving && "opacity-60 pointer-events-none")}>
+                        <tr
+                          key={emp.id}
+                          className={cn(
+                            "transition-colors",
+                            isInactiveOrArchived
+                              ? "bg-rose-50/70 dark:bg-rose-950/20 border-l-4 border-l-rose-500 hover:bg-rose-100/50"
+                              : "hover:bg-[#FAFAF7]/50",
+                            isUserSaving && "opacity-60 pointer-events-none"
+                          )}
+                        >
                           {/* User Info */}
                           <td className="py-4 px-6">
                             <div className="flex items-center gap-3">
-                              <div className="w-8 h-8 rounded-full bg-[#F5F0EA] border border-[#E8E4DF] text-[#5D5B57] flex items-center justify-center font-serif text-sm font-light">
+                              <div className={cn(
+                                "w-8 h-8 rounded-full flex items-center justify-center font-serif text-sm font-light border",
+                                isInactiveOrArchived
+                                  ? "bg-rose-100 border-rose-200 text-rose-700"
+                                  : "bg-[#F5F0EA] border-[#E8E4DF] text-[#5D5B57]"
+                              )}>
                                 {initial}
                               </div>
                               <div>
@@ -986,9 +1041,9 @@ export default function AdministratorAccess({ userRole, triggerToast, sessionUse
                                       Admin
                                     </span>
                                   )}
-                                  {(emp.status || "").toLowerCase() === "inactive" && (
-                                    <span className="px-1.5 py-0.5 rounded bg-rose-50 border border-rose-200 text-rose-600 text-[8px] uppercase tracking-wider font-bold">
-                                      Inactive
+                                  {isInactiveOrArchived && (
+                                    <span className="px-1.5 py-0.5 rounded bg-rose-100 border border-rose-300 text-rose-700 text-[8px] uppercase tracking-wider font-extrabold flex items-center gap-1">
+                                      <Lock className="w-2.5 h-2.5" /> {empStatus}
                                     </span>
                                   )}
                                 </div>
@@ -1004,12 +1059,16 @@ export default function AdministratorAccess({ userRole, triggerToast, sessionUse
                           <td className="py-4 px-4 text-center">
                             <button
                               type="button"
-                              onClick={() => handleToggleAdmin(emp)}
+                              disabled={isInactiveOrArchived}
+                              onClick={() => !isInactiveOrArchived && handleToggleAdmin(emp)}
+                              title={isInactiveOrArchived ? "Access revoked. Employee is Inactive / Archived." : "Toggle Admin Access"}
                               className={cn(
                                 "mx-auto flex items-center justify-center w-8 h-8 rounded-xl border transition-all shadow-sm",
-                                isCurrentlyAdmin
-                                  ? "bg-emerald-50 border-emerald-200 text-emerald-600 hover:bg-emerald-100"
-                                  : "bg-white border-[#E8E4DF] text-[#9C9890] hover:text-[#1C1C1A] hover:bg-[#F5F0EA]/40"
+                                isInactiveOrArchived
+                                  ? "bg-rose-100/50 border-rose-200 text-rose-400 opacity-60 cursor-not-allowed"
+                                  : isCurrentlyAdmin
+                                    ? "bg-emerald-50 border-emerald-200 text-emerald-600 hover:bg-emerald-100"
+                                    : "bg-white border-[#E8E4DF] text-[#9C9890] hover:text-[#1C1C1A] hover:bg-[#F5F0EA]/40"
                               )}
                             >
                               {isCurrentlyAdmin ? <ShieldCheck className="w-4 h-4" /> : <Shield className="w-4 h-4" />}
@@ -1024,12 +1083,16 @@ export default function AdministratorAccess({ userRole, triggerToast, sessionUse
                                 <td key={comp.id} className="py-4 px-4 text-center">
                                   <button
                                     type="button"
-                                    onClick={() => handleToggleCompany(emp, comp.id)}
+                                    disabled={isInactiveOrArchived}
+                                    onClick={() => !isInactiveOrArchived && handleToggleCompany(emp, comp.id)}
+                                    title={isInactiveOrArchived ? "Access revoked for Inactive / Archived users." : ""}
                                     className={cn(
                                       "mx-auto flex items-center justify-center w-6 h-6 rounded-md transition-all",
-                                      isChecked
-                                        ? "text-[#C9A84C] hover:scale-105"
-                                        : "text-[#E8E4DF] hover:text-[#9C9890]"
+                                      isInactiveOrArchived
+                                        ? "text-rose-300 opacity-40 cursor-not-allowed"
+                                        : isChecked
+                                          ? "text-[#C9A84C] hover:scale-105"
+                                          : "text-[#E8E4DF] hover:text-[#9C9890]"
                                     )}
                                   >
                                     {isChecked ? <CheckSquare className="w-4 h-4" /> : <Square className="w-4 h-4" />}
@@ -1052,32 +1115,46 @@ export default function AdministratorAccess({ userRole, triggerToast, sessionUse
                                 <td key={cat} className="py-4 px-2 text-center relative">
                                   <button
                                     type="button"
+                                    disabled={isInactiveOrArchived}
                                     onClick={() => {
+                                      if (isInactiveOrArchived) return;
                                       if (isPopoverOpen) {
                                         setActivePopover(null);
                                       } else {
                                         handleOpenPopover(emp, cat);
                                       }
                                     }}
+                                    title={isInactiveOrArchived ? "Access revoked for Inactive / Archived users." : ""}
                                     className={cn(
                                       "mx-auto flex items-center gap-1.5 px-2 py-1 rounded-lg border transition-all text-[9px] font-bold tracking-wider",
-                                      isAllChecked
-                                        ? "bg-[#C9A84C]/10 border-[#C9A84C] text-[#C9A84C]"
-                                        : isSomeChecked
-                                          ? "bg-[#C9A84C]/5 border-[#C9A84C]/50 text-[#C9A84C]/80"
-                                          : "bg-white border-[#E8E4DF] text-[#9C9890] hover:text-[#1C1C1A] hover:bg-[#F5F0EA]/40"
+                                      isInactiveOrArchived
+                                        ? "bg-rose-100/60 border-rose-200 text-rose-600/90 cursor-not-allowed opacity-80"
+                                        : isAllChecked
+                                          ? "bg-[#C9A84C]/10 border-[#C9A84C] text-[#C9A84C]"
+                                          : isSomeChecked
+                                            ? "bg-[#C9A84C]/5 border-[#C9A84C]/50 text-[#C9A84C]/80"
+                                            : "bg-white border-[#E8E4DF] text-[#9C9890] hover:text-[#1C1C1A] hover:bg-[#F5F0EA]/40"
                                     )}
                                   >
-                                    {isAllChecked ? (
-                                      <CheckSquare className="w-3.5 h-3.5" />
-                                    ) : isSomeChecked ? (
-                                      <div className="w-3.5 h-3.5 border border-current rounded flex items-center justify-center shrink-0">
-                                        <div className="w-2 h-2 bg-current rounded-xs" />
-                                      </div>
+                                    {isInactiveOrArchived ? (
+                                      <>
+                                        <Lock className="w-3.5 h-3.5 text-rose-500" />
+                                        <span>0/{totalCount}</span>
+                                      </>
                                     ) : (
-                                      <Square className="w-3.5 h-3.5" />
+                                      <>
+                                        {isAllChecked ? (
+                                          <CheckSquare className="w-3.5 h-3.5" />
+                                        ) : isSomeChecked ? (
+                                          <div className="w-3.5 h-3.5 border border-current rounded flex items-center justify-center shrink-0">
+                                            <div className="w-2 h-2 bg-current rounded-xs" />
+                                          </div>
+                                        ) : (
+                                          <Square className="w-3.5 h-3.5" />
+                                        )}
+                                        <span>{checkedCount}/{totalCount}</span>
+                                      </>
                                     )}
-                                    <span>{checkedCount}/{totalCount}</span>
                                   </button>
 
                                   {/* Popover Dropdown */}
@@ -1333,7 +1410,7 @@ export default function AdministratorAccess({ userRole, triggerToast, sessionUse
                       {(item.approverUsers && item.approverUsers.length > 0) && (
                         <div className="flex flex-wrap gap-2 pt-1">
                           {item.approverUsers.map((uId: string) => {
-                            const targetEmp = employees.find((e: any) => e.id === uId);
+                            const targetEmp = employees.find((e: any) => String(e.id) === String(uId));
                             return (
                               <span
                                 key={uId}

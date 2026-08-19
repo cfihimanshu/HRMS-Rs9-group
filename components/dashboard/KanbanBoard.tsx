@@ -176,6 +176,9 @@ export default function KanbanBoard({
   const { data: session, status } = useSession();
   const sessionUser = session?.user;
 
+  const userRoleLower = ((sessionUser as any)?.role || "").toLowerCase();
+  const isTopAdmin = ["owner", "director", "hr head"].some(r => userRoleLower.includes(r));
+
   const cleanDescription = (desc: string): string => {
     if (!desc) return "";
     return desc
@@ -722,7 +725,7 @@ export default function KanbanBoard({
           try {
             const parsed = JSON.parse(str);
             return Array.isArray(parsed) && parsed.length > 0 && parsed.some((n: any) => Boolean(n && (typeof n === "string" ? n.trim() : (n.note || n.text))));
-          } catch (e) {}
+          } catch (e) { }
         }
         return true;
       };
@@ -735,7 +738,7 @@ export default function KanbanBoard({
           try {
             const parsed = JSON.parse(str);
             return Array.isArray(parsed) && parsed.length > 0 && parsed.some((p: any) => Boolean(p && (typeof p === "string" ? p.trim() : (p.url || p.src))));
-          } catch (e) {}
+          } catch (e) { }
         }
         return true;
       };
@@ -1341,14 +1344,16 @@ export default function KanbanBoard({
     setDragOverCol(null);
   };
 
-  const [filterUser, setFilterUser] = useState(initialUserFilter || "All");
+  const [filterUser, setFilterUser] = useState<string>(initialUserFilter || "All");
   const [filterDate, setFilterDate] = useState(initialDateFilter || "");
   const [datePreset, setDatePreset] = useState<string>(initialDateFilter ? "custom" : "all");
   const [searchQuery, setSearchQuery] = useState(initialSearchFilter || "");
 
   useEffect(() => {
-    if (initialUserFilter !== undefined) {
-      setFilterUser(initialUserFilter || "All");
+    if (initialUserFilter) {
+      setFilterUser(initialUserFilter);
+    } else {
+      setFilterUser("All");
     }
   }, [initialUserFilter]);
 
@@ -1396,7 +1401,20 @@ export default function KanbanBoard({
     }
   };
 
-  const uniqueUsers = Array.from(new Set(tasks.map(t => (t.employee as any)?.name).filter(Boolean)));
+  const uniqueUsers = Array.from(
+    new Set(
+      tasks
+        .map(t => {
+          const emp = t.employee as any;
+          if (!emp) return null;
+          const name = (emp.name || "").trim();
+          const role = (emp.role || "").toLowerCase();
+          if (role === "owner" || role.includes("owner")) return null;
+          return name;
+        })
+        .filter((name): name is string => Boolean(name))
+    )
+  );
 
   const filteredTasks = tasks.filter(t => {
     const tEmpName = (t.employee as any)?.name?.trim().toLowerCase() || "";
@@ -1654,7 +1672,7 @@ export default function KanbanBoard({
     });
     worksheet["!cols"] = max_widths;
 
-    // Create Summary Sheet
+    // Create Summary Sheet  actual me kya ho raha h ki jis user ki 
     const summaryRows = [
       { Metric: "Total Exported Tasks", Value: filteredTasks.length },
       { Metric: "Pending Tasks", Value: filteredTasks.filter(t => t.status === "Pending").length },
@@ -1942,13 +1960,13 @@ export default function KanbanBoard({
             )}
           </div>
 
-          {uniqueUsers.length > 1 && (
+          {(isTopAdmin || uniqueUsers.length > 1) && uniqueUsers.length > 1 && (
             <select
               className="bg-white border border-slate-200 text-slate-700 text-[10px] font-black uppercase tracking-wider rounded-lg px-3 py-2 focus:outline-none focus:border-[#714B67] shadow-sm cursor-pointer"
               value={filterUser}
               onChange={e => setFilterUser(e.target.value)}
             >
-              <option value="All">All Users</option>
+              <option value="All">{isTopAdmin ? "All Users" : "All Team Members"}</option>
               {uniqueUsers.map((u: any) => (
                 <option key={u} value={u}>{u}</option>
               ))}
@@ -2822,42 +2840,42 @@ export default function KanbanBoard({
                               </div>
                             </div>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                            <div>
-                              <label className="block text-[9px] uppercase tracking-wider text-slate-500 font-black mb-1">Assign To *</label>
-                              <select
-                                required
-                                className="w-full border border-slate-200 rounded-lg px-3 py-2 text-xs font-bold focus:outline-none focus:border-[#714B67] text-slate-700 bg-white"
-                                value={assigneeId}
-                                onChange={e => setAssigneeId(e.target.value)}
-                              >
-                                <option value="">-- Select User --</option>
-                                {companyUsers.map((u: any) => (
-                                  <option key={u.id} value={u.id}>{u.name} ({u.role})</option>
-                                ))}
-                              </select>
-                            </div>
-                            <div>
-                              <div className="grid grid-cols-2 gap-2">
-                                <div>
-                                  <label className="block text-[9px] uppercase tracking-wider text-slate-500 font-black mb-1">Deadline Date</label>
-                                  <input
-                                    type="date"
-                                    className="w-full border border-slate-200 rounded-lg px-2 py-2 text-xs font-bold focus:outline-none focus:border-[#714B67] text-slate-800 bg-white"
-                                    value={deadlineDate}
-                                    onChange={e => setDeadlineDate(e.target.value)}
-                                  />
-                                </div>
-                                <div>
-                                  <label className="block text-[9px] uppercase tracking-wider text-slate-500 font-black mb-1">Deadline Time</label>
-                                  <input
-                                    type="time"
-                                    className="w-full border border-slate-200 rounded-lg px-2 py-2 text-xs font-bold focus:outline-none focus:border-[#714B67] text-slate-800 bg-white"
-                                    value={deadlineTime}
-                                    onChange={e => setDeadlineTime(e.target.value)}
-                                  />
+                              <div>
+                                <label className="block text-[9px] uppercase tracking-wider text-slate-500 font-black mb-1">Assign To *</label>
+                                <select
+                                  required
+                                  className="w-full border border-slate-200 rounded-lg px-3 py-2 text-xs font-bold focus:outline-none focus:border-[#714B67] text-slate-700 bg-white"
+                                  value={assigneeId}
+                                  onChange={e => setAssigneeId(e.target.value)}
+                                >
+                                  <option value="">-- Select User --</option>
+                                  {companyUsers.map((u: any) => (
+                                    <option key={u.id} value={u.id}>{u.name} ({u.role})</option>
+                                  ))}
+                                </select>
+                              </div>
+                              <div>
+                                <div className="grid grid-cols-2 gap-2">
+                                  <div>
+                                    <label className="block text-[9px] uppercase tracking-wider text-slate-500 font-black mb-1">Deadline Date</label>
+                                    <input
+                                      type="date"
+                                      className="w-full border border-slate-200 rounded-lg px-2 py-2 text-xs font-bold focus:outline-none focus:border-[#714B67] text-slate-800 bg-white"
+                                      value={deadlineDate}
+                                      onChange={e => setDeadlineDate(e.target.value)}
+                                    />
+                                  </div>
+                                  <div>
+                                    <label className="block text-[9px] uppercase tracking-wider text-slate-500 font-black mb-1">Deadline Time</label>
+                                    <input
+                                      type="time"
+                                      className="w-full border border-slate-200 rounded-lg px-2 py-2 text-xs font-bold focus:outline-none focus:border-[#714B67] text-slate-800 bg-white"
+                                      value={deadlineTime}
+                                      onChange={e => setDeadlineTime(e.target.value)}
+                                    />
+                                  </div>
                                 </div>
                               </div>
-                            </div>
                             </div>
                           </div>
                         )}
@@ -3150,12 +3168,12 @@ export default function KanbanBoard({
                       const leadStatusVal = selectedTask.leadStatus || selectedTask.callStatus || (selectedTask.description?.match(/Lead Status:\s*([^\n]+)/)?.[1]) || (selectedTask.description?.match(/Status:\s*([^\n]+)/)?.[1]);
                       if (!leadStatusVal) return null;
 
-                      const statusBadgeStyle = 
+                      const statusBadgeStyle =
                         leadStatusVal === "Converted" ? "bg-emerald-50 text-emerald-700 border-emerald-300 ring-1 ring-emerald-400/30" :
-                        leadStatusVal === "Lost" ? "bg-rose-50 text-rose-700 border-rose-300 ring-1 ring-rose-400/30" :
-                        leadStatusVal === "In Progress" ? "bg-blue-50 text-blue-700 border-blue-300 ring-1 ring-blue-400/30" :
-                        leadStatusVal === "Qualified" ? "bg-indigo-50 text-indigo-700 border-indigo-300 ring-1 ring-indigo-400/30" :
-                        "bg-amber-50 text-amber-700 border-amber-300";
+                          leadStatusVal === "Lost" ? "bg-rose-50 text-rose-700 border-rose-300 ring-1 ring-rose-400/30" :
+                            leadStatusVal === "In Progress" ? "bg-blue-50 text-blue-700 border-blue-300 ring-1 ring-blue-400/30" :
+                              leadStatusVal === "Qualified" ? "bg-indigo-50 text-indigo-700 border-indigo-300 ring-1 ring-indigo-400/30" :
+                                "bg-amber-50 text-amber-700 border-amber-300";
 
                       return (
                         <div className="mt-2.5 flex items-center gap-2">

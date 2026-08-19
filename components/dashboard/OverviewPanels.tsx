@@ -140,19 +140,19 @@ export function OwnerDashboard({
     <div className="space-y-8 animate-fade-in text-[#1C1C1A] dark:text-gray-100">
 
       {/* Top Action Header Bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
         <div>
           <span className="text-[9px] uppercase tracking-widest text-indigo-600 font-bold">Command Center</span>
-          <h1 className="text-xl font-light text-[#1C1C1A] dark:text-gray-100 tracking-wide font-serif" style={{ fontFamily: "'Playfair Display', serif" }}>
+          <h1 className="text-lg sm:text-xl font-light text-[#1C1C1A] dark:text-gray-100 tracking-wide font-serif" style={{ fontFamily: "'Playfair Display', serif" }}>
             Enterprise Workspace
           </h1>
         </div>
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3 w-full sm:w-auto">
           {companies && (
             <select
               value={selectedCompanyId || ""}
               onChange={(e) => onCompanyChange?.(e.target.value)}
-              className="text-[10px] uppercase tracking-wider font-semibold px-3 py-2 bg-[#FCFBF9] dark:bg-gray-900 border border-[#E8E4DF] dark:border-gray-700 rounded-lg focus:outline-none focus:border-indigo-500 transition-colors shadow-2xs text-[#1C1C1A] dark:text-gray-100"
+              className="w-full sm:w-auto text-[10px] uppercase tracking-wider font-semibold px-3 py-2 bg-[#FCFBF9] dark:bg-gray-900 border border-[#E8E4DF] dark:border-gray-700 rounded-lg focus:outline-none focus:border-indigo-500 transition-colors shadow-2xs text-[#1C1C1A] dark:text-gray-100"
             >
               <option value="">All Companies</option>
               {companies.map((c) => (
@@ -160,25 +160,27 @@ export function OwnerDashboard({
               ))}
             </select>
           )}
-          <button
-            className="px-4 py-2 border border-[#E8E4DF] dark:border-gray-700 rounded-lg text-xs font-semibold tracking-wider uppercase bg-[#FCFBF9] dark:bg-gray-900 hover:bg-[#F5F0EA] dark:hover:bg-gray-800 text-[#5D5B57] dark:text-gray-300 transition-all flex items-center gap-2"
-            onClick={exportAttendanceReport}
-          >
-            <Download className="w-3.5 h-3.5" /> Export
-          </button>
-          <button
-            className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold tracking-wider uppercase transition-all shadow-sm flex items-center gap-2"
-            onClick={() => triggerToast("Enterprise metrics synchronized successfully")}
-          >
-            <RotateCw className="w-3.5 h-3.5" /> Sync
-          </button>
+          <div className="flex items-center gap-2 w-full sm:w-auto">
+            <button
+              className="flex-1 sm:flex-initial px-3.5 sm:px-4 py-2 border border-[#E8E4DF] dark:border-gray-700 rounded-lg text-xs font-semibold tracking-wider uppercase bg-[#FCFBF9] dark:bg-gray-900 hover:bg-[#F5F0EA] dark:hover:bg-gray-800 text-[#5D5B57] dark:text-gray-300 transition-all flex items-center justify-center gap-2"
+              onClick={exportAttendanceReport}
+            >
+              <Download className="w-3.5 h-3.5" /> Export
+            </button>
+            <button
+              className="flex-1 sm:flex-initial px-3.5 sm:px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold tracking-wider uppercase transition-all shadow-sm flex items-center justify-center gap-2"
+              onClick={() => triggerToast("Enterprise metrics synchronized successfully")}
+            >
+              <RotateCw className="w-3.5 h-3.5" /> Sync
+            </button>
+          </div>
         </div>
       </div>
 
       {/* Hero Greeting Card */}
-      <div className="bg-[#FCFBF9] dark:bg-gray-900 border border-[#E8E4DF] dark:border-gray-800 rounded-xl p-6 md:p-7 shadow-[0_2px_12px_rgba(0,0,0,0.03)] relative overflow-hidden flex flex-col md:flex-row md:items-center justify-between gap-6 transition-colors">
+      <div className="bg-[#FCFBF9] dark:bg-gray-900 border border-[#E8E4DF] dark:border-gray-800 rounded-xl p-4 sm:p-6 md:p-7 shadow-[0_2px_12px_rgba(0,0,0,0.03)] relative overflow-hidden flex flex-col md:flex-row md:items-center justify-between gap-5 md:gap-6 transition-colors">
         <div className="absolute right-0 bottom-0 pointer-events-none opacity-[0.025] text-[#1C1C1A]">
-          <svg className="w-64 h-64" viewBox="0 0 100 100" fill="none" stroke="currentColor" strokeWidth="0.5">
+          <svg className="w-48 h-48 md:w-64 md:h-64" viewBox="0 0 100 100" fill="none" stroke="currentColor" strokeWidth="0.5">
             <circle cx="90" cy="90" r="80" />
             <circle cx="90" cy="90" r="60" />
             <circle cx="90" cy="90" r="40" />
@@ -186,18 +188,18 @@ export function OwnerDashboard({
         </div>
 
         <div className="relative z-10 w-full md:w-1/3">
-          <h1 className="text-2xl md:text-3xl font-light tracking-wide text-[#1C1C1A] dark:text-gray-100 font-serif" style={{ fontFamily: "'Playfair Display', serif" }}>
+          <h1 className="text-xl sm:text-2xl md:text-3xl font-light tracking-wide text-[#1C1C1A] dark:text-gray-100 font-serif" style={{ fontFamily: "'Playfair Display', serif" }}>
             Good morning, {firstName}.
           </h1>
           <div className="h-0.5 w-12 bg-indigo-600 mt-2" />
-          <p className="text-[9px] text-[#8C8880] uppercase tracking-widest mt-3 font-bold">
+          <p className="text-[9px] text-[#8C8880] uppercase tracking-widest mt-2 sm:mt-3 font-bold">
             {new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
           </p>
         </div>
 
-        <div className="relative z-10 w-full md:w-2/3 grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 md:gap-6 sm:divide-x divide-[#E8E4DF] dark:divide-gray-700">
+        <div className="relative z-10 w-full md:w-2/3 grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-4 md:gap-6 divide-y-0 sm:divide-x divide-[#E8E4DF] dark:divide-gray-700">
           <div
-            className="pl-1 sm:pl-3 md:pl-5 sm:first:pl-0 cursor-pointer hover:bg-[#FAF9F5] dark:hover:bg-gray-800 transition-all p-2 rounded-lg group"
+            className="pl-2 sm:pl-3 md:pl-5 sm:first:pl-0 cursor-pointer hover:bg-[#FAF9F5] dark:hover:bg-gray-800 transition-all p-2 rounded-lg group"
             onClick={() => onNavigateTab("employees")}
             title="Click to view Employees Directory"
           >
@@ -222,7 +224,7 @@ export function OwnerDashboard({
           </div>
 
           <div
-            className="pl-1 sm:pl-3 md:pl-5 cursor-pointer hover:bg-[#FAF9F5] dark:hover:bg-gray-800 transition-all p-2 rounded-lg group"
+            className="pl-2 sm:pl-3 md:pl-5 cursor-pointer hover:bg-[#FAF9F5] dark:hover:bg-gray-800 transition-all p-2 rounded-lg group"
             onClick={() => onNavigateTab("tasks")}
             title="Click to view Pending Tasks"
           >
@@ -334,7 +336,7 @@ export function OwnerDashboard({
             </div>
 
             {/* 6 Uniform Core Metric Cards */}
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 sm:gap-3">
               <div
                 className="p-3.5 border border-[#E8E4DF] dark:border-gray-700 rounded-lg bg-white dark:bg-gray-950 cursor-pointer hover:border-indigo-400 hover:bg-[#FAF9F5] dark:hover:bg-gray-800 transition-all group"
                 onClick={() => onNavigateTab("business-leads", "All")}
@@ -443,7 +445,7 @@ export function OwnerDashboard({
                   <button
                     key={i}
                     onClick={() => onNavigateTab(action.tab)}
-                    className="text-[9px] uppercase tracking-wider font-bold p-3 rounded-xl border border-[#E8E4DF] dark:border-gray-700 bg-white dark:bg-gray-950 text-[#4A4844] dark:text-gray-300 hover:bg-[#FAF9F5] dark:hover:bg-gray-800 hover:border-indigo-400 hover:shadow-2xs transition-all text-left cursor-pointer flex flex-col justify-between h-20 group"
+                    className="text-[9px] uppercase tracking-wider font-bold p-2.5 sm:p-3 rounded-xl border border-[#E8E4DF] dark:border-gray-700 bg-white dark:bg-gray-950 text-[#4A4844] dark:text-gray-300 hover:bg-[#FAF9F5] dark:hover:bg-gray-800 hover:border-indigo-400 hover:shadow-2xs transition-all text-left cursor-pointer flex flex-col justify-between h-auto min-h-[76px] sm:h-20 group"
                     title={`Navigate to ${action.name}`}
                   >
                     <div className="w-full flex items-center justify-between">
@@ -475,13 +477,13 @@ export function OwnerDashboard({
       </div>
 
       {showStaffModal && (
-        <div className="fixed inset-0 bg-black/20 z-50 flex justify-center items-center backdrop-blur-md p-4 sm:p-6" onClick={() => setShowStaffModal(false)}>
+        <div className="fixed inset-0 bg-black/20 z-50 flex justify-center items-center backdrop-blur-md p-3 sm:p-6" onClick={() => setShowStaffModal(false)}>
           <div className="bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[85vh] flex flex-col overflow-hidden animate-slideUp" onClick={e => e.stopPropagation()}>
-            <div className="flex justify-between items-center p-6 border-b border-gray-100 bg-[#FCFBF9]">
-              <h2 className="text-xl font-serif text-[#1C1C1A]">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-4 sm:p-6 gap-3 border-b border-gray-100 bg-[#FCFBF9]">
+              <h2 className="text-lg sm:text-xl font-serif text-[#1C1C1A]">
                 Team Roster {staffModalFilter === "present" ? "(Present)" : staffModalFilter === "absent" ? "(Absent)" : ""}
               </h2>
-              <div className="flex items-center gap-4">
+              <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-end">
                 <button
                   onClick={() => { setShowStaffModal(false); onNavigateTab("employees"); }}
                   className="text-xs font-bold text-[#C9A84C] hover:text-[#B3923E] flex items-center gap-1 uppercase tracking-wider transition-colors"
@@ -787,29 +789,29 @@ export function HrDashboard({
   return (
     <div className="space-y-6 animate-fade-in text-slate-800">
       {/* Dashboard Top Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
         <div>
-          <h1 className={`text-2xl font-black tracking-tight ${isDark ? "text-white" : "text-slate-800"}`}>
+          <h1 className={`text-xl sm:text-2xl font-black tracking-tight ${isDark ? "text-white" : "text-slate-800"}`}>
             HR Operations Dashboard
           </h1>
         </div>
-        <div className="flex gap-3">
+        <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-auto">
           <button
             onClick={exportHrReport}
-            className={`px-4 py-2 border rounded-lg text-sm font-medium transition-colors shadow-sm flex items-center gap-2 ${isDark ? "bg-gray-800 border-gray-700 text-gray-300 hover:bg-gray-700" : "bg-white border-slate-200 text-slate-700 hover:bg-slate-50"}`}
+            className={`flex-1 sm:flex-initial px-3.5 sm:px-4 py-2 border rounded-lg text-xs sm:text-sm font-medium transition-colors shadow-sm flex items-center justify-center gap-2 ${isDark ? "bg-gray-800 border-gray-700 text-gray-300 hover:bg-gray-700" : "bg-white border-slate-200 text-slate-700 hover:bg-slate-50"}`}
           >
             <Download className="w-4 h-4" /> Export HR Report
           </button>
           <button
             onClick={() => setShowHiringModal(true)}
-            className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium transition-colors shadow-sm flex items-center gap-2"
+            className="flex-1 sm:flex-initial px-3.5 sm:px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs sm:text-sm font-medium transition-colors shadow-sm flex items-center justify-center gap-2"
           >
             <UserPlus className="w-4 h-4" /> New Hire
           </button>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-2.5 sm:gap-4">
         <StatCard
           title="Today's Interviews"
           value={dynamicInterviewsToday.toString()}
@@ -1416,26 +1418,26 @@ export function DepartmentDashboard({
   };
 
   return (
-    <div className="space-y-6 animate-fade-in">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <div className="space-y-6 animate-fade-in overflow-x-hidden">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
         <div>
-          <h1 className={`text-2xl font-bold tracking-tight ${isDark ? "text-white" : "text-slate-800"}`}>
+          <h1 className={`text-xl sm:text-2xl font-bold tracking-tight ${isDark ? "text-white" : "text-slate-800"}`}>
             Department Head Dashboard
           </h1>
-          <p className={`text-sm mt-1 ${isDark ? "text-gray-400" : "text-slate-500"}`}>
+          <p className={`text-xs sm:text-sm mt-0.5 sm:mt-1 ${isDark ? "text-gray-400" : "text-slate-500"}`}>
             Manager view — team performance, daily tasks, and approvals
           </p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3 w-full sm:w-auto">
           {isGlobal && (
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 w-full sm:w-auto">
               <span className={`text-xs font-bold uppercase tracking-wider ${isDark ? "text-gray-400" : "text-slate-550"}`}>
                 Department:
               </span>
               <select
                 value={selectedDeptId}
                 onChange={(e) => onDeptChange?.(e.target.value)}
-                className={`text-sm border rounded-lg px-3 py-1.5 outline-none font-semibold transition-all shadow-sm ${isDark
+                className={`w-full sm:w-auto text-xs sm:text-sm border rounded-lg px-3 py-1.5 outline-none font-semibold transition-all shadow-sm ${isDark
                   ? "bg-gray-800 border-gray-700 text-gray-200 focus:border-indigo-500"
                   : "bg-white border-slate-200 text-slate-700 focus:border-indigo-500"
                   }`}
@@ -1449,25 +1451,27 @@ export function DepartmentDashboard({
               </select>
             </div>
           )}
-          <button
-            onClick={onRefresh}
-            className="border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 px-3 py-2 rounded-lg text-sm font-semibold transition-colors flex items-center gap-2"
-          >
-            <RotateCw className="w-4 h-4" /> Refresh
-          </button>
-          <button
-            onClick={exportDepartmentReport}
-            disabled={teamList.length === 0}
-            className="border border-emerald-200 bg-emerald-50 hover:bg-emerald-100 disabled:opacity-50 text-emerald-700 px-3 py-2 rounded-lg text-sm font-semibold transition-colors flex items-center gap-2"
-          >
-            <Download className="w-4 h-4" /> Export
-          </button>
-          <button
-            onClick={() => setShowHiringModal(true)}
-            className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors shadow-sm flex items-center gap-2"
-          >
-            <PlusCircle className="w-4 h-4" /> Add Requirement
-          </button>
+          <div className="flex items-center gap-2 w-full sm:w-auto">
+            <button
+              onClick={onRefresh}
+              className="flex-1 sm:flex-initial border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 px-3 py-2 rounded-lg text-xs sm:text-sm font-semibold transition-colors flex items-center justify-center gap-1.5"
+            >
+              <RotateCw className="w-4 h-4" /> Refresh
+            </button>
+            <button
+              onClick={exportDepartmentReport}
+              disabled={teamList.length === 0}
+              className="flex-1 sm:flex-initial border border-emerald-200 bg-emerald-50 hover:bg-emerald-100 disabled:opacity-50 text-emerald-700 px-3 py-2 rounded-lg text-xs sm:text-sm font-semibold transition-colors flex items-center justify-center gap-1.5"
+            >
+              <Download className="w-4 h-4" /> Export
+            </button>
+            <button
+              onClick={() => setShowHiringModal(true)}
+              className="flex-1 sm:flex-initial bg-indigo-600 hover:bg-indigo-700 text-white px-3.5 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-medium transition-colors shadow-sm flex items-center justify-center gap-1.5 shrink-0"
+            >
+              <PlusCircle className="w-4 h-4" /> Add Requirement
+            </button>
+          </div>
         </div>
       </div>
 
@@ -1606,13 +1610,13 @@ export function DepartmentDashboard({
         </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2.5 sm:gap-4">
         <StatCard
           title="Team Members"
           value={deptStats.teamMembers?.toString() || "0"}
           trend="Total active"
           trendUp={true}
-          icon={<Users className="w-5 h-5" />}
+          icon={<Users className="w-5 h-5 text-indigo-500" />}
           dark={isDark}
           onClick={() => setShowTeamModal(true)}
         />
@@ -1621,7 +1625,7 @@ export function DepartmentDashboard({
           value={deptStats.tasksToday?.toString() || "0"}
           trend="Pending completion"
           trendUp={true}
-          icon={<Briefcase className="w-5 h-5" />}
+          icon={<Briefcase className="w-5 h-5 text-amber-500" />}
           dark={isDark}
           onClick={() => onNavigateTodayTasks?.()}
         />
@@ -1630,7 +1634,7 @@ export function DepartmentDashboard({
           value={`${deptStats.sod || 0} / ${deptStats.eod || 0}`}
           trend="Team compliance"
           trendUp={true}
-          icon={<Clock className="w-5 h-5" />}
+          icon={<Clock className="w-5 h-5 text-emerald-500" />}
           dark={isDark}
           onClick={() => setShowSodEodModal(true)}
         />
@@ -1648,7 +1652,7 @@ export function DepartmentDashboard({
           value={`${deptStats.performanceAvg || 0}%`}
           trend="Current quarter"
           trendUp={true}
-          icon={<TrendingUp className="w-5 h-5" />}
+          icon={<TrendingUp className="w-5 h-5 text-teal-500" />}
           dark={isDark}
         />
       </div>
@@ -1657,7 +1661,7 @@ export function DepartmentDashboard({
         <button
           type="button"
           onClick={() => onNavigateTodayTasks?.()}
-          className={`p-5 rounded-xl border shadow-sm text-left transition-colors ${isDark ? "bg-gray-900 border-gray-800 hover:border-indigo-700" : "bg-white border-slate-200 hover:border-indigo-300"}`}
+          className={`p-4 sm:p-5 rounded-xl border shadow-sm text-left transition-colors ${isDark ? "bg-gray-900 border-gray-800 hover:border-indigo-700" : "bg-white border-slate-200 hover:border-indigo-300"}`}
         >
           <div className="flex items-center justify-between">
             <h2 className={`text-sm font-bold ${isDark ? "text-white" : "text-slate-800"}`}>Today's Task Pipeline</h2>
@@ -1671,8 +1675,8 @@ export function DepartmentDashboard({
               ["Overdue", deptStats.overdueTasks || 0, "text-rose-600"]
             ].map(([label, value, color]) => (
               <div key={String(label)}>
-                <div className={`text-lg font-bold ${color}`}>{value}</div>
-                <div className="text-[10px] text-slate-500 mt-0.5">{label}</div>
+                <div className={`text-base sm:text-lg font-bold ${color}`}>{value}</div>
+                <div className="text-[9px] sm:text-[10px] text-slate-500 mt-0.5">{label}</div>
               </div>
             ))}
           </div>
@@ -1684,46 +1688,46 @@ export function DepartmentDashboard({
         <button
           type="button"
           onClick={() => setShowTeamModal(true)}
-          className={`p-5 rounded-xl border shadow-sm text-left transition-colors ${isDark ? "bg-gray-900 border-gray-800 hover:border-emerald-700" : "bg-white border-slate-200 hover:border-emerald-300"}`}
+          className={`p-4 sm:p-5 rounded-xl border shadow-sm text-left transition-colors ${isDark ? "bg-gray-900 border-gray-800 hover:border-emerald-700" : "bg-white border-slate-200 hover:border-emerald-300"}`}
         >
           <div className="flex items-center justify-between">
             <h2 className={`text-sm font-bold ${isDark ? "text-white" : "text-slate-800"}`}>Attendance Today</h2>
             <Users className="w-4 h-4 text-emerald-500" />
           </div>
-          <div className="grid grid-cols-3 gap-3 mt-4">
+          <div className="grid grid-cols-3 gap-2.5 sm:gap-3 mt-4">
             {[
               ["Present", deptStats.presentToday || 0, "bg-emerald-50 text-emerald-700"],
               ["On Leave", deptStats.onLeaveToday || 0, "bg-amber-50 text-amber-700"],
               ["Absent", deptStats.absentToday || 0, "bg-rose-50 text-rose-700"]
             ].map(([label, value, color]) => (
-              <div key={String(label)} className={`rounded-lg p-3 ${color}`}>
-                <div className="text-xl font-bold">{value}</div>
-                <div className="text-[10px] font-semibold mt-1">{label}</div>
+              <div key={String(label)} className={`rounded-lg p-2.5 sm:p-3 ${color}`}>
+                <div className="text-lg sm:text-xl font-bold">{value}</div>
+                <div className="text-[9px] sm:text-[10px] font-semibold mt-1">{label}</div>
               </div>
             ))}
           </div>
         </button>
 
-        <div className={`p-5 rounded-xl border shadow-sm ${isDark ? "bg-gray-900 border-gray-800" : "bg-white border-slate-200"}`}>
+        <div className={`p-4 sm:p-5 rounded-xl border shadow-sm ${isDark ? "bg-gray-900 border-gray-800" : "bg-white border-slate-200"}`}>
           <div className="flex items-center justify-between">
             <h2 className={`text-sm font-bold ${isDark ? "text-white" : "text-slate-800"}`}>Manager Attention</h2>
             <AlertTriangle className="w-4 h-4 text-amber-500" />
           </div>
           <div className="grid grid-cols-2 gap-2 mt-4 text-xs">
-            <button onClick={() => onNavigateTab("ess-leaves")} className="rounded-lg border border-slate-200 p-3 text-left hover:bg-slate-50">
-              <span className="block text-lg font-bold text-indigo-600">{deptStats.pendingLeaves || 0}</span>
+            <button onClick={() => onNavigateTab("ess-leaves")} className="rounded-lg border border-slate-200 p-2.5 sm:p-3 text-left hover:bg-slate-50">
+              <span className="block text-base sm:text-lg font-bold text-indigo-600">{deptStats.pendingLeaves || 0}</span>
               Pending Leaves
             </button>
-            <button onClick={() => onNavigateTab("ess-expenses")} className="rounded-lg border border-slate-200 p-3 text-left hover:bg-slate-50">
-              <span className="block text-lg font-bold text-indigo-600">{deptStats.pendingExpenses || 0}</span>
+            <button onClick={() => onNavigateTab("ess-expenses")} className="rounded-lg border border-slate-200 p-2.5 sm:p-3 text-left hover:bg-slate-50">
+              <span className="block text-base sm:text-lg font-bold text-indigo-600">{deptStats.pendingExpenses || 0}</span>
               Pending Expenses
             </button>
-            <button onClick={() => setShowSodEodModal(true)} className="rounded-lg border border-slate-200 p-3 text-left hover:bg-slate-50">
-              <span className="block text-lg font-bold text-rose-600">{deptStats.sodPending || 0}</span>
+            <button onClick={() => setShowSodEodModal(true)} className="rounded-lg border border-slate-200 p-2.5 sm:p-3 text-left hover:bg-slate-50">
+              <span className="block text-base sm:text-lg font-bold text-rose-600">{deptStats.sodPending || 0}</span>
               SOD Pending
             </button>
-            <button onClick={() => setShowSodEodModal(true)} className="rounded-lg border border-slate-200 p-3 text-left hover:bg-slate-50">
-              <span className="block text-lg font-bold text-rose-600">{deptStats.eodPending || 0}</span>
+            <button onClick={() => setShowSodEodModal(true)} className="rounded-lg border border-slate-200 p-2.5 sm:p-3 text-left hover:bg-slate-50">
+              <span className="block text-base sm:text-lg font-bold text-rose-600">{deptStats.eodPending || 0}</span>
               EOD Pending
             </button>
           </div>
@@ -1732,10 +1736,10 @@ export function DepartmentDashboard({
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6">
-          <div className={`p-5 rounded-xl border shadow-sm ${isDark ? "bg-gray-900 border-gray-800" : "bg-white border-slate-200"}`}>
+          <div className={`p-4 sm:p-5 rounded-xl border shadow-sm ${isDark ? "bg-gray-900 border-gray-800" : "bg-white border-slate-200"}`}>
             <div className="flex items-center justify-between mb-4">
               <div>
-                <h2 className={`text-lg font-bold ${isDark ? "text-white" : "text-slate-800"}`}>Team Workload Today</h2>
+                <h2 className={`text-base sm:text-lg font-bold ${isDark ? "text-white" : "text-slate-800"}`}>Team Workload Today</h2>
                 <p className="text-xs text-slate-500 mt-0.5">Overdue and high-workload employees appear first</p>
               </div>
               <button onClick={() => setShowTeamModal(true)} className="text-xs font-bold text-indigo-600 hover:text-indigo-700">View all</button>
@@ -1743,37 +1747,39 @@ export function DepartmentDashboard({
             {teamWorkload.length === 0 ? (
               <div className="py-8 text-center text-sm text-slate-400">No team data available for this department.</div>
             ) : (
-              <div className="divide-y divide-slate-100">
-                {teamWorkload.map((member: any) => {
-                  const completion = member.tasksTotal
-                    ? Math.round(((member.tasksCompleted || 0) / member.tasksTotal) * 100)
-                    : 0;
-                  return (
-                    <div key={member.id} className="grid grid-cols-[minmax(150px,1fr)_minmax(120px,1fr)_70px_80px] items-center gap-3 py-3 text-xs">
-                      <div className="min-w-0">
-                        <div className={`font-bold truncate ${isDark ? "text-gray-100" : "text-slate-700"}`}>{member.name}</div>
-                        <div className="text-[10px] text-slate-400 truncate">{member.designation || member.role || "Team member"}</div>
-                      </div>
-                      <div>
-                        <div className={`h-1.5 rounded-full overflow-hidden ${isDark ? "bg-gray-800" : "bg-slate-100"}`}>
-                          <div className="h-full bg-indigo-500 rounded-full" style={{ width: `${Math.min(100, completion)}%` }} />
+              <div className="overflow-x-auto custom-scrollbar">
+                <div className="min-w-[460px] divide-y divide-slate-100">
+                  {teamWorkload.map((member: any) => {
+                    const completion = member.tasksTotal
+                      ? Math.round(((member.tasksCompleted || 0) / member.tasksTotal) * 100)
+                      : 0;
+                    return (
+                      <div key={member.id} className="grid grid-cols-[minmax(140px,1fr)_minmax(110px,1fr)_70px_80px] items-center gap-3 py-3 text-xs">
+                        <div className="min-w-0">
+                          <div className={`font-bold truncate ${isDark ? "text-gray-100" : "text-slate-700"}`}>{member.name}</div>
+                          <div className="text-[10px] text-slate-400 truncate">{member.designation || member.role || "Team member"}</div>
                         </div>
-                        <div className="text-[10px] text-slate-400 mt-1">{member.tasksCompleted || 0}/{member.tasksTotal || 0} completed</div>
+                        <div>
+                          <div className={`h-1.5 rounded-full overflow-hidden ${isDark ? "bg-gray-800" : "bg-slate-100"}`}>
+                            <div className="h-full bg-indigo-500 rounded-full" style={{ width: `${Math.min(100, completion)}%` }} />
+                          </div>
+                          <div className="text-[10px] text-slate-400 mt-1">{member.tasksCompleted || 0}/{member.tasksTotal || 0} completed</div>
+                        </div>
+                        <span className={`font-bold ${member.tasksOverdue ? "text-rose-600" : "text-slate-400"}`}>
+                          {member.tasksOverdue || 0} overdue
+                        </span>
+                        <span className={`text-[10px] font-bold text-center px-2 py-1 rounded-full ${member.attendanceStatus === "Present"
+                            ? "bg-emerald-50 text-emerald-700"
+                            : member.attendanceStatus === "On Leave"
+                              ? "bg-amber-50 text-amber-700"
+                              : "bg-rose-50 text-rose-700"
+                          }`}>
+                          {member.attendanceStatus || "Absent"}
+                        </span>
                       </div>
-                      <span className={`font-bold ${member.tasksOverdue ? "text-rose-600" : "text-slate-400"}`}>
-                        {member.tasksOverdue || 0} overdue
-                      </span>
-                      <span className={`text-[10px] font-bold text-center px-2 py-1 rounded-full ${member.attendanceStatus === "Present"
-                          ? "bg-emerald-50 text-emerald-700"
-                          : member.attendanceStatus === "On Leave"
-                            ? "bg-amber-50 text-amber-700"
-                            : "bg-rose-50 text-rose-700"
-                        }`}>
-                        {member.attendanceStatus || "Absent"}
-                      </span>
-                    </div>
-                  );
-                })}
+                    );
+                  })}
+                </div>
               </div>
             )}
           </div>

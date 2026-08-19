@@ -459,58 +459,42 @@ export async function GET(req: Request) {
       ];
     }
 
-    // Owner & Director see all tasks across all departments/companies.
-    // Managers (Department Manager or Reporting Manager) see their own tasks, tasks of their subordinates, tasks of their department, and forwarded tasks.
+    // Owner, Director & HR Head see all tasks across all departments/companies.
+    // For all other users, task access is strictly limited to:
+    // 1. Their own tasks
+    // 2. Tasks of employees who have them set as Reporting Manager in Employee Directory (EmployeeProfile.reportingManager)
+    // 3. Tasks assigned by them or forwarded to them
     const roleLower = userRole.toLowerCase();
-    const isTopAdmin = ["owner", "director"].includes(roleLower);
+    const isTopAdmin = ["owner", "director", "hr head"].some(r => roleLower.includes(r));
 
     if (!isTopAdmin) {
       const managedUserIds = [userId];
-      const loggedInProfile = await EmployeeProfile.findOne({ where: { user: userId } });
       const userName = session.user.name;
+      const userEmail = session.user.email;
 
-      const promises: Promise<any>[] = [];
-      if ((roleLower.includes("manager") || roleLower.includes("head") || roleLower.includes("dsm")) && loggedInProfile?.department) {
-        promises.push(
-          EmployeeProfile.findAll({
-            where: { department: loggedInProfile.department },
-            attributes: ["user"],
-            raw: true
-          })
-        );
-      } else {
-        promises.push(Promise.resolve([]));
+      const orConditions: any[] = [];
+      if (userName && userName.trim()) {
+        orConditions.push({ reportingManager: userName.trim() });
+        orConditions.push({ reportingManager: { [Op.like]: `%${userName.trim()}%` } });
+      }
+      if (userEmail && userEmail.trim()) {
+        orConditions.push({ reportingManager: userEmail.trim() });
+        orConditions.push({ reportingManager: { [Op.like]: `%${userEmail.trim()}%` } });
       }
 
-      if (userName) {
-        promises.push(
-          EmployeeProfile.findAll({
-            where: {
-              [Op.or]: [
-                { reportingManager: userName },
-                { reportingManager: { [Op.like]: `%${userName.trim()}%` } }
-              ]
-            },
-            attributes: ["user"],
-            raw: true
-          })
-        );
-      } else {
-        promises.push(Promise.resolve([]));
+      if (orConditions.length > 0) {
+        const reportProfiles = await EmployeeProfile.findAll({
+          where: { [Op.or]: orConditions },
+          attributes: ["user"],
+          raw: true
+        });
+
+        reportProfiles.forEach((p: any) => {
+          if (p.user && !managedUserIds.includes(p.user)) {
+            managedUserIds.push(p.user);
+          }
+        });
       }
-
-      const [deptProfiles, reportProfiles] = await Promise.all(promises);
-
-      deptProfiles.forEach((p: any) => {
-        if (p.user && !managedUserIds.includes(p.user)) {
-          managedUserIds.push(p.user);
-        }
-      });
-      reportProfiles.forEach((p: any) => {
-        if (p.user && !managedUserIds.includes(p.user)) {
-          managedUserIds.push(p.user);
-        }
-      });
 
       query[Op.or] = [
         { employee: { [Op.in]: managedUserIds } },

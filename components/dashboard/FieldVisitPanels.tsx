@@ -81,6 +81,32 @@ const getVisitPhotoUrls = (visit: any): string[] => {
   return Array.from(new Set(urls.filter(Boolean)));
 };
 
+const getVisitOpeningPhoto = (visit: any): string | null => {
+  if (!visit) return null;
+  if (visit.opening_photo_url) return normalizePhotoUrl(visit.opening_photo_url);
+  if (visit.openingPhotoUrl) return normalizePhotoUrl(visit.openingPhotoUrl);
+  if (visit.start_photo_url) return normalizePhotoUrl(visit.start_photo_url);
+  const photos = getVisitPhotoUrls(visit);
+  return photos.length > 0 ? photos[0] : null;
+};
+
+const getVisitClosingPhoto = (visit: any): string | null => {
+  if (!visit || visit.status !== "Closed") return null;
+  if (visit.closing_photo_url) return normalizePhotoUrl(visit.closing_photo_url);
+  if (visit.closingPhotoUrl) return normalizePhotoUrl(visit.closingPhotoUrl);
+  if (visit.end_photo_url) return normalizePhotoUrl(visit.end_photo_url);
+  const photos = getVisitPhotoUrls(visit);
+  const opening = getVisitOpeningPhoto(visit);
+  if (photos.length > 1) {
+    const last = photos[photos.length - 1];
+    if (last !== opening) return last;
+  }
+  if (photos.length === 1 && opening && photos[0] !== opening) {
+    return photos[0];
+  }
+  return null;
+};
+
 export function FieldVisitLogs({ sessionUser, triggerToast }: FieldVisitLogsProps) {
   const [visits, setVisits] = useState<any[]>([]);
   const [activeVisit, setActiveVisit] = useState<any | null>(null);
@@ -1082,6 +1108,24 @@ export function FieldVisitLogs({ sessionUser, triggerToast }: FieldVisitLogsProp
                               <MapPin className="w-3.5 h-3.5" /> Start Location
                             </a>
                           )}
+                          {(() => {
+                            const openingPhoto = getVisitOpeningPhoto(visit);
+                            if (!openingPhoto) return null;
+                            return (
+                              <a
+                                href={openingPhoto}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="mt-2 block relative group w-14 h-14 rounded-lg overflow-hidden border border-slate-200 shadow-sm bg-slate-100"
+                                title="View Opening Odometer Photo"
+                              >
+                                <img src={openingPhoto} alt="Start Odometer" className="w-full h-full object-cover" />
+                                <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all">
+                                  <Eye className="w-3.5 h-3.5 text-white" />
+                                </div>
+                              </a>
+                            );
+                          })()}
                         </div>
                         <div>
                           <div className="font-bold text-slate-450 uppercase tracking-wide">Closing Details</div>
@@ -1099,6 +1143,24 @@ export function FieldVisitLogs({ sessionUser, triggerToast }: FieldVisitLogsProp
                                   <MapPin className="w-3.5 h-3.5" /> End Location
                                 </a>
                               )}
+                              {(() => {
+                                const closingPhoto = getVisitClosingPhoto(visit);
+                                if (!closingPhoto) return null;
+                                return (
+                                  <a
+                                    href={closingPhoto}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="mt-2 block relative group w-14 h-14 rounded-lg overflow-hidden border border-slate-200 shadow-sm bg-slate-100"
+                                    title="View Closing Odometer Photo"
+                                  >
+                                    <img src={closingPhoto} alt="Closing Odometer" className="w-full h-full object-cover" />
+                                    <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all">
+                                      <Eye className="w-3.5 h-3.5 text-white" />
+                                    </div>
+                                  </a>
+                                );
+                              })()}
                             </>
                           ) : (
                             <div className="text-slate-400 italic mt-1">Visit Active</div>
@@ -1106,29 +1168,6 @@ export function FieldVisitLogs({ sessionUser, triggerToast }: FieldVisitLogsProp
                         </div>
                       </div>
 
-                      {/* Display Photos */}
-                      {(() => {
-                        const photos = getVisitPhotoUrls(visit);
-                        if (photos.length === 0) return null;
-                        return (
-                          <div className="flex gap-2 mt-3 pt-3 border-t border-dashed border-slate-200 dark:border-gray-700">
-                            {photos.map((url: string, index: number) => (
-                              <a 
-                                key={index}
-                                href={url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="relative group block rounded border border-slate-250 bg-white"
-                              >
-                                <img src={url} alt="Odometer" className="w-12 h-12 object-cover rounded" />
-                                <div className="absolute inset-0 bg-[#070810]/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all rounded">
-                                  <Eye className="w-3 h-3 text-white" />
-                                </div>
-                              </a>
-                            ))}
-                          </div>
-                        );
-                      })()}
 
                       {/* Display Claimed Expenses */}
                       {(() => {
@@ -1407,26 +1446,35 @@ export function FieldVisitLogs({ sessionUser, triggerToast }: FieldVisitLogsProp
 
                                       {/* Photos */}
                                       {(() => {
-                                        const photos = getVisitPhotoUrls(visit);
-                                        if (photos.length === 0) return null;
+                                        const openingPhoto = getVisitOpeningPhoto(visit);
+                                        const closingPhoto = getVisitClosingPhoto(visit);
+                                        if (!openingPhoto && !closingPhoto) return null;
                                         return (
                                           <div>
                                             <h4 className="font-bold text-[10px] uppercase text-slate-400 mb-2">Odometer Proofs</h4>
-                                            <div className="flex gap-2">
-                                              {photos.map((url: string, index: number) => (
-                                                <a 
-                                                  key={index}
-                                                  href={url}
-                                                  target="_blank"
-                                                  rel="noopener noreferrer"
-                                                  className="relative group block rounded border border-slate-200 dark:border-gray-700 bg-white"
-                                                >
-                                                  <img src={url} alt="Odometer" className="w-12 h-12 object-cover rounded" />
-                                                  <div className="absolute inset-0 bg-[#070810]/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all rounded">
-                                                    <Eye className="w-3.5 h-3.5 text-white" />
-                                                  </div>
-                                                </a>
-                                              ))}
+                                            <div className="flex gap-3 items-center">
+                                              {openingPhoto && (
+                                                <div className="text-center">
+                                                  <span className="block text-[9px] font-bold text-slate-400 mb-1 uppercase">Start Photo</span>
+                                                  <a href={openingPhoto} target="_blank" rel="noopener noreferrer" className="relative group block rounded border border-slate-200 dark:border-gray-700 bg-white overflow-hidden">
+                                                    <img src={openingPhoto} alt="Start Odometer" className="w-14 h-14 object-cover" />
+                                                    <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all">
+                                                      <Eye className="w-3.5 h-3.5 text-white" />
+                                                    </div>
+                                                  </a>
+                                                </div>
+                                              )}
+                                              {closingPhoto && (
+                                                <div className="text-center">
+                                                  <span className="block text-[9px] font-bold text-slate-400 mb-1 uppercase">Closing Photo</span>
+                                                  <a href={closingPhoto} target="_blank" rel="noopener noreferrer" className="relative group block rounded border border-slate-200 dark:border-gray-700 bg-white overflow-hidden">
+                                                    <img src={closingPhoto} alt="Closing Odometer" className="w-14 h-14 object-cover" />
+                                                    <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all">
+                                                      <Eye className="w-3.5 h-3.5 text-white" />
+                                                    </div>
+                                                  </a>
+                                                </div>
+                                              )}
                                             </div>
                                           </div>
                                         );

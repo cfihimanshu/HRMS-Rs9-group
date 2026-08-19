@@ -59,8 +59,14 @@ export default function CandidateApplicationForm() {
       body: uploadData,
     });
     
-    const data = await res.json();
-    if (!data.success) throw new Error(data.error || "Upload failed");
+    let data: any = {};
+    try {
+      data = await res.json();
+    } catch (_) {
+      throw new Error(`Failed to upload ${file.name}. Please try a smaller file or different format.`);
+    }
+
+    if (!data.success || !data.url) throw new Error(data.error || `Failed to upload ${file.name}`);
     return data.url;
   };
 
@@ -115,7 +121,16 @@ export default function CandidateApplicationForm() {
         body: JSON.stringify(payload),
       });
 
-      if (!res.ok) throw new Error("Failed to submit application");
+      let data: any = {};
+      try {
+        data = await res.json();
+      } catch (jsonErr) {
+        throw new Error("Invalid server response. Please try again.");
+      }
+
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || "Failed to submit application");
+      }
 
       setSuccess(true);
       

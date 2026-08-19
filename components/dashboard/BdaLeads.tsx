@@ -334,6 +334,25 @@ export default function BdaLeads({
 
   const finalBdaList = filteredBdaUsers.length > 0 ? filteredBdaUsers : bdas;
 
+  const roleLower = (userRole || "").toLowerCase();
+  const isManagerial = ["owner", "director", "hr head", "hr executive", "department manager", "operation manager", "manager", "dsm", "head"].some(
+    r => roleLower.includes(r)
+  ) || roleLower.includes("manager");
+
+  // Breakdown list for modal: Management sees all BDAs, regular BDA user sees ONLY their own user
+  const currentBdaUser = bdas.find(b =>
+    (sessionUser?.id && String(b.id) === String(sessionUser.id)) ||
+    (sessionUser?.email && b.email && b.email.toLowerCase() === sessionUser.email.toLowerCase()) ||
+    (sessionUser?.name && b.name && b.name.toLowerCase() === sessionUser.name.toLowerCase())
+  );
+
+  const userBreakdownBdaList: BdaUserItem[] = isManagerial
+    ? finalBdaList
+    : (currentBdaUser
+        ? [currentBdaUser]
+        : (sessionUser ? [{ id: String(sessionUser.id), name: sessionUser.name || "My Account", role: sessionUser.role || "BDA", email: sessionUser.email || "", department: sessionUser.department || "" }] : finalBdaList)
+      );
+
   // Raw Excel/CSV Import Data & Column Mapping State
   const [importFileName, setImportFileName] = useState("");
   const [rawRows, setRawRows] = useState<any[]>([]);
@@ -369,11 +388,6 @@ export default function BdaLeads({
     customSalesReason: "",
     remarks: ""
   });
-
-  const roleLower = (userRole || "").toLowerCase();
-  const isManagerial = ["owner", "director", "hr head", "hr executive", "department manager", "operation manager", "manager", "dsm", "head"].some(
-    r => roleLower.includes(r)
-  ) || roleLower.includes("manager");
 
   // Fetch Leads & BDAs on mount
   useEffect(() => {
@@ -3440,8 +3454,8 @@ export default function BdaLeads({
                 // Group assigned leads count by BDA user
                 const bdaCountsMap: Record<string, { bdaId: string; bdaName: string; count: number; converted: number; lost: number; inProgress: number }> = {};
 
-                // Include all known BDAs
-                finalBdaList.forEach(bda => {
+                // Include allowed BDAs for breakdown
+                userBreakdownBdaList.forEach(bda => {
                   bdaCountsMap[String(bda.id)] = {
                     bdaId: String(bda.id),
                     bdaName: bda.name,
@@ -3635,22 +3649,24 @@ export default function BdaLeads({
             <button
               onClick={() => {
                 setStatusFilter(targetBreakdownStatus);
-                setAssignmentFilter("All");
+                setAssignmentFilter(isManagerial ? "All" : (currentBdaUser?.id || "All"));
                 setShowStatusUserBreakdownModal(false);
               }}
               className="w-full py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-xl text-xs font-bold transition-all border border-slate-300 flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs"
             >
               <Eye className="w-4 h-4 text-slate-600" />
-              Show All {targetBreakdownStatus} Leads Across All Users ({targetBreakdownStatus === "Converted" ? convertedCount : targetBreakdownStatus === "Lost" ? lostCount : assignedCount})
+              {isManagerial
+                ? `Show All ${targetBreakdownStatus} Leads Across All Users (${targetBreakdownStatus === "Converted" ? convertedCount : targetBreakdownStatus === "Lost" ? lostCount : assignedCount})`
+                : `Show My ${targetBreakdownStatus} Assigned Leads`}
             </button>
 
             {/* BDA User List Cards */}
             <div className="space-y-2.5 flex-1 overflow-y-auto pr-1">
               <span className="text-[10px] font-black uppercase text-slate-400 tracking-wider">
-                User-wise Breakdown ({finalBdaList.length} BDA Users)
+                User-wise Breakdown ({userBreakdownBdaList.length} BDA {userBreakdownBdaList.length === 1 ? "User" : "Users"})
               </span>
 
-              {finalBdaList.map(bda => {
+              {userBreakdownBdaList.map(bda => {
                 const userLeads = leads.filter(l => {
                   const matchesUser = l.assignedTo === bda.id || (l.assignedToName && l.assignedToName.toLowerCase() === bda.name.toLowerCase());
                   if (!matchesUser) return false;

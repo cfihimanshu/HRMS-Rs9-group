@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import sequelize from "@/lib/sequelize";
-import FranchiseRegistration from "@/models/sequelize/FranchiseRegistration";
+import FranchiseRegistration, { ensureFranchiseRegistrationSchema } from "@/models/sequelize/FranchiseRegistration";
 import { logAudit } from "@/lib/audit";
 
 // POST: Submit FORM-11 Franchise / Territory Form
@@ -46,31 +46,7 @@ export async function POST(req: Request) {
 
     await sequelize.authenticate();
     await FranchiseRegistration.sync();
-
-    // Ensure all new columns exist in MySQL franchiseregistrations table
-    const columnsToAdd = [
-      "contactPerson VARCHAR(255)",
-      "email VARCHAR(255)",
-      "mobile VARCHAR(255)",
-      "alternateMobile VARCHAR(255)",
-      "address TEXT",
-      "pincode VARCHAR(255)",
-      "state VARCHAR(255)",
-      "franchiseFee VARCHAR(255)",
-      "agreementStartDate VARCHAR(255)",
-      "agreementEndDate VARCHAR(255)",
-      "gstin VARCHAR(255)",
-      "pan VARCHAR(255)",
-      "kycDocUrl VARCHAR(255)",
-    ];
-
-    for (const col of columnsToAdd) {
-      try {
-        await sequelize.query(`ALTER TABLE franchiseregistrations ADD COLUMN ${col}`);
-      } catch (err) {
-        // Ignored if column already exists
-      }
-    }
+    await ensureFranchiseRegistrationSchema();
 
     const record = await FranchiseRegistration.create({
       id: Date.now().toString(),
@@ -125,6 +101,7 @@ export async function GET(req: Request) {
 
     await sequelize.authenticate();
     await FranchiseRegistration.sync();
+    await ensureFranchiseRegistrationSchema();
 
     const records = await FranchiseRegistration.findAll({
       order: [['createdAt', 'DESC']],

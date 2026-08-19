@@ -4,7 +4,7 @@ import { authOptions } from "@/lib/auth";
 import sequelize from "@/lib/sequelize";
 import User from "@/models/sequelize/User";
 import EmployeeProfile from "@/models/sequelize/EmployeeProfile";
-import FieldVisit from "@/models/sequelize/FieldVisit";
+import FieldVisit, { ensureFieldVisitSchema } from "@/models/sequelize/FieldVisit";
 import { logAudit } from "@/lib/audit";
 import { Op } from "sequelize";
 
@@ -22,6 +22,7 @@ export async function GET(req: Request) {
     
     await sequelize.authenticate();
     await FieldVisit.sync();
+    await ensureFieldVisitSchema();
 
     const userRole = (session.user as any).role;
     const userId = (session.user as any).id;
@@ -135,6 +136,8 @@ export async function POST(req: Request) {
     await sequelize.authenticate();
     await FieldVisit.sync();
 
+    await ensureFieldVisitSchema();
+
     if (action === "start") {
       const { opening_km, opening_coordinates, opening_location, vehicle_number, fuel_status, photo_url } = body;
 
@@ -165,6 +168,7 @@ export async function POST(req: Request) {
         opening_coordinates: opening_coordinates || null,
         vehicle_number: vehicle_number || "Self",
         fuel_status: fuel_status || "Full",
+        opening_photo_url: photo_url || null,
         photos_json: photo_url ? [photo_url] : [],
         status: "Open"
       });
@@ -209,36 +213,40 @@ export async function POST(req: Request) {
       }
 
       const distance = parsedClosingKm - activeVisit.opening_km;
-      let currentPhotos = activeVisit.photos_json;
-      if (!currentPhotos) {
-        currentPhotos = [];
-      } else if (typeof currentPhotos === "string") {
+      let existingPhotos: string[] = [];
+      const rawPhotos = activeVisit.photos_json;
+      if (Array.isArray(rawPhotos)) {
+        existingPhotos = [...rawPhotos];
+      } else if (typeof rawPhotos === "string") {
         try {
-          currentPhotos = JSON.parse(currentPhotos);
-        } catch (e) {
-          currentPhotos = [];
-        }
-      }
-      if (!Array.isArray(currentPhotos)) {
-        currentPhotos = [];
+          const parsed = JSON.parse(rawPhotos);
+          if (Array.isArray(parsed)) existingPhotos = parsed;
+        } catch (_) {}
       }
 
-      if (photo_url) {
-        currentPhotos.push(photo_url);
+      if (activeVisit.opening_photo_url && !existingPhotos.includes(activeVisit.opening_photo_url)) {
+        existingPhotos.unshift(activeVisit.opening_photo_url);
       }
+
+      if (photo_url && !existingPhotos.includes(photo_url)) {
+        existingPhotos.push(photo_url);
+      }
+
+      const updatedPhotos = Array.from(new Set(existingPhotos.filter(Boolean)));
 
       await activeVisit.update({
         closing_time: new Date(),
         closing_km: parsedClosingKm,
         closing_location: closing_location || "Field",
         closing_coordinates: closing_coordinates || null,
+        closing_photo_url: photo_url || null,
         client_name: client_name || "N/A",
         purpose: purpose || "Field Visit",
         visit_notes: visit_notes || "",
         visit_summary: visit_summary || "",
         distance_travelled: distance,
         expenses_json: expenses ? expenses : null,
-        photos_json: currentPhotos,
+        photos_json: updatedPhotos,
         status: "Closed"
       });
 

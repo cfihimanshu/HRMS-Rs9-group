@@ -4,7 +4,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import sequelize from "@/lib/sequelize";
 import User from "@/models/sequelize/User";
-import FieldVisit from "@/models/sequelize/FieldVisit";
+import FieldVisit, { ensureFieldVisitSchema } from "@/models/sequelize/FieldVisit";
 import SodReport from "@/models/sequelize/SodReport";
 import EodReport from "@/models/sequelize/EodReport";
 import { Op } from "sequelize";
@@ -15,6 +15,8 @@ export async function GET(req: Request) {
     if (!session || !session.user) {
       return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
     }
+
+    await ensureFieldVisitSchema();
 
     const role = (session.user as any).role;
     if (role !== "Owner" && role !== "Director") {

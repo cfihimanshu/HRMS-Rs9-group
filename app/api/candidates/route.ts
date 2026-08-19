@@ -168,7 +168,7 @@ export async function POST(req: Request) {
       status: existingLeadCandidate ? (existingLeadCandidate.status === "Selected" ? "Selected" : "Pending") : "Pending",
       sourcingChannel: existingLeadCandidate ? "Both" : "System Job Link",
       gender: gender || null,
-      resumeLink: resumeLink || null,
+      resumeLink: resumeLink || (uploads && uploads.resume) || null,
       skills: skills || null,
       age: age || null,
       course: course || null,

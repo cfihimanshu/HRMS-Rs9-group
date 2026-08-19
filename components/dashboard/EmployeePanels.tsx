@@ -1119,16 +1119,16 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
         <div>
-          <h1 className={`text-2xl font-bold tracking-tight ${isDark ? "text-white" : "text-slate-800"}`}>
+          <h1 className={`text-xl sm:text-2xl font-bold tracking-tight ${isDark ? "text-white" : "text-slate-800"}`}>
             Company-Wise Employee Directory
           </h1>
-          <p className={`text-sm mt-1 ${isDark ? "text-gray-400" : "text-slate-500"}`}>
+          <p className={`text-xs sm:text-sm mt-0.5 sm:mt-1 ${isDark ? "text-gray-400" : "text-slate-500"}`}>
             Onboard and manage employees across multiple organizations.
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3 w-full sm:w-auto">
           {(userRole === "Owner" || userRole === "HR Head" || userRole === "HR Executive") && (
             <button
               onClick={() => {
@@ -1146,7 +1146,7 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
                   setIsDeptManager(false);
                 }
               }}
-              className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2.5 rounded-lg text-sm font-bold shadow-md transition-all flex items-center gap-2"
+              className="flex-1 sm:flex-initial bg-indigo-600 hover:bg-indigo-700 text-white px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-lg text-xs sm:text-sm font-bold shadow-md transition-all flex items-center justify-center gap-2"
             >
               {(showAddForm && !isOnboardingOwner) ? "Cancel Registration" : <><UserPlus className="w-4 h-4" /> Add Employee</>}
             </button>
@@ -1176,7 +1176,7 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
                   }));
                 }
               }}
-              className="bg-slate-700 hover:bg-slate-800 text-white px-4 py-2.5 rounded-lg text-sm font-bold shadow-md transition-all flex items-center gap-2"
+              className="flex-1 sm:flex-initial bg-slate-700 hover:bg-slate-800 text-white px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-lg text-xs sm:text-sm font-bold shadow-md transition-all flex items-center justify-center gap-2"
             >
               {(showAddForm && isOnboardingOwner) ? "Cancel Registration" : <><UserPlus className="w-4 h-4 text-indigo-400" /> Add Owner</>}
             </button>
@@ -1610,8 +1610,8 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
       ) : (
         <>
           {/* Filter and Search Bar */}
-          <div className={`border rounded-xl p-4 flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-sm ${isDark ? "bg-gray-900 border-gray-800" : "bg-white border-slate-200"}`}>
-            <div className="flex-1 relative">
+          <div className={`border rounded-xl p-3.5 sm:p-4 flex flex-col lg:flex-row lg:items-center justify-between gap-3 sm:gap-4 shadow-sm ${isDark ? "bg-gray-900 border-gray-800" : "bg-white border-slate-200"}`}>
+            <div className="flex-1 relative w-full">
               <Search className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
               <input
                 type="text"
@@ -1621,11 +1621,11 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
                 onChange={e => setSearch(e.target.value)}
               />
             </div>
-            <div className="flex flex-wrap items-center gap-4">
-              <div className="flex items-center gap-2">
-                <span className={`text-xs font-bold font-mono ${isDark ? "text-gray-400" : "text-slate-500"}`}>Company Filter:</span>
+            <div className="grid grid-cols-2 sm:grid-cols-2 lg:flex lg:flex-wrap items-center gap-2.5 sm:gap-3 w-full lg:w-auto">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
+                <span className={`text-[10px] sm:text-xs font-bold font-mono ${isDark ? "text-gray-400" : "text-slate-500"}`}>Company:</span>
                 <select
-                  className={`border rounded-lg px-3 py-2 text-xs font-semibold focus:outline-none focus:border-indigo-500 ${isDark ? "bg-gray-800 border-gray-700 text-gray-300" : "bg-slate-50 border-slate-200 text-slate-700"}`}
+                  className={`w-full sm:w-auto border rounded-lg px-2.5 py-1.5 sm:py-2 text-xs font-semibold focus:outline-none focus:border-indigo-500 ${isDark ? "bg-gray-800 border-gray-700 text-gray-300" : "bg-slate-50 border-slate-200 text-slate-700"}`}
                   value={filterCompany}
                   onChange={e => setFilterCompany(e.target.value)}
                 >
@@ -1635,10 +1635,10 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
                   ))}
                 </select>
               </div>
-              <div className="flex items-center gap-2">
-                <span className={`text-xs font-bold font-mono ${isDark ? "text-gray-400" : "text-slate-500"}`}>Vertical Filter:</span>
+              <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
+                <span className={`text-[10px] sm:text-xs font-bold font-mono ${isDark ? "text-gray-400" : "text-slate-500"}`}>Vertical:</span>
                 <select
-                  className={`border rounded-lg px-3 py-2 text-xs font-semibold focus:outline-none focus:border-indigo-500 ${isDark ? "bg-gray-800 border-gray-700 text-gray-300" : "bg-slate-50 border-slate-200 text-slate-700"}`}
+                  className={`w-full sm:w-auto border rounded-lg px-2.5 py-1.5 sm:py-2 text-xs font-semibold focus:outline-none focus:border-indigo-500 ${isDark ? "bg-gray-800 border-gray-700 text-gray-300" : "bg-slate-50 border-slate-200 text-slate-700"}`}
                   value={filterVertical}
                   onChange={e => setFilterVertical(e.target.value)}
                 >
@@ -1648,10 +1648,10 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
                   ))}
                 </select>
               </div>
-              <div className="flex items-center gap-2">
-                <span className={`text-xs font-bold font-mono ${isDark ? "text-gray-400" : "text-slate-500"}`}>Role Filter:</span>
+              <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
+                <span className={`text-[10px] sm:text-xs font-bold font-mono ${isDark ? "text-gray-400" : "text-slate-500"}`}>Role:</span>
                 <select
-                  className={`border rounded-lg px-3 py-2 text-xs font-semibold focus:outline-none focus:border-indigo-500 ${isDark ? "bg-gray-800 border-gray-700 text-gray-300" : "bg-slate-50 border-slate-200 text-slate-700"}`}
+                  className={`w-full sm:w-auto border rounded-lg px-2.5 py-1.5 sm:py-2 text-xs font-semibold focus:outline-none focus:border-indigo-500 ${isDark ? "bg-gray-800 border-gray-700 text-gray-300" : "bg-slate-50 border-slate-200 text-slate-700"}`}
                   value={filterRole}
                   onChange={e => setFilterRole(e.target.value)}
                 >
@@ -1661,10 +1661,10 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
                   ))}
                 </select>
               </div>
-              <div className="flex items-center gap-2">
-                <span className={`text-xs font-bold font-mono ${isDark ? "text-gray-400" : "text-slate-500"}`}>Status Filter:</span>
+              <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
+                <span className={`text-[10px] sm:text-xs font-bold font-mono ${isDark ? "text-gray-400" : "text-slate-500"}`}>Status:</span>
                 <select
-                  className={`border rounded-lg px-3 py-2 text-xs font-semibold focus:outline-none focus:border-indigo-500 ${isDark ? "bg-gray-800 border-gray-700 text-gray-300" : "bg-slate-50 border-slate-200 text-slate-700"}`}
+                  className={`w-full sm:w-auto border rounded-lg px-2.5 py-1.5 sm:py-2 text-xs font-semibold focus:outline-none focus:border-indigo-500 ${isDark ? "bg-gray-800 border-gray-700 text-gray-300" : "bg-slate-50 border-slate-200 text-slate-700"}`}
                   value={filterStatus}
                   onChange={e => setFilterStatus(e.target.value)}
                 >
@@ -1684,8 +1684,8 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
             {loading ? (
               <div className="text-center py-10 font-bold text-slate-400 text-xs animate-pulse">Loading directory entries...</div>
             ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-sm whitespace-nowrap">
+              <div className="overflow-x-auto custom-scrollbar">
+                <table className="w-full text-left text-sm whitespace-nowrap min-w-[720px]">
                   <thead className={`${isDark ? "bg-gray-800 text-gray-400" : "bg-slate-50 text-slate-500"}`}>
                     <tr>
                       <th className="px-6 py-4 font-bold text-xs uppercase font-mono">Employee</th>
