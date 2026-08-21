@@ -569,61 +569,61 @@ export default function AdministratorAccess({ userRole, triggerToast, sessionUse
 
     const effectivePageIds = new Set<string>();
 
-    // 2. If explicit menuAccess has items, start with those
-    if (assignedMenuAccess && assignedMenuAccess.length > 0) {
-      assignedMenuAccess.forEach(id => effectivePageIds.add(id));
-    } else {
-      // 3. Otherwise calculate default role permissions
-      const sidebarItems = [
-        { id: "dashboard", roles: ["Owner", "Director"] },
-        { id: "hr-dash", roles: ["Owner", "Director", "HR Head", "HR Executive"] },
-        { id: "dept-dash", roles: ["Owner", "Director", "Department Manager"] },
-        { id: "ess-dashboard", roles: ["Employee"] },
-        { id: "ess-leaves", roles: ["Employee"] },
-        { id: "ess-payroll", roles: ["Owner", "Director", "HR Head", "HR Executive"] },
-        { id: "ess-expenses", roles: ["Owner", "Director", "HR Head", "HR Executive", "Department Manager", "Accounts", "Employee"] },
-        { id: "asset-request", roles: ["Employee", "Owner", "Director", "HR Head", "HR Executive", "Department Manager"] },
-        { id: "hiring", roles: ["Owner", "Director", "HR Head", "HR Executive", "Department Manager", "Accounts"] },
-        { id: "jobs", roles: ["Owner", "Director", "HR Head", "HR Executive"] },
-        { id: "hr-leads", roles: ["Owner", "Director", "HR Head", "HR Executive"] },
-        { id: "business-leads", roles: ["Owner", "Director", "HR Head", "HR Executive"] },
-        { id: "employees", roles: ["Owner", "Director", "HR Head", "HR Executive"] },
-        { id: "bda-directory", roles: ["Owner", "Director", "HR Head", "HR Executive", "Department Manager"] },
-        { id: "bda-leads", roles: ["Owner", "Director", "HR Head", "HR Executive", "Department Manager", "Employee", "BDA"] },
-        { id: "assets-registry", roles: ["Owner", "Director", "HR Head", "HR Executive"] },
-        { id: "inventory-management", roles: ["Owner"] },
-        { id: "admin-access", roles: ["Owner", "Director", "Admin"] },
-        { id: "document-movement", roles: ["Owner", "Director", "HR Head", "HR Executive", "Department Manager", "IT Admin", "Accounts", "Admin", "Office Administrator", "Facility Manager"] },
-        { id: "vehicle-registry", roles: ["Owner", "Director", "HR Head", "HR Executive", "Department Manager", "IT Admin"] },
-        { id: "legal-recovery", roles: ["Owner", "Director", "Legal Recovery", "Recovery Manager", "CCO"] },
-        { id: "screening", roles: ["Owner", "Director", "HR Head", "HR Executive"] },
-        { id: "interviews", roles: ["Owner", "Director", "HR Head", "HR Executive", "Trainer"] },
-        { id: "verification", roles: ["Owner", "Director", "HR Head", "HR Executive", "RIBP / Risk Officer"] },
-        { id: "onboarding", roles: ["Owner", "Director", "HR Head", "HR Executive"] },
-        { id: "training", roles: ["Owner", "Director", "HR Head", "HR Executive", "Trainer"] },
-        { id: "probation", roles: ["Owner", "Director", "HR Head", "HR Executive", "Trainer"] },
-        { id: "attendance", roles: ["Owner", "Director", "HR Head", "HR Executive", "Department Manager", "Accounts", "Trainer", "IT Admin", "DSM", "RIBP / Risk Officer"] },
-        { id: "tasks", roles: ["Owner", "Director", "HR Head", "HR Executive", "Department Manager", "Accounts", "Trainer", "Employee", "IT Admin", "DSM", "RIBP / Risk Officer"] },
-        { id: "performance", roles: ["Owner", "Director", "HR Head", "HR Executive", "Department Manager", "Employee"] },
-        { id: "live-tracking", roles: ["Owner", "Director", "HR Head", "Department Manager"] },
-        { id: "field-visit", roles: ["Owner", "Director", "HR Head", "HR Executive", "Department Manager", "Employee"] },
-        { id: "leave-request", roles: ["Owner", "Director", "HR Head", "HR Executive", "Department Manager", "Accounts", "Trainer", "Employee", "IT Admin", "DSM", "RIBP / Risk Officer", "Business Associate", "Vendor", "Franchisee", "Territory Partner"] },
-        { id: "associates", roles: ["Owner", "Director", "HR Head", "Franchisee", "Territory Partner", "Business Associate"] },
-        { id: "vendors", roles: ["Owner", "Director", "HR Head", "Accounts", "Vendor"] },
-        { id: "franchise", roles: ["Owner", "Director", "HR Head", "Accounts", "Franchisee", "Territory Partner"] },
-        { id: "grievance", roles: ["Owner", "Director", "HR Head", "HR Executive", "Department Manager", "Accounts", "Trainer", "Business Associate", "Vendor", "Franchisee", "Territory Partner"] },
-        { id: "risks", roles: ["Owner", "Director", "HR Head", "RIBP / Risk Officer"] },
-        { id: "exit", roles: ["Owner", "Director", "HR Head", "Employee"] }
-      ];
-
-      sidebarItems.forEach(item => {
-        if (item.roles.some(r => roleLower.includes(r.toLowerCase()))) {
-          effectivePageIds.add(item.id);
-        }
-      });
+    // 2. If explicit menuAccess has been configured by Administrator in database (even if empty []), strictly respect it!
+    if (assignedMenuAccess !== null) {
+      return assignedMenuAccess;
     }
 
-    // 4. Always include basic ESS self-service default pages accessible to all staff
+    // 3. Otherwise (when no custom menuAccess has been set yet), calculate default role permissions
+    const sidebarItems = [
+      { id: "dashboard", roles: ["Owner", "Director"] },
+      { id: "hr-dash", roles: ["Owner", "Director", "HR Head", "HR Executive"] },
+      { id: "dept-dash", roles: ["Owner", "Director", "Department Manager"] },
+      { id: "ess-dashboard", roles: ["Employee"] },
+      { id: "ess-leaves", roles: ["Employee"] },
+      { id: "ess-payroll", roles: ["Owner", "Director", "HR Head", "HR Executive"] },
+      { id: "ess-expenses", roles: ["Owner", "Director", "HR Head", "HR Executive", "Department Manager", "Accounts", "Employee"] },
+      { id: "asset-request", roles: ["Employee", "Owner", "Director", "HR Head", "HR Executive", "Department Manager"] },
+      { id: "hiring", roles: ["Owner", "Director", "HR Head", "HR Executive", "Department Manager", "Accounts"] },
+      { id: "jobs", roles: ["Owner", "Director", "HR Head", "HR Executive"] },
+      { id: "hr-leads", roles: ["Owner", "Director", "HR Head", "HR Executive"] },
+      { id: "business-leads", roles: ["Owner", "Director", "HR Head", "HR Executive"] },
+      { id: "employees", roles: ["Owner", "Director", "HR Head", "HR Executive"] },
+      { id: "bda-directory", roles: ["Owner", "Director", "HR Head", "HR Executive", "Department Manager"] },
+      { id: "bda-leads", roles: ["Owner", "Director", "HR Head", "HR Executive", "Department Manager", "Employee", "BDA"] },
+      { id: "assets-registry", roles: ["Owner", "Director", "HR Head", "HR Executive"] },
+      { id: "inventory-management", roles: ["Owner"] },
+      { id: "admin-access", roles: ["Owner", "Director", "Admin"] },
+      { id: "document-movement", roles: ["Owner", "Director", "HR Head", "HR Executive", "Department Manager", "IT Admin", "Accounts", "Admin", "Office Administrator", "Facility Manager"] },
+      { id: "vehicle-registry", roles: ["Owner", "Director", "HR Head", "HR Executive", "Department Manager", "IT Admin"] },
+      { id: "legal-recovery", roles: ["Owner", "Director", "Legal Recovery", "Recovery Manager", "CCO"] },
+      { id: "screening", roles: ["Owner", "Director", "HR Head", "HR Executive"] },
+      { id: "interviews", roles: ["Owner", "Director", "HR Head", "HR Executive", "Trainer"] },
+      { id: "verification", roles: ["Owner", "Director", "HR Head", "HR Executive", "RIBP / Risk Officer"] },
+      { id: "onboarding", roles: ["Owner", "Director", "HR Head", "HR Executive"] },
+      { id: "training", roles: ["Owner", "Director", "HR Head", "HR Executive", "Trainer"] },
+      { id: "probation", roles: ["Owner", "Director", "HR Head", "HR Executive", "Trainer"] },
+      { id: "attendance", roles: ["Owner", "Director", "HR Head", "HR Executive", "Department Manager", "Accounts", "Trainer", "IT Admin", "DSM", "RIBP / Risk Officer"] },
+      { id: "tasks", roles: ["Owner", "Director", "HR Head", "HR Executive", "Department Manager", "Accounts", "Trainer", "Employee", "IT Admin", "DSM", "RIBP / Risk Officer"] },
+      { id: "performance", roles: ["Owner", "Director", "HR Head", "HR Executive", "Department Manager", "Employee"] },
+      { id: "live-tracking", roles: ["Owner", "Director", "HR Head", "Department Manager"] },
+      { id: "field-visit", roles: ["Owner", "Director", "HR Head", "HR Executive", "Department Manager", "Employee"] },
+      { id: "leave-request", roles: ["Owner", "Director", "HR Head", "HR Executive", "Department Manager", "Accounts", "Trainer", "Employee", "IT Admin", "DSM", "RIBP / Risk Officer", "Business Associate", "Vendor", "Franchisee", "Territory Partner"] },
+      { id: "associates", roles: ["Owner", "Director", "HR Head", "Franchisee", "Territory Partner", "Business Associate"] },
+      { id: "vendors", roles: ["Owner", "Director", "HR Head", "Accounts", "Vendor"] },
+      { id: "franchise", roles: ["Owner", "Director", "HR Head", "Accounts", "Franchisee", "Territory Partner"] },
+      { id: "grievance", roles: ["Owner", "Director", "HR Head", "HR Executive", "Department Manager", "Accounts", "Trainer", "Business Associate", "Vendor", "Franchisee", "Territory Partner"] },
+      { id: "risks", roles: ["Owner", "Director", "HR Head", "RIBP / Risk Officer"] },
+      { id: "exit", roles: ["Owner", "Director", "HR Head", "Employee"] }
+    ];
+
+    sidebarItems.forEach(item => {
+      if (item.roles.some(r => roleLower.includes(r.toLowerCase()))) {
+        effectivePageIds.add(item.id);
+      }
+    });
+
+    // 4. Include basic ESS self-service default pages for unconfigured users
     const DEFAULT_ESS_PAGES = [
       "ess-dashboard",
       "ess-leaves",
@@ -785,9 +785,14 @@ export default function AdministratorAccess({ userRole, triggerToast, sessionUse
     try {
       setSavingUserId(emp.id);
       const payload = {
-        employeeId: emp.employeeProfile?.employeeId,
+        userId: emp.id,
+        employeeId: emp.employeeProfile?.employeeId || emp.id,
+        email: emp.email,
         menuAccess: newAccess
       };
+
+      // Optimistic local state update
+      setEmployees(prev => prev.map(e => e.id === emp.id ? { ...e, menuAccess: newAccess } : e));
 
       const res = await fetch("/api/employees", {
         method: "PUT",
@@ -801,10 +806,12 @@ export default function AdministratorAccess({ userRole, triggerToast, sessionUse
         fetchData();
       } else {
         triggerToast(data.error || "Failed to update page permissions");
+        fetchData();
       }
     } catch (error) {
       console.error(error);
       triggerToast("An error occurred during update");
+      fetchData();
     } finally {
       setSavingUserId(null);
     }
@@ -814,9 +821,14 @@ export default function AdministratorAccess({ userRole, triggerToast, sessionUse
     try {
       setSavingUserId(emp.id);
       const payload = {
-        employeeId: emp.employeeProfile?.employeeId,
+        userId: emp.id,
+        employeeId: emp.employeeProfile?.employeeId || emp.id,
+        email: emp.email,
         menuAccess: draftAccess
       };
+
+      // Optimistic local state update
+      setEmployees(prev => prev.map(e => e.id === emp.id ? { ...e, menuAccess: draftAccess } : e));
 
       const res = await fetch("/api/employees", {
         method: "PUT",
@@ -831,10 +843,12 @@ export default function AdministratorAccess({ userRole, triggerToast, sessionUse
         setActivePopover(null);
       } else {
         triggerToast(data.error || "Failed to assign page permissions");
+        fetchData();
       }
     } catch (error) {
       console.error(error);
       triggerToast("An error occurred during save");
+      fetchData();
     } finally {
       setSavingUserId(null);
     }

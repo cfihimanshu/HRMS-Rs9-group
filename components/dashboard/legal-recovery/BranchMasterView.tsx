@@ -331,34 +331,18 @@ export default function BranchMasterView({
                   <td className="py-3 px-4 text-[#9C9890] text-right">
                     {new Date(br.createdAt).toLocaleDateString()}
                   </td>
-                  <td className="py-3 px-4">
+                  <td className="py-3 px-4 text-center">
                     <div className="flex items-center justify-center gap-2">
-                      {/* Work Log Button */}
-                      <button
-                        onClick={() => handleOpenWorkModal(br)}
-                        className="px-3 py-1.5 bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-600 hover:text-white rounded text-[10px] font-bold uppercase tracking-wide transition-all flex items-center gap-1 whitespace-nowrap shadow-sm hover:shadow"
-                        title="Log Branch Work Entry"
-                      >
-                        <Briefcase className="w-3 h-3" /> Work
-                      </button>
-
                       {/* Edit Branch button */}
                       {onEditBranch && (
                         <button
                           onClick={() => onEditBranch(br)}
-                          className="px-3 py-1.5 bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-600 hover:text-white rounded text-[10px] font-bold uppercase tracking-wide transition-colors flex items-center gap-1 whitespace-nowrap"
+                          className="px-3.5 py-1.5 bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-600 hover:text-white rounded-lg text-xs font-bold uppercase tracking-wide transition-colors flex items-center gap-1.5 whitespace-nowrap shadow-2xs"
                           title="Edit Branch Details"
                         >
-                          <Pencil className="w-3 h-3" /> Edit
+                          <Pencil className="w-3.5 h-3.5" /> Edit
                         </button>
                       )}
-                      {/* Business Development (formerly Marketing Pitch) button */}
-                      <button
-                        onClick={() => setShowMarketingForm({ show: true, branch: br })}
-                        className="px-3 py-1.5 bg-indigo-50 text-indigo-700 border border-indigo-200 hover:bg-indigo-600 hover:text-white rounded text-[10px] font-bold uppercase tracking-wide transition-colors flex items-center gap-1 whitespace-nowrap"
-                      >
-                        <TrendingUp className="w-3 h-3" /> Business Development
-                      </button>
                     </div>
                   </td>
                 </tr>

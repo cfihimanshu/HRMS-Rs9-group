@@ -53,11 +53,17 @@ export async function GET(req: Request) {
       if (assignerUser) assignedByName = assignerUser.name;
     }
 
-    // Find corresponding TaskLogs
+    // Find corresponding TaskLogs specifically for this lead
     const searchConditions: any[] = [];
-    if (lead.leadId) searchConditions.push({ description: { [Op.like]: `%${lead.leadId}%` } });
-    if (lead.phone && lead.phone.trim()) searchConditions.push({ contactNo: lead.phone.trim() });
-    if (lead.name && lead.name.trim()) searchConditions.push({ personName: lead.name.trim() });
+    if (lead.leadId) {
+      searchConditions.push({ description: { [Op.like]: `%${lead.leadId}%` } });
+    }
+    if (lead.assignedTo && lead.phone && lead.phone.trim()) {
+      searchConditions.push({
+        employee: lead.assignedTo,
+        contactNo: lead.phone.trim()
+      });
+    }
 
     let tasks: any[] = [];
     if (searchConditions.length > 0) {

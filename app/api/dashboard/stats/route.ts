@@ -12,7 +12,7 @@ import Associate from "@/models/sequelize/Associate";
 import LeadPlatform from "@/models/sequelize/LeadPlatform";
 import { Op } from "sequelize";
 import Vendor from "@/models/sequelize/Vendor";
-import Franchise from "@/models/sequelize/Franchise";
+import FranchiseRegistration from "@/models/sequelize/FranchiseRegistration";
 import Training from "@/models/sequelize/Training";
 import Probation from "@/models/sequelize/Probation";
 import Grievance from "@/models/sequelize/Grievance";
@@ -170,9 +170,9 @@ export async function GET(req: Request) {
     const femaleEmployees = await EmployeeProfile.count({ where: { ...profileFilter, gender: "Female" } });
 
     // Assuming Associates, Vendors, Franchises are not strictly bound to this company filter in the same way, or maybe we leave them unfiltered for now as they might have a different logic.
-    const totalAssociates = await Associate.count({ where: { status: "active" } });
-    const totalVendors = await Vendor.count({ where: { status: "active" } });
-    const totalFranchises = await Franchise.count({ where: { status: "active" } });
+    const totalAssociates = await Associate.count().catch(() => 0);
+    const totalVendors = await Vendor.count().catch(() => 0);
+    const totalFranchises = await FranchiseRegistration.count().catch(() => 0);
 
     // 4. Operations metrics
     const trainingPending = await Training.count({ where: { ...generalCandidateFilter, status: { [Op.ne]: "Activation" } } });

@@ -430,33 +430,40 @@ export async function GET(req: Request) {
       return `${y}-${m}-${day}`;
     };
 
-    let query: any = {};
+    const whereConditions: any[] = [];
+
     if (filterDate) {
       const targetDateStr = filterDate.substring(0, 10);
       const startD = new Date(`${targetDateStr}T00:00:00`);
       const endD = new Date(`${targetDateStr}T23:59:59.999`);
-      query[Op.or] = [
-        { date: targetDateStr },
-        { createdAt: { [Op.gte]: startD, [Op.lte]: endD } },
-        { scheduledAt: { [Op.gte]: startD, [Op.lte]: endD } }
-      ];
+      whereConditions.push({
+        [Op.or]: [
+          { date: { [Op.gte]: startD, [Op.lte]: endD } },
+          { createdAt: { [Op.gte]: startD, [Op.lte]: endD } },
+          { scheduledAt: { [Op.gte]: startD, [Op.lte]: endD } }
+        ]
+      });
     } else if (range === "today") {
       const todayStr = formatLocalYYYYMMDD(new Date());
       const startD = new Date(`${todayStr}T00:00:00`);
       const endD = new Date(`${todayStr}T23:59:59.999`);
-      query[Op.or] = [
-        { date: todayStr },
-        { createdAt: { [Op.gte]: startD, [Op.lte]: endD } },
-        { scheduledAt: { [Op.gte]: startD, [Op.lte]: endD } }
-      ];
+      whereConditions.push({
+        [Op.or]: [
+          { date: { [Op.gte]: startD, [Op.lte]: endD } },
+          { createdAt: { [Op.gte]: startD, [Op.lte]: endD } },
+          { scheduledAt: { [Op.gte]: startD, [Op.lte]: endD } }
+        ]
+      });
     } else if (range === "recent" || range === "3days") {
       const recentDate = new Date();
       recentDate.setDate(recentDate.getDate() - 3);
       recentDate.setHours(0, 0, 0, 0);
-      query[Op.or] = [
-        { date: { [Op.gte]: formatLocalYYYYMMDD(recentDate) } },
-        { createdAt: { [Op.gte]: recentDate } }
-      ];
+      whereConditions.push({
+        [Op.or]: [
+          { date: { [Op.gte]: recentDate } },
+          { createdAt: { [Op.gte]: recentDate } }
+        ]
+      });
     }
 
     // Owner, Director & HR Head see all tasks across all departments/companies.
@@ -468,7 +475,7 @@ export async function GET(req: Request) {
     const isTopAdmin = ["owner", "director", "hr head"].some(r => roleLower.includes(r));
 
     if (!isTopAdmin) {
-      const managedUserIds = [userId];
+      const managedUserIds = [userId, session.user.email, session.user.name].filter(Boolean);
       const userName = session.user.name;
       const userEmail = session.user.email;
 
@@ -485,7 +492,7 @@ export async function GET(req: Request) {
       if (orConditions.length > 0) {
         const reportProfiles = await EmployeeProfile.findAll({
           where: { [Op.or]: orConditions },
-          attributes: ["user"],
+          attributes: ["user", "employeeId"],
           raw: true
         });
 
@@ -493,15 +500,22 @@ export async function GET(req: Request) {
           if (p.user && !managedUserIds.includes(p.user)) {
             managedUserIds.push(p.user);
           }
+          if (p.employeeId && !managedUserIds.includes(p.employeeId)) {
+            managedUserIds.push(p.employeeId);
+          }
         });
       }
 
-      query[Op.or] = [
-        { employee: { [Op.in]: managedUserIds } },
-        { assignedBy: userId },
-        { forwardedTo: userId }
-      ];
+      whereConditions.push({
+        [Op.or]: [
+          { employee: { [Op.in]: managedUserIds } },
+          { assignedBy: { [Op.in]: managedUserIds } },
+          { forwardedTo: { [Op.in]: managedUserIds } }
+        ]
+      });
     }
+
+    const query: any = whereConditions.length > 0 ? { [Op.and]: whereConditions } : {};
 
     const limitParam = searchParams.get("limit");
     const fetchLimit = (limitParam && limitParam !== "all" && !isNaN(Number(limitParam)))
@@ -594,14 +608,17 @@ export async function GET(req: Request) {
     const empIds = records.map((r: any) => r.employee).filter(Boolean);
     const fwdIds = records.map((r: any) => r.forwardedTo).filter(Boolean);
     const assignerIds = records.map((r: any) => r.assignedBy).filter(Boolean);
-    const allocatorIds = records.map((r: any) => r.allocatedBy).filter(Boolean);
-    const allUserIds = Array.from(new Set([...empIds, ...fwdIds, ...assignerIds, ...allocatorIds]));
+    const allUserIds = Array.from(new Set([...empIds, ...fwdIds, ...assignerIds]));
 
     let employees: any[] = [];
     if (allUserIds.length > 0) {
       employees = await User.findAll({
         where: {
-          id: { [Op.in]: allUserIds }
+          [Op.or]: [
+            { id: { [Op.in]: allUserIds } },
+            { email: { [Op.in]: allUserIds } },
+            { name: { [Op.in]: allUserIds } }
+          ]
         },
         attributes: ["id", "name", "role", "email"],
         raw: true
@@ -635,7 +652,7 @@ export async function GET(req: Request) {
       const plain = typeof r.toJSON === "function" ? r.toJSON() : { ...r };
       plain.id = plain.id ? String(plain.id) : "";
       
-      const empDetail = getEmpDetail(plain.employee) || getEmpDetail(plain.allocatedBy) || getEmpDetail(plain.assignedBy);
+      const empDetail = getEmpDetail(plain.employee) || getEmpDetail(plain.assignedBy);
       if (empDetail) {
         plain.employee = { ...empDetail, id: empDetail.id || plain.employee };
       } else {

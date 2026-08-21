@@ -882,8 +882,7 @@ export function ESSDashboard({ user, triggerToast, setActiveTab, toggleModal, st
   );
 }
 
-export function ESSLeaves({ user, triggerToast, stats, initialSearchFilter }: ESSProps & { initialSearchFilter?: string }) {
-  const [showApply, setShowApply] = useState(false);
+export function ESSLeaves({ user, triggerToast, stats, initialSearchFilter, setActiveTab }: ESSProps & { initialSearchFilter?: string }) {
   const [leaves, setLeaves] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [allEmployees, setAllEmployees] = useState<any[]>([]);
@@ -936,6 +935,14 @@ export function ESSLeaves({ user, triggerToast, stats, initialSearchFilter }: ES
   useEffect(() => {
     fetchLeaves();
   }, []);
+
+  const handleApplyLeaveRedirect = () => {
+    if (setActiveTab) {
+      setActiveTab("leave-request");
+    } else {
+      window.location.href = "/dashboard/leave-request";
+    }
+  };
 
   const parseLeaveDate = (dStr: any): Date | null => {
     if (!dStr) return null;
@@ -1087,341 +1094,276 @@ export function ESSLeaves({ user, triggerToast, stats, initialSearchFilter }: ES
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-xl font-black text-slate-800">Leave Management</h1>
-          <p className="text-xs text-slate-500 mt-1">Apply for leaves and track your approval status.</p>
+          <p className="text-xs text-slate-500 mt-1">Review leave history, leave balances, and approval status.</p>
         </div>
         <button
-          className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2.5 rounded-lg text-xs font-bold shadow-md flex items-center gap-2"
-          onClick={() => setShowApply(!showApply)}
+          className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2.5 rounded-xl text-xs font-bold shadow-md flex items-center gap-2 cursor-pointer transition-all active:scale-[0.98]"
+          onClick={handleApplyLeaveRedirect}
+          title="Open Leave Request Form"
         >
-          {showApply ? "View History" : <><Plus className="w-4 h-4" /> Apply Leave</>}
+          <Plus className="w-4 h-4" /> Apply Leave Request →
         </button>
       </div>
 
-      {showApply ? (
-        <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm max-w-2xl">
-          <h2 className="text-sm font-black text-slate-800 mb-4">New Leave Request</h2>
-          <form className="space-y-4" onSubmit={async (e) => {
-            e.preventDefault();
-            const form = e.target as HTMLFormElement;
-            try {
-              const res = await fetch("/api/leaves", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                  type: (form.elements.namedItem("type") as HTMLSelectElement).value,
-                  days: Number((form.elements.namedItem("days") as HTMLInputElement).value),
-                  startDate: (form.elements.namedItem("startDate") as HTMLInputElement).value,
-                  endDate: (form.elements.namedItem("endDate") as HTMLInputElement).value,
-                  reason: (form.elements.namedItem("reason") as HTMLTextAreaElement).value
-                })
-              });
-              const data = await res.json();
-              if (data.success) {
-                triggerToast("Leave request submitted successfully.");
-                setShowApply(false);
-                fetchLeaves();
-              } else {
-                triggerToast("Failed: " + data.error);
-              }
-            } catch (err) {
-              triggerToast("Error submitting leave request.");
-            }
-          }}>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="text-[10px] uppercase font-black text-slate-400 font-mono">Leave Type</label>
-                <select name="type" className="w-full bg-slate-50 border border-slate-200 p-2.5 rounded text-xs mt-1" required>
-                  <option value="Casual Leave">Casual Leave</option>
-                  <option value="Sick Leave">Sick Leave</option>
-                  <option value="Earned Leave">Earned Leave</option>
-                  <option value="Unpaid Leave">Loss of Pay / Unpaid Leave</option>
-                </select>
-              </div>
-              <div>
-                <label className="text-[10px] uppercase font-black text-slate-400 font-mono">Duration (Days)</label>
-                <input name="days" type="number" className="w-full bg-slate-50 border border-slate-200 p-2.5 rounded text-xs mt-1" placeholder="e.g. 1" required min="0.5" step="0.5" />
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="text-[10px] uppercase font-black text-slate-400 font-mono">From Date</label>
-                <input name="startDate" type="date" className="w-full bg-slate-50 border border-slate-200 p-2.5 rounded text-xs mt-1" required />
-              </div>
-              <div>
-                <label className="text-[10px] uppercase font-black text-slate-400 font-mono">To Date</label>
-                <input name="endDate" type="date" className="w-full bg-slate-50 border border-slate-200 p-2.5 rounded text-xs mt-1" required />
-              </div>
-            </div>
-            <div>
-              <label className="text-[10px] uppercase font-black text-slate-400 font-mono">Reason for Leave</label>
-              <textarea name="reason" className="w-full bg-slate-50 border border-slate-200 p-2.5 rounded text-xs mt-1" rows={3} placeholder="Please provide a valid reason..." required />
-            </div>
-            <button type="submit" className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-3 rounded-lg text-xs font-bold shadow">
-              Submit Leave Request
-            </button>
-          </form>
-        </div>
-      ) : (
-        <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm space-y-4">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-4 border-b border-slate-100">
-            <h2 className="text-xs font-black uppercase text-[#714B67] tracking-wider font-mono flex items-center gap-2">
-              📋 Leave History ({filteredLeaves.length} Records)
-            </h2>
+      <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm space-y-4">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-4 border-b border-slate-100">
+          <h2 className="text-xs font-black uppercase text-[#714B67] tracking-wider font-mono flex items-center gap-2">
+            📋 Leave History ({filteredLeaves.length} Records)
+          </h2>
 
-            <div className="flex items-center gap-3 relative">
-              {/* Quick Preset Date Pills */}
-              <div className="hidden md:flex items-center gap-1 bg-[#F5F2EC] p-1 rounded-xl border border-[#E8E4DF] text-[10px] font-bold">
-                <button
-                  type="button"
-                  onClick={() => setDatePreset("current_month")}
-                  className={`px-3 py-1 rounded-lg transition-all ${datePreset === "current_month" ? "bg-[#714B67] text-white font-black shadow-xs" : "text-[#6B665E] hover:text-[#1C1C1A]"}`}
-                >
-                  Current Month
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setDatePreset("last_month")}
-                  className={`px-3 py-1 rounded-lg transition-all ${datePreset === "last_month" ? "bg-[#714B67] text-white font-black shadow-xs" : "text-[#6B665E] hover:text-[#1C1C1A]"}`}
-                >
-                  Last Month
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setDatePreset("all")}
-                  className={`px-3 py-1 rounded-lg transition-all ${datePreset === "all" ? "bg-[#714B67] text-white font-black shadow-xs" : "text-[#6B665E] hover:text-[#1C1C1A]"}`}
-                >
-                  All Time
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setDatePreset("custom")}
-                  className={`px-3 py-1 rounded-lg transition-all ${datePreset === "custom" ? "bg-[#714B67] text-white font-black shadow-xs" : "text-[#6B665E] hover:text-[#1C1C1A]"}`}
-                >
-                  Custom Range
-                </button>
-              </div>
+          <div className="flex items-center gap-3 relative">
+            {/* Quick Preset Date Pills */}
+            <div className="hidden md:flex items-center gap-1 bg-[#F5F2EC] p-1 rounded-xl border border-[#E8E4DF] text-[10px] font-bold">
+              <button
+                type="button"
+                onClick={() => setDatePreset("current_month")}
+                className={`px-3 py-1 rounded-lg transition-all ${datePreset === "current_month" ? "bg-[#714B67] text-white font-black shadow-xs" : "text-[#6B665E] hover:text-[#1C1C1A]"}`}
+              >
+                Current Month
+              </button>
+              <button
+                type="button"
+                onClick={() => setDatePreset("last_month")}
+                className={`px-3 py-1 rounded-lg transition-all ${datePreset === "last_month" ? "bg-[#714B67] text-white font-black shadow-xs" : "text-[#6B665E] hover:text-[#1C1C1A]"}`}
+              >
+                Last Month
+              </button>
+              <button
+                type="button"
+                onClick={() => setDatePreset("all")}
+                className={`px-3 py-1 rounded-lg transition-all ${datePreset === "all" ? "bg-[#714B67] text-white font-black shadow-xs" : "text-[#6B665E] hover:text-[#1C1C1A]"}`}
+              >
+                All Time
+              </button>
+              <button
+                type="button"
+                onClick={() => setDatePreset("custom")}
+                className={`px-3 py-1 rounded-lg transition-all ${datePreset === "custom" ? "bg-[#714B67] text-white font-black shadow-xs" : "text-[#6B665E] hover:text-[#1C1C1A]"}`}
+              >
+                Custom Range
+              </button>
+            </div>
 
-              {/* Top-Right Compact Filter Popover Toggle Button */}
-              <div className="relative">
-                <button
-                  type="button"
-                  onClick={() => setShowFilters(!showFilters)}
-                  className={`flex items-center gap-2 border px-4 py-2 text-xs font-bold transition-all rounded-xl shadow-xs focus:outline-none ${showFilters
-                    ? "bg-[#C9A84C] border-[#C9A84C] text-[#FCFBF9]"
-                    : "bg-[#FCFBF9] hover:bg-[#F5F2EC] border-[#E8E4DF] text-[#1C1C1A]"
-                    }`}
-                >
-                  <Filter className="w-3.5 h-3.5" />
-                  <span>Filter Leaves</span>
-                  {isFilterActive && (
-                    <span className="w-2 h-2 rounded-full bg-[#C9A84C] animate-pulse" />
-                  )}
-                </button>
+            {/* Top-Right Compact Filter Popover Toggle Button */}
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setShowFilters(!showFilters)}
+                className={`flex items-center gap-2 border px-4 py-2 text-xs font-bold transition-all rounded-xl shadow-xs focus:outline-none ${showFilters
+                  ? "bg-[#C9A84C] border-[#C9A84C] text-[#FCFBF9]"
+                  : "bg-[#FCFBF9] hover:bg-[#F5F2EC] border-[#E8E4DF] text-[#1C1C1A]"
+                  }`}
+              >
+                <Filter className="w-3.5 h-3.5" />
+                <span>Filter Leaves</span>
+                {isFilterActive && (
+                  <span className="w-2 h-2 rounded-full bg-[#C9A84C] animate-pulse" />
+                )}
+              </button>
 
-                {/* Floating Filter Popover */}
-                {showFilters && (
-                  <div className="absolute right-0 mt-3 z-50 bg-[#FCFBF9] border border-[#E8E4DF] shadow-[0_25px_60px_-15px_rgba(0,0,0,0.15)] rounded-2xl p-5 w-[320px] space-y-4 text-left normal-case font-sans animate-fadeIn">
-                    <div className="flex justify-between items-center border-b border-[#E8E4DF] pb-2">
-                      <span className="text-xs font-bold text-[#1C1C1A] tracking-wider uppercase font-mono">Filter Leaves</span>
-                      <button
-                        type="button"
-                        onClick={() => setShowFilters(false)}
-                        className="text-[#9C9890] hover:text-[#1C1C1A] transition-colors"
-                      >
-                        <X className="w-4 h-4" />
-                      </button>
+              {/* Floating Filter Popover */}
+              {showFilters && (
+                <div className="absolute right-0 mt-3 z-50 bg-[#FCFBF9] border border-[#E8E4DF] shadow-[0_25px_60px_-15px_rgba(0,0,0,0.15)] rounded-2xl p-5 w-[320px] space-y-4 text-left normal-case font-sans animate-fadeIn">
+                  <div className="flex justify-between items-center border-b border-[#E8E4DF] pb-2">
+                    <span className="text-xs font-bold text-[#1C1C1A] tracking-wider uppercase font-mono">Filter Leaves</span>
+                    <button
+                      type="button"
+                      onClick={() => setShowFilters(false)}
+                      className="text-[#9C9890] hover:text-[#1C1C1A] transition-colors"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+
+                  <div className="space-y-3.5 text-xs">
+                    {/* Search Keyword */}
+                    <div>
+                      <label className="text-[9px] uppercase font-bold text-[#9C9890] font-mono tracking-widest block mb-1">Search Keyword</label>
+                      <input
+                        type="text"
+                        placeholder="Search employee, leave type..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="w-full bg-white border border-[#E8E4DF] rounded-xl p-2.5 text-xs font-semibold text-[#1C1C1A] focus:outline-none focus:border-[#C9A84C]"
+                      />
                     </div>
 
-                    <div className="space-y-3.5 text-xs">
-                      {/* Search Keyword */}
-                      <div>
-                        <label className="text-[9px] uppercase font-bold text-[#9C9890] font-mono tracking-widest block mb-1">Search Keyword</label>
-                        <input
-                          type="text"
-                          placeholder="Search employee, leave type..."
-                          value={searchTerm}
-                          onChange={(e) => setSearchTerm(e.target.value)}
-                          className="w-full bg-white border border-[#E8E4DF] rounded-xl p-2.5 text-xs font-semibold text-[#1C1C1A] focus:outline-none focus:border-[#C9A84C]"
-                        />
-                      </div>
-
-                      {/* Select Employee Dropdown (Active Users first, Inactive Users grouped at the end) */}
-                      <div>
-                        <label className="text-[9px] uppercase font-bold text-[#9C9890] font-mono tracking-widest block mb-1">Select Employee</label>
-                        <select
-                          value={filterUser}
-                          onChange={(e) => setFilterUser(e.target.value)}
-                          className="w-full bg-white border border-[#E8E4DF] rounded-xl p-2.5 text-xs font-bold text-[#1C1C1A] focus:outline-none focus:border-[#C9A84C]"
-                        >
-                          <option value="">All Employees</option>
-                          <optgroup label="Active Employees">
-                            {uniqueUsersFromLeaves.activeList.map((u) => (
+                    {/* Select Employee Dropdown (Active Users first, Inactive Users grouped at the end) */}
+                    <div>
+                      <label className="text-[9px] uppercase font-bold text-[#9C9890] font-mono tracking-widest block mb-1">Select Employee</label>
+                      <select
+                        value={filterUser}
+                        onChange={(e) => setFilterUser(e.target.value)}
+                        className="w-full bg-white border border-[#E8E4DF] rounded-xl p-2.5 text-xs font-bold text-[#1C1C1A] focus:outline-none focus:border-[#C9A84C]"
+                      >
+                        <option value="">All Employees</option>
+                        <optgroup label="Active Employees">
+                          {uniqueUsersFromLeaves.activeList.map((u) => (
+                            <option key={u.id} value={u.id}>
+                              {u.name} {u.email ? `(${u.email})` : ""}
+                            </option>
+                          ))}
+                        </optgroup>
+                        {uniqueUsersFromLeaves.inactiveList.length > 0 && (
+                          <optgroup label="Inactive / Archived Employees">
+                            {uniqueUsersFromLeaves.inactiveList.map((u) => (
                               <option key={u.id} value={u.id}>
-                                {u.name} {u.email ? `(${u.email})` : ""}
+                                {u.name} (Inactive) {u.email ? `(${u.email})` : ""}
                               </option>
                             ))}
                           </optgroup>
-                          {uniqueUsersFromLeaves.inactiveList.length > 0 && (
-                            <optgroup label="Inactive / Archived Employees">
-                              {uniqueUsersFromLeaves.inactiveList.map((u) => (
-                                <option key={u.id} value={u.id}>
-                                  {u.name} (Inactive) {u.email ? `(${u.email})` : ""}
-                                </option>
-                              ))}
-                            </optgroup>
-                          )}
-                        </select>
-                      </div>
+                        )}
+                      </select>
+                    </div>
 
-                      {/* Status Dropdown */}
-                      <div>
-                        <label className="text-[9px] uppercase font-bold text-[#9C9890] font-mono tracking-widest block mb-1">Approval Status</label>
-                        <select
-                          value={filterStatus}
-                          onChange={(e) => setFilterStatus(e.target.value)}
-                          className="w-full bg-white border border-[#E8E4DF] rounded-xl p-2.5 text-xs font-bold text-[#1C1C1A] focus:outline-none focus:border-[#C9A84C]"
-                        >
-                          <option value="All">All Statuses</option>
-                          <option value="Pending">Pending</option>
-                          <option value="Approved">Approved</option>
-                          <option value="Rejected">Rejected</option>
-                        </select>
-                      </div>
+                    {/* Status Dropdown */}
+                    <div>
+                      <label className="text-[9px] uppercase font-bold text-[#9C9890] font-mono tracking-widest block mb-1">Approval Status</label>
+                      <select
+                        value={filterStatus}
+                        onChange={(e) => setFilterStatus(e.target.value)}
+                        className="w-full bg-white border border-[#E8E4DF] rounded-xl p-2.5 text-xs font-bold text-[#1C1C1A] focus:outline-none focus:border-[#C9A84C]"
+                      >
+                        <option value="All">All Statuses</option>
+                        <option value="Pending">Pending</option>
+                        <option value="Approved">Approved</option>
+                        <option value="Rejected">Rejected</option>
+                      </select>
+                    </div>
 
-                      {/* Date Preset */}
-                      <div>
-                        <label className="text-[9px] uppercase font-bold text-[#9C9890] font-mono tracking-widest block mb-1">Date Preset</label>
-                        <select
-                          value={datePreset}
-                          onChange={(e) => setDatePreset(e.target.value as any)}
-                          className="w-full bg-white border border-[#E8E4DF] rounded-xl p-2.5 text-xs font-bold text-[#1C1C1A] focus:outline-none focus:border-[#C9A84C]"
-                        >
-                          <option value="all">All Time</option>
-                          <option value="current_month">Current Month</option>
-                          <option value="last_month">Last Month</option>
-                          <option value="custom">Custom Date Range</option>
-                        </select>
-                      </div>
+                    {/* Date Preset */}
+                    <div>
+                      <label className="text-[9px] uppercase font-bold text-[#9C9890] font-mono tracking-widest block mb-1">Date Preset</label>
+                      <select
+                        value={datePreset}
+                        onChange={(e) => setDatePreset(e.target.value as any)}
+                        className="w-full bg-white border border-[#E8E4DF] rounded-xl p-2.5 text-xs font-bold text-[#1C1C1A] focus:outline-none focus:border-[#C9A84C]"
+                      >
+                        <option value="all">All Time</option>
+                        <option value="current_month">Current Month</option>
+                        <option value="last_month">Last Month</option>
+                        <option value="custom">Custom Date Range</option>
+                      </select>
+                    </div>
 
-                      {/* Custom Date Range Inputs */}
-                      {datePreset === "custom" && (
-                        <div className="space-y-2 pt-1 border-t border-[#E8E4DF]">
-                          <div>
-                            <label className="text-[8px] uppercase font-bold text-[#9C9890] font-mono tracking-widest block mb-1">From Date</label>
-                            <input
-                              type="date"
-                              value={filterStartDate}
-                              onChange={(e) => setFilterStartDate(e.target.value)}
-                              className="w-full bg-white border border-[#E8E4DF] rounded-xl p-2 text-xs font-bold text-[#1C1C1A] focus:outline-none focus:border-[#C9A84C]"
-                            />
-                          </div>
-                          <div>
-                            <label className="text-[8px] uppercase font-bold text-[#9C9890] font-mono tracking-widest block mb-1">To Date</label>
-                            <input
-                              type="date"
-                              value={filterEndDate}
-                              onChange={(e) => setFilterEndDate(e.target.value)}
-                              className="w-full bg-white border border-[#E8E4DF] rounded-xl p-2 text-xs font-bold text-[#1C1C1A] focus:outline-none focus:border-[#C9A84C]"
-                            />
-                          </div>
+                    {/* Custom Date Range Inputs */}
+                    {datePreset === "custom" && (
+                      <div className="space-y-2 pt-1 border-t border-[#E8E4DF]">
+                        <div>
+                          <label className="text-[8px] uppercase font-bold text-[#9C9890] font-mono tracking-widest block mb-1">From Date</label>
+                          <input
+                            type="date"
+                            value={filterStartDate}
+                            onChange={(e) => setFilterStartDate(e.target.value)}
+                            className="w-full bg-white border border-[#E8E4DF] rounded-xl p-2 text-xs font-bold text-[#1C1C1A] focus:outline-none focus:border-[#C9A84C]"
+                          />
                         </div>
-                      )}
-                    </div>
-
-                    <div className="pt-2 flex gap-3">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setSearchTerm("");
-                          setFilterUser("");
-                          setFilterStatus("All");
-                          setDatePreset("all");
-                          setFilterStartDate("");
-                          setFilterEndDate("");
-                          setShowFilters(false);
-                        }}
-                        className="flex-1 bg-[#FCFBF9] hover:bg-[#F5F2EC] text-[#6B665E] py-2.5 rounded-xl text-[10px] font-bold transition-all border border-[#E8E4DF]"
-                      >
-                        Clear All
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setShowFilters(false)}
-                        className="flex-1 bg-[#C9A84C] hover:bg-[#B5963D] text-[#FCFBF9] py-2.5 rounded-xl text-[10px] font-bold transition-all shadow-md"
-                      >
-                        Apply Filters
-                      </button>
-                    </div>
+                        <div>
+                          <label className="text-[8px] uppercase font-bold text-[#9C9890] font-mono tracking-widest block mb-1">To Date</label>
+                          <input
+                            type="date"
+                            value={filterEndDate}
+                            onChange={(e) => setFilterEndDate(e.target.value)}
+                            className="w-full bg-white border border-[#E8E4DF] rounded-xl p-2 text-xs font-bold text-[#1C1C1A] focus:outline-none focus:border-[#C9A84C]"
+                          />
+                        </div>
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
+
+                  <div className="pt-2 flex gap-3">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSearchTerm("");
+                        setFilterUser("");
+                        setFilterStatus("All");
+                        setDatePreset("all");
+                        setFilterStartDate("");
+                        setFilterEndDate("");
+                        setShowFilters(false);
+                      }}
+                      className="flex-1 bg-[#FCFBF9] hover:bg-[#F5F2EC] text-[#6B665E] py-2.5 rounded-xl text-[10px] font-bold transition-all border border-[#E8E4DF]"
+                    >
+                      Clear All
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setShowFilters(false)}
+                      className="flex-1 bg-[#C9A84C] hover:bg-[#B5963D] text-[#FCFBF9] py-2.5 rounded-xl text-[10px] font-bold transition-all shadow-md"
+                    >
+                      Apply Filters
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
-
-          {/* Table */}
-          <div className="overflow-x-auto border border-slate-100 rounded-xl">
-            <table className="w-full text-left text-xs border-collapse">
-              <thead>
-                <tr className="border-b border-slate-200 bg-slate-50 text-slate-400 font-black uppercase font-mono tracking-wider">
-                  {hasMultipleUsersInLeaves && <th className="py-3 px-3">Employee</th>}
-                  <th className="py-3 px-3">Date</th>
-                  <th className="py-3 px-3">Type</th>
-                  <th className="py-3 px-3">Days</th>
-                  <th className="py-3 px-3">Status</th>
-                  <th className="py-3 px-3">Approver Remarks</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 text-slate-700 font-medium">
-                {loading ? (
-                  <tr>
-                    <td colSpan={hasMultipleUsersInLeaves ? 6 : 5} className="py-8 text-center text-slate-400 italic">
-                      Loading leave requests...
-                    </td>
-                  </tr>
-                ) : filteredLeaves.length === 0 ? (
-                  <tr>
-                    <td colSpan={hasMultipleUsersInLeaves ? 6 : 5} className="py-8 text-center text-slate-400 italic">
-                      No leave records found matching selected criteria.
-                    </td>
-                  </tr>
-                ) : (
-                  filteredLeaves.map((l: any) => (
-                    <tr key={l.id} className="hover:bg-slate-50/50 border-b border-slate-50">
-                      {hasMultipleUsersInLeaves && (
-                        <td className="py-3 px-3">
-                          <div className="flex flex-col">
-                            <span className="font-bold text-slate-800">{l.employee?.name || l.user?.name || "Self"}</span>
-                            <span className="text-[10px] text-slate-400 font-mono">{l.employee?.email || l.user?.email || ""}</span>
-                          </div>
-                        </td>
-                      )}
-                      <td className="py-3 px-3 whitespace-nowrap font-semibold">
-                        {new Date(l.startDate).toLocaleDateString()} {l.endDate && l.endDate !== l.startDate ? ` - ${new Date(l.endDate).toLocaleDateString()}` : ""}
-                      </td>
-                      <td className="py-3 px-3">
-                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-50 text-indigo-600 border border-indigo-100">
-                          {l.type}
-                        </span>
-                      </td>
-                      <td className="py-3 px-3 font-mono font-bold text-slate-800">{l.days}</td>
-                      <td className="py-3 px-3">
-                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${l.status === 'Approved' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : l.status === 'Rejected' ? 'bg-rose-50 text-rose-700 border border-rose-200' : l.status === 'Pending HR Approval' ? 'bg-blue-50 text-blue-700 border border-blue-200' : 'bg-amber-50 text-amber-700 border border-amber-200'}`}>
-                          {l.status}
-                        </span>
-                      </td>
-                      <td className="py-3 px-3 text-slate-500 text-[11px] italic">
-                        {l.status !== "Pending Manager Approval" && l.status !== "Pending HR Approval" ?
-                          (l.approvedBy?.name ? `By: ${l.approvedBy?.name} ${l.remarks ? `(${l.remarks})` : ''}` : (l.remarks || 'No remarks')) :
-                          'Awaiting Approval'}
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
         </div>
-      )}
+
+        {/* Table */}
+        <div className="overflow-x-auto border border-slate-100 rounded-xl">
+          <table className="w-full text-left text-xs border-collapse">
+            <thead>
+              <tr className="border-b border-slate-200 bg-slate-50 text-slate-400 font-black uppercase font-mono tracking-wider">
+                {hasMultipleUsersInLeaves && <th className="py-3 px-3">Employee</th>}
+                <th className="py-3 px-3">Date</th>
+                <th className="py-3 px-3">Type</th>
+                <th className="py-3 px-3">Days</th>
+                <th className="py-3 px-3">Status</th>
+                <th className="py-3 px-3">Approver Remarks</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100 text-slate-700 font-medium">
+              {loading ? (
+                <tr>
+                  <td colSpan={hasMultipleUsersInLeaves ? 6 : 5} className="py-8 text-center text-slate-400 italic">
+                    Loading leave requests...
+                  </td>
+                </tr>
+              ) : filteredLeaves.length === 0 ? (
+                <tr>
+                  <td colSpan={hasMultipleUsersInLeaves ? 6 : 5} className="py-8 text-center text-slate-400 italic">
+                    No leave records found matching selected criteria.
+                  </td>
+                </tr>
+              ) : (
+                filteredLeaves.map((l: any) => (
+                  <tr key={l.id} className="hover:bg-slate-50/50 border-b border-slate-50">
+                    {hasMultipleUsersInLeaves && (
+                      <td className="py-3 px-3">
+                        <div className="flex flex-col">
+                          <span className="font-bold text-slate-800">{l.employee?.name || l.user?.name || "Self"}</span>
+                          <span className="text-[10px] text-slate-400 font-mono">{l.employee?.email || l.user?.email || ""}</span>
+                        </div>
+                      </td>
+                    )}
+                    <td className="py-3 px-3 whitespace-nowrap font-semibold">
+                      {new Date(l.startDate).toLocaleDateString()} {l.endDate && l.endDate !== l.startDate ? ` - ${new Date(l.endDate).toLocaleDateString()}` : ""}
+                    </td>
+                    <td className="py-3 px-3">
+                      <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-50 text-indigo-600 border border-indigo-100">
+                        {l.type}
+                      </span>
+                    </td>
+                    <td className="py-3 px-3 font-mono font-bold text-slate-800">{l.days}</td>
+                    <td className="py-3 px-3">
+                      <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${l.status === 'Approved' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : l.status === 'Rejected' ? 'bg-rose-50 text-rose-700 border border-rose-200' : l.status === 'Pending HR Approval' ? 'bg-blue-50 text-blue-700 border border-blue-200' : 'bg-amber-50 text-amber-700 border border-amber-200'}`}>
+                        {l.status}
+                      </span>
+                    </td>
+                    <td className="py-3 px-3 text-slate-500 text-[11px] italic">
+                      {l.status !== "Pending Manager Approval" && l.status !== "Pending HR Approval" ?
+                        (l.approvedBy?.name ? `By: ${l.approvedBy?.name} ${l.remarks ? `(${l.remarks})` : ''}` : (l.remarks || 'No remarks')) :
+                        'Awaiting Approval'}
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
   );
 }
@@ -2322,12 +2264,22 @@ export function ESSExpenses({ user, triggerToast }: ESSProps) {
   const [showClaimModal, setShowClaimModal] = useState<boolean>(false);
   const [selectedReceiptUrl, setSelectedReceiptUrl] = useState<string | null>(null);
 
-  // Filters State
+  // Column Filters State
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [categoryFilter, setCategoryFilter] = useState<string>("");
   const [statusFilter, setStatusFilter] = useState<string>("");
+  const [employeeFilter, setEmployeeFilter] = useState<string>("");
   const [startDateFilter, setStartDateFilter] = useState<string>("");
   const [endDateFilter, setEndDateFilter] = useState<string>("");
+  const [minAmountFilter, setMinAmountFilter] = useState<string>("");
+  const [maxAmountFilter, setMaxAmountFilter] = useState<string>("");
+
+  // Column Sorting State
+  const [sortColumn, setSortColumn] = useState<string>("date");
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
+
+  // Active Dropdown Column Filter Popover
+  const [activeFilterDropdown, setActiveFilterDropdown] = useState<string | null>(null);
 
   // Form State
   const [category, setCategory] = useState<string>("Travel / Conveyance");
@@ -2362,6 +2314,99 @@ export function ESSExpenses({ user, triggerToast }: ESSProps) {
   useEffect(() => {
     fetchClaims();
   }, []);
+
+  // Dynamic filter options extracted from active claims
+  const uniqueCategories = useMemo(() => {
+    const set = new Set<string>();
+    claims.forEach((c) => {
+      if (c.category) set.add(c.category);
+    });
+    return Array.from(set).sort();
+  }, [claims]);
+
+  const uniqueEmployees = useMemo(() => {
+    const set = new Set<string>();
+    claims.forEach((c) => {
+      if (c.employeeName) set.add(c.employeeName);
+    });
+    return Array.from(set).sort();
+  }, [claims]);
+
+  // Handle Column Sorting
+  const handleSort = (column: string) => {
+    if (sortColumn === column) {
+      setSortDirection(prev => (prev === "asc" ? "desc" : "asc"));
+    } else {
+      setSortColumn(column);
+      setSortDirection("desc");
+    }
+  };
+
+  // Filter Claims
+  const filteredClaims = useMemo(() => {
+    return claims.filter((claim) => {
+      if (categoryFilter && claim.category !== categoryFilter) return false;
+      if (statusFilter) {
+        if (statusFilter === "Approved") {
+          if (claim.status !== "Approved" && claim.status !== "Reimbursed") return false;
+        } else if (claim.status !== statusFilter) {
+          return false;
+        }
+      }
+      if (employeeFilter && claim.employeeName !== employeeFilter) return false;
+
+      const rawDate = claim.dateIncurred || claim.createdAt;
+      if (rawDate) {
+        const claimDateStr = new Date(rawDate).toISOString().split("T")[0];
+        if (startDateFilter && claimDateStr < startDateFilter) return false;
+        if (endDateFilter && claimDateStr > endDateFilter) return false;
+      }
+
+      const claimAmt = Number(claim.amount) || 0;
+      if (minAmountFilter && claimAmt < Number(minAmountFilter)) return false;
+      if (maxAmountFilter && claimAmt > Number(maxAmountFilter)) return false;
+
+      if (searchQuery) {
+        const q = searchQuery.toLowerCase();
+        return (
+          claim.id?.toLowerCase().includes(q) ||
+          claim.category?.toLowerCase().includes(q) ||
+          claim.vendorName?.toLowerCase().includes(q) ||
+          claim.employeeName?.toLowerCase().includes(q) ||
+          claim.description?.toLowerCase().includes(q) ||
+          claim.paymentMode?.toLowerCase().includes(q)
+        );
+      }
+      return true;
+    }).sort((a, b) => {
+      let valA: any = "";
+      let valB: any = "";
+
+      if (sortColumn === "date") {
+        valA = new Date(a.dateIncurred || a.createdAt).getTime();
+        valB = new Date(b.dateIncurred || b.createdAt).getTime();
+      } else if (sortColumn === "employee") {
+        valA = (a.employeeName || "").toLowerCase();
+        valB = (b.employeeName || "").toLowerCase();
+      } else if (sortColumn === "category") {
+        valA = (a.category || "").toLowerCase();
+        valB = (b.category || "").toLowerCase();
+      } else if (sortColumn === "amount") {
+        valA = Number(a.amount) || 0;
+        valB = Number(b.amount) || 0;
+      } else if (sortColumn === "netPayable") {
+        valA = Number(a.netPayable || a.amount) || 0;
+        valB = Number(b.netPayable || b.amount) || 0;
+      } else if (sortColumn === "status") {
+        valA = (a.status || "Pending").toLowerCase();
+        valB = (b.status || "Pending").toLowerCase();
+      }
+
+      if (valA < valB) return sortDirection === "asc" ? -1 : 1;
+      if (valA > valB) return sortDirection === "asc" ? 1 : -1;
+      return 0;
+    });
+  }, [claims, categoryFilter, statusFilter, employeeFilter, startDateFilter, endDateFilter, minAmountFilter, maxAmountFilter, searchQuery, sortColumn, sortDirection]);
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -2474,32 +2519,6 @@ export function ESSExpenses({ user, triggerToast }: ESSProps) {
     }
   };
 
-  // Filter Claims
-  const filteredClaims = claims.filter((claim) => {
-    if (categoryFilter && claim.category !== categoryFilter) return false;
-    if (statusFilter && claim.status !== statusFilter) return false;
-
-    const rawDate = claim.dateIncurred || claim.createdAt;
-    if (rawDate) {
-      const claimDateStr = new Date(rawDate).toISOString().split("T")[0];
-      if (startDateFilter && claimDateStr < startDateFilter) return false;
-      if (endDateFilter && claimDateStr > endDateFilter) return false;
-    }
-
-    if (searchQuery) {
-      const q = searchQuery.toLowerCase();
-      return (
-        claim.id?.toLowerCase().includes(q) ||
-        claim.category?.toLowerCase().includes(q) ||
-        claim.vendorName?.toLowerCase().includes(q) ||
-        claim.employeeName?.toLowerCase().includes(q) ||
-        claim.description?.toLowerCase().includes(q) ||
-        claim.paymentMode?.toLowerCase().includes(q)
-      );
-    }
-    return true;
-  });
-
   const handleExportExcel = () => {
     if (filteredClaims.length === 0) {
       alert("No expense claims available to export.");
@@ -2534,8 +2553,22 @@ export function ESSExpenses({ user, triggerToast }: ESSProps) {
   const pendingAmount = claims.filter(c => c.status === "Pending").reduce((acc, curr) => acc + (Number(curr.netPayable || curr.amount) || 0), 0);
   const approvedAmount = claims.filter(c => c.status === "Approved" || c.status === "Reimbursed").reduce((acc, curr) => acc + (Number(curr.netPayable || curr.amount) || 0), 0);
 
+  const resetAllFilters = () => {
+    setStartDateFilter("");
+    setEndDateFilter("");
+    setCategoryFilter("");
+    setStatusFilter("");
+    setEmployeeFilter("");
+    setMinAmountFilter("");
+    setMaxAmountFilter("");
+    setSearchQuery("");
+    setActiveFilterDropdown(null);
+  };
+
+  const hasActiveFilters = Boolean(startDateFilter || endDateFilter || categoryFilter || statusFilter || employeeFilter || minAmountFilter || maxAmountFilter || searchQuery);
+
   return (
-    <div className="space-y-6 animate-fadeIn text-slate-800">
+    <div className="space-y-6 animate-fadeIn text-slate-800" onClick={() => activeFilterDropdown && setActiveFilterDropdown(null)}>
       {/* Header Bar */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
@@ -2543,18 +2576,29 @@ export function ESSExpenses({ user, triggerToast }: ESSProps) {
           <p className="text-xs text-slate-500 mt-1">Submit bills, track approval status, and manage expense claims.</p>
         </div>
         <button
-          className="bg-amber-600 hover:bg-amber-700 text-white px-4 py-2.5 rounded-xl text-xs font-bold shadow-md transition-all flex items-center gap-2"
+          className="bg-amber-600 hover:bg-amber-700 text-white px-4 py-2.5 rounded-xl text-xs font-bold shadow-md transition-all flex items-center gap-2 cursor-pointer"
           onClick={() => setShowClaimModal(true)}
         >
           <Plus className="w-4 h-4" /> File New Claim
         </button>
       </div>
 
-      {/* Summary Cards */}
+      {/* Clickable Interactive Summary Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm flex items-center justify-between">
+        {/* Card 1: Total Claims (Click to view all) */}
+        <div
+          onClick={() => setStatusFilter("")}
+          className={`bg-white border rounded-2xl p-5 shadow-sm flex items-center justify-between cursor-pointer transition-all hover:shadow-md hover:border-slate-400 active:scale-[0.99] ${statusFilter === "" ? "ring-2 ring-[#714B67] border-transparent bg-slate-50/50" : "border-slate-200"
+            }`}
+          title="Click to show All Expense Claims"
+        >
           <div>
-            <p className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Total Claims</p>
+            <div className="flex items-center gap-2">
+              <p className="text-[10px] font-black uppercase text-slate-500 tracking-wider">Total Claims</p>
+              {statusFilter === "" && (
+                <span className="text-[9px] font-bold bg-[#714B67] text-white px-1.5 py-0.2 rounded">Active Filter</span>
+              )}
+            </div>
             <h3 className="text-2xl font-serif font-light text-slate-800 mt-1">₹{totalClaimed.toLocaleString("en-IN")}</h3>
             <p className="text-[11px] text-slate-500 mt-0.5">{claims.length} Entries Filed</p>
           </div>
@@ -2563,9 +2607,20 @@ export function ESSExpenses({ user, triggerToast }: ESSProps) {
           </div>
         </div>
 
-        <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm flex items-center justify-between">
+        {/* Card 2: Pending Approval (Click to filter pending) */}
+        <div
+          onClick={() => setStatusFilter(statusFilter === "Pending" ? "" : "Pending")}
+          className={`bg-white border rounded-2xl p-5 shadow-sm flex items-center justify-between cursor-pointer transition-all hover:shadow-md hover:border-amber-400 active:scale-[0.99] ${statusFilter === "Pending" ? "ring-2 ring-amber-500 border-transparent bg-amber-50/30" : "border-slate-200"
+            }`}
+          title="Click to filter by Pending Approval"
+        >
           <div>
-            <p className="text-[10px] font-black uppercase text-amber-600 tracking-wider">Pending Approval</p>
+            <div className="flex items-center gap-2">
+              <p className="text-[10px] font-black uppercase text-amber-600 tracking-wider">Pending Approval</p>
+              {statusFilter === "Pending" && (
+                <span className="text-[9px] font-bold bg-amber-600 text-white px-1.5 py-0.2 rounded">Active Filter</span>
+              )}
+            </div>
             <h3 className="text-2xl font-serif font-light text-amber-950 mt-1">₹{pendingAmount.toLocaleString("en-IN")}</h3>
             <p className="text-[11px] text-amber-700 mt-0.5">{claims.filter(c => c.status === "Pending").length} Claims Awaiting Review</p>
           </div>
@@ -2574,9 +2629,20 @@ export function ESSExpenses({ user, triggerToast }: ESSProps) {
           </div>
         </div>
 
-        <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm flex items-center justify-between">
+        {/* Card 3: Approved / Reimbursed (Click to filter approved) */}
+        <div
+          onClick={() => setStatusFilter(statusFilter === "Approved" ? "" : "Approved")}
+          className={`bg-white border rounded-2xl p-5 shadow-sm flex items-center justify-between cursor-pointer transition-all hover:shadow-md hover:border-emerald-400 active:scale-[0.99] ${statusFilter === "Approved" ? "ring-2 ring-emerald-500 border-transparent bg-emerald-50/30" : "border-slate-200"
+            }`}
+          title="Click to filter by Approved / Reimbursed"
+        >
           <div>
-            <p className="text-[10px] font-black uppercase text-emerald-600 tracking-wider">Approved / Reimbursed</p>
+            <div className="flex items-center gap-2">
+              <p className="text-[10px] font-black uppercase text-emerald-600 tracking-wider">Approved / Reimbursed</p>
+              {statusFilter === "Approved" && (
+                <span className="text-[9px] font-bold bg-emerald-600 text-white px-1.5 py-0.2 rounded">Active Filter</span>
+              )}
+            </div>
             <h3 className="text-2xl font-serif font-light text-emerald-950 mt-1">₹{approvedAmount.toLocaleString("en-IN")}</h3>
             <p className="text-[11px] text-emerald-700 mt-0.5">{claims.filter(c => c.status === "Approved" || c.status === "Reimbursed").length} Approved Claims</p>
           </div>
@@ -2598,28 +2664,25 @@ export function ESSExpenses({ user, triggerToast }: ESSProps) {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
+          {searchQuery && (
+            <button onClick={() => setSearchQuery("")} className="text-slate-400 hover:text-slate-600 text-xs">✕</button>
+          )}
         </div>
 
         {/* Export Excel & Refresh */}
         <div className="flex items-center gap-2.5 w-full md:w-auto justify-end">
-          {(startDateFilter || endDateFilter || categoryFilter || statusFilter || searchQuery) && (
+          {hasActiveFilters && (
             <button
-              onClick={() => {
-                setStartDateFilter("");
-                setEndDateFilter("");
-                setCategoryFilter("");
-                setStatusFilter("");
-                setSearchQuery("");
-              }}
-              className="text-[11px] font-bold text-rose-600 hover:text-rose-800 bg-rose-50 px-3 py-2 rounded-xl border border-rose-200 transition-all"
+              onClick={resetAllFilters}
+              className="text-[11px] font-bold text-rose-600 hover:text-rose-800 bg-rose-50 hover:bg-rose-100 px-3 py-2 rounded-xl border border-rose-200 transition-all cursor-pointer flex items-center gap-1"
             >
-              Reset Filters
+              <X className="w-3 h-3" /> Reset Filters
             </button>
           )}
 
           <button
             onClick={handleExportExcel}
-            className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm"
+            className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm cursor-pointer"
             title="Export Expense Claims to Excel"
           >
             <FileSpreadsheet className="w-4 h-4" /> Export Excel
@@ -2627,7 +2690,7 @@ export function ESSExpenses({ user, triggerToast }: ESSProps) {
 
           <button
             onClick={fetchClaims}
-            className="p-2.5 bg-slate-50 border border-slate-200 hover:bg-slate-100 rounded-xl text-slate-700 transition-all"
+            className="p-2.5 bg-slate-50 border border-slate-200 hover:bg-slate-100 rounded-xl text-slate-700 transition-all cursor-pointer"
             title="Refresh List"
           >
             <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
@@ -2638,106 +2701,320 @@ export function ESSExpenses({ user, triggerToast }: ESSProps) {
       {/* Claims Table */}
       <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
         <div className="p-4 border-b border-slate-100 flex items-center justify-between">
-          <h3 className="text-xs font-black uppercase tracking-wider text-slate-700">
-            {isOwnerOrAdmin ? "All Expense Claims (Review & Approvals)" : "My Submitted Claims"}
-          </h3>
+          <div className="flex items-center gap-3">
+            <h3 className="text-xs font-black tracking-wider text-slate-700">
+              {isOwnerOrAdmin ? "All Expense Claims (Review & Approvals)" : "My Submitted Claims"}
+            </h3>
+            {statusFilter && (
+              <span className="text-[10px] font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">
+                Filtered: {statusFilter}
+              </span>
+            )}
+          </div>
           <span className="text-xs font-bold text-slate-500">{filteredClaims.length} records</span>
         </div>
 
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto min-h-[380px]">
           <table className="w-full text-left border-collapse min-w-max">
-            <thead className="bg-slate-100/90 border-b border-slate-200">
+            <thead className="bg-slate-100/90 border-b border-slate-200 select-none">
               <tr className="text-[11px] font-bold text-slate-700 tracking-wide">
-                {/* Date Incurred Excel Filter Header */}
-                <th className="py-3 px-3">
-                  <div className="flex items-center gap-1.5">
-                    <span>Date Incurred</span>
-                    <div className="relative inline-flex items-center">
-                      <Filter className={`w-3.5 h-3.5 cursor-pointer ${startDateFilter ? "text-amber-600 font-bold" : "text-slate-400 hover:text-slate-600"}`} />
-                      <input
-                        type="date"
-                        value={startDateFilter}
-                        onChange={(e) => setStartDateFilter(e.target.value)}
-                        className="absolute inset-0 opacity-0 w-4 h-4 cursor-pointer"
-                        title="Filter by Date"
-                      />
-                    </div>
+
+                {/* Column 1: Date Incurred Filter & Sort */}
+                <th className="py-3 px-3 relative">
+                  <div className="flex items-center justify-between gap-1">
+                    <span
+                      onClick={() => handleSort("date")}
+                      className="cursor-pointer hover:text-slate-900 flex items-center gap-1"
+                    >
+                      Date Incurred {sortColumn === "date" && (sortDirection === "asc" ? "▲" : "▼")}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setActiveFilterDropdown(activeFilterDropdown === "date" ? null : "date");
+                      }}
+                      className={`p-1 rounded hover:bg-slate-200 transition-colors ${startDateFilter || endDateFilter ? "text-amber-600 font-black bg-amber-50" : "text-slate-400"}`}
+                      title="Filter by Date Range"
+                    >
+                      <Filter className="w-3.5 h-3.5" />
+                    </button>
                   </div>
+
+                  {/* Date Filter Dropdown Popover */}
+                  {activeFilterDropdown === "date" && (
+                    <div
+                      onClick={(e) => e.stopPropagation()}
+                      className="absolute left-2 top-full mt-1 bg-white border border-slate-200 rounded-xl shadow-xl p-3 z-50 w-64 space-y-2.5 text-xs text-slate-700"
+                    >
+                      <div className="font-bold text-[10px] uppercase text-slate-400 font-mono">Date Range Filter</div>
+                      <div>
+                        <label className="text-[10px] font-bold text-slate-500">From Date:</label>
+                        <input
+                          type="date"
+                          value={startDateFilter}
+                          onChange={(e) => setStartDateFilter(e.target.value)}
+                          className="w-full bg-slate-50 border border-slate-300 rounded-lg p-1.5 text-xs font-semibold mt-0.5"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[10px] font-bold text-slate-500">To Date:</label>
+                        <input
+                          type="date"
+                          value={endDateFilter}
+                          onChange={(e) => setEndDateFilter(e.target.value)}
+                          className="w-full bg-slate-50 border border-slate-300 rounded-lg p-1.5 text-xs font-semibold mt-0.5"
+                        />
+                      </div>
+                      <div className="flex justify-between items-center pt-1 border-t border-slate-100">
+                        <button
+                          onClick={() => { setStartDateFilter(""); setEndDateFilter(""); }}
+                          className="text-[10px] text-rose-600 font-bold hover:underline"
+                        >
+                          Clear
+                        </button>
+                        <button
+                          onClick={() => setActiveFilterDropdown(null)}
+                          className="px-2.5 py-1 bg-[#714B67] text-white rounded-lg text-[10px] font-bold"
+                        >
+                          Apply
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </th>
 
-                {/* Submitted By Header (Owner View) */}
+                {/* Column 2: Submitted By (Owner View) */}
                 {isOwnerOrAdmin && (
-                  <th className="py-3 px-3">
-                    <div className="flex items-center gap-1.5">
-                      <span>Submitted By</span>
-                      <Filter className="w-3.5 h-3.5 text-slate-400" />
+                  <th className="py-3 px-3 relative">
+                    <div className="flex items-center justify-between gap-1">
+                      <span
+                        onClick={() => handleSort("employee")}
+                        className="cursor-pointer hover:text-slate-900 flex items-center gap-1"
+                      >
+                        Submitted By {sortColumn === "employee" && (sortDirection === "asc" ? "▲" : "▼")}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setActiveFilterDropdown(activeFilterDropdown === "employee" ? null : "employee");
+                        }}
+                        className={`p-1 rounded hover:bg-slate-200 transition-colors ${employeeFilter ? "text-amber-600 font-black bg-amber-50" : "text-slate-400"}`}
+                        title="Filter by Employee"
+                      >
+                        <Filter className="w-3.5 h-3.5" />
+                      </button>
                     </div>
+
+                    {/* Employee Filter Popover */}
+                    {activeFilterDropdown === "employee" && (
+                      <div
+                        onClick={(e) => e.stopPropagation()}
+                        className="absolute left-2 top-full mt-1 bg-white border border-slate-200 rounded-xl shadow-xl p-3 z-50 w-56 space-y-2 text-xs text-slate-700"
+                      >
+                        <div className="font-bold text-[10px] uppercase text-slate-400 font-mono">Select Employee</div>
+                        <select
+                          value={employeeFilter}
+                          onChange={(e) => {
+                            setEmployeeFilter(e.target.value);
+                            setActiveFilterDropdown(null);
+                          }}
+                          className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 text-xs font-bold"
+                        >
+                          <option value="">(All Employees)</option>
+                          {uniqueEmployees.map((emp) => (
+                            <option key={emp} value={emp}>{emp}</option>
+                          ))}
+                        </select>
+                        {employeeFilter && (
+                          <button
+                            onClick={() => { setEmployeeFilter(""); setActiveFilterDropdown(null); }}
+                            className="text-[10px] text-rose-600 font-bold hover:underline block"
+                          >
+                            Clear Filter
+                          </button>
+                        )}
+                      </div>
+                    )}
                   </th>
                 )}
 
-                {/* Category & Merchant Excel Column Filter */}
-                <th className="py-3 px-3">
-                  <div className="flex items-center gap-1.5">
-                    <span>Category &amp; Merchant</span>
-                    <div className="relative inline-flex items-center">
-                      <Filter className={`w-3.5 h-3.5 cursor-pointer ${categoryFilter ? "text-amber-600 font-bold" : "text-slate-400 hover:text-slate-600"}`} />
+                {/* Column 3: Category & Merchant */}
+                <th className="py-3 px-3 relative">
+                  <div className="flex items-center justify-between gap-1">
+                    <span
+                      onClick={() => handleSort("category")}
+                      className="cursor-pointer hover:text-slate-900 flex items-center gap-1"
+                    >
+                      Category &amp; Merchant {sortColumn === "category" && (sortDirection === "asc" ? "▲" : "▼")}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setActiveFilterDropdown(activeFilterDropdown === "category" ? null : "category");
+                      }}
+                      className={`p-1 rounded hover:bg-slate-200 transition-colors ${categoryFilter ? "text-amber-600 font-black bg-amber-50" : "text-slate-400"}`}
+                      title="Filter by Category"
+                    >
+                      <Filter className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+
+                  {/* Category Filter Popover */}
+                  {activeFilterDropdown === "category" && (
+                    <div
+                      onClick={(e) => e.stopPropagation()}
+                      className="absolute left-2 top-full mt-1 bg-white border border-slate-200 rounded-xl shadow-xl p-3 z-50 w-64 space-y-2 text-xs text-slate-700"
+                    >
+                      <div className="font-bold text-[10px] uppercase text-slate-400 font-mono">Select Category</div>
                       <select
                         value={categoryFilter}
-                        onChange={(e) => setCategoryFilter(e.target.value)}
-                        className="absolute inset-0 opacity-0 w-4 h-4 cursor-pointer"
-                        title="Filter by Category"
+                        onChange={(e) => {
+                          setCategoryFilter(e.target.value);
+                          setActiveFilterDropdown(null);
+                        }}
+                        className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 text-xs font-bold"
                       >
                         <option value="">(All Categories)</option>
-                        <option value="Field Visit / Site Travel">Field Visit / Site Travel</option>
-                        <option value="Fuel & Mileage Allowance">Fuel & Mileage Allowance</option>
-                        <option value="Branch / Client Site Visit">Branch / Client Visit</option>
-                        <option value="Legal & Court Work Expense">Legal Court Fee</option>
-                        <option value="Printing, Xerox & Courier">Printing / Courier</option>
-                        <option value="Travel / Conveyance">Travel / Conveyance</option>
-                        <option value="Food & Meals">Food & Meals</option>
-                        <option value="Hotel / Accommodation">Hotel Stay</option>
-                        <option value="Client Meeting / Entertainment">Client Meeting</option>
-                        <option value="Mobile / Internet Bill">Mobile / Internet</option>
-                        <option value="Office Supplies & Stationary">Office Supplies</option>
-                        <option value="Medical Expenses">Medical Expenses</option>
+                        {uniqueCategories.map((cat) => (
+                          <option key={cat} value={cat}>{cat}</option>
+                        ))}
                       </select>
+                      {categoryFilter && (
+                        <button
+                          onClick={() => { setCategoryFilter(""); setActiveFilterDropdown(null); }}
+                          className="text-[10px] text-rose-600 font-bold hover:underline block"
+                        >
+                          Clear Filter
+                        </button>
+                      )}
                     </div>
-                  </div>
+                  )}
                 </th>
 
                 <th className="py-3 px-3">
-                  <div className="flex items-center gap-1.5">
-                    <span>Business Purpose</span>
-                  </div>
+                  <span>Business Purpose</span>
                 </th>
 
-                <th className="py-3 px-3">
-                  <div className="flex items-center gap-1.5">
-                    <span>Claim Amount</span>
-                    <Filter className="w-3.5 h-3.5 text-slate-400" />
+                {/* Column 5: Claim Amount Filter & Sort */}
+                <th className="py-3 px-3 relative">
+                  <div className="flex items-center justify-between gap-1">
+                    <span
+                      onClick={() => handleSort("amount")}
+                      className="cursor-pointer hover:text-slate-900 flex items-center gap-1"
+                    >
+                      Claim Amount {sortColumn === "amount" && (sortDirection === "asc" ? "▲" : "▼")}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setActiveFilterDropdown(activeFilterDropdown === "amount" ? null : "amount");
+                      }}
+                      className={`p-1 rounded hover:bg-slate-200 transition-colors ${minAmountFilter || maxAmountFilter ? "text-amber-600 font-black bg-amber-50" : "text-slate-400"}`}
+                      title="Filter Amount Range"
+                    >
+                      <Filter className="w-3.5 h-3.5" />
+                    </button>
                   </div>
+
+                  {/* Amount Filter Popover */}
+                  {activeFilterDropdown === "amount" && (
+                    <div
+                      onClick={(e) => e.stopPropagation()}
+                      className="absolute right-0 top-full mt-1 bg-white border border-slate-200 rounded-xl shadow-xl p-3 z-50 w-52 space-y-2 text-xs text-slate-700"
+                    >
+                      <div className="font-bold text-[10px] uppercase text-slate-400 font-mono">Amount Range (₹)</div>
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <label className="text-[9px] text-slate-400 font-bold">Min ₹</label>
+                          <input
+                            type="number"
+                            placeholder="Min"
+                            value={minAmountFilter}
+                            onChange={(e) => setMinAmountFilter(e.target.value)}
+                            className="w-full bg-slate-50 border border-slate-300 rounded p-1.5 text-xs font-bold"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-[9px] text-slate-400 font-bold">Max ₹</label>
+                          <input
+                            type="number"
+                            placeholder="Max"
+                            value={maxAmountFilter}
+                            onChange={(e) => setMaxAmountFilter(e.target.value)}
+                            className="w-full bg-slate-50 border border-slate-300 rounded p-1.5 text-xs font-bold"
+                          />
+                        </div>
+                      </div>
+                      <div className="flex justify-between items-center pt-1 border-t border-slate-100">
+                        <button
+                          onClick={() => { setMinAmountFilter(""); setMaxAmountFilter(""); }}
+                          className="text-[10px] text-rose-600 font-bold hover:underline"
+                        >
+                          Clear
+                        </button>
+                        <button
+                          onClick={() => setActiveFilterDropdown(null)}
+                          className="px-2.5 py-1 bg-[#714B67] text-white rounded-lg text-[10px] font-bold"
+                        >
+                          Apply
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </th>
 
+                {/* Column 6: Net Payable */}
                 <th className="py-3 px-3">
-                  <div className="flex items-center gap-1.5">
-                    <span>Net Payable</span>
-                    <Filter className="w-3.5 h-3.5 text-slate-400" />
-                  </div>
+                  <span
+                    onClick={() => handleSort("netPayable")}
+                    className="cursor-pointer hover:text-slate-900 flex items-center gap-1"
+                  >
+                    Net Payable {sortColumn === "netPayable" && (sortDirection === "asc" ? "▲" : "▼")}
+                  </span>
                 </th>
 
                 <th className="py-3 px-3">Receipt</th>
 
-                {/* Status Excel Column Filter */}
-                <th className="py-3 px-3">
-                  <div className="flex items-center gap-1.5">
-                    <span>Status</span>
-                    <div className="relative inline-flex items-center">
-                      <Filter className={`w-3.5 h-3.5 cursor-pointer ${statusFilter ? "text-amber-600 font-bold" : "text-slate-400 hover:text-slate-600"}`} />
+                {/* Column 8: Status Filter */}
+                <th className="py-3 px-3 relative">
+                  <div className="flex items-center justify-between gap-1">
+                    <span
+                      onClick={() => handleSort("status")}
+                      className="cursor-pointer hover:text-slate-900 flex items-center gap-1"
+                    >
+                      Status {sortColumn === "status" && (sortDirection === "asc" ? "▲" : "▼")}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setActiveFilterDropdown(activeFilterDropdown === "status" ? null : "status");
+                      }}
+                      className={`p-1 rounded hover:bg-slate-200 transition-colors ${statusFilter ? "text-amber-600 font-black bg-amber-50" : "text-slate-400"}`}
+                      title="Filter by Status"
+                    >
+                      <Filter className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+
+                  {/* Status Filter Popover */}
+                  {activeFilterDropdown === "status" && (
+                    <div
+                      onClick={(e) => e.stopPropagation()}
+                      className="absolute right-0 top-full mt-1 bg-white border border-slate-200 rounded-xl shadow-xl p-3 z-50 w-48 space-y-2 text-xs text-slate-700"
+                    >
+                      <div className="font-bold text-[10px] uppercase text-slate-400 font-mono">Select Status</div>
                       <select
                         value={statusFilter}
-                        onChange={(e) => setStatusFilter(e.target.value)}
-                        className="absolute inset-0 opacity-0 w-4 h-4 cursor-pointer"
-                        title="Filter by Status"
+                        onChange={(e) => {
+                          setStatusFilter(e.target.value);
+                          setActiveFilterDropdown(null);
+                        }}
+                        className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 text-xs font-bold"
                       >
                         <option value="">(All Status)</option>
                         <option value="Pending">⏳ Pending</option>
@@ -2745,8 +3022,16 @@ export function ESSExpenses({ user, triggerToast }: ESSProps) {
                         <option value="Rejected">❌ Rejected</option>
                         <option value="Reimbursed">💸 Reimbursed</option>
                       </select>
+                      {statusFilter && (
+                        <button
+                          onClick={() => { setStatusFilter(""); setActiveFilterDropdown(null); }}
+                          className="text-[10px] text-rose-600 font-bold hover:underline block"
+                        >
+                          Clear Filter
+                        </button>
+                      )}
                     </div>
-                  </div>
+                  )}
                 </th>
 
                 {(isOwnerOrAdmin || claims.some(c => c.employee && String(c.employee) !== String(user?.id))) && <th className="py-3 px-3 text-center">Actions</th>}
@@ -2791,7 +3076,7 @@ export function ESSExpenses({ user, triggerToast }: ESSProps) {
                     {claim.receiptUrl ? (
                       <button
                         onClick={() => setSelectedReceiptUrl(claim.receiptUrl)}
-                        className="text-[11px] font-black text-indigo-700 hover:text-indigo-900 bg-indigo-50 hover:bg-indigo-100 px-3 py-1.5 rounded-xl border border-indigo-300 transition-all inline-flex items-center gap-1.5 shadow-2xs"
+                        className="text-[11px] font-black text-indigo-700 hover:text-indigo-900 bg-indigo-50 hover:bg-indigo-100 px-3 py-1.5 rounded-xl border border-indigo-300 transition-all inline-flex items-center gap-1.5 shadow-2xs cursor-pointer"
                         title="View Attached Receipt Document"
                       >
                         <Paperclip className="w-3.5 h-3.5 text-indigo-600" />
@@ -2832,7 +3117,7 @@ export function ESSExpenses({ user, triggerToast }: ESSProps) {
                         {claim.receiptUrl && (
                           <button
                             onClick={() => setSelectedReceiptUrl(claim.receiptUrl)}
-                            className="px-2 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 text-[10px] font-bold rounded-lg transition-all flex items-center gap-1"
+                            className="px-2 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 text-[10px] font-bold rounded-lg transition-all flex items-center gap-1 cursor-pointer"
                             title="View Attached Receipt Document"
                           >
                             <Paperclip className="w-3 h-3 text-indigo-600" /> Doc
@@ -2842,14 +3127,14 @@ export function ESSExpenses({ user, triggerToast }: ESSProps) {
                           <>
                             <button
                               onClick={() => handleUpdateStatus(claim.id, "Approved")}
-                              className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-black rounded-lg shadow-xs transition-all flex items-center gap-1"
+                              className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-black rounded-lg shadow-xs transition-all flex items-center gap-1 cursor-pointer"
                               title="Approve Claim"
                             >
                               <Check className="w-3 h-3" /> Approve
                             </button>
                             <button
                               onClick={() => handleUpdateStatus(claim.id, "Rejected")}
-                              className="px-2.5 py-1 bg-rose-600 hover:bg-rose-700 text-white text-[10px] font-black rounded-lg shadow-xs transition-all flex items-center gap-1"
+                              className="px-2.5 py-1 bg-rose-600 hover:bg-rose-700 text-white text-[10px] font-black rounded-lg shadow-xs transition-all flex items-center gap-1 cursor-pointer"
                               title="Reject Claim"
                             >
                               <XCircle className="w-3 h-3" /> Reject
@@ -2868,8 +3153,8 @@ export function ESSExpenses({ user, triggerToast }: ESSProps) {
 
               {filteredClaims.length === 0 && !loading && (
                 <tr>
-                  <td colSpan={isOwnerOrAdmin ? 9 : 7} className="py-12 text-center text-slate-400 text-xs font-bold uppercase tracking-wider">
-                    No Expense Claims Found.
+                  <td colSpan={isOwnerOrAdmin ? 9 : 8} className="text-center py-12 text-slate-400 text-xs">
+                    No expense claims match the selected filters.
                   </td>
                 </tr>
               )}

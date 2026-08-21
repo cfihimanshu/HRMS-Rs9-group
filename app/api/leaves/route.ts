@@ -356,8 +356,34 @@ export async function POST(req: Request) {
           }
         }
 
-        // Send Email Notification to assigned approvers
-        if (routing.notifyEmail && routing.approverEmails.length > 0) {
+        // Send Email Notification to applicant, reporting manager, and assigned approvers
+        const recipientEmailsSet = new Set<string>();
+
+        // 1. Applicant Email (Confirmation to Employee)
+        if (applicantUser.email) {
+          recipientEmailsSet.add(applicantUser.email.trim().toLowerCase());
+        }
+
+        // 2. Reporting Manager Email (if assigned in EmployeeProfile)
+        if (profile && profile.reportingManager) {
+          try {
+            const mgrUser = await User.findByPk(profile.reportingManager);
+            if (mgrUser && mgrUser.email) {
+              recipientEmailsSet.add(mgrUser.email.trim().toLowerCase());
+            }
+          } catch (e) {}
+        }
+
+        // 3. Workflow Approvers (Owner, HR Head, Dept Manager)
+        if (routing.notifyEmail && Array.isArray(routing.approverEmails)) {
+          routing.approverEmails.forEach((email: string) => {
+            if (email) recipientEmailsSet.add(email.trim().toLowerCase());
+          });
+        }
+
+        const recipientEmails = Array.from(recipientEmailsSet);
+
+        if (recipientEmails.length > 0) {
           const emailHtml = getLeaveAppliedEmailHtml({
             applicantName: applicantUser.name || "Employee",
             applicantRole: applicantRole || "Employee",
@@ -369,11 +395,13 @@ export async function POST(req: Request) {
             pendingStatus: initialStatus,
           });
 
-          await sendEmail({
-            to: routing.approverEmails,
-            subject: `🌴 Leave Approval Required: ${applicantUser.name} – ${type}`,
+          const emailResult = await sendEmail({
+            to: recipientEmails,
+            subject: `🌴 Leave Application Submitted: ${applicantUser.name} – ${type}`,
             html: emailHtml,
           });
+
+          console.log("[LEAVE EMAIL DISPATCH RESULT]:", emailResult, "Recipients:", recipientEmails);
         }
       }
     } catch (emailErr) {
