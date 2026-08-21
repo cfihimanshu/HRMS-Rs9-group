@@ -199,7 +199,7 @@ export async function POST(request: Request) {
 
     const session = await getServerSession(authOptions);
 
-    const empId = data.employeeId || session?.user?.email || "emp_unknown";
+    const empId = data.employeeId || (session?.user as any)?.id || session?.user?.email || "emp_unknown";
     const empName = session?.user?.name || empId;
     const isNoticeAssessment =
       data.businessDevSubOption === "TAKE NOTICE ASSIGNMENT";
@@ -375,7 +375,7 @@ export async function POST(request: Request) {
       }
 
       const dateCompact = taskDate.replace(/-/g, "");
-      const generatedTaskId = `TSK-${dateCompact}-${Math.floor(1000 + Math.random() * 9000)}`;
+      const generatedTaskId = (await TaskLog.generateNextTaskId(empId).catch(() => null)) || `TSK-${dateCompact}-${Math.floor(1000 + Math.random() * 9000)}`;
 
       const detailsParts: string[] = [];
 
@@ -445,7 +445,7 @@ export async function POST(request: Request) {
         taskTitle: titleStr,
         description: taskDescription,
         status: "Pending",
-        allocatedBy: empId,
+        assignedBy: empId,
         date: taskDate,
         scheduledAt: logDateObj,
         createdAt: logDateObj,
@@ -483,6 +483,21 @@ export async function POST(request: Request) {
           updatedAt: logDateObj
         }).catch(() => { });
       } catch (schErr) { }
+
+      // Dual-sync into KanbanTask model as well
+      try {
+        const KanbanTask = (sequelize.models as any).KanbanTask || (await import("@/models/sequelize/KanbanTask")).default;
+        await KanbanTask.sync().catch(() => { });
+        await KanbanTask.create({
+          title: titleStr,
+          description: taskDescription,
+          priority: "Medium",
+          status: "To Do",
+          assigned_by: empId,
+          assigned_to: empId,
+          due_date: logDateObj,
+        }).catch(() => { });
+      } catch (kErr) { }
 
     } catch (tErr) {
       console.warn("TaskLog creation warning in work-log route:", tErr);

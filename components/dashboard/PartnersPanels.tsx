@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Plus, Search, UserPlus, RefreshCw, AlertCircle, CheckCircle, FileText, Download, LayoutGrid, List, Building2, Phone, Mail, MapPin, Paperclip, Trash2, Edit3 } from "lucide-react";
+import { Plus, Search, UserPlus, RefreshCw, AlertCircle, CheckCircle, FileText, Download, LayoutGrid, List, Building2, Phone, Mail, MapPin, Paperclip, Trash2, Edit3, Clock, Calendar, AlertTriangle, Send, ShieldCheck, Check, Eye } from "lucide-react";
 
 interface PartnerProps {
   toggleModal: (modalId: string, open: boolean) => void;
@@ -13,11 +13,37 @@ export function BusinessAssociates({ toggleModal, triggerToast }: PartnerProps) 
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
+  const [statusFilter, setStatusFilter] = useState<"All" | "Active" | "Inactive">("All");
+
   const [formState, setFormState] = useState({
+    id: "",
+    userId: "",
+    name: "",
+    email: "",
+    mobile: "",
+    alternateMobile: "",
+    assignedManager: "",
+    referralCode: "",
+    businessName: "",
+    businessType: "",
     territory: "",
+    city: "",
+    state: "",
+    pincode: "",
+    address: "",
+    businessAddress: "",
+    pan: "",
+    gstin: "",
+    payoutTerms: "",
+    accountHolderName: "",
+    bankAccountNumber: "",
+    ifscCode: "",
+    kycDocUrl: "",
+    cancelledChequeUrl: "",
+    profilePhotoUrl: "",
+    status: "Active",
     leadsGenerated: 0,
     conversionRate: 0,
-    payoutTerms: "",
     reportingDiscipline: 100,
     complaintRatio: 0,
     clientFeedback: 100,
@@ -72,10 +98,34 @@ export function BusinessAssociates({ toggleModal, triggerToast }: PartnerProps) 
   const handleSelectAssociate = (assoc: any) => {
     setSelectedAssociate(assoc);
     setFormState({
+      id: assoc.id || "",
+      userId: assoc.user?.id || assoc.user || assoc.id || "",
+      name: assoc.name || assoc.user?.name || "",
+      email: assoc.email || assoc.user?.email || "",
+      mobile: assoc.mobile || assoc.user?.mobile || "",
+      alternateMobile: assoc.alternateMobile || "",
+      assignedManager: assoc.assignedManager || "",
+      referralCode: assoc.referralCode || "",
+      businessName: assoc.businessName || "",
+      businessType: assoc.businessType || "",
       territory: assoc.territory || "",
+      city: assoc.city || "",
+      state: assoc.state || "",
+      pincode: assoc.pincode || "",
+      address: assoc.address || "",
+      businessAddress: assoc.businessAddress || "",
+      pan: assoc.pan || "",
+      gstin: assoc.gstin || "",
+      payoutTerms: assoc.payoutTerms || "",
+      accountHolderName: assoc.accountHolderName || "",
+      bankAccountNumber: assoc.bankAccountNumber || "",
+      ifscCode: assoc.ifscCode || "",
+      kycDocUrl: assoc.kycDocUrl || "",
+      cancelledChequeUrl: assoc.cancelledChequeUrl || "",
+      profilePhotoUrl: assoc.profilePhotoUrl || "",
+      status: assoc.status || "Active",
       leadsGenerated: assoc.leadsGenerated || 0,
       conversionRate: assoc.conversionRate || 0,
-      payoutTerms: assoc.payoutTerms || "",
       reportingDiscipline: assoc.reportingDiscipline !== undefined ? assoc.reportingDiscipline : 100,
       complaintRatio: assoc.complaintRatio !== undefined ? assoc.complaintRatio : 0,
       clientFeedback: assoc.clientFeedback !== undefined ? assoc.clientFeedback : 100,
@@ -85,6 +135,36 @@ export function BusinessAssociates({ toggleModal, triggerToast }: PartnerProps) 
     });
   };
 
+  const handleToggleAssociateStatus = async (assoc: any, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const currentStatus = (assoc.status || "Active").toLowerCase();
+    const newStatus = currentStatus === "active" ? "Inactive" : "Active";
+
+    try {
+      setSubmitting(true);
+      const res = await fetch("/api/associates", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userId: assoc.user?.id || assoc.user || assoc.id,
+          id: assoc.id,
+          status: newStatus
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        triggerToast(`Associate status updated to ${newStatus}`);
+        loadAssociates();
+      } else {
+        triggerToast("Error: " + data.error);
+      }
+    } catch (err) {
+      triggerToast("Failed to update status");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   const toggleFlag = (flag: string) => {
     setFormState(prev => ({
       ...prev,
@@ -92,6 +172,23 @@ export function BusinessAssociates({ toggleModal, triggerToast }: PartnerProps) 
         ? prev.flags.filter(f => f !== flag)
         : [...prev.flags, flag]
     }));
+  };
+
+  const handleEditFileUpload = async (file: File, fieldKey: "kycDocUrl" | "cancelledChequeUrl" | "profilePhotoUrl") => {
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      const res = await fetch("/api/upload", { method: "POST", body: formData });
+      const data = await res.json();
+      if (data.success && data.url) {
+        setFormState(prev => ({ ...prev, [fieldKey]: data.url }));
+        triggerToast("Document uploaded successfully!");
+      } else {
+        triggerToast("Upload failed: " + (data.error || "Unknown error"));
+      }
+    } catch (err) {
+      triggerToast("Error uploading document");
+    }
   };
 
   const handleSaveProfile = async (e: React.FormEvent) => {
@@ -104,14 +201,15 @@ export function BusinessAssociates({ toggleModal, triggerToast }: PartnerProps) 
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          userId: selectedAssociate.user.id,
-          ...formState
+          ...formState,
+          userId: formState.userId || selectedAssociate.user?.id || selectedAssociate.id
         })
       });
       const data = await res.json();
       if (data.success) {
         triggerToast("Associate profile updated successfully!");
         loadAssociates();
+        setShowEditModal(false);
       } else {
         triggerToast("Error: " + data.error);
       }
@@ -152,23 +250,110 @@ export function BusinessAssociates({ toggleModal, triggerToast }: PartnerProps) 
     }
   };
 
-  const filteredAssociates = associates.filter(a =>
-    a.user?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    a.territory?.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [showEditModal, setShowEditModal] = useState(false);
+
+  const exportAssociatesCSV = () => {
+    if (associates.length === 0) {
+      triggerToast("No associate records available to export");
+      return;
+    }
+
+    const headers = [
+      "ID", "Associate Name", "Business Name", "Business Type", "Email", "Mobile", "WhatsApp",
+      "Territory", "City", "State", "Pincode", "Payout Terms", "PAN", "GSTIN",
+      "Account Holder", "Account Number", "IFSC Code", "Leads Generated", "Conversion Rate %",
+      "Risk Score", "Exit Risk", "Status", "Registered Date"
+    ];
+
+    const rows = associates.map(a => [
+      a.id || "",
+      `"${(a.name || a.user?.name || "").replace(/"/g, '""')}"`,
+      `"${(a.businessName || "").replace(/"/g, '""')}"`,
+      `"${(a.businessType || "").replace(/"/g, '""')}"`,
+      `"${(a.email || a.user?.email || "").replace(/"/g, '""')}"`,
+      `"${(a.mobile || a.user?.mobile || "").replace(/"/g, '""')}"`,
+      `"${(a.alternateMobile || "").replace(/"/g, '""')}"`,
+      `"${(a.territory || "").replace(/"/g, '""')}"`,
+      `"${(a.city || "").replace(/"/g, '""')}"`,
+      `"${(a.state || "").replace(/"/g, '""')}"`,
+      `"${(a.pincode || "").replace(/"/g, '""')}"`,
+      `"${(a.payoutTerms || "").replace(/"/g, '""')}"`,
+      `"${(a.pan || "").replace(/"/g, '""')}"`,
+      `"${(a.gstin || "").replace(/"/g, '""')}"`,
+      `"${(a.accountHolderName || "").replace(/"/g, '""')}"`,
+      `"${(a.bankAccountNumber || "").replace(/"/g, '""')}"`,
+      `"${(a.ifscCode || "").replace(/"/g, '""')}"`,
+      a.leadsGenerated || 0,
+      a.conversionRate || 0,
+      a.riskScore || 0,
+      a.exitRisk || "Low",
+      a.status || "active",
+      a.createdAt ? new Date(a.createdAt).toLocaleDateString() : ""
+    ]);
+
+    const csvContent = "data:text/csv;charset=utf-8," + [headers.join(","), ...rows.map(e => e.join(","))].join("\n");
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `Business_Associates_Report_${new Date().toISOString().slice(0, 10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    triggerToast("Business Associates report exported successfully!");
+  };
+
+  const filteredAssociates = associates.filter(a => {
+    const q = searchQuery.toLowerCase().trim();
+    const name = (a.name || a.user?.name || "").toLowerCase();
+    const email = (a.email || a.user?.email || "").toLowerCase();
+    const mobile = (a.mobile || a.user?.mobile || "").toLowerCase();
+    const territory = (a.territory || "").toLowerCase();
+    const bizName = (a.businessName || "").toLowerCase();
+    const code = (a.referralCode || "").toLowerCase();
+
+    const matchesQuery = !q || name.includes(q) || email.includes(q) || mobile.includes(q) || territory.includes(q) || bizName.includes(q) || code.includes(q);
+    const aStatus = (a.status || "Active").toLowerCase();
+    const matchesStatus = statusFilter === "All" || (statusFilter === "Active" && aStatus === "active") || (statusFilter === "Inactive" && aStatus !== "active");
+
+    return matchesQuery && matchesStatus;
+  });
+
+  const toggleExpand = (assoc: any) => {
+    if (expandedId === assoc.id) {
+      setExpandedId(null);
+    } else {
+      setExpandedId(assoc.id);
+      handleSelectAssociate(assoc);
+    }
+  };
+
+  // KPI Metrics
+  const totalAssociatesCount = associates.length;
+  const activeNetworkCount = associates.filter(a => (a.status || "active").toLowerCase() === "active").length;
+  const territoriesCount = Array.from(new Set(associates.map(a => a.territory).filter(Boolean))).length;
 
   return (
-    <div className="space-y-8 animate-fadeIn text-slate-800">
+    <div className="space-y-6 animate-fadeIn text-slate-800">
 
-      <div className="flex justify-between items-center">
+      {/* Header Banner */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
         <div>
-          <h1 className="text-xl font-black text-slate-800">Business Associates Dashboard</h1>
-          <p className="text-xs text-slate-500 mt-1">Growth engines tracking — Monitor territory, conversions, & risk flags</p>
+          <h1 className="text-xl font-black text-slate-800 flex items-center gap-2">
+            Business Associates Dashboard
+          </h1>
+          <p className="text-xs text-slate-500 mt-1 font-medium">Channel partner network, territory assignments, payouts & risk monitoring</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            onClick={exportAssociatesCSV}
+            className="px-3 py-2 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 rounded-lg text-xs font-bold transition-all shadow-sm flex items-center gap-1.5"
+          >
+            <Download className="w-4 h-4" /> Export Report
+          </button>
           <button
             onClick={() => toggleModal("assoc", true)}
-            className="bg-[#714B67] hover:bg-[#5F3F56] px-4 py-2 rounded-lg text-xs font-bold text-white transition-all shadow-sm flex items-center gap-1.5"
+            className="bg-[#714B67] hover:bg-[#5F3F56] px-4 py-2 rounded-lg text-xs font-bold text-white transition-all shadow-sm flex items-center gap-1.5 cursor-pointer"
           >
             <Plus className="w-4 h-4" /> Add Associate
           </button>
@@ -182,230 +367,606 @@ export function BusinessAssociates({ toggleModal, triggerToast }: PartnerProps) 
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-
-        {/* Left Side: Associates List */}
-        <div className="lg:col-span-4 bg-white border border-slate-200 rounded-xl p-4 flex flex-col h-[750px] shadow-sm">
-          <h3 className="text-xs font-black tracking-widest text-[#714B67] uppercase font-mono mb-3">Active Network</h3>
-
-          <div className="relative mb-3">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
-            <input
-              type="text"
-              placeholder="Search by name or territory..."
-              value={searchQuery}
-              onChange={e => setSearchQuery(e.target.value)}
-              className="w-full bg-slate-50 border border-slate-200 rounded-lg pl-9 pr-4 py-2 text-xs font-semibold focus:outline-none focus:border-[#714B67] text-slate-800"
-            />
-          </div>
-
-          <div className="flex-1 overflow-y-auto space-y-2 pr-1 scrollbar-thin">
-            {loading ? (
-              <div className="text-center py-10 font-bold text-slate-400 text-[10px] animate-pulse">Loading associates...</div>
-            ) : filteredAssociates.length === 0 ? (
-              <div className="text-center py-10 text-slate-400 font-bold text-[10px]">No associates found</div>
-            ) : (
-              filteredAssociates.map((assoc, i) => {
-                const isSelected = selectedAssociate && selectedAssociate.id === assoc.id;
-                const flagCount = assoc.flags?.length || 0;
-
-                return (
-                  <button
-                    key={i}
-                    onClick={() => handleSelectAssociate(assoc)}
-                    className={`w-full text-left p-3 rounded-lg border transition-all flex flex-col gap-2 ${isSelected
-                      ? "bg-[#714B67]/5 border-[#714B67] shadow-sm"
-                      : "bg-white border-slate-100 hover:border-slate-350 hover:bg-slate-50/50"
-                      }`}
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="font-bold text-slate-800 text-xs truncate">{assoc.user?.name || "Unknown"}</div>
-                      {flagCount > 0 && <AlertCircle className="w-4 h-4 text-rose-500" />}
-                    </div>
-                    <div className="flex items-center justify-between mt-1 text-[10px] text-slate-500 font-mono">
-                      <span>{assoc.territory || "No Territory"}</span>
-                      <span className={`${assoc.riskScore > 70 ? 'text-rose-500 font-bold' : ''}`}>Risk: {assoc.riskScore || 0}</span>
-                    </div>
-                  </button>
-                );
-              })
-            )}
-          </div>
+      {/* KPI Cards */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        <div
+          onClick={() => setStatusFilter("All")}
+          className={`bg-white p-4 rounded-xl border shadow-sm flex flex-col justify-between cursor-pointer transition-all hover:shadow-md ${
+            statusFilter === "All" ? "border-[#714B67] ring-2 ring-[#714B67]/20" : "border-slate-200"
+          }`}
+          title="Click to show all associates"
+        >
+          <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 font-mono">Total Associates</span>
+          <div className="text-2xl font-black text-[#714B67] mt-2">{totalAssociatesCount}</div>
         </div>
 
-        {/* Right Side: Associate Workspace */}
-        <div className="lg:col-span-8">
-          {selectedAssociate ? (
-            <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm flex flex-col h-[750px]">
+        <div
+          onClick={() => setStatusFilter("Active")}
+          className={`bg-white p-4 rounded-xl border shadow-sm flex flex-col justify-between cursor-pointer transition-all hover:shadow-md ${
+            statusFilter === "Active" ? "border-emerald-500 ring-2 ring-emerald-500/20 bg-emerald-50/20" : "border-slate-200"
+          }`}
+          title="Click to filter Active Channel associates"
+        >
+          <span className="text-[10px] font-black uppercase tracking-wider text-emerald-600 font-mono flex items-center gap-1">
+            ● Active Channel
+          </span>
+          <div className="text-2xl font-black text-emerald-600 mt-2">{activeNetworkCount}</div>
+        </div>
 
-              {/* Profile Header */}
-              <div className="flex justify-between items-start gap-4 pb-4 border-b border-slate-150 shrink-0">
-                <div>
-                  <h2 className="text-lg font-black text-slate-850 flex items-center gap-2">
-                    <UserPlus className="w-5 h-5 text-[#714B67]" />
-                    {selectedAssociate.user?.name || "Unknown"}
-                  </h2>
-                  <div className="text-slate-500 text-[10px] mt-1.5 flex gap-4">
-                    <span>Email: <strong className="text-slate-700">{selectedAssociate.user?.email || "N/A"}</strong></span>
-                    <span>Mobile: <strong className="text-slate-700">{selectedAssociate.user?.mobile || "N/A"}</strong></span>
-                    <span>Joined: <strong className="text-[#714B67]">{new Date(selectedAssociate.createdAt).toLocaleDateString()}</strong></span>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3">
-                  <button
-                    onClick={() => {
-                      setForm9(prev => ({ ...prev, territory: formState.territory }));
-                      setShowForm9(true);
-                    }}
-                    className="px-4 py-2 bg-indigo-50 border border-indigo-200 text-indigo-700 hover:bg-indigo-100 rounded-lg text-xs font-bold transition-all shadow-sm flex items-center gap-2"
-                  >
-                    <FileText className="w-4 h-4" /> Log FORM-9
-                  </button>
-                  <div className={`px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-center min-w-28`}>
-                    <span className="text-[9px] uppercase font-black tracking-widest text-slate-500 block mb-0.5">Exit Risk</span>
-                    <span className={`text-xs font-bold ${formState.exitRisk === 'High' ? 'text-rose-600' : formState.exitRisk === 'Medium' ? 'text-amber-600' : 'text-emerald-600'}`}>
-                      {formState.exitRisk}
-                    </span>
-                  </div>
-                </div>
-              </div>
+        <div
+          onClick={() => setStatusFilter("Inactive")}
+          className={`bg-white p-4 rounded-xl border shadow-sm flex flex-col justify-between cursor-pointer transition-all hover:shadow-md ${
+            statusFilter === "Inactive" ? "border-slate-500 ring-2 ring-slate-400/20 bg-slate-100/50" : "border-slate-200"
+          }`}
+          title="Click to filter Inactive associates"
+        >
+          <span className="text-[10px] font-black uppercase tracking-wider text-slate-500 font-mono">Inactive Channel</span>
+          <div className="text-2xl font-black text-slate-600 mt-2">{associates.length - activeNetworkCount}</div>
+        </div>
 
-              {/* Scrollable Form Content */}
-              <div className="flex-1 overflow-y-auto py-5 pr-2 scrollbar-thin">
-                <form id="assoc-form" onSubmit={handleSaveProfile} className="space-y-8">
+        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between">
+          <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 font-mono">Territories Covered</span>
+          <div className="text-2xl font-black text-indigo-600 mt-2">{territoriesCount}</div>
+        </div>
+      </div>
 
-                  {/* Core Metrics Grid */}
-                  <div>
-                    <h4 className="text-[10px] font-black tracking-widest text-[#714B67] uppercase font-mono mb-4 border-b border-slate-100 pb-2">Business Operations</h4>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5">
+      {/* Search Toolbar */}
+      <div className="bg-white border border-slate-200 p-4 rounded-xl shadow-sm flex flex-col md:flex-row gap-4 items-center justify-between">
+        <div className="relative flex-1 w-full">
+          <Search className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
+          <input
+            type="text"
+            placeholder="Search by associate name, business name, mobile, email, code or territory..."
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+            className="w-full bg-slate-50 border border-slate-200 rounded-lg pl-9 pr-4 py-2.5 text-xs font-semibold focus:outline-none focus:border-[#714B67] text-slate-800"
+          />
+        </div>
+        <div className="flex items-center gap-2 shrink-0">
+          <div className="flex bg-slate-100 p-1 rounded-lg border border-slate-200 text-xs font-bold">
+            <button
+              onClick={() => setStatusFilter("All")}
+              className={`px-3 py-1 rounded-md transition-all ${statusFilter === "All" ? "bg-white text-slate-900 shadow-xs" : "text-slate-500 hover:text-slate-800"}`}
+            >
+              All ({associates.length})
+            </button>
+            <button
+              onClick={() => setStatusFilter("Active")}
+              className={`px-3 py-1 rounded-md transition-all ${statusFilter === "Active" ? "bg-emerald-600 text-white shadow-xs" : "text-emerald-700 hover:bg-emerald-50"}`}
+            >
+              ● Active ({activeNetworkCount})
+            </button>
+            <button
+              onClick={() => setStatusFilter("Inactive")}
+              className={`px-3 py-1 rounded-md transition-all ${statusFilter === "Inactive" ? "bg-slate-700 text-white shadow-xs" : "text-slate-600 hover:bg-slate-200"}`}
+            >
+              ○ Inactive ({associates.length - activeNetworkCount})
+            </button>
+          </div>
+          <span className="text-xs font-bold text-slate-500 whitespace-nowrap pl-2 border-l border-slate-200">
+            Showing {filteredAssociates.length} associate(s)
+          </span>
+        </div>
+      </div>
 
-                      <div>
-                        <label className="text-[10px] uppercase font-black text-slate-500 font-mono tracking-wider">Assigned Territory</label>
-                        <input className="w-full bg-slate-50 border border-slate-200 rounded p-2.5 text-xs font-bold text-slate-900 mt-1.5 focus:outline-none focus:border-[#714B67]"
-                          placeholder="e.g. Mumbai North" value={formState.territory} onChange={e => setFormState({ ...formState, territory: e.target.value })} />
-                      </div>
+      {/* DATA TABLE FORMAT */}
+      <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
+        <div className="overflow-x-auto custom-scrollbar">
+          <table className="w-full text-left border-collapse text-xs">
+            <thead>
+              <tr className="bg-slate-50 border-b border-slate-200 text-[10px] font-black uppercase font-mono tracking-wider text-slate-500">
+                <th className="p-3.5 pl-5">Associate / Firm</th>
+                <th className="p-3.5">Contact Info</th>
+                <th className="p-3.5">Territory & Location</th>
+                <th className="p-3.5">Commercial & Payout</th>
+                <th className="p-3.5">Bank & KYC Documents</th>
+                <th className="p-3.5">Status</th>
+                <th className="p-3.5 pr-5 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-150">
+              {loading ? (
+                <tr>
+                  <td colSpan={7} className="text-center py-12 text-slate-400 font-bold animate-pulse">
+                    Loading business associates data...
+                  </td>
+                </tr>
+              ) : filteredAssociates.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="text-center py-12 text-slate-400 font-bold">
+                    No business associate records found matching your search.
+                  </td>
+                </tr>
+              ) : (
+                filteredAssociates.map((assoc, idx) => {
+                  const assocName = assoc.name || assoc.user?.name || "Business Associate";
+                  const email = assoc.email || assoc.user?.email || "N/A";
+                  const mobile = assoc.mobile || assoc.user?.mobile || "N/A";
+                  const isExpanded = expandedId === assoc.id;
 
-                      <div>
-                        <label className="text-[10px] uppercase font-black text-slate-500 font-mono tracking-wider">Payout Terms</label>
-                        <input className="w-full bg-slate-50 border border-slate-200 rounded p-2.5 text-xs font-bold text-slate-900 mt-1.5 focus:outline-none focus:border-[#714B67]"
-                          placeholder="e.g. 10% Flat Commission" required value={formState.payoutTerms} onChange={e => setFormState({ ...formState, payoutTerms: e.target.value })} />
-                      </div>
+                  return (
+                    <React.Fragment key={assoc.id || idx}>
+                      <tr
+                        onClick={() => toggleExpand(assoc)}
+                        className={`hover:bg-slate-50/80 transition-colors cursor-pointer ${isExpanded ? "bg-[#714B67]/5" : ""}`}
+                      >
+                        {/* Associate & Firm Name */}
+                        <td className="p-3.5 pl-5 font-semibold text-slate-800">
+                          <div className="flex items-center gap-3">
+                            <div className="w-9 h-9 rounded-full bg-[#714B67]/10 text-[#714B67] flex items-center justify-center font-black text-sm shrink-0 uppercase border border-[#714B67]/20">
+                              {assocName.substring(0, 2)}
+                            </div>
+                            <div>
+                              <div className="font-bold text-slate-900 flex items-center gap-1.5">
+                                {assocName}
+                                {assoc.referralCode && (
+                                  <span className="text-[9px] bg-indigo-50 border border-indigo-200 text-indigo-700 px-1.5 py-0.2 rounded font-mono font-bold">
+                                    {assoc.referralCode}
+                                  </span>
+                                )}
+                              </div>
+                              {assoc.businessName && (
+                                <div className="text-[10px] text-slate-500 font-medium">
+                                  {assoc.businessName} ({assoc.businessType || 'Firm'})
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </td>
 
-                      <div>
-                        <label className="text-[10px] uppercase font-black text-slate-500 font-mono tracking-wider">Leads Generated (Count)</label>
-                        <input type="number" min="0" className="w-full bg-slate-50 border border-slate-200 rounded p-2.5 text-xs font-bold text-slate-900 mt-1.5 focus:outline-none focus:border-[#714B67] font-mono"
-                          value={formState.leadsGenerated} onChange={e => setFormState({ ...formState, leadsGenerated: Number(e.target.value) })} />
-                      </div>
+                        {/* Contact Info */}
+                        <td className="p-3.5">
+                          <div className="space-y-0.5 text-[11px]">
+                            <div className="flex items-center gap-1 text-slate-700">
+                              <Mail className="w-3 h-3 text-slate-400" />
+                              <span>{email}</span>
+                            </div>
+                            <div className="flex items-center gap-1 text-slate-600 font-mono text-[10px]">
+                              <Phone className="w-3 h-3 text-slate-400" />
+                              <span>{mobile}</span>
+                              {assoc.alternateMobile && <span className="text-slate-400">/ {assoc.alternateMobile}</span>}
+                            </div>
+                          </div>
+                        </td>
 
-                      <div>
-                        <label className="text-[10px] uppercase font-black text-slate-500 font-mono tracking-wider">Exit Risk</label>
-                        <select className="w-full bg-slate-50 border border-slate-200 rounded p-2.5 text-xs font-bold text-slate-900 mt-1.5 focus:outline-none focus:border-[#714B67]"
-                          value={formState.exitRisk} onChange={e => setFormState({ ...formState, exitRisk: e.target.value })}>
-                          <option value="Low">Low</option>
-                          <option value="Medium">Medium</option>
-                          <option value="High">High</option>
-                        </select>
-                      </div>
+                        {/* Territory & Location */}
+                        <td className="p-3.5">
+                          <div className="font-bold text-slate-800 text-xs flex items-center gap-1">
+                            <MapPin className="w-3 h-3 text-[#714B67]" />
+                            {assoc.territory || "General"}
+                          </div>
+                          <div className="text-[10px] text-slate-500">
+                            {[assoc.city, assoc.state].filter(Boolean).join(", ") || "N/A"}
+                          </div>
+                        </td>
 
-                    </div>
-                  </div>
+                        {/* Commercial & Payout */}
+                        <td className="p-3.5">
+                          <div className="text-xs font-bold text-slate-700">
+                            {assoc.payoutTerms || "Standard Commission"}
+                          </div>
+                          <div className="text-[10px] font-mono text-slate-500 mt-0.5">
+                            PAN: {assoc.pan || 'N/A'} {assoc.gstin ? `| GST: ${assoc.gstin}` : ''}
+                          </div>
+                        </td>
 
-                  {/* Slider Metrics */}
-                  <div>
-                    <h4 className="text-[10px] font-black tracking-widest text-[#714B67] uppercase font-mono mb-4 border-b border-slate-100 pb-2">Performance & Quality (0-100)</h4>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-6">
+                        {/* Bank & KYC Documents */}
+                        <td className="p-3.5">
+                          {assoc.bankAccountNumber ? (
+                            <div className="text-[10px] font-mono text-emerald-800 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded inline-block">
+                              {assoc.bankAccountNumber} ({assoc.ifscCode || 'IFSC'})
+                            </div>
+                          ) : (
+                            <span className="text-[10px] text-slate-400">No Bank Info</span>
+                          )}
+                          <div className="flex items-center gap-2 mt-1">
+                            {assoc.kycDocUrl && (
+                              <a href={assoc.kycDocUrl} target="_blank" rel="noreferrer" onClick={e => e.stopPropagation()} className="text-[10px] text-indigo-600 font-bold hover:underline flex items-center gap-0.5">
+                                <Paperclip className="w-3 h-3" /> KYC
+                              </a>
+                            )}
+                            {assoc.cancelledChequeUrl && (
+                              <a href={assoc.cancelledChequeUrl} target="_blank" rel="noreferrer" onClick={e => e.stopPropagation()} className="text-[10px] text-indigo-600 font-bold hover:underline flex items-center gap-0.5">
+                                <Paperclip className="w-3 h-3" /> Cheque
+                              </a>
+                            )}
+                          </div>
+                        </td>
 
-                      <div>
-                        <div className="flex justify-between mb-1">
-                          <label className="text-[10px] font-bold text-slate-700">Conversion Rate</label>
-                          <span className="text-[10px] font-mono text-[#714B67] font-black">{formState.conversionRate}%</span>
-                        </div>
-                        <input type="range" min="0" max="100" className="w-full accent-[#714B67] h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer"
-                          value={formState.conversionRate} onChange={e => setFormState({ ...formState, conversionRate: Number(e.target.value) })} />
-                      </div>
+                        {/* Status Column */}
+                        <td className="p-3.5">
+                          <button
+                            onClick={(e) => handleToggleAssociateStatus(assoc, e)}
+                            className={`px-2.5 py-1 rounded-full text-[10px] font-black border transition-all cursor-pointer inline-flex items-center gap-1 ${
+                              (assoc.status || "active").toLowerCase() === "active"
+                                ? "bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100"
+                                : "bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-200"
+                            }`}
+                            title="Click to toggle status (Active / Inactive)"
+                          >
+                            <span>{(assoc.status || "active").toLowerCase() === "active" ? "● Active" : "○ Inactive"}</span>
+                          </button>
+                        </td>
 
-                      <div>
-                        <div className="flex justify-between mb-1">
-                          <label className="text-[10px] font-bold text-slate-700">Reporting Discipline</label>
-                          <span className="text-[10px] font-mono text-[#714B67] font-black">{formState.reportingDiscipline}%</span>
-                        </div>
-                        <input type="range" min="0" max="100" className="w-full accent-[#714B67] h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer"
-                          value={formState.reportingDiscipline} onChange={e => setFormState({ ...formState, reportingDiscipline: Number(e.target.value) })} />
-                      </div>
+                        {/* Actions */}
+                        <td className="p-3.5 pr-5 text-right">
+                          <div className="flex items-center justify-end gap-2" onClick={e => e.stopPropagation()}>
+                            <button
+                              onClick={() => toggleExpand(assoc)}
+                              className={`px-3 py-1.5 rounded-md text-[10px] font-bold transition-all flex items-center gap-1 cursor-pointer border ${isExpanded
+                                  ? "bg-[#714B67] text-white border-[#714B67] shadow-sm"
+                                  : "bg-indigo-50 border-indigo-200 text-indigo-700 hover:bg-indigo-100"
+                                }`}
+                              title={isExpanded ? "Hide Details" : "View All Associate Details Below"}
+                            >
+                              <Eye className="w-3.5 h-3.5" />
+                              <span>{isExpanded ? "Hide Details" : "View"}</span>
+                            </button>
 
-                      <div>
-                        <div className="flex justify-between mb-1">
-                          <label className="text-[10px] font-bold text-slate-700">Complaint Ratio (Lower is better)</label>
-                          <span className="text-[10px] font-mono text-rose-500 font-black">{formState.complaintRatio}%</span>
-                        </div>
-                        <input type="range" min="0" max="100" className="w-full accent-rose-500 h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer"
-                          value={formState.complaintRatio} onChange={e => setFormState({ ...formState, complaintRatio: Number(e.target.value) })} />
-                      </div>
+                            <button
+                              onClick={() => {
+                                handleSelectAssociate(assoc);
+                                setShowEditModal(true);
+                              }}
+                              className="px-3 py-1.5 bg-[#714B67]/10 border border-[#714B67]/30 text-[#714B67] hover:bg-[#714B67] hover:text-white rounded-md text-[10px] font-bold transition-all flex items-center gap-1 cursor-pointer"
+                              title="Edit Associate Profile"
+                            >
+                              <Edit3 className="w-3.5 h-3.5" />
+                              <span>Edit</span>
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
 
-                      <div>
-                        <div className="flex justify-between mb-1">
-                          <label className="text-[10px] font-bold text-slate-700">Client Feedback Score</label>
-                          <span className="text-[10px] font-mono text-[#714B67] font-black">{formState.clientFeedback}%</span>
-                        </div>
-                        <input type="range" min="0" max="100" className="w-full accent-[#714B67] h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer"
-                          value={formState.clientFeedback} onChange={e => setFormState({ ...formState, clientFeedback: Number(e.target.value) })} />
-                      </div>
+                      {/* EXPANDED FULL DETAILS SHEET DIRECTLY BELOW ROW */}
+                      {isExpanded && (
+                        <tr className="bg-slate-50 border-y border-[#714B67]/20">
+                          <td colSpan={7} className="p-5">
+                            <div className="space-y-4 animate-fadeIn">
 
-                    </div>
-                  </div>
+                              {/* Header Title */}
+                              <div className="flex justify-between items-center pb-3 border-b border-slate-200">
+                                <div className="flex items-center gap-3">
+                                  <div className="w-10 h-10 rounded-xl bg-[#714B67] text-white flex items-center justify-center font-black text-sm shadow-sm uppercase">
+                                    {assocName.substring(0, 2)}
+                                  </div>
+                                  <div>
+                                    <h3 className="text-sm font-black text-slate-900 flex items-center gap-2">
+                                      {assocName}
+                                      {assoc.businessName && (
+                                        <span className="text-xs bg-[#714B67]/10 text-[#714B67] px-2 py-0.5 rounded font-bold">
+                                          {assoc.businessName} ({assoc.businessType || 'Firm'})
+                                        </span>
+                                      )}
+                                      {assoc.referralCode && (
+                                        <span className="text-xs bg-indigo-50 border border-indigo-200 text-indigo-700 px-2 py-0.5 rounded font-mono font-bold">
+                                          Code: {assoc.referralCode}
+                                        </span>
+                                      )}
+                                    </h3>
+                                    <p className="text-[11px] text-slate-600 mt-0.5 font-medium">
+                                      Assigned Territory: <strong className="text-slate-900">{assoc.territory || "General"}</strong> •
+                                      Registered Date: <strong className="text-slate-900">{new Date(assoc.createdAt).toLocaleDateString()}</strong>
+                                    </p>
+                                  </div>
+                                </div>
 
-                  {/* Risk Assessment */}
-                  <div className="bg-rose-50/50 border border-rose-200 rounded-xl p-5 shadow-sm">
-                    <div className="flex justify-between items-center mb-4 pb-2 border-b border-rose-100">
-                      <h4 className="text-[10px] font-black tracking-widest text-rose-700 uppercase font-mono flex items-center gap-1.5">
-                        <AlertCircle className="w-4 h-4" /> Compliance Risk Flags
-                      </h4>
-                      <div className="flex items-center gap-3">
-                        <label className="text-[10px] font-bold text-rose-700">Overall Risk Score:</label>
-                        <input type="number" min="0" max="100" className="w-16 bg-white border border-rose-200 rounded p-1 text-xs font-black text-rose-700 text-center font-mono focus:outline-none"
-                          value={formState.riskScore} onChange={e => setFormState({ ...formState, riskScore: Number(e.target.value) })} />
-                      </div>
-                    </div>
+                                <button
+                                  onClick={() => {
+                                    handleSelectAssociate(assoc);
+                                    setShowEditModal(true);
+                                  }}
+                                  className="px-3 py-1.5 bg-[#714B67] hover:bg-[#5F3F56] text-white rounded-lg text-xs font-bold transition-all shadow-sm flex items-center gap-1.5 cursor-pointer"
+                                >
+                                  <Edit3 className="w-3.5 h-3.5" /> Edit Details
+                                </button>
+                              </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-                      {availableFlags.map(flag => (
-                        <label key={flag} className={`flex items-center gap-2 p-2.5 rounded border cursor-pointer transition-all ${formState.flags.includes(flag) ? "bg-rose-100 border-rose-300 text-rose-800" : "bg-white border-rose-100 text-slate-600 hover:bg-rose-50"
-                          }`}>
-                          <input
-                            type="checkbox"
-                            className="accent-rose-600 w-4 h-4"
-                            checked={formState.flags.includes(flag)}
-                            onChange={() => toggleFlag(flag)}
-                          />
-                          <span className="text-[10px] font-bold uppercase tracking-wider">{flag}</span>
-                        </label>
-                      ))}
-                    </div>
-                  </div>
+                              {/* 3 Cards Full Details Grid */}
+                              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
 
-                  <button
-                    type="submit"
-                    disabled={submitting}
-                    className="w-full bg-[#714B67] hover:bg-[#5F3F56] text-white py-3.5 rounded-xl text-xs font-black tracking-widest uppercase transition-all shadow-md flex items-center justify-center gap-2 mt-4"
-                  >
-                    <CheckCircle className="w-4 h-4" /> Save Associate Profile
-                  </button>
+                                {/* Card 1: Personal & Contact */}
+                                <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm space-y-2 text-xs">
+                                  <div className="font-mono text-[10px] font-black uppercase text-[#714B67] tracking-wider border-b border-slate-100 pb-1 flex justify-between">
+                                    <span>Personal & Contact</span>
+                                    <span>👤</span>
+                                  </div>
+                                  <div><span className="text-slate-500 font-bold">Full Name:</span> <strong className="text-slate-900 block mt-0.5">{assocName}</strong></div>
+                                  <div><span className="text-slate-500 font-bold">Email ID:</span> <strong className="text-slate-900 block font-mono text-[11px]">{email}</strong></div>
+                                  <div><span className="text-slate-500 font-bold">Mobile:</span> <strong className="text-slate-900 font-mono">{mobile}</strong></div>
+                                  {assoc.alternateMobile && <div><span className="text-slate-500 font-bold">WhatsApp / Alt:</span> <strong className="text-slate-900 font-mono">{assoc.alternateMobile}</strong></div>}
+                                  {assoc.assignedManager && <div><span className="text-slate-500 font-bold">Assigned Manager:</span> <strong className="text-slate-900 block mt-0.5">{assoc.assignedManager}</strong></div>}
+                                  <div>
+                                    <span className="text-slate-500 font-bold">Account Status:</span>
+                                    <span className={`inline-block ml-1.5 text-[10px] px-2 py-0.5 rounded-full font-black border ${ (assoc.status || "active").toLowerCase() === 'inactive' ? 'bg-slate-100 text-slate-600 border-slate-200' : 'bg-emerald-50 text-emerald-700 border-emerald-200'}`}>
+                                      {(assoc.status || "Active").toUpperCase()}
+                                    </span>
+                                  </div>
+                                </div>
 
-                </form>
-              </div>
-            </div>
-          ) : (
-            <div className="text-center py-32 bg-white rounded-xl border border-slate-200 shadow-sm flex flex-col justify-center items-center h-[750px]">
-              <FileText className="w-12 h-12 text-slate-300 mb-4 animate-bounce" />
-              <h4 className="text-sm font-black text-slate-800 uppercase tracking-wide">No Associate Selected</h4>
-              <p className="text-xs text-slate-400 mt-2 max-w-xs leading-normal">
-                Select an associate from the left network panel to view and modify their business metrics and risk flags.
+                                {/* Card 2: Business & Location */}
+                                <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm space-y-2 text-xs">
+                                  <div className="font-mono text-[10px] font-black uppercase text-[#714B67] tracking-wider border-b border-slate-100 pb-1 flex justify-between">
+                                    <span>Business & Territory</span>
+                                    <span>🏢</span>
+                                  </div>
+                                  <div><span className="text-slate-500 font-bold">Business Name:</span> <strong className="text-slate-900 block mt-0.5">{assoc.businessName || "N/A"}</strong></div>
+                                  <div><span className="text-slate-500 font-bold">Nature of Business:</span> <strong className="text-slate-900 block">{assoc.businessType || "N/A"}</strong></div>
+                                  <div><span className="text-slate-500 font-bold">Assigned Territory:</span> <strong className="text-slate-900 block">{assoc.territory || "General"}</strong></div>
+                                  <div><span className="text-slate-500 font-bold">City / State / PIN:</span> <strong className="text-slate-900 block">{[assoc.city, assoc.state, assoc.pincode].filter(Boolean).join(", ") || "N/A"}</strong></div>
+                                  {assoc.businessAddress && <div><span className="text-slate-500 font-bold">Business Address:</span> <span className="text-slate-800 block text-[11px] mt-0.5 font-medium leading-normal">{assoc.businessAddress}</span></div>}
+                                </div>
+
+                                {/* Card 3: Tax, Banking & KYC Documents */}
+                                <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm space-y-2 text-xs">
+                                  <div className="font-mono text-[10px] font-black uppercase text-[#714B67] tracking-wider border-b border-slate-100 pb-1 flex justify-between">
+                                    <span>Tax & Banking Docs</span>
+                                    <span>🏦</span>
+                                  </div>
+                                  <div><span className="text-slate-500 font-bold">Payout Terms:</span> <strong className="text-slate-900 block font-mono">{assoc.payoutTerms || "Standard"}</strong></div>
+                                  <div><span className="text-slate-500 font-bold">PAN Number:</span> <strong className="text-slate-900 font-mono">{assoc.pan || "N/A"}</strong></div>
+                                  {assoc.gstin && <div><span className="text-slate-500 font-bold">GSTIN:</span> <strong className="text-slate-900 font-mono">{assoc.gstin}</strong></div>}
+                                  <div><span className="text-slate-500 font-bold">Account Holder:</span> <strong className="text-slate-900 block">{assoc.accountHolderName || assocName}</strong></div>
+                                  <div><span className="text-slate-500 font-bold">Bank Account:</span> <strong className="text-slate-900 font-mono block">{assoc.bankAccountNumber || "N/A"}</strong></div>
+                                  <div><span className="text-slate-500 font-bold">IFSC Code:</span> <strong className="text-slate-900 font-mono">{assoc.ifscCode || "N/A"}</strong></div>
+                                  <div className="flex flex-wrap gap-2 pt-2 border-t border-slate-100">
+                                    {assoc.kycDocUrl && (
+                                      <a href={assoc.kycDocUrl} target="_blank" rel="noreferrer" className="px-2.5 py-1 bg-indigo-50 border border-indigo-200 text-indigo-700 font-bold rounded text-[10px] hover:underline flex items-center gap-1">
+                                        📄 KYC Document
+                                      </a>
+                                    )}
+                                    {assoc.cancelledChequeUrl && (
+                                      <a href={assoc.cancelledChequeUrl} target="_blank" rel="noreferrer" className="px-2.5 py-1 bg-indigo-50 border border-indigo-200 text-indigo-700 font-bold rounded text-[10px] hover:underline flex items-center gap-1">
+                                        🏦 Cheque Copy
+                                      </a>
+                                    )}
+                                  </div>
+                                </div>
+
+                              </div>
+
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </React.Fragment>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* EDIT ALL FIELDS MODAL */}
+      {showEditModal && selectedAssociate && (
+        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-md z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[92vh] overflow-y-auto p-6 relative">
+            <button className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 text-lg font-bold" onClick={() => setShowEditModal(false)}>
+              ✕
+            </button>
+            <div className="mb-6 pb-3 border-b border-slate-100">
+              <h3 className="text-lg font-black text-[#714B67] uppercase tracking-tight flex items-center gap-2">
+                <span>✏️</span> Edit Business Associate Details
+              </h3>
+              <p className="text-xs text-slate-500 font-medium mt-0.5">
+                Update personal information, business profile, tax & banking info, documents, and performance ratings.
               </p>
             </div>
-          )}
-        </div>
 
-      </div>
+            <form onSubmit={handleSaveProfile} className="space-y-6">
+
+              {/* Section 1: Personal & Contact Details */}
+              <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-3">
+                <h4 className="text-xs font-black uppercase text-[#714B67] tracking-wider font-mono flex items-center gap-1.5">
+                  👤 1. Personal & Contact Information
+                </h4>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <label className="text-[10px] uppercase font-black text-slate-500 font-mono">Full Name *</label>
+                    <input className="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-xs font-bold text-slate-900 mt-1 focus:outline-none focus:border-[#714B67]"
+                      value={formState.name} onChange={e => setFormState({ ...formState, name: e.target.value })} required />
+                  </div>
+                  <div>
+                    <label className="text-[10px] uppercase font-black text-slate-500 font-mono">Email ID *</label>
+                    <input type="email" className="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-xs font-bold text-slate-900 mt-1 focus:outline-none focus:border-[#714B67]"
+                      value={formState.email} onChange={e => setFormState({ ...formState, email: e.target.value })} required />
+                  </div>
+                  <div>
+                    <label className="text-[10px] uppercase font-black text-slate-500 font-mono">Mobile Number *</label>
+                    <input className="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-xs font-bold text-slate-900 mt-1 font-mono focus:outline-none focus:border-[#714B67]"
+                      value={formState.mobile} onChange={e => setFormState({ ...formState, mobile: e.target.value })} required />
+                  </div>
+                  <div>
+                    <label className="text-[10px] uppercase font-black text-slate-500 font-mono">WhatsApp / Alt Phone</label>
+                    <input className="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-xs font-bold text-slate-900 mt-1 font-mono focus:outline-none focus:border-[#714B67]"
+                      value={formState.alternateMobile} onChange={e => setFormState({ ...formState, alternateMobile: e.target.value })} />
+                  </div>
+                  <div>
+                    <label className="text-[10px] uppercase font-black text-slate-500 font-mono">Referral Code</label>
+                    <input className="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-xs font-bold text-indigo-700 font-mono mt-1 focus:outline-none focus:border-[#714B67]"
+                      value={formState.referralCode} onChange={e => setFormState({ ...formState, referralCode: e.target.value })} />
+                  </div>
+                  <div>
+                    <label className="text-[10px] uppercase font-black text-slate-500 font-mono">Assigned Manager</label>
+                    <input className="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-xs font-bold text-slate-900 mt-1 focus:outline-none focus:border-[#714B67]"
+                      value={formState.assignedManager} onChange={e => setFormState({ ...formState, assignedManager: e.target.value })} />
+                  </div>
+                  <div>
+                    <label className="text-[10px] uppercase font-black text-slate-500 font-mono">Account Status</label>
+                    <select className="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-xs font-bold text-slate-900 mt-1 focus:outline-none focus:border-[#714B67]"
+                      value={formState.status} onChange={e => setFormState({ ...formState, status: e.target.value })}>
+                      <option value="Active">Active</option>
+                      <option value="Inactive">Inactive</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              {/* Section 2: Business & Territory */}
+              <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-3">
+                <h4 className="text-xs font-black uppercase text-[#714B67] tracking-wider font-mono flex items-center gap-1.5">
+                  🏢 2. Business & Territory Details
+                </h4>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <label className="text-[10px] uppercase font-black text-slate-500 font-mono">Business Name</label>
+                    <input className="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-xs font-bold text-slate-900 mt-1 focus:outline-none focus:border-[#714B67]"
+                      value={formState.businessName} onChange={e => setFormState({ ...formState, businessName: e.target.value })} />
+                  </div>
+                  <div>
+                    <label className="text-[10px] uppercase font-black text-slate-500 font-mono">Nature of Business</label>
+                    <input className="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-xs font-bold text-slate-900 mt-1 focus:outline-none focus:border-[#714B67]"
+                      placeholder="e.g. Proprietorship, Partnership, Agency" value={formState.businessType} onChange={e => setFormState({ ...formState, businessType: e.target.value })} />
+                  </div>
+                  <div>
+                    <label className="text-[10px] uppercase font-black text-slate-500 font-mono">Assigned Territory *</label>
+                    <input className="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-xs font-bold text-slate-900 mt-1 focus:outline-none focus:border-[#714B67]"
+                      value={formState.territory} onChange={e => setFormState({ ...formState, territory: e.target.value })} required />
+                  </div>
+                  <div>
+                    <label className="text-[10px] uppercase font-black text-slate-500 font-mono">City</label>
+                    <input className="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-xs font-bold text-slate-900 mt-1 focus:outline-none focus:border-[#714B67]"
+                      value={formState.city} onChange={e => setFormState({ ...formState, city: e.target.value })} />
+                  </div>
+                  <div>
+                    <label className="text-[10px] uppercase font-black text-slate-500 font-mono">State</label>
+                    <input className="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-xs font-bold text-slate-900 mt-1 focus:outline-none focus:border-[#714B67]"
+                      value={formState.state} onChange={e => setFormState({ ...formState, state: e.target.value })} />
+                  </div>
+                  <div>
+                    <label className="text-[10px] uppercase font-black text-slate-500 font-mono">PIN Code</label>
+                    <input className="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-xs font-bold text-slate-900 mt-1 font-mono focus:outline-none focus:border-[#714B67]"
+                      value={formState.pincode} onChange={e => setFormState({ ...formState, pincode: e.target.value })} />
+                  </div>
+                </div>
+                <div>
+                  <label className="text-[10px] uppercase font-black text-slate-500 font-mono">Full Business Address</label>
+                  <textarea rows={2} className="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-xs font-semibold text-slate-900 mt-1 focus:outline-none focus:border-[#714B67]"
+                    value={formState.businessAddress} onChange={e => setFormState({ ...formState, businessAddress: e.target.value })} />
+                </div>
+              </div>
+
+              {/* Section 3: Tax & Banking Details */}
+              <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-3">
+                <h4 className="text-xs font-black uppercase text-[#714B67] tracking-wider font-mono flex items-center gap-1.5">
+                  🏦 3. Tax & Banking Details
+                </h4>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <label className="text-[10px] uppercase font-black text-slate-500 font-mono">Payout Terms</label>
+                    <input className="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-xs font-bold text-slate-900 mt-1 focus:outline-none focus:border-[#714B67]"
+                      placeholder="e.g. 10% Flat Commission" value={formState.payoutTerms} onChange={e => setFormState({ ...formState, payoutTerms: e.target.value })} />
+                  </div>
+                  <div>
+                    <label className="text-[10px] uppercase font-black text-slate-500 font-mono">PAN Number</label>
+                    <input className="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-xs font-bold text-slate-900 font-mono uppercase mt-1 focus:outline-none focus:border-[#714B67]"
+                      value={formState.pan} onChange={e => setFormState({ ...formState, pan: e.target.value.toUpperCase() })} />
+                  </div>
+                  <div>
+                    <label className="text-[10px] uppercase font-black text-slate-500 font-mono">GSTIN Number</label>
+                    <input className="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-xs font-bold text-slate-900 font-mono uppercase mt-1 focus:outline-none focus:border-[#714B67]"
+                      value={formState.gstin} onChange={e => setFormState({ ...formState, gstin: e.target.value.toUpperCase() })} />
+                  </div>
+                  <div>
+                    <label className="text-[10px] uppercase font-black text-slate-500 font-mono">Account Holder Name</label>
+                    <input className="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-xs font-bold text-slate-900 mt-1 focus:outline-none focus:border-[#714B67]"
+                      value={formState.accountHolderName} onChange={e => setFormState({ ...formState, accountHolderName: e.target.value })} />
+                  </div>
+                  <div>
+                    <label className="text-[10px] uppercase font-black text-slate-500 font-mono">Bank Account Number</label>
+                    <input className="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-xs font-bold text-slate-900 font-mono mt-1 focus:outline-none focus:border-[#714B67]"
+                      value={formState.bankAccountNumber} onChange={e => setFormState({ ...formState, bankAccountNumber: e.target.value })} />
+                  </div>
+                  <div>
+                    <label className="text-[10px] uppercase font-black text-slate-500 font-mono">IFSC Code</label>
+                    <input className="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-xs font-bold text-slate-900 font-mono uppercase mt-1 focus:outline-none focus:border-[#714B67]"
+                      value={formState.ifscCode} onChange={e => setFormState({ ...formState, ifscCode: e.target.value.toUpperCase() })} />
+                  </div>
+                </div>
+              </div>
+
+              {/* Section 4: Document Links & Uploads */}
+              <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-3">
+                <h4 className="text-xs font-black uppercase text-[#714B67] tracking-wider font-mono flex items-center gap-1.5">
+                  📄 4. Documents & Photo Uploads
+                </h4>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+
+                  {/* Profile Photo Upload */}
+                  <div className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between space-y-2">
+                    <div>
+                      <label className="text-[10px] uppercase font-black text-slate-500 font-mono block">Profile Photo</label>
+                      {formState.profilePhotoUrl ? (
+                        <div className="flex items-center gap-2 mt-1.5">
+                          <img src={formState.profilePhotoUrl} alt="Profile" className="w-8 h-8 rounded-full object-cover border border-slate-300 shrink-0" />
+                          <a href={formState.profilePhotoUrl} target="_blank" rel="noreferrer" className="text-[11px] text-emerald-700 font-bold hover:underline truncate">
+                            ✓ Photo Uploaded
+                          </a>
+                        </div>
+                      ) : (
+                        <span className="text-[11px] text-slate-400 font-medium block mt-1">No photo uploaded</span>
+                      )}
+                    </div>
+                    <label className="w-full py-2 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 text-indigo-700 rounded-lg text-xs font-bold text-center cursor-pointer transition-all flex items-center justify-center gap-1.5 mt-2">
+                      <Paperclip className="w-3.5 h-3.5" />
+                      <span>{formState.profilePhotoUrl ? "Change Photo" : "Upload Photo"}</span>
+                      <input type="file" className="hidden" accept="image/*" onChange={e => e.target.files?.[0] && handleEditFileUpload(e.target.files[0], "profilePhotoUrl")} />
+                    </label>
+                  </div>
+
+                  {/* KYC Document Upload */}
+                  <div className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between space-y-2">
+                    <div>
+                      <label className="text-[10px] uppercase font-black text-slate-500 font-mono block">KYC Document (Aadhaar / ID)</label>
+                      {formState.kycDocUrl ? (
+                        <a href={formState.kycDocUrl} target="_blank" rel="noreferrer" className="text-[11px] text-emerald-700 font-bold hover:underline flex items-center gap-1 mt-1.5">
+                          ✓ KYC File Uploaded
+                        </a>
+                      ) : (
+                        <span className="text-[11px] text-slate-400 font-medium block mt-1">No document uploaded</span>
+                      )}
+                    </div>
+                    <label className="w-full py-2 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 text-indigo-700 rounded-lg text-xs font-bold text-center cursor-pointer transition-all flex items-center justify-center gap-1.5 mt-2">
+                      <Paperclip className="w-3.5 h-3.5" />
+                      <span>{formState.kycDocUrl ? "Change KYC Doc" : "Upload KYC Doc"}</span>
+                      <input type="file" className="hidden" accept="image/*,application/pdf" onChange={e => e.target.files?.[0] && handleEditFileUpload(e.target.files[0], "kycDocUrl")} />
+                    </label>
+                  </div>
+
+                  {/* Cancelled Cheque Upload */}
+                  <div className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between space-y-2">
+                    <div>
+                      <label className="text-[10px] uppercase font-black text-slate-500 font-mono block">Cancelled Cheque Copy</label>
+                      {formState.cancelledChequeUrl ? (
+                        <a href={formState.cancelledChequeUrl} target="_blank" rel="noreferrer" className="text-[11px] text-emerald-700 font-bold hover:underline flex items-center gap-1 mt-1.5">
+                          ✓ Cheque Copy Uploaded
+                        </a>
+                      ) : (
+                        <span className="text-[11px] text-slate-400 font-medium block mt-1">No cheque uploaded</span>
+                      )}
+                    </div>
+                    <label className="w-full py-2 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 text-indigo-700 rounded-lg text-xs font-bold text-center cursor-pointer transition-all flex items-center justify-center gap-1.5 mt-2">
+                      <Paperclip className="w-3.5 h-3.5" />
+                      <span>{formState.cancelledChequeUrl ? "Change Cheque" : "Upload Cheque"}</span>
+                      <input type="file" className="hidden" accept="image/*,application/pdf" onChange={e => e.target.files?.[0] && handleEditFileUpload(e.target.files[0], "cancelledChequeUrl")} />
+                    </label>
+                  </div>
+
+                </div>
+              </div>
+
+              <div className="pt-3 border-t border-slate-200 flex justify-end gap-3">
+                <button type="button" onClick={() => setShowEditModal(false)} className="px-5 py-2.5 rounded-lg border border-slate-300 text-xs font-bold text-slate-600 hover:bg-slate-100 transition-all">Cancel</button>
+                <button type="submit" disabled={submitting} className="px-6 py-2.5 bg-[#714B67] hover:bg-[#5F3F56] rounded-lg text-xs font-black text-white transition-all shadow-md cursor-pointer flex items-center gap-1.5">
+                  <CheckCircle className="w-4 h-4" />
+                  <span>Save All Changes</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* FORM-9 Modal */}
       {showForm9 && selectedAssociate && (
@@ -878,9 +1439,8 @@ export function VendorOperations({ toggleModal, triggerToast }: PartnerProps) {
             setAgreementFilter("All");
             setSearchQuery("");
           }}
-          className={`bg-white p-4 rounded-xl border transition-all cursor-pointer hover:border-indigo-300 hover:shadow-md flex items-center justify-between ${
-            categoryFilter === "All" && agreementFilter === "All" && !searchQuery ? "border-indigo-400 ring-2 ring-indigo-400/20 bg-indigo-50/20" : "border-slate-200 shadow-2xs"
-          }`}
+          className={`bg-white p-4 rounded-xl border transition-all cursor-pointer hover:border-indigo-300 hover:shadow-md flex items-center justify-between ${categoryFilter === "All" && agreementFilter === "All" && !searchQuery ? "border-indigo-400 ring-2 ring-indigo-400/20 bg-indigo-50/20" : "border-slate-200 shadow-2xs"
+            }`}
           title="Click to show all vendors"
         >
           <div>
@@ -896,9 +1456,8 @@ export function VendorOperations({ toggleModal, triggerToast }: PartnerProps) {
         {/* With Agreement Card */}
         <div
           onClick={() => setAgreementFilter(agreementFilter === "WithAgreement" ? "All" : "WithAgreement")}
-          className={`bg-white p-4 rounded-xl border transition-all cursor-pointer hover:border-emerald-300 hover:shadow-md flex items-center justify-between ${
-            agreementFilter === "WithAgreement" ? "border-emerald-500 ring-2 ring-emerald-500/20 bg-emerald-50/40" : "border-slate-200 shadow-2xs"
-          }`}
+          className={`bg-white p-4 rounded-xl border transition-all cursor-pointer hover:border-emerald-300 hover:shadow-md flex items-center justify-between ${agreementFilter === "WithAgreement" ? "border-emerald-500 ring-2 ring-emerald-500/20 bg-emerald-50/40" : "border-slate-200 shadow-2xs"
+            }`}
           title="Click to filter vendors with signed agreement"
         >
           <div>
@@ -916,9 +1475,8 @@ export function VendorOperations({ toggleModal, triggerToast }: PartnerProps) {
         {/* Categories Card */}
         <div
           onClick={() => setShowCategoryModal(true)}
-          className={`bg-white p-4 rounded-xl border transition-all cursor-pointer hover:border-purple-300 hover:shadow-md flex items-center justify-between ${
-            categoryFilter !== "All" ? "border-purple-500 ring-2 ring-purple-500/20 bg-purple-50/40" : "border-slate-200 shadow-2xs"
-          }`}
+          className={`bg-white p-4 rounded-xl border transition-all cursor-pointer hover:border-purple-300 hover:shadow-md flex items-center justify-between ${categoryFilter !== "All" ? "border-purple-500 ring-2 ring-purple-500/20 bg-purple-50/40" : "border-slate-200 shadow-2xs"
+            }`}
           title="Click to view all categories & vendor counts"
         >
           <div>
@@ -1002,145 +1560,145 @@ export function VendorOperations({ toggleModal, triggerToast }: PartnerProps) {
 
       {/* Structured Vendors Data Table */}
       <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="bg-slate-50/80 border-b border-slate-200 text-[10px] uppercase font-black tracking-wider text-slate-500 font-mono">
-                  <th className="py-3.5 px-4 text-center w-14">ID</th>
-                  <th className="py-3.5 px-4">Vendor Shop / Company Name</th>
-                  <th className="py-3.5 px-4">Vendor Person</th>
-                  <th className="py-3.5 px-4">Category</th>
-                  <th className="py-3.5 px-4">Location</th>
-                  <th className="py-3.5 px-4">Contact Details</th>
-                  <th className="py-3.5 px-4">Services Provided</th>
-                  <th className="py-3.5 px-4 text-center">Document</th>
-                  <th className="py-3.5 px-4 text-center w-28">Actions</th>
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr className="bg-slate-50/80 border-b border-slate-200 text-[10px] uppercase font-black tracking-wider text-slate-500 font-mono">
+                <th className="py-3.5 px-4 text-center w-14">ID</th>
+                <th className="py-3.5 px-4">Vendor Shop / Company Name</th>
+                <th className="py-3.5 px-4">Vendor Person</th>
+                <th className="py-3.5 px-4">Category</th>
+                <th className="py-3.5 px-4">Location</th>
+                <th className="py-3.5 px-4">Contact Details</th>
+                <th className="py-3.5 px-4">Services Provided</th>
+                <th className="py-3.5 px-4 text-center">Document</th>
+                <th className="py-3.5 px-4 text-center w-28">Actions</th>
+              </tr>
+            </thead>
+
+            <tbody className="divide-y divide-slate-100 text-xs">
+              {loading ? (
+                <tr>
+                  <td colSpan={9} className="py-12 text-center text-slate-400 font-bold animate-pulse">
+                    Loading vendors master data...
+                  </td>
                 </tr>
-              </thead>
+              ) : filteredVendors.length === 0 ? (
+                <tr>
+                  <td colSpan={9} className="py-12 text-center">
+                    <div className="max-w-xs mx-auto space-y-2">
+                      <p className="text-sm font-black text-slate-700">No Vendors Found</p>
+                      <p className="text-xs text-slate-400">Click "+ Add Vendor" to register your first vendor in the master database.</p>
+                      <button
+                        onClick={() => setShowAddVendorModal(true)}
+                        className="mt-2 px-4 py-2 bg-[#714B67] text-white text-xs font-bold rounded-lg hover:bg-[#5F3F56] transition-all inline-flex items-center gap-1.5"
+                      >
+                        <Plus className="w-3.5 h-3.5" /> + Add Vendor
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ) : (
+                filteredVendors.map((vendor, idx) => {
+                  const vCode = vendor.vendorCode || vendor.id || "VEN-001";
+                  const shopName = vendor.shopName || vendor.displayName || "Vendor Master";
+                  const personName = vendor.vendorName || "—";
+                  const location = vendor.location && vendor.location !== "—" ? vendor.location : "—";
+                  const mobile = vendor.displayMobile || vendor.mobile || vendor.contact || "—";
+                  const email = vendor.displayEmail && vendor.displayEmail !== "—" ? vendor.displayEmail : "";
+                  const category = vendor.category || "General";
+                  const serviceType = vendor.serviceType && vendor.serviceType !== "—" ? vendor.serviceType : "—";
 
-              <tbody className="divide-y divide-slate-100 text-xs">
-                {loading ? (
-                  <tr>
-                    <td colSpan={9} className="py-12 text-center text-slate-400 font-bold animate-pulse">
-                      Loading vendors master data...
-                    </td>
-                  </tr>
-                ) : filteredVendors.length === 0 ? (
-                  <tr>
-                    <td colSpan={9} className="py-12 text-center">
-                      <div className="max-w-xs mx-auto space-y-2">
-                        <p className="text-sm font-black text-slate-700">No Vendors Found</p>
-                        <p className="text-xs text-slate-400">Click "+ Add Vendor" to register your first vendor in the master database.</p>
-                        <button
-                          onClick={() => setShowAddVendorModal(true)}
-                          className="mt-2 px-4 py-2 bg-[#714B67] text-white text-xs font-bold rounded-lg hover:bg-[#5F3F56] transition-all inline-flex items-center gap-1.5"
-                        >
-                          <Plus className="w-3.5 h-3.5" /> + Add Vendor
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ) : (
-                  filteredVendors.map((vendor, idx) => {
-                    const vCode = vendor.vendorCode || vendor.id || "VEN-001";
-                    const shopName = vendor.shopName || vendor.displayName || "Vendor Master";
-                    const personName = vendor.vendorName || "—";
-                    const location = vendor.location && vendor.location !== "—" ? vendor.location : "—";
-                    const mobile = vendor.displayMobile || vendor.mobile || vendor.contact || "—";
-                    const email = vendor.displayEmail && vendor.displayEmail !== "—" ? vendor.displayEmail : "";
-                    const category = vendor.category || "General";
-                    const serviceType = vendor.serviceType && vendor.serviceType !== "—" ? vendor.serviceType : "—";
+                  return (
+                    <tr key={vendor.id || idx} className="hover:bg-slate-50/70 transition-all group">
 
-                    return (
-                      <tr key={vendor.id || idx} className="hover:bg-slate-50/70 transition-all group">
+                      {/* 1. ID Numbering */}
+                      <td className="py-3.5 px-4 text-center">
+                        <span className="inline-block bg-[#714B67]/10 text-[#714B67] px-2 py-0.5 rounded font-mono font-black text-[11px]">
+                          {vCode}
+                        </span>
+                      </td>
 
-                        {/* 1. ID Numbering */}
-                        <td className="py-3.5 px-4 text-center">
-                          <span className="inline-block bg-[#714B67]/10 text-[#714B67] px-2 py-0.5 rounded font-mono font-black text-[11px]">
-                            {vCode}
-                          </span>
-                        </td>
+                      {/* 2. Shop / Company Name */}
+                      <td className="py-3.5 px-4 font-black text-slate-800 group-hover:text-[#714B67] transition-colors">
+                        {shopName}
+                      </td>
 
-                        {/* 2. Shop / Company Name */}
-                        <td className="py-3.5 px-4 font-black text-slate-800 group-hover:text-[#714B67] transition-colors">
-                          {shopName}
-                        </td>
+                      {/* 3. Vendor Person */}
+                      <td className="py-3.5 px-4 font-bold text-slate-700">
+                        {personName}
+                      </td>
 
-                        {/* 3. Vendor Person */}
-                        <td className="py-3.5 px-4 font-bold text-slate-700">
-                          {personName}
-                        </td>
+                      {/* 4. Category */}
+                      <td className="py-3.5 px-4">
+                        <span className="bg-slate-100 border border-slate-200 text-slate-700 font-bold px-2 py-0.5 rounded-md text-[11px] inline-block">
+                          {category}
+                        </span>
+                      </td>
 
-                        {/* 4. Category */}
-                        <td className="py-3.5 px-4">
-                          <span className="bg-slate-100 border border-slate-200 text-slate-700 font-bold px-2 py-0.5 rounded-md text-[11px] inline-block">
-                            {category}
-                          </span>
-                        </td>
+                      {/* 5. Location */}
+                      <td className="py-3.5 px-4 text-slate-600 font-semibold">
+                        {location}
+                      </td>
 
-                        {/* 5. Location */}
-                        <td className="py-3.5 px-4 text-slate-600 font-semibold">
-                          {location}
-                        </td>
+                      {/* 6. Contact Details */}
+                      <td className="py-3.5 px-4 font-mono space-y-0.5">
+                        <div className="text-slate-800 font-bold text-[11px]">📞 {mobile}</div>
+                        {email && <div className="text-slate-500 text-[10px] truncate max-w-[180px]">✉️ {email}</div>}
+                      </td>
 
-                        {/* 6. Contact Details */}
-                        <td className="py-3.5 px-4 font-mono space-y-0.5">
-                          <div className="text-slate-800 font-bold text-[11px]">📞 {mobile}</div>
-                          {email && <div className="text-slate-500 text-[10px] truncate max-w-[180px]">✉️ {email}</div>}
-                        </td>
+                      {/* 7. Services Provided */}
+                      <td className="py-3.5 px-4 text-slate-700 font-medium max-w-[200px] truncate">
+                        {serviceType}
+                      </td>
 
-                        {/* 7. Services Provided */}
-                        <td className="py-3.5 px-4 text-slate-700 font-medium max-w-[200px] truncate">
-                          {serviceType}
-                        </td>
+                      {/* 8. Agreement Document */}
+                      <td className="py-3.5 px-4 text-center">
+                        {vendor.agreementUrl ? (
+                          <a
+                            href={vendor.agreementUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="inline-flex items-center gap-1 text-[11px] font-bold text-indigo-600 hover:text-indigo-800 bg-indigo-50 hover:bg-indigo-100 px-2.5 py-1 rounded-md border border-indigo-200 transition-all"
+                          >
+                            📄 View File
+                          </a>
+                        ) : (
+                          <span className="text-[10px] text-slate-400 font-medium">No File</span>
+                        )}
+                      </td>
 
-                        {/* 8. Agreement Document */}
-                        <td className="py-3.5 px-4 text-center">
-                          {vendor.agreementUrl ? (
-                            <a
-                              href={vendor.agreementUrl}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="inline-flex items-center gap-1 text-[11px] font-bold text-indigo-600 hover:text-indigo-800 bg-indigo-50 hover:bg-indigo-100 px-2.5 py-1 rounded-md border border-indigo-200 transition-all"
-                            >
-                              📄 View File
-                            </a>
-                          ) : (
-                            <span className="text-[10px] text-slate-400 font-medium">No File</span>
-                          )}
-                        </td>
+                      {/* 9. Actions (Edit & Delete Buttons) */}
+                      <td className="py-3.5 px-4 text-center">
+                        <div className="flex items-center justify-center gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => handleOpenEditModal(vendor)}
+                            className="p-1.5 text-slate-600 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg border border-slate-200 transition-all"
+                            title="Edit Vendor"
+                          >
+                            ✏️
+                          </button>
 
-                        {/* 9. Actions (Edit & Delete Buttons) */}
-                        <td className="py-3.5 px-4 text-center">
-                          <div className="flex items-center justify-center gap-1.5">
-                            <button
-                              type="button"
-                              onClick={() => handleOpenEditModal(vendor)}
-                              className="p-1.5 text-slate-600 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg border border-slate-200 transition-all"
-                              title="Edit Vendor"
-                            >
-                              ✏️
-                            </button>
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteVendor(vendor.id, shopName)}
+                            className="p-1.5 text-slate-600 hover:text-rose-600 hover:bg-rose-50 rounded-lg border border-slate-200 transition-all"
+                            title="Delete Vendor"
+                          >
+                            🗑️
+                          </button>
+                        </div>
+                      </td>
 
-                            <button
-                              type="button"
-                              onClick={() => handleDeleteVendor(vendor.id, shopName)}
-                              className="p-1.5 text-slate-600 hover:text-rose-600 hover:bg-rose-50 rounded-lg border border-slate-200 transition-all"
-                              title="Delete Vendor"
-                            >
-                              🗑️
-                            </button>
-                          </div>
-                        </td>
-
-                      </tr>
-                    );
-                  })
-                )}
-              </tbody>
-            </table>
-          </div>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
         </div>
+      </div>
 
       {/* Category Overview Modal */}
       {showCategoryModal && (
@@ -1170,11 +1728,10 @@ export function VendorOperations({ toggleModal, triggerToast }: PartnerProps) {
                   setCategoryFilter("All");
                   setShowCategoryModal(false);
                 }}
-                className={`w-full p-3 rounded-xl border text-left font-bold text-xs flex items-center justify-between transition-all cursor-pointer ${
-                  categoryFilter === "All"
+                className={`w-full p-3 rounded-xl border text-left font-bold text-xs flex items-center justify-between transition-all cursor-pointer ${categoryFilter === "All"
                     ? "bg-purple-600 text-white border-purple-600 shadow-sm"
                     : "bg-slate-50 hover:bg-purple-50/50 text-slate-700 border-slate-200"
-                }`}
+                  }`}
               >
                 <span>All Categories</span>
                 <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black ${categoryFilter === "All" ? "bg-white/20 text-white" : "bg-slate-200 text-slate-700"}`}>
@@ -1196,11 +1753,10 @@ export function VendorOperations({ toggleModal, triggerToast }: PartnerProps) {
                         setCategoryFilter(catName);
                         setShowCategoryModal(false);
                       }}
-                      className={`w-full p-3 rounded-xl border text-left font-bold text-xs flex items-center justify-between transition-all cursor-pointer ${
-                        isSelected
+                      className={`w-full p-3 rounded-xl border text-left font-bold text-xs flex items-center justify-between transition-all cursor-pointer ${isSelected
                           ? "bg-purple-600 text-white border-purple-600 shadow-sm"
                           : "bg-white hover:bg-purple-50/50 text-slate-800 border-slate-200 hover:border-purple-300"
-                      }`}
+                        }`}
                     >
                       <span className="flex items-center gap-2">
                         <span className={`w-2 h-2 rounded-full ${isSelected ? "bg-white" : "bg-purple-500"}`}></span>
@@ -1687,6 +2243,13 @@ export function FranchiseTerritories({ toggleModal, triggerToast }: PartnerProps
         triggerToast(isEdit ? "Franchise Partner Updated Successfully!" : "Franchise Partner Registered Successfully!");
         setShowForm11(false);
         resetForm11();
+        setStatusFilter("All");
+        setExpiryFilter("All");
+        setRiskFilter("All");
+        setSearchQuery("");
+        if (data.data) {
+          setSelectedFranchise(data.data);
+        }
         loadFranchises();
       } else {
         triggerToast("Failed to save partner: " + data.error);
@@ -1858,13 +2421,165 @@ export function FranchiseTerritories({ toggleModal, triggerToast }: PartnerProps
     }
   };
 
-  const filteredFranchises = franchises.filter(f =>
-    (f.partnerName || f.user?.name || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (f.contactPerson || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (f.email || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (f.mobile || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (f.brandProject || f.territory?.name || "").toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const [statusFilter, setStatusFilter] = useState<string>("All");
+  const [riskFilter, setRiskFilter] = useState<string>("All");
+  const [expiryFilter, setExpiryFilter] = useState<string>("All");
+
+  const getAgreementExpiryInfo = (endDateStr?: string) => {
+    if (!endDateStr) return { status: "No Date", label: "No Date Set", daysLeft: null, color: "slate" };
+
+    let end: Date | null = null;
+    const str = endDateStr.trim();
+
+    if (/^\d{4}-\d{2}-\d{2}$/.test(str)) {
+      const [y, m, d] = str.split("-").map(Number);
+      end = new Date(y, m - 1, d);
+    } else if (/^\d{1,2}[\/-]\d{1,2}[\/-]\d{4}$/.test(str)) {
+      const parts = str.split(/[\/-]/).map(Number);
+      end = new Date(parts[2], parts[1] - 1, parts[0]);
+    } else {
+      end = new Date(str);
+    }
+
+    if (!end || isNaN(end.getTime())) return { status: "Invalid", label: "Invalid Date", daysLeft: null, color: "slate" };
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    end.setHours(0, 0, 0, 0);
+
+    const diffTime = end.getTime() - today.getTime();
+    const daysLeft = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+    if (daysLeft < 0) {
+      return { status: "Expired", label: `Expired (${Math.abs(daysLeft)}d ago)`, daysLeft, color: "rose" };
+    } else if (daysLeft <= 30) {
+      return { status: "Expiring Soon", label: `Expiring (${daysLeft}d left)`, daysLeft, color: "amber" };
+    } else {
+      return { status: "Valid", label: `Valid (${daysLeft}d left)`, daysLeft, color: "emerald" };
+    }
+  };
+
+  const handleSendRenewalNotice = async (franchise: any, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    const partnerName = franchise.partnerName || franchise.contactPerson || "Partner";
+    const email = franchise.email;
+    const mobile = franchise.mobile || "N/A";
+    const expiryInfo = getAgreementExpiryInfo(franchise.agreementEndDate);
+
+    const reminderMsg = `Official Contract Renewal Reminder:\nDear ${partnerName},\nYour franchise agreement for territory (${franchise.territory || 'N/A'}) ${expiryInfo.status === 'Expired' ? 'has EXPIRED' : `is EXPIRING in ${expiryInfo.daysLeft} days`}.\nPlease initiate the renewal documentation at the earliest.\nContact: ${email || 'N/A'} | ${mobile}`;
+
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(reminderMsg);
+    }
+
+    if (!email || !email.includes("@")) {
+      triggerToast(`📋 Draft copied to clipboard! (Note: ${partnerName} has no valid email address set)`);
+      return;
+    }
+
+    try {
+      triggerToast(`Sending renewal email to ${email}...`);
+      const res = await fetch("/api/reports/form11/send-reminder", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          franchiseId: franchise.id,
+          email: franchise.email,
+          partnerName: franchise.partnerName,
+          territory: franchise.territory,
+          agreementEndDate: franchise.agreementEndDate
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        triggerToast(`📧 Renewal Reminder email sent successfully to ${email}!`);
+      } else {
+        triggerToast(`📋 Draft copied to clipboard! (${data.error || 'Email could not be dispatched'})`);
+      }
+    } catch (err) {
+      triggerToast(`📋 Renewal Reminder draft copied to clipboard for ${partnerName}!`);
+    }
+  };
+
+  const getTerritoryConflict = (inputTerritory: string, inputPincode: string, currentId: string | null) => {
+    const normTerritory = inputTerritory.trim().toLowerCase();
+    const normPincode = inputPincode.trim();
+    if (!normTerritory && !normPincode) return null;
+
+    const match = franchises.find(f => {
+      if (currentId && f.id === currentId) return false;
+      if (f.status === "Inactive") return false;
+      const fTerr = (f.territory || "").trim().toLowerCase();
+      const fPin = (f.pincode || "").trim();
+      return (normTerritory && fTerr && normTerritory === fTerr) || (normPincode && fPin && normPincode === fPin);
+    });
+
+    if (match) {
+      return {
+        partnerName: match.partnerName || match.contactPerson || "Existing Partner",
+        territory: match.territory,
+        pincode: match.pincode
+      };
+    }
+    return null;
+  };
+
+  const handleToggleStatus = async (franchise: any, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const newStatus = franchise.status === "Active" ? "Pending" : "Active";
+    try {
+      setSubmitting(true);
+      const res = await fetch("/api/reports/form11", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: franchise.id, status: newStatus }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        triggerToast(`Partner status updated to ${newStatus}`);
+        loadFranchises();
+      } else {
+        triggerToast("Failed to update status: " + data.error);
+      }
+    } catch (err) {
+      triggerToast("Error updating partner status");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const filteredFranchises = franchises.filter(f => {
+    const q = searchQuery.toLowerCase().trim();
+    const matchesSearch =
+      !q ||
+      (f.partnerName || f.user?.name || "").toLowerCase().includes(q) ||
+      (f.contactPerson || "").toLowerCase().includes(q) ||
+      (f.email || "").toLowerCase().includes(q) ||
+      (f.mobile || "").toLowerCase().includes(q) ||
+      (f.territory || f.territory?.name || "").toLowerCase().includes(q) ||
+      (f.brandProject || "").toLowerCase().includes(q) ||
+      (f.state || "").toLowerCase().includes(q);
+
+    const matchesStatus = statusFilter === "All" || (f.status || "Pending").toLowerCase() === statusFilter.toLowerCase();
+    const matchesRisk = riskFilter === "All" || (f.riskLevel || "Low").toLowerCase() === riskFilter.toLowerCase();
+
+    const expInfo = getAgreementExpiryInfo(f.agreementEndDate);
+    const matchesExpiry = expiryFilter === "All" ||
+      (expiryFilter === "ExpiringSoon" && expInfo.status === "Expiring Soon") ||
+      (expiryFilter === "Expired" && expInfo.status === "Expired") ||
+      (expiryFilter === "Valid" && expInfo.status === "Valid");
+
+    return matchesSearch && matchesStatus && matchesRisk && matchesExpiry;
+  });
+
+  const totalPartnersCount = franchises.length;
+  const activePartnersCount = franchises.filter(f => f.status === "Active").length;
+  const pendingPartnersCount = franchises.filter(f => !f.status || f.status === "Pending").length;
+  const expiringOrExpiredCount = franchises.filter(f => {
+    const status = getAgreementExpiryInfo(f.agreementEndDate).status;
+    return status === "Expired" || status === "Expiring Soon";
+  }).length;
+  const territoriesCount = Array.from(new Set(franchises.map(f => (f.territory || "").trim()).filter(Boolean))).length;
 
   return (
     <div className="space-y-8 animate-fadeIn text-slate-800">
@@ -1874,16 +2589,6 @@ export function FranchiseTerritories({ toggleModal, triggerToast }: PartnerProps
           <p className="text-xs text-slate-500 mt-1">Directory of registered franchise partners & territory agreements</p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
-          <div className="relative">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
-            <input
-              type="text"
-              placeholder="Search partner, contact, mobile..."
-              value={searchQuery}
-              onChange={e => setSearchQuery(e.target.value)}
-              className="bg-white border border-slate-200 rounded-lg pl-9 pr-4 py-2 text-xs font-semibold focus:outline-none focus:border-[#714B67] text-slate-800 w-64 shadow-2xs"
-            />
-          </div>
           <button
             onClick={handleExportCSV}
             className="bg-emerald-700 hover:bg-emerald-800 px-3.5 py-2 rounded-lg text-xs font-bold text-white transition-all shadow-sm flex items-center gap-1.5 cursor-pointer"
@@ -1909,6 +2614,123 @@ export function FranchiseTerritories({ toggleModal, triggerToast }: PartnerProps
         </div>
       </div>
 
+      {/* Summary KPI Widgets Header */}
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+        <div
+          onClick={() => { setStatusFilter("All"); setExpiryFilter("All"); setRiskFilter("All"); }}
+          className={`bg-white border rounded-xl p-3.5 shadow-xs cursor-pointer transition-all hover:shadow-md ${statusFilter === "All" && expiryFilter === "All" && riskFilter === "All" ? "border-slate-400 ring-2 ring-slate-400/20 bg-slate-50/50" : "border-slate-200"
+            }`}
+        >
+          <div className="text-[10px] font-black uppercase text-slate-400 font-mono">Total Partners</div>
+          <div className="text-xl font-black text-slate-900 mt-1">{totalPartnersCount}</div>
+          <div className="text-[10px] text-slate-500 mt-0.5 font-medium">Click to view all</div>
+        </div>
+
+        <div
+          onClick={() => { setStatusFilter("Active"); setExpiryFilter("All"); }}
+          className={`bg-white border rounded-xl p-3.5 shadow-xs cursor-pointer transition-all hover:shadow-md ${statusFilter === "Active" ? "border-emerald-500 ring-2 ring-emerald-500/20 bg-emerald-50/30" : "border-slate-200"
+            }`}
+        >
+          <div className="text-[10px] font-black uppercase text-emerald-600 font-mono">Active Partners</div>
+          <div className="text-xl font-black text-emerald-700 mt-1">{activePartnersCount}</div>
+          <div className="text-[10px] text-emerald-600/80 mt-0.5 font-medium">Verified Accounts</div>
+        </div>
+
+        <div
+          onClick={() => { setStatusFilter("Pending"); setExpiryFilter("All"); }}
+          className={`bg-white border rounded-xl p-3.5 shadow-xs cursor-pointer transition-all hover:shadow-md ${statusFilter === "Pending" ? "border-amber-500 ring-2 ring-amber-500/20 bg-amber-50/30" : "border-slate-200"
+            }`}
+        >
+          <div className="text-[10px] font-black uppercase text-amber-600 font-mono">Pending Approval</div>
+          <div className="text-xl font-black text-amber-700 mt-1">{pendingPartnersCount}</div>
+          <div className="text-[10px] text-amber-600/80 mt-0.5 font-medium">Awaiting Clearance</div>
+        </div>
+
+        <div
+          onClick={() => { setExpiryFilter("ExpiringSoon"); setStatusFilter("All"); }}
+          className={`bg-white border rounded-xl p-3.5 shadow-xs cursor-pointer transition-all hover:shadow-md ${expiryFilter === "ExpiringSoon" || expiryFilter === "Expired" ? "border-rose-500 ring-2 ring-rose-500/20 bg-rose-50/30" : "border-slate-200"
+            }`}
+        >
+          <div className="text-[10px] font-black uppercase text-rose-600 font-mono flex items-center gap-1">
+            <Clock className="w-3 h-3" /> Expiry Alert
+          </div>
+          <div className="text-xl font-black text-rose-700 mt-1">{expiringOrExpiredCount}</div>
+          <div className="text-[10px] text-rose-600/80 mt-0.5 font-medium">Expiring / Expired</div>
+        </div>
+
+        <div className="bg-white border border-slate-200 rounded-xl p-3.5 shadow-xs">
+          <div className="text-[10px] font-black uppercase text-indigo-600 font-mono">Territories</div>
+          <div className="text-xl font-black text-indigo-700 mt-1">{territoriesCount}</div>
+          <div className="text-[10px] text-indigo-600/80 mt-0.5 font-medium">Cities / Regions</div>
+        </div>
+      </div>
+
+      {/* Filters Bar */}
+      <div className="bg-slate-50/70 border border-slate-200/80 rounded-xl p-3 flex flex-wrap gap-3 items-center justify-between">
+        <div className="flex flex-wrap items-center gap-3 flex-1 min-w-[280px]">
+          {/* Search Box */}
+          <div className="relative flex-1 min-w-[220px]">
+            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+            <input
+              type="text"
+              placeholder="Search by Firm, Contact, Mobile or Territory..."
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              className="bg-white border border-slate-200 rounded-lg pl-9 pr-4 py-2 text-xs font-semibold focus:outline-none focus:border-[#714B67] text-slate-800 w-full shadow-2xs"
+            />
+          </div>
+
+          {/* Status Filter */}
+          <select
+            value={statusFilter}
+            onChange={e => setStatusFilter(e.target.value)}
+            className="bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs font-semibold focus:outline-none focus:border-[#714B67] text-slate-700 cursor-pointer shadow-2xs"
+          >
+            <option value="All">All Statuses</option>
+            <option value="Active">Active Only</option>
+            <option value="Pending">Pending Only</option>
+          </select>
+
+          {/* Agreement Expiry Filter */}
+          <select
+            value={expiryFilter}
+            onChange={e => setExpiryFilter(e.target.value)}
+            className="bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs font-semibold focus:outline-none focus:border-[#714B67] text-slate-700 cursor-pointer shadow-2xs"
+          >
+            <option value="All">All Agreements</option>
+            <option value="ExpiringSoon">⏳ Expiring Soon (&lt; 30 days)</option>
+            <option value="Expired">🚨 Expired Agreements</option>
+            <option value="Valid">✅ Valid Agreements</option>
+          </select>
+
+          {/* Risk Level Filter */}
+          <select
+            value={riskFilter}
+            onChange={e => setRiskFilter(e.target.value)}
+            className="bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs font-semibold focus:outline-none focus:border-[#714B67] text-slate-700 cursor-pointer shadow-2xs"
+          >
+            <option value="All">All Risk Levels</option>
+            <option value="Low">Low Risk</option>
+            <option value="Medium">Medium Risk</option>
+            <option value="High">High Risk</option>
+          </select>
+        </div>
+
+        {(searchQuery || statusFilter !== "All" || riskFilter !== "All" || expiryFilter !== "All") && (
+          <button
+            onClick={() => {
+              setSearchQuery("");
+              setStatusFilter("All");
+              setRiskFilter("All");
+              setExpiryFilter("All");
+            }}
+            className="text-xs text-rose-600 font-bold hover:underline px-2 py-1"
+          >
+            Clear Filters
+          </button>
+        )}
+      </div>
+
       {/* Main Full-Width Data Table */}
       <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
@@ -1918,8 +2740,10 @@ export function FranchiseTerritories({ toggleModal, triggerToast }: PartnerProps
                 <th className="py-3.5 px-4">Business / Firm Name</th>
                 <th className="py-3.5 px-4">Contact Person</th>
                 <th className="py-3.5 px-4">Email & Mobile</th>
+                <th className="py-3.5 px-4">Territory / Location</th>
                 <th className="py-3.5 px-4">Brand / Project</th>
-                <th className="py-3.5 px-4">Revenue Share</th>
+                <th className="py-3.5 px-4">Agreement & Expiry</th>
+                <th className="py-3.5 px-4 text-center">Docs</th>
                 <th className="py-3.5 px-4">Risk Level</th>
                 <th className="py-3.5 px-4">Status</th>
                 <th className="py-3.5 px-4 text-right">Actions</th>
@@ -1928,14 +2752,14 @@ export function FranchiseTerritories({ toggleModal, triggerToast }: PartnerProps
             <tbody className="divide-y divide-slate-150 text-xs">
               {loading ? (
                 <tr>
-                  <td colSpan={8} className="text-center py-12 text-slate-400 font-bold text-xs animate-pulse">
+                  <td colSpan={10} className="text-center py-12 text-slate-400 font-bold text-xs animate-pulse">
                     Loading franchise partners...
                   </td>
                 </tr>
               ) : filteredFranchises.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="text-center py-12 text-slate-400 font-bold text-xs">
-                    No franchise partners found. Click "+ Add Franchise Partner" to register.
+                  <td colSpan={10} className="text-center py-12 text-slate-400 font-bold text-xs">
+                    No franchise partners found matching selected filters.
                   </td>
                 </tr>
               ) : (
@@ -1946,53 +2770,152 @@ export function FranchiseTerritories({ toggleModal, triggerToast }: PartnerProps
                     <tr
                       key={franchise.id || i}
                       onClick={() => handleSelectFranchise(franchise)}
-                      className={`cursor-pointer transition-all ${
-                        isSelected ? "bg-[#714B67]/5 font-medium" : "hover:bg-slate-50/80"
-                      }`}
+                      className={`cursor-pointer transition-all ${isSelected ? "bg-[#714B67]/5 font-medium" : "hover:bg-slate-50/80"
+                        }`}
                     >
+                      {/* 1. Business / Firm Name */}
                       <td className="py-3.5 px-4 font-bold text-slate-900">
                         {franchise.partnerName || franchise.user?.name || "Unknown Partner"}
-                        {franchise.address && <span className="block text-[10px] font-normal text-slate-500 truncate max-w-[200px]">{franchise.address}</span>}
+                        {franchise.address && (
+                          <span className="block text-[10px] font-normal text-slate-500 truncate max-w-[200px]">
+                            {franchise.address}
+                          </span>
+                        )}
                       </td>
+
+                      {/* 2. Contact Person */}
                       <td className="py-3.5 px-4 text-slate-700 font-semibold">
                         {franchise.contactPerson || "N/A"}
                       </td>
+
+                      {/* 3. Email & Mobile */}
                       <td className="py-3.5 px-4 text-slate-600">
                         <span className="block font-medium text-slate-800">{franchise.email || "N/A"}</span>
                         <span className="text-[10px] text-slate-500 font-mono">{franchise.mobile || "N/A"}</span>
                       </td>
+
+                      {/* 4. Territory & Location */}
+                      <td className="py-3.5 px-4 text-slate-800 font-semibold">
+                        {franchise.territory || "N/A"}
+                        {franchise.state && (
+                          <span className="block text-[10px] font-mono text-slate-400 uppercase">
+                            {franchise.state} {franchise.pincode ? `(${franchise.pincode})` : ""}
+                          </span>
+                        )}
+                      </td>
+
+                      {/* 5. Brand / Project */}
                       <td className="py-3.5 px-4 font-bold text-indigo-700">
                         {franchise.brandProject || "N/A"}
                       </td>
-                      <td className="py-3.5 px-4 font-bold text-emerald-700 font-mono">
-                        {franchise.revenueShare || "N/A"}
+
+                      {/* 6. Agreement & Expiry */}
+                      <td className="py-3.5 px-4 text-slate-800">
+                        {(() => {
+                          const exp = getAgreementExpiryInfo(franchise.agreementEndDate);
+                          return (
+                            <div>
+                              <span className={`px-2 py-0.5 rounded-md text-[10px] font-black border inline-flex items-center gap-1 ${exp.color === "rose" ? "bg-rose-50 text-rose-700 border-rose-200" :
+                                  exp.color === "amber" ? "bg-amber-50 text-amber-700 border-amber-200" :
+                                    exp.color === "emerald" ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-slate-100 text-slate-600 border-slate-200"
+                                }`}>
+                                <Clock className="w-2.5 h-2.5" /> {exp.label}
+                              </span>
+                              {franchise.agreementEndDate ? (
+                                <span className="block text-[10px] font-mono text-slate-400 mt-0.5">
+                                  End: {franchise.agreementEndDate}
+                                </span>
+                              ) : (
+                                <span className="block text-[10px] text-slate-400 italic mt-0.5">No End Date</span>
+                              )}
+                            </div>
+                          );
+                        })()}
                       </td>
+
+                      {/* 7. Documents Quick Links */}
+                      <td className="py-3.5 px-4 text-center">
+                        <div className="flex items-center justify-center gap-1.5" onClick={e => e.stopPropagation()}>
+                          {franchise.agreementUrl ? (
+                            <a
+                              href={franchise.agreementUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="px-2 py-0.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-600 rounded text-[10px] font-bold border border-indigo-200 flex items-center gap-1"
+                              title="View Agreement PDF"
+                            >
+                              <FileText className="w-3 h-3" /> Agreement
+                            </a>
+                          ) : null}
+                          {franchise.kycDocUrl ? (
+                            <a
+                              href={franchise.kycDocUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="px-2 py-0.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-600 rounded text-[10px] font-bold border border-emerald-200 flex items-center gap-1"
+                              title="View KYC Document"
+                            >
+                              <Paperclip className="w-3 h-3" /> KYC
+                            </a>
+                          ) : null}
+                          {!franchise.agreementUrl && !franchise.kycDocUrl && (
+                            <span className="text-[10px] text-slate-400 italic">None</span>
+                          )}
+                        </div>
+                      </td>
+
+                      {/* 8. Risk Level */}
                       <td className="py-3.5 px-4">
-                        <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${
-                          franchise.riskLevel === "High" ? "bg-rose-50 text-rose-700 border-rose-200" : franchise.riskLevel === "Medium" ? "bg-amber-50 text-amber-700 border-amber-200" : "bg-emerald-50 text-emerald-700 border-emerald-200"
-                        }`}>
+                        <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${franchise.riskLevel === "High" ? "bg-rose-50 text-rose-700 border-rose-200" : franchise.riskLevel === "Medium" ? "bg-amber-50 text-amber-700 border-amber-200" : "bg-emerald-50 text-emerald-700 border-emerald-200"
+                          }`}>
                           {franchise.riskLevel || "Low"}
                         </span>
                       </td>
+
+                      {/* 9. Status (with 1-click status toggle) */}
                       <td className="py-3.5 px-4">
-                        <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black border ${
-                          franchise.status === "Active" ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-amber-50 text-amber-700 border-amber-200"
-                        }`}>
+                        <button
+                          onClick={(e) => handleToggleStatus(franchise, e)}
+                          className={`px-2.5 py-0.5 rounded-full text-[10px] font-black border transition-all cursor-pointer ${franchise.status === "Active" ? "bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100" : "bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100"
+                            }`}
+                          title="Click to toggle status (Active / Pending)"
+                        >
                           {franchise.status || "Pending"}
-                        </span>
+                        </button>
                       </td>
+
+                      {/* 10. Actions */}
                       <td className="py-3.5 px-4 text-right">
-                        <div className="flex items-center justify-end gap-2">
+                        <div className="flex items-center justify-end gap-1.5" onClick={e => e.stopPropagation()}>
+                          {(() => {
+                            const exp = getAgreementExpiryInfo(franchise.agreementEndDate);
+                            if (exp.status === "Expiring Soon" || exp.status === "Expired") {
+                              return (
+                                <button
+                                  onClick={(e) => handleSendRenewalNotice(franchise, e)}
+                                  className={`px-2 py-1 rounded-lg text-[10px] font-black border transition-all flex items-center gap-1 cursor-pointer ${exp.status === "Expired"
+                                      ? "bg-rose-50 text-rose-700 border-rose-200 hover:bg-rose-100"
+                                      : "bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100 animate-pulse"
+                                    }`}
+                                  title={`Agreement ${exp.status} (${exp.label}). Click to copy reminder notice.`}
+                                >
+                                  <Clock className="w-3 h-3 shrink-0" />
+                                  {exp.status === "Expired" ? "Expired" : "Expiring Soon"}
+                                </button>
+                              );
+                            }
+                            return null;
+                          })()}
                           <button
                             onClick={(e) => handleEditPartner(franchise, e)}
-                            className="px-2.5 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-lg text-xs font-bold transition-all border border-indigo-200 flex items-center gap-1 cursor-pointer"
-                            title="Edit Partner"
+                            className="px-2 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-lg text-xs font-bold transition-all border border-indigo-200 flex items-center gap-1 cursor-pointer"
+                            title="Edit Partner & Agreement Terms"
                           >
                             <Edit3 className="w-3.5 h-3.5" /> Edit
                           </button>
                           <button
                             onClick={(e) => handleDeletePartner(franchise.id, franchise.partnerName, e)}
-                            className="px-2.5 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 rounded-lg text-xs font-bold transition-all border border-rose-200 flex items-center gap-1 cursor-pointer"
+                            className="px-2 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 rounded-lg text-xs font-bold transition-all border border-rose-200 flex items-center gap-1 cursor-pointer"
                             title="Delete Partner"
                           >
                             <Trash2 className="w-3.5 h-3.5" /> Delete
@@ -2024,20 +2947,50 @@ export function FranchiseTerritories({ toggleModal, triggerToast }: PartnerProps
                 </div>
               </div>
             </div>
-            <div className="flex items-center gap-3">
-              <span className={`px-3 py-1 rounded-lg text-xs font-black border ${
-                selectedFranchise.status === "Active" ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-amber-50 text-amber-700 border-amber-200"
-              }`}>
+            <div className="flex items-center gap-2 flex-wrap">
+              <button
+                onClick={(e) => handleSendRenewalNotice(selectedFranchise, e)}
+                className="px-3 py-1.5 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-300 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-2xs"
+              >
+                <Send className="w-3.5 h-3.5" /> Send Renewal Reminder
+              </button>
+              <span className={`px-3 py-1 rounded-lg text-xs font-black border ${selectedFranchise.status === "Active" ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-amber-50 text-amber-700 border-amber-200"
+                }`}>
                 Status: {selectedFranchise.status || "Pending"}
               </span>
               <button
                 onClick={() => setSelectedFranchise(null)}
-                className="px-3 py-1.5 rounded-lg border border-slate-200 text-xs font-bold text-slate-500 hover:bg-slate-100 transition-all"
+                className="px-3 py-1.5 rounded-lg border border-slate-200 text-xs font-bold text-slate-500 hover:bg-slate-100 transition-all cursor-pointer"
               >
                 ✕ Close Details
               </button>
             </div>
           </div>
+
+          {/* Expiry Alert Banner if Expiring Soon or Expired */}
+          {(() => {
+            const exp = getAgreementExpiryInfo(selectedFranchise.agreementEndDate);
+            if (exp.status === "Expired" || exp.status === "Expiring Soon") {
+              return (
+                <div className={`p-3.5 rounded-xl border flex items-center justify-between gap-3 text-xs font-semibold ${exp.status === "Expired" ? "bg-rose-50 border-rose-200 text-rose-800" : "bg-amber-50 border-amber-200 text-amber-800"
+                  }`}>
+                  <div className="flex items-center gap-2">
+                    <AlertTriangle className="w-4 h-4 shrink-0 text-amber-600" />
+                    <span>
+                      <strong>Agreement Status Alert:</strong> Franchise contract {exp.status === "Expired" ? `expired ${Math.abs(exp.daysLeft!)} days ago` : `expires in ${exp.daysLeft} days`} ({selectedFranchise.agreementEndDate || 'No Date'}). Please proceed with renewal.
+                    </span>
+                  </div>
+                  <button
+                    onClick={(e) => handleSendRenewalNotice(selectedFranchise, e)}
+                    className="px-3 py-1 bg-white hover:bg-slate-100 text-slate-800 border rounded-lg text-xs font-bold shrink-0 transition-all shadow-2xs cursor-pointer"
+                  >
+                    Copy Reminder Draft
+                  </button>
+                </div>
+              );
+            }
+            return null;
+          })()}
 
           {/* Details Content Grid */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -2199,8 +3152,25 @@ export function FranchiseTerritories({ toggleModal, triggerToast }: PartnerProps
                 {/* Section 1: Basic Partner Details */}
                 <div className="p-4 bg-slate-50/80 rounded-xl border border-slate-200/80 space-y-3">
                   <h3 className="text-xs font-black uppercase tracking-wider text-[#714B67] flex items-center gap-1.5 font-mono">
-                    <span className="w-2 h-2 rounded-full bg-[#714B67] inline-block"></span> 1. Basic Partner Details
+                    <span className="w-2 h-2 rounded-full bg-[#714B67] inline-block"></span> 1. Basic Partner Details & Territory
                   </h3>
+
+                  {/* Real-time Territory Conflict Alert */}
+                  {(() => {
+                    const conflict = getTerritoryConflict(form11.territory, form11.pincode, editingPartnerId);
+                    if (conflict) {
+                      return (
+                        <div className="p-3 bg-amber-50 border border-amber-300 rounded-lg text-xs text-amber-800 font-semibold flex items-center gap-2 animate-fadeIn">
+                          <AlertTriangle className="w-4 h-4 shrink-0 text-amber-600" />
+                          <span>
+                            <strong>Territory Conflict Alert:</strong> Territory/Pincode matches active partner <strong>"{conflict.partnerName}"</strong> ({conflict.territory || conflict.pincode}). Please verify territory exclusivity before saving.
+                          </span>
+                        </div>
+                      );
+                    }
+                    return null;
+                  })()}
+
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
                       <label className="text-[10px] uppercase font-black text-slate-600 tracking-wider">Business / Firm Name *</label>
@@ -2221,6 +3191,14 @@ export function FranchiseTerritories({ toggleModal, triggerToast }: PartnerProps
                     <div>
                       <label className="text-[10px] uppercase font-black text-slate-600 tracking-wider">Alternate / WhatsApp Number</label>
                       <input className="w-full bg-white border border-slate-300 focus:border-[#714B67] rounded-lg p-2 text-xs font-bold text-slate-800 mt-1 focus:outline-none" value={form11.alternateMobile} onChange={e => setForm11({ ...form11, alternateMobile: e.target.value })} placeholder="WhatsApp Number" />
+                    </div>
+                    <div>
+                      <label className="text-[10px] uppercase font-black text-slate-600 tracking-wider">Territory / Allotted City *</label>
+                      <input required className="w-full bg-white border border-slate-300 focus:border-[#714B67] rounded-lg p-2 text-xs font-bold text-slate-800 mt-1 focus:outline-none" value={form11.territory} onChange={e => setForm11({ ...form11, territory: e.target.value })} placeholder="e.g. Jaipur North" />
+                    </div>
+                    <div>
+                      <label className="text-[10px] uppercase font-black text-slate-600 tracking-wider">State / Zone</label>
+                      <input className="w-full bg-white border border-slate-300 focus:border-[#714B67] rounded-lg p-2 text-xs font-bold text-slate-800 mt-1 focus:outline-none" value={form11.state} onChange={e => setForm11({ ...form11, state: e.target.value })} placeholder="e.g. Rajasthan" />
                     </div>
                     <div>
                       <label className="text-[10px] uppercase font-black text-slate-600 tracking-wider">Pincode / Postal Code</label>

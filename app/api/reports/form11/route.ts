@@ -45,7 +45,7 @@ export async function POST(req: Request) {
     }
 
     await sequelize.authenticate();
-    await FranchiseRegistration.sync();
+    await FranchiseRegistration.sync({ alter: true });
     await ensureFranchiseRegistrationSchema();
 
     const record = await FranchiseRegistration.create({
@@ -100,12 +100,12 @@ export async function GET(req: Request) {
     }
 
     await sequelize.authenticate();
-    await FranchiseRegistration.sync();
+    await FranchiseRegistration.sync({ alter: true });
     await ensureFranchiseRegistrationSchema();
 
     const records = await FranchiseRegistration.findAll({
       order: [['createdAt', 'DESC']],
-      limit: 50
+      limit: 200
     });
 
     const userIds = records.map(r => (r as any).registeredBy).filter(Boolean);

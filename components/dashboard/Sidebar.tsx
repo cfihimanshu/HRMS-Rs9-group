@@ -130,7 +130,8 @@ export default function DashboardSidebar({
     } catch { }
   }
 
-  // Default ESS pages accessible to all employees & staff members
+
+  // Default ESS pages accessible to all employees & staff members ONLY when no custom menuAccess has been configured
   const DEFAULT_ESS_PAGES = [
     "ess-dashboard",
     "ess-leaves",
@@ -143,26 +144,26 @@ export default function DashboardSidebar({
     "exit"
   ];
 
-  let effectiveAllowedPageIds: string[] = allowedPageIds && allowedPageIds.length > 0
-    ? [...allowedPageIds]
-    : [...DEFAULT_ESS_PAGES];
+  let effectiveAllowedPageIds: string[] | null = allowedPageIds;
 
-  // Always merge basic ESS self-service pages so no employee is missing essential tools
-  DEFAULT_ESS_PAGES.forEach(pageId => {
-    if (!effectiveAllowedPageIds.includes(pageId)) {
-      effectiveAllowedPageIds.push(pageId);
+  // Only if menuAccess has NEVER been configured (is null), use default ESS + role rules
+  if (effectiveAllowedPageIds === null) {
+    effectiveAllowedPageIds = [...DEFAULT_ESS_PAGES];
+    if ((userRole.toLowerCase().includes("bda") || userRole.toLowerCase().includes("manager") || userRole.toLowerCase().includes("director") || userRole.toLowerCase().includes("owner")) && !effectiveAllowedPageIds.includes("bda-leads")) {
+      effectiveAllowedPageIds.push("bda-leads");
     }
-  });
-
-  if ((userRole.toLowerCase().includes("bda") || userRole.toLowerCase().includes("manager") || userRole.toLowerCase().includes("director") || userRole.toLowerCase().includes("owner")) && !effectiveAllowedPageIds.includes("bda-leads")) {
-    effectiveAllowedPageIds.push("bda-leads");
   }
 
   const menuItems = allMenuItems.filter(item => {
     // 1. OWNER / DIRECTOR: Unconditional access to ALL pages & categories
     if (isOwnerOrDirector) return true;
 
-    // 2. NON-OWNER USERS: Filter strictly by assigned menuAccess permissions & role rules
+    // 2. If explicit menuAccess is configured in DB (even if empty []), strictly filter by it!
+    if (allowedPageIds !== null) {
+      return allowedPageIds.includes(item.id) || allowedPageIds.includes(item.category);
+    }
+
+    // 3. NON-OWNER USERS: Filter by default permissions & role rules
     const roleLower = userRole.toLowerCase();
 
     if (effectiveAllowedPageIds && effectiveAllowedPageIds.length > 0) {

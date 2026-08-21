@@ -433,8 +433,24 @@ export async function POST(req: Request) {
           if (owner.email) ownerEmails.push(owner.email);
         }
 
-        // Send Email directly to Owners
-        if (ownerEmails.length > 0) {
+        // Send Email to Applicant and Owners
+        const recipientEmailsSet = new Set<string>();
+
+        // 1. Applicant Email
+        if (requester && requester.email) {
+          recipientEmailsSet.add(requester.email.trim().toLowerCase());
+        }
+
+        // 2. Owner / Approver Emails
+        if (Array.isArray(ownerEmails)) {
+          ownerEmails.forEach((e: string) => {
+            if (e) recipientEmailsSet.add(e.trim().toLowerCase());
+          });
+        }
+
+        const recipientEmails = Array.from(recipientEmailsSet);
+
+        if (recipientEmails.length > 0) {
           const emailHtml = getAssetRequestEmailHtml({
             applicantName: requesterName,
             department: dept,
@@ -444,8 +460,8 @@ export async function POST(req: Request) {
           });
 
           await sendEmail({
-            to: ownerEmails,
-            subject: `💻 Asset Request Approval Required (Owner): ${requesterName} – ${asset_type}`,
+            to: recipientEmails,
+            subject: `💻 Asset Request Submitted: ${requesterName} – ${asset_type}`,
             html: emailHtml,
           });
         }

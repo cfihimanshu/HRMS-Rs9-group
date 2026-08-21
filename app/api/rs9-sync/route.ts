@@ -13,7 +13,7 @@ import EodReport from "@/models/sequelize/EodReport";
 import Candidate from "@/models/sequelize/Candidate";
 import Associate from "@/models/sequelize/Associate";
 import Vendor from "@/models/sequelize/Vendor";
-import Franchise from "@/models/sequelize/Franchise";
+import FranchiseRegistration from "@/models/sequelize/FranchiseRegistration";
 import Grievance from "@/models/sequelize/Grievance";
 import { Op } from "sequelize";
 
@@ -64,7 +64,7 @@ export async function GET(request: Request) {
       User.count({ where: { role: { [Op.in]: ["Employee", "Trainer"] } } }),
       Associate.count({ where: { status: "active" } }),
       Vendor.count({ where: { status: "active" } }),
-      Franchise.count({ where: { status: "active" } }),
+      FranchiseRegistration.count().catch(() => 0),
       Grievance.count({ where: { status: "Open" } })
     ]);
 

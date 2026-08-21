@@ -28,7 +28,7 @@ Grievance.init(
       allowNull: true,
     },
     description: {
-      type: DataTypes.STRING,
+      type: DataTypes.TEXT,
       allowNull: true,
     },
     assignedTo: {
@@ -40,7 +40,11 @@ Grievance.init(
       allowNull: true,
     },
     resolutionReport: {
-      type: DataTypes.STRING,
+      type: DataTypes.TEXT,
+      allowNull: true,
+    },
+    messages_json: {
+      type: DataTypes.JSON,
       allowNull: true,
     },
     createdAt: {
@@ -58,5 +62,35 @@ Grievance.init(
     timestamps: true,
   }
 );
+
+export async function ensureGrievanceSchema() {
+  try {
+    await Grievance.sync();
+    const qi = sequelize.getQueryInterface();
+    const cols = await qi.describeTable("grievances").catch(() => ({} as any));
+    if (cols) {
+      if (!cols.messages_json) {
+        await qi.addColumn("grievances", "messages_json", {
+          type: DataTypes.JSON,
+          allowNull: true,
+        }).catch(() => {});
+      }
+      if (cols.description && !cols.description.type?.toLowerCase().includes("text")) {
+        await qi.changeColumn("grievances", "description", {
+          type: DataTypes.TEXT,
+          allowNull: true,
+        }).catch(() => {});
+      }
+      if (cols.resolutionReport && !cols.resolutionReport.type?.toLowerCase().includes("text")) {
+        await qi.changeColumn("grievances", "resolutionReport", {
+          type: DataTypes.TEXT,
+          allowNull: true,
+        }).catch(() => {});
+      }
+    }
+  } catch (err) {
+    console.warn("ensureGrievanceSchema error:", err);
+  }
+}
 
 export default Grievance;

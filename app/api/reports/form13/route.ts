@@ -173,12 +173,21 @@ export async function POST(req: Request) {
       ipAddress: req.headers.get("x-forwarded-for") || "127.0.0.1",
     });
 
-    // EMAIL 1: Send notification email to BOTH Department Reporting Manager & Owner
-    const recipientEmails: string[] = [];
-    if (managerUser?.email) {
-      recipientEmails.push(managerUser.email);
+    // EMAIL 1: Send notification email to Resigning Employee, Department Reporting Manager & Owners
+    const recipientEmailsSet = new Set<string>();
+
+    // 1. Resigning Employee Email (Confirmation Copy)
+    const empEmail = (session.user as any).email || (profile as any)?.email;
+    if (empEmail) {
+      recipientEmailsSet.add(empEmail.trim().toLowerCase());
     }
 
+    // 2. Reporting Manager Email
+    if (managerUser?.email) {
+      recipientEmailsSet.add(managerUser.email.trim().toLowerCase());
+    }
+
+    // 3. Owners & Directors Emails
     try {
       const ownerUsers = await User.findAll({
         where: {
@@ -187,13 +196,15 @@ export async function POST(req: Request) {
         raw: true
       });
       ownerUsers.forEach((o: any) => {
-        if (o.email && !recipientEmails.includes(o.email)) {
-          recipientEmails.push(o.email);
+        if (o.email) {
+          recipientEmailsSet.add(o.email.trim().toLowerCase());
         }
       });
     } catch (e) {
       console.error("Error fetching owners for exit email:", e);
     }
+
+    const recipientEmails = Array.from(recipientEmailsSet);
 
     if (recipientEmails.length > 0) {
       const notificationEmailHtml = `

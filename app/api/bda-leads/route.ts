@@ -114,8 +114,9 @@ export async function GET(req: Request) {
         try {
           const searchConditions: any[] = [];
           if (lead.leadId) searchConditions.push({ description: { [Op.like]: `%${lead.leadId}%` } });
-          if (lead.name) searchConditions.push({ personName: lead.name });
-          if (lead.phone) searchConditions.push({ contactNo: lead.phone });
+          if (lead.assignedTo && lead.phone && lead.phone.trim()) {
+            searchConditions.push({ employee: lead.assignedTo, contactNo: lead.phone.trim() });
+          }
 
           if (searchConditions.length > 0) {
             const tasks = await TaskLog.findAll({ where: { [Op.or]: searchConditions } });
@@ -478,11 +479,8 @@ export async function PUT(req: Request) {
       if (lead.leadId) {
         searchConditions.push({ description: { [Op.like]: `%${lead.leadId}%` } });
       }
-      if (lead.name) {
-        searchConditions.push({ personName: lead.name, taskTitle: "Sales" });
-      }
-      if (lead.phone) {
-        searchConditions.push({ contactNo: lead.phone });
+      if (lead.assignedTo && lead.phone && lead.phone.trim()) {
+        searchConditions.push({ employee: lead.assignedTo, contactNo: lead.phone.trim() });
       }
 
       if (searchConditions.length > 0) {

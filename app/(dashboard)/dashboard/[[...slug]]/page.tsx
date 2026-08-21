@@ -9,7 +9,12 @@ import {
   Loader2,
   Clock,
   Calendar,
-  ShieldAlert
+  ShieldAlert,
+  ShieldCheck,
+  EyeOff,
+  MessageSquare,
+  Send,
+  Lock
 } from "lucide-react";
 
 // Import modular panels
@@ -308,17 +313,64 @@ export default function UnifiedEnterpriseDashboard() {
   });
 
   const [grievanceForm, setGrievanceForm] = useState({
-    name: "",
-    category: "Harassment",
-    priority: "High",
+    title: "",
+    category: "General",
+    customCategory: "",
+    priority: "Normal",
+    isAnonymous: true,
     description: "",
+    suggestedSolution: "",
   });
 
   const [assocForm, setAssocForm] = useState({
     name: "",
     mobile: "",
+    email: "",
+    alternateMobile: "",
+    pan: "",
+    kycDocUrl: "",
+    address: "",
+    businessAddress: "",
+    city: "",
+    state: "",
+    pincode: "",
     territory: "",
+    businessName: "",
+    businessType: "Proprietorship",
+    bankAccountNumber: "",
+    ifscCode: "",
+    accountHolderName: "",
+    referralCode: "",
+    termsAccepted: false,
+    gstin: "",
+    profilePhotoUrl: "",
+    cancelledChequeUrl: "",
+    assignedManager: "",
+    payoutTerms: "Standard Commission",
+    agreementStartDate: "",
+    agreementEndDate: "",
+    agreementUrl: ""
   });
+  const [uploadingAssocDoc, setUploadingAssocDoc] = useState<string | null>(null);
+
+  const handleAssocUpload = async (e: React.ChangeEvent<HTMLInputElement>, fieldKey: "profilePhotoUrl" | "kycDocUrl" | "cancelledChequeUrl" | "agreementUrl") => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      setUploadingAssocDoc(fieldKey);
+      const formData = new FormData();
+      formData.append("file", file);
+      const res = await fetch("/api/documents/upload", { method: "POST", body: formData });
+      const data = await res.json();
+      if (!data.success) throw new Error(data.error || "Upload failed");
+      setAssocForm(prev => ({ ...prev, [fieldKey]: data.url }));
+      triggerToast("File uploaded successfully!");
+    } catch (err: any) {
+      triggerToast("File upload error: " + (err.message || "Failed"));
+    } finally {
+      setUploadingAssocDoc(null);
+    }
+  };
 
   const [vendorForm, setVendorForm] = useState({
     name: "",
@@ -1048,21 +1100,37 @@ export default function UnifiedEnterpriseDashboard() {
 
   const handleGrievanceFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!grievanceForm.description.trim()) {
+      triggerToast("Please write your message or problem.");
+      return;
+    }
     try {
+      const finalCategory = grievanceForm.category === "Other"
+        ? (grievanceForm.customCategory.trim() ? grievanceForm.customCategory.trim() : "Other")
+        : grievanceForm.category;
+
       const res = await fetch("/api/grievances", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          category: grievanceForm.category,
-          priority: grievanceForm.priority,
-          anonymous: !grievanceForm.name,
-          description: grievanceForm.description,
+          category: finalCategory,
+          priority: grievanceForm.priority === "High" ? "High" : "Medium",
+          anonymous: true,
+          description: grievanceForm.description.trim(),
         }),
       });
       const data = await res.json();
       if (data.success) {
-        triggerToast("Grievance filed successfully!");
-        setGrievanceForm({ name: "", category: "Harassment", priority: "High", description: "" });
+        triggerToast("🔒 Problem shared anonymously! HR will review it.");
+        setGrievanceForm({
+          title: "",
+          category: "General",
+          customCategory: "",
+          priority: "Normal",
+          isAnonymous: true,
+          description: "",
+          suggestedSolution: "",
+        });
         toggleModal("grievance", false);
         await loadGrievances();
         await loadStats();
@@ -1070,7 +1138,7 @@ export default function UnifiedEnterpriseDashboard() {
         triggerToast("Failed: " + data.error);
       }
     } catch (err) {
-      triggerToast("Grievance submission error");
+      triggerToast("Submission error");
     }
   };
 
@@ -1209,7 +1277,7 @@ export default function UnifiedEnterpriseDashboard() {
             <ESSDashboard user={session?.user} triggerToast={triggerToast} setActiveTab={handleNavigateTab} toggleModal={toggleModal} stats={stats} />
           )}
           {activeTab === "ess-leaves" && (
-            <ESSLeaves user={session?.user} triggerToast={triggerToast} stats={stats} initialSearchFilter={leaveSearchFilter} />
+            <ESSLeaves user={session?.user} triggerToast={triggerToast} stats={stats} initialSearchFilter={leaveSearchFilter} setActiveTab={handleNavigateTab} />
           )}
           {activeTab === "ess-payroll" && (
             <ESSPayroll user={session?.user} triggerToast={triggerToast} />
@@ -1893,35 +1961,100 @@ export default function UnifiedEnterpriseDashboard() {
 
       {/* MODAL 6: FILE CONFIDENTIAL GRIEVANCE */}
       {modals.grievance && (
-        <div className="fixed inset-0 bg-black/20 z-50 flex items-center justify-center p-4 backdrop-blur-md">
-          <div className="bg-white border border-slate-200 w-full max-w-lg rounded-xl p-6 relative shadow-2xl text-slate-800 max-h-[90vh] overflow-y-auto custom-scrollbar">
-            <button className="absolute top-4 right-4 text-slate-400 hover:text-slate-600" onClick={() => toggleModal("grievance", false)}><X className="w-5 h-5" /></button>
-            <h3 className="text-sm font-black text-[#714B67] uppercase tracking-wider mb-6">Anonymous Grievance Filing</h3>
-            <form onSubmit={handleGrievanceFormSubmit} className="space-y-4 text-xs font-semibold text-slate-600">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="text-[10px] uppercase font-black text-slate-500 font-mono tracking-widest">Confidential category</label>
-                  <select className="w-full bg-white border border-slate-300 rounded p-2.5 text-slate-700 mt-1 focus:outline-none focus:border-[#714B67]" value={grievanceForm.category} onChange={e => setGrievanceForm({ ...grievanceForm, category: e.target.value })}>
-                    <option>Harassment</option>
-                    <option>Financial Anomaly</option>
-                    <option>Asset Diversion</option>
-                    <option>Branding Infringement</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="text-[10px] uppercase font-black text-slate-500 font-mono tracking-widest">Urgency level</label>
-                  <select className="w-full bg-white border border-slate-300 rounded p-2.5 text-slate-700 mt-1 focus:outline-none focus:border-[#714B67]" value={grievanceForm.priority} onChange={e => setGrievanceForm({ ...grievanceForm, priority: e.target.value })}>
-                    <option>High</option>
-                    <option>Normal</option>
-                    <option>Low</option>
-                  </select>
-                </div>
-              </div>
+        <div className="fixed inset-0 bg-black/30 z-50 flex items-center justify-center p-4 backdrop-blur-md">
+          <div className="bg-white border border-slate-200 w-full max-w-lg rounded-2xl p-6 relative shadow-2xl text-slate-800 animate-fadeIn">
+            <button 
+              className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 p-1.5 rounded-lg hover:bg-slate-100 transition-all cursor-pointer" 
+              onClick={() => toggleModal("grievance", false)}
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            {/* Header */}
+            <div className="flex items-center gap-2 mb-1">
+              <span className="p-1.5 rounded-lg bg-[#714B67]/10 text-[#714B67]">
+                <Lock className="w-4 h-4" />
+              </span>
+              <h3 className="text-base font-black text-slate-850">
+                Share a Problem or Suggestion
+              </h3>
+            </div>
+            <p className="text-xs text-emerald-700 font-bold flex items-center gap-1 mb-4">
+              <ShieldCheck className="w-3.5 h-3.5" /> 100% Anonymous • Your identity is completely hidden
+            </p>
+
+            <form onSubmit={handleGrievanceFormSubmit} className="space-y-4">
+              
+              {/* Category Dropdown */}
               <div>
-                <label className="text-[10px] uppercase font-black text-slate-500 font-mono tracking-widest">Grievance / Incident Rationale</label>
-                <textarea className="w-full bg-white border border-slate-300 rounded p-2.5 text-slate-900 mt-1 h-24 focus:outline-none focus:border-[#714B67]" placeholder="Confidential details..." value={grievanceForm.description} onChange={e => setGrievanceForm({ ...grievanceForm, description: e.target.value })} required />
+                <label className="block text-[10px] uppercase font-black text-slate-400 font-mono tracking-wider mb-1.5">
+                  Category
+                </label>
+                <select
+                  value={grievanceForm.category}
+                  onChange={e => setGrievanceForm({ ...grievanceForm, category: e.target.value })}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#714B67]/30 focus:border-[#714B67] transition-all"
+                >
+                  <option value="General">General Workplace Issue</option>
+                  <option value="Facilities">Office Facilities &amp; Infrastructure</option>
+                  <option value="Management">Management &amp; Team</option>
+                  <option value="Payroll & HR">HR &amp; Payroll</option>
+                  <option value="Misconduct">Misconduct &amp; Ethics</option>
+                  <option value="Suggestion">Suggestion / Feedback</option>
+                  <option value="Other">Other</option>
+                </select>
+
+                {grievanceForm.category === "Other" && (
+                  <input
+                    type="text"
+                    placeholder="Specify other category..."
+                    value={grievanceForm.customCategory}
+                    onChange={e => setGrievanceForm({ ...grievanceForm, customCategory: e.target.value })}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#714B67]/30 focus:border-[#714B67] transition-all mt-2"
+                  />
+                )}
               </div>
-              <button type="submit" className="w-full bg-[#714B67] hover:bg-[#5F3F56] py-3 rounded text-xs font-bold text-white transition-all shadow-md mt-4">File Anonymous Grievance</button>
+
+              {/* Message Box */}
+              <div>
+                <label className="block text-[10px] uppercase font-black text-slate-400 font-mono tracking-wider mb-1.5">
+                  What is the problem or suggestion? *
+                </label>
+                <textarea 
+                  required
+                  rows={4}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs font-medium text-slate-850 focus:outline-none focus:ring-2 focus:ring-[#714B67]/30 focus:border-[#714B67] focus:bg-white transition-all leading-relaxed placeholder:text-slate-400" 
+                  placeholder="Type your message here freely... (e.g. AC cooling is low, water dispenser empty, or shift feedback)" 
+                  value={grievanceForm.description} 
+                  onChange={e => setGrievanceForm({ ...grievanceForm, description: e.target.value })} 
+                />
+              </div>
+
+              {/* Urgent Toggle (Simple) */}
+              <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 border border-slate-200">
+                <div className="flex items-center gap-2 text-xs font-bold text-slate-700">
+                  <span>⚡ Is this an Urgent / Blocker issue?</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setGrievanceForm({ ...grievanceForm, priority: grievanceForm.priority === "High" ? "Normal" : "High" })}
+                  className={`px-3 py-1 rounded-lg text-xs font-black transition-all border cursor-pointer ${
+                    grievanceForm.priority === "High"
+                      ? "bg-rose-500 text-white border-rose-600 shadow-2xs"
+                      : "bg-white text-slate-500 border-slate-200 hover:bg-slate-100"
+                  }`}
+                >
+                  {grievanceForm.priority === "High" ? "🚨 Yes, High Priority" : "Normal"}
+                </button>
+              </div>
+
+              {/* Send Button */}
+              <button 
+                type="submit" 
+                className="w-full bg-[#714B67] hover:bg-[#5F3F56] py-3 rounded-xl text-xs font-black text-white transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer active:scale-[0.99] mt-2"
+              >
+                <Send className="w-4 h-4" /> Send Anonymously
+              </button>
             </form>
           </div>
         </div>
@@ -1929,34 +2062,222 @@ export default function UnifiedEnterpriseDashboard() {
 
       {/* MODAL 7: ADD BUSINESS ASSOCIATE */}
       {modals.assoc && (
-        <div className="fixed inset-0 bg-black/20 z-50 flex items-center justify-center p-4 backdrop-blur-md">
-          <div className="bg-white border border-slate-200 w-full max-w-lg rounded-xl p-6 relative shadow-2xl text-slate-800 max-h-[90vh] overflow-y-auto custom-scrollbar">
-            <button className="absolute top-4 right-4 text-slate-400 hover:text-slate-600" onClick={() => toggleModal("assoc", false)}><X className="w-5 h-5" /></button>
-            <h3 className="text-sm font-black text-[#714B67] uppercase tracking-wider mb-6">Register Business Associate</h3>
+        <div className="fixed inset-0 bg-slate-900/50 z-50 flex items-center justify-center p-4 backdrop-blur-md overflow-y-auto">
+          <div className="bg-white border border-slate-200 w-full max-w-4xl rounded-2xl p-6 relative shadow-2xl text-slate-800 max-h-[94vh] overflow-y-auto custom-scrollbar my-auto">
+            <button className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 w-8 h-8 rounded-full border flex items-center justify-center hover:bg-slate-100 transition-all" onClick={() => toggleModal("assoc", false)}>
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="mb-6 pb-3 border-b border-slate-100">
+              <div className="flex items-center gap-2">
+                <span className="w-8 h-8 rounded-xl bg-[#714B67]/10 text-[#714B67] flex items-center justify-center font-bold text-sm">🤝</span>
+                <div>
+                  <h3 className="text-base font-black text-[#714B67] tracking-tight uppercase">Register Business Associate</h3>
+                  <p className="text-xs text-slate-500 font-medium">Complete Business Associate Onboarding Form & Document Verification</p>
+                </div>
+              </div>
+            </div>
+
             <form onSubmit={(e) => {
               e.preventDefault();
+              if (!assocForm.termsAccepted) {
+                triggerToast("Please accept the Terms & Conditions to proceed");
+                return;
+              }
               handlePartnerSubmit("assoc", "/api/associates", {
                 name: assocForm.name,
+                email: assocForm.email,
                 mobile: assocForm.mobile,
-                assignedTerritory: assocForm.territory,
+                alternateMobile: assocForm.alternateMobile,
+                pan: assocForm.pan,
+                gstin: assocForm.gstin,
+                kycDocUrl: assocForm.kycDocUrl,
+                profilePhotoUrl: assocForm.profilePhotoUrl,
+                cancelledChequeUrl: assocForm.cancelledChequeUrl,
+                address: assocForm.address,
+                businessAddress: assocForm.businessAddress,
+                city: assocForm.city,
+                state: assocForm.state,
+                pincode: assocForm.pincode,
+                territory: assocForm.territory,
+                businessName: assocForm.businessName,
+                businessType: assocForm.businessType,
+                bankAccountNumber: assocForm.bankAccountNumber,
+                ifscCode: assocForm.ifscCode,
+                accountHolderName: assocForm.accountHolderName,
+                referralCode: assocForm.referralCode,
+                assignedManager: assocForm.assignedManager,
+                payoutTerms: assocForm.payoutTerms,
+                termsAccepted: assocForm.termsAccepted,
+                agreementStartDate: assocForm.agreementStartDate,
+                agreementEndDate: assocForm.agreementEndDate,
                 status: "active"
               });
-            }} className="space-y-4 text-xs font-semibold text-slate-600">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="text-[10px] uppercase font-black text-slate-500 font-mono tracking-widest">Associate Name</label>
-                  <input className="w-full bg-white border border-slate-300 rounded p-2.5 text-slate-900 mt-1 focus:outline-none focus:border-[#714B67]" value={assocForm.name} onChange={e => setAssocForm({ ...assocForm, name: e.target.value })} required />
+            }} className="space-y-6 text-xs font-semibold text-slate-600">
+
+              {/* SECTION 1: Personal & Primary Information */}
+              <div className="p-4 bg-slate-50 rounded-xl border border-slate-200/80 space-y-3">
+                <h4 className="text-xs font-black uppercase text-[#714B67] tracking-wider font-mono flex items-center gap-1.5">
+                  <span>👤</span> 1. Personal & Contact Details
+                </h4>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <label className="text-[10px] uppercase font-black text-slate-500 font-mono tracking-wider">Full Name *</label>
+                    <input className="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-slate-900 mt-1 focus:outline-none focus:border-[#714B67] font-bold" value={assocForm.name} onChange={e => setAssocForm({ ...assocForm, name: e.target.value })} placeholder="Full Legal Name" required />
+                  </div>
+                  <div>
+                    <label className="text-[10px] uppercase font-black text-slate-500 font-mono tracking-wider">Mobile Number *</label>
+                    <input className="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-slate-900 mt-1 font-mono focus:outline-none focus:border-[#714B67] font-bold" value={assocForm.mobile} onChange={e => setAssocForm({ ...assocForm, mobile: e.target.value })} placeholder="+91 XXXXX XXXXX" required />
+                  </div>
+                  <div>
+                    <label className="text-[10px] uppercase font-black text-slate-500 font-mono tracking-wider">Email ID *</label>
+                    <input type="email" className="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-slate-900 mt-1 focus:outline-none focus:border-[#714B67] font-bold" value={assocForm.email} onChange={e => setAssocForm({ ...assocForm, email: e.target.value })} placeholder="associate@domain.com" required />
+                  </div>
+                  <div>
+                    <label className="text-[10px] uppercase font-black text-slate-500 font-mono tracking-wider">WhatsApp / Alt Number</label>
+                    <input className="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-slate-900 mt-1 font-mono focus:outline-none focus:border-[#714B67]" value={assocForm.alternateMobile} onChange={e => setAssocForm({ ...assocForm, alternateMobile: e.target.value })} placeholder="Alternate Contact" />
+                  </div>
+                  <div>
+                    <label className="text-[10px] uppercase font-black text-slate-500 font-mono tracking-wider">Referral Code / Associate Code</label>
+                    <input className="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-slate-900 mt-1 font-mono uppercase focus:outline-none focus:border-[#714B67]" placeholder="e.g. BA-904812" value={assocForm.referralCode} onChange={e => setAssocForm({ ...assocForm, referralCode: e.target.value.toUpperCase() })} />
+                  </div>
+                  <div>
+                    <label className="text-[10px] uppercase font-black text-slate-500 font-mono tracking-wider">Assigned Manager</label>
+                    <input className="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-slate-900 mt-1 focus:outline-none focus:border-[#714B67]" placeholder="Reporting Manager Name" value={assocForm.assignedManager} onChange={e => setAssocForm({ ...assocForm, assignedManager: e.target.value })} />
+                  </div>
                 </div>
-                <div>
-                  <label className="text-[10px] uppercase font-black text-slate-500 font-mono tracking-widest">Mobile Number</label>
-                  <input className="w-full bg-white border border-slate-300 rounded p-2.5 text-slate-900 mt-1 font-mono focus:outline-none focus:border-[#714B67]" value={assocForm.mobile} onChange={e => setAssocForm({ ...assocForm, mobile: e.target.value })} required />
+
+                {/* Profile Photo Upload */}
+                <div className="pt-2">
+                  <label className="text-[10px] uppercase font-black text-slate-500 font-mono tracking-wider block mb-1">Profile Photo Upload</label>
+                  <div className="flex items-center gap-3">
+                    <input type="file" accept="image/*" onChange={(e) => handleAssocUpload(e, "profilePhotoUrl")} className="text-xs text-slate-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-[#714B67]/10 file:text-[#714B67] hover:file:bg-[#714B67]/20" />
+                    {uploadingAssocDoc === "profilePhotoUrl" && <span className="text-xs text-indigo-600 font-bold animate-pulse">Uploading photo...</span>}
+                    {assocForm.profilePhotoUrl && <span className="text-xs text-emerald-600 font-bold">✓ Photo Uploaded</span>}
+                  </div>
                 </div>
               </div>
-              <div>
-                <label className="text-[10px] uppercase font-black text-slate-500 font-mono tracking-widest">Assigned Zone / Territory</label>
-                <input className="w-full bg-white border border-slate-300 rounded p-2.5 text-slate-900 mt-1 focus:outline-none focus:border-[#714B67]" placeholder="e.g. Agra North" value={assocForm.territory} onChange={e => setAssocForm({ ...assocForm, territory: e.target.value })} required />
+
+              {/* SECTION 2: Business & Territory Information */}
+              <div className="p-4 bg-slate-50 rounded-xl border border-slate-200/80 space-y-3">
+                <h4 className="text-xs font-black uppercase text-[#714B67] tracking-wider font-mono flex items-center gap-1.5">
+                  <span>🏢</span> 2. Business & Territory Information
+                </h4>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <label className="text-[10px] uppercase font-black text-slate-500 font-mono tracking-wider">Business Name</label>
+                    <input className="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-slate-900 mt-1 focus:outline-none focus:border-[#714B67] font-bold" placeholder="Firm / Enterprise Name" value={assocForm.businessName} onChange={e => setAssocForm({ ...assocForm, businessName: e.target.value })} />
+                  </div>
+                  <div>
+                    <label className="text-[10px] uppercase font-black text-slate-500 font-mono tracking-wider">Business Type / Nature</label>
+                    <select className="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-slate-900 mt-1 focus:outline-none focus:border-[#714B67] font-bold" value={assocForm.businessType} onChange={e => setAssocForm({ ...assocForm, businessType: e.target.value })}>
+                      <option value="Proprietorship">Proprietorship</option>
+                      <option value="Partnership Firm">Partnership Firm</option>
+                      <option value="Private Limited">Private Limited (Pvt Ltd)</option>
+                      <option value="LLP">LLP</option>
+                      <option value="Individual Consultant">Individual Consultant</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-[10px] uppercase font-black text-slate-500 font-mono tracking-wider">Territory / Location *</label>
+                    <input className="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-slate-900 mt-1 focus:outline-none focus:border-[#714B67] font-bold" placeholder="e.g. Jaipur Zone" value={assocForm.territory} onChange={e => setAssocForm({ ...assocForm, territory: e.target.value })} required />
+                  </div>
+                  <div>
+                    <label className="text-[10px] uppercase font-black text-slate-500 font-mono tracking-wider">City</label>
+                    <input className="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-slate-900 mt-1 focus:outline-none focus:border-[#714B67]" placeholder="e.g. Jaipur" value={assocForm.city} onChange={e => setAssocForm({ ...assocForm, city: e.target.value })} />
+                  </div>
+                  <div>
+                    <label className="text-[10px] uppercase font-black text-slate-500 font-mono tracking-wider">State</label>
+                    <input className="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-slate-900 mt-1 focus:outline-none focus:border-[#714B67]" placeholder="e.g. Rajasthan" value={assocForm.state} onChange={e => setAssocForm({ ...assocForm, state: e.target.value })} />
+                  </div>
+                  <div>
+                    <label className="text-[10px] uppercase font-black text-slate-500 font-mono tracking-wider">PIN Code</label>
+                    <input className="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-slate-900 mt-1 font-mono focus:outline-none focus:border-[#714B67]" placeholder="302020" value={assocForm.pincode} onChange={e => setAssocForm({ ...assocForm, pincode: e.target.value })} />
+                  </div>
+                  <div className="md:col-span-3 grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-[10px] uppercase font-black text-slate-500 font-mono tracking-wider">Residential Address</label>
+                      <input className="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-slate-900 mt-1 focus:outline-none focus:border-[#714B67]" placeholder="Full Residential Address" value={assocForm.address} onChange={e => setAssocForm({ ...assocForm, address: e.target.value })} />
+                    </div>
+                    <div>
+                      <label className="text-[10px] uppercase font-black text-slate-500 font-mono tracking-wider">🟡 Business Address (if applicable)</label>
+                      <input className="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-slate-900 mt-1 focus:outline-none focus:border-[#714B67]" placeholder="Registered Office / Business Address" value={assocForm.businessAddress} onChange={e => setAssocForm({ ...assocForm, businessAddress: e.target.value })} />
+                    </div>
+                  </div>
+                </div>
               </div>
-              <button type="submit" className="w-full bg-[#714B67] hover:bg-[#5F3F56] py-3 rounded text-xs font-bold text-white transition-all shadow-md mt-4">Save Associate Channel</button>
+
+              {/* SECTION 3: KYC, GST & Tax Identifiers */}
+              <div className="p-4 bg-slate-50 rounded-xl border border-slate-200/80 space-y-3">
+                <h4 className="text-xs font-black uppercase text-[#714B67] tracking-wider font-mono flex items-center gap-1.5">
+                  <span>🆔</span> 3. KYC Documents & Tax Identifiers
+                </h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-[10px] uppercase font-black text-slate-500 font-mono tracking-wider">PAN Number *</label>
+                    <input className="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-slate-900 mt-1 font-mono uppercase focus:outline-none focus:border-[#714B67] font-bold" placeholder="ABCDE1234F" value={assocForm.pan} onChange={e => setAssocForm({ ...assocForm, pan: e.target.value.toUpperCase() })} required />
+                  </div>
+                  <div>
+                    <label className="text-[10px] uppercase font-black text-slate-500 font-mono tracking-wider">🟡 GST Number (if registered)</label>
+                    <input className="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-slate-900 mt-1 font-mono uppercase focus:outline-none focus:border-[#714B67]" placeholder="22AAAAA0000A1Z5" value={assocForm.gstin} onChange={e => setAssocForm({ ...assocForm, gstin: e.target.value.toUpperCase() })} />
+                  </div>
+                </div>
+
+                <div className="pt-2">
+                  <label className="text-[10px] uppercase font-black text-slate-500 font-mono tracking-wider block mb-1">KYC Document Upload (Aadhaar / Passport / ID) *</label>
+                  <div className="flex items-center gap-3">
+                    <input type="file" onChange={(e) => handleAssocUpload(e, "kycDocUrl")} className="text-xs text-slate-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-[#714B67]/10 file:text-[#714B67] hover:file:bg-[#714B67]/20" />
+                    {uploadingAssocDoc === "kycDocUrl" && <span className="text-xs text-indigo-600 font-bold animate-pulse">Uploading KYC...</span>}
+                    {assocForm.kycDocUrl && <span className="text-xs text-emerald-600 font-bold">✓ KYC Document Uploaded</span>}
+                  </div>
+                </div>
+              </div>
+
+              {/* SECTION 4: Banking & Payout Details */}
+              <div className="p-4 bg-slate-50 rounded-xl border border-slate-200/80 space-y-3">
+                <h4 className="text-xs font-black uppercase text-[#714B67] tracking-wider font-mono flex items-center gap-1.5">
+                  <span>🏦</span> 4. Bank Account & Settlement Details
+                </h4>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <label className="text-[10px] uppercase font-black text-slate-500 font-mono tracking-wider">Account Holder Name *</label>
+                    <input className="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-slate-900 mt-1 focus:outline-none focus:border-[#714B67] font-bold" placeholder="As per Bank Records" value={assocForm.accountHolderName} onChange={e => setAssocForm({ ...assocForm, accountHolderName: e.target.value })} required />
+                  </div>
+                  <div>
+                    <label className="text-[10px] uppercase font-black text-slate-500 font-mono tracking-wider">Bank Account Number *</label>
+                    <input className="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-slate-900 mt-1 font-mono focus:outline-none focus:border-[#714B67] font-bold" placeholder="XXXXXXXXXXXX" value={assocForm.bankAccountNumber} onChange={e => setAssocForm({ ...assocForm, bankAccountNumber: e.target.value })} required />
+                  </div>
+                  <div>
+                    <label className="text-[10px] uppercase font-black text-slate-500 font-mono tracking-wider">IFSC Code *</label>
+                    <input className="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-slate-900 mt-1 font-mono uppercase focus:outline-none focus:border-[#714B67] font-bold" placeholder="SBIN0001234" value={assocForm.ifscCode} onChange={e => setAssocForm({ ...assocForm, ifscCode: e.target.value.toUpperCase() })} required />
+                  </div>
+                  <div className="md:col-span-3">
+                    <label className="text-[10px] uppercase font-black text-slate-500 font-mono tracking-wider block mb-1">Cancelled Cheque / Bank Passbook Copy Upload</label>
+                    <div className="flex items-center gap-3">
+                      <input type="file" onChange={(e) => handleAssocUpload(e, "cancelledChequeUrl")} className="text-xs text-slate-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-[#714B67]/10 file:text-[#714B67] hover:file:bg-[#714B67]/20" />
+                      {uploadingAssocDoc === "cancelledChequeUrl" && <span className="text-xs text-indigo-600 font-bold animate-pulse">Uploading Cheque...</span>}
+                      {assocForm.cancelledChequeUrl && <span className="text-xs text-emerald-600 font-bold">✓ Cancelled Cheque Uploaded</span>}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* SECTION 5: Terms & Conditions Acceptance */}
+              <div className="p-4 bg-amber-50/70 border border-amber-200/80 rounded-xl space-y-2">
+                <label className="flex items-start gap-3 cursor-pointer">
+                  <input type="checkbox" checked={assocForm.termsAccepted} onChange={e => setAssocForm({ ...assocForm, termsAccepted: e.target.checked })} className="w-4 h-4 mt-0.5 text-[#714B67] rounded border-slate-300 focus:ring-[#714B67]" />
+                  <span className="text-xs text-slate-700 font-semibold leading-relaxed">
+                    I confirm that all business associate information provided above is authentic and complete. I accept the <strong>Terms & Conditions</strong>, Non-Disclosure Agreement, and Business Associate Guidelines of RS9 Group.
+                  </span>
+                </label>
+              </div>
+
+              <div className="pt-3 border-t border-slate-200 flex justify-end gap-3">
+                <button type="button" onClick={() => toggleModal("assoc", false)} className="px-5 py-2.5 rounded-lg border border-slate-300 text-xs font-bold text-slate-600 hover:bg-slate-100 transition-all">Cancel</button>
+                <button type="submit" className="px-6 py-2.5 bg-[#714B67] hover:bg-[#5F3F56] rounded-lg text-xs font-black text-white transition-all shadow-md cursor-pointer flex items-center gap-1.5">
+                  <span>Register Business Associate</span>
+                </button>
+              </div>
             </form>
           </div>
         </div>

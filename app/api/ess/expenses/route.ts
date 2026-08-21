@@ -142,9 +142,25 @@ export async function POST(request: Request) {
         }
       }
 
-      // Send Email to assigned Approver(s) if enabled
-      if (routing.notifyEmail && routing.approverEmails.length > 0) {
-        const ownerEmails = routing.approverEmails;
+      // Send Email to applicant and assigned Approver(s)
+      const recipientEmailsSet = new Set<string>();
+
+      // 1. Applicant Email
+      const applicantUser = await User.findByPk(userId);
+      if (applicantUser && applicantUser.email) {
+        recipientEmailsSet.add(applicantUser.email.trim().toLowerCase());
+      }
+
+      // 2. Approver Emails
+      if (routing.notifyEmail && Array.isArray(routing.approverEmails)) {
+        routing.approverEmails.forEach((email: string) => {
+          if (email) recipientEmailsSet.add(email.trim().toLowerCase());
+        });
+      }
+
+      const recipientEmails = Array.from(recipientEmailsSet);
+
+      if (recipientEmails.length > 0) {
         const dateStr = new Date(dateIncurred || Date.now()).toLocaleDateString("en-IN", {
           day: "2-digit", month: "short", year: "numeric",
         });
@@ -172,8 +188,8 @@ export async function POST(request: Request) {
 <body>
 <div class="wrap">
   <div class="header">
-    <h1>💳 New Expense Reimbursement Claim</h1>
-    <p>A new employee reimbursement request requires your approval</p>
+    <h1>💳 Expense Reimbursement Claim</h1>
+    <p>Reimbursement claim details & status tracking</p>
   </div>
   <div class="body">
     <span class="badge">Claim ID: ${nextId}</span>
@@ -197,7 +213,7 @@ export async function POST(request: Request) {
     </div>
 
     <p style="text-align:center">
-      <a href="${PORTAL_URL}" class="btn">Review &amp; Approve Claim →</a>
+      <a href="${PORTAL_URL}" class="btn">Review &amp; Track Claim →</a>
     </p>
   </div>
   <div class="footer">RS9 Group HRMS • Automated Expense Notification</div>
@@ -206,7 +222,7 @@ export async function POST(request: Request) {
 </html>`;
 
         await sendEmail({
-          to: ownerEmails,
+          to: recipientEmails,
           subject: `💳 Expense Claim Submitted by ${userName} – ₹${numNet.toLocaleString("en-IN")}`,
           html: htmlContent,
         });

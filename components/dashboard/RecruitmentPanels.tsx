@@ -1206,6 +1206,7 @@ export function AiScreening({
   const [previewFile, setPreviewFile] = useState<{ url: string; title: string } | null>(null);
   const [candidates, setCandidates] = useState<any[]>([]);
   const [loadingCands, setLoadingCands] = useState(false);
+  const [copiedIdx, setCopiedIdx] = useState<number | null>(null);
 
   const loadCandidates = async () => {
     setLoadingCands(true);
@@ -1237,10 +1238,10 @@ export function AiScreening({
     setScanStep(0);
 
     const stepIntervals = [
-      { step: 1, delay: 1000 },
-      { step: 2, delay: 2000 },
-      { step: 3, delay: 3000 },
-      { step: 4, delay: 4200 },
+      { step: 1, delay: 900 },
+      { step: 2, delay: 1800 },
+      { step: 3, delay: 2800 },
+      { step: 4, delay: 4000 },
     ];
 
     stepIntervals.forEach(({ step, delay }) => {
@@ -1306,6 +1307,13 @@ export function AiScreening({
     }
   };
 
+  const copyQuestion = (qText: string, idx: number) => {
+    navigator.clipboard.writeText(qText);
+    setCopiedIdx(idx);
+    triggerToast("Question copied to clipboard!");
+    setTimeout(() => setCopiedIdx(null), 2000);
+  };
+
   if (!candidate) {
     return (
       <div className="space-y-8 animate-fadeIn text-slate-800">
@@ -1349,6 +1357,15 @@ export function AiScreening({
 
   const result = candidate.screeningResult;
   const hasScreened = !!(result && result.candidateSummary && result.skillMatchScore !== undefined);
+  const progressPercent = Math.min(100, (scanStep + 1) * 20);
+
+  const stepsList = [
+    { title: "Connecting Database & Loading Profile", desc: "Retrieving candidate records, application parameters & documents..." },
+    { title: "Parsing Candidate Documents & Resume", desc: "Extracting work history, qualification & skill matrices via OCR..." },
+    { title: "Evaluating vs Job Requirements", desc: "Benchmarking experience against role parameters & salary expectations..." },
+    { title: "Analyzing 7-Point Declarations & Risks", desc: "Scanning side business, loan pressure, legal & dual employment flags..." },
+    { title: "Formulating Custom Interview Questions", desc: "Synthesizing AI score analytics & tailored situational questioning set..." },
+  ];
 
   return (
     <div className="space-y-8 animate-fadeIn text-slate-800">
@@ -1401,57 +1418,115 @@ export function AiScreening({
         </div>
       </div>
 
-      {/* AI Processing Screen Vetting State */}
+      {/* Light Theme AI Processing Screen Vetting State (Matching HRMS Odoo Theme) */}
       {loading && (
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-8 text-center text-white space-y-6 shadow-xl relative overflow-hidden">
-          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-[#714B67] via-indigo-500 to-[#128C7E] animate-pulse" />
-          <Brain className="w-16 h-16 text-[#714B67] mx-auto animate-bounce" />
+        <div className="relative bg-white border border-[#714B67]/20 rounded-2xl p-8 sm:p-10 text-slate-800 shadow-lg overflow-hidden animate-fadeIn">
+          {/* Subtle Ambient Brand Color Glow */}
+          <div className="absolute -top-24 -left-24 w-72 h-72 bg-[#714B67]/10 rounded-full blur-3xl pointer-events-none" />
+          <div className="absolute -bottom-24 -right-24 w-72 h-72 bg-[#714B67]/5 rounded-full blur-3xl pointer-events-none" />
 
-          <div className="max-w-md mx-auto space-y-2">
-            <h3 className="text-base font-bold tracking-tight">AI Screening Core Active</h3>
-            <p className="text-xs text-slate-400 font-mono">Screening Candidate ID: {candidate.id.toUpperCase()}</p>
-          </div>
+          {/* Animated Brand Gradient Bar at Top */}
+          <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-[#714B67] via-[#9D688E] to-[#714B67] animate-pulse" />
 
-          {/* Stepper progress */}
-          <div className="max-w-md mx-auto bg-slate-950/80 border border-slate-800 rounded-xl p-4 text-left space-y-3 font-mono text-[10px] text-slate-300">
-            <div className="flex items-center gap-2.5">
-              <span className={`w-3.5 h-3.5 rounded-full flex items-center justify-center font-bold ${scanStep >= 0 ? "bg-emerald-500 text-slate-950" : "bg-slate-800 text-slate-500"}`}>
-                {scanStep > 0 ? "✓" : "1"}
-              </span>
-              <span className={scanStep === 0 ? "text-indigo-400 font-black" : "text-slate-500"}>Connecting database & loading candidate details...</span>
+          {/* Scanner Header Card */}
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pb-6 border-b border-slate-150 relative z-10">
+            <div className="flex items-center gap-3.5">
+              <div className="relative flex items-center justify-center">
+                <span className="absolute w-12 h-12 rounded-full bg-[#714B67]/20 animate-ping" />
+                <div className="relative w-11 h-11 rounded-xl bg-gradient-to-br from-[#714B67] to-[#5F3F56] flex items-center justify-center shadow-md border border-[#714B67]/30">
+                  <Brain className="w-5 h-5 text-white animate-pulse" />
+                </div>
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h3 className="text-base font-black text-slate-850 tracking-tight">AI Screening Core Active</h3>
+                  <span className="px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-[#714B67]/10 text-[#714B67] border border-[#714B67]/20 animate-pulse">
+                    Live Engine
+                  </span>
+                </div>
+                <p className="text-xs text-slate-500 font-medium mt-0.5">
+                  Screening Candidate: <strong className="text-[#714B67]">{candidate.name}</strong> ({candidate.id.toUpperCase()})
+                </p>
+              </div>
             </div>
-            <div className="flex items-center gap-2.5">
-              <span className={`w-3.5 h-3.5 rounded-full flex items-center justify-center font-bold ${scanStep >= 1 ? "bg-emerald-500 text-slate-950" : "bg-slate-800 text-slate-500"}`}>
-                {scanStep > 1 ? "✓" : "2"}
-              </span>
-              <span className={scanStep === 1 ? "text-indigo-400 font-black" : "text-slate-500"}>Reading candidate documents & simulated resume highlights...</span>
-            </div>
-            <div className="flex items-center gap-2.5">
-              <span className={`w-3.5 h-3.5 rounded-full flex items-center justify-center font-bold ${scanStep >= 2 ? "bg-emerald-500 text-slate-950" : "bg-slate-800 text-slate-500"}`}>
-                {scanStep > 2 ? "✓" : "3"}
-              </span>
-              <span className={scanStep === 2 ? "text-indigo-400 font-black" : "text-slate-500"}>Evaluating responses vs job description experience criteria...</span>
-            </div>
-            <div className="flex items-center gap-2.5">
-              <span className={`w-3.5 h-3.5 rounded-full flex items-center justify-center font-bold ${scanStep >= 3 ? "bg-emerald-500 text-slate-950" : "bg-slate-800 text-slate-500"}`}>
-                {scanStep > 3 ? "✓" : "4"}
-              </span>
-              <span className={scanStep === 3 ? "text-indigo-400 font-black" : "text-slate-500"}>Analyzing 7-point declarations & dual employment risk indicators...</span>
-            </div>
-            <div className="flex items-center gap-2.5">
-              <span className={`w-3.5 h-3.5 rounded-full flex items-center justify-center font-bold ${scanStep >= 4 ? "bg-emerald-500 text-slate-950" : "bg-slate-800 text-slate-500"}`}>
-                {scanStep > 4 ? "✓" : "5"}
-              </span>
-              <span className={scanStep === 4 ? "text-indigo-400 font-black" : "text-slate-500"}>Formulating 15 to 25 tailored situational interview questions...</span>
+
+            <div className="flex items-center gap-3 bg-[#714B67]/5 border border-[#714B67]/15 px-4 py-2 rounded-xl text-right">
+              <div>
+                <span className="text-[10px] font-mono text-slate-400 uppercase block tracking-wider font-bold">Overall Progress</span>
+                <span className="text-lg font-black font-mono text-[#714B67]">{progressPercent}%</span>
+              </div>
             </div>
           </div>
 
-          <div className="max-w-xs mx-auto pt-2">
-            <div className="w-full bg-slate-950 h-1.5 rounded-full overflow-hidden">
+          {/* Stepper progress list */}
+          <div className="mt-8 max-w-2xl mx-auto space-y-3 relative z-10">
+            {stepsList.map((st, idx) => {
+              const isDone = scanStep > idx;
+              const isCurrent = scanStep === idx;
+              return (
+                <div
+                  key={idx}
+                  className={`flex items-start gap-4 p-3.5 rounded-xl border transition-all duration-300 ${
+                    isCurrent
+                      ? "bg-[#714B67]/10 border-[#714B67]/30 text-slate-900 shadow-sm scale-[1.01]"
+                      : isDone
+                      ? "bg-emerald-50/70 border-emerald-200/80 text-slate-800"
+                      : "bg-slate-50 border-slate-200/60 text-slate-400 opacity-60"
+                  }`}
+                >
+                  <div className="mt-0.5 shrink-0">
+                    {isDone ? (
+                      <div className="w-6 h-6 rounded-full bg-emerald-600 text-white flex items-center justify-center font-bold text-xs shadow-xs">
+                        ✓
+                      </div>
+                    ) : isCurrent ? (
+                      <div className="w-6 h-6 rounded-full bg-[#714B67] text-white flex items-center justify-center font-bold text-xs animate-bounce shadow-md">
+                        {idx + 1}
+                      </div>
+                    ) : (
+                      <div className="w-6 h-6 rounded-full bg-slate-200 text-slate-500 flex items-center justify-center text-xs font-mono font-bold">
+                        {idx + 1}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between gap-2">
+                      <h4 className={`text-xs font-black ${isCurrent ? "text-[#714B67]" : isDone ? "text-slate-800" : "text-slate-500"}`}>
+                        {st.title}
+                      </h4>
+                      {isCurrent && (
+                        <span className="text-[10px] font-mono font-bold text-[#714B67] animate-pulse shrink-0 bg-white px-2 py-0.5 rounded border border-[#714B67]/20">
+                          Processing...
+                        </span>
+                      )}
+                      {isDone && (
+                        <span className="text-[10px] font-mono font-bold text-emerald-600 shrink-0">Completed</span>
+                      )}
+                    </div>
+                    <p className={`text-[11px] mt-0.5 ${isCurrent ? "text-slate-700 font-medium" : isDone ? "text-slate-600" : "text-slate-400"}`}>
+                      {st.desc}
+                    </p>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Progress Bar Container */}
+          <div className="mt-8 max-w-2xl mx-auto space-y-2 relative z-10">
+            <div className="w-full bg-slate-100 border border-slate-200 h-2.5 rounded-full overflow-hidden p-0.5">
               <div
-                className="bg-indigo-500 h-full transition-all duration-1000"
-                style={{ width: `${(scanStep + 1) * 20}%` }}
+                className="h-full bg-gradient-to-r from-[#714B67] via-[#9D688E] to-emerald-500 rounded-full transition-all duration-700 shadow-sm"
+                style={{ width: `${progressPercent}%` }}
               />
+            </div>
+            <div className="flex justify-between items-center text-[10px] font-mono text-slate-500">
+              <span className="flex items-center gap-1.5 font-bold text-[#714B67]">
+                <Sparkles className="w-3 h-3 text-[#714B67] animate-spin" />
+                Gemini AI Neural Engine Vetting Active
+              </span>
+              <span className="font-bold">{progressPercent}% Complete</span>
             </div>
           </div>
         </div>
@@ -1609,7 +1684,7 @@ export function AiScreening({
                 {/* AI Scores Summary Grid */}
                 <div>
                   <h3 className="text-xs font-black uppercase text-[#714B67] tracking-wider font-mono mb-4">AI Score Analytics Vetting</h3>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                     <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg text-center">
                       <span className="text-[9px] uppercase font-black text-slate-450 tracking-wider block font-mono">Skill Match</span>
                       <strong className="text-xl font-mono text-[#714B67] block mt-1">{result.skillMatchScore}%</strong>
@@ -1617,6 +1692,7 @@ export function AiScreening({
                         <div className="bg-[#714B67] h-full" style={{ width: `${result.skillMatchScore}%` }} />
                       </div>
                     </div>
+
                     <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg text-center">
                       <span className="text-[9px] uppercase font-black text-slate-450 tracking-wider block font-mono">Stability</span>
                       <strong className="text-xl font-mono text-emerald-600 block mt-1">{result.stabilityScore}%</strong>
@@ -1624,6 +1700,7 @@ export function AiScreening({
                         <div className="bg-emerald-500 h-full" style={{ width: `${result.stabilityScore}%` }} />
                       </div>
                     </div>
+
                     <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg text-center">
                       <span className="text-[9px] uppercase font-black text-slate-450 tracking-wider block font-mono">Risk Factor</span>
                       <strong className={`text-xl font-mono block mt-1 ${result.riskScore > 50 ? "text-rose-600" : "text-amber-500"}`}>{result.riskScore}%</strong>
@@ -1631,12 +1708,34 @@ export function AiScreening({
                         <div className={`h-full ${result.riskScore > 50 ? "bg-rose-500" : "bg-amber-400"}`} style={{ width: `${result.riskScore}%` }} />
                       </div>
                     </div>
+
+                    {result.loyaltyPossibility !== undefined && (
+                      <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg text-center">
+                        <span className="text-[9px] uppercase font-black text-slate-450 tracking-wider block font-mono">Predicted Loyalty</span>
+                        <strong className="text-xl font-mono text-indigo-600 block mt-1">{result.loyaltyPossibility}%</strong>
+                        <div className="w-full bg-slate-200 h-1 rounded-full mt-2 overflow-hidden">
+                          <div className="bg-indigo-500 h-full" style={{ width: `${result.loyaltyPossibility}%` }} />
+                        </div>
+                      </div>
+                    )}
+
+                    {result.fraudRisk && (
+                      <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg text-center col-span-2 sm:col-span-1">
+                        <span className="text-[9px] uppercase font-black text-slate-450 tracking-wider block font-mono">Fraud Risk</span>
+                        <strong className={`text-base font-bold block mt-1 ${
+                          result.fraudRisk === "High" ? "text-rose-600" : result.fraudRisk === "Medium" ? "text-amber-600" : "text-emerald-600"
+                        }`}>
+                          {result.fraudRisk}
+                        </strong>
+                        <span className="text-[9px] text-slate-400 font-mono block mt-1">Verification Status</span>
+                      </div>
+                    )}
                   </div>
                 </div>
 
                 {/* AI Rationale Summary Block */}
                 <div className="p-4 bg-slate-50 border border-slate-200 rounded-lg space-y-1.5">
-                  <div className="flex items-center gap-1 text-[10px] font-black uppercase text-[#714B67] tracking-wider font-mono">
+                  <div className="flex items-center gap-1.5 text-[10px] font-black uppercase text-[#714B67] tracking-wider font-mono">
                     <Brain className="w-3.5 h-3.5 text-[#714B67]" />
                     AI Vetting Rationale Summary
                   </div>
@@ -1644,12 +1743,53 @@ export function AiScreening({
                     "{result.candidateSummary}"
                   </p>
                   <div className="pt-2 flex justify-between items-center text-[10px]">
-                    <span className="text-slate-400">Score Engine: Parameter-Correlated Model V2.1</span>
-                    <span className="font-bold text-slate-500">Screened: {new Date(result.screenedAt).toLocaleDateString()}</span>
+                    <span className="text-slate-400">Score Engine: Gemini 2.5 Neural Model</span>
+                    <span className="font-bold text-slate-500">
+                      Screened: {result.screenedAt ? new Date(result.screenedAt).toLocaleDateString() : "Just now"}
+                    </span>
                   </div>
                 </div>
 
+                {/* Tailored Situational Interview Questions */}
+                {Array.isArray(result.suggestedQuestions) && result.suggestedQuestions.length > 0 && (
+                  <div className="p-4 bg-purple-50/40 border border-purple-100 rounded-xl space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-1.5 text-[10.5px] font-black uppercase text-[#714B67] tracking-wider font-mono">
+                        <Sparkles className="w-3.5 h-3.5 text-[#714B67]" />
+                        Tailored Interview Questions ({result.suggestedQuestions.length})
+                      </div>
+                      <span className="text-[9px] bg-purple-100 text-purple-800 px-2 py-0.5 rounded font-bold">Generated for HR</span>
+                    </div>
 
+                    <div className="space-y-2">
+                      {result.suggestedQuestions.map((q: string, qIdx: number) => (
+                        <div
+                          key={qIdx}
+                          className="flex items-start justify-between gap-3 bg-white p-2.5 rounded-lg border border-purple-150/70 text-xs shadow-2xs group hover:border-purple-300 transition-all"
+                        >
+                          <div className="flex items-start gap-2">
+                            <span className="font-mono text-[10px] font-black text-purple-600 bg-purple-50 w-5 h-5 rounded flex items-center justify-center shrink-0 mt-0.5">
+                              {qIdx + 1}
+                            </span>
+                            <p className="text-slate-750 font-semibold leading-snug">{q}</p>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => copyQuestion(q, qIdx)}
+                            className="p-1 text-slate-400 hover:text-purple-700 hover:bg-purple-50 rounded shrink-0 transition-colors"
+                            title="Copy question text"
+                          >
+                            {copiedIdx === qIdx ? (
+                              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                            ) : (
+                              <Copy className="w-3.5 h-3.5" />
+                            )}
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
                 {/* AI recommendation selection */}
                 <div className="pt-4 border-t border-slate-150 flex items-center justify-between gap-4 flex-wrap">
