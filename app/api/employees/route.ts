@@ -83,8 +83,27 @@ export async function GET(req: Request) {
 
     const adminCompaniesNormalized = getUserCompanies(dbUser);
 
-    // Fetch employees
-    const employees = await User.findAll({ where: {}, raw: true });
+    const { searchParams } = new URL(req.url);
+    const includeAssociates = searchParams.get("includeAssociates") === "true" || searchParams.get("includePartners") === "true";
+
+    const nonEmployeeRoles = [
+      "Business Associate",
+      "BA",
+      "Business Partner",
+      "Business associate",
+      "Vendor",
+      "Candidate",
+    ];
+
+    const whereUser: any = {};
+    if (!includeAssociates) {
+      whereUser.role = {
+        [Op.notIn]: nonEmployeeRoles
+      };
+    }
+
+    // Fetch employees (excluding external business associates & partners)
+    const employees = await User.findAll({ where: whereUser, raw: true });
 
     // Fetch profiles to merge data
     const profiles = await EmployeeProfile.findAll({ where: {}, raw: true });
@@ -133,7 +152,6 @@ export async function GET(req: Request) {
       };
     });
 
-    const { searchParams } = new URL(req.url);
     const showAllCompanies = searchParams.get("all") === "true" || searchParams.get("all") === "1" || searchParams.get("allCompanies") === "true";
 
     let filteredMergedData = mergedData;
