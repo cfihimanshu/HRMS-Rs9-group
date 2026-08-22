@@ -10,13 +10,22 @@ type Nbfc = { id: string | number; nbfcName: string; nbfcCode?: string };
 type WorkItem = { title: string; relatedCategory: string; type: string; details: string; status: "Pending" | "In Progress" | "Completed"; progressNote: string; proofAttachment: string; bankId: string; bankName: string; branchName: string; rboName: string; nbfcName: string; uploading?: boolean };
 
 const emptyTask = (): WorkItem => ({ title: "", relatedCategory: "", type: "General", details: "", status: "Completed", progressNote: "", proofAttachment: "", bankId: "", bankName: "", branchName: "", rboName: "", nbfcName: "" });
+const to24HourTime = (time: string, period: "AM" | "PM") => {
+  const [hourText, minute = "00"] = time.split(":");
+  const hour = Number(hourText);
+  if (!Number.isInteger(hour) || hour < 1 || hour > 12) return "";
+  const hour24 = period === "AM" ? hour % 12 : (hour % 12) + 12;
+  return `${String(hour24).padStart(2, "0")}:${minute}`;
+};
 
 export default function DailyBackdateEntryModal({ open, onClose, onSaved, currentUser }: { open: boolean; onClose: () => void; onSaved: () => void; currentUser?: any }) {
   const [staff, setStaff] = useState<Staff[]>([]);
   const [employeeId, setEmployeeId] = useState("");
   const [workDate, setWorkDate] = useState("");
   const [sodTime, setSodTime] = useState("09:00");
-  const [eodTime, setEodTime] = useState("18:00");
+  const [sodPeriod, setSodPeriod] = useState<"AM" | "PM">("AM");
+  const [eodTime, setEodTime] = useState("06:00");
+  const [eodPeriod, setEodPeriod] = useState<"AM" | "PM">("PM");
   const [tasks, setTasks] = useState<WorkItem[]>([emptyTask()]);
   const [banks, setBanks] = useState<Bank[]>([]);
   const [branches, setBranches] = useState<Branch[]>([]);
@@ -68,17 +77,20 @@ export default function DailyBackdateEntryModal({ open, onClose, onSaved, curren
     event.preventDefault();
     setError("");
     if (!employeeId || !workDate || !sodTime || !eodTime) return setError("Staff, date, SOD aur EOD time required hain.");
-    if (eodTime <= sodTime) return setError("EOD time SOD time ke baad hona chahiye.");
+    const sodTime24 = to24HourTime(sodTime, sodPeriod);
+    const eodTime24 = to24HourTime(eodTime, eodPeriod);
+    if (!sodTime24 || !eodTime24) return setError("SOD aur EOD time 01:00 se 12:59 ke beech select karein.");
+    if (eodTime24 <= sodTime24) return setError("EOD time SOD time ke baad hona chahiye.");
     if (!tasks.length || tasks.some(t => !t.title.trim() || !t.relatedCategory || !t.type || !t.progressNote.trim() || !t.proofAttachment)) return setError("Har task mein title, related category, task type, progress note aur proof required hai.");
     if (tasks.some(t => t.relatedCategory === "Bank Related" && (!t.bankName || !t.branchName))) return setError("Bank Related task mein bank aur branch select karna required hai.");
     if (tasks.some(t => t.relatedCategory === "RBO Related" && (!t.bankName || !t.rboName))) return setError("RBO Related task mein bank aur RBO select karna required hai.");
     if (tasks.some(t => t.relatedCategory === "Fix Security Related" && !t.nbfcName)) return setError("Fix Security Related task mein NBFC select karna required hai.");
     setSaving(true);
     try {
-      const res = await fetch("/api/tasks/backdate-daily", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ employeeId, workDate, sodTime, eodTime, tasks }) });
+      const res = await fetch("/api/tasks/backdate-daily", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ employeeId, workDate, sodTime: sodTime24, eodTime: eodTime24, tasks }) });
       const data = await res.json();
       if (!data.success) throw new Error(data.error || "Entry save nahi hui");
-      setEmployeeId(""); setWorkDate(""); setSodTime("09:00"); setEodTime("18:00"); setTasks([emptyTask()]);
+      setEmployeeId(""); setWorkDate(""); setSodTime("09:00"); setSodPeriod("AM"); setEodTime("06:00"); setEodPeriod("PM"); setTasks([emptyTask()]);
       onSaved(); onClose();
     } catch (e: any) { setError(e.message || "Entry save nahi hui"); } finally { setSaving(false); }
   };
@@ -93,8 +105,8 @@ export default function DailyBackdateEntryModal({ open, onClose, onSaved, curren
         <div className="grid sm:grid-cols-4 gap-3 rounded-xl bg-purple-50 border border-purple-100 p-3">
           <label className="text-[10px] font-black text-slate-600">STAFF *{currentUser?.role === "Owner" ? <select required value={employeeId} onChange={e => setEmployeeId(e.target.value)} className="mt-1 w-full border rounded-lg p-2 text-xs bg-white"><option value="">Select staff</option>{staff.map(s => <option key={s.id} value={s.id}>{s.name} ({s.role})</option>)}</select> : <div className="mt-1 w-full border rounded-lg p-2 text-xs bg-slate-100 text-slate-700">{currentUser?.name || "Logged-in Staff"} (Self)</div>}</label>
           <label className="text-[10px] font-black text-slate-600">WORK DATE *<input required type="date" max={new Date().toISOString().slice(0, 10)} value={workDate} onChange={e => setWorkDate(e.target.value)} className="mt-1 w-full border rounded-lg p-2 text-xs bg-white" /></label>
-          <label className="text-[10px] font-black text-slate-600">SOD TIME *<input required type="time" value={sodTime} onChange={e => setSodTime(e.target.value)} className="mt-1 w-full border rounded-lg p-2 text-xs bg-white" /></label>
-          <label className="text-[10px] font-black text-slate-600">EOD TIME *<input required type="time" value={eodTime} onChange={e => setEodTime(e.target.value)} className="mt-1 w-full border rounded-lg p-2 text-xs bg-white" /></label>
+          <label className="text-[10px] font-black text-slate-600">SOD TIME *<div className="mt-1 flex gap-1"><input required type="time" min="01:00" max="12:59" value={sodTime} onChange={e => setSodTime(e.target.value)} className="min-w-0 flex-1 border rounded-lg p-2 text-xs bg-white" /><select value={sodPeriod} onChange={e => setSodPeriod(e.target.value as "AM" | "PM")} className="border rounded-lg px-2 text-xs font-bold bg-white"><option>AM</option><option>PM</option></select></div></label>
+          <label className="text-[10px] font-black text-slate-600">EOD TIME *<div className="mt-1 flex gap-1"><input required type="time" min="01:00" max="12:59" value={eodTime} onChange={e => setEodTime(e.target.value)} className="min-w-0 flex-1 border rounded-lg p-2 text-xs bg-white" /><select value={eodPeriod} onChange={e => setEodPeriod(e.target.value as "AM" | "PM")} className="border rounded-lg px-2 text-xs font-bold bg-white"><option>AM</option><option>PM</option></select></div></label>
         </div>
         <div className="flex justify-between items-center"><div><h3 className="text-sm font-black">Daily Tasks ({tasks.length})</h3><p className="text-[10px] text-slate-500">Har task ka proof aur progress note mandatory hai.</p></div><button type="button" onClick={() => setTasks(r => [...r, emptyTask()])} className="bg-[#714B67] text-white rounded-lg px-3 py-2 text-xs font-black flex gap-1"><Plus className="w-4 h-4" /> Add Task</button></div>
         <div className="space-y-3">{tasks.map((task, index) => <div key={index} className="border rounded-xl p-3 bg-slate-50">
@@ -113,10 +125,21 @@ export default function DailyBackdateEntryModal({ open, onClose, onSaved, curren
                 <option value="">Select bank</option>
                 {banks.map(bank => <option key={bank.id} value={String(bank.id)}>{bank.bankName}{bank.bankCode ? ` (${bank.bankCode})` : ""}</option>)}
               </select>
-              <select required value={task.branchName} disabled={!task.bankId} onChange={e => updateTask(index, { branchName: e.target.value })} className="border rounded-lg p-2 text-xs bg-white disabled:bg-slate-100 disabled:text-slate-400">
-                <option value="">Select branch</option>
-                {branches.filter(branch => String(branch.bankId) === task.bankId).map(branch => <option key={branch.id} value={branch.branchName}>{branch.branchName}{branch.branchCode ? ` (${branch.branchCode})` : ""}</option>)}
-              </select>
+              <div>
+                <input
+                  required
+                  type="text"
+                  list={`backdate-branches-${index}`}
+                  value={task.branchName}
+                  disabled={!task.bankId}
+                  onChange={e => updateTask(index, { branchName: e.target.value })}
+                  placeholder={task.bankId ? "Search branch name / code" : "Select bank first"}
+                  className="w-full border rounded-lg p-2 text-xs bg-white disabled:bg-slate-100 disabled:text-slate-400"
+                />
+                <datalist id={`backdate-branches-${index}`}>
+                  {branches.filter(branch => String(branch.bankId) === task.bankId).map(branch => <option key={branch.id} value={branch.branchName}>{branch.branchCode || "Branch"}</option>)}
+                </datalist>
+              </div>
             </>}
             {task.relatedCategory === "RBO Related" && <>
               <select required value={task.bankId} onChange={e => { const selected = banks.find(bank => String(bank.id) === e.target.value); updateTask(index, { bankId: e.target.value, bankName: selected?.bankName || "", rboName: "" }); }} className="border rounded-lg p-2 text-xs bg-white">
