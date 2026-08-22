@@ -5,11 +5,11 @@ import { CalendarClock, Loader2, Plus, Trash2, Upload, X } from "lucide-react";
 
 type Staff = { id: string; name: string; role: string };
 type Bank = { id: string | number; bankName: string; bankCode?: string };
-type Branch = { id: string | number; bankId: string | number; branchName: string; branchCode?: string; rbo?: string };
+type Branch = { id: string | number; bankId: string | number; branchName: string; branchCode?: string; aoName?: string; rbo?: string };
 type Nbfc = { id: string | number; nbfcName: string; nbfcCode?: string };
-type WorkItem = { title: string; relatedCategory: string; type: string; details: string; status: "Pending" | "In Progress" | "Completed"; progressNote: string; proofAttachment: string; bankId: string; bankName: string; branchName: string; rboName: string; nbfcName: string; uploading?: boolean };
+type WorkItem = { title: string; relatedCategory: string; type: string; details: string; status: "Pending" | "In Progress" | "Completed"; progressNote: string; proofAttachment: string; bankId: string; bankName: string; branchName: string; aoName: string; rboName: string; nbfcName: string; uploading?: boolean };
 
-const emptyTask = (): WorkItem => ({ title: "", relatedCategory: "", type: "General", details: "", status: "Completed", progressNote: "", proofAttachment: "", bankId: "", bankName: "", branchName: "", rboName: "", nbfcName: "" });
+const emptyTask = (): WorkItem => ({ title: "", relatedCategory: "", type: "General", details: "", status: "Completed", progressNote: "", proofAttachment: "", bankId: "", bankName: "", branchName: "", aoName: "", rboName: "", nbfcName: "" });
 const to24HourTime = (time: string, period: "AM" | "PM") => {
   const [hourText, minute = "00"] = time.split(":");
   const hour = Number(hourText);
@@ -83,6 +83,7 @@ export default function DailyBackdateEntryModal({ open, onClose, onSaved, curren
     if (eodTime24 <= sodTime24) return setError("EOD time SOD time ke baad hona chahiye.");
     if (!tasks.length || tasks.some(t => !t.title.trim() || !t.relatedCategory || !t.type || !t.progressNote.trim() || !t.proofAttachment)) return setError("Har task mein title, related category, task type, progress note aur proof required hai.");
     if (tasks.some(t => t.relatedCategory === "Bank Related" && (!t.bankName || !t.branchName))) return setError("Bank Related task mein bank aur branch select karna required hai.");
+    if (tasks.some(t => t.relatedCategory === "AO Related" && (!t.bankName || !t.aoName))) return setError("AO Related task mein bank aur AO select karna required hai.");
     if (tasks.some(t => t.relatedCategory === "RBO Related" && (!t.bankName || !t.rboName))) return setError("RBO Related task mein bank aur RBO select karna required hai.");
     if (tasks.some(t => t.relatedCategory === "Fix Security Related" && !t.nbfcName)) return setError("Fix Security Related task mein NBFC select karna required hai.");
     setSaving(true);
@@ -113,9 +114,11 @@ export default function DailyBackdateEntryModal({ open, onClose, onSaved, curren
           <div className="flex justify-between mb-2"><span className="text-xs font-black text-[#714B67]">Task #{index + 1}</span>{tasks.length > 1 && <button type="button" onClick={() => setTasks(r => r.filter((_, i) => i !== index))}><Trash2 className="w-4 h-4 text-rose-500" /></button>}</div>
           <div className="grid sm:grid-cols-3 gap-2">
             <input required placeholder="Task title / kaam" value={task.title} onChange={e => updateTask(index, { title: e.target.value })} className="border rounded-lg p-2 text-xs font-bold bg-white" />
-            <select required value={task.relatedCategory} onChange={e => updateTask(index, { relatedCategory: e.target.value, bankId: "", bankName: "", branchName: "", rboName: "", nbfcName: "" })} className="border rounded-lg p-2 text-xs bg-white">
+            <select required value={task.relatedCategory} onChange={e => updateTask(index, { relatedCategory: e.target.value, bankId: "", bankName: "", branchName: "", aoName: "", rboName: "", nbfcName: "" })} className="border rounded-lg p-2 text-xs bg-white">
               <option value="">Select related category</option>
+              <option>Office Related</option>
               <option>Bank Related</option>
+              <option>AO Related</option>
               <option>RBO Related</option>
               <option>Fix Security Related</option>
             </select>
@@ -150,6 +153,27 @@ export default function DailyBackdateEntryModal({ open, onClose, onSaved, curren
                 <option value="">Select RBO</option>
                 {Array.from(new Set(branches.filter(branch => String(branch.bankId) === task.bankId).map(branch => String(branch.rbo || "").trim()).filter(Boolean))).map(rbo => <option key={rbo} value={rbo}>{rbo}</option>)}
               </select>
+            </>}
+            {task.relatedCategory === "AO Related" && <>
+              <select required value={task.bankId} onChange={e => { const selected = banks.find(bank => String(bank.id) === e.target.value); updateTask(index, { bankId: e.target.value, bankName: selected?.bankName || "", aoName: "" }); }} className="border rounded-lg p-2 text-xs bg-white">
+                <option value="">Select bank</option>
+                {banks.map(bank => <option key={bank.id} value={String(bank.id)}>{bank.bankName}{bank.bankCode ? ` (${bank.bankCode})` : ""}</option>)}
+              </select>
+              <div>
+                <input
+                  required
+                  type="text"
+                  list={`backdate-aos-${index}`}
+                  value={task.aoName}
+                  disabled={!task.bankId}
+                  onChange={e => updateTask(index, { aoName: e.target.value })}
+                  placeholder={task.bankId ? "Search AO" : "Select bank first"}
+                  className="w-full border rounded-lg p-2 text-xs bg-white disabled:bg-slate-100 disabled:text-slate-400"
+                />
+                <datalist id={`backdate-aos-${index}`}>
+                  {Array.from(new Set(branches.filter(branch => String(branch.bankId) === task.bankId).map(branch => String(branch.aoName || "").trim()).filter(Boolean))).map(ao => <option key={ao} value={ao} />)}
+                </datalist>
+              </div>
             </>}
             {task.relatedCategory === "Fix Security Related" && <select required value={task.nbfcName} onChange={e => updateTask(index, { nbfcName: e.target.value })} className="border rounded-lg p-2 text-xs bg-white">
               <option value="">Select NBFC</option>
