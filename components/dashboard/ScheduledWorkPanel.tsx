@@ -590,7 +590,7 @@ export default function ScheduledWorkPanel({ sessionUser, triggerToast }: Schedu
       const workLoc = s.workSection || "—";
       const typeStr = s.type || "General";
       const subTypeStr = s.subType || "—";
-      const bankNameStr = s.bankName || "—";
+      const bankNameStr = s.bankName || (s.subType === "Fix Security Related" ? s.otherType : "") || "—";
       const branchNameStr = s.branchName || "—";
       const aoNameStr = s.aoName || "—";
       const rboNameStr = s.rboName || "—";
@@ -1207,7 +1207,7 @@ export default function ScheduledWorkPanel({ sessionUser, triggerToast }: Schedu
                             {item.aoName && <span className="bg-slate-100 px-1 py-0.2 rounded border border-slate-200 font-bold text-slate-800">🏛️ {item.aoName}</span>}
                             {item.rboName && <span className="bg-slate-100 px-1 py-0.2 rounded border border-slate-200 font-bold text-slate-800">📍 {item.rboName}</span>}
                             {item.caseDetails && <span className="bg-rose-50 text-rose-800 px-1 py-0.2 rounded border border-rose-200 font-black">⚖️ {item.caseDetails}</span>}
-                            {item.otherType && <span className="bg-emerald-50 text-emerald-800 px-1 py-0.2 rounded border border-emerald-200 font-bold">📍 Site: {item.otherType}</span>}
+                            {item.otherType && <span className="bg-emerald-50 text-emerald-800 px-1 py-0.2 rounded border border-emerald-200 font-bold">{item.subType === "Fix Security Related" ? "🏢 NBFC" : "📍 Site"}: {item.otherType}</span>}
                           </div>
                         ) : (
                           <span className="text-slate-400 italic text-[10px]">—</span>
@@ -1406,12 +1406,13 @@ export default function ScheduledWorkPanel({ sessionUser, triggerToast }: Schedu
               </div>
 
               {/* Bank & Officer Extra Meta if available */}
-              {(selectedDetailItem.aoName || selectedDetailItem.rboName || selectedDetailItem.officerName || selectedDetailItem.caseDetails) && (
+              {(selectedDetailItem.aoName || selectedDetailItem.rboName || selectedDetailItem.officerName || selectedDetailItem.caseDetails || selectedDetailItem.otherType) && (
                 <div className="space-y-1.5 bg-slate-50 p-3 rounded-xl border border-slate-200">
                   <span className="text-[10px] font-black uppercase tracking-wider text-slate-500 block">Additional Details</span>
                   <div className="flex flex-wrap gap-2 text-xs font-bold">
                     {selectedDetailItem.aoName && <span className="bg-white px-2 py-1 rounded border border-slate-300">🏛️ AO: {selectedDetailItem.aoName}</span>}
                     {selectedDetailItem.rboName && <span className="bg-white px-2 py-1 rounded border border-slate-300">📍 RBO: {selectedDetailItem.rboName}</span>}
+                    {selectedDetailItem.otherType && <span className="bg-white px-2 py-1 rounded border border-slate-300">{selectedDetailItem.subType === "Fix Security Related" ? "🏢 NBFC" : "📍 Other"}: {selectedDetailItem.otherType}</span>}
                     {selectedDetailItem.officerName && <span className="bg-purple-50 text-purple-900 px-2 py-1 rounded border border-purple-200">👤 Officer: {selectedDetailItem.officerName}{selectedDetailItem.officerPhone ? ` (${selectedDetailItem.officerPhone})` : ""}</span>}
                     {selectedDetailItem.caseDetails && <span className="bg-rose-50 text-rose-800 px-2 py-1 rounded border border-rose-200">⚖️ Case: {selectedDetailItem.caseDetails}</span>}
                   </div>

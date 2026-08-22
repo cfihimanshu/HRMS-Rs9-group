@@ -4,9 +4,12 @@ import React, { useEffect, useState } from "react";
 import { CalendarClock, Loader2, Plus, Trash2, Upload, X } from "lucide-react";
 
 type Staff = { id: string; name: string; role: string };
-type WorkItem = { title: string; type: string; details: string; status: "Pending" | "In Progress" | "Completed"; progressNote: string; proofAttachment: string; uploading?: boolean };
+type Bank = { id: string | number; bankName: string; bankCode?: string };
+type Branch = { id: string | number; bankId: string | number; branchName: string; branchCode?: string; rbo?: string };
+type Nbfc = { id: string | number; nbfcName: string; nbfcCode?: string };
+type WorkItem = { title: string; relatedCategory: string; type: string; details: string; status: "Pending" | "In Progress" | "Completed"; progressNote: string; proofAttachment: string; bankId: string; bankName: string; branchName: string; rboName: string; nbfcName: string; uploading?: boolean };
 
-const emptyTask = (): WorkItem => ({ title: "", type: "General", details: "", status: "Completed", progressNote: "", proofAttachment: "" });
+const emptyTask = (): WorkItem => ({ title: "", relatedCategory: "", type: "General", details: "", status: "Completed", progressNote: "", proofAttachment: "", bankId: "", bankName: "", branchName: "", rboName: "", nbfcName: "" });
 
 export default function DailyBackdateEntryModal({ open, onClose, onSaved, currentUser }: { open: boolean; onClose: () => void; onSaved: () => void; currentUser?: any }) {
   const [staff, setStaff] = useState<Staff[]>([]);
@@ -15,11 +18,23 @@ export default function DailyBackdateEntryModal({ open, onClose, onSaved, curren
   const [sodTime, setSodTime] = useState("09:00");
   const [eodTime, setEodTime] = useState("18:00");
   const [tasks, setTasks] = useState<WorkItem[]>([emptyTask()]);
+  const [banks, setBanks] = useState<Bank[]>([]);
+  const [branches, setBranches] = useState<Branch[]>([]);
+  const [nbfcs, setNbfcs] = useState<Nbfc[]>([]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
   useEffect(() => {
     if (!open) return;
+    Promise.all([
+      fetch("/api/banks").then(r => r.json()),
+      fetch("/api/legal-recovery/branches").then(r => r.json()),
+      fetch("/api/legal-recovery/nbfc").then(r => r.json())
+    ]).then(([bankData, branchData, nbfcData]) => {
+      if (bankData.success) setBanks(bankData.data || []);
+      if (branchData.success) setBranches(branchData.data || []);
+      if (nbfcData.success) setNbfcs((nbfcData.data || []).filter((item: Nbfc & { isActive?: boolean }) => item.isActive !== false));
+    }).catch(() => setError("Bank/branch master load nahi hua."));
     if (currentUser?.role !== "Owner") {
       setEmployeeId(String(currentUser?.id || ""));
       return;
@@ -54,7 +69,10 @@ export default function DailyBackdateEntryModal({ open, onClose, onSaved, curren
     setError("");
     if (!employeeId || !workDate || !sodTime || !eodTime) return setError("Staff, date, SOD aur EOD time required hain.");
     if (eodTime <= sodTime) return setError("EOD time SOD time ke baad hona chahiye.");
-    if (!tasks.length || tasks.some(t => !t.title.trim() || !t.progressNote.trim() || !t.proofAttachment)) return setError("Har task mein title, progress note aur proof required hai.");
+    if (!tasks.length || tasks.some(t => !t.title.trim() || !t.relatedCategory || !t.type || !t.progressNote.trim() || !t.proofAttachment)) return setError("Har task mein title, related category, task type, progress note aur proof required hai.");
+    if (tasks.some(t => t.relatedCategory === "Bank Related" && (!t.bankName || !t.branchName))) return setError("Bank Related task mein bank aur branch select karna required hai.");
+    if (tasks.some(t => t.relatedCategory === "RBO Related" && (!t.bankName || !t.rboName))) return setError("RBO Related task mein bank aur RBO select karna required hai.");
+    if (tasks.some(t => t.relatedCategory === "Fix Security Related" && !t.nbfcName)) return setError("Fix Security Related task mein NBFC select karna required hai.");
     setSaving(true);
     try {
       const res = await fetch("/api/tasks/backdate-daily", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ employeeId, workDate, sodTime, eodTime, tasks }) });
@@ -83,8 +101,40 @@ export default function DailyBackdateEntryModal({ open, onClose, onSaved, curren
           <div className="flex justify-between mb-2"><span className="text-xs font-black text-[#714B67]">Task #{index + 1}</span>{tasks.length > 1 && <button type="button" onClick={() => setTasks(r => r.filter((_, i) => i !== index))}><Trash2 className="w-4 h-4 text-rose-500" /></button>}</div>
           <div className="grid sm:grid-cols-3 gap-2">
             <input required placeholder="Task title / kaam" value={task.title} onChange={e => updateTask(index, { title: e.target.value })} className="border rounded-lg p-2 text-xs font-bold bg-white" />
-            <select value={task.type} onChange={e => updateTask(index, { type: e.target.value })} className="border rounded-lg p-2 text-xs bg-white"><option>General</option><option>Call</option><option>Meeting</option><option>Field Visit</option><option>Bank Related</option><option>Legal</option><option>Development</option><option>Operations</option></select>
+            <select required value={task.relatedCategory} onChange={e => updateTask(index, { relatedCategory: e.target.value, bankId: "", bankName: "", branchName: "", rboName: "", nbfcName: "" })} className="border rounded-lg p-2 text-xs bg-white">
+              <option value="">Select related category</option>
+              <option>Bank Related</option>
+              <option>RBO Related</option>
+              <option>Fix Security Related</option>
+            </select>
             <select value={task.status} onChange={e => updateTask(index, { status: e.target.value as WorkItem["status"] })} className="border rounded-lg p-2 text-xs bg-white"><option>Pending</option><option>In Progress</option><option>Completed</option></select>
+            {task.relatedCategory === "Bank Related" && <>
+              <select required value={task.bankId} onChange={e => { const selected = banks.find(bank => String(bank.id) === e.target.value); updateTask(index, { bankId: e.target.value, bankName: selected?.bankName || "", branchName: "" }); }} className="border rounded-lg p-2 text-xs bg-white">
+                <option value="">Select bank</option>
+                {banks.map(bank => <option key={bank.id} value={String(bank.id)}>{bank.bankName}{bank.bankCode ? ` (${bank.bankCode})` : ""}</option>)}
+              </select>
+              <select required value={task.branchName} disabled={!task.bankId} onChange={e => updateTask(index, { branchName: e.target.value })} className="border rounded-lg p-2 text-xs bg-white disabled:bg-slate-100 disabled:text-slate-400">
+                <option value="">Select branch</option>
+                {branches.filter(branch => String(branch.bankId) === task.bankId).map(branch => <option key={branch.id} value={branch.branchName}>{branch.branchName}{branch.branchCode ? ` (${branch.branchCode})` : ""}</option>)}
+              </select>
+            </>}
+            {task.relatedCategory === "RBO Related" && <>
+              <select required value={task.bankId} onChange={e => { const selected = banks.find(bank => String(bank.id) === e.target.value); updateTask(index, { bankId: e.target.value, bankName: selected?.bankName || "", rboName: "" }); }} className="border rounded-lg p-2 text-xs bg-white">
+                <option value="">Select bank</option>
+                {banks.map(bank => <option key={bank.id} value={String(bank.id)}>{bank.bankName}{bank.bankCode ? ` (${bank.bankCode})` : ""}</option>)}
+              </select>
+              <select required value={task.rboName} disabled={!task.bankId} onChange={e => updateTask(index, { rboName: e.target.value })} className="border rounded-lg p-2 text-xs bg-white disabled:bg-slate-100 disabled:text-slate-400">
+                <option value="">Select RBO</option>
+                {Array.from(new Set(branches.filter(branch => String(branch.bankId) === task.bankId).map(branch => String(branch.rbo || "").trim()).filter(Boolean))).map(rbo => <option key={rbo} value={rbo}>{rbo}</option>)}
+              </select>
+            </>}
+            {task.relatedCategory === "Fix Security Related" && <select required value={task.nbfcName} onChange={e => updateTask(index, { nbfcName: e.target.value })} className="border rounded-lg p-2 text-xs bg-white">
+              <option value="">Select NBFC</option>
+              {nbfcs.map(nbfc => <option key={nbfc.id} value={nbfc.nbfcName}>{nbfc.nbfcName}{nbfc.nbfcCode ? ` (${nbfc.nbfcCode})` : ""}</option>)}
+            </select>}
+            <select value={task.type} onChange={e => updateTask(index, { type: e.target.value })} className="border rounded-lg p-2 text-xs bg-white">
+              <option>General</option><option>Office Work</option><option>Bank Work</option><option>Meeting</option><option>Call</option><option>Field Visit</option><option>Legal</option><option>Development</option><option>Operations</option>
+            </select>
             <textarea placeholder="Work details" value={task.details} onChange={e => updateTask(index, { details: e.target.value })} className="sm:col-span-1 border rounded-lg p-2 text-xs bg-white" />
             <textarea required placeholder="Progress note *" value={task.progressNote} onChange={e => updateTask(index, { progressNote: e.target.value })} className="sm:col-span-1 border rounded-lg p-2 text-xs bg-white" />
             <label className="border border-dashed rounded-lg p-2 text-xs bg-white flex items-center justify-center gap-2 cursor-pointer"><Upload className="w-4 h-4" />{task.uploading ? "Uploading..." : task.proofAttachment ? "Proof uploaded ✓" : "Upload proof *"}<input type="file" className="hidden" accept="image/*,.pdf,audio/*,video/*" onChange={e => uploadProof(index, e.target.files?.[0])} /></label>

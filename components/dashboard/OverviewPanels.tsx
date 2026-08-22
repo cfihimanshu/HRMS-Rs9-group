@@ -35,7 +35,11 @@ import {
   Zap,
   CheckSquare,
   Building2,
-  Activity
+  Activity,
+  ListChecks,
+  Mail,
+  Loader2,
+  Package
 } from "lucide-react";
 import StatCard from "./StatCard";
 import AttendanceChart from "./AttendanceChart";
@@ -72,6 +76,10 @@ export function OwnerDashboard({
   const [showStaffModal, setShowStaffModal] = React.useState(false);
   const [showActivityModal, setShowActivityModal] = React.useState(false);
   const [staffModalFilter, setStaffModalFilter] = React.useState<"all" | "present" | "absent">("all");
+  const [todayTasks, setTodayTasks] = React.useState<any[]>([]);
+  const [sendingDailyReport, setSendingDailyReport] = React.useState(false);
+  const [deviceInventory, setDeviceInventory] = React.useState<any[]>([]);
+  const [devicesLoading, setDevicesLoading] = React.useState(true);
   React.useEffect(() => {
     const syncTheme = () => setIsDark(document.documentElement.classList.contains("dark"));
     syncTheme();
@@ -79,6 +87,195 @@ export function OwnerDashboard({
     observer.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
     return () => observer.disconnect();
   }, []);
+
+  React.useEffect(() => {
+    let active = true;
+    setDevicesLoading(true);
+    const query = selectedCompanyId ? `?companyId=${encodeURIComponent(selectedCompanyId)}` : "";
+    fetch(`/api/assets/inventory${query}`, { cache: "no-store" })
+      .then((response) => response.json())
+      .then((data) => {
+        if (active) setDeviceInventory(data?.success && Array.isArray(data.data) ? data.data : []);
+      })
+      .catch(() => {
+        if (active) setDeviceInventory([]);
+      })
+      .finally(() => {
+        if (active) setDevicesLoading(false);
+      });
+    return () => { active = false; };
+  }, [selectedCompanyId]);
+
+  React.useEffect(() => {
+    let active = true;
+    fetch("/api/tasks?range=today", { cache: "no-store" })
+      .then((response) => response.json())
+      .then((data) => {
+        if (active && data?.success && Array.isArray(data.data)) {
+          const indiaDateKey = (value: unknown) => {
+            if (!value) return "";
+            const date = new Date(String(value));
+            if (Number.isNaN(date.getTime())) return "";
+            return new Intl.DateTimeFormat("en-CA", {
+              year: "numeric", month: "2-digit", day: "2-digit", timeZone: "Asia/Kolkata"
+            }).format(date);
+          };
+          const todayKey = indiaDateKey(new Date());
+          const seen = new Set<string>();
+          const strictlyToday = data.data.filter((task: any) => {
+            // `date` is the actual work date. Fall back only for old records where it is missing.
+            const workDate = task.date || task.scheduledAt || task.createdAt;
+            const identity = String(task.id || task.scheduleId || `${task.taskTitle}-${workDate}`);
+            if (indiaDateKey(workDate) !== todayKey || seen.has(identity)) return false;
+            seen.add(identity);
+            return true;
+          });
+          setTodayTasks(strictlyToday);
+        }
+      })
+      .catch(() => {
+        if (active) setTodayTasks([]);
+      });
+    return () => { active = false; };
+  }, []);
+
+  const allEmployeeTaskRows = React.useMemo(() => {
+    const completedStatuses = new Set(["completed", "complete", "done"]);
+    const taskSummary = new Map<string, { total: number; completed: number; name: string; role: string }>();
+
+    todayTasks.forEach((task: any) => {
+      const assignee = task.forwardedUser || task.employee || {};
+      const key = String(assignee.id || assignee.name || "unknown").toLowerCase();
+      const summary = taskSummary.get(key) || {
+        total: 0,
+        completed: 0,
+        name: assignee.name || "Team Member",
+        role: assignee.role || "Employee"
+      };
+      summary.total += 1;
+      if (completedStatuses.has(String(task.status || "").trim().toLowerCase())) summary.completed += 1;
+      taskSummary.set(key, summary);
+    });
+
+    const matchedKeys = new Set<string>();
+    const teamRows = [...(stats?.deptStats?.teamList || [])].map((member: any) => {
+      const idKey = String(member.id || "").toLowerCase();
+      const nameKey = String(member.name || "").toLowerCase();
+      const matchedEntry = Array.from(taskSummary.entries()).find(([key, summary]) =>
+        key === idKey || summary.name.toLowerCase() === nameKey
+      );
+      if (matchedEntry) matchedKeys.add(matchedEntry[0]);
+      const summary = matchedEntry?.[1] || { total: 0, completed: 0 };
+      return {
+        ...member,
+        total: summary.total,
+        completed: summary.completed,
+        pending: Math.max(0, summary.total - summary.completed)
+      };
+    });
+
+    const otherRows = Array.from(taskSummary.entries())
+      .filter(([key]) => !matchedKeys.has(key))
+      .map(([key, summary]) => ({
+        id: key,
+        name: summary.name,
+        role: summary.role,
+        department: summary.role,
+        total: summary.total,
+        completed: summary.completed,
+        pending: Math.max(0, summary.total - summary.completed),
+        sodTime: null,
+        eodTime: null
+      }));
+
+    return [...teamRows, ...otherRows];
+  }, [stats?.deptStats?.teamList, todayTasks]);
+
+  const employeeTaskRows = React.useMemo(() => {
+    return [...allEmployeeTaskRows]
+      .sort((a: any, b: any) => b.total - a.total || b.pending - a.pending || String(a.name).localeCompare(String(b.name)))
+      .slice(0, 5);
+  }, [allEmployeeTaskRows]);
+
+  const employeeTaskTotals = React.useMemo(() => {
+    return allEmployeeTaskRows.reduce((totals: any, member: any) => {
+      totals.total += member.total;
+      totals.completed += member.completed;
+      totals.pending += member.pending;
+      return totals;
+    }, { total: 0, completed: 0, pending: 0 });
+  }, [allEmployeeTaskRows]);
+
+  const todayWorkGroups = React.useMemo(() => {
+    const teamList = stats?.deptStats?.teamList || [];
+    const memberMap = new Map<string, any>();
+    teamList.forEach((member: any) => {
+      if (member.id) memberMap.set(String(member.id), member);
+      if (member.name) memberMap.set(String(member.name).toLowerCase(), member);
+    });
+
+    const groups = new Map<string, any[]>();
+    todayTasks.forEach((task: any) => {
+      const assignee = task.forwardedUser || task.employee || {};
+      const member = memberMap.get(String(assignee.id || "")) || memberMap.get(String(assignee.name || "").toLowerCase());
+      const vertical = member?.department || member?.vertical || assignee.role || task.taskType || "Other Work";
+      if (!groups.has(vertical)) groups.set(vertical, []);
+      groups.get(vertical)?.push({ ...task, assigneeName: assignee.name || member?.name || "Team Member" });
+    });
+
+    return Array.from(groups.entries()).sort((a, b) => b[1].length - a[1].length);
+  }, [stats?.deptStats?.teamList, todayTasks]);
+
+  const deviceCategories = React.useMemo(() => {
+    const categories = new Map<string, { total: number; inUse: number; available: number }>();
+    deviceInventory.forEach((device: any) => {
+      const category = String(device.assetType || "Other Device").trim() || "Other Device";
+      const current = categories.get(category) || { total: 0, inUse: 0, available: 0 };
+      current.total += 1;
+      const status = String(device.status || "").toLowerCase();
+      if (status === "in use" || device.assignedToUserId) current.inUse += 1;
+      if (status === "available" && !device.assignedToUserId) current.available += 1;
+      categories.set(category, current);
+    });
+    return Array.from(categories.entries())
+      .map(([name, counts]) => ({ name, ...counts }))
+      .sort((a, b) => b.total - a.total || a.name.localeCompare(b.name));
+  }, [deviceInventory]);
+
+  const sendDailyReport = async () => {
+    if (sendingDailyReport) return;
+    setSendingDailyReport(true);
+    try {
+      const response = await fetch("/api/dashboard/send-daily-report", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          totals: employeeTaskTotals,
+          employees: allEmployeeTaskRows.map((member: any) => ({
+            ...member,
+            tasksTotal: member.total,
+            tasksCompleted: member.completed
+          })),
+          verticals: todayWorkGroups.map(([name, tasks]) => ({
+            name,
+            tasks: tasks.map((task: any) => ({
+              title: task.taskTitle || task.description || "Untitled work",
+              employee: task.assigneeName,
+              status: task.status || "Pending",
+              completed: ["completed", "complete", "done"].includes(String(task.status || "").toLowerCase())
+            }))
+          }))
+        })
+      });
+      const data = await response.json();
+      if (!response.ok || !data.success) throw new Error(data.error || "Report could not be sent");
+      triggerToast(data.message || "Daily report emailed successfully");
+    } catch (error: any) {
+      triggerToast(`Failed to send report: ${error?.message || "Unknown error"}`);
+    } finally {
+      setSendingDailyReport(false);
+    }
+  };
   const exportAttendanceReport = () => {
     if (!stats?.staffList) return;
 
@@ -161,6 +358,14 @@ export function OwnerDashboard({
             </select>
           )}
           <div className="flex items-center gap-2 w-full sm:w-auto">
+            <button
+              className="flex-1 sm:flex-initial px-3.5 sm:px-4 py-2 border border-indigo-200 dark:border-indigo-800 rounded-lg text-xs font-semibold tracking-wider uppercase bg-indigo-50 dark:bg-indigo-950/40 hover:bg-indigo-100 dark:hover:bg-indigo-950 text-indigo-700 dark:text-indigo-300 transition-all flex items-center justify-center gap-2 disabled:opacity-60"
+              onClick={sendDailyReport}
+              disabled={sendingDailyReport}
+            >
+              {sendingDailyReport ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Mail className="w-3.5 h-3.5" />}
+              {sendingDailyReport ? "Sending" : "Email Report"}
+            </button>
             <button
               className="flex-1 sm:flex-initial px-3.5 sm:px-4 py-2 border border-[#E8E4DF] dark:border-gray-700 rounded-lg text-xs font-semibold tracking-wider uppercase bg-[#FCFBF9] dark:bg-gray-900 hover:bg-[#F5F0EA] dark:hover:bg-gray-800 text-[#5D5B57] dark:text-gray-300 transition-all flex items-center justify-center gap-2"
               onClick={exportAttendanceReport}
@@ -250,6 +455,71 @@ export function OwnerDashboard({
           </div>
         </div>
       </div>
+
+      <section className="bg-[#FCFBF9] dark:bg-gray-900 border border-[#E8E4DF] dark:border-gray-800 rounded-xl p-4 shadow-[0_2px_12px_rgba(0,0,0,0.03)] transition-colors">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3">
+          <div className="flex items-center gap-2">
+            <ListChecks className="w-4 h-4 text-indigo-600" />
+            <h2 className="text-[10px] font-bold tracking-widest uppercase">Today&apos;s Employee Tasks</h2>
+          </div>
+          <div className="flex items-center gap-3 text-[9px] font-bold uppercase tracking-wide">
+            <span className="text-indigo-700 dark:text-indigo-400">Total {employeeTaskTotals.total}</span>
+            <span className="text-emerald-700 dark:text-emerald-400">Done {employeeTaskTotals.completed}</span>
+            <span className="text-amber-700 dark:text-amber-400">Pending {employeeTaskTotals.pending}</span>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-2 content-start">
+            {employeeTaskRows.map((member: any) => (
+              <div key={member.id || member.name} className="rounded-lg border border-[#E8E4DF] dark:border-gray-700 bg-white dark:bg-gray-950 px-3 py-2 min-w-0 flex items-center justify-between gap-2">
+                <div className="text-[10px] font-semibold truncate text-[#1C1C1A] dark:text-gray-100">{member.name || "Unnamed Employee"}</div>
+                <div className="flex items-center gap-2 text-[9px] font-bold shrink-0">
+                  <span className="text-indigo-600">{member.total}</span>
+                  <span className="text-emerald-600">✓ {member.completed}</span>
+                  <span className="text-amber-600">⏳ {member.pending}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="rounded-lg border border-[#E8E4DF] dark:border-gray-700 bg-white dark:bg-gray-950 overflow-hidden">
+            <div className="px-3 py-2 border-b border-[#EEEAE4] dark:border-gray-800 flex items-center justify-between">
+              <span className="text-[9px] font-bold uppercase tracking-wider text-[#5D5B57] dark:text-gray-300">Work done across all verticals</span>
+              <span className="text-[9px] text-[#8C8880]">{todayTasks.length} work items</span>
+            </div>
+            <div className="max-h-56 overflow-y-auto custom-scrollbar divide-y divide-[#EEEAE4] dark:divide-gray-800">
+              {todayWorkGroups.map(([vertical, tasks]) => (
+                <div key={vertical} className="px-3 py-2.5">
+                  <div className="flex items-center gap-2 mb-1.5">
+                    <span className="text-[9px] font-black uppercase tracking-wider text-indigo-700 dark:text-indigo-400">{vertical}</span>
+                    <span className="text-[8px] rounded-full bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 px-1.5 py-0.5 font-bold">{tasks.length}</span>
+                  </div>
+                  <div className="space-y-1.5">
+                    {tasks.map((task: any) => {
+                      const isComplete = ["completed", "complete", "done"].includes(String(task.status || "").toLowerCase());
+                      return (
+                        <div key={task.id} className="flex items-start justify-between gap-3 text-[10px]">
+                          <div className="min-w-0">
+                            <span className="font-medium text-[#1C1C1A] dark:text-gray-100">{task.taskTitle || task.description || "Untitled work"}</span>
+                            <span className="text-[#8C8880]"> · {task.assigneeName}</span>
+                          </div>
+                          <span className={`shrink-0 text-[8px] font-bold uppercase ${isComplete ? "text-emerald-600" : "text-amber-600"}`}>{isComplete ? "Done" : task.status || "Pending"}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+              {todayWorkGroups.length === 0 && <div className="px-3 py-6 text-center text-[10px] text-[#8C8880]">No work entries found for today.</div>}
+            </div>
+          </div>
+        </div>
+
+        <button onClick={() => onNavigateTab("tasks")} className="mt-3 text-[9px] uppercase tracking-wider font-bold text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 flex items-center gap-1">
+          View all tasks <ArrowUpRight className="w-3 h-3" />
+        </button>
+      </section>
 
       {/* Main Grid: Simplified & Minimal */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-7">
@@ -426,6 +696,36 @@ export function OwnerDashboard({
 
         {/* Right Column: Quick Actions & Activity Feed */}
         <div className="space-y-7">
+
+          <div className="bg-[#FCFBF9] dark:bg-gray-900 border border-[#E8E4DF] dark:border-gray-800 rounded-xl p-5 shadow-[0_2px_12px_rgba(0,0,0,0.03)] transition-colors">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <div className="w-7 h-7 rounded-lg bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 flex items-center justify-center"><Package className="w-3.5 h-3.5" /></div>
+                <div>
+                  <h2 className="text-[10px] font-semibold tracking-widest text-[#1C1C1A] dark:text-gray-100 uppercase">Device Inventory</h2>
+                  <p className="text-[9px] text-[#8C8880]">{deviceInventory.length} total devices</p>
+                </div>
+              </div>
+              <button onClick={() => onNavigateTab("inventory-management")} className="text-[9px] uppercase tracking-wider font-bold text-indigo-600 hover:text-indigo-800 flex items-center gap-1">View All <ArrowUpRight className="w-3 h-3" /></button>
+            </div>
+
+            <div className="max-h-56 overflow-y-auto custom-scrollbar divide-y divide-[#EEEAE4] dark:divide-gray-800 border border-[#E8E4DF] dark:border-gray-700 rounded-lg bg-white dark:bg-gray-950">
+              {devicesLoading ? (
+                <div className="py-8 flex items-center justify-center gap-2 text-[10px] text-[#8C8880]"><Loader2 className="w-3.5 h-3.5 animate-spin" /> Loading devices...</div>
+              ) : deviceCategories.length > 0 ? deviceCategories.map((category) => (
+                <button key={category.name} onClick={() => onNavigateTab("inventory-management")} className="w-full px-3 py-2.5 flex items-center justify-between gap-3 hover:bg-[#FAF9F5] dark:hover:bg-gray-800 transition-colors text-left">
+                  <span className="text-[10px] font-semibold text-[#1C1C1A] dark:text-gray-100 truncate">{category.name}</span>
+                  <span className="flex items-center gap-2 shrink-0 text-[8px] font-bold">
+                    <span className="text-emerald-600">Available {category.available}</span>
+                    <span className="text-amber-600">In Use {category.inUse}</span>
+                    <span className="min-w-6 text-center rounded-md bg-indigo-50 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300 px-1.5 py-1 text-[10px]">{category.total}</span>
+                  </span>
+                </button>
+              )) : (
+                <div className="py-8 text-center text-[10px] text-[#8C8880]">No devices found.</div>
+              )}
+            </div>
+          </div>
 
           <div className="bg-[#FCFBF9] dark:bg-gray-900 border border-[#E8E4DF] dark:border-gray-800 rounded-xl p-6 shadow-[0_2px_12px_rgba(0,0,0,0.03)] transition-colors">
             <h2 className="text-xs font-semibold tracking-widest text-[#1C1C1A] dark:text-gray-100 uppercase mb-4">Quick Actions</h2>

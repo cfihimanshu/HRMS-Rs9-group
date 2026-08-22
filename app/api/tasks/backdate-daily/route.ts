@@ -43,6 +43,18 @@ export async function POST(request: Request) {
     if (tasks.some((task: any) => !String(task.title || "").trim() || !String(task.progressNote || "").trim() || !String(task.proofAttachment || "").trim() || !validStatuses.has(task.status))) {
       return NextResponse.json({ success: false, error: "Every task needs title, valid status, progress note and proof" }, { status: 400 });
     }
+    if (tasks.some((task: any) => !String(task.relatedCategory || "").trim() || !String(task.type || "").trim())) {
+      return NextResponse.json({ success: false, error: "Every task needs related category and task type" }, { status: 400 });
+    }
+    if (tasks.some((task: any) => task.relatedCategory === "Bank Related" && (!String(task.bankName || "").trim() || !String(task.branchName || "").trim()))) {
+      return NextResponse.json({ success: false, error: "Bank Related task needs bank and branch" }, { status: 400 });
+    }
+    if (tasks.some((task: any) => task.relatedCategory === "RBO Related" && (!String(task.bankName || "").trim() || !String(task.rboName || "").trim()))) {
+      return NextResponse.json({ success: false, error: "RBO Related task needs bank and RBO" }, { status: 400 });
+    }
+    if (tasks.some((task: any) => task.relatedCategory === "Fix Security Related" && !String(task.nbfcName || "").trim())) {
+      return NextResponse.json({ success: false, error: "Fix Security Related task needs NBFC" }, { status: 400 });
+    }
 
     await sequelize.authenticate();
     const dayStart = dateAt(workDate, "00:00");
@@ -67,8 +79,10 @@ export async function POST(request: Request) {
         const taskId = `BDT-${workDate.replace(/-/g, "")}-${randomUUID()}`;
         const status = task.status as string;
         const scheduleId = `lrs_back_${Date.now()}_${index}_${Math.random().toString(36).slice(2, 6)}`;
-        await TaskLog.create({ id: taskId, employee: employeeId, assignedBy: isOwner ? loggedInUserId : null, date: sodAt, scheduledAt: sodAt, taskTitle: String(task.title).trim(), taskType: String(task.type || "General"), description: String(task.details || ""), status, progressNotes: String(task.progressNote).trim(), proofAttachment: String(task.proofAttachment).trim(), timerState: "Stopped", timerStart: null, elapsedSeconds: 0, completedAt: status === "Completed" ? eodAt : null, scheduleId, createdAt: sodAt, updatedAt: eodAt }, { transaction });
-        await LegalRecoverySchedule.create({ id: scheduleId, employeeId, sodId: String((sod as any).id), taskId, date: workDate, time: sodAt.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: true }), workSection: String(task.title).trim(), type: String(task.type || "General"), status, remarks: String(task.details || ""), details: String(task.details || ""), progressNotes: String(task.progressNote).trim(), proofAttachment: String(task.proofAttachment).trim(), completedAt: status === "Completed" ? eodAt : null, createdAt: sodAt, updatedAt: eodAt }, { transaction });
+        const relatedCategory = String(task.relatedCategory || "").trim();
+        const details = [relatedCategory ? `Related Category: ${relatedCategory}` : "", task.bankName ? `Bank: ${String(task.bankName).trim()}` : "", task.branchName ? `Branch: ${String(task.branchName).trim()}` : "", task.rboName ? `RBO: ${String(task.rboName).trim()}` : "", task.nbfcName ? `NBFC: ${String(task.nbfcName).trim()}` : "", String(task.details || "").trim()].filter(Boolean).join("\n");
+        await TaskLog.create({ id: taskId, employee: employeeId, assignedBy: isOwner ? loggedInUserId : null, date: sodAt, scheduledAt: sodAt, taskTitle: String(task.title).trim(), taskType: String(task.type || "General"), description: details, status, progressNotes: String(task.progressNote).trim(), proofAttachment: String(task.proofAttachment).trim(), timerState: "Stopped", timerStart: null, elapsedSeconds: 0, completedAt: status === "Completed" ? eodAt : null, scheduleId, createdAt: sodAt, updatedAt: eodAt }, { transaction });
+        await LegalRecoverySchedule.create({ id: scheduleId, employeeId, sodId: String((sod as any).id), taskId, date: workDate, time: sodAt.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: true }), workSection: String(task.title).trim(), type: String(task.type || "General"), subType: relatedCategory || null, status, bankName: String(task.bankName || "").trim() || null, branchName: String(task.branchName || "").trim() || null, rboName: String(task.rboName || "").trim() || null, otherType: String(task.nbfcName || "").trim() || null, remarks: String(task.details || ""), details, progressNotes: String(task.progressNote).trim(), proofAttachment: String(task.proofAttachment).trim(), completedAt: status === "Completed" ? eodAt : null, createdAt: sodAt, updatedAt: eodAt }, { transaction });
       }
       return { sodId: (sod as any).id, eodId: (eod as any).id, taskCount: tasks.length };
     });

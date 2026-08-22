@@ -61,7 +61,7 @@ const WORK_CATEGORIES: Record<string, string[]> = {
 };
 
 export default function LegalRecoveryModule({ userRole, triggerToast, sessionUser }: LegalRecoveryModuleProps) {
-  const [activeSubModule, setActiveSubModule] = useState<"launcher" | "follow-up" | "masters" | "history" | "banks" | "branches" | "collections" | "work-logs" | "notices" | "nbfcs" | "nbfc-branches" | "security" | "work-history" | "legal-work-entry-history">("launcher");
+  const [activeSubModule, setActiveSubModule] = useState<"launcher" | "follow-up" | "masters" | "history" | "banks" | "branches" | "collections" | "work-logs" | "notices" | "old-notice-archive" | "nbfcs" | "nbfc-branches" | "security" | "work-history" | "legal-work-entry-history">("launcher");
   const [cases, setCases] = useState<any[]>([]);
   const [banksList, setBanksList] = useState<any[]>([]);
   const [branchesList, setBranchesList] = useState<any[]>([]);
@@ -839,6 +839,17 @@ export default function LegalRecoveryModule({ userRole, triggerToast, sessionUse
             <span className="text-[10px] text-slate-500 mt-1 uppercase tracking-wider font-semibold">Track &amp; Manage Notices</span>
           </button>
 
+          <button
+            onClick={() => setActiveSubModule("old-notice-archive")}
+            className="group flex flex-col items-center justify-center p-6 bg-white border border-[#E8E4DF] rounded-2xl hover:shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:border-amber-200 transition-all duration-300"
+          >
+            <div className="w-16 h-16 bg-gradient-to-br from-amber-50 to-orange-100 text-amber-700 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform shadow-sm">
+              <History size={28} strokeWidth={2} />
+            </div>
+            <span className="font-bold text-sm text-slate-800">Old Notice Archive</span>
+            <span className="text-[10px] text-slate-500 mt-1 uppercase tracking-wider font-semibold">Previous Work Entries</span>
+          </button>
+
           {/* Module 9: NBFC Master */}
           <button
             onClick={() => setActiveSubModule("nbfcs")}
@@ -1449,6 +1460,14 @@ export default function LegalRecoveryModule({ userRole, triggerToast, sessionUse
             branchesList={branchesList}
             triggerToast={triggerToast}
             sessionUser={sessionUser}
+          />
+        )}
+
+        {activeSubModule === "old-notice-archive" && (
+          <LegalWorkEntryHistoryView
+            userRole={userRole}
+            triggerToast={triggerToast}
+            archiveNoticesOnly
           />
         )}
       </div>
