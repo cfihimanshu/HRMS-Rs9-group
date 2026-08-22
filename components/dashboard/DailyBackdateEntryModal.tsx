@@ -11,9 +11,11 @@ type WorkItem = { title: string; relatedCategory: string; type: string; details:
 
 const emptyTask = (): WorkItem => ({ title: "", relatedCategory: "", type: "General", details: "", status: "Completed", progressNote: "", proofAttachment: "", bankId: "", bankName: "", branchName: "", aoName: "", rboName: "", nbfcName: "" });
 const to24HourTime = (time: string, period: "AM" | "PM") => {
+  if (!/^\d{1,2}:\d{2}$/.test(time)) return "";
   const [hourText, minute = "00"] = time.split(":");
   const hour = Number(hourText);
-  if (!Number.isInteger(hour) || hour < 1 || hour > 12) return "";
+  const minuteNumber = Number(minute);
+  if (!Number.isInteger(hour) || hour < 1 || hour > 12 || !Number.isInteger(minuteNumber) || minuteNumber < 0 || minuteNumber > 59) return "";
   const hour24 = period === "AM" ? hour % 12 : (hour % 12) + 12;
   return `${String(hour24).padStart(2, "0")}:${minute}`;
 };
@@ -106,8 +108,8 @@ export default function DailyBackdateEntryModal({ open, onClose, onSaved, curren
         <div className="grid sm:grid-cols-4 gap-3 rounded-xl bg-purple-50 border border-purple-100 p-3">
           <label className="text-[10px] font-black text-slate-600">STAFF *{currentUser?.role === "Owner" ? <select required value={employeeId} onChange={e => setEmployeeId(e.target.value)} className="mt-1 w-full border rounded-lg p-2 text-xs bg-white"><option value="">Select staff</option>{staff.map(s => <option key={s.id} value={s.id}>{s.name} ({s.role})</option>)}</select> : <div className="mt-1 w-full border rounded-lg p-2 text-xs bg-slate-100 text-slate-700">{currentUser?.name || "Logged-in Staff"} (Self)</div>}</label>
           <label className="text-[10px] font-black text-slate-600">WORK DATE *<input required type="date" max={new Date().toISOString().slice(0, 10)} value={workDate} onChange={e => setWorkDate(e.target.value)} className="mt-1 w-full border rounded-lg p-2 text-xs bg-white" /></label>
-          <label className="text-[10px] font-black text-slate-600">SOD TIME *<div className="mt-1 flex gap-1"><input required type="time" min="01:00" max="12:59" value={sodTime} onChange={e => setSodTime(e.target.value)} className="min-w-0 flex-1 border rounded-lg p-2 text-xs bg-white" /><select value={sodPeriod} onChange={e => setSodPeriod(e.target.value as "AM" | "PM")} className="border rounded-lg px-2 text-xs font-bold bg-white"><option>AM</option><option>PM</option></select></div></label>
-          <label className="text-[10px] font-black text-slate-600">EOD TIME *<div className="mt-1 flex gap-1"><input required type="time" min="01:00" max="12:59" value={eodTime} onChange={e => setEodTime(e.target.value)} className="min-w-0 flex-1 border rounded-lg p-2 text-xs bg-white" /><select value={eodPeriod} onChange={e => setEodPeriod(e.target.value as "AM" | "PM")} className="border rounded-lg px-2 text-xs font-bold bg-white"><option>AM</option><option>PM</option></select></div></label>
+          <label className="text-[10px] font-black text-slate-600">SOD TIME *<div className="mt-1 flex gap-1"><input required type="text" inputMode="numeric" placeholder="09:00" pattern="(?:0?[1-9]|1[0-2]):[0-5][0-9]" title="12-hour time likhein, jaise 09:00" value={sodTime} onChange={e => setSodTime(e.target.value)} className="min-w-0 flex-1 border rounded-lg p-2 text-xs bg-white" /><select value={sodPeriod} onChange={e => setSodPeriod(e.target.value as "AM" | "PM")} className="border rounded-lg px-2 text-xs font-bold bg-white"><option>AM</option><option>PM</option></select></div></label>
+          <label className="text-[10px] font-black text-slate-600">EOD TIME *<div className="mt-1 flex gap-1"><input required type="text" inputMode="numeric" placeholder="06:00" pattern="(?:0?[1-9]|1[0-2]):[0-5][0-9]" title="12-hour time likhein, jaise 06:00" value={eodTime} onChange={e => setEodTime(e.target.value)} className="min-w-0 flex-1 border rounded-lg p-2 text-xs bg-white" /><select value={eodPeriod} onChange={e => setEodPeriod(e.target.value as "AM" | "PM")} className="border rounded-lg px-2 text-xs font-bold bg-white"><option>AM</option><option>PM</option></select></div></label>
         </div>
         <div className="flex justify-between items-center"><div><h3 className="text-sm font-black">Daily Tasks ({tasks.length})</h3><p className="text-[10px] text-slate-500">Har task ka proof aur progress note mandatory hai.</p></div><button type="button" onClick={() => setTasks(r => [...r, emptyTask()])} className="bg-[#714B67] text-white rounded-lg px-3 py-2 text-xs font-black flex gap-1"><Plus className="w-4 h-4" /> Add Task</button></div>
         <div className="space-y-3">{tasks.map((task, index) => <div key={index} className="border rounded-xl p-3 bg-slate-50">
