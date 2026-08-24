@@ -197,6 +197,10 @@ AssetInventory.init(
     sequelize,
     tableName: "asset_inventory",
     timestamps: true,
+    indexes: [
+      { name: "idx_asset_inventory_company_status", fields: ["companyId", "status"] },
+      { name: "idx_asset_inventory_created_at", fields: ["createdAt"] }
+    ]
   }
 );
 

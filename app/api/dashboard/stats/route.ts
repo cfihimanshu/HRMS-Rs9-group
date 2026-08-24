@@ -1331,7 +1331,8 @@ export async function GET(req: Request) {
     staffProfiles.forEach((p: any) => {
       staffProfilesMap[p.user] = {
         department: p.department || 'N/A',
-        designation: p.designation || 'N/A'
+        designation: p.designation || 'N/A',
+        vertical: p.vertical || 'Unassigned'
       };
     });
 
@@ -1367,6 +1368,7 @@ export async function GET(req: Request) {
           companies: Array.isArray(u.companies) ? u.companies.join(', ') : (u.companies || 'N/A'),
           department: userDept,
           designation: staffProfilesMap[u.id]?.designation || 'N/A',
+          vertical: staffProfilesMap[u.id]?.vertical || 'Unassigned',
           isPresent,
           isOnLeave,
           leaveReason: leaveMap[uidStr] || null,
