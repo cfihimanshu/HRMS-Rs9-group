@@ -8,6 +8,7 @@ import {
   LogOut, ChevronDown, ChevronRight, MapPin, Cpu, Package, Key, Scale, History, FolderKanban, Car, Globe
 } from "lucide-react";
 import { signOut } from "next-auth/react";
+import { CATEGORIES_ORDER } from "@/lib/navigationConfig";
 
 interface SidebarProps {
   activeTab: string;
@@ -63,40 +64,41 @@ export default function DashboardSidebar({
   }, []);
 
   const allMenuItems = [
-    { id: "dashboard", label: "Owner Dashboard", icon: LayoutDashboard, category: "Core Workspace", roles: ["Owner", "Director"] },
-    { id: "hr-dash", label: "HR Dashboard", icon: UserSquare2, category: "Core Workspace", roles: ["Owner", "Director", "HR Head", "HR Executive"] },
-    { id: "dept-dash", label: "Department Dashboard", icon: Building2, category: "Core Workspace", roles: ["Owner", "Director", "Department Manager"] },
+    // Dashboards
+    { id: "dashboard", label: "Owner Dashboard", icon: LayoutDashboard, category: "Dashboards", roles: ["Owner", "Director"] },
+    { id: "hr-dash", label: "HR Dashboard", icon: UserSquare2, category: "Dashboards", roles: ["Owner", "Director", "HR Head", "HR Executive"] },
+    { id: "dept-dash", label: "Department Dashboard", icon: Building2, category: "Dashboards", roles: ["Owner", "Director", "Department Manager"] },
+    { id: "ess-dashboard", label: "ESS Dashboard", icon: LayoutDashboard, category: "Dashboards", roles: ["Employee"] },
+
+    // Human Resources (HR)
+    { id: "business-leads", label: "HR Leads", icon: FileSpreadsheet, category: "Human Resources (HR)", roles: ["Owner", "Director", "HR Head", "HR Executive"] },
+    { id: "hiring", label: "Hiring Approvals", icon: FileEdit, category: "Human Resources (HR)", roles: ["Owner", "Director", "HR Head", "HR Executive", "Department Manager", "Accounts"] },
+    { id: "jobs", label: "Vacancy Postings", icon: Briefcase, category: "Human Resources (HR)", roles: ["Owner", "Director", "HR Head", "HR Executive"] },
+    { id: "screening", label: "AI Screening Module", icon: ScanLine, category: "Human Resources (HR)", roles: ["Owner", "Director", "HR Head", "HR Executive"] },
+    { id: "interviews", label: "Interviews Queue", icon: Video, category: "Human Resources (HR)", badge: stats?.interviews?.pending, roles: ["Owner", "Director", "HR Head", "HR Executive", "Trainer"] },
+    { id: "verification", label: "Vetting Checks Registry", icon: ShieldCheck, category: "Human Resources (HR)", roles: ["Owner", "Director", "HR Head", "HR Executive", "RIBP / Risk Officer"] },
+    { id: "onboarding", label: "NDA Onboarding SLA", icon: FileText, category: "Human Resources (HR)", roles: ["Owner", "Director", "HR Head", "HR Executive"] },
+    { id: "training", label: "Training Classroom", icon: GraduationCap, category: "Human Resources (HR)", roles: ["Owner", "Director", "HR Head", "HR Executive", "Trainer"] },
+    { id: "probation", label: "6-Month Probation Audit", icon: Clock, category: "Human Resources (HR)", badge: stats?.operations?.probationCases, roles: ["Owner", "Director", "HR Head", "HR Executive", "Trainer"] },
+
+    // Administration & IT
+    { id: "employees", label: "Employees Directory", icon: Users2, category: "Administration & IT", roles: ["Owner", "Director", "HR Head", "HR Executive"] },
+    { id: "admin-access", label: "Administrator Access", icon: Key, category: "Administration & IT", roles: ["Owner"] },
+    { id: "inventory-management", label: "Inventory Management", icon: Package, category: "Administration & IT", roles: ["Owner"] },
+    { id: "assets-registry", label: "Assets Registry", icon: Cpu, category: "Administration & IT", roles: ["Owner", "Director", "HR Head", "HR Executive"] },
+    { id: "document-movement", label: "Document Movement", icon: FolderKanban, category: "Administration & IT", roles: ["Owner", "Director", "HR Head", "HR Executive", "Department Manager", "IT Admin", "Accounts"] },
+    { id: "vehicle-registry", label: "Vehicle Registry", icon: Car, category: "Administration & IT", roles: ["Owner", "Director", "HR Head", "HR Executive", "Department Manager", "IT Admin"] },
+    { id: "domain-record", label: "Domain Record", icon: Globe, category: "Administration & IT", roles: ["Owner", "Director", "HR Head", "HR Executive", "IT Admin"] },
+    { id: "legal-recovery", label: "Legal Recovery", icon: Scale, category: "Administration & IT", roles: ["Owner"] },
+    { id: "audit-trail", label: "System Audit Trail", icon: History, category: "Administration & IT", roles: ["Owner", "Director", "HR Head"] },
 
     // Employee Self Service (ESS)
-    { id: "ess-dashboard", label: "ESS Dashboard", icon: LayoutDashboard, category: "Employee Self Service", roles: ["Employee"] },
     { id: "ess-leaves", label: "Leave Management", icon: CalendarCheck, category: "Employee Self Service", roles: ["Employee"] },
     { id: "ess-payroll", label: "My Payslips & Salary", icon: FileText, category: "Employee Self Service", roles: ["Owner", "Director", "HR Head", "HR Executive"] },
     { id: "ess-expenses", label: "Expense Claims", icon: Coins, category: "Employee Self Service", roles: ["Owner", "Director", "HR Head", "HR Executive", "Department Manager", "Accounts", "Employee"] },
     { id: "asset-request", label: "Asset Request", icon: Cpu, category: "Employee Self Service", roles: ["Employee", "Owner", "Director", "HR Head", "HR Executive", "Department Manager"] },
 
-    { id: "hiring", label: "Hiring Approvals", icon: FileEdit, category: "Core Workspace", roles: ["Owner", "Director", "HR Head", "HR Executive", "Department Manager", "Accounts"] },
-    { id: "jobs", label: "Vacancy Postings", icon: Briefcase, category: "Core Workspace", roles: ["Owner", "Director", "HR Head", "HR Executive"] },
-    { id: "business-leads", label: "HR Leads", icon: FileSpreadsheet, category: "Core Workspace", roles: ["Owner", "Director", "HR Head", "HR Executive"] },
-    { id: "employees", label: "Employees Directory", icon: Users2, category: "Core Workspace", roles: ["Owner", "Director", "HR Head", "HR Executive"] },
-    { id: "bda-directory", label: "BDA Network (Sales)", icon: Users2, category: "Core Workspace", roles: ["Owner", "Director", "HR Head", "HR Executive", "Department Manager"] },
-    { id: "bda-leads", label: "BDA Leads", icon: FileSpreadsheet, category: "Core Workspace", roles: ["Owner", "Director", "HR Head", "HR Executive", "Department Manager", "Employee"] },
-    { id: "assets-registry", label: "Assets Registry", icon: Cpu, category: "Core Workspace", roles: ["Owner", "Director", "HR Head", "HR Executive"] },
-    { id: "domain-record", label: "Domain Record", icon: Globe, category: "Core Workspace", roles: ["Owner", "Director", "HR Head", "HR Executive", "IT Admin"] },
-    { id: "inventory-management", label: "Inventory Management", icon: Package, category: "Core Workspace", roles: ["Owner"] },
-    { id: "admin-access", label: "Administrator Access", icon: Key, category: "Core Workspace", roles: ["Owner"] },
-    { id: "audit-trail", label: "System Audit Trail", icon: History, category: "Core Workspace", roles: ["Owner", "Director", "HR Head"] },
-    { id: "document-movement", label: "Document Movement", icon: FolderKanban, category: "Core Workspace", roles: ["Owner", "Director", "HR Head", "HR Executive", "Department Manager", "IT Admin", "Accounts"] },
-    { id: "vehicle-registry", label: "Vehicle Registry", icon: Car, category: "Core Workspace", roles: ["Owner", "Director", "HR Head", "HR Executive", "Department Manager", "IT Admin"] },
-    { id: "legal-recovery", label: "Legal Recovery", icon: Scale, category: "Core Workspace", roles: ["Owner"] },
-
-    { id: "screening", label: "AI Screening Module", icon: ScanLine, category: "AI & Vetting Hub", roles: ["Owner", "Director", "HR Head", "HR Executive"] },
-    { id: "interviews", label: "Interviews Queue", icon: Video, category: "AI & Vetting Hub", badge: stats?.interviews?.pending, roles: ["Owner", "Director", "HR Head", "HR Executive", "Trainer"] },
-    { id: "verification", label: "Vetting Checks Registry", icon: ShieldCheck, category: "AI & Vetting Hub", roles: ["Owner", "Director", "HR Head", "HR Executive", "RIBP / Risk Officer"] },
-    { id: "onboarding", label: "NDA Onboarding SLA", icon: FileText, category: "AI & Vetting Hub", roles: ["Owner", "Director", "HR Head", "HR Executive"] },
-
-    { id: "training", label: "Training Classroom", icon: GraduationCap, category: "Training & Probation", roles: ["Owner", "Director", "HR Head", "HR Executive", "Trainer"] },
-    { id: "probation", label: "6-Month Probation Audit", icon: Clock, category: "Training & Probation", badge: stats?.operations?.probationCases, roles: ["Owner", "Director", "HR Head", "HR Executive", "Trainer"] },
-
+    // Daily Operations
     { id: "attendance", label: "Attendance Punch & SOD", icon: CalendarCheck, category: "Daily Operations", roles: ["Owner", "Director", "HR Head", "HR Executive", "Department Manager", "Accounts", "Trainer", "IT Admin", "DSM", "RIBP / Risk Officer"] },
     { id: "scheduled-work", label: "Schedule Work Report", icon: CalendarClock, category: "Daily Operations", roles: ["Owner", "Director", "HR Head", "HR Executive", "Department Manager", "Accounts", "Trainer", "Employee", "IT Admin", "DSM", "RIBP / Risk Officer"] },
     { id: "tasks", label: "My Tasks (Kanban)", icon: FileEdit, category: "Daily Operations", roles: ["Owner", "Director", "HR Head", "HR Executive", "Department Manager", "Accounts", "Trainer", "Employee", "IT Admin", "DSM", "RIBP / Risk Officer"] },
@@ -106,10 +108,14 @@ export default function DashboardSidebar({
     { id: "field-visit", label: "Field Visit Logs", icon: MapPin, category: "Daily Operations", roles: ["Owner", "Director", "HR Head", "HR Executive", "Department Manager", "Employee"] },
     { id: "leave-request", label: "Leave Request", icon: CalendarCheck, category: "Daily Operations", roles: ["Owner", "Director", "HR Head", "HR Executive", "Department Manager", "Accounts", "Trainer", "Employee", "IT Admin", "DSM", "RIBP / Risk Officer", "Business Associate", "Vendor", "Franchisee", "Territory Partner"] },
 
-    { id: "associates", label: "Business Associates", icon: BriefcaseIcon, category: "Network Partners", roles: ["Owner", "Director", "HR Head", "Franchisee", "Territory Partner", "Business Associate"] },
-    { id: "vendors", label: "Vendor Contracts", icon: Building2, category: "Network Partners", roles: ["Owner", "Director", "HR Head", "Accounts", "Vendor"] },
-    { id: "franchise", label: "Franchise Brand Audits", icon: Coins, category: "Network Partners", roles: ["Owner", "Director", "HR Head", "Accounts", "Franchisee", "Territory Partner"] },
+    // Sales & Business Network
+    { id: "bda-directory", label: "BDA Network (Sales)", icon: Users2, category: "Sales & Business Network", roles: ["Owner", "Director", "HR Head", "HR Executive", "Department Manager"] },
+    { id: "bda-leads", label: "BDA Leads", icon: FileSpreadsheet, category: "Sales & Business Network", roles: ["Owner", "Director", "HR Head", "HR Executive", "Department Manager", "Employee"] },
+    { id: "associates", label: "Business Associates", icon: BriefcaseIcon, category: "Sales & Business Network", roles: ["Owner", "Director", "HR Head", "Franchisee", "Territory Partner", "Business Associate"] },
+    { id: "vendors", label: "Vendor Contracts", icon: Building2, category: "Sales & Business Network", roles: ["Owner", "Director", "HR Head", "Accounts", "Vendor"] },
+    { id: "franchise", label: "Franchise Brand Audits", icon: Coins, category: "Sales & Business Network", roles: ["Owner", "Director", "HR Head", "Accounts", "Franchisee", "Territory Partner"] },
 
+    // Compliance & Exit
     { id: "grievance", label: "Anonymous Grievance", icon: HelpCircle, category: "Compliance & Exit", badge: stats?.operations?.grievanceCases, roles: ["Owner", "Director", "HR Head", "HR Executive", "Department Manager", "Accounts", "Trainer", "Business Associate", "Vendor", "Franchisee", "Territory Partner"] },
     { id: "disciplinary-warnings", label: "Disciplinary Warnings", icon: ShieldAlert, category: "Compliance & Exit", badge: (["Owner", "Director", "HR Head", "HR Executive"].includes(userRole) ? (stats?.operations?.disciplinaryWarnings?.pendingApprovals || 0) : (stats?.operations?.disciplinaryWarnings?.myActive || 0)), urgent: (stats?.operations?.disciplinaryWarnings?.myActive > 0 && !["Owner", "Director", "HR Head", "HR Executive"].includes(userRole)), roles: ["Owner", "Director", "HR Head", "HR Executive", "Department Manager", "IT MANAGER", "DSM", "Employee", "Accounts", "Trainer", "IT Admin", "RIBP / Risk Officer", "Business Associate", "Vendor", "Franchisee", "Territory Partner"] },
     { id: "risks", label: "Critical Risk Warnings", icon: AlertTriangle, category: "Compliance & Exit", badge: stats?.alerts?.criticalRisk, urgent: true, roles: ["Owner", "Director", "HR Head", "RIBP / Risk Officer"] },
@@ -170,7 +176,7 @@ export default function DashboardSidebar({
 
     if (effectiveAllowedPageIds && effectiveAllowedPageIds.length > 0) {
       const hasPageLevelPermissions = effectiveAllowedPageIds.some(p =>
-        !["Core Workspace", "Employee Self Service", "AI & Vetting Hub", "Training & Probation", "Daily Operations", "Network Partners", "Compliance & Exit"].includes(p)
+        !CATEGORIES_ORDER.includes(p)
       );
       if (hasPageLevelPermissions) {
         return effectiveAllowedPageIds.includes(item.id);
@@ -222,21 +228,34 @@ export default function DashboardSidebar({
     return acc;
   }, {} as Record<string, typeof menuItems>);
 
-  const categories = Object.keys(groupedMenu);
+  const categories = CATEGORIES_ORDER.filter(cat => groupedMenu[cat] && groupedMenu[cat].length > 0);
 
-  const [openSections, setOpenSections] = useState<Record<string, boolean>>(
-    categories.reduce((acc, cat) => ({ ...acc, [cat]: true }), {})
-  );
+  const [openSections, setOpenSections] = useState<Record<string, boolean>>(() => {
+    return categories.reduce((acc, cat) => {
+      acc[cat] = true;
+      return acc;
+    }, {} as Record<string, boolean>);
+  });
+
+  // Ensure active tab category is expanded
+  useEffect(() => {
+    for (const cat of categories) {
+      if (groupedMenu[cat]?.some(i => i.id === activeTab)) {
+        setOpenSections(prev => ({ ...prev, [cat]: true }));
+        break;
+      }
+    }
+  }, [activeTab]);
 
   const toggle = (cat: string) => setOpenSections(prev => ({ ...prev, [cat]: !prev[cat] }));
 
   const catIcons: Record<string, any> = {
-    "Core Workspace": LayoutDashboard,
-    "Employee Self Service": UserSquare2,
-    "AI & Vetting Hub": ScanLine,
-    "Training & Probation": GraduationCap,
+    "Dashboards": LayoutDashboard,
+    "Human Resources (HR)": UserSquare2,
+    "Administration & IT": Key,
+    "Employee Self Service": Users2,
     "Daily Operations": CalendarCheck,
-    "Network Partners": BriefcaseIcon,
+    "Sales & Business Network": BriefcaseIcon,
     "Compliance & Exit": ShieldCheck,
   };
 
@@ -257,39 +276,41 @@ export default function DashboardSidebar({
 
       <nav className="flex-1 py-4 px-3 space-y-1.5 custom-scrollbar">
         {categories.map((cat) => {
-          const isAI = cat === "AI & Vetting Hub";
-          const isOpen = openSections[cat];
+          const isOpen = openSections[cat] ?? true;
           const Icon = catIcons[cat] || LayoutDashboard;
-          const anyActive = groupedMenu[cat].some(i => i.id === activeTab);
+          const anyActive = groupedMenu[cat]?.some(i => i.id === activeTab);
+          const totalBadge = groupedMenu[cat]?.reduce((sum, i) => sum + (i.badge || 0), 0) || 0;
+          const hasUrgent = groupedMenu[cat]?.some(i => (i.badge || 0) > 0 && i.urgent);
 
           return (
-            <div key={cat}>
-              {isAI && (
-                <div className="mx-2.5 my-3 border-t border-[#E8E4DF]/85 dark:border-gray-800 text-[9px] font-bold uppercase tracking-widest pt-3 text-[#C9A84C]">
-                  ✦ AI Features
-                </div>
-              )}
-
+            <div key={cat} className="space-y-1">
               <button
                 onClick={() => toggle(cat)}
-                className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-[10px] font-bold tracking-wider transition-all uppercase ${anyActive
-                  ? "bg-[#F0EAE4] dark:bg-gray-800 text-[#1C1C1A] dark:text-white"
-                  : "text-[#5D5B57] dark:text-gray-400 hover:bg-[#F0EAE4]/50 dark:hover:bg-gray-800/70 hover:text-[#1C1C1A] dark:hover:text-white"
+                className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-[10px] font-bold tracking-wider transition-all uppercase ${anyActive
+                  ? "bg-[#F0EAE4] dark:bg-gray-800/90 text-[#1C1C1A] dark:text-white shadow-xs"
+                  : "text-[#6B6965] dark:text-gray-400 hover:bg-[#F0EAE4]/60 dark:hover:bg-gray-800/60 hover:text-[#1C1C1A] dark:hover:text-white"
                   }`}
               >
                 <div className="flex items-center gap-2.5 min-w-0">
-                  <Icon className={`w-4 h-4 shrink-0 ${anyActive ? "text-[#C9A84C]" : "text-[#9C9890]"}`} />
+                  <Icon className={`w-3.5 h-3.5 shrink-0 ${anyActive ? "text-[#C9A84C]" : "text-[#9C9890] dark:text-gray-500"}`} />
                   <span className="truncate">{cat}</span>
                 </div>
-                {isOpen
-                  ? <ChevronDown className="w-3.5 h-3.5 shrink-0 opacity-60" />
-                  : <ChevronRight className="w-3.5 h-3.5 shrink-0 opacity-60" />
-                }
+                <div className="flex items-center gap-1.5 shrink-0">
+                  {!isOpen && totalBadge > 0 && (
+                    <span className={`text-[9px] font-bold px-1.5 py-0.2 rounded ${hasUrgent ? "bg-rose-500 text-white animate-pulse" : "bg-[#C9A84C] text-white"}`}>
+                      {totalBadge}
+                    </span>
+                  )}
+                  {isOpen
+                    ? <ChevronDown className="w-3.5 h-3.5 opacity-60 transition-transform duration-200" />
+                    : <ChevronRight className="w-3.5 h-3.5 opacity-60 transition-transform duration-200" />
+                  }
+                </div>
               </button>
 
               {isOpen && (
-                <div className="ml-4 mt-1 space-y-1 pl-2 border-l border-[#E8E4DF] dark:border-gray-800">
-                  {groupedMenu[cat].map((item) => {
+                <div className="ml-3 mt-1 space-y-0.5 pl-2.5 border-l-2 border-[#E8E4DF]/70 dark:border-gray-800/80">
+                  {groupedMenu[cat]?.map((item) => {
                     const isActive = activeTab === item.id;
                     const ItemIcon = item.icon;
                     return (
@@ -313,13 +334,13 @@ export default function DashboardSidebar({
                             setMobileMenuOpen(false);
                           }
                         }}
-                        className={`w-full flex items-center justify-between text-[11px] py-2 px-2.5 rounded-lg font-medium transition-all ${isActive
-                          ? "bg-[#F0EAE4] dark:bg-gray-800 text-[#1C1C1A] dark:text-white font-semibold border-l-2 border-[#C9A84C]"
-                          : "text-[#5D5B57] dark:text-gray-400 hover:bg-[#F5F0EA] dark:hover:bg-gray-800/70 hover:text-[#1C1C1A] dark:hover:text-white"
+                        className={`w-full flex items-center justify-between text-[11px] py-1.5 px-2.5 rounded-md font-medium transition-all ${isActive
+                          ? "bg-[#EBE4DC] dark:bg-gray-800 text-[#1C1C1A] dark:text-white font-semibold border-l-2 border-[#C9A84C]"
+                          : "text-[#666460] dark:text-gray-400 hover:bg-[#F5F0EA] dark:hover:bg-gray-800/60 hover:text-[#1C1C1A] dark:hover:text-white"
                           }`}
                       >
-                        <div className="flex items-center gap-2">
-                          <ItemIcon className="w-3.5 h-3.5 shrink-0 opacity-80" />
+                        <div className="flex items-center gap-2 min-w-0">
+                          <ItemIcon className={`w-3.5 h-3.5 shrink-0 ${isActive ? "text-[#C9A84C]" : "opacity-75"}`} />
                           <span className="truncate">{item.label}</span>
                         </div>
 

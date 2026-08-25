@@ -18,6 +18,7 @@ import {
   Clock,
   CheckCircle,
   FileCheck,
+  FileCheck2,
   FileText,
   ShieldCheck,
   CalendarClock,
@@ -39,7 +40,16 @@ import {
   ListChecks,
   Mail,
   Loader2,
-  Package
+  Package,
+  RefreshCw,
+  CalendarDays,
+  FolderKanban,
+  UserRoundCheck,
+  Clock3,
+  Search,
+  Filter,
+  Megaphone,
+  ChevronRight
 } from "lucide-react";
 import StatCard from "./StatCard";
 import AttendanceChart from "./AttendanceChart";
@@ -912,23 +922,168 @@ export function OwnerDashboard({
 }
 
 export function HrDashboard({
-  stats,
-  candidates = [],
-  interviews = [],
-  onNavigateTab
+  stats: initialStats,
+  candidates: initialCandidates = [],
+  interviews: initialInterviews = [],
+  onNavigateTab,
+  sessionUser,
+  companies = [],
+  selectedCompanyId,
+  onCompanyChange,
+  triggerToast
 }: {
   stats: any;
   candidates?: any[];
   interviews?: any[];
   onNavigateTab: (tab: string, filter?: string) => void;
+  sessionUser?: any;
+  companies?: any[];
+  selectedCompanyId?: string;
+  onCompanyChange?: (id: string) => void;
+  triggerToast?: (msg: string) => void;
 }) {
-  const hrStats = stats?.hrStats || {};
+  const [liveStats, setLiveStats] = React.useState<any>(initialStats || {});
+  const [candidatesList, setCandidatesList] = React.useState<any[]>(initialCandidates || []);
+  const [interviewsList, setInterviewsList] = React.useState<any[]>(initialInterviews || []);
+  const [liveLeaves, setLiveLeaves] = React.useState<any[]>([]);
+  const [operationsCounts, setOperationsCounts] = React.useState({ inventory: 0, vehicles: 0 });
   const [isDark, setIsDark] = React.useState(false);
   const [showHiringModal, setShowHiringModal] = React.useState(false);
   const [showAllActivities, setShowAllActivities] = React.useState(false);
   const [showAttendanceModal, setShowAttendanceModal] = React.useState(false);
   const [attendanceFilter, setAttendanceFilter] = React.useState<"all" | "present" | "absent" | "leave">("all");
   const [attendanceSearchQuery, setAttendanceSearchQuery] = React.useState("");
+  const [selectedDept, setSelectedDept] = React.useState("");
+  const [departments, setDepartments] = React.useState<any[]>([]);
+  const [scopeRange, setScopeRange] = React.useState<"today" | "all">("today");
+  const [isRefreshing, setIsRefreshing] = React.useState(false);
+
+  React.useEffect(() => {
+    if (initialStats && Object.keys(initialStats).length > 0) {
+      setLiveStats((prev: any) => ({ ...prev, ...initialStats }));
+    }
+  }, [initialStats]);
+
+  React.useEffect(() => {
+    if (initialCandidates && initialCandidates.length > 0) {
+      setCandidatesList(initialCandidates);
+    }
+  }, [initialCandidates]);
+
+  React.useEffect(() => {
+    if (initialInterviews && initialInterviews.length > 0) {
+      setInterviewsList(initialInterviews);
+    }
+  }, [initialInterviews]);
+
+  React.useEffect(() => {
+    setIsDark(document.documentElement.classList.contains("dark"));
+    const observer = new MutationObserver(() => {
+      setIsDark(document.documentElement.classList.contains("dark"));
+    });
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
+    return () => observer.disconnect();
+  }, []);
+
+  React.useEffect(() => {
+    const controller = new AbortController();
+    fetch("/api/departments", { cache: "force-cache", signal: controller.signal })
+      .then(res => res.json())
+      .then(data => {
+        if (data?.success && Array.isArray(data.data)) {
+          setDepartments(data.data);
+        }
+      })
+      .catch(() => {});
+    return () => controller.abort();
+  }, []);
+
+  const indiaDateKey = (value: any) => {
+    if (!value) return "";
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return "";
+    return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Kolkata", year: "numeric", month: "2-digit", day: "2-digit" }).format(date);
+  };
+
+  function parseCompanyNames(value: any): string[] {
+    if (!value) return [];
+    if (Array.isArray(value)) return value.map(item => String(item?.name || item?.id || item)).filter(Boolean);
+    if (typeof value === "string") {
+      try { return parseCompanyNames(JSON.parse(value)); } catch {
+        return value.split(",").map(item => item.trim()).filter(Boolean);
+      }
+    }
+    return [String(value?.name || value?.id || value)].filter(Boolean);
+  }
+
+  const loadLiveHrData = React.useCallback(async (signal?: AbortSignal) => {
+    setIsRefreshing(true);
+    try {
+      const companyQuery = selectedCompanyId ? `?companyId=${encodeURIComponent(selectedCompanyId)}` : "";
+      const [statsRes, candRes, interviewRes, leavesRes, invRes, vehRes] = await Promise.all([
+        fetch(`/api/dashboard/stats${companyQuery}`, { cache: "no-store", signal }).catch(() => null),
+        fetch(`/api/candidates${companyQuery}`, { cache: "no-store", signal }).catch(() => null),
+        fetch(`/api/interviews`, { cache: "no-store", signal }).catch(() => null),
+        fetch(`/api/leaves`, { cache: "no-store", signal }).catch(() => null),
+        fetch(`/api/assets/inventory${companyQuery}`, { cache: "no-store", signal }).catch(() => null),
+        fetch(`/api/vehicles${companyQuery}`, { cache: "no-store", signal }).catch(() => null),
+      ]);
+
+      if (signal?.aborted) return;
+
+      if (statsRes && statsRes.ok) {
+        const statsJson = await statsRes.json();
+        if (statsJson?.success && statsJson.stats) {
+          setLiveStats(statsJson.stats);
+        }
+      }
+      if (candRes && candRes.ok) {
+        const candJson = await candRes.json();
+        if (candJson?.success && Array.isArray(candJson.data)) {
+          setCandidatesList(candJson.data);
+        }
+      }
+      if (interviewRes && interviewRes.ok) {
+        const interviewJson = await interviewRes.json();
+        if (interviewJson?.success && Array.isArray(interviewJson.data)) {
+          setInterviewsList(interviewJson.data);
+        }
+      }
+      if (leavesRes && leavesRes.ok) {
+        const leavesJson = await leavesRes.json();
+        if (leavesJson?.success && Array.isArray(leavesJson.data)) {
+          setLiveLeaves(leavesJson.data);
+        }
+      }
+      if (invRes || vehRes) {
+        const [invJson, vehJson] = await Promise.all([
+          invRes && invRes.ok ? invRes.json() : null,
+          vehRes && vehRes.ok ? vehRes.json() : null
+        ]);
+        setOperationsCounts({
+          inventory: invJson?.success ? (Array.isArray(invJson.data) ? invJson.data.length : 0) : 0,
+          vehicles: vehJson?.success ? (Number(vehJson.summary?.total) || (Array.isArray(vehJson.data) ? vehJson.data.length : 0)) : 0
+        });
+      }
+    } catch (err: any) {
+      if (err?.name !== "AbortError") {
+        console.error("Live HR Data fetch error:", err);
+      }
+    } finally {
+      if (!signal?.aborted) setIsRefreshing(false);
+    }
+  }, [selectedCompanyId]);
+
+  React.useEffect(() => {
+    const controller = new AbortController();
+    loadLiveHrData(controller.signal);
+    return () => controller.abort();
+  }, [loadLiveHrData]);
+
+  const handleRefresh = () => {
+    loadLiveHrData();
+    triggerToast?.("HR Dashboard data refreshed");
+  };
 
   const formatCleanDepartment = (rawDept: any, role?: string, designation?: string): string => {
     if (rawDept) {
@@ -962,30 +1117,51 @@ export function HrDashboard({
     return "Operations";
   };
 
-  const attendanceCounts = React.useMemo(() => {
-    const activeStaff = (stats?.staffList || []).filter((s: any) => {
+  const rawStaffList = React.useMemo(() => {
+    return Array.isArray(liveStats?.staffList) ? liveStats.staffList : (Array.isArray(initialStats?.staffList) ? initialStats.staffList : []);
+  }, [liveStats?.staffList, initialStats?.staffList]);
+
+  const activeStaffList = React.useMemo(() => {
+    return rawStaffList.filter((s: any) => {
       const st = String(s.status || "").toLowerCase();
-      return !["inactive", "archived", "terminated", "disabled"].includes(st);
+      if (["inactive", "archived", "terminated", "disabled"].includes(st)) return false;
+      if (selectedCompanyId) {
+        const cNames = parseCompanyNames(s.companies || s.company);
+        const target = companies.find(c => String(c.id) === String(selectedCompanyId));
+        if (cNames.length && !cNames.some((n: string) => [selectedCompanyId, target?.name].filter(Boolean).some(t => n.toLowerCase() === String(t).toLowerCase()))) {
+          return false;
+        }
+      }
+      if (selectedDept) {
+        const deptStr = String(s.department?.name || s.department || s.employeeProfile?.department || "").toLowerCase();
+        if (!deptStr.includes(selectedDept.toLowerCase())) return false;
+      }
+      return true;
     });
-    const present = activeStaff.filter((s: any) => s.isPresent).length;
-    const leave = activeStaff.filter((s: any) => s.isOnLeave || s.attendanceStatus === "On Leave").length;
-    const absent = activeStaff.filter((s: any) => !s.isPresent && !s.isOnLeave && s.attendanceStatus !== "On Leave").length;
-    const total = activeStaff.length;
+  }, [rawStaffList, selectedCompanyId, selectedDept, companies]);
+
+  const attendanceCounts = React.useMemo(() => {
+    const present = activeStaffList.filter((s: any) => s.isPresent || s.attendanceStatus === "Present" || Boolean(s.sodTime)).length;
+    const leave = activeStaffList.filter((s: any) => s.isOnLeave || s.attendanceStatus === "On Leave").length;
+    const absent = activeStaffList.filter((s: any) => !s.isPresent && !s.isOnLeave && s.attendanceStatus !== "On Leave" && s.attendanceStatus !== "Present" && !s.sodTime).length;
+    const sodFiled = activeStaffList.filter((s: any) => Boolean(s.sodTime)).length;
+    const total = activeStaffList.length;
+
+    const compliance = liveStats?.todayCompliance || initialStats?.todayCompliance;
+    const isFiltered = Boolean(selectedCompanyId || selectedDept);
+
     return {
-      present: stats?.todayCompliance?.attendance ?? present,
-      absent: stats?.todayCompliance?.absent ?? absent,
-      leave: stats?.todayCompliance?.leaves ?? leave,
-      total: total
+      present: isFiltered ? present : (compliance?.attendance ?? present),
+      absent: isFiltered ? absent : (compliance?.absent ?? absent),
+      leave: isFiltered ? leave : (compliance?.leaves ?? leave),
+      sodFiled: isFiltered ? sodFiled : (compliance?.sod ?? sodFiled),
+      total: isFiltered ? total : (total || Number(liveStats?.roles?.employees || initialStats?.roles?.employees || 0))
     };
-  }, [stats]);
+  }, [activeStaffList, liveStats, initialStats, selectedCompanyId, selectedDept]);
 
   const filteredAttendanceStaffList = React.useMemo(() => {
-    const activeStaff = (stats?.staffList || []).filter((member: any) => {
-      const st = String(member.status || "").toLowerCase();
-      return !["inactive", "archived", "terminated", "disabled"].includes(st);
-    });
-    return activeStaff.filter((member: any) => {
-      const isPresent = member.isPresent;
+    return activeStaffList.filter((member: any) => {
+      const isPresent = member.isPresent || member.attendanceStatus === "Present" || Boolean(member.sodTime);
       const isOnLeave = member.isOnLeave || member.attendanceStatus === "On Leave";
       const isAbsent = !isPresent && !isOnLeave;
 
@@ -1006,54 +1182,41 @@ export function HrDashboard({
         member.leaveReason
       ].some(val => String(val || "").toLowerCase().includes(q));
     });
-  }, [stats, attendanceFilter, attendanceSearchQuery]);
+  }, [activeStaffList, attendanceFilter, attendanceSearchQuery]);
 
-  const recentInterviews = React.useMemo(() => {
-    return [...(interviews || [])]
-      .sort((a, b) => new Date(b.createdAt || b.scheduleTime).getTime() - new Date(a.createdAt || a.scheduleTime).getTime())
-      .slice(0, 5);
-  }, [interviews]);
+  const hrStatsData = liveStats?.hrStats || initialStats?.hrStats || {};
 
-  const dynamicTotalLeadsCount = React.useMemo(() => {
-    return (candidates || []).length;
-  }, [candidates]);
+  const dynamicTotalLeadsCount = Number(hrStatsData.hrLeadsCount ?? (candidatesList.length || (liveStats?.candidates?.total ?? 0)));
+  const dynamicSelectedCount = Number(hrStatsData.selectedLeadsCount ?? (candidatesList.filter((c: any) => c.status === "Selected" || c.status === "Hired").length || (liveStats?.candidates?.selected ?? 0)));
+  const dynamicPendingLeadsCount = Number(hrStatsData.pendingLeadsCount ?? (candidatesList.filter((c: any) => c.status === "Pending" || !c.status).length || (liveStats?.candidates?.pending ?? 0)));
 
-  const dynamicHrLeadsCount = React.useMemo(() => {
-    return (candidates || []).filter((c: any) => c.status === "Selected" || c.status === "Hired").length;
-  }, [candidates]);
+  const todayStr = indiaDateKey(new Date());
+  const dynamicInterviewsToday = Number(
+    hrStatsData.interviewsToday ??
+    interviewsList.filter((iv: any) => iv.scheduleTime && indiaDateKey(iv.scheduleTime) === todayStr).length
+  );
 
-  const dynamicPendingLeadsCount = React.useMemo(() => {
-    return (candidates || []).filter((c: any) => c.status === "Pending" || !c.status).length;
-  }, [candidates]);
+  const pendingLeavesCount = liveLeaves.length > 0
+    ? liveLeaves.filter((l: any) => String(l.status || "").toLowerCase() === "pending").length
+    : Number(liveStats?.pendingApprovals?.pendingLeaves ?? initialStats?.pendingApprovals?.pendingLeaves ?? 0);
 
-  const dynamicRejectedCount = React.useMemo(() => {
-    return (candidates || []).filter((c: any) => c.status === "Rejected").length;
-  }, [candidates]);
+  const pendingWarningsCount = Number(liveStats?.operations?.disciplinaryWarnings?.pendingApprovals ?? initialStats?.operations?.disciplinaryWarnings?.pendingApprovals ?? 0);
+  const totalPendingApprovals = pendingLeavesCount + pendingWarningsCount;
+  const verificationPendingCount = Number(hrStatsData.verificationPending ?? (initialStats?.hrStats?.verificationPending || 0));
 
-  const dynamicInterviewsToday = React.useMemo(() => {
-    const todayStr = new Date().toDateString();
-    return (interviews || []).filter((iv: any) => {
-      if (!iv.scheduleTime) return false;
-      return new Date(iv.scheduleTime).toDateString() === todayStr;
-    }).length;
-  }, [interviews]);
-
-  // Use real pipeline trend data from stats API if available, else fallback to computed from candidates
   const chartData = React.useMemo(() => {
-    if (hrStats?.pipelineTrend && hrStats.pipelineTrend.length > 0) {
-      // Check if there's any real data (non-zero)
-      const hasData = hrStats.pipelineTrend.some((d: any) => d["Total Leads"] > 0);
-      if (hasData) return hrStats.pipelineTrend;
+    if (hrStatsData?.pipelineTrend && hrStatsData.pipelineTrend.length > 0) {
+      const hasData = hrStatsData.pipelineTrend.some((d: any) => d["Total Leads"] > 0);
+      if (hasData) return hrStatsData.pipelineTrend;
     }
 
-    // Fallback: compute from candidates
     const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
     const counts = days.reduce((acc, day) => {
       acc[day] = { selected: 0, applied: 0 };
       return acc;
     }, {} as Record<string, { selected: number; applied: number }>);
 
-    (candidates || []).forEach((c: any) => {
+    (candidatesList || []).forEach((c: any) => {
       const date = new Date(c.createdAt || c.applicationDate || new Date());
       const dayName = days[date.getDay()];
       if (counts[dayName]) {
@@ -1070,350 +1233,699 @@ export function HrDashboard({
       "Total Leads": counts[day]?.applied || 0,
       "Selected for Joining": counts[day]?.selected || 0,
     }));
-  }, [hrStats, candidates]);
+  }, [hrStatsData, candidatesList]);
 
-  // Export HR Report as XLSX (Server-side generated)
   const exportHrReport = () => {
     window.location.href = "/api/dashboard/export-hr-report";
   };
 
-  React.useEffect(() => {
-    setIsDark(document.documentElement.classList.contains("dark"));
-    const observer = new MutationObserver(() => {
-      setIsDark(document.documentElement.classList.contains("dark"));
-    });
-    observer.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
-    return () => observer.disconnect();
-  }, []);
+  const dateLabel = new Date().toLocaleDateString("en-IN", {
+    weekday: "long",
+    day: "2-digit",
+    month: "short",
+    year: "numeric"
+  });
+
+  const attendanceRate = attendanceCounts.total
+    ? Math.round((attendanceCounts.present / attendanceCounts.total) * 100)
+    : 0;
+
+  const hrActionItems = [
+    {
+      id: "leaves",
+      label: "Leave & Attendance Approvals",
+      count: pendingLeavesCount,
+      detail: `${pendingLeavesCount} employee request${pendingLeavesCount === 1 ? "" : "s"} waiting`,
+      priority: "High",
+      badgeColor: "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/50 dark:text-amber-300",
+      actionText: "Review",
+      tab: "ess-leaves"
+    },
+    {
+      id: "verification",
+      label: "Candidate Document Verification",
+      count: verificationPendingCount,
+      detail: `${verificationPendingCount} profile${verificationPendingCount === 1 ? "" : "s"} pending KYC`,
+      priority: verificationPendingCount > 0 ? "High" : "Clear",
+      badgeColor: verificationPendingCount > 0 ? "bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/50 dark:text-rose-300" : "bg-emerald-50 text-emerald-700 border-emerald-200",
+      actionText: "Verify",
+      tab: "verification"
+    },
+    {
+      id: "interviews",
+      label: "Interviews Scheduled Today",
+      count: dynamicInterviewsToday,
+      detail: `${dynamicInterviewsToday} candidate session${dynamicInterviewsToday === 1 ? "" : "s"} queued`,
+      priority: dynamicInterviewsToday > 0 ? "Medium" : "Clear",
+      badgeColor: dynamicInterviewsToday > 0 ? "bg-sky-50 text-sky-700 border-sky-200 dark:bg-sky-950/50 dark:text-sky-300" : "bg-emerald-50 text-emerald-700 border-emerald-200",
+      actionText: "View Queue",
+      tab: "interviews"
+    },
+    {
+      id: "disciplinary",
+      label: "Disciplinary & Warning Reviews",
+      count: pendingWarningsCount,
+      detail: `${pendingWarningsCount} escalation${pendingWarningsCount === 1 ? "" : "s"} pending HR decision`,
+      priority: pendingWarningsCount > 0 ? "High" : "Clear",
+      badgeColor: pendingWarningsCount > 0 ? "bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/50 dark:text-rose-300" : "bg-emerald-50 text-emerald-700 border-emerald-200",
+      actionText: "Take Action",
+      tab: "disciplinary-warnings"
+    },
+    {
+      id: "missing-sod",
+      label: "Staff Missing SOD Check-in",
+      count: Math.max(0, attendanceCounts.total - attendanceCounts.sodFiled - attendanceCounts.leave),
+      detail: `${Math.max(0, attendanceCounts.total - attendanceCounts.sodFiled - attendanceCounts.leave)} staff yet to submit SOD`,
+      priority: Math.max(0, attendanceCounts.total - attendanceCounts.sodFiled - attendanceCounts.leave) > 0 ? "Medium" : "Clear",
+      badgeColor: "bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-950/50 dark:text-purple-300",
+      actionText: "View Roster",
+      onClick: () => { setAttendanceFilter("absent"); setShowAttendanceModal(true); }
+    }
+  ].filter(item => item.count > 0);
+
+  const hrModules = [
+    { label: "Employees Directory", count: attendanceCounts.total, detail: "Full staff roster & KYC", icon: Users, tab: "employees", color: "text-indigo-600 bg-indigo-50 dark:bg-indigo-950/50" },
+    { label: "Candidates & Leads", count: dynamicTotalLeadsCount, detail: `${dynamicSelectedCount} selected · ${dynamicPendingLeadsCount} pending`, icon: Megaphone, tab: "business-leads", color: "text-pink-600 bg-pink-50 dark:bg-pink-950/50" },
+    { label: "Interviews Queue", count: interviewsList.length || (initialStats?.interviews?.pending || 0), detail: `${dynamicInterviewsToday} scheduled today`, icon: CalendarClock, tab: "interviews", color: "text-sky-600 bg-sky-50 dark:bg-sky-950/50" },
+    { label: "Leave Management", count: pendingLeavesCount, detail: `${pendingLeavesCount} pending approval`, icon: CalendarDays, tab: "ess-leaves", color: "text-amber-600 bg-amber-50 dark:bg-amber-950/50" },
+    { label: "Work & Performance", count: `${attendanceCounts.present}/${attendanceCounts.total}`, detail: `${attendanceRate}% present today`, icon: UserRoundCheck, tab: "performance", color: "text-emerald-600 bg-emerald-50 dark:bg-emerald-950/50" },
+    { label: "Asset Allocation", count: operationsCounts.inventory || (liveStats?.inventory?.total || 0), detail: "Devices & office assets", icon: Package, tab: "inventory-management", color: "text-cyan-600 bg-cyan-50 dark:bg-cyan-950/50" },
+    { label: "Vehicle Registry", count: operationsCounts.vehicles || (liveStats?.vehicles?.total || 0), detail: "Assigned & tracked vehicles", icon: Car, tab: "vehicle-registry", color: "text-violet-600 bg-violet-50 dark:bg-violet-950/50" },
+    { label: "Disciplinary & Grievances", count: liveStats?.operations?.disciplinaryWarnings?.total || initialStats?.operations?.disciplinaryWarnings?.total || 0, detail: `${pendingWarningsCount} warnings pending`, icon: ShieldAlert, tab: "disciplinary-warnings", color: "text-rose-600 bg-rose-50 dark:bg-rose-950/50" }
+  ];
 
   return (
-    <div className="space-y-6 animate-fade-in text-slate-800">
-      {/* Dashboard Top Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
-        <div>
-          <h1 className={`text-xl sm:text-2xl font-black tracking-tight ${isDark ? "text-white" : "text-slate-800"}`}>
-            HR Operations Dashboard
-          </h1>
-        </div>
-        <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-auto">
-          <button
-            onClick={exportHrReport}
-            className={`flex-1 sm:flex-initial px-3.5 sm:px-4 py-2 border rounded-lg text-xs sm:text-sm font-medium transition-colors shadow-sm flex items-center justify-center gap-2 ${isDark ? "bg-gray-800 border-gray-700 text-gray-300 hover:bg-gray-700" : "bg-white border-slate-200 text-slate-700 hover:bg-slate-50"}`}
-          >
-            <Download className="w-4 h-4" /> Export HR Report
-          </button>
-          <button
-            onClick={() => setShowHiringModal(true)}
-            className="flex-1 sm:flex-initial px-3.5 sm:px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs sm:text-sm font-medium transition-colors shadow-sm flex items-center justify-center gap-2"
-          >
-            <UserPlus className="w-4 h-4" /> New Hire
-          </button>
+    <div className="space-y-5 animate-fade-in text-slate-800 dark:text-slate-100 font-semibold [&_.font-medium]:font-bold">
+      {/* Top Header & Operational Controls */}
+      <div className="rounded-2xl border border-slate-200/90 dark:border-slate-800 bg-gradient-to-r from-white via-[#fcfbf9] to-[#f6f3f0] dark:from-gray-900 dark:via-gray-900 dark:to-gray-950 px-5 py-4 shadow-[0_4px_18px_rgba(0,0,0,0.03)]">
+        <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4">
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] font-black uppercase tracking-[0.2em] text-indigo-600 dark:text-indigo-400">
+                HR & Workforce Operations Hub
+              </span>
+              <span className="px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
+                Live Pulse
+              </span>
+            </div>
+            <h1 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight mt-0.5">
+              HR Operations Dashboard
+            </h1>
+            <p className="text-[11px] font-bold text-slate-500 dark:text-slate-400 mt-0.5">
+              {dateLabel} · Welcome, {sessionUser?.name?.split(" ")[0] || "HR Manager"}
+            </p>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+            {/* Today vs Monthly Scope */}
+            <div className="h-9 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-gray-800 p-0.5 flex items-center shadow-xs">
+              <button
+                onClick={() => setScopeRange("today")}
+                className={`h-7 rounded-lg px-3 text-[10px] font-black transition-colors ${scopeRange === "today" ? "bg-indigo-600 text-white shadow-xs" : "text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-gray-700"}`}
+              >
+                Today's Ops
+              </button>
+              <button
+                onClick={() => setScopeRange("all")}
+                className={`h-7 rounded-lg px-3 text-[10px] font-black transition-colors ${scopeRange === "all" ? "bg-indigo-600 text-white shadow-xs" : "text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-gray-700"}`}
+              >
+                Monthly View
+              </button>
+            </div>
+
+            {/* Company Filter */}
+            {companies && companies.length > 0 && (
+              <select
+                value={selectedCompanyId || ""}
+                onChange={e => onCompanyChange?.(e.target.value)}
+                className="h-9 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-gray-800 text-slate-800 dark:text-slate-200 px-3 text-[10px] font-bold shadow-xs outline-none"
+              >
+                <option value="">All Companies</option>
+                {companies.map(c => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
+                ))}
+              </select>
+            )}
+
+            {/* Department Filter */}
+            {departments && departments.length > 0 && (
+              <select
+                value={selectedDept}
+                onChange={e => setSelectedDept(e.target.value)}
+                className="h-9 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-gray-800 text-slate-800 dark:text-slate-200 px-3 text-[10px] font-bold shadow-xs outline-none"
+              >
+                <option value="">All Departments</option>
+                {departments.map(d => (
+                  <option key={d.id} value={d.name}>{d.name}</option>
+                ))}
+              </select>
+            )}
+
+            {/* Live Refresh Button */}
+            <button
+              onClick={handleRefresh}
+              disabled={isRefreshing}
+              className="h-9 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-gray-800 hover:bg-slate-50 dark:hover:bg-gray-700 text-slate-700 dark:text-slate-200 px-3 text-[10px] font-black flex items-center gap-1.5 shadow-xs transition-colors disabled:opacity-60"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? "animate-spin text-indigo-600" : ""}`} /> Refresh
+            </button>
+
+            {/* Export & New Hire Actions */}
+            <button
+              onClick={exportHrReport}
+              className="h-9 px-3.5 bg-slate-800 hover:bg-slate-900 dark:bg-gray-800 dark:hover:bg-gray-700 text-white rounded-xl text-[10px] font-bold transition-colors shadow-xs flex items-center gap-1.5"
+            >
+              <Download className="w-3.5 h-3.5" /> Export Report
+            </button>
+
+            <button
+              onClick={() => setShowHiringModal(true)}
+              className="h-9 px-3.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-[10px] font-black transition-colors shadow-xs flex items-center gap-1.5"
+            >
+              <UserPlus className="w-3.5 h-3.5" /> + New Hire
+            </button>
+          </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-2.5 sm:gap-4">
-        <StatCard
-          title="Today's Interviews"
-          value={dynamicInterviewsToday.toString()}
-          trend="Scheduled for today"
-          trendUp={true}
-          icon={<CalendarClock className="w-5 h-5 text-blue-500" />}
-          dark={isDark}
+      {/* Top 6 KPI Metric Cards */}
+      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3">
+        {/* Attendance Card */}
+        <button
+          onClick={() => { setAttendanceFilter("all"); setShowAttendanceModal(true); }}
+          className="text-left rounded-2xl border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-gray-900 p-4 shadow-xs hover:-translate-y-0.5 hover:shadow-md transition-all group"
+        >
+          <div className="flex items-start justify-between gap-2">
+            <div className="w-9 h-9 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-100 dark:border-emerald-900 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
+              <UserCheck className="w-4.5 h-4.5" />
+            </div>
+            <ArrowUpRight className="w-3.5 h-3.5 text-slate-300 group-hover:text-emerald-600 transition-colors" />
+          </div>
+          <div className="mt-3 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+            Workforce Attendance
+          </div>
+          <div className="mt-0.5 text-2xl font-black text-slate-900 dark:text-white tracking-tight">
+            {attendanceCounts.present}/{attendanceCounts.total}
+          </div>
+          <div className="mt-1 text-[9px] font-bold text-emerald-600 dark:text-emerald-400">
+            {attendanceRate}% present · {attendanceCounts.sodFiled} SOD filed
+          </div>
+        </button>
+
+        {/* Approvals Card */}
+        <button
+          onClick={() => onNavigateTab("ess-leaves")}
+          className="text-left rounded-2xl border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-gray-900 p-4 shadow-xs hover:-translate-y-0.5 hover:shadow-md transition-all group"
+        >
+          <div className="flex items-start justify-between gap-2">
+            <div className="w-9 h-9 rounded-xl bg-amber-50 dark:bg-amber-950/60 border border-amber-100 dark:border-amber-900 flex items-center justify-center text-amber-600 dark:text-amber-400">
+              <FileCheck2 className="w-4.5 h-4.5" />
+            </div>
+            <ArrowUpRight className="w-3.5 h-3.5 text-slate-300 group-hover:text-amber-600 transition-colors" />
+          </div>
+          <div className="mt-3 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+            Pending Approvals
+          </div>
+          <div className="mt-0.5 text-2xl font-black text-slate-900 dark:text-white tracking-tight">
+            {totalPendingApprovals}
+          </div>
+          <div className={`mt-1 text-[9px] font-bold ${totalPendingApprovals > 0 ? "text-amber-600 dark:text-amber-400" : "text-emerald-600 dark:text-emerald-400"}`}>
+            {totalPendingApprovals > 0 ? `${pendingLeavesCount} leaves · Action required` : "All approvals clear"}
+          </div>
+        </button>
+
+        {/* Interviews Today Card */}
+        <button
           onClick={() => onNavigateTab("interviews")}
-        />
-        <StatCard
-          title="Verification Pending"
-          value={hrStats.verificationPending?.toString() || "0"}
-          trend="Requires action"
-          trendUp={false}
-          icon={<FileSearch className="w-5 h-5 text-slate-500" />}
-          dark={isDark}
-          onClick={() => onNavigateTab("verification")}
-        />
-        <StatCard
-          title="HR Leads"
-          value={(hrStats.hrLeadsCount ?? 0).toString()}
-          trend="Total candidate profiles"
-          trendUp={true}
-          icon={<Users className="w-5 h-5 text-indigo-500" />}
-          dark={isDark}
-          onClick={() => onNavigateTab("business-leads", "All")}
-        />
-        <StatCard
-          title="Selected Leads"
-          value={(hrStats.selectedLeadsCount ?? 0).toString()}
-          trend="Selected profiles"
-          trendUp={true}
-          icon={<CheckCircle className="w-5 h-5 text-emerald-500" />}
-          dark={isDark}
-          onClick={() => onNavigateTab("business-leads", "Selected")}
-        />
-        <StatCard
-          title="Pending Leads"
-          value={(hrStats.pendingLeadsCount ?? 0).toString()}
-          trend="Under review leads"
-          trendUp={true}
-          icon={<Clock className="w-5 h-5 text-amber-500" />}
-          dark={isDark}
-          onClick={() => onNavigateTab("business-leads", "Pending")}
-        />
-        <StatCard
-          title="Rejected Leads"
-          value={(hrStats.rejectedLeadsCount ?? 0).toString()}
-          trend="Rejected candidate"
-          trendUp={false}
-          icon={<ShieldX className="w-5 h-5 text-rose-500" />}
-          dark={isDark}
-          onClick={() => onNavigateTab("business-leads", "Rejected")}
-        />
-      </div>
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 space-y-6">
+          className="text-left rounded-2xl border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-gray-900 p-4 shadow-xs hover:-translate-y-0.5 hover:shadow-md transition-all group"
+        >
+          <div className="flex items-start justify-between gap-2">
+            <div className="w-9 h-9 rounded-xl bg-sky-50 dark:bg-sky-950/60 border border-sky-100 dark:border-sky-900 flex items-center justify-center text-sky-600 dark:text-sky-400">
+              <CalendarClock className="w-4.5 h-4.5" />
+            </div>
+            <ArrowUpRight className="w-3.5 h-3.5 text-slate-300 group-hover:text-sky-600 transition-colors" />
+          </div>
+          <div className="mt-3 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+            Today's Interviews
+          </div>
+          <div className="mt-0.5 text-2xl font-black text-slate-900 dark:text-white tracking-tight">
+            {dynamicInterviewsToday}
+          </div>
+          <div className="mt-1 text-[9px] font-bold text-sky-600 dark:text-sky-400">
+            {interviewsList.length} total scheduled
+          </div>
+        </button>
 
-          {/* Today's Attendance Status (Sleek Compact Box) */}
-          <div className={`p-4 rounded-xl border shadow-xs transition-all ${isDark ? "bg-gray-900 border-gray-800" : "bg-white border-slate-200"}`}>
-            <div className="flex items-center justify-between gap-2 mb-3">
+        {/* Candidate Leads Card */}
+        <button
+          onClick={() => onNavigateTab("business-leads", "All")}
+          className="text-left rounded-2xl border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-gray-900 p-4 shadow-xs hover:-translate-y-0.5 hover:shadow-md transition-all group"
+        >
+          <div className="flex items-start justify-between gap-2">
+            <div className="w-9 h-9 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-100 dark:border-indigo-900 flex items-center justify-center text-indigo-600 dark:text-indigo-400">
+              <Users className="w-4.5 h-4.5" />
+            </div>
+            <ArrowUpRight className="w-3.5 h-3.5 text-slate-300 group-hover:text-indigo-600 transition-colors" />
+          </div>
+          <div className="mt-3 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+            Candidate Pipeline
+          </div>
+          <div className="mt-0.5 text-2xl font-black text-slate-900 dark:text-white tracking-tight">
+            {dynamicTotalLeadsCount}
+          </div>
+          <div className="mt-1 text-[9px] font-bold text-indigo-600 dark:text-indigo-400">
+            {dynamicSelectedCount} selected · {dynamicPendingLeadsCount} review
+          </div>
+        </button>
+
+        {/* Verification Pending Card */}
+        <button
+          onClick={() => onNavigateTab("verification")}
+          className="text-left rounded-2xl border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-gray-900 p-4 shadow-xs hover:-translate-y-0.5 hover:shadow-md transition-all group"
+        >
+          <div className="flex items-start justify-between gap-2">
+            <div className="w-9 h-9 rounded-xl bg-rose-50 dark:bg-rose-950/60 border border-rose-100 dark:border-rose-900 flex items-center justify-center text-rose-600 dark:text-rose-400">
+              <FileSearch className="w-4.5 h-4.5" />
+            </div>
+            <ArrowUpRight className="w-3.5 h-3.5 text-slate-300 group-hover:text-rose-600 transition-colors" />
+          </div>
+          <div className="mt-3 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+            KYC Verification
+          </div>
+          <div className="mt-0.5 text-2xl font-black text-slate-900 dark:text-white tracking-tight">
+            {verificationPendingCount}
+          </div>
+          <div className={`mt-1 text-[9px] font-bold ${verificationPendingCount > 0 ? "text-rose-600 dark:text-rose-400" : "text-emerald-600 dark:text-emerald-400"}`}>
+            {verificationPendingCount > 0 ? "Requires document check" : "All verified"}
+          </div>
+        </button>
+
+        {/* Disciplinary & Warnings Card */}
+        <button
+          onClick={() => onNavigateTab("disciplinary-warnings")}
+          className="text-left rounded-2xl border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-gray-900 p-4 shadow-xs hover:-translate-y-0.5 hover:shadow-md transition-all group"
+        >
+          <div className="flex items-start justify-between gap-2">
+            <div className="w-9 h-9 rounded-xl bg-purple-50 dark:bg-purple-950/60 border border-purple-100 dark:border-purple-900 flex items-center justify-center text-purple-600 dark:text-purple-400">
+              <ShieldAlert className="w-4.5 h-4.5" />
+            </div>
+            <ArrowUpRight className="w-3.5 h-3.5 text-slate-300 group-hover:text-purple-600 transition-colors" />
+          </div>
+          <div className="mt-3 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+            HR Compliance
+          </div>
+          <div className="mt-0.5 text-2xl font-black text-slate-900 dark:text-white tracking-tight">
+            {pendingWarningsCount}
+          </div>
+          <div className={`mt-1 text-[9px] font-bold ${pendingWarningsCount > 0 ? "text-rose-600 dark:text-rose-400" : "text-emerald-600 dark:text-emerald-400"}`}>
+            {pendingWarningsCount > 0 ? `${pendingWarningsCount} warnings pending` : "No pending warnings"}
+          </div>
+        </button>
+      </div>
+
+      {/* Action Centre & Live Workforce Hub (Split 1.15fr : 0.85fr) */}
+      <div className="grid grid-cols-1 xl:grid-cols-[1.15fr_0.85fr] gap-4">
+        {/* Left: HR Operations Action Centre */}
+        <section className="rounded-2xl border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-gray-900 shadow-xs overflow-hidden flex flex-col justify-between">
+          <div>
+            <div className="px-5 py-3.5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <div className="w-7 h-7 rounded-lg bg-indigo-50 dark:bg-indigo-950/60 flex items-center justify-center text-indigo-600 dark:text-indigo-400">
-                  <UserCheck className="w-4 h-4" />
+                <div className="w-7 h-7 rounded-lg bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
+                  <Zap className="w-4 h-4" />
                 </div>
-                <h2 className={`text-sm font-bold tracking-tight ${isDark ? "text-white" : "text-slate-800"}`}>
-                  Today's Attendance Status
-                </h2>
-                <span className="px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
-                  Live
-                </span>
+                <div>
+                  <h2 className="text-xs font-black uppercase tracking-wider text-slate-800 dark:text-white">
+                    HR Daily Action Centre
+                  </h2>
+                  <p className="text-[9px] font-bold text-slate-400 dark:text-slate-500">
+                    Prioritized tasks & approvals waiting for HR action
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => onNavigateTab("ess-leaves")}
+                className="text-[10px] font-black text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1"
+              >
+                View all queues <ChevronRight className="w-3 h-3" />
+              </button>
+            </div>
+
+            <div className="divide-y divide-slate-100 dark:divide-slate-800">
+              {hrActionItems.length > 0 ? (
+                hrActionItems.map(item => (
+                  <div key={item.id} className="px-5 py-3 grid grid-cols-[1fr_auto_auto] items-center gap-3 hover:bg-slate-50/70 dark:hover:bg-gray-800/40 transition-colors">
+                    <div className="min-w-0">
+                      <div className="text-[11px] font-black text-slate-800 dark:text-slate-200 truncate">
+                        {item.label}
+                      </div>
+                      <div className="text-[9px] font-semibold text-slate-400 dark:text-slate-500 truncate">
+                        {item.detail}
+                      </div>
+                    </div>
+                    <span className={`text-[9px] font-black rounded-full px-2.5 py-0.5 border ${item.badgeColor}`}>
+                      {item.count} · {item.priority}
+                    </span>
+                    <button
+                      onClick={() => item.onClick ? item.onClick() : onNavigateTab(item.tab)}
+                      className="rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 text-[9px] font-black shadow-xs transition-colors"
+                    >
+                      {item.actionText}
+                    </button>
+                  </div>
+                ))
+              ) : (
+                <div className="p-8 text-center">
+                  <CheckCircle className="w-8 h-8 text-emerald-500 mx-auto" />
+                  <div className="text-xs font-black text-slate-700 dark:text-slate-300 mt-2">
+                    All HR Operational Queues are Clear!
+                  </div>
+                  <p className="text-[10px] font-medium text-slate-400 mt-0.5">
+                    No pending leaves, verifications, or warnings require immediate attention.
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="px-5 py-2.5 bg-slate-50/50 dark:bg-gray-850 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-[9px] font-bold text-slate-400">
+            <span>{hrActionItems.length} active queue items</span>
+            <button onClick={() => onNavigateTab("performance")} className="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
+              Open SOD / EOD Performance Tracking →
+            </button>
+          </div>
+        </section>
+
+        {/* Right: Live Workforce Status & Compliance Pulse */}
+        <section className="rounded-2xl border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-gray-900 p-5 shadow-xs flex flex-col justify-between">
+          <div>
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <div className="w-7 h-7 rounded-lg bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+                  <UserRoundCheck className="w-4 h-4" />
+                </div>
+                <div>
+                  <h2 className="text-xs font-black uppercase tracking-wider text-slate-800 dark:text-white">
+                    Today's Workforce Pulse
+                  </h2>
+                  <p className="text-[9px] font-bold text-slate-400 dark:text-slate-500">
+                    Live check-in, leave & SOD compliance
+                  </p>
+                </div>
               </div>
               <button
                 onClick={() => { setAttendanceFilter("all"); setAttendanceSearchQuery(""); setShowAttendanceModal(true); }}
-                className="text-xs font-semibold text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 flex items-center gap-1 hover:underline"
+                className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1"
               >
-                View Roster <ArrowUpRight className="w-3.5 h-3.5" />
+                View Roster <ArrowUpRight className="w-3 h-3" />
               </button>
             </div>
 
-            <div className="grid grid-cols-3 gap-3">
-              {/* Present Box */}
-              <div
-                onClick={() => { setAttendanceFilter("present"); setAttendanceSearchQuery(""); setShowAttendanceModal(true); }}
-                className="p-3 rounded-lg border border-emerald-200 dark:border-emerald-900/60 bg-emerald-50/40 dark:bg-emerald-950/20 hover:bg-emerald-100/70 dark:hover:bg-emerald-950/40 cursor-pointer transition-all group"
+            {/* Attendance 4-Box Grid */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+              <button
+                onClick={() => { setAttendanceFilter("present"); setShowAttendanceModal(true); }}
+                className="p-3 rounded-xl border border-emerald-200 dark:border-emerald-900/60 bg-emerald-50/40 dark:bg-emerald-950/20 text-left hover:bg-emerald-100/50 transition-all group"
               >
-                <div className="flex items-center justify-between mb-0.5">
-                  <span className="text-[11px] font-bold text-emerald-800 dark:text-emerald-300 uppercase tracking-wider">Present</span>
-                  <CheckCircle className="w-3.5 h-3.5 text-emerald-600 group-hover:scale-110 transition-transform" />
+                <div className="flex items-center justify-between text-[10px] font-bold text-emerald-800 dark:text-emerald-300 uppercase">
+                  <span>Present</span>
+                  <CheckCircle className="w-3 h-3 text-emerald-600" />
                 </div>
-                <div className="text-xl font-black text-emerald-700 dark:text-emerald-400">
+                <div className="text-xl font-black text-emerald-700 dark:text-emerald-400 mt-1">
                   {attendanceCounts.present}
                 </div>
-                <div className="text-[9px] font-medium text-emerald-600/90 dark:text-emerald-400/90 mt-0.5 flex items-center gap-0.5">
-                  Tap to view <ArrowUpRight className="w-2.5 h-2.5 opacity-0 group-hover:opacity-100 transition-opacity" />
+                <div className="text-[8px] font-semibold text-emerald-600 mt-0.5">
+                  {attendanceRate}% rate
                 </div>
-              </div>
+              </button>
 
-              {/* Absent Box */}
-              <div
-                onClick={() => { setAttendanceFilter("absent"); setAttendanceSearchQuery(""); setShowAttendanceModal(true); }}
-                className="p-3 rounded-lg border border-rose-200 dark:border-rose-900/60 bg-rose-50/40 dark:bg-rose-950/20 hover:bg-rose-100/70 dark:hover:bg-rose-950/40 cursor-pointer transition-all group"
+              <button
+                onClick={() => { setAttendanceFilter("absent"); setShowAttendanceModal(true); }}
+                className="p-3 rounded-xl border border-rose-200 dark:border-rose-900/60 bg-rose-50/40 dark:bg-rose-950/20 text-left hover:bg-rose-100/50 transition-all group"
               >
-                <div className="flex items-center justify-between mb-0.5">
-                  <span className="text-[11px] font-bold text-rose-800 dark:text-rose-300 uppercase tracking-wider">Absent</span>
-                  <UserMinus className="w-3.5 h-3.5 text-rose-600 group-hover:scale-110 transition-transform" />
+                <div className="flex items-center justify-between text-[10px] font-bold text-rose-800 dark:text-rose-300 uppercase">
+                  <span>Absent</span>
+                  <UserMinus className="w-3 h-3 text-rose-600" />
                 </div>
-                <div className="text-xl font-black text-rose-700 dark:text-rose-400">
+                <div className="text-xl font-black text-rose-700 dark:text-rose-400 mt-1">
                   {attendanceCounts.absent}
                 </div>
-                <div className="text-[9px] font-medium text-rose-600/90 dark:text-rose-400/90 mt-0.5 flex items-center gap-0.5">
-                  Tap to view <ArrowUpRight className="w-2.5 h-2.5 opacity-0 group-hover:opacity-100 transition-opacity" />
+                <div className="text-[8px] font-semibold text-rose-600 mt-0.5">
+                  Not checked in
                 </div>
-              </div>
+              </button>
 
-              {/* On Leave Box */}
-              <div
-                onClick={() => { setAttendanceFilter("leave"); setAttendanceSearchQuery(""); setShowAttendanceModal(true); }}
-                className="p-3 rounded-lg border border-amber-200 dark:border-amber-900/60 bg-amber-50/40 dark:bg-amber-950/20 hover:bg-amber-100/70 dark:hover:bg-amber-950/40 cursor-pointer transition-all group"
+              <button
+                onClick={() => { setAttendanceFilter("leave"); setShowAttendanceModal(true); }}
+                className="p-3 rounded-xl border border-amber-200 dark:border-amber-900/60 bg-amber-50/40 dark:bg-amber-950/20 text-left hover:bg-amber-100/50 transition-all group"
               >
-                <div className="flex items-center justify-between mb-0.5">
-                  <span className="text-[11px] font-bold text-amber-800 dark:text-amber-300 uppercase tracking-wider">On Leave</span>
-                  <CalendarClock className="w-3.5 h-3.5 text-amber-600 group-hover:scale-110 transition-transform" />
+                <div className="flex items-center justify-between text-[10px] font-bold text-amber-800 dark:text-amber-300 uppercase">
+                  <span>On Leave</span>
+                  <CalendarClock className="w-3 h-3 text-amber-600" />
                 </div>
-                <div className="text-xl font-black text-amber-700 dark:text-amber-400">
+                <div className="text-xl font-black text-amber-700 dark:text-amber-400 mt-1">
                   {attendanceCounts.leave}
                 </div>
-                <div className="text-[9px] font-medium text-amber-600/90 dark:text-amber-400/90 mt-0.5 flex items-center gap-0.5">
-                  Tap to view <ArrowUpRight className="w-2.5 h-2.5 opacity-0 group-hover:opacity-100 transition-opacity" />
+                <div className="text-[8px] font-semibold text-amber-600 mt-0.5">
+                  Approved leaves
                 </div>
+              </button>
+
+              <button
+                onClick={() => { setAttendanceFilter("all"); setShowAttendanceModal(true); }}
+                className="p-3 rounded-xl border border-sky-200 dark:border-sky-900/60 bg-sky-50/40 dark:bg-sky-950/20 text-left hover:bg-sky-100/50 transition-all group"
+              >
+                <div className="flex items-center justify-between text-[10px] font-bold text-sky-800 dark:text-sky-300 uppercase">
+                  <span>SOD Filed</span>
+                  <CalendarCheck className="w-3 h-3 text-sky-600" />
+                </div>
+                <div className="text-xl font-black text-sky-700 dark:text-sky-400 mt-1">
+                  {attendanceCounts.sodFiled}
+                </div>
+                <div className="text-[8px] font-semibold text-sky-600 mt-0.5">
+                  Submitted today
+                </div>
+              </button>
+            </div>
+
+            {/* Attendance Progress Bar */}
+            <div className="mt-4 p-3 rounded-xl bg-slate-50 dark:bg-gray-800/60 border border-slate-100 dark:border-slate-800">
+              <div className="flex justify-between items-center text-[10px] font-bold mb-1.5">
+                <span className="text-slate-600 dark:text-slate-300">Overall Attendance Health</span>
+                <span className="text-indigo-600 dark:text-indigo-400">{attendanceCounts.present} of {attendanceCounts.total} active staff</span>
+              </div>
+              <div className="h-2 rounded-full bg-slate-200 dark:bg-gray-700 overflow-hidden">
+                <div
+                  className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-indigo-600 transition-all"
+                  style={{ width: `${attendanceRate}%` }}
+                />
               </div>
             </div>
           </div>
 
-          {/* Quick Action Links Bar */}
-          <div className={`p-4 rounded-xl border shadow-xs ${isDark ? "bg-gray-900 border-gray-800" : "bg-white border-slate-200"}`}>
-            <div className="flex items-center justify-between gap-2 mb-3">
-              <div className="flex items-center gap-2">
-                <div className="w-6 h-6 rounded-lg bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300 flex items-center justify-center">
-                  <Zap className="w-3.5 h-3.5" />
-                </div>
-                <h2 className={`text-xs font-extrabold uppercase tracking-wider ${isDark ? "text-white" : "text-slate-800"}`}>
-                  Quick Action Links
-                </h2>
-              </div>
-              <span className="text-[10px] font-semibold text-slate-400">Direct Module Navigation</span>
-            </div>
-
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5">
-              <button
-                onClick={() => onNavigateTab("vehicle-registry")}
-                className={`p-3 rounded-xl border text-left transition-all hover:scale-[1.03] flex items-center gap-3 cursor-pointer ${isDark ? "bg-gray-800 border-gray-700 text-gray-200 hover:bg-gray-750" : "bg-amber-50/60 border-amber-200/80 text-amber-950 hover:bg-amber-100/90 shadow-2xs"}`}
-              >
-                <div className="p-2 rounded-lg bg-amber-600 text-white shrink-0 shadow-2xs">
-                  <Car className="w-5 h-5" />
-                </div>
-                <div className="min-w-0 font-bold text-xs truncate">Vehicle Registry</div>
-              </button>
-
-              <button
-                onClick={() => onNavigateTab("leave-request")}
-                className={`p-3 rounded-xl border text-left transition-all hover:scale-[1.03] flex items-center gap-3 cursor-pointer ${isDark ? "bg-gray-800 border-gray-700 text-gray-200 hover:bg-gray-750" : "bg-blue-50/60 border-blue-200/80 text-blue-950 hover:bg-blue-100/90 shadow-2xs"}`}
-              >
-                <div className="p-2 rounded-lg bg-blue-600 text-white shrink-0 shadow-2xs">
-                  <CalendarCheck className="w-5 h-5" />
-                </div>
-                <div className="min-w-0 font-bold text-xs truncate">Leave Requests</div>
-              </button>
-
-              <button
-                onClick={() => onNavigateTab("interviews")}
-                className={`p-3 rounded-xl border text-left transition-all hover:scale-[1.03] flex items-center gap-3 cursor-pointer ${isDark ? "bg-gray-800 border-gray-700 text-gray-200 hover:bg-gray-750" : "bg-indigo-50/60 border-indigo-200/80 text-indigo-950 hover:bg-indigo-100/90 shadow-2xs"}`}
-              >
-                <div className="p-2 rounded-lg bg-indigo-600 text-white shrink-0 shadow-2xs">
-                  <CalendarClock className="w-5 h-5" />
-                </div>
-                <div className="min-w-0 font-bold text-xs truncate">Interviews</div>
-              </button>
-
-              <button
-                onClick={() => onNavigateTab("performance")}
-                className={`p-3 rounded-xl border text-left transition-all hover:scale-[1.03] flex items-center gap-3 cursor-pointer ${isDark ? "bg-gray-800 border-gray-700 text-gray-200 hover:bg-gray-750" : "bg-teal-50/60 border-teal-200/80 text-teal-950 hover:bg-teal-100/90 shadow-2xs"}`}
-              >
-                <div className="p-2 rounded-lg bg-teal-600 text-white shrink-0 shadow-2xs">
-                  <FileText className="w-5 h-5" />
-                </div>
-                <div className="min-w-0 font-bold text-xs truncate">Work Report</div>
-              </button>
-
-              <button
-                onClick={() => onNavigateTab("business-leads")}
-                className={`p-3 rounded-xl border text-left transition-all hover:scale-[1.03] flex items-center gap-3 cursor-pointer ${isDark ? "bg-gray-800 border-gray-700 text-gray-200 hover:bg-gray-750" : "bg-emerald-50/60 border-emerald-200/80 text-emerald-950 hover:bg-emerald-100/90 shadow-2xs"}`}
-              >
-                <div className="p-2 rounded-lg bg-emerald-600 text-white shrink-0 shadow-2xs">
-                  <Users className="w-5 h-5" />
-                </div>
-                <div className="min-w-0 font-bold text-xs truncate">HR Leads</div>
-              </button>
-
-              <button
-                onClick={() => onNavigateTab("tasks")}
-                className={`p-3 rounded-xl border text-left transition-all hover:scale-[1.03] flex items-center gap-3 cursor-pointer ${isDark ? "bg-gray-800 border-gray-700 text-gray-200 hover:bg-gray-750" : "bg-purple-50/60 border-purple-200/80 text-purple-950 hover:bg-purple-100/90 shadow-2xs"}`}
-              >
-                <div className="p-2 rounded-lg bg-purple-600 text-white shrink-0 shadow-2xs">
-                  <CheckSquare className="w-5 h-5" />
-                </div>
-                <div className="min-w-0 font-bold text-xs truncate">My Tasks</div>
-              </button>
-            </div>
+          <div className="mt-3 flex items-center justify-between">
+            <button
+              onClick={() => onNavigateTab("live-tracking")}
+              className="text-[10px] font-bold text-slate-500 hover:text-indigo-600 dark:text-slate-400 flex items-center gap-1"
+            >
+              Open Live Field Staff Map <ArrowUpRight className="w-3 h-3" />
+            </button>
+            <button
+              onClick={() => { setAttendanceFilter("all"); setShowAttendanceModal(true); }}
+              className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 hover:underline"
+            >
+              Search Staff ({attendanceCounts.total}) →
+            </button>
           </div>
-
-          <div className={`p-6 rounded-xl border shadow-sm ${isDark ? "bg-gray-900 border-gray-800" : "bg-white border-slate-200"}`}>
-            <div className="flex items-center justify-between mb-4">
-              <h2 className={`text-lg font-bold ${isDark ? "text-white" : "text-slate-800"}`}>Hiring Pipeline Trends</h2>
-              <select className={`text-xs border rounded px-2 py-1 outline-none ${isDark ? "bg-gray-800 border-gray-700 text-gray-300" : "bg-white border-slate-200 text-slate-600"}`}>
-                <option>This Quarter</option>
-                <option>Last Quarter</option>
-              </select>
-            </div>
-            <AttendanceChart dark={isDark} data={chartData} />
-          </div>
-        </div>
-
-        <div className="space-y-6">
-          <div className={`p-6 rounded-xl border shadow-sm ${isDark ? "bg-gray-900 border-gray-800" : "bg-white border-slate-200"}`}>
-            <div className="flex items-center justify-between mb-6">
-              <h2 className={`text-lg font-bold ${isDark ? "text-white" : "text-slate-800"}`}>Recent HR Activity</h2>
-              <button
-                onClick={() => setShowAllActivities(true)}
-                className="text-xs font-semibold text-indigo-600 hover:text-indigo-700 hover:underline transition-colors dark:text-indigo-400 dark:hover:text-indigo-300"
-              >
-                View All
-              </button>
-            </div>
-            <ActivityFeed dark={isDark} logs={stats?.hrActivities?.slice(0, 8)} />
-          </div>
-        </div>
+        </section>
       </div>
 
-      {/* View All Activities Modal */}
-      {showAllActivities && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: "rgba(0,0,0,0.5)" }}>
-          <div className={`relative w-full max-w-2xl max-h-[85vh] rounded-2xl shadow-2xl flex flex-col ${isDark ? "bg-gray-900 border border-gray-700" : "bg-white border border-slate-200"}`}>
-            {/* Modal Header */}
-            <div className={`flex items-center justify-between px-6 py-4 border-b ${isDark ? "border-gray-700" : "border-slate-100"}`}>
+      {/* HR Modules Quick Navigation Grid */}
+      <section className="rounded-2xl border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-gray-900 p-5 shadow-xs">
+        <div className="flex items-center justify-between mb-3.5">
+          <div className="flex items-center gap-2">
+            <div className="w-7 h-7 rounded-lg bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
+              <FolderKanban className="w-4 h-4" />
+            </div>
+            <div>
+              <h2 className="text-xs font-black uppercase tracking-wider text-slate-800 dark:text-white">
+                HR Core Modules & Workspaces
+              </h2>
+              <p className="text-[9px] font-bold text-slate-400 dark:text-slate-500">
+                Direct access to daily employee & administrative workflows
+              </p>
+            </div>
+          </div>
+          <span className="text-[10px] font-bold text-slate-400">8 Modules Active</span>
+        </div>
+
+        <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 xl:grid-cols-8 gap-2.5">
+          {hrModules.map(mod => (
+            <button
+              key={mod.label}
+              onClick={() => onNavigateTab(mod.tab)}
+              className="group rounded-xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/40 dark:bg-gray-800/40 p-3 text-left hover:border-indigo-500 hover:bg-white dark:hover:bg-gray-800 hover:shadow-xs transition-all flex flex-col justify-between min-h-[110px]"
+            >
+              <div className="flex justify-between items-start">
+                <span className={`w-8 h-8 rounded-lg flex items-center justify-center ${mod.color}`}>
+                  <mod.icon className="w-4 h-4" />
+                </span>
+                <ArrowUpRight className="w-3.5 h-3.5 text-slate-300 group-hover:text-indigo-600 transition-colors" />
+              </div>
+              <div className="mt-2">
+                <div className="text-lg font-black text-slate-900 dark:text-white leading-tight">
+                  {mod.count}
+                </div>
+                <div className="text-[10px] font-black text-slate-700 dark:text-slate-200 leading-tight mt-0.5 truncate">
+                  {mod.label}
+                </div>
+                <div className="text-[8px] font-semibold text-slate-400 dark:text-slate-500 truncate mt-0.5">
+                  {mod.detail}
+                </div>
+              </div>
+            </button>
+          ))}
+        </div>
+      </section>
+
+      {/* Analytics & Activity Split Grid (1.15fr : 0.85fr) */}
+      <div className="grid grid-cols-1 xl:grid-cols-[1.15fr_0.85fr] gap-4">
+        {/* Left: Hiring & Leads Pipeline Trends */}
+        <section className="rounded-2xl border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-gray-900 p-5 shadow-xs">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <div className="w-7 h-7 rounded-lg bg-pink-50 dark:bg-pink-950/60 text-pink-600 dark:text-pink-400 flex items-center justify-center">
+                <TrendingUp className="w-4 h-4" />
+              </div>
               <div>
-                <h2 className={`text-lg font-bold ${isDark ? "text-white" : "text-slate-800"}`}>All HR Activities</h2>
-                <p className={`text-xs mt-0.5 ${isDark ? "text-gray-400" : "text-slate-500"}`}>
-                  {(stats?.hrActivities || []).length} total activities recorded
+                <h2 className="text-xs font-black uppercase tracking-wider text-slate-800 dark:text-white">
+                  Recruitment & Lead Trends
+                </h2>
+                <p className="text-[9px] font-bold text-slate-400 dark:text-slate-500">
+                  Applications received vs candidates selected for joining
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={() => onNavigateTab("business-leads")}
+              className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1"
+            >
+              Open Pipeline <ChevronRight className="w-3 h-3" />
+            </button>
+          </div>
+
+          <div className="mb-3 flex items-center gap-3">
+            <div className="px-3 py-1.5 rounded-lg bg-indigo-50 dark:bg-indigo-950/50 border border-indigo-100 dark:border-indigo-900 text-indigo-700 dark:text-indigo-300 text-[10px] font-black">
+              Total Candidates: {dynamicTotalLeadsCount}
+            </div>
+            <div className="px-3 py-1.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-100 dark:border-emerald-900 text-emerald-700 dark:text-emerald-300 text-[10px] font-black">
+              Selected: {dynamicSelectedCount}
+            </div>
+            <div className="px-3 py-1.5 rounded-lg bg-amber-50 dark:bg-amber-950/50 border border-amber-100 dark:border-amber-900 text-amber-700 dark:text-amber-300 text-[10px] font-black">
+              In Review: {dynamicPendingLeadsCount}
+            </div>
+          </div>
+
+          <AttendanceChart dark={isDark} data={chartData} />
+        </section>
+
+        {/* Right: Recent HR Activity Feed */}
+        <section className="rounded-2xl border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-gray-900 p-5 shadow-xs flex flex-col justify-between">
+          <div>
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <div className="w-7 h-7 rounded-lg bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
+                  <Activity className="w-4 h-4" />
+                </div>
+                <div>
+                  <h2 className="text-xs font-black uppercase tracking-wider text-slate-800 dark:text-white">
+                    Recent HR & System Activity
+                  </h2>
+                  <p className="text-[9px] font-bold text-slate-400 dark:text-slate-500">
+                    Latest check-ins, approvals & recruiter actions
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowAllActivities(true)}
+                className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1"
+              >
+                View all ({liveStats?.hrActivities?.length || initialStats?.hrActivities?.length || 0}) <ChevronRight className="w-3 h-3" />
+              </button>
+            </div>
+
+            <ActivityFeed dark={isDark} logs={(liveStats?.hrActivities || initialStats?.hrActivities || []).slice(0, 7)} />
+          </div>
+
+          <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-[9px] font-bold text-slate-400">
+            <span>Real-time enterprise audit log</span>
+            <button onClick={() => onNavigateTab("audit-trail")} className="text-indigo-600 dark:text-indigo-400 hover:underline">
+              System Audit Trail →
+            </button>
+          </div>
+        </section>
+      </div>
+
+      {/* All Activities Modal */}
+      {showAllActivities && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs animate-fade-in" onClick={() => setShowAllActivities(false)}>
+          <div className={`relative w-full max-w-2xl max-h-[85vh] rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-slideUp ${isDark ? "bg-gray-900 border border-gray-700 text-white" : "bg-white border border-slate-200 text-slate-800"}`} onClick={e => e.stopPropagation()}>
+            <div className={`flex items-center justify-between px-6 py-4 border-b ${isDark ? "border-gray-800 bg-gray-900" : "border-slate-100 bg-slate-50/50"}`}>
+              <div>
+                <h2 className="text-base font-black">All HR Activities & Logs</h2>
+                <p className="text-[10px] font-bold text-slate-400 mt-0.5">
+                  {(liveStats?.hrActivities || initialStats?.hrActivities || []).length} total events recorded
                 </p>
               </div>
               <button
                 onClick={() => setShowAllActivities(false)}
-                className={`p-2 rounded-lg hover:bg-slate-100 transition-colors ${isDark ? "hover:bg-gray-800 text-gray-300" : "text-slate-600"}`}
+                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-white transition-colors"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            {/* Activity List - Scrollable */}
-            <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
-              {(stats?.hrActivities || []).length === 0 ? (
-                <p className={`text-sm text-center py-8 ${isDark ? "text-gray-400" : "text-slate-500"}`}>No activities found.</p>
+            <div className="flex-1 overflow-y-auto px-6 py-4 space-y-3 custom-scrollbar">
+              {(liveStats?.hrActivities || initialStats?.hrActivities || []).length === 0 ? (
+                <p className="text-xs text-center py-8 text-slate-400">No activities found.</p>
               ) : (
-                (stats?.hrActivities || []).map((log: any, idx: number) => {
+                (liveStats?.hrActivities || initialStats?.hrActivities || []).map((log: any, idx: number) => {
                   const actionLabel = log.title || (log.action ? log.action.replace(/_/g, " ") : "Activity");
                   const actionUpper = (log.action || "").toUpperCase();
-                  let badgeColor = "bg-purple-100 text-purple-700";
-                  if (actionUpper.includes("CREATE") || actionUpper.includes("ADD") || actionUpper.includes("SOD")) badgeColor = "bg-emerald-100 text-emerald-700";
-                  else if (actionUpper.includes("APPROVE") || actionUpper.includes("SELECT")) badgeColor = "bg-green-100 text-green-700";
-                  else if (actionUpper.includes("REJECT") || actionUpper.includes("DELETE")) badgeColor = "bg-rose-100 text-rose-700";
-                  else if (actionUpper.includes("INTERVIEW") || actionUpper.includes("SCHEDULE")) badgeColor = "bg-amber-100 text-amber-700";
-                  else if (actionUpper.includes("UPDATE") || actionUpper.includes("EDIT")) badgeColor = "bg-blue-100 text-blue-700";
+                  let badgeColor = "bg-purple-100 text-purple-700 dark:bg-purple-950 dark:text-purple-300";
+                  if (actionUpper.includes("CREATE") || actionUpper.includes("ADD") || actionUpper.includes("SOD")) badgeColor = "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300";
+                  else if (actionUpper.includes("APPROVE") || actionUpper.includes("SELECT")) badgeColor = "bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-300";
+                  else if (actionUpper.includes("REJECT") || actionUpper.includes("DELETE")) badgeColor = "bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-300";
+                  else if (actionUpper.includes("INTERVIEW") || actionUpper.includes("SCHEDULE")) badgeColor = "bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300";
+                  else if (actionUpper.includes("UPDATE") || actionUpper.includes("EDIT")) badgeColor = "bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300";
 
                   return (
-                    <div key={log.id || idx} className={`rounded-xl border p-4 transition-all hover:shadow-sm ${isDark ? "bg-gray-800 border-gray-700" : "bg-slate-50 border-slate-100"}`}>
+                    <div key={log.id || idx} className={`rounded-xl border p-3.5 transition-all ${isDark ? "bg-gray-800/60 border-gray-700" : "bg-slate-50/80 border-slate-100"}`}>
                       <div className="flex items-start justify-between gap-3">
                         <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 flex-wrap mb-2">
-                            <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-full ${badgeColor}`}>
+                          <div className="flex items-center gap-2 flex-wrap mb-1.5">
+                            <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full ${badgeColor}`}>
                               {actionLabel}
                             </span>
-                            <span className={`text-[10px] ${isDark ? "text-gray-500" : "text-slate-400"}`}>
-                              {log.timestamp ? new Date(log.timestamp).toLocaleString("en-IN", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }) : ""}
+                            <span className="text-[10px] text-slate-400">
+                              {log.timestamp ? new Date(log.timestamp).toLocaleString("en-IN", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" }) : ""}
                             </span>
                           </div>
-                          <p className={`text-sm leading-relaxed ${isDark ? "text-gray-200" : "text-slate-700"}`}>
+                          <p className="text-xs leading-relaxed text-slate-700 dark:text-slate-200">
                             {log.description || log.details || "No details available."}
                           </p>
                         </div>
                       </div>
-                      <div className={`mt-3 pt-2 border-t flex items-center gap-2 ${isDark ? "border-gray-700" : "border-slate-200"}`}>
-                        <div className="w-6 h-6 rounded-full bg-indigo-100 flex items-center justify-center">
-                          <span className="text-[9px] font-bold text-indigo-700">
+                      <div className="mt-2.5 pt-2 border-t border-slate-200/60 dark:border-gray-700 flex items-center gap-2">
+                        <div className="w-5 h-5 rounded-full bg-indigo-100 dark:bg-indigo-950 flex items-center justify-center">
+                          <span className="text-[8px] font-black text-indigo-700 dark:text-indigo-300">
                             {(log.actor || log.user?.name || "S").charAt(0).toUpperCase()}
                           </span>
                         </div>
-                        <span className={`text-xs font-semibold ${isDark ? "text-indigo-400" : "text-indigo-600"}`}>
+                        <span className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400">
                           {log.actor || log.user?.name || "System"}
                         </span>
                         {log.actorRole && (
-                          <span className={`text-[10px] ${isDark ? "text-gray-500" : "text-slate-400"}`}>
+                          <span className="text-[9px] text-slate-400">
                             • {log.actorRole}
                           </span>
                         )}
@@ -1424,11 +1936,10 @@ export function HrDashboard({
               )}
             </div>
 
-            {/* Modal Footer */}
-            <div className={`px-6 py-4 border-t ${isDark ? "border-gray-700" : "border-slate-100"}`}>
+            <div className={`px-6 py-3 border-t ${isDark ? "border-gray-800 bg-gray-900" : "border-slate-100 bg-slate-50"}`}>
               <button
                 onClick={() => setShowAllActivities(false)}
-                className="w-full py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-sm font-semibold transition-colors"
+                className="w-full py-2 bg-slate-800 hover:bg-slate-900 dark:bg-gray-800 dark:hover:bg-gray-700 text-white rounded-xl text-xs font-bold transition-colors"
               >
                 Close
               </button>
@@ -1437,134 +1948,139 @@ export function HrDashboard({
         </div>
       )}
 
+      {/* New Hiring Modal */}
       {showHiringModal && (
         <HiringRequisitionModal
           onClose={() => setShowHiringModal(false)}
-          triggerToast={(msg) => alert(msg)}
+          triggerToast={(msg) => triggerToast ? triggerToast(msg) : alert(msg)}
         />
       )}
 
+      {/* Attendance Staff Roster Modal */}
       {showAttendanceModal && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex justify-center items-center backdrop-blur-sm p-4 sm:p-6" onClick={() => setShowAttendanceModal(false)}>
-          <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-4xl max-h-[85vh] flex flex-col overflow-hidden border border-slate-200 dark:border-slate-800 animate-slideUp" onClick={e => e.stopPropagation()}>
-
-            {/* Modal Header */}
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-5 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 gap-4">
+        <div className="fixed inset-0 bg-black/50 z-50 flex justify-center items-center backdrop-blur-xs p-4 sm:p-6 animate-fade-in" onClick={() => setShowAttendanceModal(false)}>
+          <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-4xl max-h-[85vh] flex flex-col overflow-hidden border border-slate-200 dark:border-slate-800 animate-slideUp" onClick={e => e.stopPropagation()}>
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-5 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-gray-900/50 gap-4">
               <div>
                 <div className="flex items-center gap-2">
-                  <h2 className="text-lg font-bold text-slate-800 dark:text-white">
+                  <h2 className="text-base font-black text-slate-900 dark:text-white">
                     Today's Attendance Roster
                   </h2>
-                  <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider ${attendanceFilter === "present" ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300" :
-                      attendanceFilter === "absent" ? "bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-300" :
-                        attendanceFilter === "leave" ? "bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300" :
-                          "bg-indigo-100 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300"
-                    }`}>
+                  <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider ${
+                    attendanceFilter === "present" ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300" :
+                    attendanceFilter === "absent" ? "bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-300" :
+                    attendanceFilter === "leave" ? "bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300" :
+                    "bg-indigo-100 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300"
+                  }`}>
                     {attendanceFilter === "present" ? `Present (${attendanceCounts.present})` :
-                      attendanceFilter === "absent" ? `Absent (${attendanceCounts.absent})` :
-                        attendanceFilter === "leave" ? `On Leave (${attendanceCounts.leave})` :
-                          `All Staff (${attendanceCounts.total})`}
+                     attendanceFilter === "absent" ? `Absent (${attendanceCounts.absent})` :
+                     attendanceFilter === "leave" ? `On Leave (${attendanceCounts.leave})` :
+                     `All Staff (${attendanceCounts.total})`}
                   </span>
                 </div>
+                <p className="text-[10px] font-bold text-slate-400 mt-0.5">
+                  Real-time status of mapped active employees
+                </p>
               </div>
-              <button onClick={() => setShowAttendanceModal(false)} className="p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-white transition-colors rounded-lg hover:bg-slate-200/50 dark:hover:bg-slate-800">
+              <button onClick={() => setShowAttendanceModal(false)} className="p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-white transition-colors rounded-lg hover:bg-slate-100 dark:hover:bg-gray-800">
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             {/* Filter Tabs & Search Bar */}
-            <div className="p-4 border-b border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-3 bg-white dark:bg-slate-900">
-              <div className="flex items-center gap-1.5 p-1 bg-slate-100 dark:bg-slate-800 rounded-xl w-full sm:w-auto overflow-x-auto">
+            <div className="p-4 border-b border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-3 bg-white dark:bg-gray-900">
+              <div className="flex items-center gap-1.5 p-1 bg-slate-100 dark:bg-gray-800 rounded-xl w-full sm:w-auto overflow-x-auto">
                 <button
                   onClick={() => setAttendanceFilter("all")}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-all ${attendanceFilter === "all" ? "bg-white dark:bg-slate-900 text-slate-800 dark:text-white shadow-xs" : "text-slate-500 hover:text-slate-800 dark:text-slate-400"
-                    }`}
+                  className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all ${attendanceFilter === "all" ? "bg-white dark:bg-gray-900 text-slate-800 dark:text-white shadow-xs" : "text-slate-500 hover:text-slate-800 dark:text-slate-400"}`}
                 >
                   All ({attendanceCounts.total})
                 </button>
                 <button
                   onClick={() => setAttendanceFilter("present")}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-all ${attendanceFilter === "present" ? "bg-emerald-500 text-white shadow-xs" : "text-slate-500 hover:text-slate-800 dark:text-slate-400"
-                    }`}
+                  className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all ${attendanceFilter === "present" ? "bg-emerald-500 text-white shadow-xs" : "text-slate-500 hover:text-slate-800 dark:text-slate-400"}`}
                 >
                   Present ({attendanceCounts.present})
                 </button>
                 <button
                   onClick={() => setAttendanceFilter("absent")}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-all ${attendanceFilter === "absent" ? "bg-rose-500 text-white shadow-xs" : "text-slate-500 hover:text-slate-800 dark:text-slate-400"
-                    }`}
+                  className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all ${attendanceFilter === "absent" ? "bg-rose-500 text-white shadow-xs" : "text-slate-500 hover:text-slate-800 dark:text-slate-400"}`}
                 >
                   Absent ({attendanceCounts.absent})
                 </button>
                 <button
                   onClick={() => setAttendanceFilter("leave")}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-all ${attendanceFilter === "leave" ? "bg-amber-500 text-white shadow-xs" : "text-slate-500 hover:text-slate-800 dark:text-slate-400"
-                    }`}
+                  className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all ${attendanceFilter === "leave" ? "bg-amber-500 text-white shadow-xs" : "text-slate-500 hover:text-slate-800 dark:text-slate-400"}`}
                 >
                   On Leave ({attendanceCounts.leave})
                 </button>
               </div>
 
-              <input
-                type="text"
-                placeholder="Search by name, role, dept, company..."
-                value={attendanceSearchQuery}
-                onChange={e => setAttendanceSearchQuery(e.target.value)}
-                className="w-full sm:w-64 px-3.5 py-1.5 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:border-indigo-500 text-slate-800 dark:text-white"
-              />
+              <div className="relative w-full sm:w-72">
+                <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  placeholder="Search by name, role, dept, company..."
+                  value={attendanceSearchQuery}
+                  onChange={e => setAttendanceSearchQuery(e.target.value)}
+                  className="w-full pl-8 pr-3.5 py-1.5 text-xs bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:border-indigo-500 text-slate-800 dark:text-white"
+                />
+              </div>
             </div>
 
             {/* Staff Table */}
-            <div className="flex-1 overflow-auto p-0">
+            <div className="flex-1 overflow-auto p-0 custom-scrollbar">
               <table className="w-full text-left border-collapse">
-                <thead className="bg-slate-50/80 dark:bg-slate-800/80 sticky top-0 z-10 backdrop-blur-xs">
+                <thead className="bg-slate-50/90 dark:bg-gray-800/90 sticky top-0 z-10 backdrop-blur-xs">
                   <tr>
-                    <th className="px-6 py-3.5 text-[10px] uppercase tracking-widest text-slate-500 dark:text-slate-400 font-bold border-b border-slate-100 dark:border-slate-800">Employee</th>
-                    <th className="px-6 py-3.5 text-[10px] uppercase tracking-widest text-slate-500 dark:text-slate-400 font-bold border-b border-slate-100 dark:border-slate-800">Role & Department</th>
-                    <th className="px-6 py-3.5 text-[10px] uppercase tracking-widest text-slate-500 dark:text-slate-400 font-bold border-b border-slate-100 dark:border-slate-800">Attendance Status</th>
+                    <th className="px-6 py-3 text-[9px] uppercase tracking-widest text-slate-500 dark:text-slate-400 font-black border-b border-slate-100 dark:border-slate-800">Employee</th>
+                    <th className="px-6 py-3 text-[9px] uppercase tracking-widest text-slate-500 dark:text-slate-400 font-black border-b border-slate-100 dark:border-slate-800">Role & Department</th>
+                    <th className="px-6 py-3 text-[9px] uppercase tracking-widest text-slate-500 dark:text-slate-400 font-black border-b border-slate-100 dark:border-slate-800">Attendance Status</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                   {filteredAttendanceStaffList.length > 0 ? (
                     filteredAttendanceStaffList.map((staff: any) => {
-                      const isPresent = staff.isPresent;
+                      const isPresent = staff.isPresent || staff.attendanceStatus === "Present" || Boolean(staff.sodTime);
                       const isOnLeave = staff.isOnLeave || staff.attendanceStatus === "On Leave";
                       return (
-                        <tr key={staff.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/50 transition-colors">
-                          <td className="px-6 py-4">
-                            <div className="font-bold text-slate-800 dark:text-slate-100">{staff.name}</div>
-                            <div className="text-[11px] text-slate-500 dark:text-slate-400">{staff.email}</div>
+                        <tr key={staff.id} className="hover:bg-slate-50/80 dark:hover:bg-gray-800/50 transition-colors">
+                          <td className="px-6 py-3.5">
+                            <div className="font-black text-xs text-slate-900 dark:text-slate-100">{staff.name}</div>
+                            <div className="text-[10px] text-slate-400 dark:text-slate-500">{staff.email}</div>
                           </td>
-                          <td className="px-6 py-4">
-                            <div className="text-xs font-semibold text-slate-800 dark:text-slate-200">{staff.role}</div>
-                            <div className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider mt-0.5">{formatCleanDepartment(staff.department, staff.role, staff.designation)}</div>
+                          <td className="px-6 py-3.5">
+                            <div className="text-xs font-bold text-slate-800 dark:text-slate-200">{staff.role}</div>
+                            <div className="text-[9px] font-black text-indigo-600 dark:text-indigo-400 uppercase tracking-wider mt-0.5">
+                              {formatCleanDepartment(staff.department, staff.role, staff.designation)}
+                            </div>
                           </td>
-                          <td className="px-6 py-4">
+                          <td className="px-6 py-3.5">
                             {isOnLeave ? (
                               <div>
-                                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300">
+                                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300">
                                   <CalendarClock className="w-3 h-3" /> On Leave
                                 </span>
                                 {staff.leaveReason && (
-                                  <div className="text-[10px] text-slate-500 dark:text-slate-400 mt-1 italic">
+                                  <div className="text-[9px] text-slate-400 dark:text-slate-500 mt-1 italic">
                                     "{staff.leaveReason}"
                                   </div>
                                 )}
                               </div>
                             ) : isPresent ? (
                               <div>
-                                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
+                                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
                                   <CheckCircle className="w-3 h-3" /> Present Today
                                 </span>
                                 {staff.sodTime && (
-                                  <div className="text-[10px] text-slate-500 dark:text-slate-400 mt-1 font-medium">
-                                    SOD: {new Date(staff.sodTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                  <div className="text-[9px] text-slate-400 dark:text-slate-500 mt-1 font-semibold">
+                                    SOD: {new Date(staff.sodTime).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                                   </div>
                                 )}
                               </div>
                             ) : (
                               <div>
-                                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300">
+                                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300">
                                   <UserMinus className="w-3 h-3" /> Absent Today
                                 </span>
                               </div>
@@ -1575,7 +2091,7 @@ export function HrDashboard({
                     })
                   ) : (
                     <tr>
-                      <td colSpan={3} className="px-6 py-12 text-center text-slate-400 font-medium text-xs">
+                      <td colSpan={3} className="px-6 py-12 text-center text-slate-400 font-bold text-xs">
                         No staff members match the selected filter.
                       </td>
                     </tr>
@@ -1585,10 +2101,10 @@ export function HrDashboard({
             </div>
 
             {/* Footer */}
-            <div className="p-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 flex items-center justify-between">
+            <div className="p-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-gray-900/50 flex items-center justify-between">
               <button
                 onClick={() => { setShowAttendanceModal(false); onNavigateTab("employees"); }}
-                className="text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1"
+                className="text-xs font-black text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1"
               >
                 Open Employees Directory <ArrowUpRight className="w-3.5 h-3.5" />
               </button>

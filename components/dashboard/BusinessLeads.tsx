@@ -26,7 +26,8 @@ import {
   Play,
   CalendarRange as CalendarClock,
   History,
-  SlidersHorizontal
+  SlidersHorizontal,
+  X
 } from "lucide-react";
 import * as XLSX from "xlsx";
 
@@ -1424,7 +1425,7 @@ export default function BusinessLeads({
             />
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center justify-between md:justify-end gap-3 w-full md:w-auto">
             <div className="text-[10px] font-medium text-slate-400">
               Showing {filteredLeads.length} of {dateFilteredLeads.length} leads
             </div>
@@ -1433,16 +1434,23 @@ export default function BusinessLeads({
             <div className="relative" ref={columnToggleDropdownRef}>
               <button
                 onClick={() => setShowColToggleDropdown(!showColToggleDropdown)}
-                className="p-1.5 rounded-lg border border-slate-200 dark:border-gray-800 bg-white dark:bg-slate-900 text-slate-650 dark:text-gray-300 hover:bg-slate-50 dark:hover:bg-gray-850 hover:shadow-sm active:scale-95 transition-all flex items-center gap-1.5"
+                className="p-1.5 rounded-lg border border-slate-200 dark:border-gray-800 bg-white dark:bg-slate-900 text-slate-650 dark:text-gray-300 hover:bg-slate-50 dark:hover:bg-gray-850 hover:shadow-sm active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer"
                 title="Toggle Columns"
               >
                 <SlidersHorizontal className="w-3.5 h-3.5" />
               </button>
 
               {showColToggleDropdown && (
-                <div className="absolute right-0 top-full mt-2 w-56 max-h-72 overflow-y-auto bg-white dark:bg-slate-900 border border-slate-200 dark:border-gray-800 rounded-lg shadow-xl z-50 p-3 space-y-2 animate-fadeIn custom-scrollbar">
-                  <div className="text-[10px] font-bold text-slate-405 dark:text-gray-400 uppercase tracking-widest border-b border-slate-100 dark:border-gray-850 pb-1.5 mb-1.5">
-                    Toggle Columns
+                <div className="absolute right-0 top-full mt-2 w-56 max-w-[calc(100vw-32px)] max-h-72 overflow-y-auto bg-white dark:bg-slate-900 border border-slate-200 dark:border-gray-800 rounded-xl shadow-2xl z-[9999] p-3 space-y-2 animate-fadeIn custom-scrollbar">
+                  <div className="text-[10px] font-bold text-slate-405 dark:text-gray-400 uppercase tracking-widest border-b border-slate-100 dark:border-gray-850 pb-1.5 mb-1.5 flex items-center justify-between">
+                    <span>Toggle Columns</span>
+                    <button
+                      type="button"
+                      onClick={() => setShowColToggleDropdown(false)}
+                      className="text-slate-400 hover:text-slate-600 dark:hover:text-gray-200 md:hidden p-0.5"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
                   </div>
                   {eligibleColumns.map((col) => {
                     const isVisible = columnVisibility[col] !== false;

@@ -296,7 +296,7 @@ export async function PUT(req: Request) {
     const userId = (session.user as any).id;
     const userName = session.user.name || "HR Management";
     const role = (session.user as any).role || "";
-    const permitted = ["Owner", "Director", "IT Admin", "HR Head", "HR Executive", "Department Manager"];
+    const permitted = ["Owner", "Director", "IT Admin", "HR Head", "HR Executive", "Department Manager", "HR", "Admin", "Manager", "Super Admin"];
     const isPermitted = permitted.some(p => role.toLowerCase().includes(p.toLowerCase()));
     if (!isPermitted) {
       return NextResponse.json({ success: false, error: "Forbidden: Management privileges required" }, { status: 403 });

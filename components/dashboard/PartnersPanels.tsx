@@ -2582,16 +2582,16 @@ export function FranchiseTerritories({ toggleModal, triggerToast }: PartnerProps
   const territoriesCount = Array.from(new Set(franchises.map(f => (f.territory || "").trim()).filter(Boolean))).length;
 
   return (
-    <div className="space-y-8 animate-fadeIn text-slate-800">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <div className="space-y-5 sm:space-y-8 animate-fadeIn text-slate-800">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
         <div>
-          <h1 className="text-xl font-black text-slate-800">Franchise & Territory Partners</h1>
-          <p className="text-xs text-slate-500 mt-1">Directory of registered franchise partners & territory agreements</p>
+          <h1 className="text-lg sm:text-xl font-black text-slate-800">Franchise & Territory Partners</h1>
+          <p className="text-xs text-slate-500 mt-0.5 sm:mt-1">Directory of registered franchise partners & territory agreements</p>
         </div>
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3 w-full sm:w-auto">
           <button
             onClick={handleExportCSV}
-            className="bg-emerald-700 hover:bg-emerald-800 px-3.5 py-2 rounded-lg text-xs font-bold text-white transition-all shadow-sm flex items-center gap-1.5 cursor-pointer"
+            className="flex-1 sm:flex-initial bg-emerald-700 hover:bg-emerald-800 px-3 sm:px-3.5 py-2 rounded-lg text-xs font-bold text-white transition-all shadow-sm flex items-center justify-center gap-1.5 cursor-pointer"
           >
             <Download className="w-4 h-4" /> Export CSV
           </button>
@@ -2600,7 +2600,7 @@ export function FranchiseTerritories({ toggleModal, triggerToast }: PartnerProps
               resetForm11();
               setShowForm11(true);
             }}
-            className="bg-[#714B67] hover:bg-[#5F3F56] px-4 py-2 rounded-lg text-xs font-bold text-white transition-all shadow-sm flex items-center gap-1.5 cursor-pointer"
+            className="flex-1 sm:flex-initial bg-[#714B67] hover:bg-[#5F3F56] px-3.5 sm:px-4 py-2 rounded-lg text-xs font-bold text-white transition-all shadow-sm flex items-center justify-center gap-1.5 cursor-pointer"
           >
             <Plus className="w-4 h-4" /> Add Franchise Partner
           </button>
@@ -2615,65 +2615,65 @@ export function FranchiseTerritories({ toggleModal, triggerToast }: PartnerProps
       </div>
 
       {/* Summary KPI Widgets Header */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5 sm:gap-3">
         <div
           onClick={() => { setStatusFilter("All"); setExpiryFilter("All"); setRiskFilter("All"); }}
-          className={`bg-white border rounded-xl p-3.5 shadow-xs cursor-pointer transition-all hover:shadow-md ${statusFilter === "All" && expiryFilter === "All" && riskFilter === "All" ? "border-slate-400 ring-2 ring-slate-400/20 bg-slate-50/50" : "border-slate-200"
+          className={`bg-white border rounded-xl p-3 sm:p-3.5 shadow-xs cursor-pointer transition-all hover:shadow-md ${statusFilter === "All" && expiryFilter === "All" && riskFilter === "All" ? "border-slate-400 ring-2 ring-slate-400/20 bg-slate-50/50" : "border-slate-200"
             }`}
         >
-          <div className="text-[10px] font-black uppercase text-slate-400 font-mono">Total Partners</div>
-          <div className="text-xl font-black text-slate-900 mt-1">{totalPartnersCount}</div>
-          <div className="text-[10px] text-slate-500 mt-0.5 font-medium">Click to view all</div>
+          <div className="text-[9px] sm:text-[10px] font-black uppercase text-slate-400 font-mono truncate">Total Partners</div>
+          <div className="text-xl sm:text-2xl font-black text-slate-900 mt-1">{totalPartnersCount}</div>
+          <div className="text-[9px] sm:text-[10px] text-slate-500 mt-0.5 font-medium truncate">Click to view all</div>
         </div>
 
         <div
           onClick={() => { setStatusFilter("Active"); setExpiryFilter("All"); }}
-          className={`bg-white border rounded-xl p-3.5 shadow-xs cursor-pointer transition-all hover:shadow-md ${statusFilter === "Active" ? "border-emerald-500 ring-2 ring-emerald-500/20 bg-emerald-50/30" : "border-slate-200"
+          className={`bg-white border rounded-xl p-3 sm:p-3.5 shadow-xs cursor-pointer transition-all hover:shadow-md ${statusFilter === "Active" ? "border-emerald-500 ring-2 ring-emerald-500/20 bg-emerald-50/30" : "border-slate-200"
             }`}
         >
-          <div className="text-[10px] font-black uppercase text-emerald-600 font-mono">Active Partners</div>
-          <div className="text-xl font-black text-emerald-700 mt-1">{activePartnersCount}</div>
-          <div className="text-[10px] text-emerald-600/80 mt-0.5 font-medium">Verified Accounts</div>
+          <div className="text-[9px] sm:text-[10px] font-black uppercase text-emerald-600 font-mono truncate">Active Partners</div>
+          <div className="text-xl sm:text-2xl font-black text-emerald-700 mt-1">{activePartnersCount}</div>
+          <div className="text-[9px] sm:text-[10px] text-emerald-600/80 mt-0.5 font-medium truncate">Verified Accounts</div>
         </div>
 
         <div
           onClick={() => { setStatusFilter("Pending"); setExpiryFilter("All"); }}
-          className={`bg-white border rounded-xl p-3.5 shadow-xs cursor-pointer transition-all hover:shadow-md ${statusFilter === "Pending" ? "border-amber-500 ring-2 ring-amber-500/20 bg-amber-50/30" : "border-slate-200"
+          className={`bg-white border rounded-xl p-3 sm:p-3.5 shadow-xs cursor-pointer transition-all hover:shadow-md ${statusFilter === "Pending" ? "border-amber-500 ring-2 ring-amber-500/20 bg-amber-50/30" : "border-slate-200"
             }`}
         >
-          <div className="text-[10px] font-black uppercase text-amber-600 font-mono">Pending Approval</div>
-          <div className="text-xl font-black text-amber-700 mt-1">{pendingPartnersCount}</div>
-          <div className="text-[10px] text-amber-600/80 mt-0.5 font-medium">Awaiting Clearance</div>
+          <div className="text-[9px] sm:text-[10px] font-black uppercase text-amber-600 font-mono truncate">Pending Approval</div>
+          <div className="text-xl sm:text-2xl font-black text-amber-700 mt-1">{pendingPartnersCount}</div>
+          <div className="text-[9px] sm:text-[10px] text-amber-600/80 mt-0.5 font-medium truncate">Awaiting Clearance</div>
         </div>
 
         <div
           onClick={() => { setExpiryFilter("ExpiringSoon"); setStatusFilter("All"); }}
-          className={`bg-white border rounded-xl p-3.5 shadow-xs cursor-pointer transition-all hover:shadow-md ${expiryFilter === "ExpiringSoon" || expiryFilter === "Expired" ? "border-rose-500 ring-2 ring-rose-500/20 bg-rose-50/30" : "border-slate-200"
+          className={`bg-white border rounded-xl p-3 sm:p-3.5 shadow-xs cursor-pointer transition-all hover:shadow-md ${expiryFilter === "ExpiringSoon" || expiryFilter === "Expired" ? "border-rose-500 ring-2 ring-rose-500/20 bg-rose-50/30" : "border-slate-200"
             }`}
         >
-          <div className="text-[10px] font-black uppercase text-rose-600 font-mono flex items-center gap-1">
-            <Clock className="w-3 h-3" /> Expiry Alert
+          <div className="text-[9px] sm:text-[10px] font-black uppercase text-rose-600 font-mono flex items-center gap-1 truncate">
+            <Clock className="w-3 h-3 shrink-0" /> Expiry Alert
           </div>
-          <div className="text-xl font-black text-rose-700 mt-1">{expiringOrExpiredCount}</div>
-          <div className="text-[10px] text-rose-600/80 mt-0.5 font-medium">Expiring / Expired</div>
+          <div className="text-xl sm:text-2xl font-black text-rose-700 mt-1">{expiringOrExpiredCount}</div>
+          <div className="text-[9px] sm:text-[10px] text-rose-600/80 mt-0.5 font-medium truncate">Expiring / Expired</div>
         </div>
 
-        <div className="bg-white border border-slate-200 rounded-xl p-3.5 shadow-xs">
-          <div className="text-[10px] font-black uppercase text-indigo-600 font-mono">Territories</div>
-          <div className="text-xl font-black text-indigo-700 mt-1">{territoriesCount}</div>
-          <div className="text-[10px] text-indigo-600/80 mt-0.5 font-medium">Cities / Regions</div>
+        <div className="bg-white border border-slate-200 rounded-xl p-3 sm:p-3.5 shadow-xs col-span-2 sm:col-span-1 lg:col-span-1">
+          <div className="text-[9px] sm:text-[10px] font-black uppercase text-indigo-600 font-mono truncate">Territories</div>
+          <div className="text-xl sm:text-2xl font-black text-indigo-700 mt-1">{territoriesCount}</div>
+          <div className="text-[9px] sm:text-[10px] text-indigo-600/80 mt-0.5 font-medium truncate">Cities / Regions</div>
         </div>
       </div>
 
       {/* Filters Bar */}
-      <div className="bg-slate-50/70 border border-slate-200/80 rounded-xl p-3 flex flex-wrap gap-3 items-center justify-between">
-        <div className="flex flex-wrap items-center gap-3 flex-1 min-w-[280px]">
+      <div className="bg-slate-50/70 border border-slate-200/80 rounded-xl p-3 flex flex-col sm:flex-row flex-wrap gap-2.5 sm:gap-3 items-stretch sm:items-center justify-between">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2.5 sm:gap-3 flex-1">
           {/* Search Box */}
-          <div className="relative flex-1 min-w-[220px]">
+          <div className="relative sm:col-span-2 md:col-span-1">
             <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
             <input
               type="text"
-              placeholder="Search by Firm, Contact, Mobile or Territory..."
+              placeholder="Search Firm, Contact, Territory..."
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
               className="bg-white border border-slate-200 rounded-lg pl-9 pr-4 py-2 text-xs font-semibold focus:outline-none focus:border-[#714B67] text-slate-800 w-full shadow-2xs"
@@ -2684,7 +2684,7 @@ export function FranchiseTerritories({ toggleModal, triggerToast }: PartnerProps
           <select
             value={statusFilter}
             onChange={e => setStatusFilter(e.target.value)}
-            className="bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs font-semibold focus:outline-none focus:border-[#714B67] text-slate-700 cursor-pointer shadow-2xs"
+            className="bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs font-semibold focus:outline-none focus:border-[#714B67] text-slate-700 cursor-pointer shadow-2xs w-full"
           >
             <option value="All">All Statuses</option>
             <option value="Active">Active Only</option>
@@ -2695,10 +2695,10 @@ export function FranchiseTerritories({ toggleModal, triggerToast }: PartnerProps
           <select
             value={expiryFilter}
             onChange={e => setExpiryFilter(e.target.value)}
-            className="bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs font-semibold focus:outline-none focus:border-[#714B67] text-slate-700 cursor-pointer shadow-2xs"
+            className="bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs font-semibold focus:outline-none focus:border-[#714B67] text-slate-700 cursor-pointer shadow-2xs w-full"
           >
             <option value="All">All Agreements</option>
-            <option value="ExpiringSoon">⏳ Expiring Soon (&lt; 30 days)</option>
+            <option value="ExpiringSoon">⏳ Expiring Soon (&lt; 30d)</option>
             <option value="Expired">🚨 Expired Agreements</option>
             <option value="Valid">✅ Valid Agreements</option>
           </select>
@@ -2707,7 +2707,7 @@ export function FranchiseTerritories({ toggleModal, triggerToast }: PartnerProps
           <select
             value={riskFilter}
             onChange={e => setRiskFilter(e.target.value)}
-            className="bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs font-semibold focus:outline-none focus:border-[#714B67] text-slate-700 cursor-pointer shadow-2xs"
+            className="bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs font-semibold focus:outline-none focus:border-[#714B67] text-slate-700 cursor-pointer shadow-2xs w-full"
           >
             <option value="All">All Risk Levels</option>
             <option value="Low">Low Risk</option>
@@ -2717,36 +2717,38 @@ export function FranchiseTerritories({ toggleModal, triggerToast }: PartnerProps
         </div>
 
         {(searchQuery || statusFilter !== "All" || riskFilter !== "All" || expiryFilter !== "All") && (
-          <button
-            onClick={() => {
-              setSearchQuery("");
-              setStatusFilter("All");
-              setRiskFilter("All");
-              setExpiryFilter("All");
-            }}
-            className="text-xs text-rose-600 font-bold hover:underline px-2 py-1"
-          >
-            Clear Filters
-          </button>
+          <div className="flex justify-end pt-1 sm:pt-0">
+            <button
+              onClick={() => {
+                setSearchQuery("");
+                setStatusFilter("All");
+                setRiskFilter("All");
+                setExpiryFilter("All");
+              }}
+              className="text-xs text-rose-600 font-bold hover:underline px-2 py-1"
+            >
+              Clear Filters
+            </button>
+          </div>
         )}
       </div>
 
       {/* Main Full-Width Data Table */}
-      <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+      <div className="bg-white border border-slate-200 rounded-xl sm:rounded-2xl shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
+          <table className="w-full text-left border-collapse min-w-[860px]">
             <thead>
               <tr className="bg-slate-50/80 border-b border-slate-200 text-[10px] uppercase font-black tracking-wider text-slate-600 font-mono">
-                <th className="py-3.5 px-4">Business / Firm Name</th>
-                <th className="py-3.5 px-4">Contact Person</th>
-                <th className="py-3.5 px-4">Email & Mobile</th>
-                <th className="py-3.5 px-4">Territory / Location</th>
-                <th className="py-3.5 px-4">Brand / Project</th>
-                <th className="py-3.5 px-4">Agreement & Expiry</th>
-                <th className="py-3.5 px-4 text-center">Docs</th>
-                <th className="py-3.5 px-4">Risk Level</th>
-                <th className="py-3.5 px-4">Status</th>
-                <th className="py-3.5 px-4 text-right">Actions</th>
+                <th className="py-3 px-3.5 sm:px-4">Business / Firm Name</th>
+                <th className="py-3 px-3.5 sm:px-4">Contact Person</th>
+                <th className="py-3 px-3.5 sm:px-4">Email & Mobile</th>
+                <th className="py-3 px-3.5 sm:px-4">Territory / Location</th>
+                <th className="py-3 px-3.5 sm:px-4">Brand / Project</th>
+                <th className="py-3 px-3.5 sm:px-4">Agreement & Expiry</th>
+                <th className="py-3 px-3.5 sm:px-4 text-center">Docs</th>
+                <th className="py-3 px-3.5 sm:px-4">Risk Level</th>
+                <th className="py-3 px-3.5 sm:px-4">Status</th>
+                <th className="py-3 px-3.5 sm:px-4 text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-150 text-xs">
@@ -2774,28 +2776,28 @@ export function FranchiseTerritories({ toggleModal, triggerToast }: PartnerProps
                         }`}
                     >
                       {/* 1. Business / Firm Name */}
-                      <td className="py-3.5 px-4 font-bold text-slate-900">
+                      <td className="py-3 px-3.5 sm:px-4 font-bold text-slate-900">
                         {franchise.partnerName || franchise.user?.name || "Unknown Partner"}
                         {franchise.address && (
-                          <span className="block text-[10px] font-normal text-slate-500 truncate max-w-[200px]">
+                          <span className="block text-[10px] font-normal text-slate-500 truncate max-w-[180px] sm:max-w-[200px]">
                             {franchise.address}
                           </span>
                         )}
                       </td>
 
                       {/* 2. Contact Person */}
-                      <td className="py-3.5 px-4 text-slate-700 font-semibold">
+                      <td className="py-3 px-3.5 sm:px-4 text-slate-700 font-semibold">
                         {franchise.contactPerson || "N/A"}
                       </td>
 
                       {/* 3. Email & Mobile */}
-                      <td className="py-3.5 px-4 text-slate-600">
+                      <td className="py-3 px-3.5 sm:px-4 text-slate-600">
                         <span className="block font-medium text-slate-800">{franchise.email || "N/A"}</span>
                         <span className="text-[10px] text-slate-500 font-mono">{franchise.mobile || "N/A"}</span>
                       </td>
 
                       {/* 4. Territory & Location */}
-                      <td className="py-3.5 px-4 text-slate-800 font-semibold">
+                      <td className="py-3 px-3.5 sm:px-4 text-slate-800 font-semibold">
                         {franchise.territory || "N/A"}
                         {franchise.state && (
                           <span className="block text-[10px] font-mono text-slate-400 uppercase">
@@ -2805,12 +2807,12 @@ export function FranchiseTerritories({ toggleModal, triggerToast }: PartnerProps
                       </td>
 
                       {/* 5. Brand / Project */}
-                      <td className="py-3.5 px-4 font-bold text-indigo-700">
+                      <td className="py-3 px-3.5 sm:px-4 font-bold text-indigo-700">
                         {franchise.brandProject || "N/A"}
                       </td>
 
                       {/* 6. Agreement & Expiry */}
-                      <td className="py-3.5 px-4 text-slate-800">
+                      <td className="py-3 px-3.5 sm:px-4 text-slate-800">
                         {(() => {
                           const exp = getAgreementExpiryInfo(franchise.agreementEndDate);
                           return (
@@ -2819,7 +2821,7 @@ export function FranchiseTerritories({ toggleModal, triggerToast }: PartnerProps
                                   exp.color === "amber" ? "bg-amber-50 text-amber-700 border-amber-200" :
                                     exp.color === "emerald" ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-slate-100 text-slate-600 border-slate-200"
                                 }`}>
-                                <Clock className="w-2.5 h-2.5" /> {exp.label}
+                                <Clock className="w-2.5 h-2.5 shrink-0" /> {exp.label}
                               </span>
                               {franchise.agreementEndDate ? (
                                 <span className="block text-[10px] font-mono text-slate-400 mt-0.5">
@@ -2834,7 +2836,7 @@ export function FranchiseTerritories({ toggleModal, triggerToast }: PartnerProps
                       </td>
 
                       {/* 7. Documents Quick Links */}
-                      <td className="py-3.5 px-4 text-center">
+                      <td className="py-3 px-3.5 sm:px-4 text-center">
                         <div className="flex items-center justify-center gap-1.5" onClick={e => e.stopPropagation()}>
                           {franchise.agreementUrl ? (
                             <a
@@ -2865,7 +2867,7 @@ export function FranchiseTerritories({ toggleModal, triggerToast }: PartnerProps
                       </td>
 
                       {/* 8. Risk Level */}
-                      <td className="py-3.5 px-4">
+                      <td className="py-3 px-3.5 sm:px-4">
                         <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${franchise.riskLevel === "High" ? "bg-rose-50 text-rose-700 border-rose-200" : franchise.riskLevel === "Medium" ? "bg-amber-50 text-amber-700 border-amber-200" : "bg-emerald-50 text-emerald-700 border-emerald-200"
                           }`}>
                           {franchise.riskLevel || "Low"}
@@ -2873,7 +2875,7 @@ export function FranchiseTerritories({ toggleModal, triggerToast }: PartnerProps
                       </td>
 
                       {/* 9. Status (with 1-click status toggle) */}
-                      <td className="py-3.5 px-4">
+                      <td className="py-3 px-3.5 sm:px-4">
                         <button
                           onClick={(e) => handleToggleStatus(franchise, e)}
                           className={`px-2.5 py-0.5 rounded-full text-[10px] font-black border transition-all cursor-pointer ${franchise.status === "Active" ? "bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100" : "bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100"
@@ -2885,7 +2887,7 @@ export function FranchiseTerritories({ toggleModal, triggerToast }: PartnerProps
                       </td>
 
                       {/* 10. Actions */}
-                      <td className="py-3.5 px-4 text-right">
+                      <td className="py-3 px-3.5 sm:px-4 text-right">
                         <div className="flex items-center justify-end gap-1.5" onClick={e => e.stopPropagation()}>
                           {(() => {
                             const exp = getAgreementExpiryInfo(franchise.agreementEndDate);
@@ -2900,7 +2902,7 @@ export function FranchiseTerritories({ toggleModal, triggerToast }: PartnerProps
                                   title={`Agreement ${exp.status} (${exp.label}). Click to copy reminder notice.`}
                                 >
                                   <Clock className="w-3 h-3 shrink-0" />
-                                  {exp.status === "Expired" ? "Expired" : "Expiring Soon"}
+                                  {exp.status === "Expired" ? "Expired" : "Expiring"}
                                 </button>
                               );
                             }
@@ -2933,34 +2935,34 @@ export function FranchiseTerritories({ toggleModal, triggerToast }: PartnerProps
 
       {/* Expanded Selected Partner Details (Renders Below the Table) */}
       {selectedFranchise && (
-        <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-md animate-fadeIn space-y-6 border-t-4 border-t-[#714B67]">
+        <div className="bg-white border border-slate-200 rounded-xl sm:rounded-2xl p-4 sm:p-6 shadow-md animate-fadeIn space-y-4 sm:space-y-6 border-t-4 border-t-[#714B67]">
           {/* Header */}
-          <div className="flex justify-between items-start pb-4 border-b border-slate-200">
+          <div className="flex flex-col sm:flex-row justify-between items-start pb-3.5 sm:pb-4 border-b border-slate-200 gap-3">
             <div>
               <div className="flex items-center gap-2">
-                <span className="p-2 rounded-xl bg-[#714B67]/10 text-[#714B67]"><UserPlus className="w-5 h-5" /></span>
+                <span className="p-2 rounded-xl bg-[#714B67]/10 text-[#714B67] shrink-0"><UserPlus className="w-5 h-5" /></span>
                 <div>
-                  <h2 className="text-lg font-black text-slate-900">
+                  <h2 className="text-base sm:text-lg font-black text-slate-900">
                     {selectedFranchise.partnerName || "Unknown Partner"}
                   </h2>
                   <p className="text-xs text-slate-500 font-medium mt-0.5">Registered on {new Date(selectedFranchise.createdAt).toLocaleDateString()}</p>
                 </div>
               </div>
             </div>
-            <div className="flex items-center gap-2 flex-wrap">
+            <div className="flex items-center gap-2 flex-wrap w-full sm:w-auto justify-start sm:justify-end">
               <button
                 onClick={(e) => handleSendRenewalNotice(selectedFranchise, e)}
-                className="px-3 py-1.5 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-300 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-2xs"
+                className="px-2.5 sm:px-3 py-1.5 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-300 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-2xs"
               >
                 <Send className="w-3.5 h-3.5" /> Send Renewal Reminder
               </button>
-              <span className={`px-3 py-1 rounded-lg text-xs font-black border ${selectedFranchise.status === "Active" ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-amber-50 text-amber-700 border-amber-200"
+              <span className={`px-2.5 sm:px-3 py-1 rounded-lg text-xs font-black border ${selectedFranchise.status === "Active" ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-amber-50 text-amber-700 border-amber-200"
                 }`}>
                 Status: {selectedFranchise.status || "Pending"}
               </span>
               <button
                 onClick={() => setSelectedFranchise(null)}
-                className="px-3 py-1.5 rounded-lg border border-slate-200 text-xs font-bold text-slate-500 hover:bg-slate-100 transition-all cursor-pointer"
+                className="px-2.5 sm:px-3 py-1.5 rounded-lg border border-slate-200 text-xs font-bold text-slate-500 hover:bg-slate-100 transition-all cursor-pointer"
               >
                 ✕ Close Details
               </button>
@@ -2972,7 +2974,7 @@ export function FranchiseTerritories({ toggleModal, triggerToast }: PartnerProps
             const exp = getAgreementExpiryInfo(selectedFranchise.agreementEndDate);
             if (exp.status === "Expired" || exp.status === "Expiring Soon") {
               return (
-                <div className={`p-3.5 rounded-xl border flex items-center justify-between gap-3 text-xs font-semibold ${exp.status === "Expired" ? "bg-rose-50 border-rose-200 text-rose-800" : "bg-amber-50 border-amber-200 text-amber-800"
+                <div className={`p-3 sm:p-3.5 rounded-xl border flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5 sm:gap-3 text-xs font-semibold ${exp.status === "Expired" ? "bg-rose-50 border-rose-200 text-rose-800" : "bg-amber-50 border-amber-200 text-amber-800"
                   }`}>
                   <div className="flex items-center gap-2">
                     <AlertTriangle className="w-4 h-4 shrink-0 text-amber-600" />
@@ -2982,7 +2984,7 @@ export function FranchiseTerritories({ toggleModal, triggerToast }: PartnerProps
                   </div>
                   <button
                     onClick={(e) => handleSendRenewalNotice(selectedFranchise, e)}
-                    className="px-3 py-1 bg-white hover:bg-slate-100 text-slate-800 border rounded-lg text-xs font-bold shrink-0 transition-all shadow-2xs cursor-pointer"
+                    className="px-3 py-1 bg-white hover:bg-slate-100 text-slate-800 border rounded-lg text-xs font-bold shrink-0 transition-all shadow-2xs cursor-pointer w-full sm:w-auto"
                   >
                     Copy Reminder Draft
                   </button>
@@ -2993,14 +2995,14 @@ export function FranchiseTerritories({ toggleModal, triggerToast }: PartnerProps
           })()}
 
           {/* Details Content Grid */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
 
             {/* Section 1: Basic Information & Address */}
-            <div className="p-4 bg-slate-50/80 rounded-xl border border-slate-200/80 space-y-3">
+            <div className="p-3.5 sm:p-4 bg-slate-50/80 rounded-xl border border-slate-200/80 space-y-3">
               <h4 className="text-xs font-black uppercase tracking-wider text-[#714B67] flex items-center gap-1.5 font-mono">
                 <span className="w-2 h-2 rounded-full bg-[#714B67]"></span> Basic Information & Address
               </h4>
-              <div className="grid grid-cols-2 gap-3 text-xs">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
                 <div>
                   <span className="text-[10px] uppercase font-black text-slate-500 block">Firm / Business Name</span>
                   <span className="font-bold text-slate-900">{selectedFranchise.partnerName || "N/A"}</span>
@@ -3025,7 +3027,7 @@ export function FranchiseTerritories({ toggleModal, triggerToast }: PartnerProps
                   <span className="text-[10px] uppercase font-black text-slate-500 block">Pincode</span>
                   <span className="font-bold text-slate-900">{selectedFranchise.pincode || "N/A"}</span>
                 </div>
-                <div className="col-span-2">
+                <div className="sm:col-span-2">
                   <span className="text-[10px] uppercase font-black text-slate-500 block">Full Office Address</span>
                   <span className="font-semibold text-slate-700">{selectedFranchise.address || "N/A"}</span>
                 </div>
@@ -3033,11 +3035,11 @@ export function FranchiseTerritories({ toggleModal, triggerToast }: PartnerProps
             </div>
 
             {/* Section 2: Commercial & Business Terms */}
-            <div className="p-4 bg-slate-50/80 rounded-xl border border-slate-200/80 space-y-3">
+            <div className="p-3.5 sm:p-4 bg-slate-50/80 rounded-xl border border-slate-200/80 space-y-3">
               <h4 className="text-xs font-black uppercase tracking-wider text-[#714B67] flex items-center gap-1.5 font-mono">
                 <span className="w-2 h-2 rounded-full bg-[#714B67]"></span> Commercial & Business Terms
               </h4>
-              <div className="grid grid-cols-2 gap-3 text-xs">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
                 <div>
                   <span className="text-[10px] uppercase font-black text-slate-500 block">Brand / Project</span>
                   <span className="font-bold text-indigo-700">{selectedFranchise.brandProject || "N/A"}</span>
@@ -3062,11 +3064,11 @@ export function FranchiseTerritories({ toggleModal, triggerToast }: PartnerProps
             </div>
 
             {/* Section 3: Legal & KYC Documents */}
-            <div className="p-4 bg-slate-50/80 rounded-xl border border-slate-200/80 space-y-3">
+            <div className="p-3.5 sm:p-4 bg-slate-50/80 rounded-xl border border-slate-200/80 space-y-3">
               <h4 className="text-xs font-black uppercase tracking-wider text-[#714B67] flex items-center gap-1.5 font-mono">
                 <span className="w-2 h-2 rounded-full bg-[#714B67]"></span> Legal & KYC Documents
               </h4>
-              <div className="grid grid-cols-2 gap-3 text-xs">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
                 <div>
                   <span className="text-[10px] uppercase font-black text-slate-500 block">GSTIN Number</span>
                   <span className="font-mono font-bold text-slate-900">{selectedFranchise.gstin || "N/A"}</span>
@@ -3099,11 +3101,11 @@ export function FranchiseTerritories({ toggleModal, triggerToast }: PartnerProps
             </div>
 
             {/* Section 4: Operations & Governance */}
-            <div className="p-4 bg-slate-50/80 rounded-xl border border-slate-200/80 space-y-3">
+            <div className="p-3.5 sm:p-4 bg-slate-50/80 rounded-xl border border-slate-200/80 space-y-3">
               <h4 className="text-xs font-black uppercase tracking-wider text-[#714B67] flex items-center gap-1.5 font-mono">
                 <span className="w-2 h-2 rounded-full bg-[#714B67]"></span> Operations & Governance
               </h4>
-              <div className="grid grid-cols-3 gap-3 text-xs">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
                 <div>
                   <span className="text-[10px] uppercase font-black text-slate-500 block">Reporting Manager</span>
                   <span className="font-bold text-slate-900">{selectedFranchise.reportingPerson || "N/A"}</span>
@@ -3125,32 +3127,32 @@ export function FranchiseTerritories({ toggleModal, triggerToast }: PartnerProps
 
       {/* Single Unified Register Franchise Partner Modal */}
       {showForm11 && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[92vh] flex flex-col my-auto border border-slate-200">
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-2.5 sm:p-4 overflow-y-auto">
+          <div className="bg-white rounded-xl sm:rounded-2xl shadow-2xl w-full max-w-4xl max-h-[92vh] flex flex-col my-auto border border-slate-200">
             {/* Modal Header */}
-            <div className="p-5 border-b border-slate-100 flex justify-between items-center bg-[#714B67]/10 rounded-t-2xl">
+            <div className="p-3.5 sm:p-5 border-b border-slate-100 flex justify-between items-center bg-[#714B67]/10 rounded-t-xl sm:rounded-t-2xl gap-2">
               <div>
-                <h2 className="text-lg font-black text-[#714B67] tracking-tight flex items-center gap-2">
-                  <span className="p-1.5 rounded-lg bg-[#714B67] text-white">
+                <h2 className="text-base sm:text-lg font-black text-[#714B67] tracking-tight flex items-center gap-2">
+                  <span className="p-1.5 rounded-lg bg-[#714B67] text-white shrink-0">
                     {editingPartnerId ? <Edit3 className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
                   </span>
-                  {editingPartnerId ? "Edit Franchise Partner" : "Add Franchise Partner"}
+                  <span>{editingPartnerId ? "Edit Franchise Partner" : "Add Franchise Partner"}</span>
                 </h2>
-                <p className="text-xs text-slate-600 font-bold mt-0.5">
+                <p className="text-[11px] sm:text-xs text-slate-600 font-bold mt-0.5">
                   {editingPartnerId ? "Update existing franchise partner profile & agreement terms" : "Officially onboard and register a new franchise partner"}
                 </p>
               </div>
-              <button onClick={() => setShowForm11(false)} className="w-8 h-8 rounded-full bg-white border border-slate-200 flex items-center justify-center hover:bg-rose-50 hover:border-rose-200 transition-all text-slate-400 hover:text-rose-600 cursor-pointer">
+              <button onClick={() => setShowForm11(false)} className="w-8 h-8 rounded-full bg-white border border-slate-200 flex items-center justify-center hover:bg-rose-50 hover:border-rose-200 transition-all text-slate-400 hover:text-rose-600 cursor-pointer shrink-0">
                 <AlertCircle className="w-4 h-4" />
               </button>
             </div>
 
             {/* Modal Body */}
-            <div className="p-6 overflow-y-auto space-y-6 flex-1 custom-scrollbar">
-              <form onSubmit={handleForm11Submit} className="space-y-6">
+            <div className="p-3.5 sm:p-6 overflow-y-auto space-y-4 sm:space-y-6 flex-1 custom-scrollbar">
+              <form onSubmit={handleForm11Submit} className="space-y-4 sm:space-y-6">
 
                 {/* Section 1: Basic Partner Details */}
-                <div className="p-4 bg-slate-50/80 rounded-xl border border-slate-200/80 space-y-3">
+                <div className="p-3.5 sm:p-4 bg-slate-50/80 rounded-xl border border-slate-200/80 space-y-3">
                   <h3 className="text-xs font-black uppercase tracking-wider text-[#714B67] flex items-center gap-1.5 font-mono">
                     <span className="w-2 h-2 rounded-full bg-[#714B67] inline-block"></span> 1. Basic Partner Details & Territory
                   </h3>
@@ -3171,7 +3173,7 @@ export function FranchiseTerritories({ toggleModal, triggerToast }: PartnerProps
                     return null;
                   })()}
 
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
                     <div>
                       <label className="text-[10px] uppercase font-black text-slate-600 tracking-wider">Business / Firm Name *</label>
                       <input required className="w-full bg-white border border-slate-300 focus:border-[#714B67] rounded-lg p-2 text-xs font-bold text-slate-800 mt-1 focus:outline-none" value={form11.partnerName} onChange={e => setForm11({ ...form11, partnerName: e.target.value })} placeholder="e.g. Acme Corp LLP" />
@@ -3204,7 +3206,7 @@ export function FranchiseTerritories({ toggleModal, triggerToast }: PartnerProps
                       <label className="text-[10px] uppercase font-black text-slate-600 tracking-wider">Pincode / Postal Code</label>
                       <input className="w-full bg-white border border-slate-300 focus:border-[#714B67] rounded-lg p-2 text-xs font-bold text-slate-800 mt-1 focus:outline-none" value={form11.pincode} onChange={e => setForm11({ ...form11, pincode: e.target.value })} placeholder="e.g. 302020" />
                     </div>
-                    <div className="md:col-span-3">
+                    <div className="sm:col-span-2 md:col-span-3">
                       <label className="text-[10px] uppercase font-black text-slate-600 tracking-wider">Full Office Address</label>
                       <input className="w-full bg-white border border-slate-300 focus:border-[#714B67] rounded-lg p-2 text-xs font-bold text-slate-800 mt-1 focus:outline-none" value={form11.address} onChange={e => setForm11({ ...form11, address: e.target.value })} placeholder="Plot / Suite No, Street Name, City, State" />
                     </div>
@@ -3212,11 +3214,11 @@ export function FranchiseTerritories({ toggleModal, triggerToast }: PartnerProps
                 </div>
 
                 {/* Section 2: Commercial & Business Terms */}
-                <div className="p-4 bg-slate-50/80 rounded-xl border border-slate-200/80 space-y-3">
+                <div className="p-3.5 sm:p-4 bg-slate-50/80 rounded-xl border border-slate-200/80 space-y-3">
                   <h3 className="text-xs font-black uppercase tracking-wider text-[#714B67] flex items-center gap-1.5 font-mono">
                     <span className="w-2 h-2 rounded-full bg-[#714B67] inline-block"></span> 2. Commercial & Business Terms
                   </h3>
-                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
                     <div>
                       <label className="text-[10px] uppercase font-black text-slate-600 tracking-wider">Brand / Project</label>
                       <input className="w-full bg-white border border-slate-300 focus:border-[#714B67] rounded-lg p-2 text-xs font-bold text-slate-800 mt-1 focus:outline-none" value={form11.brandProject} onChange={e => setForm11({ ...form11, brandProject: e.target.value })} placeholder="Brand / Project Name" />
@@ -3241,11 +3243,11 @@ export function FranchiseTerritories({ toggleModal, triggerToast }: PartnerProps
                 </div>
 
                 {/* Section 3: Legal & KYC Documents */}
-                <div className="p-4 bg-slate-50/80 rounded-xl border border-slate-200/80 space-y-3">
+                <div className="p-3.5 sm:p-4 bg-slate-50/80 rounded-xl border border-slate-200/80 space-y-3">
                   <h3 className="text-xs font-black uppercase tracking-wider text-[#714B67] flex items-center gap-1.5 font-mono">
                     <span className="w-2 h-2 rounded-full bg-[#714B67] inline-block"></span> 3. Legal & KYC Documents
                   </h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                     <div>
                       <label className="text-[10px] uppercase font-black text-slate-600 tracking-wider">GSTIN Number</label>
                       <input className="w-full bg-white border border-slate-300 focus:border-[#714B67] rounded-lg p-2 text-xs font-bold text-slate-800 mt-1 focus:outline-none font-mono" value={form11.gstin} onChange={e => setForm11({ ...form11, gstin: e.target.value.toUpperCase() })} placeholder="22AAAAA0000A1Z5" />
@@ -3257,9 +3259,9 @@ export function FranchiseTerritories({ toggleModal, triggerToast }: PartnerProps
                     <div>
                       <label className="text-[10px] uppercase font-black text-slate-600 tracking-wider">Franchise Agreement Upload</label>
                       {form11.agreementUrl ? (
-                        <div className="flex items-center justify-between p-2 bg-[#714B67]/10 border border-[#714B67]/30 rounded-lg mt-1">
-                          <a href={form11.agreementUrl} target="_blank" rel="noreferrer" className="text-[#714B67] text-xs font-bold underline truncate max-w-[250px]">View Agreement File</a>
-                          <button type="button" onClick={() => setForm11({ ...form11, agreementUrl: "" })} className="text-rose-600 text-[10px] font-black uppercase bg-white px-2 py-0.5 rounded border border-rose-200 hover:bg-rose-50">Remove</button>
+                        <div className="flex items-center justify-between p-2 bg-[#714B67]/10 border border-[#714B67]/30 rounded-lg mt-1 gap-2">
+                          <a href={form11.agreementUrl} target="_blank" rel="noreferrer" className="text-[#714B67] text-xs font-bold underline truncate max-w-[200px] sm:max-w-[250px]">View Agreement File</a>
+                          <button type="button" onClick={() => setForm11({ ...form11, agreementUrl: "" })} className="text-rose-600 text-[10px] font-black uppercase bg-white px-2 py-0.5 rounded border border-rose-200 hover:bg-rose-50 shrink-0">Remove</button>
                         </div>
                       ) : (
                         <div className="relative mt-1">
@@ -3273,9 +3275,9 @@ export function FranchiseTerritories({ toggleModal, triggerToast }: PartnerProps
                     <div>
                       <label className="text-[10px] uppercase font-black text-slate-600 tracking-wider">KYC Document Upload</label>
                       {form11.kycDocUrl ? (
-                        <div className="flex items-center justify-between p-2 bg-emerald-50 border border-emerald-200 rounded-lg mt-1">
-                          <a href={form11.kycDocUrl} target="_blank" rel="noreferrer" className="text-emerald-700 text-xs font-bold underline truncate max-w-[250px]">View KYC Document</a>
-                          <button type="button" onClick={() => setForm11({ ...form11, kycDocUrl: "" })} className="text-rose-600 text-[10px] font-black uppercase bg-white px-2 py-0.5 rounded border border-rose-200 hover:bg-rose-50">Remove</button>
+                        <div className="flex items-center justify-between p-2 bg-emerald-50 border border-emerald-200 rounded-lg mt-1 gap-2">
+                          <a href={form11.kycDocUrl} target="_blank" rel="noreferrer" className="text-emerald-700 text-xs font-bold underline truncate max-w-[200px] sm:max-w-[250px]">View KYC Document</a>
+                          <button type="button" onClick={() => setForm11({ ...form11, kycDocUrl: "" })} className="text-rose-600 text-[10px] font-black uppercase bg-white px-2 py-0.5 rounded border border-rose-200 hover:bg-rose-50 shrink-0">Remove</button>
                         </div>
                       ) : (
                         <div className="relative mt-1">
@@ -3290,11 +3292,11 @@ export function FranchiseTerritories({ toggleModal, triggerToast }: PartnerProps
                 </div>
 
                 {/* Section 4: Operations & Governance */}
-                <div className="p-4 bg-slate-50/80 rounded-xl border border-slate-200/80 space-y-3">
+                <div className="p-3.5 sm:p-4 bg-slate-50/80 rounded-xl border border-slate-200/80 space-y-3">
                   <h3 className="text-xs font-black uppercase tracking-wider text-[#714B67] flex items-center gap-1.5 font-mono">
                     <span className="w-2 h-2 rounded-full bg-[#714B67] inline-block"></span> 4. Operations & Governance
                   </h3>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
                     <div>
                       <label className="text-[10px] uppercase font-black text-slate-600 tracking-wider">Reporting Manager / Contact</label>
                       <input className="w-full bg-white border border-slate-300 focus:border-[#714B67] rounded-lg p-2 text-xs font-bold text-slate-800 mt-1 focus:outline-none" value={form11.reportingPerson} onChange={e => setForm11({ ...form11, reportingPerson: e.target.value })} placeholder="Internal Account Manager Name" />
@@ -3319,11 +3321,11 @@ export function FranchiseTerritories({ toggleModal, triggerToast }: PartnerProps
                 </div>
 
                 {/* Footer Controls */}
-                <div className="pt-4 border-t border-slate-200 flex justify-end gap-3 sticky bottom-0 bg-white py-2">
-                  <button type="button" onClick={() => setShowForm11(false)} className="px-5 py-2.5 rounded-xl text-xs font-black uppercase text-slate-600 hover:bg-slate-100 transition-all border border-slate-200">
+                <div className="pt-3 sm:pt-4 border-t border-slate-200 flex flex-col sm:flex-row justify-end gap-2 sm:gap-3 sticky bottom-0 bg-white py-2">
+                  <button type="button" onClick={() => setShowForm11(false)} className="w-full sm:w-auto px-5 py-2.5 rounded-xl text-xs font-black uppercase text-slate-600 hover:bg-slate-100 transition-all border border-slate-200">
                     Cancel
                   </button>
-                  <button type="submit" disabled={submitting || uploadingDoc || uploadingKyc} className="px-6 py-2.5 rounded-xl text-xs font-black uppercase text-white bg-[#714B67] hover:bg-[#5F3F56] shadow-md transition-all flex items-center gap-2 disabled:opacity-50 cursor-pointer">
+                  <button type="submit" disabled={submitting || uploadingDoc || uploadingKyc} className="w-full sm:w-auto px-6 py-2.5 rounded-xl text-xs font-black uppercase text-white bg-[#714B67] hover:bg-[#5F3F56] shadow-md transition-all flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer">
                     <CheckCircle className="w-4 h-4" /> {submitting ? "Saving..." : editingPartnerId ? "Update Franchise Partner" : "Add Franchise Partner"}
                   </button>
                 </div>

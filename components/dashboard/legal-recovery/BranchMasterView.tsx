@@ -287,7 +287,7 @@ export default function BranchMasterView({
       </div>
 
       {/* Table */}
-      <div className="bg-[#FCFBF9] border border-[#E8E4DF] rounded-xl overflow-hidden shadow-sm overflow-x-auto max-h-[600px] overflow-y-auto">
+      <div className="bg-[#FCFBF9] border border-[#E8E4DF] rounded-xl overflow-hidden shadow-sm overflow-x-auto max-h-[calc(100vh-220px)] min-h-[680px] overflow-y-auto">
         <table className="w-full border-collapse text-left min-w-max">
           <thead className="sticky top-0 bg-[#F5F0EA] z-10">
             <tr className="border-b border-[#E8E4DF] text-[#5D5B57] text-[10px] uppercase font-bold tracking-wider">

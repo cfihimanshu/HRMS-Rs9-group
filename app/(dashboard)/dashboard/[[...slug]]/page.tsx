@@ -1271,6 +1271,11 @@ export default function UnifiedEnterpriseDashboard() {
               candidates={candidates}
               interviews={interviews}
               onNavigateTab={handleNavigateTab}
+              sessionUser={session?.user}
+              companies={allCompanies}
+              selectedCompanyId={selectedCompanyId}
+              onCompanyChange={setSelectedCompanyId}
+              triggerToast={triggerToast}
             />
           )}
 
@@ -2357,11 +2362,12 @@ export default function UnifiedEnterpriseDashboard() {
         </div>
       )}
 
+      {/* MODAL 10: SOD MODAL */}
       {modals.sodModal && (
-        <div className="fixed inset-0 bg-black/20 z-[90] flex items-center justify-center p-4 backdrop-blur-md animate-fadeIn">
-          <div className="bg-[#F4F5F7] w-full max-w-3xl max-h-[90vh] overflow-y-auto custom-scrollbar rounded-2xl shadow-2xl relative border border-slate-200">
-            <button className="absolute top-6 right-6 text-slate-500 hover:text-slate-800 bg-white hover:bg-slate-100 rounded-full p-1.5 border shadow-sm z-10 transition-all" onClick={() => toggleModal("sodModal", false)}><X className="w-5 h-5" /></button>
-            <div className="p-8">
+        <div className="fixed inset-0 bg-black/40 z-[90] flex items-center justify-center p-2.5 sm:p-4 backdrop-blur-md animate-fadeIn">
+          <div className="bg-[#F4F5F7] w-full max-w-3xl max-h-[92vh] overflow-y-auto custom-scrollbar rounded-2xl shadow-2xl relative border border-slate-200 my-auto">
+            <button className="absolute top-4 right-4 sm:top-6 sm:right-6 text-slate-500 hover:text-slate-800 bg-white hover:bg-slate-100 rounded-full p-1.5 border shadow-sm z-10 transition-all" onClick={() => toggleModal("sodModal", false)}><X className="w-4 h-4 sm:w-5 sm:h-5" /></button>
+            <div className="p-3 sm:p-6 md:p-8">
               <DailyCommitments
                 sessionUser={session?.user}
                 stats={stats}
@@ -2380,10 +2386,10 @@ export default function UnifiedEnterpriseDashboard() {
 
       {/* MODAL 11: EOD MODAL */}
       {modals.eodModal && (
-        <div className="fixed inset-0 bg-black/20 z-[90] flex items-center justify-center p-4 backdrop-blur-md animate-fadeIn">
-          <div className="bg-[#F4F5F7] w-full max-w-3xl max-h-[90vh] overflow-y-auto custom-scrollbar rounded-2xl shadow-2xl relative border border-slate-200">
-            <button className="absolute top-6 right-6 text-slate-500 hover:text-slate-800 bg-white hover:bg-slate-100 rounded-full p-1.5 border shadow-sm z-10 transition-all" onClick={() => toggleModal("eodModal", false)}><X className="w-5 h-5" /></button>
-            <div className="p-8">
+        <div className="fixed inset-0 bg-black/40 z-[90] flex items-center justify-center p-2.5 sm:p-4 backdrop-blur-md animate-fadeIn">
+          <div className="bg-[#F4F5F7] w-full max-w-3xl max-h-[92vh] overflow-y-auto custom-scrollbar rounded-2xl shadow-2xl relative border border-slate-200 my-auto">
+            <button className="absolute top-4 right-4 sm:top-6 sm:right-6 text-slate-500 hover:text-slate-800 bg-white hover:bg-slate-100 rounded-full p-1.5 border shadow-sm z-10 transition-all" onClick={() => toggleModal("eodModal", false)}><X className="w-4 h-4 sm:w-5 sm:h-5" /></button>
+            <div className="p-3 sm:p-6 md:p-8">
               <DailyCommitments
                 sessionUser={session?.user}
                 stats={stats}

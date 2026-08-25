@@ -5,7 +5,7 @@ import {
   Plus, Search, AlertCircle, ShieldAlert, CheckCircle, RefreshCw,
   EyeOff, FileText, UserCheck, ShieldCheck, Building2, Edit, X,
   Lock, MessageSquare, Clock, CheckCircle2, Send, CornerDownRight,
-  Filter, Sparkles, AlertTriangle
+  Filter, Sparkles, AlertTriangle, Download, FileSpreadsheet, Activity, TrendingUp
 } from "lucide-react";
 
 interface ComplianceProps {
@@ -30,7 +30,7 @@ export function GrievanceResolution({ toggleModal, triggerToast }: { toggleModal
   const [userReacted, setUserReacted] = useState<Record<string, boolean>>({});
 
   const userRole = (session?.user as any)?.role || "";
-  const isHrOrAdmin = ["Owner", "Director", "IT Admin", "HR Head", "HR Executive", "Department Manager"].some(r => userRole.toLowerCase().includes(r.toLowerCase()));
+  const isHrOrAdmin = ["Owner", "Director", "IT Admin", "HR Head", "HR Executive", "Department Manager", "HR", "Admin", "Manager", "Super Admin"].some(r => userRole.toLowerCase().includes(r.toLowerCase()));
 
   const loadGrievances = async () => {
     try {
@@ -54,6 +54,36 @@ export function GrievanceResolution({ toggleModal, triggerToast }: { toggleModal
   useEffect(() => {
     loadGrievances();
   }, []);
+
+  const handleStatusChange = async (id: string, newStatus: string) => {
+    if (!id || !newStatus) return;
+    setReplyStatus(newStatus);
+    
+    // Immediate optimistic update of grievances list and selected item
+    setGrievances(prev => prev.map(g => g.id === id ? { ...g, status: newStatus } : g));
+
+    try {
+      const res = await fetch("/api/grievances", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          grievanceId: id,
+          status: newStatus,
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        triggerToast(`Problem status updated to ${newStatus}`);
+        await loadGrievances();
+      } else {
+        triggerToast("Error updating status: " + (data.error || "Failed"));
+        await loadGrievances();
+      }
+    } catch (err) {
+      triggerToast("Failed to update status");
+      await loadGrievances();
+    }
+  };
 
   const handleSendReply = async () => {
     if (!selectedGrievanceId) return;
@@ -93,6 +123,8 @@ export function GrievanceResolution({ toggleModal, triggerToast }: { toggleModal
   const handleQuickResolve = async (id: string, newStatus: string, reportText?: string) => {
     try {
       setSubmitting(true);
+      setGrievances(prev => prev.map(g => g.id === id ? { ...g, status: newStatus } : g));
+      setReplyStatus(newStatus);
       const res = await fetch("/api/grievances", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
@@ -108,9 +140,11 @@ export function GrievanceResolution({ toggleModal, triggerToast }: { toggleModal
         await loadGrievances();
       } else {
         triggerToast("Error: " + data.error);
+        await loadGrievances();
       }
     } catch (err) {
       triggerToast("Failed to update status");
+      await loadGrievances();
     } finally {
       setSubmitting(false);
     }
@@ -387,23 +421,44 @@ export function GrievanceResolution({ toggleModal, triggerToast }: { toggleModal
                 {/* Right Status Controls & Stepper */}
                 <div className="flex items-center gap-2">
                   <div className="hidden sm:flex items-center gap-1 text-[10px] font-mono font-bold bg-white border border-slate-200 p-1 rounded-xl shadow-2xs">
-                    <span className="px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200">
-                      ✓ Logged
-                    </span>
+                    <button
+                      type="button"
+                      onClick={() => isHrOrAdmin && handleStatusChange(selectedGrievance.id, "Open")}
+                      className={`px-2 py-0.5 rounded-md transition-all ${
+                        selectedGrievance.status === "Open" || !selectedGrievance.status
+                          ? "bg-slate-800 text-white font-black"
+                          : "bg-slate-50 text-slate-500 hover:bg-slate-100"
+                      } ${isHrOrAdmin ? "cursor-pointer" : "cursor-default"}`}
+                      title={isHrOrAdmin ? "Click to set status to Open" : undefined}
+                    >
+                      ✓ Open
+                    </button>
                     <span className="text-slate-300">➔</span>
-                    <span className={`px-2 py-0.5 rounded-md border ${selectedGrievance.status === "In-Progress" || selectedGrievance.status === "Resolved"
-                      ? "bg-amber-50 text-amber-700 border-amber-200 font-black"
-                      : "bg-transparent text-slate-400 border-transparent"
-                    }`}>
+                    <button
+                      type="button"
+                      onClick={() => isHrOrAdmin && handleStatusChange(selectedGrievance.id, "In-Progress")}
+                      className={`px-2 py-0.5 rounded-md border transition-all ${
+                        selectedGrievance.status === "In-Progress"
+                          ? "bg-amber-500 text-white border-amber-600 font-black"
+                          : "bg-transparent text-slate-400 border-transparent hover:bg-amber-50"
+                      } ${isHrOrAdmin ? "cursor-pointer" : "cursor-default"}`}
+                      title={isHrOrAdmin ? "Click to set status to Investigating (In-Progress)" : undefined}
+                    >
                       Investigating
-                    </span>
+                    </button>
                     <span className="text-slate-300">➔</span>
-                    <span className={`px-2 py-0.5 rounded-md border ${selectedGrievance.status === "Resolved"
-                      ? "bg-emerald-600 text-white border-emerald-700 font-black"
-                      : "bg-transparent text-slate-400 border-transparent"
-                    }`}>
+                    <button
+                      type="button"
+                      onClick={() => isHrOrAdmin && handleStatusChange(selectedGrievance.id, "Resolved")}
+                      className={`px-2 py-0.5 rounded-md border transition-all ${
+                        selectedGrievance.status === "Resolved"
+                          ? "bg-emerald-600 text-white border-emerald-700 font-black"
+                          : "bg-transparent text-slate-400 border-transparent hover:bg-emerald-50"
+                      } ${isHrOrAdmin ? "cursor-pointer" : "cursor-default"}`}
+                      title={isHrOrAdmin ? "Click to set status to Resolved" : undefined}
+                    >
                       Resolved
-                    </span>
+                    </button>
                   </div>
 
                   {isHrOrAdmin && selectedGrievance.status !== "Resolved" && (
@@ -590,9 +645,16 @@ export function GrievanceResolution({ toggleModal, triggerToast }: { toggleModal
                       <div className="flex items-center gap-1.5">
                         <span className="text-[10px] font-bold uppercase text-slate-400 font-mono">Update Status:</span>
                         <select
-                          value={replyStatus}
-                          onChange={(e) => setReplyStatus(e.target.value)}
-                          className="bg-white border border-slate-300 rounded-lg px-2 py-1 text-xs font-bold text-slate-850 focus:outline-none focus:ring-1 focus:ring-[#714B67]"
+                          value={selectedGrievance?.status || replyStatus || "Open"}
+                          onChange={(e) => {
+                            const newStatus = e.target.value;
+                            setReplyStatus(newStatus);
+                            if (selectedGrievance?.id) {
+                              handleStatusChange(selectedGrievance.id, newStatus);
+                            }
+                          }}
+                          disabled={submitting}
+                          className="bg-white border border-slate-300 rounded-lg px-2.5 py-1 text-xs font-bold text-slate-850 focus:outline-none focus:ring-1 focus:ring-[#714B67] cursor-pointer shadow-2xs hover:border-slate-400"
                         >
                           <option value="Open">Open</option>
                           <option value="In-Progress">In-Progress</option>
@@ -630,6 +692,9 @@ export function SystemRiskAlerts({ toggleModal, triggerToast, riskAlertList, onR
   const [selectedAlert, setSelectedAlert] = useState<any>(null);
   const [isCreating, setIsCreating] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState("ALL");
+  const [severityFilter, setSeverityFilter] = useState("ALL");
+  const [categoryFilter, setCategoryFilter] = useState("ALL");
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
@@ -674,6 +739,17 @@ export function SystemRiskAlerts({ toggleModal, triggerToast, riskAlertList, onR
     setResolutionStatus(alert.status || "Open");
   };
 
+  useEffect(() => {
+    if (!isCreating && filteredAlerts.length > 0) {
+      const existsInFiltered = filteredAlerts.some(a => a.id === selectedAlert?.id);
+      if (!existsInFiltered) {
+        handleSelectAlert(filteredAlerts[0]);
+      }
+    } else if (!isCreating && filteredAlerts.length === 0) {
+      setSelectedAlert(null);
+    }
+  }, [statusFilter, severityFilter, categoryFilter, searchQuery, alerts.length]);
+
   const handleCreateNew = () => {
     setSelectedAlert(null);
     setIsCreating(true);
@@ -687,9 +763,15 @@ export function SystemRiskAlerts({ toggleModal, triggerToast, riskAlertList, onR
     });
   };
 
-  const handleResolveAlert = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedAlert) return;
+  const handleDirectStatusChange = async (alertId: string, newStatus: string) => {
+    if (!alertId || !newStatus) return;
+    setResolutionStatus(newStatus);
+    
+    // Immediate optimistic update
+    setAlerts(prev => prev.map(a => a.id === alertId ? { ...a, status: newStatus } : a));
+    if (selectedAlert?.id === alertId) {
+      setSelectedAlert((prev: any) => ({ ...prev, status: newStatus }));
+    }
 
     try {
       setSubmitting(true);
@@ -697,22 +779,30 @@ export function SystemRiskAlerts({ toggleModal, triggerToast, riskAlertList, onR
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          alertId: selectedAlert.id,
-          status: resolutionStatus
+          alertId,
+          status: newStatus
         })
       });
       const data = await res.json();
       if (data.success) {
-        triggerToast(`Alert RA-${selectedAlert.id.slice(-4).toUpperCase()} marked as ${resolutionStatus}`);
-        loadAlerts();
+        triggerToast(`Alert RA-${alertId.slice(-4).toUpperCase()} marked as ${newStatus}`);
+        await loadAlerts();
       } else {
         triggerToast("Error: " + data.error);
+        await loadAlerts();
       }
     } catch (err) {
       triggerToast("Failed to update alert");
+      await loadAlerts();
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const handleResolveAlert = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedAlert) return;
+    await handleDirectStatusChange(selectedAlert.id, resolutionStatus);
   };
 
   const handleTriggerAlert = async (e: React.FormEvent) => {
@@ -759,109 +849,537 @@ export function SystemRiskAlerts({ toggleModal, triggerToast, riskAlertList, onR
     }
   };
 
-  const filteredAlerts = alerts.filter(a =>
-    a.source?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    a.id.slice(-4).toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  // Helper to parse description
+  const parseDescription = (desc: string) => {
+    if (!desc) return { title: "", targetEntity: "", body: "", mitigation: "" };
+    
+    let title = "";
+    let targetEntity = "";
+    let body = desc;
+    let mitigation = "";
+
+    const titleMatch = desc.match(/📌\s*RISK TITLE:\s*([^\n]+)/i);
+    if (titleMatch) title = titleMatch[1].trim();
+
+    const targetMatch = desc.match(/🎯\s*TARGET ENTITY \/ DEPT:\s*([^\n]+)/i);
+    if (targetMatch) targetEntity = targetMatch[1].trim();
+
+    const descMatch = desc.match(/📝\s*DESCRIPTION & EVIDENCE:\s*([\s\S]*?)(?=🛡️\s*SUGGESTED MITIGATION:|$)/i);
+    if (descMatch) body = descMatch[1].trim();
+
+    const mitMatch = desc.match(/🛡️\s*SUGGESTED MITIGATION:\s*([\s\S]*?)$/i);
+    if (mitMatch) mitigation = mitMatch[1].trim();
+
+    return { title, targetEntity, body, mitigation };
+  };
+
+  // KPI Analytics calculations
+  const totalCount = alerts.length;
+  const criticalHighCount = alerts.filter(a => a.level === "Critical" || a.level === "High").length;
+  const openCount = alerts.filter(a => a.status === "Open" || !a.status).length;
+  const investigatingCount = alerts.filter(a => a.status === "Investigating").length;
+  const resolvedCount = alerts.filter(a => a.status === "Resolved").length;
+  const resolutionRate = totalCount > 0 ? Math.round((resolvedCount / totalCount) * 100) : 100;
+
+  // Filtered Alerts calculation
+  const filteredAlerts = alerts.filter(a => {
+    const parsed = parseDescription(a.description || "");
+    const q = searchQuery.toLowerCase();
+    
+    const matchesSearch = !q ||
+      (a.source || "").toLowerCase().includes(q) ||
+      (a.id || "").slice(-4).toLowerCase().includes(q) ||
+      (a.level || "").toLowerCase().includes(q) ||
+      (a.description || "").toLowerCase().includes(q) ||
+      parsed.title.toLowerCase().includes(q) ||
+      parsed.targetEntity.toLowerCase().includes(q);
+
+    const matchesStatus =
+      statusFilter === "ALL" ? true :
+      statusFilter === "OPEN" ? (a.status === "Open" || !a.status) :
+      statusFilter === "INVESTIGATING" ? a.status === "Investigating" :
+      statusFilter === "RESOLVED" ? a.status === "Resolved" : true;
+
+    const matchesSeverity =
+      severityFilter === "ALL" ? true :
+      severityFilter === "CRITICAL_HIGH" ? (a.level === "Critical" || a.level === "High") :
+      (a.level || "").toLowerCase() === severityFilter.toLowerCase();
+
+    const matchesCategory =
+      categoryFilter === "ALL" ? true :
+      (a.source || "").toLowerCase() === categoryFilter.toLowerCase();
+
+    return matchesSearch && matchesStatus && matchesSeverity && matchesCategory;
+  });
+
+  // Unique categories for filter dropdown
+  const uniqueCategories = Array.from(new Set(alerts.map(a => a.source).filter(Boolean)));
+
+  // Export CSV Function
+  const handleExportCSV = () => {
+    if (filteredAlerts.length === 0) {
+      triggerToast("No risk records found to export.");
+      return;
+    }
+
+    try {
+      const headers = [
+        "Alert Ticket ID",
+        "Risk Category",
+        "Severity Level",
+        "Status",
+        "Target Entity / Dept",
+        "Risk Headline / Title",
+        "Triggered By",
+        "Created Date",
+        "Description & Evidence",
+        "Suggested Mitigation"
+      ];
+
+      const rows = filteredAlerts.map(a => {
+        const parsed = parseDescription(a.description || "");
+        return [
+          `RA-${a.id.slice(-4).toUpperCase()}`,
+          `"${(a.source || "").replace(/"/g, '""')}"`,
+          `"${(a.level || "").replace(/"/g, '""')}"`,
+          `"${(a.status || "Open").replace(/"/g, '""')}"`,
+          `"${(parsed.targetEntity || "").replace(/"/g, '""')}"`,
+          `"${(parsed.title || a.source || "").replace(/"/g, '""')}"`,
+          `"${(a.triggeredBy?.name || "System Automation").replace(/"/g, '""')}"`,
+          `"${new Date(a.createdAt).toLocaleString("en-IN")}"`,
+          `"${(parsed.body || a.description || "").replace(/"/g, '""')}"`,
+          `"${(parsed.mitigation || "").replace(/"/g, '""')}"`
+        ];
+      });
+
+      const csvContent = "\uFEFF" + [headers.join(","), ...rows.map(e => e.join(","))].join("\r\n");
+      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.setAttribute("href", url);
+      link.setAttribute("download", `Enterprise_Risk_Audit_Report_${new Date().toISOString().split("T")[0]}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      triggerToast(`Exported ${filteredAlerts.length} risk audit records to CSV!`);
+    } catch (err) {
+      triggerToast("Failed to export CSV report");
+    }
+  };
 
   return (
-    <div className="space-y-8 animate-fadeIn text-slate-800">
+    <div className="space-y-6 animate-fadeIn text-slate-800">
 
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-xl font-black text-slate-800">Enterprise Risk & Alerts Management</h1>
-          <p className="text-xs text-slate-500 mt-1">Automatic vetting triggers and manual compliance risk logs</p>
+      {/* Top Banner & Action Header */}
+      <div className="p-4 sm:p-5 rounded-3xl border border-rose-200/70 bg-gradient-to-r from-rose-900/10 via-amber-900/5 to-white dark:to-slate-900 flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-xs relative overflow-hidden backdrop-blur-md">
+        <div className="space-y-1 z-10">
+          <div className="flex flex-wrap items-center gap-2.5">
+            <span className="p-2 rounded-2xl bg-gradient-to-br from-rose-600 to-rose-900 text-white shadow-sm">
+              <ShieldAlert className="w-4 h-4" />
+            </span>
+            <h1 className="text-base sm:text-lg font-black tracking-tight text-slate-900 dark:text-white">
+              Enterprise Risk &amp; Alerts Management
+            </h1>
+            <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-mono font-black uppercase tracking-wider border shadow-2xs ${
+              criticalHighCount > 0
+                ? "bg-rose-50 text-rose-700 border-rose-200"
+                : "bg-emerald-50 text-emerald-700 border-emerald-200"
+            }`}>
+              <span className={`w-1.5 h-1.5 rounded-full ${criticalHighCount > 0 ? "bg-rose-500 animate-ping" : "bg-emerald-500"}`}></span>
+              {criticalHighCount > 0 ? `${criticalHighCount} Active High Threats` : "System Secure & High Integrity"}
+            </span>
+          </div>
+          <p className="text-xs text-slate-500 font-medium">
+            Real-time compliance monitoring, vetting triggers, anomaly containment &amp; executive audits.
+          </p>
         </div>
-        <div className="flex gap-2">
+
+        <div className="flex flex-wrap items-center gap-2 self-start md:self-auto z-10">
+          <button
+            onClick={handleExportCSV}
+            title="Download Risk Audit Report as CSV"
+            className="px-3.5 py-2 rounded-2xl bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 cursor-pointer active:scale-[0.98]"
+          >
+            <Download className="w-3.5 h-3.5 text-slate-600" />
+            <span>Export Audit CSV</span>
+          </button>
           <button
             onClick={handleCreateNew}
-            className="bg-rose-600 hover:bg-rose-700 px-4 py-2 rounded-lg text-xs font-bold text-white transition-all shadow-sm flex items-center gap-1.5"
+            className="bg-gradient-to-r from-rose-600 to-rose-800 hover:from-rose-700 hover:to-rose-900 text-white px-4 py-2 rounded-2xl text-xs font-black transition-all shadow-md shadow-rose-600/20 hover:shadow-lg flex items-center gap-1.5 active:scale-[0.98] cursor-pointer"
           >
             <ShieldAlert className="w-4 h-4" /> Trigger Alert
           </button>
           <button
             onClick={loadAlerts}
             disabled={loading}
-            className="p-2 border border-slate-200 rounded-lg hover:bg-slate-50 text-slate-600 transition duration-150 shrink-0"
+            title="Refresh Alert Stream"
+            className="p-2 border border-slate-200 bg-white rounded-2xl hover:bg-slate-50 text-slate-600 transition-all shadow-xs cursor-pointer"
           >
-            <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
+            <RefreshCw className={`w-4 h-4 text-rose-600 ${loading ? "animate-spin" : ""}`} />
           </button>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+      {/* 1. TOP KPI METRICS & RISK SCORE STRIP (Interactive Clickable Filters) */}
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3.5">
+        {/* Card 1: Total Risks */}
+        <button
+          type="button"
+          onClick={() => {
+            setStatusFilter("ALL");
+            setSeverityFilter("ALL");
+          }}
+          className={`text-left border rounded-2xl p-3.5 shadow-2xs flex flex-col justify-between cursor-pointer transition-all duration-150 hover:shadow-md hover:scale-[1.01] active:scale-[0.99] ${
+            statusFilter === "ALL" && severityFilter === "ALL"
+              ? "bg-slate-50 border-slate-700 ring-2 ring-slate-800/20 shadow-sm"
+              : "bg-white border-slate-200/90 hover:border-slate-300 hover:bg-slate-50/50"
+          }`}
+        >
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-500">Total Risks Logged</span>
+            <span className={`p-1.5 rounded-xl ${
+              statusFilter === "ALL" && severityFilter === "ALL" ? "bg-slate-800 text-white" : "bg-slate-100 text-slate-600"
+            }`}>
+              <Activity className="w-3.5 h-3.5" />
+            </span>
+          </div>
+          <div className="mt-2 flex items-baseline gap-2">
+            <span className="text-2xl font-black text-slate-900">{totalCount}</span>
+            <span className="text-[10px] font-bold font-mono text-slate-400">incidents</span>
+          </div>
+        </button>
 
-        {/* Left Side: Alert List */}
-        <div className="lg:col-span-4 bg-white border border-slate-200 rounded-xl p-4 flex flex-col h-[750px] shadow-sm">
-          <h3 className="text-xs font-black tracking-widest text-slate-400 uppercase font-mono mb-3">Active Risk Logs</h3>
+        {/* Card 2: Critical & High Threats */}
+        <button
+          type="button"
+          onClick={() => {
+            setSeverityFilter(severityFilter === "CRITICAL_HIGH" ? "ALL" : "CRITICAL_HIGH");
+            setStatusFilter("ALL");
+          }}
+          className={`text-left border rounded-2xl p-3.5 shadow-2xs flex flex-col justify-between cursor-pointer transition-all duration-150 hover:shadow-md hover:scale-[1.01] active:scale-[0.99] ${
+            severityFilter === "CRITICAL_HIGH"
+              ? "bg-rose-50/90 border-rose-500 ring-2 ring-rose-500/25 shadow-sm"
+              : "bg-gradient-to-br from-rose-500/10 via-rose-50/40 to-white border-rose-200 hover:border-rose-300"
+          }`}
+        >
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-rose-700">Critical / High Threats</span>
+            <span className={`p-1.5 rounded-xl ${
+              severityFilter === "CRITICAL_HIGH" ? "bg-rose-600 text-white shadow-xs" : "bg-rose-100 text-rose-700"
+            }`}>
+              <AlertCircle className="w-3.5 h-3.5" />
+            </span>
+          </div>
+          <div className="mt-2 flex items-baseline gap-2">
+            <span className="text-2xl font-black text-rose-600">{criticalHighCount}</span>
+            <span className="text-[10px] font-bold font-mono text-rose-500">require containment</span>
+          </div>
+        </button>
+
+        {/* Card 3: Action Needed / Open */}
+        <button
+          type="button"
+          onClick={() => {
+            setStatusFilter(statusFilter === "OPEN" ? "ALL" : "OPEN");
+            setSeverityFilter("ALL");
+          }}
+          className={`text-left border rounded-2xl p-3.5 shadow-2xs flex flex-col justify-between cursor-pointer transition-all duration-150 hover:shadow-md hover:scale-[1.01] active:scale-[0.99] ${
+            statusFilter === "OPEN" && severityFilter === "ALL"
+              ? "bg-amber-50/90 border-amber-500 ring-2 ring-amber-500/25 shadow-sm"
+              : "bg-white border-slate-200/90 hover:border-amber-300 hover:bg-amber-50/30"
+          }`}
+        >
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-amber-700">Open / Unassigned</span>
+            <span className={`p-1.5 rounded-xl ${
+              statusFilter === "OPEN" && severityFilter === "ALL" ? "bg-amber-500 text-white shadow-xs" : "bg-amber-100 text-amber-700"
+            }`}>
+              <Clock className="w-3.5 h-3.5" />
+            </span>
+          </div>
+          <div className="mt-2 flex items-baseline gap-2">
+            <span className="text-2xl font-black text-amber-600">{openCount}</span>
+            <span className="text-[10px] font-bold font-mono text-amber-600/80">pending review</span>
+          </div>
+        </button>
+
+        {/* Card 4: Under Investigation */}
+        <button
+          type="button"
+          onClick={() => {
+            setStatusFilter(statusFilter === "INVESTIGATING" ? "ALL" : "INVESTIGATING");
+            setSeverityFilter("ALL");
+          }}
+          className={`text-left border rounded-2xl p-3.5 shadow-2xs flex flex-col justify-between cursor-pointer transition-all duration-150 hover:shadow-md hover:scale-[1.01] active:scale-[0.99] ${
+            statusFilter === "INVESTIGATING" && severityFilter === "ALL"
+              ? "bg-blue-50/90 border-blue-500 ring-2 ring-blue-500/25 shadow-sm"
+              : "bg-white border-slate-200/90 hover:border-blue-300 hover:bg-blue-50/30"
+          }`}
+        >
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-blue-700">In Investigation</span>
+            <span className={`p-1.5 rounded-xl ${
+              statusFilter === "INVESTIGATING" && severityFilter === "ALL" ? "bg-blue-600 text-white shadow-xs" : "bg-blue-100 text-blue-700"
+            }`}>
+              <Search className="w-3.5 h-3.5" />
+            </span>
+          </div>
+          <div className="mt-2 flex items-baseline gap-2">
+            <span className="text-2xl font-black text-blue-600">{investigatingCount}</span>
+            <span className="text-[10px] font-bold font-mono text-blue-600/80">active vetting</span>
+          </div>
+        </button>
+
+        {/* Card 5: Resolved / Mitigated */}
+        <button
+          type="button"
+          onClick={() => {
+            setStatusFilter(statusFilter === "RESOLVED" ? "ALL" : "RESOLVED");
+            setSeverityFilter("ALL");
+          }}
+          className={`text-left border rounded-2xl p-3.5 shadow-2xs flex flex-col justify-between col-span-2 lg:col-span-1 cursor-pointer transition-all duration-150 hover:shadow-md hover:scale-[1.01] active:scale-[0.99] ${
+            statusFilter === "RESOLVED" && severityFilter === "ALL"
+              ? "bg-emerald-50/90 border-emerald-500 ring-2 ring-emerald-500/25 shadow-sm"
+              : "bg-gradient-to-br from-emerald-500/10 via-emerald-50/40 to-white border-emerald-200 hover:border-emerald-300"
+          }`}
+        >
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-emerald-700">Mitigated Cases</span>
+            <span className={`p-1.5 rounded-xl ${
+              statusFilter === "RESOLVED" && severityFilter === "ALL" ? "bg-emerald-600 text-white shadow-xs" : "bg-emerald-100 text-emerald-700"
+            }`}>
+              <CheckCircle2 className="w-3.5 h-3.5" />
+            </span>
+          </div>
+          <div className="mt-2 flex items-baseline justify-between">
+            <div className="flex items-baseline gap-1.5">
+              <span className="text-2xl font-black text-emerald-700">{resolvedCount}</span>
+              <span className="text-[10px] font-bold font-mono text-emerald-600">resolved</span>
+            </div>
+            <span className="text-[11px] font-black font-mono px-2 py-0.5 rounded-lg text-emerald-800 bg-emerald-100">
+              {resolutionRate}%
+            </span>
+          </div>
+        </button>
+      </div>
+
+      {/* 2. ADVANCED FILTER & TRIAGE BAR */}
+      <div className="p-3.5 bg-white border border-slate-200 rounded-2xl shadow-2xs space-y-3">
+        <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3">
+          
+          {/* Status Quick Tabs */}
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 no-scrollbar text-xs font-bold">
+            {[
+              { key: "ALL", label: "All Incidents", count: totalCount },
+              { key: "OPEN", label: "🔴 Open", count: openCount },
+              { key: "INVESTIGATING", label: "🟡 Investigating", count: investigatingCount },
+              { key: "RESOLVED", label: "🟢 Resolved", count: resolvedCount },
+            ].map(tab => (
+              <button
+                key={tab.key}
+                onClick={() => {
+                  setStatusFilter(tab.key);
+                  setSeverityFilter("ALL");
+                }}
+                className={`px-3 py-1.5 rounded-xl whitespace-nowrap transition-all flex items-center gap-1.5 cursor-pointer ${
+                  statusFilter === tab.key && severityFilter === "ALL"
+                    ? "bg-slate-900 text-white shadow-2xs"
+                    : "bg-slate-50 hover:bg-slate-100 text-slate-600 border border-slate-200/80"
+                }`}
+              >
+                <span>{tab.label}</span>
+                <span className={`px-1.5 py-0.2 rounded-md text-[10px] font-mono ${statusFilter === tab.key && severityFilter === "ALL" ? "bg-white/20 text-white" : "bg-slate-200/80 text-slate-700"}`}>
+                  {tab.count}
+                </span>
+              </button>
+            ))}
+          </div>
+
+          {/* Severity & Category Dropdowns + Reset */}
+          <div className="flex flex-wrap items-center gap-2 text-xs">
+            {/* Severity Filter */}
+            <div className="flex items-center gap-1 bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-1">
+              <span className="text-[10px] font-mono font-bold text-slate-400 uppercase">Severity:</span>
+              <select
+                value={severityFilter}
+                onChange={e => setSeverityFilter(e.target.value)}
+                className="bg-transparent text-xs font-bold text-slate-800 focus:outline-none cursor-pointer"
+              >
+                <option value="ALL">All Levels</option>
+                <option value="CRITICAL_HIGH">🚨 Critical &amp; High</option>
+                <option value="Critical">Critical</option>
+                <option value="High">High</option>
+                <option value="Medium">Medium</option>
+                <option value="Low">Low</option>
+              </select>
+            </div>
+
+            {/* Category Filter */}
+            <div className="flex items-center gap-1 bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-1 max-w-[200px]">
+              <span className="text-[10px] font-mono font-bold text-slate-400 uppercase shrink-0">Category:</span>
+              <select
+                value={categoryFilter}
+                onChange={e => setCategoryFilter(e.target.value)}
+                className="bg-transparent text-xs font-bold text-slate-800 focus:outline-none truncate cursor-pointer"
+              >
+                <option value="ALL">All Categories</option>
+                {uniqueCategories.map((cat: any) => (
+                  <option key={cat} value={cat}>{cat}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Clear Filter Button */}
+            {(statusFilter !== "ALL" || severityFilter !== "ALL" || categoryFilter !== "ALL" || searchQuery) && (
+              <button
+                onClick={() => {
+                  setStatusFilter("ALL");
+                  setSeverityFilter("ALL");
+                  setCategoryFilter("ALL");
+                  setSearchQuery("");
+                }}
+                className="px-2.5 py-1 text-[11px] font-bold text-rose-600 hover:text-rose-700 hover:underline flex items-center gap-1 cursor-pointer"
+              >
+                <X className="w-3 h-3" /> Reset Filters
+              </button>
+            )}
+          </div>
+
+        </div>
+      </div>
+
+      {/* Main 2-Column Alert Workspace */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 h-[760px] max-h-[85vh]">
+
+        {/* Left Side: Alert Explorer List (4 cols) */}
+        <div className="lg:col-span-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-4 flex flex-col shadow-xs overflow-hidden">
+          
+          <div className="flex items-center justify-between mb-3 pb-2 border-b border-slate-100">
+            <span className="text-xs font-black tracking-wider text-slate-500 uppercase font-mono flex items-center gap-1.5">
+              <span>Threat Queue</span>
+              <span className="px-2 py-0.2 rounded-full bg-slate-100 text-slate-700 text-[10px]">
+                {filteredAlerts.length}
+              </span>
+            </span>
+            <span className="text-[10px] text-slate-400 font-mono">Sorted by latest</span>
+          </div>
 
           <div className="relative mb-3">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+            <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-2.5" />
             <input
               type="text"
-              placeholder="Search by ID or Category..."
+              placeholder="Search ID, entity, headline..."
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
-              className="w-full bg-slate-50 border border-slate-200 rounded-lg pl-9 pr-4 py-2 text-xs font-semibold focus:outline-none focus:border-rose-400 text-slate-800"
+              className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-8.5 pr-3 py-1.5 text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-rose-500 focus:bg-white text-slate-800 placeholder:text-slate-400"
             />
           </div>
 
           <div className="flex-1 overflow-y-auto space-y-2 pr-1 scrollbar-thin">
             {loading ? (
-              <div className="text-center py-10 font-bold text-slate-400 text-[10px] animate-pulse">Loading alerts...</div>
+              <div className="text-center py-16 space-y-2">
+                <RefreshCw className="w-5 h-5 text-rose-600 animate-spin mx-auto" />
+                <p className="text-xs text-slate-400 font-bold">Loading active risks...</p>
+              </div>
             ) : filteredAlerts.length === 0 ? (
-              <div className="text-center py-10 text-slate-400 font-bold text-[10px]">No alerts found</div>
+              <div className="text-center py-16 px-4 space-y-2">
+                <ShieldCheck className="w-8 h-8 text-emerald-500 mx-auto opacity-70" />
+                <p className="text-xs font-bold text-slate-700">No matching risk alerts</p>
+                <p className="text-[11px] text-slate-400">All filters clear or no incidents matching criteria.</p>
+              </div>
             ) : (
-              filteredAlerts.map((alert, i) => {
+              filteredAlerts.map((alert) => {
                 const isSelected = selectedAlert && selectedAlert.id === alert.id;
+                const parsed = parseDescription(alert.description || "");
+                const isCritical = alert.level === "Critical";
+                const isHigh = alert.level === "High";
 
                 return (
-                  <button
-                    key={i}
+                  <div
+                    key={alert.id}
                     onClick={() => handleSelectAlert(alert)}
-                    className={`w-full text-left p-3 rounded-lg border transition-all flex flex-col gap-2 ${isSelected
-                      ? "bg-rose-50/50 border-rose-200 shadow-sm"
-                      : "bg-white border-slate-100 hover:border-slate-300 hover:bg-slate-50/50"
-                      }`}
+                    className={`w-full text-left p-3.5 rounded-2xl border transition-all cursor-pointer flex flex-col gap-2 relative ${
+                      isSelected
+                        ? "bg-rose-50/70 border-rose-300 shadow-sm ring-1 ring-rose-300/40"
+                        : "bg-white border-slate-200/80 hover:border-slate-300 hover:bg-slate-50/60"
+                    }`}
                   >
-                    <div className="flex items-center justify-between">
-                      <div className="font-bold text-slate-800 text-xs truncate flex items-center gap-1.5">
-                        <span className="text-[10px] font-mono text-slate-400">RA-{alert.id.slice(-4).toUpperCase()}</span>
-                        <span className="truncate max-w-[140px]">{alert.source}</span>
+                    {/* Top Row: Ticket ID + Category */}
+                    <div className="flex items-center justify-between gap-1.5">
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-[9px] font-mono font-black text-rose-700 bg-rose-100/80 px-1.5 py-0.2 rounded border border-rose-200">
+                          RA-{alert.id.slice(-4).toUpperCase()}
+                        </span>
+                        <span className="text-[11px] font-bold text-slate-800 truncate max-w-[130px]">
+                          {alert.source}
+                        </span>
                       </div>
-                      {(alert.level === 'High' || alert.level === 'Critical') && <AlertCircle className="w-4 h-4 text-rose-500" />}
+                      {(isCritical || isHigh) && (
+                        <AlertCircle className={`w-3.5 h-3.5 ${isCritical ? "text-rose-600 animate-pulse" : "text-amber-600"}`} />
+                      )}
                     </div>
-                    <div className="flex items-center justify-between mt-1 text-[10px] font-mono">
-                      <span className={`font-bold px-1.5 py-0.5 rounded ${alert.level === 'Critical' ? 'bg-rose-600 text-white' : alert.level === 'High' ? 'bg-rose-100 text-rose-600' : alert.level === 'Medium' ? 'bg-amber-100 text-amber-600' : 'bg-emerald-100 text-emerald-600'}`}>
+
+                    {/* Headline / Target */}
+                    <div className="space-y-0.5">
+                      <div className="text-xs font-black text-slate-900 line-clamp-1">
+                        {parsed.title || alert.source}
+                      </div>
+                      {parsed.targetEntity && (
+                        <div className="text-[10px] text-slate-500 font-medium line-clamp-1 flex items-center gap-1">
+                          <span className="font-bold text-slate-700">Target:</span> {parsed.targetEntity}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Bottom Status & Severity Pills */}
+                    <div className="flex items-center justify-between pt-1 border-t border-slate-100 text-[10px] font-mono">
+                      <span className={`font-bold px-2 py-0.2 rounded-md ${
+                        alert.level === "Critical" ? "bg-rose-600 text-white" :
+                        alert.level === "High" ? "bg-rose-100 text-rose-700" :
+                        alert.level === "Medium" ? "bg-amber-100 text-amber-700" :
+                        "bg-emerald-100 text-emerald-700"
+                      }`}>
                         {alert.level} Risk
                       </span>
-                      <span className={`font-bold px-1.5 py-0.5 rounded ${alert.status === 'Resolved' ? 'bg-emerald-50 text-emerald-600' : alert.status === 'Investigating' ? 'bg-amber-50 text-amber-600' : 'bg-slate-100 text-slate-600'}`}>
-                        {alert.status}
-                      </span>
+
+                      <div className="flex items-center gap-2">
+                        <span className={`font-bold px-2 py-0.2 rounded-md border ${
+                          alert.status === "Resolved" ? "bg-emerald-50 text-emerald-700 border-emerald-200" :
+                          alert.status === "Investigating" ? "bg-amber-50 text-amber-700 border-amber-200" :
+                          "bg-slate-100 text-slate-600 border-slate-200"
+                        }`}>
+                          {alert.status || "Open"}
+                        </span>
+                        <span className="text-slate-400 text-[9px]">
+                          {new Date(alert.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}
+                        </span>
+                      </div>
                     </div>
-                  </button>
+                  </div>
                 );
               })
             )}
           </div>
         </div>
 
-        {/* Right Side: Alert Workspace */}
-        <div className="lg:col-span-8">
+        {/* Right Side: Alert Workspace / Anomaly Detail (8 cols) */}
+        <div className="lg:col-span-8 flex flex-col bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl overflow-hidden shadow-xs">
           {isCreating ? (
-            <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm flex flex-col h-[750px]">
+            <div className="p-6 flex flex-col h-full overflow-hidden">
               <div className="flex justify-between items-start gap-4 pb-4 border-b border-slate-150 shrink-0">
                 <div>
                   <div className="flex items-center gap-2">
-                    <h2 className="text-lg font-black text-slate-850 flex items-center gap-2">
+                    <h2 className="text-base sm:text-lg font-black text-slate-900 flex items-center gap-2">
                       <ShieldAlert className="w-5 h-5 text-rose-600 animate-pulse" />
-                      Trigger System Risk Alert
+                      Trigger Enterprise Risk Alert
                     </h2>
                     <span className="px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-rose-50 text-rose-600 border border-rose-200 font-mono">
                       Mandatory Risk Log
                     </span>
                   </div>
-                  <p className="text-slate-500 text-[10px] mt-1.5 font-medium">Log an anomaly, fraud, or compliance risk for immediate investigation by HR & Leadership.</p>
+                  <p className="text-slate-500 text-xs mt-1 font-medium">Log an anomaly, fraud, or compliance breach for instant investigation by HR &amp; Leadership.</p>
                 </div>
                 {alerts.length > 0 && (
                   <button
@@ -870,7 +1388,7 @@ export function SystemRiskAlerts({ toggleModal, triggerToast, riskAlertList, onR
                       setIsCreating(false);
                       if (alerts[0]) setSelectedAlert(alerts[0]);
                     }}
-                    className="text-slate-400 hover:text-slate-600 p-1.5 rounded-lg hover:bg-slate-100 text-xs font-bold transition-all border border-slate-200"
+                    className="text-slate-500 hover:text-slate-700 px-3 py-1.5 rounded-xl hover:bg-slate-100 text-xs font-bold transition-all border border-slate-200 cursor-pointer"
                   >
                     ✕ Cancel
                   </button>
@@ -878,17 +1396,17 @@ export function SystemRiskAlerts({ toggleModal, triggerToast, riskAlertList, onR
               </div>
 
               <div className="flex-1 overflow-y-auto py-5 pr-2 scrollbar-thin">
-                <form onSubmit={handleTriggerAlert} className="space-y-5">
+                <form onSubmit={handleTriggerAlert} className="space-y-4">
 
                   {/* Row 1: Category & Severity */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-[10px] uppercase font-black text-slate-500 font-mono tracking-wider mb-1.5">
                         Risk Category <span className="text-rose-600 font-black">*</span>
                       </label>
                       <select
                         required
-                        className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-xs font-bold text-slate-850 focus:outline-none focus:ring-1 focus:ring-rose-500 focus:bg-white transition-all"
+                        className="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-xs font-bold text-slate-850 focus:outline-none focus:ring-1 focus:ring-rose-500 focus:bg-white transition-all"
                         value={createForm.source}
                         onChange={e => setCreateForm({ ...createForm, source: e.target.value })}
                       >
@@ -896,12 +1414,12 @@ export function SystemRiskAlerts({ toggleModal, triggerToast, riskAlertList, onR
                         <option value="Fraud risk">2. Fraud risk / Financial anomaly</option>
                         <option value="Payment diversion">3. Payment diversion</option>
                         <option value="Data leakage">4. Data leakage / Confidentiality breach</option>
-                        <option value="Groupism">5. Groupism & Workplace misconduct</option>
+                        <option value="Groupism">5. Groupism &amp; Workplace misconduct</option>
                         <option value="Client diversion">6. Client diversion / PO Poaching</option>
                         <option value="Emotional instability">7. Emotional instability / Behavioral concern</option>
                         <option value="Leadership complaint">8. Leadership complaint</option>
                         <option value="Vendor risk">9. Vendor risk</option>
-                        <option value="Territory risk">10. Territory & Field visit risk</option>
+                        <option value="Territory risk">10. Territory &amp; Field visit risk</option>
                       </select>
                     </div>
 
@@ -910,17 +1428,18 @@ export function SystemRiskAlerts({ toggleModal, triggerToast, riskAlertList, onR
                         <label className="block text-[10px] uppercase font-black text-slate-500 font-mono tracking-wider">
                           Severity Level <span className="text-rose-600 font-black">*</span>
                         </label>
-                        <span className={`text-[9px] font-mono font-bold px-2 py-0.5 rounded border ${createForm.level === "Critical" ? "bg-rose-600 text-white border-rose-700 animate-pulse" :
+                        <span className={`text-[9px] font-mono font-bold px-2 py-0.5 rounded border ${
+                          createForm.level === "Critical" ? "bg-rose-600 text-white border-rose-700 animate-pulse" :
                           createForm.level === "High" ? "bg-rose-100 text-rose-700 border-rose-300" :
-                            createForm.level === "Medium" ? "bg-amber-100 text-amber-700 border-amber-300" :
-                              "bg-emerald-100 text-emerald-700 border-emerald-300"
-                          }`}>
+                          createForm.level === "Medium" ? "bg-amber-100 text-amber-700 border-amber-300" :
+                          "bg-emerald-100 text-emerald-700 border-emerald-300"
+                        }`}>
                           {createForm.level} Risk
                         </span>
                       </div>
                       <select
                         required
-                        className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-xs font-bold text-slate-850 focus:outline-none focus:ring-1 focus:ring-rose-500 focus:bg-white transition-all"
+                        className="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-xs font-bold text-slate-850 focus:outline-none focus:ring-1 focus:ring-rose-500 focus:bg-white transition-all"
                         value={createForm.level}
                         onChange={e => setCreateForm({ ...createForm, level: e.target.value })}
                       >
@@ -933,7 +1452,7 @@ export function SystemRiskAlerts({ toggleModal, triggerToast, riskAlertList, onR
                   </div>
 
                   {/* Row 2: Risk Title & Target Entity */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-[10px] uppercase font-black text-slate-500 font-mono tracking-wider mb-1.5">
                         Risk Title / Headline <span className="text-rose-600 font-black">*</span>
@@ -942,7 +1461,7 @@ export function SystemRiskAlerts({ toggleModal, triggerToast, riskAlertList, onR
                         type="text"
                         required
                         placeholder="e.g. Discrepancy in experience certificate & bank statement"
-                        className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-xs font-bold text-slate-850 focus:outline-none focus:ring-1 focus:ring-rose-500 focus:bg-white transition-all"
+                        className="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-xs font-bold text-slate-850 focus:outline-none focus:ring-1 focus:ring-rose-500 focus:bg-white transition-all"
                         value={createForm.title}
                         onChange={e => setCreateForm({ ...createForm, title: e.target.value })}
                       />
@@ -956,7 +1475,7 @@ export function SystemRiskAlerts({ toggleModal, triggerToast, riskAlertList, onR
                         type="text"
                         required
                         placeholder="e.g. Employee ID / Candidate Name / Sales Dept / Vendor Name"
-                        className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-xs font-bold text-slate-850 focus:outline-none focus:ring-1 focus:ring-rose-500 focus:bg-white transition-all"
+                        className="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-xs font-bold text-slate-850 focus:outline-none focus:ring-1 focus:ring-rose-500 focus:bg-white transition-all"
                         value={createForm.targetEntity}
                         onChange={e => setCreateForm({ ...createForm, targetEntity: e.target.value })}
                       />
@@ -970,7 +1489,7 @@ export function SystemRiskAlerts({ toggleModal, triggerToast, riskAlertList, onR
                     </label>
                     <textarea
                       required
-                      className="w-full bg-slate-50 border border-slate-300 rounded-lg p-3 text-xs font-medium text-slate-800 h-28 focus:outline-none focus:ring-1 focus:ring-rose-500 focus:bg-white transition-all leading-relaxed"
+                      className="w-full bg-slate-50 border border-slate-300 rounded-xl p-3 text-xs font-medium text-slate-800 h-28 focus:outline-none focus:ring-1 focus:ring-rose-500 focus:bg-white transition-all leading-relaxed"
                       placeholder="Detail the anomaly, incident timeline, system logs, discrepancies or evidence links..."
                       value={createForm.description}
                       onChange={e => setCreateForm({ ...createForm, description: e.target.value })}
@@ -985,7 +1504,7 @@ export function SystemRiskAlerts({ toggleModal, triggerToast, riskAlertList, onR
                     <input
                       type="text"
                       placeholder="e.g. Hold salary release, initiate background re-verification, freeze system access"
-                      className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-xs font-semibold text-slate-850 focus:outline-none focus:ring-1 focus:ring-rose-500 focus:bg-white transition-all"
+                      className="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-xs font-semibold text-slate-850 focus:outline-none focus:ring-1 focus:ring-rose-500 focus:bg-white transition-all"
                       value={createForm.mitigationAction}
                       onChange={e => setCreateForm({ ...createForm, mitigationAction: e.target.value })}
                     />
@@ -996,91 +1515,185 @@ export function SystemRiskAlerts({ toggleModal, triggerToast, riskAlertList, onR
                     <button
                       type="submit"
                       disabled={submitting}
-                      className="w-full bg-rose-600 hover:bg-rose-700 text-white py-3.5 rounded-xl text-xs font-black tracking-widest uppercase transition-all shadow-md flex items-center justify-center gap-2 active:scale-[0.99] disabled:opacity-50"
+                      className="w-full bg-gradient-to-r from-rose-600 to-rose-800 hover:from-rose-700 hover:to-rose-900 text-white py-3.5 rounded-2xl text-xs font-black tracking-wider uppercase transition-all shadow-md flex items-center justify-center gap-2 active:scale-[0.99] disabled:opacity-50 cursor-pointer"
                     >
-                      <ShieldAlert className="w-4 h-4" /> {submitting ? "Broadcasting Risk Alert..." : "Broadcast Risk Alert"}
+                      <ShieldAlert className="w-4 h-4" /> {submitting ? "Broadcasting Risk Alert..." : "Broadcast Risk Alert to Leadership"}
                     </button>
                   </div>
                 </form>
               </div>
             </div>
           ) : selectedAlert ? (
-            <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm flex flex-col h-[750px]">
+            (() => {
+              const parsed = parseDescription(selectedAlert.description || "");
 
-              <div className="flex justify-between items-start gap-4 pb-4 border-b border-slate-150 shrink-0">
-                <div>
-                  <h2 className="text-lg font-black text-slate-850 flex items-center gap-2">
-                    <ShieldAlert className="w-5 h-5 text-rose-600" />
-                    Risk Alert — RA-{selectedAlert.id.slice(-4).toUpperCase()}
-                  </h2>
-                  <div className="text-slate-500 text-[10px] mt-1.5 flex gap-4">
-                    <span>Triggered By: <strong className="text-slate-700">{selectedAlert.triggeredBy?.name || "System Automation"}</strong></span>
-                    <span>Date: <strong className="text-slate-700">{new Date(selectedAlert.createdAt).toLocaleString()}</strong></span>
-                  </div>
-                </div>
+              return (
+                <div className="flex flex-col h-full overflow-hidden">
+                  
+                  {/* Alert Header Bar */}
+                  <div className="p-4 sm:p-5 border-b border-slate-100 bg-slate-50/70 flex flex-wrap items-center justify-between gap-3 shrink-0">
+                    <div className="space-y-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="text-[11px] font-mono font-black text-rose-700 bg-rose-100/80 px-2 py-0.5 rounded-lg border border-rose-200">
+                          #RA-{selectedAlert.id.slice(-4).toUpperCase()}
+                        </span>
+                        <span className="text-xs font-black text-slate-900">
+                          {selectedAlert.source}
+                        </span>
+                        <span className={`text-[10px] px-2 py-0.5 rounded-md font-bold border ${
+                          selectedAlert.level === "Critical" ? "bg-rose-600 text-white border-rose-700" :
+                          selectedAlert.level === "High" ? "bg-rose-100 text-rose-700 border-rose-300" :
+                          selectedAlert.level === "Medium" ? "bg-amber-100 text-amber-700 border-amber-300" :
+                          "bg-emerald-100 text-emerald-700 border-emerald-300"
+                        }`}>
+                          ⚡ {selectedAlert.level} Risk
+                        </span>
+                      </div>
 
-                <div className={`px-4 py-2 ${selectedAlert.level === 'Critical' ? 'bg-rose-600 text-white' : selectedAlert.level === 'High' ? 'bg-rose-100 text-rose-600' : 'bg-slate-50 text-slate-600'} border border-slate-200 rounded-lg text-center min-w-28`}>
-                  <span className={`text-[9px] uppercase font-black tracking-widest block mb-0.5 ${selectedAlert.level === 'Critical' ? 'text-rose-100' : 'text-slate-500'}`}>Severity Level</span>
-                  <span className="text-xs font-bold">
-                    {selectedAlert.level} Risk
-                  </span>
-                </div>
-              </div>
-
-              <div className="flex-1 overflow-y-auto py-5 pr-2 scrollbar-thin">
-                <div className="space-y-8">
-
-                  <div>
-                    <h4 className="text-[10px] font-black tracking-widest text-slate-400 uppercase font-mono mb-4 border-b border-slate-100 pb-2">Anomaly Details</h4>
-
-                    <div className="mb-4">
-                      <span className="text-[10px] uppercase font-black text-slate-500 font-mono tracking-wider">Risk Category</span>
-                      <div className="mt-1.5 p-2.5 bg-slate-50 border border-slate-200 rounded text-xs font-bold text-slate-800">
-                        {selectedAlert.source}
+                      <div className="text-[10px] text-slate-400 font-mono flex flex-wrap items-center gap-3">
+                        <span>Triggered By: <strong className="text-slate-700">{selectedAlert.triggeredBy?.name || "System Automation"}</strong></span>
+                        <span>•</span>
+                        <span>Logged on {new Date(selectedAlert.createdAt).toLocaleString("en-IN", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}</span>
                       </div>
                     </div>
 
-                    <div>
-                      <span className="text-[10px] uppercase font-black text-slate-500 font-mono tracking-wider">Flagged Details & Evidence</span>
-                      <div className="mt-1.5 p-4 bg-rose-50/30 border border-rose-100 rounded text-xs font-medium text-slate-800 leading-relaxed whitespace-pre-wrap min-h-[100px]">
-                        {selectedAlert.description}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="bg-slate-50 border border-slate-200 rounded-xl p-5 shadow-sm">
-                    <h4 className="text-[10px] font-black tracking-widest text-slate-400 uppercase font-mono mb-4 border-b border-slate-200 pb-2">Investigation & Vetting</h4>
-
-                    <form onSubmit={handleResolveAlert} className="space-y-5">
-                      <div>
-                        <label className="text-[10px] uppercase font-black text-slate-500 font-mono tracking-wider">Update Status</label>
-                        <select className="w-full bg-white border border-slate-300 rounded p-2.5 text-xs font-bold text-slate-900 mt-1.5 focus:outline-none focus:border-rose-400"
-                          value={resolutionStatus} onChange={e => setResolutionStatus(e.target.value)}>
-                          <option value="Open">Open (Pending Review)</option>
-                          <option value="Investigating">Investigating (Active)</option>
-                          <option value="Resolved">Resolved (Cleared/Mitigated)</option>
-                        </select>
-                      </div>
-
+                    {/* Interactive Stepper */}
+                    <div className="flex items-center gap-1 text-[10px] font-mono font-bold bg-white border border-slate-200 p-1 rounded-xl shadow-2xs">
                       <button
-                        type="submit"
-                        disabled={submitting}
-                        className="w-full bg-slate-800 hover:bg-slate-900 text-white py-3.5 rounded-xl text-xs font-black tracking-widest uppercase transition-all shadow-md flex items-center justify-center gap-2 mt-2"
+                        type="button"
+                        onClick={() => handleDirectStatusChange(selectedAlert.id, "Open")}
+                        className={`px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
+                          selectedAlert.status === "Open" || !selectedAlert.status
+                            ? "bg-slate-900 text-white font-black"
+                            : "bg-transparent text-slate-500 hover:bg-slate-100"
+                        }`}
                       >
-                        <CheckCircle className="w-4 h-4" /> Save Vetting Status
+                        ✓ Open
                       </button>
-                    </form>
+                      <span className="text-slate-300">➔</span>
+                      <button
+                        type="button"
+                        onClick={() => handleDirectStatusChange(selectedAlert.id, "Investigating")}
+                        className={`px-2.5 py-1 rounded-lg border transition-all cursor-pointer ${
+                          selectedAlert.status === "Investigating"
+                            ? "bg-amber-500 text-white border-amber-600 font-black"
+                            : "bg-transparent text-slate-500 border-transparent hover:bg-amber-50"
+                        }`}
+                      >
+                        Investigating
+                      </button>
+                      <span className="text-slate-300">➔</span>
+                      <button
+                        type="button"
+                        onClick={() => handleDirectStatusChange(selectedAlert.id, "Resolved")}
+                        className={`px-2.5 py-1 rounded-lg border transition-all cursor-pointer ${
+                          selectedAlert.status === "Resolved"
+                            ? "bg-emerald-600 text-white border-emerald-700 font-black"
+                            : "bg-transparent text-slate-500 border-transparent hover:bg-emerald-50"
+                        }`}
+                      >
+                        Resolved
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Scrollable Content Body */}
+                  <div className="flex-1 overflow-y-auto p-5 space-y-4 scrollbar-thin">
+                    
+                    {/* Headline Card */}
+                    {parsed.title && (
+                      <div className="p-4 rounded-2xl bg-gradient-to-r from-rose-50/60 to-amber-50/40 border border-rose-200/80">
+                        <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-rose-600 block mb-1">
+                          Risk Headline
+                        </span>
+                        <h3 className="text-sm font-black text-slate-900 leading-snug">
+                          {parsed.title}
+                        </h3>
+                      </div>
+                    )}
+
+                    {/* Target Entity Card */}
+                    {parsed.targetEntity && (
+                      <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 flex items-center justify-between">
+                        <div>
+                          <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400 block mb-0.5">
+                            Target Entity / Department / Subject
+                          </span>
+                          <span className="text-xs font-black text-slate-800">
+                            🎯 {parsed.targetEntity}
+                          </span>
+                        </div>
+                        <span className="px-2.5 py-1 rounded-xl bg-white border border-slate-200 text-[10px] font-mono font-bold text-slate-600">
+                          {selectedAlert.source}
+                        </span>
+                      </div>
+                    )}
+
+                    {/* Flagged Details & Evidence */}
+                    <div className="space-y-1.5">
+                      <span className="text-[10px] font-mono font-black uppercase tracking-wider text-slate-500">
+                        Flagged Anomaly Details &amp; Evidence
+                      </span>
+                      <div className="p-4 rounded-2xl bg-white border border-slate-200 text-xs font-medium text-slate-800 leading-relaxed whitespace-pre-wrap shadow-2xs">
+                        {parsed.body || selectedAlert.description}
+                      </div>
+                    </div>
+
+                    {/* Suggested Mitigation Action */}
+                    {parsed.mitigation && (
+                      <div className="space-y-1.5">
+                        <span className="text-[10px] font-mono font-black uppercase tracking-wider text-emerald-700 flex items-center gap-1">
+                          <ShieldCheck className="w-3.5 h-3.5" /> Suggested Containment / Mitigation Action
+                        </span>
+                        <div className="p-3.5 rounded-2xl bg-emerald-50/60 border border-emerald-200 text-xs font-semibold text-emerald-950 leading-relaxed">
+                          {parsed.mitigation}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Investigation Resolution Box */}
+                    <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4.5 shadow-2xs space-y-3 mt-4">
+                      <h4 className="text-[10px] font-black tracking-widest text-slate-500 uppercase font-mono border-b border-slate-200 pb-2 flex items-center justify-between">
+                        <span>Investigation &amp; Vetting Action</span>
+                        <span className="text-slate-400 font-normal">Audit Logged</span>
+                      </h4>
+
+                      <form onSubmit={handleResolveAlert} className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+                        <div className="flex-1">
+                          <select
+                            className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2.5 text-xs font-bold text-slate-900 focus:outline-none focus:ring-1 focus:ring-rose-500 shadow-2xs"
+                            value={resolutionStatus}
+                            onChange={e => setResolutionStatus(e.target.value)}
+                          >
+                            <option value="Open">🔴 Open (Pending Review)</option>
+                            <option value="Investigating">🟡 Investigating (Active Vetting)</option>
+                            <option value="Resolved">🟢 Resolved (Cleared / Mitigated)</option>
+                          </select>
+                        </div>
+
+                        <button
+                          type="submit"
+                          disabled={submitting}
+                          className="bg-slate-900 hover:bg-black text-white px-5 py-2.5 rounded-xl text-xs font-black tracking-wider uppercase transition-all shadow-sm flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
+                        >
+                          <CheckCircle className="w-3.5 h-3.5" /> {submitting ? "Saving..." : "Save Status"}
+                        </button>
+                      </form>
+                    </div>
+
                   </div>
 
                 </div>
-              </div>
-            </div>
+              );
+            })()
           ) : (
-            <div className="text-center py-32 bg-white rounded-xl border border-slate-200 shadow-sm flex flex-col justify-center items-center h-[750px]">
-              <ShieldAlert className="w-12 h-12 text-slate-300 mb-4" />
+            <div className="text-center py-32 bg-white rounded-3xl flex flex-col justify-center items-center h-full p-6 space-y-3">
+              <div className="w-14 h-14 rounded-3xl bg-rose-50 border border-rose-200 text-rose-600 flex items-center justify-center shadow-xs">
+                <ShieldAlert className="w-7 h-7" />
+              </div>
               <h4 className="text-sm font-black text-slate-800 uppercase tracking-wide">No Risk Alert Selected</h4>
-              <p className="text-xs text-slate-400 mt-2 max-w-xs leading-normal">
-                Select an alert from the left to investigate, or click "Trigger Alert" to log a new risk manually.
+              <p className="text-xs text-slate-400 max-w-xs leading-normal">
+                Select an alert from the queue to investigate details, or click "Trigger Alert" to log a new risk.
               </p>
             </div>
           )}
