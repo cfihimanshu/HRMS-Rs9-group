@@ -1270,6 +1270,11 @@ export default function UnifiedEnterpriseDashboard() {
               candidates={candidates}
               interviews={interviews}
               onNavigateTab={handleNavigateTab}
+              sessionUser={session?.user}
+              companies={allCompanies}
+              selectedCompanyId={selectedCompanyId}
+              onCompanyChange={setSelectedCompanyId}
+              triggerToast={triggerToast}
             />
           )}
 

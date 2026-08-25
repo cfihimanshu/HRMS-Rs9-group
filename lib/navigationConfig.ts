@@ -5,51 +5,49 @@ export interface NavItem {
 }
 
 export const CATEGORIES_ORDER = [
-  "Core Workspace",
+  "Dashboards",
+  "Human Resources (HR)",
+  "Administration & IT",
   "Employee Self Service",
-  "AI & Vetting Hub",
-  "Training & Probation",
   "Daily Operations",
-  "Network Partners",
+  "Sales & Business Network",
   "Compliance & Exit"
 ];
 
 export const MASTER_NAV_ITEMS: NavItem[] = [
-  // Core Workspace
-  { id: "dashboard", label: "Owner Dashboard", category: "Core Workspace" },
-  { id: "hr-dash", label: "HR Dashboard", category: "Core Workspace" },
-  { id: "dept-dash", label: "Department Dashboard", category: "Core Workspace" },
-  { id: "hiring", label: "Hiring Approvals", category: "Core Workspace" },
-  { id: "jobs", label: "Vacancy Postings", category: "Core Workspace" },
-  { id: "business-leads", label: "HR Leads", category: "Core Workspace" },
-  { id: "employees", label: "Employees Directory", category: "Core Workspace" },
-  { id: "bda-directory", label: "BDA Network (Sales)", category: "Core Workspace" },
-  { id: "bda-leads", label: "BDA Leads", category: "Core Workspace" },
-  { id: "assets-registry", label: "Assets Registry", category: "Core Workspace" },
-  { id: "domain-record", label: "Domain Record", category: "Core Workspace" },
-  { id: "inventory-management", label: "Inventory Management", category: "Core Workspace" },
-  { id: "admin-access", label: "Administrator Access", category: "Core Workspace" },
-  { id: "audit-trail", label: "System Audit Trail", category: "Core Workspace" },
-  { id: "document-movement", label: "Document Movement", category: "Core Workspace" },
-  { id: "vehicle-registry", label: "Vehicle Registry", category: "Core Workspace" },
-  { id: "legal-recovery", label: "Legal Recovery", category: "Core Workspace" },
+  // Dashboards
+  { id: "dashboard", label: "Owner Dashboard", category: "Dashboards" },
+  { id: "hr-dash", label: "HR Dashboard", category: "Dashboards" },
+  { id: "dept-dash", label: "Department Dashboard", category: "Dashboards" },
+  { id: "ess-dashboard", label: "ESS Dashboard", category: "Dashboards" },
+
+  // Human Resources (HR)
+  { id: "business-leads", label: "HR Leads", category: "Human Resources (HR)" },
+  { id: "hiring", label: "Hiring Approvals", category: "Human Resources (HR)" },
+  { id: "jobs", label: "Vacancy Postings", category: "Human Resources (HR)" },
+  { id: "screening", label: "AI Screening Module", category: "Human Resources (HR)" },
+  { id: "interviews", label: "Interviews Queue", category: "Human Resources (HR)" },
+  { id: "verification", label: "Vetting Checks Registry", category: "Human Resources (HR)" },
+  { id: "onboarding", label: "NDA Onboarding SLA", category: "Human Resources (HR)" },
+  { id: "training", label: "Training Classroom", category: "Human Resources (HR)" },
+  { id: "probation", label: "6-Month Probation Audit", category: "Human Resources (HR)" },
+
+  // Administration & IT
+  { id: "employees", label: "Employees Directory", category: "Administration & IT" },
+  { id: "admin-access", label: "Administrator Access", category: "Administration & IT" },
+  { id: "inventory-management", label: "Inventory Management", category: "Administration & IT" },
+  { id: "assets-registry", label: "Assets Registry", category: "Administration & IT" },
+  { id: "document-movement", label: "Document Movement", category: "Administration & IT" },
+  { id: "vehicle-registry", label: "Vehicle Registry", category: "Administration & IT" },
+  { id: "domain-record", label: "Domain Record", category: "Administration & IT" },
+  { id: "legal-recovery", label: "Legal Recovery", category: "Administration & IT" },
+  { id: "audit-trail", label: "System Audit Trail", category: "Administration & IT" },
 
   // Employee Self Service
-  { id: "ess-dashboard", label: "ESS Dashboard", category: "Employee Self Service" },
   { id: "ess-leaves", label: "Leave Management", category: "Employee Self Service" },
   { id: "ess-payroll", label: "My Payslips & Salary", category: "Employee Self Service" },
   { id: "ess-expenses", label: "Expense Claims", category: "Employee Self Service" },
   { id: "asset-request", label: "Asset Request", category: "Employee Self Service" },
-
-  // AI & Vetting Hub
-  { id: "screening", label: "AI Screening Module", category: "AI & Vetting Hub" },
-  { id: "interviews", label: "Interviews Queue", category: "AI & Vetting Hub" },
-  { id: "verification", label: "Vetting Checks Registry", category: "AI & Vetting Hub" },
-  { id: "onboarding", label: "NDA Onboarding SLA", category: "AI & Vetting Hub" },
-
-  // Training & Probation
-  { id: "training", label: "Training Classroom", category: "Training & Probation" },
-  { id: "probation", label: "6-Month Probation Audit", category: "Training & Probation" },
 
   // Daily Operations
   { id: "attendance", label: "Attendance Punch & SOD", category: "Daily Operations" },
@@ -60,10 +58,12 @@ export const MASTER_NAV_ITEMS: NavItem[] = [
   { id: "field-visit", label: "Field Visit Logs", category: "Daily Operations" },
   { id: "leave-request", label: "Leave Request", category: "Daily Operations" },
 
-  // Network Partners
-  { id: "associates", label: "Business Associates", category: "Network Partners" },
-  { id: "vendors", label: "Vendor Contracts", category: "Network Partners" },
-  { id: "franchise", label: "Franchise Brand Audits", category: "Network Partners" },
+  // Sales & Business Network
+  { id: "bda-directory", label: "BDA Network (Sales)", category: "Sales & Business Network" },
+  { id: "bda-leads", label: "BDA Leads", category: "Sales & Business Network" },
+  { id: "associates", label: "Business Associates", category: "Sales & Business Network" },
+  { id: "vendors", label: "Vendor Contracts", category: "Sales & Business Network" },
+  { id: "franchise", label: "Franchise Brand Audits", category: "Sales & Business Network" },
 
   // Compliance & Exit
   { id: "grievance", label: "Anonymous Grievance", category: "Compliance & Exit" },
