@@ -4809,7 +4809,7 @@ export default function LegalWorkEntryHistoryView({
             <div className="p-5 overflow-y-auto space-y-3 bg-[#FCFBF9]/30">
               <div className="flex justify-between items-center text-[10px] uppercase font-bold text-slate-500 tracking-wider px-1">
                 <span>Bank &amp; Associated Branches</span>
-                <span>Records &amp; Financials</span>
+                <span className="hidden sm:inline">Records &amp; Financials</span>
               </div>
 
               {uniqueBankDetails.map((b, idx) => {
@@ -4829,30 +4829,32 @@ export default function LegalWorkEntryHistoryView({
                   <div
                     key={idx}
                     onClick={handleSelectBank}
-                    className={`p-4 rounded-xl border transition-all cursor-pointer flex items-center justify-between gap-3 ${isSelected
+                    className={`p-3.5 sm:p-4 rounded-xl border transition-all cursor-pointer flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${isSelected
                       ? "bg-amber-50 border-amber-300 ring-2 ring-amber-400/40 shadow-xs"
                       : "bg-white border-[#E8E4DF] hover:border-[#C9A84C] hover:bg-amber-50/40 hover:shadow-md"
                       }`}
                   >
-                    <div className="flex items-center gap-3 min-w-0">
-                      <div className="w-9 h-9 rounded-lg bg-amber-100/60 text-amber-900 font-black text-xs flex items-center justify-center shrink-0 border border-amber-200">
+                    {/* Bank Name & Branch Details */}
+                    <div className="flex items-start sm:items-center gap-3 min-w-0 flex-1">
+                      <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-amber-100/60 text-amber-900 font-black text-xs flex items-center justify-center shrink-0 border border-amber-200 mt-0.5 sm:mt-0">
                         {idx + 1}
                       </div>
-                      <div className="min-w-0">
-                        <h4 className="text-sm font-bold text-[#1C1C1A] truncate">{b.bankName}</h4>
-                        <p className="text-[10px] text-slate-500 font-semibold mt-0.5 truncate">
+                      <div className="min-w-0 flex-1">
+                        <h4 className="text-sm font-bold text-[#1C1C1A] leading-snug break-words">{b.bankName}</h4>
+                        <p className="text-[10px] text-slate-500 font-semibold mt-0.5 line-clamp-1">
                           {b.branches.size > 0 ? `${b.branches.size} Branch(es): ${Array.from(b.branches).slice(0, 3).join(", ")}${b.branches.size > 3 ? "..." : ""}` : "All Branches"}
                         </p>
                       </div>
                     </div>
 
-                    <div className="text-right flex items-center gap-3 shrink-0">
-                      <div>
-                        <span className="px-2 py-0.5 bg-slate-100 text-slate-800 font-extrabold rounded text-[10px] border border-slate-200 block text-center">
+                    {/* Records, Financials & Filter Button */}
+                    <div className="flex items-center justify-between sm:justify-end gap-2.5 sm:gap-3 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-100 shrink-0">
+                      <div className="flex items-center sm:block sm:text-right gap-2 sm:gap-0">
+                        <span className="px-2 py-0.5 bg-slate-100 text-slate-800 font-extrabold rounded text-[10px] border border-slate-200 inline-block text-center whitespace-nowrap">
                           {b.count} Records ({b.totalQty} Count)
                         </span>
                         {b.totalAmount > 0 && (
-                          <span className="text-xs font-bold text-emerald-700 block mt-1">
+                          <span className="text-xs font-bold text-emerald-700 block sm:mt-1 whitespace-nowrap">
                             ₹{b.totalAmount.toLocaleString("en-IN")}
                           </span>
                         )}
@@ -4860,9 +4862,13 @@ export default function LegalWorkEntryHistoryView({
                       <button
                         type="button"
                         onClick={handleSelectBank}
-                        className="px-3.5 py-1.5 bg-[#714B67] hover:bg-[#5F3F56] text-white text-xs font-bold rounded-lg transition-colors cursor-pointer shadow-2xs"
+                        className={`px-3.5 py-1.5 text-xs font-bold rounded-lg transition-colors cursor-pointer shadow-2xs shrink-0 ${
+                          isSelected
+                            ? "bg-amber-600 hover:bg-amber-700 text-white"
+                            : "bg-[#714B67] hover:bg-[#5F3F56] text-white"
+                        }`}
                       >
-                        {isSelected ? "Active" : "Filter ➔"}
+                        {isSelected ? "Active ✓" : "Filter ➔"}
                       </button>
                     </div>
                   </div>

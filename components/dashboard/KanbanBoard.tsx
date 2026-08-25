@@ -3024,600 +3024,606 @@ export default function KanbanBoard({
       {/* ===================== TASK DETAIL MODAL ===================== */}
       {selectedTask && (
         <div
-          className="fixed inset-0 bg-slate-900/20 backdrop-blur-md z-50 flex items-center justify-center p-4"
+          className="fixed inset-0 bg-slate-900/40 backdrop-blur-md z-50 flex items-center justify-center p-2.5 sm:p-4 overflow-y-auto"
           onClick={() => {
             setSelectedTask(null);
             setIsEditingTask(false);
           }}
         >
           <div
-            className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto overflow-x-hidden"
+            className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[92vh] flex flex-col overflow-hidden my-auto"
             onClick={e => e.stopPropagation()}
           >
-            {isEditingTask ? (
-              <div className="p-6 space-y-4">
-                <div className="flex items-center justify-between mb-1">
-                  <h3 className="text-sm font-black uppercase tracking-wider text-[#714B67]">Edit Task Details</h3>
-                  <button
-                    type="button"
-                    onClick={() => setIsEditingTask(false)}
-                    className="text-slate-400 hover:text-slate-600"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
-                </div>
-
-                <div className="space-y-3">
-                  <div>
-                    <label className="text-[9px] uppercase font-black text-slate-800 font-mono tracking-wider">Task Title *</label>
-                    <input
-                      className="w-full border border-slate-200 rounded-lg px-3 py-2 text-xs font-bold focus:outline-none focus:border-[#714B67] text-slate-800"
-                      placeholder="Task Title *"
-                      value={editTitle}
-                      onChange={e => setEditTitle(e.target.value)}
-                      required
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-[9px] uppercase font-black text-slate-450 font-mono tracking-wider">Task Type</label>
-                    <select
-                      className="w-full border border-slate-200 rounded-lg px-3 py-2 text-xs font-bold focus:outline-none focus:border-[#714B67] text-slate-700"
-                      value={editType}
-                      onChange={e => setEditType(e.target.value)}
-                    >
-                      <option>Call</option>
-                      <option>Meeting</option>
-                      <option>Development</option>
-                      <option>Field Visit</option>
-                      <option>Operations</option>
-                      <option>Support</option>
-                      <option>Other</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="text-[9px] uppercase font-black text-slate-450 font-mono tracking-wider">Description</label>
-                    <textarea
-                      className="w-full border border-slate-200 rounded-lg px-3 py-2 text-xs font-medium focus:outline-none focus:border-[#714B67] text-slate-800 resize-none"
-                      rows={3}
-                      placeholder="Description (optional)..."
-                      value={editDesc}
-                      onChange={e => setEditDesc(e.target.value)}
-                    />
-                  </div>
-                </div>
-
-                <div className="flex gap-2 pt-2 border-t border-slate-100">
-                  <button
-                    type="button"
-                    onClick={() => setIsEditingTask(false)}
-                    className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-650 py-2 rounded-lg text-[10px] font-black uppercase transition-all"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={handleEditTask}
-                    disabled={savingEdit}
-                    className="flex-1 bg-[#714B67] hover:bg-[#5F3F56] disabled:opacity-50 text-white py-2 rounded-lg text-[10px] font-black uppercase flex items-center justify-center gap-1 transition-all"
-                  >
-                    {savingEdit ? <Loader2 className="w-3 h-3 animate-spin" /> : "Save Changes"}
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <>
-                {/* Modal header */}
-                <div className="flex items-start justify-between p-6 border-b border-slate-100 min-w-0">
-                  <div className="flex-1 pr-4 min-w-0">
-                    <span className={`inline-block text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full border mb-2 ${TYPE_COLORS[selectedTask.taskType] || TYPE_COLORS.Other}`}>
-                      {selectedTask.taskType}
-                    </span>
-                    <h2 className="text-base font-black text-slate-800 leading-tight break-words">{selectedTask.taskTitle}</h2>
-                    {selectedTask.description && cleanDescription(selectedTask.description) && (
-                      <p className="text-xs text-slate-500 mt-1 font-medium whitespace-pre-line break-all">{cleanDescription(selectedTask.description)}</p>
-                    )}
-
-                    {/* Dynamic Real-Time Lead Status Badge */}
-                    {(() => {
-                      const leadStatusVal = selectedTask.leadStatus || selectedTask.callStatus || (selectedTask.description?.match(/Lead Status:\s*([^\n]+)/)?.[1]) || (selectedTask.description?.match(/Status:\s*([^\n]+)/)?.[1]);
-                      if (!leadStatusVal) return null;
-
-                      const statusBadgeStyle =
-                        leadStatusVal === "Converted" ? "bg-emerald-50 text-emerald-700 border-emerald-300 ring-1 ring-emerald-400/30" :
-                          leadStatusVal === "Lost" ? "bg-rose-50 text-rose-700 border-rose-300 ring-1 ring-rose-400/30" :
-                            leadStatusVal === "In Progress" ? "bg-blue-50 text-blue-700 border-blue-300 ring-1 ring-blue-400/30" :
-                              leadStatusVal === "Qualified" ? "bg-indigo-50 text-indigo-700 border-indigo-300 ring-1 ring-indigo-400/30" :
-                                "bg-amber-50 text-amber-700 border-amber-300";
-
-                      return (
-                        <div className="mt-2.5 flex items-center gap-2">
-                          <span className="text-[9px] uppercase font-black tracking-wider text-slate-400">Lead Status:</span>
-                          <span className={`px-2.5 py-0.5 rounded-xl text-xs font-black border ${statusBadgeStyle}`}>
-                            {leadStatusVal}
-                          </span>
-                        </div>
-                      );
-                    })()}
-
-                  </div>
-
-                  {/* Action buttons: Edit, Delete, Close */}
-                  <div className="flex items-center gap-2 shrink-0">
+            <div className="overflow-y-auto overflow-x-hidden flex-1 custom-scrollbar">
+              {isEditingTask ? (
+                <div className="p-4 sm:p-6 space-y-4">
+                  <div className="flex items-center justify-between mb-1">
+                    <h3 className="text-sm font-black uppercase tracking-wider text-[#714B67]">Edit Task Details</h3>
                     <button
-                      onClick={() => {
-                        setEditTitle(selectedTask.taskTitle);
-                        setEditType(selectedTask.taskType);
-                        setEditDesc(cleanDescription(selectedTask.description || ""));
-                        setIsEditingTask(true);
-                      }}
-                      className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center transition-all"
-                      title="Edit Task"
+                      type="button"
+                      onClick={() => setIsEditingTask(false)}
+                      className="text-slate-400 hover:text-slate-600 p-1"
                     >
-                      <Edit2 className="w-3.5 h-3.5" />
-                    </button>
-                    <button
-                      onClick={() => handleDeleteTask(selectedTask.id)}
-                      className="w-8 h-8 rounded-full bg-rose-50 hover:bg-rose-100 text-rose-600 flex items-center justify-center transition-all"
-                      title="Delete Task"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
-                    <button
-                      onClick={() => {
-                        setSelectedTask(null);
-                        setIsEditingTask(false);
-                      }}
-                      className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center transition-all"
-                      title="Close"
-                    >
-                      <X className="w-4 h-4 text-slate-500" />
+                      <X className="w-4 h-4" />
                     </button>
                   </div>
-                </div>
 
-                {/* Status change buttons */}
-                <div className="px-6 py-4 border-b border-slate-100">
-                  <p className="text-[10px] uppercase font-black text-slate-400 tracking-wider mb-3">Move To</p>
-                  <div className="flex gap-2 flex-wrap">
-                    {["Pending", "In Progress", "Completed"].map(s => (
-                      <button
-                        key={s}
-                        onClick={() => updateStatus(selectedTask.id, s)}
-                        disabled={selectedTask.status === s || updatingId === selectedTask.id}
-                        className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all border ${selectedTask.status === s
-                          ? s === "Pending"
-                            ? "bg-slate-100 text-slate-700 border-slate-300 cursor-default"
-                            : s === "In Progress"
-                              ? "bg-amber-100 text-amber-700 border-amber-300 cursor-default"
-                              : "bg-emerald-100 text-emerald-700 border-emerald-300 cursor-default"
-                          : "bg-white text-slate-500 border-slate-200 hover:border-[#714B67] hover:text-[#714B67]"
-                          }`}
+                  <div className="space-y-3">
+                    <div>
+                      <label className="text-[9px] uppercase font-black text-slate-800 font-mono tracking-wider">Task Title *</label>
+                      <input
+                        className="w-full border border-slate-200 rounded-lg px-3 py-2 text-xs font-bold focus:outline-none focus:border-[#714B67] text-slate-800"
+                        placeholder="Task Title *"
+                        value={editTitle}
+                        onChange={e => setEditTitle(e.target.value)}
+                        required
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-[9px] uppercase font-black text-slate-450 font-mono tracking-wider">Task Type</label>
+                      <select
+                        className="w-full border border-slate-200 rounded-lg px-3 py-2 text-xs font-bold focus:outline-none focus:border-[#714B67] text-slate-700"
+                        value={editType}
+                        onChange={e => setEditType(e.target.value)}
                       >
-                        {selectedTask.status === s && <CheckCircle2 className="w-3 h-3" />}
-                        {s}
-                        {selectedTask.status !== s && <ChevronRight className="w-3 h-3" />}
-                      </button>
-                    ))}
+                        <option>Call</option>
+                        <option>Meeting</option>
+                        <option>Development</option>
+                        <option>Field Visit</option>
+                        <option>Operations</option>
+                        <option>Support</option>
+                        <option>Other</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="text-[9px] uppercase font-black text-slate-450 font-mono tracking-wider">Description</label>
+                      <textarea
+                        className="w-full border border-slate-200 rounded-lg px-3 py-2 text-xs font-medium focus:outline-none focus:border-[#714B67] text-slate-800 resize-none"
+                        rows={3}
+                        placeholder="Description (optional)..."
+                        value={editDesc}
+                        onChange={e => setEditDesc(e.target.value)}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex gap-2 pt-2 border-t border-slate-100">
+                    <button
+                      type="button"
+                      onClick={() => setIsEditingTask(false)}
+                      className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-650 py-2 rounded-lg text-[10px] font-black uppercase transition-all"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={handleEditTask}
+                      disabled={savingEdit}
+                      className="flex-1 bg-[#714B67] hover:bg-[#5F3F56] disabled:opacity-50 text-white py-2 rounded-lg text-[10px] font-black uppercase flex items-center justify-center gap-1 transition-all"
+                    >
+                      {savingEdit ? <Loader2 className="w-3 h-3 animate-spin" /> : "Save Changes"}
+                    </button>
                   </div>
                 </div>
-
-                {/* Call Follow-up Date & Time Section */}
-                <div className="px-6 py-4 border-b border-slate-100 bg-violet-50/30">
-                  <div
-                    className="flex items-center gap-2 mb-3 cursor-pointer select-none"
-                    onClick={() => setExpandFollowUpHistory(!expandFollowUpHistory)}
-                  >
-                    <CalendarClock className="w-4 h-4 text-violet-500" />
-                    <p className="text-[10px] uppercase font-black text-violet-700 tracking-wider">Call Follow-up Date &amp; Time</p>
-                    {expandFollowUpHistory ? <ChevronUp className="w-3.5 h-3.5 text-violet-500" /> : <ChevronDown className="w-3.5 h-3.5 text-violet-500" />}
-                    {selectedTask.scheduledAt && (
-                      <span className="ml-auto text-[9px] font-bold text-violet-500 bg-violet-100 px-2 py-0.5 rounded-full border border-violet-200">
-                        Latest: {new Date(selectedTask.scheduledAt).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}
-                        {" "}
-                        {new Date(selectedTask.scheduledAt).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}
+              ) : (
+                <>
+                  {/* Modal header */}
+                  <div className="flex items-start justify-between p-4 sm:p-6 border-b border-slate-100 min-w-0 gap-3">
+                    <div className="flex-1 min-w-0">
+                      <span className={`inline-block text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full border mb-2 ${TYPE_COLORS[selectedTask.taskType] || TYPE_COLORS.Other}`}>
+                        {selectedTask.taskType}
                       </span>
+                      <h2 className="text-sm sm:text-base font-black text-slate-800 leading-tight break-words">{selectedTask.taskTitle}</h2>
+                      {selectedTask.description && cleanDescription(selectedTask.description) && (
+                        <p className="text-xs text-slate-500 mt-1.5 font-medium whitespace-pre-line break-words leading-relaxed">{cleanDescription(selectedTask.description)}</p>
+                      )}
+
+                      {/* Dynamic Real-Time Lead Status Badge */}
+                      {(() => {
+                        const leadStatusVal = selectedTask.leadStatus || selectedTask.callStatus || (selectedTask.description?.match(/Lead Status:\s*([^\n]+)/)?.[1]) || (selectedTask.description?.match(/Status:\s*([^\n]+)/)?.[1]);
+                        if (!leadStatusVal) return null;
+
+                        const statusBadgeStyle =
+                          leadStatusVal === "Converted" ? "bg-emerald-50 text-emerald-700 border-emerald-300 ring-1 ring-emerald-400/30" :
+                            leadStatusVal === "Lost" ? "bg-rose-50 text-rose-700 border-rose-300 ring-1 ring-rose-400/30" :
+                              leadStatusVal === "In Progress" ? "bg-blue-50 text-blue-700 border-blue-300 ring-1 ring-blue-400/30" :
+                                leadStatusVal === "Qualified" ? "bg-indigo-50 text-indigo-700 border-indigo-300 ring-1 ring-indigo-400/30" :
+                                  "bg-amber-50 text-amber-700 border-amber-300";
+
+                        return (
+                          <div className="mt-2.5 flex items-center gap-2 flex-wrap">
+                            <span className="text-[9px] uppercase font-black tracking-wider text-slate-400">Lead Status:</span>
+                            <span className={`px-2.5 py-0.5 rounded-xl text-xs font-black border ${statusBadgeStyle}`}>
+                              {leadStatusVal}
+                            </span>
+                          </div>
+                        );
+                      })()}
+
+                    </div>
+
+                    {/* Action buttons: Edit, Delete, Close */}
+                    <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+                      <button
+                        onClick={() => {
+                          setEditTitle(selectedTask.taskTitle);
+                          setEditType(selectedTask.taskType);
+                          setEditDesc(cleanDescription(selectedTask.description || ""));
+                          setIsEditingTask(true);
+                        }}
+                        className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center transition-all"
+                        title="Edit Task"
+                      >
+                        <Edit2 className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        onClick={() => handleDeleteTask(selectedTask.id)}
+                        className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-rose-50 hover:bg-rose-100 text-rose-600 flex items-center justify-center transition-all"
+                        title="Delete Task"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        onClick={() => {
+                          setSelectedTask(null);
+                          setIsEditingTask(false);
+                        }}
+                        className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center transition-all"
+                        title="Close"
+                      >
+                        <X className="w-4 h-4 text-slate-500" />
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Status change buttons */}
+                  <div className="px-4 sm:px-6 py-3.5 sm:py-4 border-b border-slate-100">
+                    <p className="text-[10px] uppercase font-black text-slate-400 tracking-wider mb-2.5">Move To</p>
+                    <div className="grid grid-cols-3 gap-1.5 sm:gap-2">
+                      {["Pending", "In Progress", "Completed"].map(s => (
+                        <button
+                          key={s}
+                          onClick={() => updateStatus(selectedTask.id, s)}
+                          disabled={selectedTask.status === s || updatingId === selectedTask.id}
+                          className={`flex items-center justify-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-2 rounded-lg text-[9px] sm:text-[10px] font-black uppercase tracking-wider transition-all border text-center ${selectedTask.status === s
+                            ? s === "Pending"
+                              ? "bg-slate-100 text-slate-700 border-slate-300 cursor-default"
+                              : s === "In Progress"
+                                ? "bg-amber-100 text-amber-700 border-amber-300 cursor-default"
+                                : "bg-emerald-100 text-emerald-700 border-emerald-300 cursor-default"
+                            : "bg-white text-slate-500 border-slate-200 hover:border-[#714B67] hover:text-[#714B67]"
+                            }`}
+                        >
+                          {selectedTask.status === s && <CheckCircle2 className="w-3 h-3 shrink-0" />}
+                          <span className="truncate">{s}</span>
+                          {selectedTask.status !== s && <ChevronRight className="w-3 h-3 shrink-0 opacity-60" />}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Call Follow-up Date & Time Section */}
+                  <div className="px-4 sm:px-6 py-3.5 sm:py-4 border-b border-slate-100 bg-violet-50/30">
+                    <div
+                      className="flex flex-wrap items-center justify-between gap-1.5 sm:gap-2 cursor-pointer select-none mb-2.5"
+                      onClick={() => setExpandFollowUpHistory(!expandFollowUpHistory)}
+                    >
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <CalendarClock className="w-4 h-4 text-violet-500 shrink-0" />
+                        <p className="text-[10px] uppercase font-black text-violet-700 tracking-wider truncate">Call Follow-up Date &amp; Time</p>
+                        {expandFollowUpHistory ? <ChevronUp className="w-3.5 h-3.5 text-violet-500 shrink-0" /> : <ChevronDown className="w-3.5 h-3.5 text-violet-500 shrink-0" />}
+                      </div>
+                      {selectedTask.scheduledAt && (
+                        <span className="text-[9px] font-bold text-violet-600 bg-violet-100 px-2 py-0.5 rounded-full border border-violet-200 whitespace-nowrap">
+                          Latest: {new Date(selectedTask.scheduledAt).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}
+                          {" "}
+                          {new Date(selectedTask.scheduledAt).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}
+                        </span>
+                      )}
+                    </div>
+
+                    {expandFollowUpHistory && (
+                      <div className="space-y-3 animate-fadeIn mt-3">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
+                          <div>
+                            <label className="text-[8px] uppercase font-black text-slate-500 tracking-wider block mb-1">Date</label>
+                            <input
+                              type="date"
+                              className="w-full border border-slate-200 rounded-lg px-3 py-2 text-xs font-medium focus:outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-100 text-slate-700 bg-white"
+                              value={editScheduleDate}
+                              onChange={e => setEditScheduleDate(e.target.value)}
+                            />
+                          </div>
+                          <div>
+                            <label className="text-[8px] uppercase font-black text-slate-500 tracking-wider block mb-1">Time</label>
+                            <input
+                              type="time"
+                              className="w-full border border-slate-200 rounded-lg px-3 py-2 text-xs font-medium focus:outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-100 text-slate-700 bg-white"
+                              value={editScheduleTime}
+                              onChange={e => setEditScheduleTime(e.target.value)}
+                            />
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <button
+                            onClick={saveSchedule}
+                            disabled={savingSchedule || (!editScheduleDate)}
+                            className="flex items-center gap-1.5 bg-violet-600 hover:bg-violet-700 disabled:opacity-40 disabled:cursor-not-allowed text-white px-3.5 py-2 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all"
+                          >
+                            {savingSchedule ? <Loader2 className="w-3 h-3 animate-spin" /> : <CalendarClock className="w-3 h-3" />}
+                            {savingSchedule ? "Saving..." : "Add Follow-up"}
+                          </button>
+                          {selectedTask.scheduledAt && (
+                            <button
+                              onClick={async () => {
+                                setEditScheduleDate("");
+                                setEditScheduleTime("");
+                                setSavingSchedule(true);
+                                try {
+                                  const res = await fetch("/api/tasks", {
+                                    method: "PUT",
+                                    headers: { "Content-Type": "application/json" },
+                                    body: JSON.stringify({ taskId: selectedTask.id, scheduledAt: null }),
+                                  });
+                                  const data = await res.json();
+                                  if (data.success) {
+                                    setTasks(prev => prev.map(t => t.id === selectedTask.id ? { ...t, scheduledAt: null } : t));
+                                    setSelectedTask(prev => prev ? { ...prev, scheduledAt: null } : null);
+                                  }
+                                } catch (err) { console.error(err); }
+                                finally { setSavingSchedule(false); }
+                              }}
+                              className="text-[10px] font-black text-rose-500 hover:text-rose-700 uppercase tracking-wider transition-colors px-2 py-1"
+                            >
+                              Clear Latest
+                            </button>
+                          )}
+                        </div>
+
+                        {/* Previous Schedules List */}
+                        {(() => {
+                          let historyList: any[] = [];
+                          if (selectedTask.followUpHistory) {
+                            try {
+                              const parsed = JSON.parse(selectedTask.followUpHistory);
+                              historyList = Array.isArray(parsed) ? parsed : [];
+                            } catch (e) {
+                              historyList = [];
+                            }
+                          }
+
+                          return historyList.length > 0 && (
+                            <div className="mt-3 space-y-2 border-t border-slate-100 pt-3 max-h-40 overflow-y-auto pr-1">
+                              <p className="text-[8px] uppercase font-black text-slate-400 tracking-wider">Scheduled History</p>
+                              {historyList.map((h, idx) => (
+                                <div key={h.id || idx} className="p-2 rounded-lg border border-slate-100 bg-slate-50/40 flex items-center justify-between gap-2 text-xs font-semibold text-slate-700 flex-wrap">
+                                  <span className="flex items-center gap-1.5">
+                                    <CalendarClock className="w-3.5 h-3.5 text-violet-400 shrink-0" />
+                                    {new Date(h.scheduledAt).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}
+                                    {" "}
+                                    {new Date(h.scheduledAt).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}
+                                  </span>
+                                  <span className="text-[8px] text-slate-400 font-bold uppercase">
+                                    By {h.userName || "System"}
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                          );
+                        })()}
+                      </div>
                     )}
                   </div>
 
-                  {expandFollowUpHistory && (
-                    <div className="space-y-3 animate-fadeIn">
-                      <div className="grid grid-cols-2 gap-3">
-                        <div>
-                          <label className="text-[8px] uppercase font-black text-slate-500 tracking-wider block mb-1">Date</label>
-                          <input
-                            type="date"
-                            className="w-full border border-slate-200 rounded-lg px-3 py-2 text-xs font-medium focus:outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-100 text-slate-700 bg-white"
-                            value={editScheduleDate}
-                            onChange={e => setEditScheduleDate(e.target.value)}
-                          />
-                        </div>
-                        <div>
-                          <label className="text-[8px] uppercase font-black text-slate-500 tracking-wider block mb-1">Time</label>
-                          <input
-                            type="time"
-                            className="w-full border border-slate-200 rounded-lg px-3 py-2 text-xs font-medium focus:outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-100 text-slate-700 bg-white"
-                            value={editScheduleTime}
-                            onChange={e => setEditScheduleTime(e.target.value)}
-                          />
-                        </div>
+                  {/* Forward To Section */}
+                  <div className="px-4 sm:px-6 py-3.5 sm:py-4 border-b border-slate-100 bg-teal-50/20">
+                    <div className="flex flex-wrap items-center justify-between gap-1.5 sm:gap-2 mb-2.5">
+                      <div className="flex items-center gap-1.5">
+                        <Users className="w-4 h-4 text-teal-600 shrink-0" />
+                        <p className="text-[10px] uppercase font-black text-teal-700 tracking-wider">Forward To</p>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={saveSchedule}
-                          disabled={savingSchedule || (!editScheduleDate)}
-                          className="flex items-center gap-1.5 bg-violet-600 hover:bg-violet-700 disabled:opacity-40 disabled:cursor-not-allowed text-white px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all"
-                        >
-                          {savingSchedule ? <Loader2 className="w-3 h-3 animate-spin" /> : <CalendarClock className="w-3 h-3" />}
-                          {savingSchedule ? "Saving..." : "Add Follow-up"}
-                        </button>
-                        {selectedTask.scheduledAt && (
-                          <button
-                            onClick={async () => {
-                              setEditScheduleDate("");
-                              setEditScheduleTime("");
-                              setSavingSchedule(true);
-                              try {
-                                const res = await fetch("/api/tasks", {
-                                  method: "PUT",
-                                  headers: { "Content-Type": "application/json" },
-                                  body: JSON.stringify({ taskId: selectedTask.id, scheduledAt: null }),
-                                });
-                                const data = await res.json();
-                                if (data.success) {
-                                  setTasks(prev => prev.map(t => t.id === selectedTask.id ? { ...t, scheduledAt: null } : t));
-                                  setSelectedTask(prev => prev ? { ...prev, scheduledAt: null } : null);
-                                }
-                              } catch (err) { console.error(err); }
-                              finally { setSavingSchedule(false); }
-                            }}
-                            className="text-[10px] font-black text-rose-500 hover:text-rose-700 uppercase tracking-wider transition-colors"
-                          >
-                            Clear Latest
-                          </button>
-                        )}
-                      </div>
+                      {selectedTask.forwardedTo && (() => {
+                        const fwd = companyUsers.find(u => u.id === selectedTask.forwardedTo);
+                        return fwd ? (
+                          <span className="text-[9px] font-bold text-teal-600 bg-teal-100 px-2 py-0.5 rounded-full border border-teal-200 flex items-center gap-1">
+                            <Send className="w-2.5 h-2.5" />
+                            {fwd.name}
+                          </span>
+                        ) : null;
+                      })()}
+                    </div>
+                    <div className="flex flex-col sm:flex-row gap-2">
+                      <select
+                        className="w-full sm:flex-1 min-w-0 border border-slate-200 rounded-lg px-3 py-2 text-xs font-medium focus:outline-none focus:border-teal-400 focus:ring-2 focus:ring-teal-100 text-slate-700 bg-white"
+                        value={selectedForwardTo}
+                        onChange={e => setSelectedForwardTo(e.target.value)}
+                      >
+                        <option value="">— Select a user —</option>
+                        {companyUsers.map(u => (
+                          <option key={u.id} value={u.id}>
+                            {u.name} ({u.role})
+                          </option>
+                        ))}
+                      </select>
+                      <button
+                        onClick={saveForward}
+                        disabled={savingForward || selectedForwardTo === (selectedTask.forwardedTo || "")}
+                        className="flex items-center justify-center gap-1.5 bg-teal-600 hover:bg-teal-700 disabled:opacity-40 disabled:cursor-not-allowed text-white px-3.5 py-2 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all shrink-0 w-full sm:w-auto"
+                      >
+                        {savingForward ? <Loader2 className="w-3 h-3 animate-spin" /> : <Send className="w-3 h-3" />}
+                        {savingForward ? "Saving..." : "Forward"}
+                      </button>
+                    </div>
+                    {companyUsers.length === 0 && (
+                      <p className="text-[9px] text-slate-400 mt-2 font-medium">No other users in your company found.</p>
+                    )}
+                  </div>
 
-                      {/* Previous Schedules List */}
+
+                  {/* Automatic Live Task Timer Display */}
+                  <div className="px-4 sm:px-6 py-3 border-b border-slate-100 bg-slate-50/50">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <Timer className="w-4 h-4 text-slate-500 shrink-0" />
+                        <span className="text-[10px] uppercase font-black text-slate-600 tracking-wider">Time Elapsed</span>
+                        <span className={`text-[12px] font-black px-3 py-1 rounded-full border font-mono ${selectedTask.status === "Completed"
+                          ? "bg-slate-100 text-slate-700 border-slate-300"
+                          : selectedTask.status === "In Progress"
+                            ? "bg-emerald-100 text-emerald-700 border-emerald-300"
+                            : "bg-indigo-50 text-indigo-700 border-indigo-200"
+                          }`}>
+                          {selectedTask.status === "In Progress" && (
+                            <span className="inline-block w-2 h-2 rounded-full bg-emerald-500 animate-pulse mr-1.5" />
+                          )}
+                          {selectedTask.status === "Completed" ? "✓ " : ""}
+                          {formatTimer(getLiveElapsed(selectedTask))}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Proof of Work & Progress Notes */}
+                  <div className="px-4 sm:px-6 py-4 space-y-4 sm:space-y-5">
+                    {/* Proof of Work Section */}
+                    <div className="border border-slate-200 rounded-xl p-3 sm:p-4 bg-slate-50/50">
+                      <div className="flex items-center gap-2 mb-3">
+                        <ImageIcon className="w-4 h-4 text-emerald-500 shrink-0" />
+                        <p className="text-[10px] uppercase font-black text-slate-700 tracking-wider">Proof of Work (Mandatory for Completion)</p>
+                      </div>
                       {(() => {
-                        let historyList: any[] = [];
-                        if (selectedTask.followUpHistory) {
-                          try {
-                            const parsed = JSON.parse(selectedTask.followUpHistory);
-                            historyList = Array.isArray(parsed) ? parsed : [];
-                          } catch (e) {
-                            historyList = [];
+                        let proofUrls: any[] = [];
+                        if (selectedTask.proofAttachment) {
+                          if (selectedTask.proofAttachment.startsWith('[') && selectedTask.proofAttachment.endsWith(']')) {
+                            try {
+                              proofUrls = JSON.parse(selectedTask.proofAttachment);
+                            } catch (_) {
+                              proofUrls = [selectedTask.proofAttachment];
+                            }
+                          } else {
+                            proofUrls = selectedTask.proofAttachment.split(',').map((u: string) => u.trim()).filter(Boolean);
                           }
                         }
 
-                        return historyList.length > 0 && (
-                          <div className="mt-3 space-y-2 border-t border-slate-100 pt-3 max-h-40 overflow-y-auto pr-1">
-                            <p className="text-[8px] uppercase font-black text-slate-400 tracking-wider">Scheduled History</p>
-                            {historyList.map((h, idx) => (
-                              <div key={h.id || idx} className="p-2 rounded-lg border border-slate-100 bg-slate-50/40 flex items-center justify-between text-xs font-semibold text-slate-700">
-                                <span className="flex items-center gap-1.5">
-                                  <CalendarClock className="w-3.5 h-3.5 text-violet-400" />
-                                  {new Date(h.scheduledAt).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}
-                                  {" "}
-                                  {new Date(h.scheduledAt).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}
-                                </span>
-                                <span className="text-[8px] text-slate-400 font-bold uppercase">
-                                  By {h.userName || "System"}
-                                </span>
+                        return (
+                          <div className="space-y-3">
+                            {proofUrls.length > 0 && (
+                              <div className="space-y-2.5">
+                                {proofUrls.map((proofObj: any, idx) => {
+                                  const actualUrl = typeof proofObj === "string" ? proofObj : (proofObj?.url || proofObj?.src || "");
+                                  const displayName = typeof proofObj === "object" ? (proofObj?.name || `Proof #${idx + 1}`) : `Proof #${idx + 1}`;
+                                  const url = (actualUrl || "").toLowerCase();
+                                  return (
+                                    <div key={idx} className="border border-slate-200 rounded-xl p-2.5 sm:p-3 bg-white space-y-2 relative shadow-sm">
+                                      <div className="text-[9px] font-black text-slate-400 uppercase tracking-wider pr-8 truncate">{displayName}</div>
+                                      <div className="pr-0 sm:pr-8">
+                                        {(() => {
+                                          if (url.includes('application/pdf') || url.includes('.pdf')) {
+                                            return <a href={actualUrl} target="_blank" rel="noopener noreferrer" download={`${displayName}.pdf`} className="p-2.5 bg-slate-50 hover:bg-slate-100 transition-colors rounded-lg border border-slate-200 text-xs font-bold text-slate-700 flex items-center justify-between gap-2 cursor-pointer"><div className="flex items-center gap-2 min-w-0"><Paperclip className="w-4 h-4 shrink-0" /> <span className="truncate">{displayName}</span></div> <Download className="w-4 h-4 text-slate-400 shrink-0" /></a>;
+                                          }
+                                          if (url.includes('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet') || url.includes('application/vnd.ms-excel') || url.includes('text/csv') || url.includes('.xls') || url.includes('.xlsx') || url.includes('.csv')) {
+                                            return <a href={actualUrl} target="_blank" rel="noopener noreferrer" download={`${displayName}.xlsx`} className="p-2.5 bg-slate-50 hover:bg-slate-100 transition-colors rounded-lg border border-slate-200 text-xs font-bold text-slate-700 flex items-center justify-between gap-2 cursor-pointer"><div className="flex items-center gap-2 min-w-0"><Paperclip className="w-4 h-4 shrink-0" /> <span className="truncate">{displayName}</span></div> <Download className="w-4 h-4 text-slate-400 shrink-0" /></a>;
+                                          }
+
+                                          const isAudio = /\.(mp3|wav|wave|m4a|ogg|oga|aac|wma|amr|opus|flac|aiff|aif|caf|ac3|mp2|weba|mka|ra)(?:$|[?#])/i.test(url) || url.includes('audio/');
+                                          const isVideo = /\.(mp4|mov|webm|avi|mkv|3gp|3g2|mpeg|mpg|m4v|wmv|flv)(?:$|[?#])/i.test(url) || url.includes('video/');
+                                          const isImage = /\.(png|jpe?g|gif|webp|bmp|tiff?|heic|heif|avif)(?:$|[?#])/i.test(url) || url.includes('image/');
+
+                                          if (isAudio) {
+                                            return <div className="space-y-2"><audio controls src={actualUrl} className="w-full mt-1 border border-slate-100 rounded-lg p-1 bg-slate-50 shadow-sm" /><a href={actualUrl} target="_blank" rel="noopener noreferrer" download className="text-[10px] font-bold text-indigo-600 hover:underline">Open / download audio</a></div>;
+                                          }
+                                          if (isVideo) {
+                                            return <div className="space-y-2"><video controls src={actualUrl} className="max-h-48 w-full rounded-lg border border-slate-200 object-contain shadow-sm bg-slate-50 mt-1" /><a href={actualUrl} target="_blank" rel="noopener noreferrer" download className="text-[10px] font-bold text-indigo-600 hover:underline">Open / download video</a></div>;
+                                          }
+                                          if (!isImage) {
+                                            return <a href={actualUrl} target="_blank" rel="noopener noreferrer" download className="p-2.5 bg-slate-50 hover:bg-slate-100 transition-colors rounded-lg border border-slate-200 text-xs font-bold text-slate-700 flex items-center justify-between gap-2"><div className="flex items-center gap-2 min-w-0"><Paperclip className="w-4 h-4 shrink-0" /> <span className="truncate">{displayName}</span></div><Download className="w-4 h-4 text-slate-400 shrink-0" /></a>;
+                                          }
+                                          return (
+                                            <img
+                                              src={actualUrl}
+                                              alt={displayName}
+                                              className="max-h-36 rounded-lg border border-slate-200 object-contain shadow-sm bg-slate-50 max-w-full"
+                                            />
+                                          );
+                                        })()}
+                                      </div>
+
+                                      <button
+                                        type="button"
+                                        onClick={() => handleRemoveProofAt(idx)}
+                                        className="absolute top-2 right-2 p-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-lg border border-rose-100 transition-colors"
+                                        title="Remove this proof"
+                                      >
+                                        <Trash2 className="w-3.5 h-3.5" />
+                                      </button>
+                                    </div>
+                                  );
+                                })}
                               </div>
-                            ))}
+                            )}
+
+                            {/* Upload Area Dropzone */}
+                            <div className="flex flex-col gap-2">
+                              <label className="flex items-center justify-center w-full h-11 border border-dashed border-slate-300 rounded-lg cursor-pointer hover:bg-slate-50 transition-colors bg-white/70">
+                                <div className="flex items-center justify-center gap-2 py-1 px-2">
+                                  {uploadingProof ? (
+                                    <Loader2 className="w-4 h-4 text-slate-400 animate-spin" />
+                                  ) : (
+                                    <Paperclip className="w-4 h-4 text-slate-400" />
+                                  )}
+                                  <p className="text-[9px] uppercase font-black text-slate-500 tracking-wider truncate">
+                                    {uploadingProof ? "Uploading..." : proofUrls.length > 0 ? "+ Add Another Proof" : "Click to upload Proof"}
+                                  </p>
+                                </div>
+                                <input type="file" className="hidden" accept="*/*" onChange={handleUploadProof} disabled={uploadingProof} />
+                              </label>
+                            </div>
                           </div>
                         );
                       })()}
                     </div>
-                  )}
-                </div>
 
-                {/* Forward To Section */}
-                <div className="px-6 py-4 border-b border-slate-100 bg-teal-50/20">
-                  <div className="flex items-center gap-2 mb-3">
-                    <Users className="w-4 h-4 text-teal-600" />
-                    <p className="text-[10px] uppercase font-black text-teal-700 tracking-wider">Forward To</p>
-                    {selectedTask.forwardedTo && (() => {
-                      const fwd = companyUsers.find(u => u.id === selectedTask.forwardedTo);
-                      return fwd ? (
-                        <span className="ml-auto text-[9px] font-bold text-teal-600 bg-teal-100 px-2 py-0.5 rounded-full border border-teal-200 flex items-center gap-1">
-                          <Send className="w-2.5 h-2.5" />
-                          {fwd.name}
-                        </span>
-                      ) : null;
-                    })()}
-                  </div>
-                  <div className="flex gap-2">
-                    <select
-                      className="flex-1 border border-slate-200 rounded-lg px-3 py-2 text-xs font-medium focus:outline-none focus:border-teal-400 focus:ring-2 focus:ring-teal-100 text-slate-700 bg-white"
-                      value={selectedForwardTo}
-                      onChange={e => setSelectedForwardTo(e.target.value)}
-                    >
-                      <option value="">— Select a user —</option>
-                      {companyUsers.map(u => (
-                        <option key={u.id} value={u.id}>
-                          {u.name} ({u.role})
-                        </option>
-                      ))}
-                    </select>
-                    <button
-                      onClick={saveForward}
-                      disabled={savingForward || selectedForwardTo === (selectedTask.forwardedTo || "")}
-                      className="flex items-center gap-1.5 bg-teal-600 hover:bg-teal-700 disabled:opacity-40 disabled:cursor-not-allowed text-white px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all"
-                    >
-                      {savingForward ? <Loader2 className="w-3 h-3 animate-spin" /> : <Send className="w-3 h-3" />}
-                      {savingForward ? "Saving..." : "Forward"}
-                    </button>
-                  </div>
-                  {companyUsers.length === 0 && (
-                    <p className="text-[9px] text-slate-400 mt-2 font-medium">No other users in your company found.</p>
-                  )}
-                </div>
+                    {/* Progress Notes */}
+                    <div>
+                      <div
+                        className="flex items-center gap-2 mb-3 cursor-pointer select-none"
+                        onClick={() => setExpandNotesHistory(!expandNotesHistory)}
+                      >
+                        <StickyNote className="w-4 h-4 text-indigo-500 shrink-0" />
+                        <p className="text-[10px] uppercase font-black text-slate-700 tracking-wider">Progress Notes History</p>
+                        {expandNotesHistory ? <ChevronUp className="w-3.5 h-3.5 text-indigo-500 shrink-0" /> : <ChevronDown className="w-3.5 h-3.5 text-indigo-500 shrink-0" />}
+                      </div>
 
-
-                {/* Automatic Live Task Timer Display */}
-                <div className="px-6 py-3 border-b border-slate-100 bg-slate-50/50">
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="flex items-center gap-2">
-                      <Timer className="w-4 h-4 text-slate-500" />
-                      <span className="text-[10px] uppercase font-black text-slate-600 tracking-wider">Time Elapsed</span>
-                      <span className={`text-[12px] font-black px-3 py-1 rounded-full border font-mono ${selectedTask.status === "Completed"
-                        ? "bg-slate-100 text-slate-700 border-slate-300"
-                        : selectedTask.status === "In Progress"
-                          ? "bg-emerald-100 text-emerald-700 border-emerald-300"
-                          : "bg-indigo-50 text-indigo-700 border-indigo-200"
-                        }`}>
-                        {selectedTask.status === "In Progress" && (
-                          <span className="inline-block w-2 h-2 rounded-full bg-emerald-500 animate-pulse mr-1.5" />
-                        )}
-                        {selectedTask.status === "Completed" ? "✓ " : ""}
-                        {formatTimer(getLiveElapsed(selectedTask))}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Proof of Work & Progress Notes */}
-                <div className="px-6 py-4 space-y-5">
-                  {/* Proof of Work Section */}
-                  <div className="border border-slate-200 rounded-xl p-4 bg-slate-50/50">
-                    <div className="flex items-center gap-2 mb-3">
-                      <ImageIcon className="w-4 h-4 text-emerald-500" />
-                      <p className="text-[10px] uppercase font-black text-slate-700 tracking-wider">Proof of Work (Mandatory for Completion)</p>
-                    </div>
-                    {(() => {
-                      let proofUrls: string[] = [];
-                      if (selectedTask.proofAttachment) {
-                        if (selectedTask.proofAttachment.startsWith('[') && selectedTask.proofAttachment.endsWith(']')) {
+                      {/* Previous Notes List */}
+                      {expandNotesHistory && (() => {
+                        let notesList: any[] = [];
+                        if (selectedTask.progressNotes) {
                           try {
-                            proofUrls = JSON.parse(selectedTask.proofAttachment);
-                          } catch (_) {
-                            proofUrls = [selectedTask.proofAttachment];
+                            const parsed = JSON.parse(selectedTask.progressNotes);
+                            notesList = Array.isArray(parsed) ? parsed : [{ id: 'legacy', note: selectedTask.progressNotes, createdAt: selectedTask.createdAt || new Date(), userName: "System" }];
+                          } catch (e) {
+                            notesList = [{ id: 'legacy', note: selectedTask.progressNotes, createdAt: selectedTask.createdAt || new Date(), userName: "System" }];
                           }
-                        } else {
-                          proofUrls = selectedTask.proofAttachment.split(',').map((u: string) => u.trim()).filter(Boolean);
                         }
-                      }
 
-                      return (
-                        <div className="space-y-4">
-                          {proofUrls.length > 0 && (
-                            <div className="space-y-3">
-                              {proofUrls.map((proofObj: any, idx) => {
-                                const actualUrl = typeof proofObj === "string" ? proofObj : (proofObj?.url || proofObj?.src || "");
-                                const displayName = typeof proofObj === "object" ? (proofObj?.name || `Proof #${idx + 1}`) : `Proof #${idx + 1}`;
-                                const url = (actualUrl || "").toLowerCase();
-                                return (
-                                  <div key={idx} className="border border-slate-200 rounded-xl p-3 bg-white space-y-2 relative shadow-sm">
-                                    <div className="text-[9px] font-black text-slate-400 uppercase tracking-wider">{displayName}</div>
-                                    <div className="pr-10">
-                                      {(() => {
-                                        if (url.includes('application/pdf') || url.includes('.pdf')) {
-                                          return <a href={actualUrl} target="_blank" rel="noopener noreferrer" download={`${displayName}.pdf`} className="p-2.5 bg-slate-50 hover:bg-slate-100 transition-colors rounded-lg border border-slate-200 text-xs font-bold text-slate-700 flex items-center justify-between gap-2 cursor-pointer"><div className="flex items-center gap-2"><Paperclip className="w-4 h-4" /> {displayName}</div> <Download className="w-4 h-4 text-slate-400" /></a>;
-                                        }
-                                        if (url.includes('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet') || url.includes('application/vnd.ms-excel') || url.includes('text/csv') || url.includes('.xls') || url.includes('.xlsx') || url.includes('.csv')) {
-                                          return <a href={actualUrl} target="_blank" rel="noopener noreferrer" download={`${displayName}.xlsx`} className="p-2.5 bg-slate-50 hover:bg-slate-100 transition-colors rounded-lg border border-slate-200 text-xs font-bold text-slate-700 flex items-center justify-between gap-2 cursor-pointer"><div className="flex items-center gap-2"><Paperclip className="w-4 h-4" /> {displayName}</div> <Download className="w-4 h-4 text-slate-400" /></a>;
-                                        }
+                        return notesList.length > 0 && (
+                          <div className="mb-4 space-y-2.5 max-h-48 overflow-y-auto pr-1 animate-fadeIn">
+                            {notesList.map((n, idx) => {
+                              const noteId = n.id || idx.toString();
+                              const isEditingThisNote = editingNoteId === noteId;
+                              const canEdit = (sessionUser as any)?.role === "Owner" || (n.userName && sessionUser?.name && n.userName.trim() === sessionUser.name.trim());
 
-                                        const isAudio = /\.(mp3|wav|wave|m4a|ogg|oga|aac|wma|amr|opus|flac|aiff|aif|caf|ac3|mp2|weba|mka|ra)(?:$|[?#])/i.test(url) || url.includes('audio/');
-                                        const isVideo = /\.(mp4|mov|webm|avi|mkv|3gp|3g2|mpeg|mpg|m4v|wmv|flv)(?:$|[?#])/i.test(url) || url.includes('video/');
-                                        const isImage = /\.(png|jpe?g|gif|webp|bmp|tiff?|heic|heif|avif)(?:$|[?#])/i.test(url) || url.includes('image/');
-
-                                        if (isAudio) {
-                                          return <div className="space-y-2"><audio controls src={actualUrl} className="w-full mt-1 border border-slate-100 rounded-lg p-1 bg-slate-50 shadow-sm" /><a href={actualUrl} target="_blank" rel="noopener noreferrer" download className="text-[10px] font-bold text-indigo-600 hover:underline">Open / download audio</a></div>;
-                                        }
-                                        if (isVideo) {
-                                          return <div className="space-y-2"><video controls src={actualUrl} className="max-h-48 w-full rounded-lg border border-slate-200 object-contain shadow-sm bg-slate-50 mt-1" /><a href={actualUrl} target="_blank" rel="noopener noreferrer" download className="text-[10px] font-bold text-indigo-600 hover:underline">Open / download video</a></div>;
-                                        }
-                                        if (!isImage) {
-                                          return <a href={actualUrl} target="_blank" rel="noopener noreferrer" download className="p-2.5 bg-slate-50 hover:bg-slate-100 transition-colors rounded-lg border border-slate-200 text-xs font-bold text-slate-700 flex items-center justify-between gap-2"><div className="flex items-center gap-2"><Paperclip className="w-4 h-4" /> {displayName}</div><Download className="w-4 h-4 text-slate-400" /></a>;
-                                        }
-                                        return (
-                                          <img
-                                            src={actualUrl}
-                                            alt={displayName}
-                                            className="max-h-36 rounded-lg border border-slate-200 object-contain shadow-sm bg-slate-50"
-                                          />
-                                        );
-                                      })()}
+                              return (
+                                <div key={noteId} className="p-2.5 rounded-xl border border-slate-100 bg-slate-50/60 text-left">
+                                  <div className="flex items-center justify-between gap-2 mb-1 flex-wrap">
+                                    <div className="flex items-center gap-1.5">
+                                      <span className="text-[9px] font-black uppercase text-indigo-650 tracking-wider">
+                                        {n.userName || "System"}
+                                      </span>
+                                      {n.updatedAt && (
+                                        <span className="text-[7px] font-bold text-slate-400 bg-slate-100 px-1 rounded uppercase tracking-wider">Edited</span>
+                                      )}
                                     </div>
-
-                                    <button
-                                      type="button"
-                                      onClick={() => handleRemoveProofAt(idx)}
-                                      className="absolute top-2 right-2 p-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-lg border border-rose-100 transition-colors"
-                                      title="Remove this proof"
-                                    >
-                                      <Trash2 className="w-3.5 h-3.5" />
-                                    </button>
+                                    <div className="flex items-center gap-2">
+                                      <span className="text-[9px] text-slate-450 font-medium">
+                                        {new Date(n.createdAt).toLocaleString("en-IN", { hour: "2-digit", minute: "2-digit", day: "2-digit", month: "short" })}
+                                      </span>
+                                      {canEdit && !isEditingThisNote && (
+                                        <button
+                                          onClick={() => {
+                                            setEditingNoteId(noteId);
+                                            setEditingNoteText(n.note);
+                                          }}
+                                          className="text-slate-455 hover:text-indigo-600 transition-colors p-0.5"
+                                          title="Edit Note"
+                                        >
+                                          <Edit2 className="w-3 h-3" />
+                                        </button>
+                                      )}
+                                    </div>
                                   </div>
-                                );
-                              })}
-                            </div>
-                          )}
-
-                          {/* Upload Area Dropzone */}
-                          <div className="flex flex-col gap-2">
-                            <label className="flex items-center justify-center w-full h-11 border border-dashed border-slate-300 rounded-lg cursor-pointer hover:bg-slate-50 transition-colors bg-white/70">
-                              <div className="flex items-center justify-center gap-2 py-1">
-                                {uploadingProof ? (
-                                  <Loader2 className="w-4 h-4 text-slate-400 animate-spin" />
-                                ) : (
-                                  <Paperclip className="w-4 h-4 text-slate-400" />
-                                )}
-                                <p className="text-[9px] uppercase font-black text-slate-500 tracking-wider">
-                                  {uploadingProof ? "Uploading..." : proofUrls.length > 0 ? "+ Add Another Proof" : "Click to upload Proof"}
-                                </p>
-                              </div>
-                              <input type="file" className="hidden" accept="*/*" onChange={handleUploadProof} disabled={uploadingProof} />
-                            </label>
-                          </div>
-                        </div>
-                      );
-                    })()}
-                  </div>
-
-                  {/* Progress Notes */}
-                  <div>
-                    <div
-                      className="flex items-center gap-2 mb-3 cursor-pointer select-none"
-                      onClick={() => setExpandNotesHistory(!expandNotesHistory)}
-                    >
-                      <StickyNote className="w-4 h-4 text-indigo-500" />
-                      <p className="text-[10px] uppercase font-black text-slate-700 tracking-wider">Progress Notes History</p>
-                      {expandNotesHistory ? <ChevronUp className="w-3.5 h-3.5 text-indigo-500" /> : <ChevronDown className="w-3.5 h-3.5 text-indigo-500" />}
-                    </div>
-
-                    {/* Previous Notes List */}
-                    {expandNotesHistory && (() => {
-                      let notesList: any[] = [];
-                      if (selectedTask.progressNotes) {
-                        try {
-                          const parsed = JSON.parse(selectedTask.progressNotes);
-                          notesList = Array.isArray(parsed) ? parsed : [{ id: 'legacy', note: selectedTask.progressNotes, createdAt: selectedTask.createdAt || new Date(), userName: "System" }];
-                        } catch (e) {
-                          notesList = [{ id: 'legacy', note: selectedTask.progressNotes, createdAt: selectedTask.createdAt || new Date(), userName: "System" }];
-                        }
-                      }
-
-                      return notesList.length > 0 && (
-                        <div className="mb-4 space-y-2.5 max-h-48 overflow-y-auto pr-1 animate-fadeIn">
-                          {notesList.map((n, idx) => {
-                            const noteId = n.id || idx.toString();
-                            const isEditingThisNote = editingNoteId === noteId;
-                            const canEdit = (sessionUser as any)?.role === "Owner" || (n.userName && sessionUser?.name && n.userName.trim() === sessionUser.name.trim());
-
-                            return (
-                              <div key={noteId} className="p-2.5 rounded-xl border border-slate-100 bg-slate-50/60 text-left">
-                                <div className="flex items-center justify-between gap-2 mb-1">
-                                  <div className="flex items-center gap-1.5">
-                                    <span className="text-[9px] font-black uppercase text-indigo-650 tracking-wider">
-                                      {n.userName || "System"}
-                                    </span>
-                                    {n.updatedAt && (
-                                      <span className="text-[7px] font-bold text-slate-400 bg-slate-100 px-1 rounded uppercase tracking-wider">Edited</span>
-                                    )}
-                                  </div>
-                                  <div className="flex items-center gap-2">
-                                    <span className="text-[9px] text-slate-450 font-medium">
-                                      {new Date(n.createdAt).toLocaleString("en-IN", { hour: "2-digit", minute: "2-digit", day: "2-digit", month: "short" })}
-                                    </span>
-                                    {canEdit && !isEditingThisNote && (
-                                      <button
-                                        onClick={() => {
-                                          setEditingNoteId(noteId);
-                                          setEditingNoteText(n.note);
-                                        }}
-                                        className="text-slate-455 hover:text-indigo-600 transition-colors p-0.5"
-                                        title="Edit Note"
-                                      >
-                                        <Edit2 className="w-3 h-3" />
-                                      </button>
-                                    )}
-                                  </div>
+                                  {isEditingThisNote ? (
+                                    <div className="mt-1 space-y-1.5">
+                                      <textarea
+                                        className="w-full border border-indigo-200 rounded-lg p-2 text-xs font-semibold focus:outline-none focus:border-indigo-400 focus:ring-1 focus:ring-indigo-100 text-slate-700 bg-white"
+                                        rows={2}
+                                        value={editingNoteText}
+                                        onChange={e => setEditingNoteText(e.target.value)}
+                                      />
+                                      <div className="flex justify-end gap-1.5">
+                                        <button
+                                          onClick={() => {
+                                            setEditingNoteId(null);
+                                            setEditingNoteText("");
+                                          }}
+                                          disabled={savingEditNote}
+                                          className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-655 rounded text-[9px] font-black uppercase transition-all"
+                                        >
+                                          Cancel
+                                        </button>
+                                        <button
+                                          onClick={() => handleSaveEditNote(noteId)}
+                                          disabled={savingEditNote || !editingNoteText.trim() || editingNoteText.trim() === n.note.trim()}
+                                          className="px-2.5 py-1 bg-indigo-650 hover:bg-indigo-700 disabled:opacity-50 text-white rounded text-[9px] font-black uppercase flex items-center gap-1 transition-all"
+                                        >
+                                          {savingEditNote ? <Loader2 className="w-2.5 h-2.5 animate-spin" /> : <Save className="w-2.5 h-2.5" />}
+                                          Save
+                                        </button>
+                                      </div>
+                                    </div>
+                                  ) : (
+                                    <p className="text-[11px] text-slate-700 leading-relaxed font-semibold break-words whitespace-pre-wrap">
+                                      {n.note}
+                                    </p>
+                                  )}
                                 </div>
-                                {isEditingThisNote ? (
-                                  <div className="mt-1 space-y-1.5">
-                                    <textarea
-                                      className="w-full border border-indigo-200 rounded-lg p-2 text-xs font-semibold focus:outline-none focus:border-indigo-400 focus:ring-1 focus:ring-indigo-100 text-slate-700 bg-white"
-                                      rows={2}
-                                      value={editingNoteText}
-                                      onChange={e => setEditingNoteText(e.target.value)}
-                                    />
-                                    <div className="flex justify-end gap-1.5">
-                                      <button
-                                        onClick={() => {
-                                          setEditingNoteId(null);
-                                          setEditingNoteText("");
-                                        }}
-                                        disabled={savingEditNote}
-                                        className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-655 rounded text-[9px] font-black uppercase transition-all"
-                                      >
-                                        Cancel
-                                      </button>
-                                      <button
-                                        onClick={() => handleSaveEditNote(noteId)}
-                                        disabled={savingEditNote || !editingNoteText.trim() || editingNoteText.trim() === n.note.trim()}
-                                        className="px-2.5 py-1 bg-indigo-650 hover:bg-indigo-700 disabled:opacity-50 text-white rounded text-[9px] font-black uppercase flex items-center gap-1 transition-all"
-                                      >
-                                        {savingEditNote ? <Loader2 className="w-2.5 h-2.5 animate-spin" /> : <Save className="w-2.5 h-2.5" />}
-                                        Save
-                                      </button>
-                                    </div>
-                                  </div>
-                                ) : (
-                                  <p className="text-[11px] text-slate-700 leading-relaxed font-semibold break-words whitespace-pre-wrap">
-                                    {n.note}
-                                  </p>
-                                )}
-                              </div>
-                            );
-                          })}
-                        </div>
-                      );
-                    })()}
+                              );
+                            })}
+                          </div>
+                        );
+                      })()}
 
-                    <textarea
-                      className="w-full border border-slate-200 rounded-xl px-4 py-3 text-xs font-medium text-slate-800 focus:outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 resize-none placeholder-slate-400 leading-relaxed"
-                      rows={3}
-                      placeholder="Add a new progress note, blocker, or update here..."
-                      value={editNotes}
-                      onChange={e => setEditNotes(e.target.value)}
-                    />
-                    <div className="flex items-center justify-between mt-3">
-                      <p className="text-[9px] text-slate-450 font-medium">
-                        Created: {new Date(selectedTask.createdAt || selectedTask.date).toLocaleString("en-IN", { hour: "2-digit", minute: "2-digit", day: "2-digit", month: "short" })}
-                      </p>
-                      <div className="flex gap-2">
-                        <button
-                          onClick={saveProgressNotes}
-                          disabled={savingNotes || !editNotes.trim()}
-                          className="flex items-center gap-2 bg-indigo-50 border border-indigo-200 hover:bg-indigo-100 disabled:opacity-40 disabled:cursor-not-allowed text-indigo-700 px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all"
-                        >
-                          {savingNotes ? <Loader2 className="w-3 h-3 animate-spin" /> : <Save className="w-3 h-3" />}
-                          {savingNotes ? "Saving..." : "Add Note"}
-                        </button>
-                        <button
-                          onClick={async () => {
-                            if (editNotes.trim()) {
-                              const success = await saveProgressNotes();
-                              if (!success) return;
-                            }
-                            setSelectedTask(null);
-                            setIsEditingTask(false);
-                          }}
-                          disabled={savingNotes}
-                          className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all"
-                        >
-                          <CheckCircle2 className="w-3 h-3" /> Close Task View
-                        </button>
+                      <textarea
+                        className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 sm:px-4 sm:py-3 text-xs font-medium text-slate-800 focus:outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 resize-none placeholder-slate-400 leading-relaxed"
+                        rows={3}
+                        placeholder="Add a new progress note, blocker, or update here..."
+                        value={editNotes}
+                        onChange={e => setEditNotes(e.target.value)}
+                      />
+                      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 mt-3">
+                        <p className="text-[9px] text-slate-450 font-medium order-2 sm:order-1 text-center sm:text-left">
+                          Created: {new Date(selectedTask.createdAt || selectedTask.date).toLocaleString("en-IN", { hour: "2-digit", minute: "2-digit", day: "2-digit", month: "short" })}
+                        </p>
+                        <div className="flex gap-2 order-1 sm:order-2">
+                          <button
+                            onClick={saveProgressNotes}
+                            disabled={savingNotes || !editNotes.trim()}
+                            className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 bg-indigo-50 border border-indigo-200 hover:bg-indigo-100 disabled:opacity-40 disabled:cursor-not-allowed text-indigo-700 px-3.5 py-2 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all"
+                          >
+                            {savingNotes ? <Loader2 className="w-3 h-3 animate-spin" /> : <Save className="w-3 h-3" />}
+                            {savingNotes ? "Saving..." : "Add Note"}
+                          </button>
+                          <button
+                            onClick={async () => {
+                              if (editNotes.trim()) {
+                                const success = await saveProgressNotes();
+                                if (!success) return;
+                              }
+                              setSelectedTask(null);
+                              setIsEditingTask(false);
+                            }}
+                            disabled={savingNotes}
+                            className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white px-3.5 py-2 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all"
+                          >
+                            <CheckCircle2 className="w-3 h-3" /> Close Task
+                          </button>
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
-              </>
-            )}
+                </>
+              )}
+            </div>
           </div>
         </div>
       )}

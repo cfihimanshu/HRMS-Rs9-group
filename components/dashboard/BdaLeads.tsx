@@ -216,6 +216,7 @@ export default function BdaLeads({
 
   // Toggle Columns Filter State
   const [showColumnToggleMenu, setShowColumnToggleMenu] = useState(false);
+  const columnToggleDropdownRef = useRef<HTMLDivElement>(null);
   const [visibleColumns, setVisibleColumns] = useState<{ [key: string]: boolean }>({
     leadId: true,
     client: true,
@@ -225,6 +226,23 @@ export default function BdaLeads({
     status: true,
     actions: true,
   });
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (
+        columnToggleDropdownRef.current &&
+        !columnToggleDropdownRef.current.contains(event.target as Node)
+      ) {
+        setShowColumnToggleMenu(false);
+      }
+    }
+    if (showColumnToggleMenu) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [showColumnToggleMenu]);
 
   // Selection State for Bulk Operations
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
@@ -1412,7 +1430,7 @@ export default function BdaLeads({
             )}
 
             {/* Toggle Columns Filter */}
-            <div className="relative">
+            <div className="relative" ref={columnToggleDropdownRef}>
               <button
                 type="button"
                 onClick={() => setShowColumnToggleMenu(!showColumnToggleMenu)}
@@ -1425,14 +1443,15 @@ export default function BdaLeads({
               </button>
 
               {showColumnToggleMenu && (
-                <div className="absolute right-0 top-10 z-50 w-52 bg-white rounded-2xl shadow-xl border border-slate-200 p-3 space-y-2 animate-in fade-in zoom-in-95 font-sans">
+                <div className="absolute left-0 sm:left-auto sm:right-0 top-full mt-2 z-50 w-56 max-w-[calc(100vw-32px)] bg-white rounded-2xl shadow-xl border border-slate-200 p-3 space-y-2 animate-in fade-in zoom-in-95 font-sans">
                   <div className="flex items-center justify-between pb-1.5 border-b border-slate-100">
                     <span className="text-[10px] font-black uppercase text-purple-900 tracking-wider flex items-center gap-1">
                       <Layers className="w-3 h-3 text-purple-600" /> Toggle Columns
                     </span>
                     <button
+                      type="button"
                       onClick={() => setShowColumnToggleMenu(false)}
-                      className="text-slate-400 hover:text-slate-600 text-xs p-0.5"
+                      className="text-slate-400 hover:text-slate-600 text-xs p-0.5 cursor-pointer"
                     >
                       <X className="w-3.5 h-3.5" />
                     </button>

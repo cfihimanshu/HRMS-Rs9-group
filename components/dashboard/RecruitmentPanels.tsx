@@ -3406,7 +3406,7 @@ export function InterviewsQueue({ triggerToast }: { triggerToast: (msg: string) 
                     {showDropdown && (
                       <>
                         <div className="fixed inset-0 z-40" onClick={() => setShowDropdown(false)} />
-                        <div className="absolute right-0 mt-1.5 w-48 bg-white border border-slate-200 rounded-xl shadow-lg z-50 py-1.5 text-xs font-semibold text-slate-750 animate-fadeIn">
+                        <div className="absolute left-0 sm:left-auto sm:right-0 mt-1.5 w-48 max-w-[calc(100vw-2.5rem)] bg-white border border-slate-200 rounded-xl shadow-lg z-50 py-1.5 text-xs font-semibold text-slate-750 animate-fadeIn">
                           {[
                             { label: `All Statuses (${countAll})`, value: "All" },
                             { label: `Selected (${countSelected})`, value: "Selected" },
@@ -3442,27 +3442,27 @@ export function InterviewsQueue({ triggerToast }: { triggerToast: (msg: string) 
 
               {/* Conditional Custom Date Grid (Aligned to the Right with Smaller Width) */}
               {statusFilter === "CustomDate" && (
-                <div className="flex justify-end">
-                  <div className="flex flex-row items-center gap-3 bg-slate-50 border border-slate-150 rounded-xl p-2 px-3 text-xs font-bold text-slate-655 animate-fadeIn">
+                <div className="flex justify-start sm:justify-end">
+                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3 bg-slate-50 border border-slate-150 rounded-xl p-2 px-3 text-xs font-bold text-slate-655 animate-fadeIn w-full sm:w-auto">
                     {/* Start Date filter */}
-                    <div className="flex items-center gap-1.5">
+                    <div className="flex items-center justify-between sm:justify-start gap-1.5">
                       <span className="text-[10px] text-slate-455 uppercase tracking-wider font-mono whitespace-nowrap">From:</span>
                       <input
                         type="date"
                         value={startDateFilter}
                         onChange={(e) => setStartDateFilter(e.target.value)}
-                        className="rounded-lg border border-slate-200 p-1.5 bg-white text-slate-800 focus:ring-[#714B67] focus:border-[#714B67] text-xs font-semibold shadow-sm transition-all w-[135px]"
+                        className="rounded-lg border border-slate-200 p-1.5 bg-white text-slate-800 focus:ring-[#714B67] focus:border-[#714B67] text-xs font-semibold shadow-sm transition-all w-full sm:w-[135px]"
                       />
                     </div>
 
                     {/* End Date filter */}
-                    <div className="flex items-center gap-1.5">
+                    <div className="flex items-center justify-between sm:justify-start gap-1.5">
                       <span className="text-[10px] text-slate-455 uppercase tracking-wider font-mono whitespace-nowrap">To:</span>
                       <input
                         type="date"
                         value={endDateFilter}
                         onChange={(e) => setEndDateFilter(e.target.value)}
-                        className="rounded-lg border border-slate-200 p-1.5 bg-white text-slate-800 focus:ring-[#714B67] focus:border-[#714B67] text-xs font-semibold shadow-sm transition-all w-[135px]"
+                        className="rounded-lg border border-slate-200 p-1.5 bg-white text-slate-800 focus:ring-[#714B67] focus:border-[#714B67] text-xs font-semibold shadow-sm transition-all w-full sm:w-[135px]"
                       />
                     </div>
                   </div>

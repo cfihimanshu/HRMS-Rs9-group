@@ -1067,23 +1067,21 @@ export function DailyCommitments({
       setEodLocationStatus("Awaiting GPS...");
     } catch (err: any) {
       console.error(err);
-      alert("Failed to submit EOD: " + err.message);
-      setSubmittingEOD(false);
       setShowEodCamera(false);
     }
   };
 
   return (
-    <div className="space-y-8 animate-fadeIn text-slate-800">
+    <div className="space-y-5 sm:space-y-8 animate-fadeIn text-slate-800">
       {formMode === "both" && (
         <>
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
-              <h1 className="text-xl font-black text-slate-850">Daily Commitment Audits</h1>
-              <p className="text-xs text-slate-500 mt-1">Mark attendance punch-in registry, declare Start of Day planner, EOD outcomes</p>
+              <h1 className="text-lg sm:text-xl font-black text-slate-850">Daily Commitment Audits</h1>
+              <p className="text-xs text-slate-500 mt-0.5 sm:mt-1">Mark attendance punch-in registry, declare Start of Day planner, EOD outcomes</p>
             </div>
             <button
-              className="bg-[#714B67] hover:bg-[#5F3F56] px-4 py-2.5 rounded-lg text-xs font-bold text-white transition-all flex items-center gap-1.5 shadow"
+              className="bg-[#714B67] hover:bg-[#5F3F56] px-3.5 py-2.5 rounded-lg text-xs font-bold text-white transition-all flex items-center justify-center gap-1.5 shadow w-full sm:w-auto shrink-0"
               onClick={() => setShowCalendarModal(true)}
             >
               <CalendarCheck className="w-4 h-4" /> Punch Attendance Check
@@ -1091,37 +1089,37 @@ export function DailyCommitments({
           </div>
 
           {/* Stats widgets */}
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
-            <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
-              <div className="text-[9px] uppercase font-black text-slate-450 font-mono tracking-widest">Present</div>
-              <div className="text-2xl font-black text-slate-855 font-mono mt-2">{stats?.todayCompliance?.attendance ?? 0}</div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5 sm:gap-4 md:gap-6">
+            <div className="bg-white border border-slate-200 rounded-xl p-3 sm:p-4 shadow-sm">
+              <div className="text-[9px] uppercase font-black text-slate-450 font-mono tracking-widest truncate">Present</div>
+              <div className="text-xl sm:text-2xl font-black text-slate-855 font-mono mt-1 sm:mt-2">{stats?.todayCompliance?.attendance ?? 0}</div>
             </div>
-            <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
-              <div className="text-[9px] uppercase font-black text-slate-455 font-mono tracking-widest">Late Checkins</div>
-              <div className="text-2xl font-black text-slate-855 font-mono mt-2">{stats?.todayCompliance?.lateCheckins ?? 0}</div>
+            <div className="bg-white border border-slate-200 rounded-xl p-3 sm:p-4 shadow-sm">
+              <div className="text-[9px] uppercase font-black text-slate-455 font-mono tracking-widest truncate">Late Checkins</div>
+              <div className="text-xl sm:text-2xl font-black text-slate-855 font-mono mt-1 sm:mt-2">{stats?.todayCompliance?.lateCheckins ?? 0}</div>
             </div>
-            <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
-              <div className="text-[9px] uppercase font-black text-slate-455 font-mono tracking-widest">Leaves Count</div>
-              <div className="text-2xl font-black text-slate-855 font-mono mt-2">{stats?.todayCompliance?.leaves ?? 0}</div>
+            <div className="bg-white border border-slate-200 rounded-xl p-3 sm:p-4 shadow-sm">
+              <div className="text-[9px] uppercase font-black text-slate-455 font-mono tracking-widest truncate">Leaves Count</div>
+              <div className="text-xl sm:text-2xl font-black text-slate-855 font-mono mt-1 sm:mt-2">{stats?.todayCompliance?.leaves ?? 0}</div>
             </div>
-            <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
-              <div className="text-[9px] uppercase font-black text-slate-455 font-mono tracking-widest">SOD Declarations</div>
-              <div className="text-2xl font-black text-emerald-600 font-mono mt-2">{stats?.todayCompliance?.sod ?? 0}</div>
+            <div className="bg-white border border-slate-200 rounded-xl p-3 sm:p-4 shadow-sm">
+              <div className="text-[9px] uppercase font-black text-slate-455 font-mono tracking-widest truncate">SOD Declarations</div>
+              <div className="text-xl sm:text-2xl font-black text-emerald-600 font-mono mt-1 sm:mt-2">{stats?.todayCompliance?.sod ?? 0}</div>
             </div>
-            <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
-              <div className="text-[9px] uppercase font-black text-slate-455 font-mono tracking-widest">EOD Logs Submitted</div>
-              <div className="text-2xl font-black text-[#714B67] font-mono mt-2">{stats?.todayCompliance?.eod ?? 0}</div>
+            <div className="bg-white border border-slate-200 rounded-xl p-3 sm:p-4 shadow-sm col-span-2 sm:col-span-1">
+              <div className="text-[9px] uppercase font-black text-slate-455 font-mono tracking-widest truncate">EOD Logs Submitted</div>
+              <div className="text-xl sm:text-2xl font-black text-[#714B67] font-mono mt-1 sm:mt-2">{stats?.todayCompliance?.eod ?? 0}</div>
             </div>
           </div>
         </>
       )}
 
       {/* Forms */}
-      <div className={`grid grid-cols-1 ${formMode === "both" ? "lg:grid-cols-2" : ""} gap-8`}>
+      <div className={`grid grid-cols-1 ${formMode === "both" ? "lg:grid-cols-2" : ""} gap-5 sm:gap-8`}>
 
         {/* SOD Planner with Strict Verification */}
         {(formMode === "both" || formMode === "sod") && (
-          <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm flex flex-col">
+          <div className="bg-white border border-slate-200 rounded-xl p-4 sm:p-6 shadow-sm flex flex-col">
             <h3 className="text-xs font-black tracking-widest text-[#714B67] uppercase font-mono pb-2 border-b border-slate-100 mb-4 flex items-center justify-between">
               <span>📋 SOD</span>
               {sodAlreadySubmitted && (
@@ -1132,7 +1130,7 @@ export function DailyCommitments({
             </h3>
 
             {sodAlreadySubmitted ? (
-              <div className="flex-1 flex flex-col items-center justify-center p-8 text-center space-y-3 bg-emerald-50/20 border border-dashed border-emerald-200 rounded-xl min-h-[300px]">
+              <div className="flex-1 flex flex-col items-center justify-center p-6 sm:p-8 text-center space-y-3 bg-emerald-50/20 border border-dashed border-emerald-200 rounded-xl min-h-[260px] sm:min-h-[300px]">
                 <div className="bg-emerald-100 p-3 rounded-full text-emerald-600">
                   <CalendarCheck className="w-8 h-8" />
                 </div>
@@ -1144,23 +1142,23 @@ export function DailyCommitments({
             ) : !showCamera ? (
               <div className="space-y-4 font-semibold text-slate-650 flex-1">
                 {/* Profile Bar */}
-                <div className="bg-slate-50 border border-slate-100 rounded-lg p-3 flex justify-between items-center">
+                <div className="bg-slate-50 border border-slate-100 rounded-lg p-2.5 sm:p-3 flex justify-between items-center flex-wrap gap-2">
                   <div className="flex items-center gap-2">
-                    <User className="w-4 h-4 text-indigo-500" />
-                    <span className="text-xs font-black text-slate-800 uppercase tracking-wide">{sessionUser?.name || "Employee"}</span>
+                    <User className="w-4 h-4 text-indigo-500 shrink-0" />
+                    <span className="text-xs font-black text-slate-800 uppercase tracking-wide truncate">{sessionUser?.name || "Employee"}</span>
                   </div>
                   <div className="flex items-center gap-1 bg-white border border-slate-200 px-2 py-1 rounded">
-                    <Hash className="w-3 h-3 text-slate-400" />
+                    <Hash className="w-3 h-3 text-slate-400 shrink-0" />
                     <span className="text-[10px] font-mono text-slate-500 font-bold">{sessionUser?.id ? sessionUser.id.substring(0, 8).toUpperCase() : "USR-101"}</span>
                   </div>
                 </div>
 
                 {/* Legal Recovery Vertical SOD Schedule Planner Table */}
                 {isLegalRecovery && (
-                  <div className="space-y-4 bg-purple-50/50 border border-purple-200 rounded-xl p-4 animate-fade-in md:col-span-2">
-                    <div className="flex items-center justify-between border-b border-purple-200 pb-2">
+                  <div className="space-y-4 bg-purple-50/50 border border-purple-200 rounded-xl p-3 sm:p-4 animate-fade-in md:col-span-2">
+                    <div className="flex items-center justify-between border-b border-purple-200 pb-2 flex-wrap gap-2">
                       <span className="text-xs font-black uppercase tracking-wider text-purple-900 font-mono flex items-center gap-1.5">
-                        <Scale className="w-4 h-4 text-purple-600" /> Legal Recovery Schedule Planner Table
+                        <Scale className="w-4 h-4 text-purple-600 shrink-0" /> Legal Recovery Schedule Planner Table
                       </span>
                       <span className="text-[10px] font-mono text-purple-700 bg-purple-100 px-2 py-0.5 rounded font-bold">
                         Legal Recovery Mode Active
@@ -1168,9 +1166,9 @@ export function DailyCommitments({
                     </div>
 
                     {/* Schedule Form Input Row */}
-                    <div className="bg-white p-3.5 rounded-xl border border-purple-200 shadow-sm space-y-3">
+                    <div className="bg-white p-3 sm:p-3.5 rounded-xl border border-purple-200 shadow-sm space-y-3">
                       {/* Top Row: Date, Time, Work Section, Type */}
-                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2.5 sm:gap-3">
                         <div>
                           <label className="block text-[9px] font-bold uppercase text-slate-500 mb-1">Date *</label>
                           <input
@@ -1726,7 +1724,7 @@ export function DailyCommitments({
                         <button
                           type="button"
                           onClick={handleAddLegalScheduleItem}
-                          className="bg-purple-700 hover:bg-purple-800 text-white text-xs font-extrabold px-4 py-2.5 rounded-lg transition-all flex items-center gap-1.5 shadow-md shadow-purple-700/20"
+                          className="bg-purple-700 hover:bg-purple-800 text-white text-xs font-extrabold px-4 py-2.5 rounded-lg transition-all flex items-center justify-center gap-1.5 shadow-md shadow-purple-700/20 w-full sm:w-auto"
                         >
                           <Plus className="w-4 h-4" /> Save & Schedule More Task
                         </button>
@@ -1736,7 +1734,7 @@ export function DailyCommitments({
                     {/* Multi-Day & Multi-Task Schedule Table View */}
                     {legalScheduleItems.length > 0 ? (
                       <div className="space-y-2">
-                        <div className="flex justify-between items-center px-1">
+                        <div className="flex justify-between items-center px-1 flex-wrap gap-1.5">
                           <span className="text-[11px] font-black uppercase text-purple-900 font-mono flex items-center gap-1">
                             📅 Multi Task-Day Schedule ({legalScheduleItems.length} Entries across {[...new Set(legalScheduleItems.map(i => i.date))].length} Days)
                           </span>
@@ -1762,11 +1760,11 @@ export function DailyCommitments({
                                 <tr key={idx} className="hover:bg-purple-50/40">
                                   <td className="py-2.5 px-3 font-mono font-bold text-slate-400">{idx + 1}</td>
                                   <td className="py-2.5 px-3 font-mono text-purple-900 font-extrabold">
-                                    <span className="bg-purple-50 border border-purple-200 px-2 py-0.5 rounded font-mono text-[11px]">
+                                    <span className="bg-purple-50 border border-purple-200 px-2 py-0.5 rounded font-mono text-[11px] whitespace-nowrap">
                                       📅 {item.date}
                                     </span>
                                   </td>
-                                  <td className="py-2.5 px-3 font-bold text-slate-900">
+                                  <td className="py-2.5 px-3 font-bold text-slate-900 whitespace-nowrap">
                                     {(item.workSection === "Others" || item.workSection === "Other" || item.workSection === "others")
                                       ? (item.customLocation || item.otherType || item.details || item.remarks || item.workSection)
                                       : item.workSection}
@@ -1827,7 +1825,7 @@ export function DailyCommitments({
 
                 {/* Generic Task Title & Mode fields (Hidden for Legal Recovery mode) */}
                 {!isLegalRecovery && (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4 mt-2">
                     {/* Task Title (Master Category Dropdown synced with Tasks) */}
                     <div className="md:col-span-2">
                       <div className="flex justify-between items-center mb-1">
@@ -1872,7 +1870,7 @@ export function DailyCommitments({
                           <label className="block text-[9px] uppercase tracking-wider text-purple-700 font-black">
                             Add New Category / Title (Stored in Master DB) *
                           </label>
-                          <div className="flex gap-1.5">
+                          <div className="flex flex-col sm:flex-row gap-1.5">
                             <input
                               type="text"
                               className="flex-1 bg-white border border-purple-300 rounded p-2 text-xs font-bold text-slate-900 focus:outline-none focus:border-[#714B67]"
@@ -1938,7 +1936,7 @@ export function DailyCommitments({
                           <label className="block text-[9px] uppercase tracking-wider text-purple-700 font-black">
                             Add New Task Mode (Stored in Master DB) *
                           </label>
-                          <div className="flex gap-1.5">
+                          <div className="flex flex-col sm:flex-row gap-1.5">
                             <input
                               type="text"
                               className="flex-1 bg-white border border-purple-300 rounded p-2 text-xs font-bold text-slate-900 focus:outline-none focus:border-[#714B67]"
@@ -1961,7 +1959,7 @@ export function DailyCommitments({
                     {/* Sub-Fields (For Bank or Notice) */}
                     {(sodTaskTitle === "Bank" || sodTaskTitle === "Notice") && (
                       <div className="md:col-span-2 space-y-3 bg-emerald-50/80 border border-emerald-200 rounded-xl p-3 text-slate-800 animate-fade-in">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3">
                           {/* Select Bank */}
                           <div>
                             <label className="block text-[9px] uppercase tracking-wider text-emerald-800 font-black mb-1">
@@ -2014,7 +2012,7 @@ export function DailyCommitments({
 
                         {/* Officer Name & Phone ONLY for Bank */}
                         {sodTaskTitle === "Bank" && (
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 animate-fade-in">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3 animate-fade-in">
                             <div>
                               <label className="block text-[9px] uppercase tracking-wider text-emerald-800 font-black mb-1">
                                 Officer Name *
@@ -2092,7 +2090,7 @@ export function DailyCommitments({
                             <label className="block text-[9px] uppercase tracking-wider text-indigo-700 font-black">
                               Add New Project (Stored in Master DB) *
                             </label>
-                            <div className="flex gap-2">
+                            <div className="flex flex-col sm:flex-row gap-2">
                               <input
                                 type="text"
                                 className="flex-1 bg-white border border-indigo-300 rounded p-2 text-xs font-bold text-slate-900 focus:outline-none focus:border-indigo-600"
@@ -2162,7 +2160,7 @@ export function DailyCommitments({
                   </div>
                 ) : (
                   <>
-                    <div className="relative rounded-2xl overflow-hidden border-4 border-[#714B67] shadow-xl w-64 h-64 bg-slate-900">
+                    <div className="relative rounded-2xl overflow-hidden border-4 border-[#714B67] shadow-xl w-56 h-56 sm:w-64 sm:h-64 bg-slate-900 mx-auto">
                       <video ref={videoRef} autoPlay playsInline muted className="object-cover w-full h-full" />
                       <canvas ref={canvasRef} className="hidden" />
                       {submittingSOD && (
@@ -2190,7 +2188,7 @@ export function DailyCommitments({
 
         {/* EOD Form with Strict Verification */}
         {(formMode === "both" || formMode === "eod") && (
-          <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm flex flex-col">
+          <div className="bg-white border border-slate-200 rounded-xl p-4 sm:p-6 shadow-sm flex flex-col">
             <h3 className="text-xs font-black tracking-widest text-[#714B67] uppercase font-mono pb-2 border-b border-slate-100 mb-4 flex items-center justify-between">
               <span>📝 EOD</span>
               {eodAlreadySubmitted && (
@@ -2201,7 +2199,7 @@ export function DailyCommitments({
             </h3>
 
             {eodAlreadySubmitted ? (
-              <div className="flex-1 flex flex-col items-center justify-center p-8 text-center space-y-3 bg-emerald-50/20 border border-dashed border-emerald-200 rounded-xl min-h-[300px]">
+              <div className="flex-1 flex flex-col items-center justify-center p-6 sm:p-8 text-center space-y-3 bg-emerald-50/20 border border-dashed border-emerald-200 rounded-xl min-h-[260px] sm:min-h-[300px]">
                 <div className="bg-emerald-100 p-3 rounded-full text-emerald-600">
                   <CalendarCheck className="w-8 h-8" />
                 </div>
@@ -2214,13 +2212,13 @@ export function DailyCommitments({
               <div className="space-y-4 font-semibold text-slate-650 flex-1">
 
                 {/* Profile Bar */}
-                <div className="bg-slate-50 border border-slate-100 rounded-lg p-3 flex justify-between items-center mb-2">
+                <div className="bg-slate-50 border border-slate-100 rounded-lg p-2.5 sm:p-3 flex justify-between items-center mb-2 flex-wrap gap-2">
                   <div className="flex items-center gap-2">
-                    <User className="w-4 h-4 text-emerald-500" />
-                    <span className="text-xs font-black text-slate-800 uppercase tracking-wide">{sessionUser?.name || "Employee"}</span>
+                    <User className="w-4 h-4 text-emerald-500 shrink-0" />
+                    <span className="text-xs font-black text-slate-800 uppercase tracking-wide truncate">{sessionUser?.name || "Employee"}</span>
                   </div>
                   <div className="flex items-center gap-1 bg-white border border-slate-200 px-2 py-1 rounded">
-                    <Hash className="w-3 h-3 text-slate-400" />
+                    <Hash className="w-3 h-3 text-slate-400 shrink-0" />
                     <span className="text-[10px] font-mono text-slate-500 font-bold">{sessionUser?.id ? sessionUser.id.substring(0, 8).toUpperCase() : "USR-101"}</span>
                   </div>
                 </div>
@@ -2233,7 +2231,7 @@ export function DailyCommitments({
                   <label className="text-[10px] uppercase font-black text-slate-500 font-mono tracking-wider">2. Pending Work *</label>
                   <input className="w-full bg-white border border-slate-300 rounded p-2 text-xs font-bold text-slate-900 mt-1.5 focus:outline-none focus:border-[#714B67]" value={eodPending} onChange={e => setEodPending(e.target.value)} placeholder="Incomplete targets..." required />
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                   <div>
                     <label className="text-[10px] uppercase font-black text-slate-500 font-mono tracking-wider">3. Issues Faced</label>
                     <input className="w-full bg-white border border-slate-300 rounded p-2 text-xs font-bold text-slate-900 mt-1.5 focus:outline-none focus:border-[#714B67]" value={eodIssues} onChange={e => setEodIssues(e.target.value)} placeholder="Any blocker issues..." />
@@ -2285,7 +2283,7 @@ export function DailyCommitments({
                   </div>
                 ) : (
                   <>
-                    <div className="relative rounded-2xl overflow-hidden border-4 border-emerald-600 shadow-xl w-64 h-64 bg-slate-900">
+                    <div className="relative rounded-2xl overflow-hidden border-4 border-emerald-600 shadow-xl w-56 h-56 sm:w-64 sm:h-64 bg-slate-900 mx-auto">
                       <video ref={eodVideoRef} autoPlay playsInline muted className="object-cover w-full h-full" />
                       <canvas ref={eodCanvasRef} className="hidden" />
                       {submittingEOD && (
@@ -2314,26 +2312,26 @@ export function DailyCommitments({
 
       {/* Calendar Modal */}
       {showCalendarModal && (
-        <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-md flex items-center justify-center p-4 text-slate-800">
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto p-6 relative flex flex-col">
+        <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-md flex items-center justify-center p-2.5 sm:p-4 text-slate-800">
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-2xl max-w-4xl w-full max-h-[92vh] overflow-y-auto p-4 sm:p-6 relative flex flex-col my-auto">
 
             {/* Header */}
-            <div className="flex items-center justify-between border-b border-slate-100 pb-4 mb-4">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3 sm:pb-4 mb-3 sm:mb-4 gap-2">
               <div>
-                <h3 className="text-sm font-black text-slate-800 tracking-wide uppercase font-mono flex items-center gap-2">
+                <h3 className="text-xs sm:text-sm font-black text-slate-800 tracking-wide uppercase font-mono flex items-center gap-2">
                   <span>📅 Employee Attendance Registry Calendar</span>
                 </h3>
               </div>
               <button
                 onClick={() => setShowCalendarModal(false)}
-                className="text-slate-400 hover:text-slate-600 transition-colors"
+                className="text-slate-400 hover:text-slate-600 transition-colors p-1"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             {/* Filter Bar */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 bg-slate-50 border border-slate-150 rounded-xl p-4 mb-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 bg-slate-50 border border-slate-150 rounded-xl p-3 sm:p-4 mb-4">
               <div>
                 <label className="text-[9px] uppercase font-black text-slate-500 font-mono tracking-wider">Filter Company</label>
                 <select
@@ -2378,35 +2376,25 @@ export function DailyCommitments({
               </div>
 
               <div className="flex items-end md:col-span-2">
-                {/* <button 
-                  className="bg-[#714B67] hover:bg-[#5F3F56] w-full py-2 rounded-lg text-xs font-bold text-white transition-all flex items-center justify-center gap-1.5 shadow" 
-                  onClick={async () => {
-                    await handleAttendancePunch();
-                    if (selectedUser) {
-                      fetchUserCalendarData(selectedUser);
-                    }
-                  }}
-                >
-                  <CalendarCheck className="w-4 h-4" /> Punch Today's Attendance Check-in/out
-                </button> */}
+                {/* Punch Attendance Placeholder */}
               </div>
             </div>
 
             {/* Calendar View */}
             <div className="flex-1 flex flex-col">
-              <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center justify-between mb-3 sm:mb-4 gap-2">
                 <button
                   onClick={handlePrevMonth}
-                  className="bg-slate-100 hover:bg-slate-200 text-slate-800 px-3 py-1.5 rounded-lg text-xs font-bold transition-all"
+                  className="bg-slate-100 hover:bg-slate-200 text-slate-800 px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-bold transition-all"
                 >
-                  ← Previous
+                  ← Prev
                 </button>
-                <span className="text-sm font-black text-slate-800 font-mono">
+                <span className="text-xs sm:text-sm font-black text-slate-800 font-mono text-center">
                   {monthsList[calendarMonth]} {calendarYear}
                 </span>
                 <button
                   onClick={handleNextMonth}
-                  className="bg-slate-100 hover:bg-slate-200 text-slate-800 px-3 py-1.5 rounded-lg text-xs font-bold transition-all"
+                  className="bg-slate-100 hover:bg-slate-200 text-slate-800 px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-bold transition-all"
                 >
                   Next →
                 </button>
@@ -2420,11 +2408,11 @@ export function DailyCommitments({
               ) : (
                 <>
                   {/* Weekday headers */}
-                  <div className="grid grid-cols-7 gap-2 mb-2 text-center">
+                  <div className="grid grid-cols-7 gap-1 sm:gap-2 mb-2 text-center">
                     {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day, idx) => (
                       <div
                         key={day}
-                        className={`text-[9px] uppercase font-black font-mono tracking-wider py-1 rounded ${idx === 0 ? "text-rose-500 bg-rose-50" : "text-slate-500 bg-slate-50"
+                        className={`text-[8px] sm:text-[9px] uppercase font-black font-mono tracking-wider py-1 rounded ${idx === 0 ? "text-rose-500 bg-rose-50" : "text-slate-500 bg-slate-50"
                           }`}
                       >
                         {day}
@@ -2433,7 +2421,7 @@ export function DailyCommitments({
                   </div>
 
                   {/* Month grid */}
-                  <div className="grid grid-cols-7 gap-2">
+                  <div className="grid grid-cols-7 gap-1 sm:gap-2">
                     {renderCalendarDays()}
                   </div>
                 </>
@@ -2441,30 +2429,30 @@ export function DailyCommitments({
             </div>
 
             {/* Legend */}
-            <div className="mt-6 border-t border-slate-100 pt-4 flex flex-wrap gap-4 items-center justify-between text-[10px] font-bold text-slate-500">
-              <div className="flex flex-wrap gap-4">
+            <div className="mt-4 sm:mt-6 border-t border-slate-100 pt-3 sm:pt-4 flex flex-wrap gap-2.5 sm:gap-4 items-center justify-between text-[9px] sm:text-[10px] font-bold text-slate-500">
+              <div className="flex flex-wrap gap-2.5 sm:gap-4">
                 <div className="flex items-center gap-1.5">
-                  <span className="w-3 h-3 rounded-full bg-emerald-100 border border-emerald-300 block"></span>
+                  <span className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-emerald-100 border border-emerald-300 block"></span>
                   <span>Present</span>
                 </div>
                 <div className="flex items-center gap-1.5">
-                  <span className="w-3 h-3 rounded-full bg-rose-100 border border-rose-300 block"></span>
+                  <span className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-rose-100 border border-rose-300 block"></span>
                   <span>Absent</span>
                 </div>
                 <div className="flex items-center gap-1.5">
-                  <span className="w-3 h-3 rounded-full bg-amber-100 border border-amber-300 block"></span>
+                  <span className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-amber-100 border border-amber-300 block"></span>
                   <span>Leave</span>
                 </div>
                 <div className="flex items-center gap-1.5">
-                  <span className="w-3 h-3 rounded-full bg-slate-100 border border-slate-300 block"></span>
+                  <span className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-slate-100 border border-slate-300 block"></span>
                   <span>Weekly Off (Sunday)</span>
                 </div>
                 <div className="flex items-center gap-1.5">
-                  <span className="w-3 h-3 rounded-full bg-rose-600 border border-rose-700 block"></span>
+                  <span className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-rose-600 border border-rose-700 block"></span>
                   <span>Absent Fine (Imposed)</span>
                 </div>
                 <div className="flex items-center gap-1.5">
-                  <span className="w-3 h-3 rounded-full bg-indigo-50 border border-indigo-300 block"></span>
+                  <span className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-indigo-50 border border-indigo-300 block"></span>
                   <span>Pending (Today)</span>
                 </div>
               </div>
@@ -2476,7 +2464,6 @@ export function DailyCommitments({
           </div>
         </div>
       )}
-
     </div>
   );
 }
@@ -4631,30 +4618,30 @@ export function PerformanceCompliance({
   }, [users, filteredList, callsHistory, paymentsHistory, candidatesList, selectedCompany, selectedDept, selectedUser, matchDateFilter, reports]);
 
   return (
-    <div className="space-y-6 animate-fadeIn text-slate-800">
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+    <div className="space-y-4 sm:space-y-6 animate-fadeIn text-slate-800">
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 sm:gap-4">
         <div>
-          <h1 className="text-xl font-black text-slate-850">Work Reports</h1>
-          <p className="text-xs text-slate-500 mt-1">
+          <h1 className="text-lg sm:text-xl font-black text-slate-850">Work Reports</h1>
+          <p className="text-xs text-slate-500 mt-0.5 sm:mt-1">
             {isOwner ? "View daily Start of Day (SOD) and End of Day (EOD) logs submitted by all staff members." : "Track your daily SOD planning and EOD submissions."}
           </p>
         </div>
 
-        <div className="flex flex-wrap lg:flex-nowrap gap-2 items-center w-full lg:w-auto">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-2 w-full lg:w-auto">
           {activeSubTab !== "visual-dashboard" && (
             <button
               onClick={exportConsolidatedExcel}
-              className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-black shadow-md shadow-emerald-600/10 flex items-center gap-1.5 transition-all shrink-0"
+              className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-black shadow-md shadow-emerald-600/10 flex items-center justify-center gap-1.5 transition-all shrink-0 w-full sm:w-auto"
             >
-              <Download className="w-4 h-4" /> Export
+              <Download className="w-4 h-4" /> Export Excel
             </button>
           )}
 
           {/* Sub-Tabs */}
-          <div className="flex bg-slate-100 p-1 rounded-lg border border-slate-200 overflow-x-auto max-w-full whitespace-nowrap scrollbar-none w-full lg:w-auto">
+          <div className="flex bg-slate-100 p-1 rounded-lg border border-slate-200 overflow-x-auto max-w-full whitespace-nowrap scrollbar-none w-full sm:w-auto">
             <button
               onClick={() => setActiveSubTab("visual-dashboard")}
-              className={`shrink-0 px-3 sm:px-4 py-2 text-xs font-black rounded-md transition-all ${activeSubTab === "visual-dashboard"
+              className={`shrink-0 px-2.5 sm:px-4 py-1.5 sm:py-2 text-[11px] sm:text-xs font-black rounded-md transition-all ${activeSubTab === "visual-dashboard"
                 ? "bg-[#714B67] text-white shadow-md"
                 : "text-slate-655 hover:text-[#714B67]"
                 }`}
@@ -4663,7 +4650,7 @@ export function PerformanceCompliance({
             </button>
             <button
               onClick={() => setActiveSubTab("sod")}
-              className={`shrink-0 px-3 sm:px-4 py-2 text-xs font-black rounded-md transition-all ${activeSubTab === "sod"
+              className={`shrink-0 px-2.5 sm:px-4 py-1.5 sm:py-2 text-[11px] sm:text-xs font-black rounded-md transition-all ${activeSubTab === "sod"
                 ? "bg-[#714B67] text-white shadow-md"
                 : "text-slate-655 hover:text-[#714B67]"
                 }`}
@@ -4672,7 +4659,7 @@ export function PerformanceCompliance({
             </button>
             <button
               onClick={() => setActiveSubTab("eod")}
-              className={`shrink-0 px-3 sm:px-4 py-2 text-xs font-black rounded-md transition-all ${activeSubTab === "eod"
+              className={`shrink-0 px-2.5 sm:px-4 py-1.5 sm:py-2 text-[11px] sm:text-xs font-black rounded-md transition-all ${activeSubTab === "eod"
                 ? "bg-[#714B67] text-white shadow-md"
                 : "text-slate-655 hover:text-[#714B67]"
                 }`}
@@ -4681,7 +4668,7 @@ export function PerformanceCompliance({
             </button>
             <button
               onClick={() => setActiveSubTab("attendance-calendar")}
-              className={`shrink-0 px-3 sm:px-4 py-2 text-xs font-black rounded-md transition-all ${activeSubTab === "attendance-calendar"
+              className={`shrink-0 px-2.5 sm:px-4 py-1.5 sm:py-2 text-[11px] sm:text-xs font-black rounded-md transition-all ${activeSubTab === "attendance-calendar"
                 ? "bg-[#714B67] text-white shadow-md"
                 : "text-slate-655 hover:text-[#714B67]"
                 }`}
@@ -6356,21 +6343,21 @@ export function PerformanceCompliance({
       ) : (
         <>
           {/* Filters Bar */}
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center bg-white border border-[#E8E4DF] rounded-xl p-3.5 sm:p-4 shadow-sm mb-6 gap-3">
+          <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center bg-white border border-[#E8E4DF] rounded-xl p-3 sm:p-4 shadow-sm mb-6 gap-3">
             <span style={{ fontFamily: "'Playfair Display', serif" }} className="font-serif text-sm font-bold lowercase first-letter:uppercase text-[#1C1C1A]">
               📋 {activeSubTab === "sod" ? "Start of day (SOD) registry" : "End of day (EOD) registry"}
             </span>
 
-            <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto justify-end">
+            <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
               {/* Filter Reports Button */}
-              <div className="relative">
+              <div className="relative flex-1 sm:flex-initial">
                 <button
                   type="button"
                   onClick={() => {
                     setShowFilters(!showFilters);
                     setShowColumnPicker(false);
                   }}
-                  className={`flex items-center gap-2 border px-3.5 py-2 text-xs font-bold transition-all rounded-xl shadow-sm focus:outline-none ${showFilters
+                  className={`w-full sm:w-auto flex items-center justify-center gap-2 border px-3 sm:px-3.5 py-2 text-xs font-bold transition-all rounded-xl shadow-sm focus:outline-none ${showFilters
                     ? "bg-[#C9A84C] border-[#C9A84C] text-[#FCFBF9]"
                     : "bg-[#FCFBF9] hover:bg-[#F5F2EC] border-[#E8E4DF] text-[#1C1C1A]"
                     }`}
@@ -6382,292 +6369,308 @@ export function PerformanceCompliance({
                   )}
                 </button>
 
-                {/* Floating Filter Popover */}
+                {/* Floating Filter Popover / Mobile Modal */}
                 {showFilters && (
-                  <div className="absolute right-0 mt-3 z-50 bg-[#FCFBF9] border border-[#E8E4DF] shadow-[0_25px_60px_-15px_rgba(0,0,0,0.15)] rounded-2xl p-4 sm:p-5 w-[calc(100vw-32px)] sm:w-[320px] space-y-4 text-left normal-case font-sans">
-                    <div className="flex justify-between items-center border-b border-[#E8E4DF] pb-2">
-                      <span className="text-xs font-bold text-[#1C1C1A] tracking-wider uppercase font-mono">Filter Reports</span>
-                      <button
-                        type="button"
-                        onClick={() => setShowFilters(false)}
-                        className="text-[#9C9890] hover:text-[#1C1C1A] transition-colors"
-                      >
-                        <X className="w-4 h-4" />
-                      </button>
-                    </div>
+                  <>
+                    {/* Mobile Backdrop */}
+                    <div
+                      className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-50 sm:hidden animate-fadeIn"
+                      onClick={() => setShowFilters(false)}
+                    />
+                    <div className="fixed inset-x-3.5 top-1/2 -translate-y-1/2 sm:translate-y-0 sm:top-auto sm:inset-x-auto sm:absolute sm:right-0 sm:mt-3 z-50 bg-[#FCFBF9] border border-[#E8E4DF] shadow-[0_25px_60px_-15px_rgba(0,0,0,0.25)] rounded-2xl p-4 sm:p-5 w-auto sm:w-[320px] max-h-[88vh] overflow-y-auto space-y-4 text-left normal-case font-sans animate-fadeIn">
+                      <div className="flex justify-between items-center border-b border-[#E8E4DF] pb-2">
+                        <span className="text-xs font-bold text-[#1C1C1A] tracking-wider uppercase font-mono flex items-center gap-1.5">
+                          <Filter className="w-3.5 h-3.5 text-[#C9A84C]" /> Filter Reports
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => setShowFilters(false)}
+                          className="text-[#9C9890] hover:text-[#1C1C1A] transition-colors p-1"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
 
-                    <div className="space-y-4 text-xs">
-                      {/* Company Dropdown (Owner/Director/HR only) */}
-                      {isOwner && (
-                        <div>
-                          <label className="text-[9px] uppercase font-bold text-[#9C9890] font-mono tracking-widest block mb-1">Company</label>
-                          <select
-                            className="w-full bg-white border border-[#E8E4DF] rounded-xl p-2.5 text-xs font-bold text-[#1C1C1A] focus:outline-none focus:border-[#C9A84C] focus:ring-1 focus:ring-[#C9A84C]"
-                            value={selectedCompany}
-                            onChange={(e) => {
-                              setSelectedCompany(e.target.value);
-                              setSelectedUser("");
-                            }}
-                          >
-                            {sessionUser?.role === "Owner" && (
-                              <option value="">All Companies</option>
-                            )}
-                            {visibleCompanies.map((c: any) => (
-                              <option key={c.id} value={c.id.toString()}>{c.name}</option>
-                            ))}
-                          </select>
-                        </div>
-                      )}
-
-                      {/* Department Dropdown */}
-                      {isOwner && (
-                        <div>
-                          <label className="text-[9px] uppercase font-bold text-[#9C9890] font-mono tracking-widest block mb-1">Department</label>
-                          <select
-                            className="w-full bg-white border border-[#E8E4DF] rounded-xl p-2.5 text-xs font-bold text-[#1C1C1A] focus:outline-none focus:border-[#C9A84C] focus:ring-1 focus:ring-[#C9A84C]"
-                            value={selectedDept}
-                            onChange={(e) => {
-                              setSelectedDept(e.target.value);
-                              setSelectedUser("");
-                            }}
-                          >
-                            <option value="">All Departments</option>
-                            {departmentsList.map((d: any) => (
-                              <option key={d} value={d}>{d}</option>
-                            ))}
-                          </select>
-                        </div>
-                      )}
-
-                      {/* Employee Dropdown */}
-                      {isOwner && (
-                        <div>
-                          <label className="text-[9px] uppercase font-bold text-[#9C9890] font-mono tracking-widest block mb-1">Employee</label>
-                          <select
-                            className="w-full bg-white border border-[#E8E4DF] rounded-xl p-2.5 text-xs font-bold text-[#1C1C1A] focus:outline-none focus:border-[#C9A84C] focus:ring-1 focus:ring-[#C9A84C]"
-                            value={selectedUser}
-                            onChange={(e) => setSelectedUser(e.target.value)}
-                          >
-                            <option value="">All Staff Members</option>
-                            <optgroup label="Active Employees">
-                              {uniqueUsersFromReports.activeList.map((u: any) => (
-                                <option key={u.id} value={u.id}>{u.name}</option>
+                      <div className="space-y-3.5 text-xs">
+                        {/* Company Dropdown (Owner/Director/HR only) */}
+                        {isOwner && (
+                          <div>
+                            <label className="text-[9px] uppercase font-bold text-[#9C9890] font-mono tracking-widest block mb-1">Company</label>
+                            <select
+                              className="w-full bg-white border border-[#E8E4DF] rounded-xl p-2.5 text-xs font-bold text-[#1C1C1A] focus:outline-none focus:border-[#C9A84C] focus:ring-1 focus:ring-[#C9A84C]"
+                              value={selectedCompany}
+                              onChange={(e) => {
+                                setSelectedCompany(e.target.value);
+                                setSelectedUser("");
+                              }}
+                            >
+                              {sessionUser?.role === "Owner" && (
+                                <option value="">All Companies</option>
+                              )}
+                              {visibleCompanies.map((c: any) => (
+                                <option key={c.id} value={c.id.toString()}>{c.name}</option>
                               ))}
-                            </optgroup>
-                            {uniqueUsersFromReports.inactiveList.length > 0 && (
-                              <optgroup label="Inactive / Archived Employees">
-                                {uniqueUsersFromReports.inactiveList.map((u: any) => (
-                                  <option key={u.id} value={u.id}>{u.name} (Archived / Inactive)</option>
+                            </select>
+                          </div>
+                        )}
+
+                        {/* Department Dropdown */}
+                        {isOwner && (
+                          <div>
+                            <label className="text-[9px] uppercase font-bold text-[#9C9890] font-mono tracking-widest block mb-1">Department</label>
+                            <select
+                              className="w-full bg-white border border-[#E8E4DF] rounded-xl p-2.5 text-xs font-bold text-[#1C1C1A] focus:outline-none focus:border-[#C9A84C] focus:ring-1 focus:ring-[#C9A84C]"
+                              value={selectedDept}
+                              onChange={(e) => {
+                                setSelectedDept(e.target.value);
+                                setSelectedUser("");
+                              }}
+                            >
+                              <option value="">All Departments</option>
+                              {departmentsList.map((d: any) => (
+                                <option key={d} value={d}>{d}</option>
+                              ))}
+                            </select>
+                          </div>
+                        )}
+
+                        {/* Employee Dropdown */}
+                        {isOwner && (
+                          <div>
+                            <label className="text-[9px] uppercase font-bold text-[#9C9890] font-mono tracking-widest block mb-1">Employee</label>
+                            <select
+                              className="w-full bg-white border border-[#E8E4DF] rounded-xl p-2.5 text-xs font-bold text-[#1C1C1A] focus:outline-none focus:border-[#C9A84C] focus:ring-1 focus:ring-[#C9A84C]"
+                              value={selectedUser}
+                              onChange={(e) => setSelectedUser(e.target.value)}
+                            >
+                              <option value="">All Staff Members</option>
+                              <optgroup label="Active Employees">
+                                {uniqueUsersFromReports.activeList.map((u: any) => (
+                                  <option key={u.id} value={u.id}>{u.name}</option>
                                 ))}
                               </optgroup>
-                            )}
+                              {uniqueUsersFromReports.inactiveList.length > 0 && (
+                                <optgroup label="Inactive / Archived Employees">
+                                  {uniqueUsersFromReports.inactiveList.map((u: any) => (
+                                    <option key={u.id} value={u.id}>{u.name} (Archived / Inactive)</option>
+                                  ))}
+                                </optgroup>
+                              )}
+                            </select>
+                          </div>
+                        )}
+
+                        {/* Date Preset Filter */}
+                        <div>
+                          <label className="text-[9px] uppercase font-bold text-[#9C9890] font-mono tracking-widest block mb-1">Date Range Preset</label>
+                          <select
+                            className="w-full bg-white border border-[#E8E4DF] rounded-xl p-2.5 text-xs font-bold text-[#1C1C1A] focus:outline-none focus:border-[#C9A84C] focus:ring-1 focus:ring-[#C9A84C]"
+                            value={dateFilterType}
+                            onChange={(e: any) => {
+                              setDateFilterType(e.target.value);
+                              if (e.target.value !== "custom") {
+                                setStartDateFilter("");
+                                setEndDateFilter("");
+                              }
+                            }}
+                          >
+                            <option value="overall">Overall Date Filter</option>
+                            <option value="today">Today</option>
+                            <option value="yesterday">Yesterday</option>
+                            <option value="current-month">Current Month</option>
+                            <option value="last-month">Last Month</option>
+                            <option value="custom">Custom Range</option>
                           </select>
                         </div>
-                      )}
 
-                      {/* Date Preset Filter */}
-                      <div>
-                        <label className="text-[9px] uppercase font-bold text-[#9C9890] font-mono tracking-widest block mb-1">Date Range Preset</label>
-                        <select
-                          className="w-full bg-white border border-[#E8E4DF] rounded-xl p-2.5 text-xs font-bold text-[#1C1C1A] focus:outline-none focus:border-[#C9A84C] focus:ring-1 focus:ring-[#C9A84C]"
-                          value={dateFilterType}
-                          onChange={(e: any) => {
-                            setDateFilterType(e.target.value);
-                            if (e.target.value !== "custom") {
-                              setStartDateFilter("");
-                              setEndDateFilter("");
-                            }
-                          }}
-                        >
-                          <option value="overall">Overall Date Filter</option>
-                          <option value="today">Today</option>
-                          <option value="yesterday">Yesterday</option>
-                          <option value="current-month">Current Month</option>
-                          <option value="last-month">Last Month</option>
-                          <option value="custom">Custom Range</option>
-                        </select>
-                      </div>
+                        {/* Custom Range Inputs */}
+                        {dateFilterType === "custom" && (
+                          <div className="space-y-2 bg-slate-50 p-2.5 rounded-xl border border-slate-200">
+                            <div>
+                              <label className="text-[8px] uppercase font-bold text-[#9C9890] font-mono tracking-widest block mb-1">Start Date</label>
+                              <input
+                                type="date"
+                                className="w-full bg-white border border-[#E8E4DF] rounded-xl p-2 text-xs font-bold text-[#1C1C1A] focus:outline-none focus:border-[#C9A84C] focus:ring-1 focus:ring-[#C9A84C]"
+                                value={startDateFilter}
+                                onChange={(e) => setStartDateFilter(e.target.value)}
+                              />
+                            </div>
+                            <div>
+                              <label className="text-[8px] uppercase font-bold text-[#9C9890] font-mono tracking-widest block mb-1">End Date</label>
+                              <input
+                                type="date"
+                                className="w-full bg-white border border-[#E8E4DF] rounded-xl p-2 text-xs font-bold text-[#1C1C1A] focus:outline-none focus:border-[#C9A84C] focus:ring-1 focus:ring-[#C9A84C]"
+                                value={endDateFilter}
+                                onChange={(e) => setEndDateFilter(e.target.value)}
+                              />
+                            </div>
+                          </div>
+                        )}
 
-                      {/* Custom Range Inputs */}
-                      {dateFilterType === "custom" && (
-                        <div className="space-y-2">
-                          <div>
-                            <label className="text-[8px] uppercase font-bold text-[#9C9890] font-mono tracking-widest block mb-1">Start Date</label>
-                            <input
-                              type="date"
-                              className="w-full bg-white border border-[#E8E4DF] rounded-xl p-2 text-xs font-bold text-[#1C1C1A] focus:outline-none focus:border-[#C9A84C] focus:ring-1 focus:ring-[#C9A84C]"
-                              value={startDateFilter}
-                              onChange={(e) => setStartDateFilter(e.target.value)}
-                            />
-                          </div>
-                          <div>
-                            <label className="text-[8px] uppercase font-bold text-[#9C9890] font-mono tracking-widest block mb-1">End Date</label>
-                            <input
-                              type="date"
-                              className="w-full bg-white border border-[#E8E4DF] rounded-xl p-2 text-xs font-bold text-[#1C1C1A] focus:outline-none focus:border-[#C9A84C] focus:ring-1 focus:ring-[#C9A84C]"
-                              value={endDateFilter}
-                              onChange={(e) => setEndDateFilter(e.target.value)}
-                            />
-                          </div>
+                        {/* User Status Filter */}
+                        <div>
+                          <label className="text-[9px] uppercase font-bold text-[#9C9890] font-mono tracking-widest block mb-1">User Status</label>
+                          <select
+                            className="w-full bg-white border border-[#E8E4DF] rounded-xl p-2.5 text-xs font-bold text-[#1C1C1A] focus:outline-none focus:border-[#C9A84C] focus:ring-1 focus:ring-[#C9A84C]"
+                            value={userStatusFilter}
+                            onChange={(e) => setUserStatusFilter(e.target.value as "active" | "inactive" | "all")}
+                          >
+                            <option value="active">Active Staff Only</option>
+                            <option value="inactive">Inactive / Archived Staff</option>
+                            <option value="all">All Staff (Active + Inactive)</option>
+                          </select>
                         </div>
-                      )}
+                      </div>
 
-                      {/* User Status Filter */}
-                      <div>
-                        <label className="text-[9px] uppercase font-bold text-[#9C9890] font-mono tracking-widest block mb-1">User Status</label>
-                        <select
-                          className="w-full bg-white border border-[#E8E4DF] rounded-xl p-2.5 text-xs font-bold text-[#1C1C1A] focus:outline-none focus:border-[#C9A84C] focus:ring-1 focus:ring-[#C9A84C]"
-                          value={userStatusFilter}
-                          onChange={(e) => setUserStatusFilter(e.target.value as "active" | "inactive" | "all")}
+                      <div className="pt-2 flex gap-2.5">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSearchTerm("");
+                            setSelectedCompany("");
+                            setSelectedDept("");
+                            setSelectedUser("");
+                            setDateFilterType("overall");
+                            setStartDateFilter("");
+                            setEndDateFilter("");
+                            setUserStatusFilter("active");
+                            setShowFilters(false);
+                          }}
+                          className="flex-1 bg-[#FCFBF9] hover:bg-[#F5F2EC] text-[#6B665E] py-2.5 rounded-xl text-[11px] font-bold transition-all border border-[#E8E4DF]"
                         >
-                          <option value="active">Active Staff Only</option>
-                          <option value="inactive">Inactive / Archived Staff</option>
-                          <option value="all">All Staff (Active + Inactive)</option>
-                        </select>
+                          Clear All
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setShowFilters(false)}
+                          className="flex-1 bg-[#C9A84C] hover:bg-[#B5963D] text-[#FCFBF9] py-2.5 rounded-xl text-[11px] font-bold transition-all shadow-md"
+                        >
+                          Apply Filters
+                        </button>
                       </div>
                     </div>
-
-                    <div className="pt-2 flex gap-3">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setSearchTerm("");
-                          setSelectedCompany("");
-                          setSelectedDept("");
-                          setSelectedUser("");
-                          setDateFilterType("overall");
-                          setStartDateFilter("");
-                          setEndDateFilter("");
-                          setUserStatusFilter("active");
-                          setShowFilters(false);
-                        }}
-                        className="flex-1 bg-[#FCFBF9] hover:bg-[#F5F2EC] text-[#6B665E] py-2.5 rounded-xl text-[10px] font-bold transition-all border border-[#E8E4DF]"
-                      >
-                        Clear All
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setShowFilters(false)}
-                        className="flex-1 bg-[#C9A84C] hover:bg-[#B5963D] text-[#FCFBF9] py-2.5 rounded-xl text-[10px] font-bold transition-all shadow-md"
-                      >
-                        Apply Filters
-                      </button>
-                    </div>
-                  </div>
+                  </>
                 )}
               </div>
 
               {/* TOGGLE COLUMN SELECTOR BUTTON - Right side of Filter Reports */}
-              <div className="relative">
+              <div className="relative flex-1 sm:flex-initial">
                 <button
                   type="button"
                   onClick={() => {
                     setShowColumnPicker(!showColumnPicker);
                     setShowFilters(false);
                   }}
-                  className={`flex items-center gap-2 border px-4 py-2 text-xs font-bold transition-all rounded-xl shadow-sm focus:outline-none ${showColumnPicker
+                  className={`w-full sm:w-auto flex items-center justify-center gap-1.5 sm:gap-2 border px-3 sm:px-4 py-2 text-xs font-bold transition-all rounded-xl shadow-sm focus:outline-none ${showColumnPicker
                     ? "bg-[#714B67] border-[#714B67] text-white font-black"
                     : "bg-[#FCFBF9] hover:bg-[#F5F2EC] border-[#E8E4DF] text-[#1C1C1A]"
                     }`}
                   title="Toggle columns for data export"
                 >
-                  <SlidersHorizontal className="w-3.5 h-3.5" />
-                  <span>Columns ({Object.values(selectedExportColumns).filter(Boolean).length}/{availableColumnsList.length})</span>
-                  <ChevronDown className="w-3 h-3 text-[#9C9890]" />
+                  <SlidersHorizontal className="w-3.5 h-3.5 shrink-0" />
+                  <span className="truncate">Columns ({Object.values(selectedExportColumns).filter(Boolean).length}/{availableColumnsList.length})</span>
+                  <ChevronDown className="w-3 h-3 text-[#9C9890] shrink-0" />
                 </button>
 
-                {/* Floating Column Picker Popover */}
+                {/* Floating Column Picker Popover / Mobile Modal */}
                 {showColumnPicker && (
-                  <div className="absolute right-0 mt-3 z-50 bg-[#FCFBF9] border border-[#E8E4DF] shadow-[0_25px_60px_-15px_rgba(0,0,0,0.15)] rounded-2xl p-5 w-[340px] space-y-4 text-left normal-case font-sans animate-fadeIn">
-                    <div className="flex justify-between items-center border-b border-[#E8E4DF] pb-2">
-                      <span className="text-xs font-bold text-[#1C1C1A] tracking-wider uppercase font-mono flex items-center gap-1.5">
-                        <SlidersHorizontal className="w-3.5 h-3.5 text-[#714B67]" /> Select Export Columns
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => setShowColumnPicker(false)}
-                        className="text-[#9C9890] hover:text-[#1C1C1A] transition-colors"
-                      >
-                        <X className="w-4 h-4" />
-                      </button>
-                    </div>
-
-                    <div className="flex items-center justify-between text-[11px] font-bold">
-                      <span className="text-[#6B665E]">
-                        {Object.values(selectedExportColumns).filter(Boolean).length} of {availableColumnsList.length} Selected
-                      </span>
-                      <div className="flex gap-2">
+                  <>
+                    {/* Mobile Backdrop */}
+                    <div
+                      className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-50 sm:hidden animate-fadeIn"
+                      onClick={() => setShowColumnPicker(false)}
+                    />
+                    <div className="fixed inset-x-3.5 top-1/2 -translate-y-1/2 sm:translate-y-0 sm:top-auto sm:inset-x-auto sm:absolute sm:right-0 sm:mt-3 z-50 bg-[#FCFBF9] border border-[#E8E4DF] shadow-[0_25px_60px_-15px_rgba(0,0,0,0.25)] rounded-2xl p-4 sm:p-5 w-auto sm:w-[340px] max-h-[88vh] overflow-y-auto space-y-3.5 text-left normal-case font-sans animate-fadeIn">
+                      <div className="flex justify-between items-center border-b border-[#E8E4DF] pb-2">
+                        <span className="text-xs font-bold text-[#1C1C1A] tracking-wider uppercase font-mono flex items-center gap-1.5">
+                          <SlidersHorizontal className="w-3.5 h-3.5 text-[#714B67]" /> Select Export Columns
+                        </span>
                         <button
                           type="button"
-                          onClick={() => {
-                            const allOn: Record<string, boolean> = {};
-                            availableColumnsList.forEach(c => allOn[c.key] = true);
-                            setSelectedExportColumns(allOn);
-                          }}
-                          className="text-[#714B67] hover:underline font-extrabold"
+                          onClick={() => setShowColumnPicker(false)}
+                          className="text-[#9C9890] hover:text-[#1C1C1A] transition-colors p-1"
                         >
-                          Select All
+                          <X className="w-4 h-4" />
                         </button>
-                        <span className="text-slate-300">|</span>
+                      </div>
+
+                      <div className="flex items-center justify-between text-[11px] font-bold">
+                        <span className="text-[#6B665E]">
+                          {Object.values(selectedExportColumns).filter(Boolean).length} of {availableColumnsList.length} Selected
+                        </span>
+                        <div className="flex gap-2">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const allOn: Record<string, boolean> = {};
+                              availableColumnsList.forEach(c => allOn[c.key] = true);
+                              setSelectedExportColumns(allOn);
+                            }}
+                            className="text-[#714B67] hover:underline font-extrabold"
+                          >
+                            Select All
+                          </button>
+                          <span className="text-slate-300">|</span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const allOff: Record<string, boolean> = {};
+                              availableColumnsList.forEach(c => allOff[c.key] = false);
+                              setSelectedExportColumns(allOff);
+                            }}
+                            className="text-rose-600 hover:underline font-extrabold"
+                          >
+                            Clear
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Column Toggle Checkboxes List */}
+                      <div className="max-h-60 sm:max-h-64 overflow-y-auto space-y-1.5 pr-1 border-t border-b border-[#E8E4DF] py-2.5">
+                        {availableColumnsList.map((col) => {
+                          const isChecked = !!selectedExportColumns[col.key];
+                          return (
+                            <label
+                              key={col.key}
+                              className={`flex items-center justify-between p-2 rounded-xl border text-xs cursor-pointer transition-all ${isChecked
+                                  ? "bg-purple-50/70 border-purple-200 text-purple-950 font-bold"
+                                  : "bg-white border-slate-200 text-slate-500 hover:bg-slate-50 font-medium"
+                                }`}
+                            >
+                              <span className="flex items-center gap-2">
+                                <input
+                                  type="checkbox"
+                                  checked={isChecked}
+                                  onChange={(e) => {
+                                    setSelectedExportColumns(prev => ({
+                                      ...prev,
+                                      [col.key]: e.target.checked
+                                    }));
+                                  }}
+                                  className="rounded text-[#714B67] focus:ring-[#714B67]"
+                                />
+                                {col.label}
+                              </span>
+                              {isChecked && <span className="text-[10px] text-purple-700 font-mono font-black">Active</span>}
+                            </label>
+                          );
+                        })}
+                      </div>
+
+                      <div className="pt-1">
                         <button
                           type="button"
                           onClick={() => {
-                            const allOff: Record<string, boolean> = {};
-                            availableColumnsList.forEach(c => allOff[c.key] = false);
-                            setSelectedExportColumns(allOff);
+                            exportEodRegistry();
+                            setShowColumnPicker(false);
                           }}
-                          className="text-rose-600 hover:underline font-extrabold"
+                          className="w-full bg-[#714B67] hover:bg-[#5F3F56] text-white py-2.5 rounded-xl text-xs font-extrabold transition-all shadow-md flex items-center justify-center gap-2"
                         >
-                          Clear
+                          <Download className="w-4 h-4" /> Export Report with Selected Columns
                         </button>
                       </div>
                     </div>
-
-                    {/* Column Toggle Checkboxes List */}
-                    <div className="max-h-64 overflow-y-auto space-y-1.5 pr-1 border-t border-b border-[#E8E4DF] py-3">
-                      {availableColumnsList.map((col) => {
-                        const isChecked = !!selectedExportColumns[col.key];
-                        return (
-                          <label
-                            key={col.key}
-                            className={`flex items-center justify-between p-2 rounded-xl border text-xs cursor-pointer transition-all ${isChecked
-                                ? "bg-purple-50/70 border-purple-200 text-purple-950 font-bold"
-                                : "bg-white border-slate-200 text-slate-500 hover:bg-slate-50 font-medium"
-                              }`}
-                          >
-                            <span className="flex items-center gap-2">
-                              <input
-                                type="checkbox"
-                                checked={isChecked}
-                                onChange={(e) => {
-                                  setSelectedExportColumns(prev => ({
-                                    ...prev,
-                                    [col.key]: e.target.checked
-                                  }));
-                                }}
-                                className="rounded text-[#714B67] focus:ring-[#714B67]"
-                              />
-                              {col.label}
-                            </span>
-                            {isChecked && <span className="text-[10px] text-purple-700 font-mono font-black">Active</span>}
-                          </label>
-                        );
-                      })}
-                    </div>
-
-                    <div className="pt-1 flex gap-2">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          exportEodRegistry();
-                          setShowColumnPicker(false);
-                        }}
-                        className="w-full bg-[#714B67] hover:bg-[#5F3F56] text-white py-2.5 rounded-xl text-xs font-extrabold transition-all shadow-md flex items-center justify-center gap-2"
-                      >
-                        <Download className="w-4 h-4" /> Export Report with Selected Columns
-                      </button>
-                    </div>
-                  </div>
+                  </>
                 )}
               </div>
             </div>
