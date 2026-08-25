@@ -65,6 +65,7 @@ import AdministratorAccess from "@/components/dashboard/AdministratorAccess";
 import LegalRecovery from "@/components/dashboard/LegalRecoveryModule";
 import DisciplinaryActions from "@/components/dashboard/DisciplinaryActions"; // disciplinary warnings view
 import KanbanBoard from "@/components/dashboard/KanbanBoard";
+import BankWorkReportDashboard from "@/components/dashboard/BankWorkReportDashboard";
 import { AssetRequestLogs } from "@/components/dashboard/AssetRequestPanels";
 import LiveTrackingMap from "@/components/dashboard/LiveTrackingMap";
 import AssignedTaskPopup from "@/components/dashboard/AssignedTaskPopup";
@@ -1511,6 +1512,8 @@ export default function UnifiedEnterpriseDashboard() {
               initialUserFilter={kanbanUserFilter}
             />
           )}
+
+          {activeTab === "bank-work-report" && <BankWorkReportDashboard />}
 
           {activeTab === "performance" && (
             <PerformanceCompliance

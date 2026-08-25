@@ -26,7 +26,13 @@ import {
   Filter,
   Sparkles,
   Award,
-  MapPin
+  MapPin,
+  Bell,
+  FolderOpen,
+  Headphones,
+  WalletCards,
+  UserCheck,
+  ChevronRight
 } from "lucide-react";
 import StatCard from "./StatCard";
 
@@ -158,6 +164,28 @@ export function ESSDashboard({ user, triggerToast, setActiveTab, toggleModal, st
 
   const pendingCountDisplay = pendingTasks.length;
 
+  const dateKey = (value: any) => {
+    if (!value) return "";
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return String(value).slice(0, 10);
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+  };
+  const todayKey = dateKey(new Date());
+
+  const todayTasks = React.useMemo(() => myAllTasks.filter((task: any) => dateKey(task.scheduledAt || task.date || task.createdAt) === todayKey), [myAllTasks, todayKey]);
+
+  const upcomingCallbacks = React.useMemo(() => pendingTasks.filter((task: any) => {
+    const target = task.deadlineAt || task.scheduledAt;
+    return target && dateKey(target) >= todayKey;
+  }).sort((a: any, b: any) => new Date(a.deadlineAt || a.scheduledAt).getTime() - new Date(b.deadlineAt || b.scheduledAt).getTime()).slice(0, 5), [pendingTasks, todayKey]);
+
+  const profileFields = [user?.name, user?.email, user?.phone || user?.phoneNumber, user?.employeeId || user?.id, user?.department, user?.designation || user?.role];
+  const profileCompletion = Math.round((profileFields.filter(Boolean).length / profileFields.length) * 100);
+  const formatScheduleTime = (value: any) => {
+    const date = new Date(value);
+    return Number.isNaN(date.getTime()) ? "All day" : date.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: true });
+  };
+
   return (
     <div className="space-y-7 animate-fade-in text-[#1C1C1A]">
       {/* Top Action Header Bar */}
@@ -271,6 +299,34 @@ export function ESSDashboard({ user, triggerToast, setActiveTab, toggleModal, st
             </span>
           </div>
         </div>
+      </div>
+
+      {/* Daily Employee Workspace */}
+      <div className="grid grid-cols-1 xl:grid-cols-12 gap-5">
+        <section className="xl:col-span-5 bg-white border border-[#E8E4DF] rounded-2xl p-4 shadow-[0_2px_12px_rgba(0,0,0,0.03)]">
+          <div className="flex items-center justify-between border-b border-[#E8E4DF] pb-3 mb-3"><div><div className="flex items-center gap-2"><Calendar className="w-4 h-4 text-indigo-600" /><h2 className="text-sm font-bold text-slate-900">Today&apos;s Schedule</h2></div><p className="text-[10px] text-slate-500 mt-1">Tasks, meetings aur planned work</p></div><button type="button" onClick={() => setActiveTab?.("tasks", "", user?.name || user?.email)} className="text-[10px] font-black text-indigo-600 flex items-center">Open Kanban <ChevronRight className="w-3.5 h-3.5" /></button></div>
+          <div className="space-y-2 max-h-52 overflow-y-auto custom-scrollbar">{todayTasks.slice(0, 6).map((task: any) => <button type="button" key={task.id} onClick={() => setActiveTab?.("tasks", task.id, user?.name || user?.email)} className="w-full text-left flex items-center gap-3 border rounded-xl p-3 hover:border-indigo-300 hover:bg-indigo-50/40 transition-all"><div className="w-14 shrink-0 text-[10px] font-black text-indigo-700">{formatScheduleTime(task.scheduledAt || task.date)}</div><div className="min-w-0 flex-1"><p className="text-xs font-bold text-slate-800 truncate">{task.taskTitle || "Scheduled task"}</p><p className="text-[10px] text-slate-500 mt-0.5 truncate">{task.taskType || "General"}</p></div><span className={`text-[9px] font-black rounded-full px-2 py-1 ${task.status === "Completed" ? "bg-emerald-50 text-emerald-700" : task.status === "In Progress" ? "bg-blue-50 text-blue-700" : "bg-amber-50 text-amber-700"}`}>{task.status || "Pending"}</span></button>)}{!loadingTasks && todayTasks.length === 0 && <div className="py-10 text-center border border-dashed rounded-xl text-xs text-slate-400">Aaj ke liye koi scheduled task nahi hai.</div>}{loadingTasks && <div className="py-10 text-center text-xs text-slate-400">Schedule loading...</div>}</div>
+        </section>
+
+        <section className="xl:col-span-4 bg-white border border-[#E8E4DF] rounded-2xl p-4 shadow-[0_2px_12px_rgba(0,0,0,0.03)]">
+          <div className="flex items-center justify-between border-b border-[#E8E4DF] pb-3 mb-3"><div className="flex items-center gap-2"><Clock className="w-4 h-4 text-rose-600" /><div><h2 className="text-sm font-bold text-slate-900">Callback & Deadline Watch</h2><p className="text-[10px] text-slate-500">Upcoming follow-ups</p></div></div>{overdueCount > 0 && <span className="bg-rose-100 text-rose-700 rounded-full px-2 py-1 text-[9px] font-black">{overdueCount} overdue</span>}</div>
+          <div className="space-y-2 max-h-52 overflow-y-auto custom-scrollbar">{upcomingCallbacks.map((task: any) => <button type="button" key={task.id} onClick={() => setActiveTab?.("tasks", task.id, user?.name || user?.email)} className="w-full text-left border rounded-xl p-3 hover:bg-rose-50/40"><div className="flex justify-between gap-2"><p className="text-xs font-bold text-slate-800 truncate">{task.taskTitle}</p><span className="text-[9px] font-black text-rose-600 whitespace-nowrap">{new Date(task.deadlineAt || task.scheduledAt).toLocaleDateString("en-IN", { day: "2-digit", month: "short" })}</span></div><p className="text-[10px] text-slate-500 mt-1 truncate">{task.description || "Follow-up pending"}</p></button>)}{!loadingTasks && upcomingCallbacks.length === 0 && <div className="py-10 text-center border border-dashed rounded-xl text-xs text-slate-400">Koi upcoming callback nahi hai.</div>}{loadingTasks && <div className="py-10 text-center text-xs text-slate-400">Callbacks loading...</div>}</div>
+        </section>
+
+        <section className="xl:col-span-3 bg-white border border-[#E8E4DF] rounded-2xl p-4 shadow-[0_2px_12px_rgba(0,0,0,0.03)]">
+          <div className="flex items-center gap-2 border-b border-[#E8E4DF] pb-3 mb-3"><UserCheck className="w-4 h-4 text-emerald-600" /><div className="flex-1"><div className="flex justify-between"><h2 className="text-sm font-bold text-slate-900">My Workspace</h2><span className="text-[10px] font-black text-emerald-700">{profileCompletion}% profile</span></div><div className="h-1 bg-slate-100 rounded-full mt-2"><div className="h-full bg-emerald-500 rounded-full" style={{ width: `${profileCompletion}%` }} /></div></div></div>
+          <div className="grid grid-cols-2 gap-2">
+            <button type="button" onClick={() => setActiveTab?.("ess-payroll")} className="border rounded-xl p-3 hover:border-emerald-300 hover:bg-emerald-50 text-left"><WalletCards className="w-4 h-4 text-emerald-600 mb-2" /><p className="text-[10px] font-black text-slate-700">Latest Payslip</p></button>
+            <button type="button" onClick={() => setActiveTab?.("document-movement")} className="border rounded-xl p-3 hover:border-purple-300 hover:bg-purple-50 text-left"><FolderOpen className="w-4 h-4 text-purple-600 mb-2" /><p className="text-[10px] font-black text-slate-700">Documents</p></button>
+            <button type="button" onClick={() => triggerToast("HR Helpdesk request module connect kiya ja sakta hai.")} className="border rounded-xl p-3 hover:border-blue-300 hover:bg-blue-50 text-left"><Headphones className="w-4 h-4 text-blue-600 mb-2" /><p className="text-[10px] font-black text-slate-700">HR Helpdesk</p></button>
+            <button type="button" onClick={() => setActiveTab?.("employees")} className="border rounded-xl p-3 hover:border-amber-300 hover:bg-amber-50 text-left"><UserCheck className="w-4 h-4 text-amber-600 mb-2" /><p className="text-[10px] font-black text-slate-700">My Profile</p></button>
+          </div>
+        </section>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+        <section className="bg-gradient-to-r from-indigo-50 to-white border border-indigo-100 rounded-2xl p-4"><div className="flex items-center gap-2 mb-3"><Bell className="w-4 h-4 text-indigo-600" /><h2 className="text-sm font-bold text-slate-900">Alerts & Announcements</h2></div><div className="space-y-2"><div className="bg-white/80 border border-indigo-100 rounded-xl p-3 flex items-center justify-between"><div><p className="text-xs font-bold text-slate-800">Daily declaration status</p><p className="text-[10px] text-slate-500 mt-0.5">{stats?.currentUserCompliance?.hasSod ? (stats?.currentUserCompliance?.hasEod ? "Aaj ka SOD aur EOD complete hai." : "SOD complete hai, EOD submit karna baaki hai.") : "Kaam shuru karne se pehle SOD declare karein."}</p></div><span className={`text-[9px] px-2 py-1 rounded-full font-black ${stats?.currentUserCompliance?.hasEod ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"}`}>{stats?.currentUserCompliance?.hasEod ? "Done" : "Action"}</span></div>{overdueCount > 0 && <div className="bg-white/80 border border-rose-100 rounded-xl p-3"><p className="text-xs font-bold text-rose-700">{overdueCount} task deadline overdue</p><p className="text-[10px] text-slate-500 mt-0.5">Kanban open karke overdue work update karein.</p></div>}</div></section>
+        <section className="bg-white border border-[#E8E4DF] rounded-2xl p-4"><div className="flex items-center gap-2 mb-3"><CalendarCheck className="w-4 h-4 text-[#714B67]" /><h2 className="text-sm font-bold text-slate-900">Today&apos;s Attendance Timeline</h2></div><div className="grid grid-cols-3 gap-2"><div className="rounded-xl bg-indigo-50 border border-indigo-100 p-3"><p className="text-[9px] uppercase font-black text-indigo-600">Start of Day</p><p className="text-xs font-bold text-slate-800 mt-2">{stats?.currentUserCompliance?.hasSod ? "Submitted" : "Pending"}</p></div><div className="rounded-xl bg-slate-50 border p-3"><p className="text-[9px] uppercase font-black text-slate-500">Work Status</p><p className="text-xs font-bold text-slate-800 mt-2">{stats?.currentUserCompliance?.hasSod ? "Active Day" : "Not Started"}</p></div><div className="rounded-xl bg-emerald-50 border border-emerald-100 p-3"><p className="text-[9px] uppercase font-black text-emerald-600">End of Day</p><p className="text-xs font-bold text-slate-800 mt-2">{stats?.currentUserCompliance?.hasEod ? "Submitted" : "Pending"}</p></div></div></section>
       </div>
 
       {/* Performance Matrix, Quick Actions & Requests Tracker 3-Section Row */}
