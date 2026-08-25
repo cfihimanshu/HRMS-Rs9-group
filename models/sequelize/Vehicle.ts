@@ -63,6 +63,8 @@ Vehicle.init({
   indexes: [
     { fields: ["registrationNumber"], unique: true },
     { fields: ["companyId"] }, { fields: ["status"] }, { fields: ["currentAssigneeId"] },
+    { name: "idx_vehicles_company_status", fields: ["companyId", "status"] },
+    { name: "idx_vehicles_created_at", fields: ["createdAt"] },
   ],
 });
 

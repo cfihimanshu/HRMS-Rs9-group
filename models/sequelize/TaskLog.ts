@@ -213,7 +213,12 @@ TaskLog.init(
     indexes: [
       { fields: ["employee"] },
       { fields: ["date"] },
-      { fields: ["forwardedTo"] }
+      { fields: ["forwardedTo"] },
+      { name: "idx_tasklogs_date_status", fields: ["date", "status"] },
+      { name: "idx_tasklogs_employee_date_status", fields: ["employee", "date", "status"] },
+      { name: "idx_tasklogs_scheduled_status", fields: ["scheduledAt", "status"] },
+      { name: "idx_tasklogs_deadline_status", fields: ["deadlineAt", "status"] },
+      { name: "idx_tasklogs_created_at", fields: ["createdAt"] }
     ]
   }
 );

@@ -21,7 +21,8 @@ import {
 import DashboardSidebar from "@/components/dashboard/Sidebar";
 import Topbar from "@/components/dashboard/Topbar";
 import HiringRequisitionModal from "@/components/dashboard/HiringRequisitionModal";
-import { OwnerDashboard, HrDashboard, DepartmentDashboard } from "@/components/dashboard/OverviewPanels";
+import { HrDashboard, DepartmentDashboard } from "@/components/dashboard/OverviewPanels";
+import OwnerCommandCentre from "@/components/dashboard/OwnerCommandCentre";
 import {
   HiringApproval,
   JobPostings,
@@ -1250,7 +1251,7 @@ export default function UnifiedEnterpriseDashboard() {
         <div className="flex-1 overflow-y-auto px-4 py-4 md:px-8 md:py-8 custom-scrollbar">
 
           {activeTab === "dashboard" && (
-            <OwnerDashboard
+            <OwnerCommandCentre
               sessionUser={session?.user}
               stats={stats}
               riskAlertList={riskAlertList}

@@ -63,6 +63,8 @@ DocumentRegister.init(
       { fields: ["receivedAt"] },
       { fields: ["expiryDate"] },
       { fields: ["pendingHolderId"] },
+      { name: "idx_document_register_status_updated", fields: ["status", "updatedAt"] },
+      { name: "idx_document_register_created_at", fields: ["createdAt"] },
     ],
   }
 );

@@ -6870,6 +6870,14 @@ export function PerformanceCompliance({
                                                 {task.description}
                                               </p>
                                             )}
+                                            {cleanExportNote(task.progressNotes || task.followUpHistory || task.taskLog?.progressNotes) && (
+                                              <div className="text-[10px] text-indigo-800 bg-indigo-50/70 p-2 rounded border border-indigo-100">
+                                                <span className="font-black uppercase tracking-wider text-[9px] block mb-0.5">Progress Notes</span>
+                                                <span className="whitespace-pre-wrap break-words">
+                                                  {cleanExportNote(task.progressNotes || task.followUpHistory || task.taskLog?.progressNotes)}
+                                                </span>
+                                              </div>
+                                            )}
                                             {(() => {
                                               let proofUrls: string[] = [];
                                               if (task.proofAttachment) {

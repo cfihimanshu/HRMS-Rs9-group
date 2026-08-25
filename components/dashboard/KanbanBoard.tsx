@@ -193,6 +193,7 @@ export default function KanbanBoard({
   };
 
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [overallTaskTotal, setOverallTaskTotal] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
 
@@ -528,18 +529,27 @@ export default function KanbanBoard({
       }
       setLoading(false); // Hide loading spinner early!
 
-      // Tier 2: Load Recent 3 Days (Yesterday & Day Before Yesterday) fast
-      const resRecent = await fetch("/api/tasks?range=recent");
-      const dataRecent = await resRecent.json();
-      if (dataRecent.success && Array.isArray(dataRecent.data)) {
-        setTasks(dataRecent.data);
+      // Keep the board lightweight: cards show the recent 3-day working set.
+      // Fetch only the exact all-time aggregate instead of downloading thousands
+      // of full task records into the browser.
+      const [recentResult, overallResult] = await Promise.allSettled([
+        fetch("/api/tasks?range=recent").then(res => res.json()),
+        fetch("/api/dashboard/owner-work?scope=overall").then(res => res.json()),
+      ]);
+
+      if (recentResult.status === "fulfilled") {
+        const dataRecent = recentResult.value;
+        if (dataRecent.success && Array.isArray(dataRecent.data)) {
+          setTasks(dataRecent.data);
+        }
       }
 
-      // Tier 3: Load all tasks in background
-      const resAll = await fetch("/api/tasks?range=all&limit=all");
-      const dataAll = await resAll.json();
-      if (dataAll.success && Array.isArray(dataAll.data)) {
-        setTasks(dataAll.data);
+      if (overallResult.status === "fulfilled") {
+        const dataOverall = overallResult.value;
+        const exactTotal = Number(dataOverall?.data?.summary?.total);
+        if (dataOverall?.success && Number.isFinite(exactTotal)) {
+          setOverallTaskTotal(exactTotal);
+        }
       }
     } catch (err) {
       console.error(err);
@@ -1328,7 +1338,7 @@ export default function KanbanBoard({
 
   const [filterUser, setFilterUser] = useState<string>(initialUserFilter || "All");
   const [filterDate, setFilterDate] = useState(initialDateFilter || "");
-  const [datePreset, setDatePreset] = useState<string>(initialDateFilter ? "custom" : "all");
+  const [datePreset, setDatePreset] = useState<string>(initialDateFilter ? "custom" : "recent");
   const [searchQuery, setSearchQuery] = useState(initialSearchFilter || "");
 
   useEffect(() => {
@@ -1374,7 +1384,7 @@ export default function KanbanBoard({
       setStartDate(firstDay);
       setEndDate(lastDay);
       setFilterDate("");
-    } else if (preset === "all") {
+    } else if (preset === "recent") {
       setStartDate("");
       setEndDate("");
       setFilterDate("");
@@ -1420,10 +1430,10 @@ export default function KanbanBoard({
         } else if (filterDate) {
           if (localDateStr !== filterDate) matchDate = false;
         }
-      } else if (filterDate || startDate || endDate || datePreset !== "all") {
+      } else if (filterDate || startDate || endDate || datePreset !== "recent") {
         matchDate = false;
       }
-    } else if (filterDate || startDate || endDate || datePreset !== "all") {
+    } else if (filterDate || startDate || endDate || datePreset !== "recent") {
       matchDate = false;
     }
 
@@ -1963,7 +1973,7 @@ export default function KanbanBoard({
               onChange={e => handleDatePresetChange(e.target.value)}
               title="Filter tasks by date range"
             >
-              <option value="all">All Time</option>
+              <option value="recent">Recent 3 Days</option>
               <option value="month">Current Month</option>
               <option value="last_month">Last Month</option>
               <option value="custom">Custom Range</option>
@@ -1990,10 +2000,10 @@ export default function KanbanBoard({
               </div>
             )}
 
-            {datePreset !== "all" && (
+            {datePreset !== "recent" && (
               <button
                 type="button"
-                onClick={() => handleDatePresetChange("all")}
+                onClick={() => handleDatePresetChange("recent")}
                 className="text-[10px] text-slate-400 hover:text-rose-600 font-bold uppercase tracking-wider px-1 cursor-pointer"
                 title="Reset Date Filter"
               >
@@ -2031,7 +2041,8 @@ export default function KanbanBoard({
             Export Excel
           </button>
           <div className="bg-slate-100 rounded-lg px-3 py-1.5 text-[10px] font-black text-slate-600 font-mono shadow-sm">
-            {filteredTasks.length} tasks total
+            {filteredTasks.length} recent loaded
+            {overallTaskTotal !== null && ` · ${overallTaskTotal} overall`}
           </div>
         </div>
       </div>
