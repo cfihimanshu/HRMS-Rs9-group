@@ -53,6 +53,7 @@ export const MASTER_NAV_ITEMS: NavItem[] = [
   { id: "attendance", label: "Attendance Punch & SOD", category: "Daily Operations" },
   { id: "scheduled-work", label: "Schedule Work Report", category: "Daily Operations" },
   { id: "tasks", label: "My Tasks (Kanban)", category: "Daily Operations" },
+  { id: "bank-work-report", label: "Bank Work Dashboard", category: "Daily Operations" },
   { id: "performance", label: "Work Report", category: "Daily Operations" },
   { id: "live-tracking", label: "Live GPS Tracking", category: "Daily Operations" },
   { id: "field-visit", label: "Field Visit Logs", category: "Daily Operations" },
