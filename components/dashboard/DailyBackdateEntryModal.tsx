@@ -7,9 +7,9 @@ type Staff = { id: string; name: string; role: string };
 type Bank = { id: string | number; bankName: string; bankCode?: string };
 type Branch = { id: string | number; bankId: string | number; branchName: string; branchCode?: string; aoName?: string; rbo?: string };
 type Nbfc = { id: string | number; nbfcName: string; nbfcCode?: string };
-type WorkItem = { title: string; relatedCategory: string; type: string; details: string; status: "Pending" | "In Progress" | "Completed"; progressNote: string; proofAttachment: string; bankId: string; bankName: string; branchName: string; aoName: string; rboName: string; nbfcName: string; uploading?: boolean };
+type WorkItem = { title: string; relatedCategory: string; type: string; details: string; status: "" | "Pending" | "In Progress" | "Completed"; progressNote: string; proofAttachment: string; bankId: string; bankName: string; branchName: string; aoName: string; rboName: string; nbfcName: string; callbackDate: string; forwardedTo: string; uploading?: boolean };
 
-const emptyTask = (): WorkItem => ({ title: "", relatedCategory: "", type: "General", details: "", status: "Completed", progressNote: "", proofAttachment: "", bankId: "", bankName: "", branchName: "", aoName: "", rboName: "", nbfcName: "" });
+const emptyTask = (): WorkItem => ({ title: "", relatedCategory: "General", type: "General", details: "", status: "", progressNote: "", proofAttachment: "", bankId: "", bankName: "", branchName: "", aoName: "", rboName: "", nbfcName: "", callbackDate: "", forwardedTo: "" });
 const to24HourTime = (time: string, period: "AM" | "PM") => {
   if (!/^\d{1,2}:\d{2}$/.test(time)) return "";
   const [hourText, minute = "00"] = time.split(":");
@@ -40,23 +40,70 @@ export default function DailyBackdateEntryModal({ open, onClose, onSaved, curren
     Promise.all([
       fetch("/api/banks").then(r => r.json()),
       fetch("/api/legal-recovery/branches").then(r => r.json()),
-      fetch("/api/legal-recovery/nbfc").then(r => r.json())
-    ]).then(([bankData, branchData, nbfcData]) => {
+      fetch("/api/legal-recovery/nbfc").then(r => r.json()),
+      fetch("/api/tasks/company-users").then(r => r.json())
+    ]).then(([bankData, branchData, nbfcData, staffData]) => {
       if (bankData.success) setBanks(bankData.data || []);
       if (branchData.success) setBranches(branchData.data || []);
       if (nbfcData.success) setNbfcs((nbfcData.data || []).filter((item: Nbfc & { isActive?: boolean }) => item.isActive !== false));
+      if (staffData.success) setStaff(staffData.data || []);
     }).catch(() => setError("Bank/branch master load nahi hua."));
     if (currentUser?.role !== "Owner") {
       setEmployeeId(String(currentUser?.id || ""));
-      return;
     }
-    fetch("/api/tasks/company-users").then(r => r.json()).then(data => {
-      if (data.success) setStaff(data.data || []);
-    }).catch(() => setError("Staff list load nahi hui."));
   }, [open, currentUser]);
 
   if (!open) return null;
   const updateTask = (index: number, patch: Partial<WorkItem>) => setTasks(rows => rows.map((row, i) => i === index ? { ...row, ...patch } : row));
+
+  const addBank = async (index: number) => {
+    const bankName = window.prompt("New bank name enter karein:")?.trim();
+    if (!bankName) return;
+    try {
+      const res = await fetch("/api/banks", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ bankName }) });
+      const data = await res.json();
+      if (!data.success) throw new Error(data.error || "Bank add nahi hua");
+      const bank = data.data as Bank;
+      setBanks(rows => [...rows, bank].sort((a, b) => a.bankName.localeCompare(b.bankName)));
+      updateTask(index, { bankId: String(bank.id), bankName: bank.bankName, branchName: "", aoName: "", rboName: "" });
+    } catch (e: any) { setError(e.message || "Bank add nahi hua"); }
+  };
+
+  const addBranch = async (index: number) => {
+    const task = tasks[index];
+    if (!task.bankId) return setError("Pehle bank select karein.");
+    const branchName = window.prompt("New branch name enter karein:")?.trim();
+    if (!branchName) return;
+    const branchCode = window.prompt("Branch code enter karein:")?.trim();
+    if (!branchCode) return setError("Branch code required hai.");
+    try {
+      const res = await fetch("/api/legal-recovery/branches", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ bankId: task.bankId, bankName: task.bankName, branchName, branchCode }) });
+      const data = await res.json();
+      if (!data.success) throw new Error(data.error || "Branch add nahi hui");
+      const branch = data.data as Branch;
+      setBranches(rows => [...rows, branch].sort((a, b) => a.branchName.localeCompare(b.branchName)));
+      updateTask(index, { branchName: branch.branchName });
+    } catch (e: any) { setError(e.message || "Branch add nahi hui"); }
+  };
+
+  const addNbfc = async (index: number) => {
+    const nbfcName = window.prompt("New NBFC name enter karein:")?.trim();
+    if (!nbfcName) return;
+    const nbfcCode = window.prompt("NBFC code (optional):")?.trim() || "";
+    try {
+      const res = await fetch("/api/legal-recovery/nbfc", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ nbfcName, nbfcCode }) });
+      const data = await res.json();
+      if (!data.success) throw new Error(data.error || "NBFC add nahi hui");
+      const nbfc = data.data as Nbfc;
+      setNbfcs(rows => [...rows, nbfc].sort((a, b) => a.nbfcName.localeCompare(b.nbfcName)));
+      updateTask(index, { nbfcName: nbfc.nbfcName });
+    } catch (e: any) { setError(e.message || "NBFC add nahi hui"); }
+  };
+
+  const addManualOption = (index: number, field: "aoName" | "rboName", label: string) => {
+    const value = window.prompt(`New ${label} enter karein:`)?.trim();
+    if (value) updateTask(index, { [field]: value });
+  };
 
   const uploadProof = async (index: number, file?: File) => {
     if (!file) return;
@@ -84,7 +131,7 @@ export default function DailyBackdateEntryModal({ open, onClose, onSaved, curren
     if (!sodTime24 || !eodTime24) return setError("SOD aur EOD time 01:00 se 12:59 ke beech select karein.");
     if (eodTime24 <= sodTime24) return setError("EOD time SOD time ke baad hona chahiye.");
     if (!tasks.length || tasks.some(t => !t.title.trim() || !t.relatedCategory || !t.type || !t.progressNote.trim() || !t.proofAttachment)) return setError("Har task mein title, related category, task type, progress note aur proof required hai.");
-    if (tasks.some(t => t.relatedCategory === "Bank Related" && (!t.bankName || !t.branchName))) return setError("Bank Related task mein bank aur branch select karna required hai.");
+    if (tasks.some(t => ["Bank Related", "Branch Related", "Case Related"].includes(t.relatedCategory) && (!t.bankName || !t.branchName))) return setError("Bank/Branch/Case Related task mein bank aur branch select karna required hai.");
     if (tasks.some(t => t.relatedCategory === "AO Related" && (!t.bankName || !t.aoName))) return setError("AO Related task mein bank aur AO select karna required hai.");
     if (tasks.some(t => t.relatedCategory === "RBO Related" && (!t.bankName || !t.rboName))) return setError("RBO Related task mein bank aur RBO select karna required hai.");
     if (tasks.some(t => t.relatedCategory === "Fix Security Related" && !t.nbfcName)) return setError("Fix Security Related task mein NBFC select karna required hai.");
@@ -117,69 +164,58 @@ export default function DailyBackdateEntryModal({ open, onClose, onSaved, curren
           <div className="grid sm:grid-cols-3 gap-2">
             <input required placeholder="Task title / kaam" value={task.title} onChange={e => updateTask(index, { title: e.target.value })} className="border rounded-lg p-2 text-xs font-bold bg-white" />
             <select required value={task.relatedCategory} onChange={e => updateTask(index, { relatedCategory: e.target.value, bankId: "", bankName: "", branchName: "", aoName: "", rboName: "", nbfcName: "" })} className="border rounded-lg p-2 text-xs bg-white">
-              <option value="">Select related category</option>
+              <option>General</option>
               <option>Office Related</option>
               <option>Bank Related</option>
               <option>AO Related</option>
               <option>RBO Related</option>
               <option>Fix Security Related</option>
+              <option>Branch Related</option>
+              <option>Case Related</option>
             </select>
-            <select value={task.status} onChange={e => updateTask(index, { status: e.target.value as WorkItem["status"] })} className="border rounded-lg p-2 text-xs bg-white"><option>Pending</option><option>In Progress</option><option>Completed</option></select>
-            {task.relatedCategory === "Bank Related" && <>
-              <select required value={task.bankId} onChange={e => { const selected = banks.find(bank => String(bank.id) === e.target.value); updateTask(index, { bankId: e.target.value, bankName: selected?.bankName || "", branchName: "" }); }} className="border rounded-lg p-2 text-xs bg-white">
+            <select required value={task.status} onChange={e => updateTask(index, { status: e.target.value as WorkItem["status"] })} className="border rounded-lg p-2 text-xs bg-white"><option value="" disabled>Select status</option><option>Pending</option><option>In Progress</option><option>Completed</option></select>
+            {(["Bank Related", "Branch Related", "Case Related"].includes(task.relatedCategory)) && <>
+              <select required value={task.bankId} onChange={e => { if (e.target.value === "__add_new__") return void addBank(index); const selected = banks.find(bank => String(bank.id) === e.target.value); updateTask(index, { bankId: e.target.value, bankName: selected?.bankName || "", branchName: "" }); }} className="border rounded-lg p-2 text-xs bg-white">
                 <option value="">Select bank</option>
                 {banks.map(bank => <option key={bank.id} value={String(bank.id)}>{bank.bankName}{bank.bankCode ? ` (${bank.bankCode})` : ""}</option>)}
+                <option value="__add_new__">+ Add New Bank</option>
               </select>
-              <div>
-                <input
-                  required
-                  type="text"
-                  list={`backdate-branches-${index}`}
-                  value={task.branchName}
-                  disabled={!task.bankId}
-                  onChange={e => updateTask(index, { branchName: e.target.value })}
-                  placeholder={task.bankId ? "Search branch name / code" : "Select bank first"}
-                  className="w-full border rounded-lg p-2 text-xs bg-white disabled:bg-slate-100 disabled:text-slate-400"
-                />
-                <datalist id={`backdate-branches-${index}`}>
-                  {branches.filter(branch => String(branch.bankId) === task.bankId).map(branch => <option key={branch.id} value={branch.branchName}>{branch.branchCode || "Branch"}</option>)}
-                </datalist>
-              </div>
+              <select required value={task.branchName} disabled={!task.bankId} onChange={e => { if (e.target.value === "__add_new__") return void addBranch(index); updateTask(index, { branchName: e.target.value }); }} className="border rounded-lg p-2 text-xs bg-white disabled:bg-slate-100 disabled:text-slate-400">
+                <option value="">{task.bankId ? "Select branch" : "Select bank first"}</option>
+                {branches.filter(branch => String(branch.bankId) === task.bankId).map(branch => <option key={branch.id} value={branch.branchName}>{branch.branchName}{branch.branchCode ? ` (${branch.branchCode})` : ""}</option>)}
+                <option value="__add_new__">+ Add New Branch</option>
+              </select>
             </>}
             {task.relatedCategory === "RBO Related" && <>
-              <select required value={task.bankId} onChange={e => { const selected = banks.find(bank => String(bank.id) === e.target.value); updateTask(index, { bankId: e.target.value, bankName: selected?.bankName || "", rboName: "" }); }} className="border rounded-lg p-2 text-xs bg-white">
+              <select required value={task.bankId} onChange={e => { if (e.target.value === "__add_new__") return void addBank(index); const selected = banks.find(bank => String(bank.id) === e.target.value); updateTask(index, { bankId: e.target.value, bankName: selected?.bankName || "", rboName: "" }); }} className="border rounded-lg p-2 text-xs bg-white">
                 <option value="">Select bank</option>
                 {banks.map(bank => <option key={bank.id} value={String(bank.id)}>{bank.bankName}{bank.bankCode ? ` (${bank.bankCode})` : ""}</option>)}
+                <option value="__add_new__">+ Add New Bank</option>
               </select>
-              <select required value={task.rboName} disabled={!task.bankId} onChange={e => updateTask(index, { rboName: e.target.value })} className="border rounded-lg p-2 text-xs bg-white disabled:bg-slate-100 disabled:text-slate-400">
+              <select required value={task.rboName} disabled={!task.bankId} onChange={e => { if (e.target.value === "__add_new__") return addManualOption(index, "rboName", "RBO"); updateTask(index, { rboName: e.target.value }); }} className="border rounded-lg p-2 text-xs bg-white disabled:bg-slate-100 disabled:text-slate-400">
                 <option value="">Select RBO</option>
+                {task.rboName && !branches.some(branch => String(branch.bankId) === task.bankId && String(branch.rbo || "").trim() === task.rboName) && <option value={task.rboName}>{task.rboName}</option>}
                 {Array.from(new Set(branches.filter(branch => String(branch.bankId) === task.bankId).map(branch => String(branch.rbo || "").trim()).filter(Boolean))).map(rbo => <option key={rbo} value={rbo}>{rbo}</option>)}
+                <option value="__add_new__">+ Add New RBO</option>
               </select>
             </>}
             {task.relatedCategory === "AO Related" && <>
-              <select required value={task.bankId} onChange={e => { const selected = banks.find(bank => String(bank.id) === e.target.value); updateTask(index, { bankId: e.target.value, bankName: selected?.bankName || "", aoName: "" }); }} className="border rounded-lg p-2 text-xs bg-white">
+              <select required value={task.bankId} onChange={e => { if (e.target.value === "__add_new__") return void addBank(index); const selected = banks.find(bank => String(bank.id) === e.target.value); updateTask(index, { bankId: e.target.value, bankName: selected?.bankName || "", aoName: "" }); }} className="border rounded-lg p-2 text-xs bg-white">
                 <option value="">Select bank</option>
                 {banks.map(bank => <option key={bank.id} value={String(bank.id)}>{bank.bankName}{bank.bankCode ? ` (${bank.bankCode})` : ""}</option>)}
+                <option value="__add_new__">+ Add New Bank</option>
               </select>
-              <div>
-                <input
-                  required
-                  type="text"
-                  list={`backdate-aos-${index}`}
-                  value={task.aoName}
-                  disabled={!task.bankId}
-                  onChange={e => updateTask(index, { aoName: e.target.value })}
-                  placeholder={task.bankId ? "Search AO" : "Select bank first"}
-                  className="w-full border rounded-lg p-2 text-xs bg-white disabled:bg-slate-100 disabled:text-slate-400"
-                />
-                <datalist id={`backdate-aos-${index}`}>
-                  {Array.from(new Set(branches.filter(branch => String(branch.bankId) === task.bankId).map(branch => String(branch.aoName || "").trim()).filter(Boolean))).map(ao => <option key={ao} value={ao} />)}
-                </datalist>
-              </div>
+              <select required value={task.aoName} disabled={!task.bankId} onChange={e => { if (e.target.value === "__add_new__") return addManualOption(index, "aoName", "AO"); updateTask(index, { aoName: e.target.value }); }} className="border rounded-lg p-2 text-xs bg-white disabled:bg-slate-100 disabled:text-slate-400">
+                <option value="">Select AO</option>
+                {task.aoName && !branches.some(branch => String(branch.bankId) === task.bankId && String(branch.aoName || "").trim() === task.aoName) && <option value={task.aoName}>{task.aoName}</option>}
+                {Array.from(new Set(branches.filter(branch => String(branch.bankId) === task.bankId).map(branch => String(branch.aoName || "").trim()).filter(Boolean))).map(ao => <option key={ao} value={ao}>{ao}</option>)}
+                <option value="__add_new__">+ Add New AO</option>
+              </select>
             </>}
-            {task.relatedCategory === "Fix Security Related" && <select required value={task.nbfcName} onChange={e => updateTask(index, { nbfcName: e.target.value })} className="border rounded-lg p-2 text-xs bg-white">
+            {task.relatedCategory === "Fix Security Related" && <select required value={task.nbfcName} onChange={e => { if (e.target.value === "__add_new__") return void addNbfc(index); updateTask(index, { nbfcName: e.target.value }); }} className="border rounded-lg p-2 text-xs bg-white">
               <option value="">Select NBFC</option>
               {nbfcs.map(nbfc => <option key={nbfc.id} value={nbfc.nbfcName}>{nbfc.nbfcName}{nbfc.nbfcCode ? ` (${nbfc.nbfcCode})` : ""}</option>)}
+              <option value="__add_new__">+ Add New NBFC</option>
             </select>}
             <select value={task.type} onChange={e => updateTask(index, { type: e.target.value })} className="border rounded-lg p-2 text-xs bg-white">
               <option>General</option><option>Office Work</option><option>Bank Work</option><option>Meeting</option><option>Call</option><option>Field Visit</option><option>Legal</option><option>Development</option><option>Operations</option>
@@ -187,6 +223,8 @@ export default function DailyBackdateEntryModal({ open, onClose, onSaved, curren
             <textarea placeholder="Work details" value={task.details} onChange={e => updateTask(index, { details: e.target.value })} className="sm:col-span-1 border rounded-lg p-2 text-xs bg-white" />
             <textarea required placeholder="Progress note *" value={task.progressNote} onChange={e => updateTask(index, { progressNote: e.target.value })} className="sm:col-span-1 border rounded-lg p-2 text-xs bg-white" />
             <label className="border border-dashed rounded-lg p-2 text-xs bg-white flex items-center justify-center gap-2 cursor-pointer"><Upload className="w-4 h-4" />{task.uploading ? "Uploading..." : task.proofAttachment ? "Proof uploaded ✓" : "Upload proof *"}<input type="file" className="hidden" accept="image/*,.pdf,audio/*,video/*" onChange={e => uploadProof(index, e.target.files?.[0])} /></label>
+            <label className="text-[10px] font-black text-slate-600">CALL BACK DATE<input type="date" value={task.callbackDate} onChange={e => updateTask(index, { callbackDate: e.target.value })} className="mt-1 w-full border rounded-lg p-2 text-xs font-normal bg-white" /></label>
+            <label className="text-[10px] font-black text-slate-600">FORWARDED TO<select value={task.forwardedTo} onChange={e => updateTask(index, { forwardedTo: e.target.value })} className="mt-1 w-full border rounded-lg p-2 text-xs font-normal bg-white"><option value="">Not forwarded</option>{staff.filter(s => String(s.id) !== String(employeeId)).map(s => <option key={s.id} value={s.id}>{s.name} ({s.role})</option>)}</select></label>
           </div>
         </div>)}</div>
         {error && <div className="text-xs font-bold text-rose-700 bg-rose-50 border border-rose-200 p-3 rounded-lg">{error}</div>}
