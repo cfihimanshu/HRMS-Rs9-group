@@ -20,8 +20,9 @@ export async function GET(request: Request) {
     const branchId = searchParams.get("branchId");
     const rawBankName = searchParams.get("bankName") || "";
     const rawBranchName = searchParams.get("branchName") || "";
+    const includeAll = searchParams.get("scope") === "all";
 
-    if (!bankId && !rawBankName) {
+    if (!includeAll && !bankId && !rawBankName) {
       return NextResponse.json(
         { success: false, error: "Bank selection is required." },
         { status: 400 }
@@ -91,8 +92,8 @@ export async function GET(request: Request) {
     });
 
     // 2. Fetch LegalNotice records for this bank / branch (only using valid columns in LegalNotice table)
-    const notices = noticeMatchConditions.length > 0 ? await LegalNotice.findAll({
-      where: { [Op.or]: noticeMatchConditions },
+    const notices = (noticeMatchConditions.length > 0 || includeAll) ? await LegalNotice.findAll({
+      where: noticeMatchConditions.length > 0 ? { [Op.or]: noticeMatchConditions } : {},
       order: [["createdAt", "DESC"]],
       raw: true,
     }) : [];

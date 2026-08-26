@@ -4,7 +4,7 @@ import ReactDOM from "react-dom";
 import {
   LayoutDashboard, UserSquare2, FileEdit, Briefcase, Users2, ScanLine,
   Video, ShieldCheck, FileText, FileSpreadsheet, GraduationCap, Clock, CalendarCheck, CalendarClock,
-  TrendingUp, BriefcaseIcon, Building2, Coins, HelpCircle, AlertTriangle, ShieldAlert,
+  TrendingUp, BarChart3, BriefcaseIcon, Building2, Coins, HelpCircle, AlertTriangle, ShieldAlert,
   LogOut, ChevronDown, ChevronRight, MapPin, Cpu, Package, Key, Scale, History, FolderKanban, Car, Globe
 } from "lucide-react";
 import { signOut } from "next-auth/react";
@@ -69,6 +69,7 @@ export default function DashboardSidebar({
     { id: "hr-dash", label: "HR Dashboard", icon: UserSquare2, category: "Dashboards", roles: ["Owner", "Director", "HR Head", "HR Executive"] },
     { id: "dept-dash", label: "Department Dashboard", icon: Building2, category: "Dashboards", roles: ["Owner", "Director", "Department Manager"] },
     { id: "sales-dashboard", label: "Sales Dashboard", icon: TrendingUp, category: "Dashboards", roles: ["Owner", "Sales Manager", "DSM"] },
+    { id: "vertical-dashboard", label: "Vertical Dashboard", icon: BarChart3, category: "Dashboards", roles: ["Owner", "Director", "Sales Manager", "DSM"] },
     { id: "ess-dashboard", label: "ESS Dashboard", icon: LayoutDashboard, category: "Dashboards", roles: ["Employee"] },
 
     // Human Resources (HR)
@@ -166,6 +167,9 @@ export default function DashboardSidebar({
     }
     if ((userRole.toLowerCase().includes("sales manager") || userRole.toLowerCase() === "dsm" || (userRole.toLowerCase().includes("manager") && userDept.toLowerCase().includes("sales"))) && !effectiveAllowedPageIds.includes("sales-dashboard")) {
       effectiveAllowedPageIds.push("sales-dashboard");
+    }
+    if ((userRole.toLowerCase().includes("sales manager") || userRole.toLowerCase() === "dsm" || (userRole.toLowerCase().includes("manager") && userDept.toLowerCase().includes("sales"))) && !effectiveAllowedPageIds.includes("vertical-dashboard")) {
+      effectiveAllowedPageIds.push("vertical-dashboard");
     }
   }
 

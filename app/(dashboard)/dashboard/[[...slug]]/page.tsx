@@ -60,6 +60,7 @@ import EmployeeDirectory from "@/components/dashboard/EmployeePanels";
 import BDADirectory from "@/components/dashboard/BDAPanels";
 import BdaLeads from "@/components/dashboard/BdaLeads";
 import SalesDashboard from "@/components/dashboard/SalesDashboard";
+import VerticalPerformanceDashboard from "@/components/dashboard/VerticalPerformanceDashboard";
 import AssetsRegistry from "@/components/dashboard/AssetsRegistry";
 import InventoryManagement from "@/components/dashboard/InventoryManagement";
 import AdministratorAccess from "@/components/dashboard/AdministratorAccess";
@@ -1320,6 +1321,10 @@ export default function UnifiedEnterpriseDashboard() {
 
           {activeTab === "sales-dashboard" && (
             <SalesDashboard onNavigate={handleNavigateTab} />
+          )}
+
+          {activeTab === "vertical-dashboard" && (
+            <VerticalPerformanceDashboard onNavigate={handleNavigateTab} />
           )}
 
           {activeTab === "hiring" && (

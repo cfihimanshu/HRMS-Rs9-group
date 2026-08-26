@@ -19,6 +19,8 @@ export const MASTER_NAV_ITEMS: NavItem[] = [
   { id: "dashboard", label: "Owner Dashboard", category: "Dashboards" },
   { id: "hr-dash", label: "HR Dashboard", category: "Dashboards" },
   { id: "dept-dash", label: "Department Dashboard", category: "Dashboards" },
+  { id: "sales-dashboard", label: "Sales Dashboard", category: "Dashboards" },
+  { id: "vertical-dashboard", label: "Vertical Dashboard", category: "Dashboards" },
   { id: "ess-dashboard", label: "ESS Dashboard", category: "Dashboards" },
 
   // Human Resources (HR)
