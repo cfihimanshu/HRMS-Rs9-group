@@ -32,14 +32,28 @@ const indiaDateKey = (value: any) => {
 
 function companyNames(value: any): string[] {
   if (!value) return [];
-  if (Array.isArray(value)) return value.map(item => String(item?.name || item?.id || item)).filter(Boolean);
+  if (Array.isArray(value)) return value.flatMap(item => companyNames(item)).filter(Boolean);
   if (typeof value === "string") {
     try { return companyNames(JSON.parse(value)); } catch {
       return value.split(",").map(item => item.trim()).filter(Boolean);
     }
   }
-  return [String(value?.name || value?.id || value)].filter(Boolean);
+  if (typeof value === "object") {
+    return [value.id, value.companyId, value.code, value.name, value.label, value.value].map(item => String(item || "").trim()).filter(Boolean);
+  }
+  return [String(value)].filter(Boolean);
 }
+
+const normalizedCompanyKey = (value: any) => String(value || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+const companyReferenceKeys = (company: any) => new Set(
+  [company?.id, company?.code, company?.name, company?.shortName].map(normalizedCompanyKey).filter(Boolean)
+);
+const memberMatchesCompany = (member: any, company: any) => {
+  const targetKeys = companyReferenceKeys(company);
+  return companyNames(member?.companies || member?.company || member?.companyId)
+    .map(normalizedCompanyKey)
+    .some(key => targetKeys.has(key));
+};
 
 function readableProgressNote(value: any): string {
   if (!value) return "";
@@ -211,8 +225,7 @@ export default function OwnerCommandCentre({ sessionUser, stats, riskAlertList, 
     if (department && !memberDept.includes(department.toLowerCase())) return false;
     if (selectedCompanyId) {
       const selected = companies.find(c => String(c.id) === String(selectedCompanyId));
-      const names = companyNames(member.companies || member.company);
-      if (names.length && !names.some(name => [selectedCompanyId, selected?.name].filter(Boolean).some(target => name.toLowerCase() === String(target).toLowerCase()))) return false;
+      if (!selected || !memberMatchesCompany(member, selected)) return false;
     }
     return true;
   }), [staff, vertical, department, selectedCompanyId, companies]);
@@ -269,9 +282,9 @@ export default function OwnerCommandCentre({ sessionUser, stats, riskAlertList, 
     });
   }, [verticals, filteredStaff, employeeStatusGroups]);
 
-  const companyPerformance = React.useMemo(() => companies.slice(0, 5).map((company: any) => {
-    const members = staff.filter((member: any) => companyNames(member.companies || member.company).some(name => [company.id, company.name].some(target => String(name).toLowerCase() === String(target).toLowerCase())));
-    const companyPresent = members.filter((member: any) => member.isPresent || member.sodTime).length;
+  const companyPerformance = React.useMemo(() => companies.map((company: any) => {
+    const members = staff.filter((member: any) => memberMatchesCompany(member, company));
+    const companyPresent = members.filter((member: any) => member.isPresent || member.attendanceStatus === "Present" || Boolean(member.sodTime)).length;
     return { name: company.name, present: companyPresent, total: members.length, score: members.length ? Math.round(companyPresent / members.length * 100) : null };
   }), [companies, staff]);
 
@@ -354,7 +367,7 @@ export default function OwnerCommandCentre({ sessionUser, stats, riskAlertList, 
           </div>)}
         </div>
       </section>
-      <section className="rounded-2xl border border-[#e7dfd8] bg-white p-4 shadow-sm"><div className="flex items-center justify-between mb-4"><div><h2 className="text-xs font-black text-[#4d3047]">Company Attendance Today</h2><p className="text-[9px] text-slate-500">Present employees out of mapped active staff</p></div><Building2 className="w-4 h-4 text-[#9a7a91]" /></div><div className="space-y-3">{(companyPerformance.length ? companyPerformance : [{ name: "RS9 Group", present, total: filteredStaff.length, score: filteredStaff.length ? Math.round(present / filteredStaff.length * 100) : null }]).map(item => <div key={item.name}><div className="flex justify-between gap-3 text-[9px] font-bold mb-1"><span className="truncate">{item.name}</span><span className={item.score === null ? "text-slate-500" : "text-emerald-700"}>{item.score === null ? "No staff mapped" : `${item.present}/${item.total} present · ${item.score}%`}</span></div><div className="h-2 rounded-full bg-[#eee9f0] overflow-hidden"><div className="h-full rounded-full bg-[#714B67] transition-all" style={{ width: `${item.score || 0}%` }} /></div></div>)}</div></section>
+      <section className="rounded-2xl border border-[#e7dfd8] bg-white p-4 shadow-sm"><div className="flex items-center justify-between mb-4"><div><h2 className="text-xs font-black text-[#4d3047]">Company Attendance Today</h2><p className="text-[9px] text-slate-500">All registered companies · Present employees out of mapped active staff</p></div><div className="flex items-center gap-2"><span className="rounded-full bg-purple-50 px-2 py-1 text-[9px] font-black text-[#714B67]">{companyPerformance.length} companies</span><Building2 className="w-4 h-4 text-[#9a7a91]" /></div></div><div className="space-y-3 max-h-64 overflow-y-auto pr-1 custom-scrollbar">{(companyPerformance.length ? companyPerformance : [{ name: "RS9 Group", present, total: filteredStaff.length, score: filteredStaff.length ? Math.round(present / filteredStaff.length * 100) : null }]).map((item, index) => <div key={`${item.name}-${index}`}><div className="flex justify-between gap-3 text-[9px] font-bold mb-1"><span className="truncate" title={item.name}>{item.name}</span><span className={item.score === null ? "text-slate-500" : "text-emerald-700"}>{item.score === null ? "No staff mapped" : `${item.present}/${item.total} present · ${item.score}%`}</span></div><div className="h-2 rounded-full bg-[#eee9f0] overflow-hidden"><div className="h-full rounded-full bg-[#714B67] transition-all" style={{ width: `${item.score || 0}%` }} /></div></div>)}</div></section>
     </div>
 
     <div className="grid grid-cols-1 xl:grid-cols-[1.3fr_0.7fr] gap-4">

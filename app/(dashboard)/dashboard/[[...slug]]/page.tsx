@@ -59,6 +59,7 @@ import {
 import EmployeeDirectory from "@/components/dashboard/EmployeePanels";
 import BDADirectory from "@/components/dashboard/BDAPanels";
 import BdaLeads from "@/components/dashboard/BdaLeads";
+import SalesDashboard from "@/components/dashboard/SalesDashboard";
 import AssetsRegistry from "@/components/dashboard/AssetsRegistry";
 import InventoryManagement from "@/components/dashboard/InventoryManagement";
 import AdministratorAccess from "@/components/dashboard/AdministratorAccess";
@@ -440,7 +441,7 @@ export default function UnifiedEnterpriseDashboard() {
   // Fetch Database Data
   const loadCompanies = async () => {
     try {
-      const res = await fetch("/api/companies");
+      const res = await fetch("/api/companies?includeInactive=true", { cache: "no-store" });
       const data = await res.json();
       if (data.success) setAllCompanies(data.data);
     } catch (err) {
@@ -1314,6 +1315,10 @@ export default function UnifiedEnterpriseDashboard() {
                 setActiveTab("tasks");
               }}
             />
+          )}
+
+          {activeTab === "sales-dashboard" && (
+            <SalesDashboard onNavigate={handleNavigateTab} />
           )}
 
           {activeTab === "hiring" && (

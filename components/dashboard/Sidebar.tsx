@@ -68,6 +68,7 @@ export default function DashboardSidebar({
     { id: "dashboard", label: "Owner Dashboard", icon: LayoutDashboard, category: "Dashboards", roles: ["Owner", "Director"] },
     { id: "hr-dash", label: "HR Dashboard", icon: UserSquare2, category: "Dashboards", roles: ["Owner", "Director", "HR Head", "HR Executive"] },
     { id: "dept-dash", label: "Department Dashboard", icon: Building2, category: "Dashboards", roles: ["Owner", "Director", "Department Manager"] },
+    { id: "sales-dashboard", label: "Sales Dashboard", icon: TrendingUp, category: "Dashboards", roles: ["Owner", "Sales Manager", "DSM"] },
     { id: "ess-dashboard", label: "ESS Dashboard", icon: LayoutDashboard, category: "Dashboards", roles: ["Employee"] },
 
     // Human Resources (HR)
@@ -161,6 +162,9 @@ export default function DashboardSidebar({
     effectiveAllowedPageIds = [...DEFAULT_ESS_PAGES];
     if ((userRole.toLowerCase().includes("bda") || userRole.toLowerCase().includes("manager") || userRole.toLowerCase().includes("director") || userRole.toLowerCase().includes("owner")) && !effectiveAllowedPageIds.includes("bda-leads")) {
       effectiveAllowedPageIds.push("bda-leads");
+    }
+    if ((userRole.toLowerCase().includes("sales manager") || userRole.toLowerCase() === "dsm" || (userRole.toLowerCase().includes("manager") && userDept.toLowerCase().includes("sales"))) && !effectiveAllowedPageIds.includes("sales-dashboard")) {
+      effectiveAllowedPageIds.push("sales-dashboard");
     }
   }
 

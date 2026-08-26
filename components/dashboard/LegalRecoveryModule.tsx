@@ -8,6 +8,7 @@ import {
 import { cn } from "@/lib/utils";
 import BankMasterView from "./legal-recovery/BankMasterView";
 import BranchMasterView from "./legal-recovery/BranchMasterView";
+import CasesMasterView from "./legal-recovery/CasesMasterView";
 import LegalWorkLogsView from "./legal-recovery/LegalWorkLogsView";
 import NoticeBoardView from "./legal-recovery/NoticeBoardView";
 import NbfcMasterView from "./legal-recovery/NbfcMasterView";
@@ -530,6 +531,8 @@ export default function LegalRecoveryModule({ userRole, triggerToast, sessionUse
   };
 
   const handleEditCase = (c: any) => {
+    const matchingBank = banksList.find((bank: any) => bank.bankName === c.bankName || String(bank.id) === String(c.bankId || ""));
+    setSelectedBankIdForCase(matchingBank ? String(matchingBank.id) : "");
     setCaseForm({
       bankName: c.bankName || "", branchName: c.branchName || "", branchId: c.branchId || "", aoName: c.aoName || "",
       deptManagerName: c.deptManagerName || "", contactNumber: c.contactNumber || "", pendingAmount: c.pendingAmount || "", pendingSince: c.pendingSince ? new Date(c.pendingSince).toISOString().split('T')[0] : ""
@@ -801,6 +804,18 @@ export default function LegalRecoveryModule({ userRole, triggerToast, sessionUse
             </div>
             <span className="font-bold text-sm text-slate-800">Bank Master</span>
             <span className="text-[10px] text-slate-500 mt-1 uppercase tracking-wider font-semibold">Add Banks</span>
+          </button>
+
+          {/* Bank Cases & Pending Bills */}
+          <button
+            onClick={() => setActiveSubModule("masters")}
+            className="group flex flex-col items-center justify-center p-6 bg-white border border-[#E8E4DF] rounded-2xl hover:shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:border-emerald-200 transition-all duration-300"
+          >
+            <div className="w-16 h-16 bg-gradient-to-br from-emerald-50 to-emerald-100 text-emerald-600 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform shadow-sm">
+              <Banknote size={28} strokeWidth={2} />
+            </div>
+            <span className="font-bold text-sm text-slate-800">Bank Cases</span>
+            <span className="text-[10px] text-slate-500 mt-1 uppercase tracking-wider font-semibold">Cases &amp; Pending Bills</span>
           </button>
 
           {/* Module 4: Manage Branches */}
@@ -1399,6 +1414,19 @@ export default function LegalRecoveryModule({ userRole, triggerToast, sessionUse
               setShowAddBranchForm(true);
               window.scrollTo({ top: 0, behavior: "smooth" });
             }}
+          />
+        )}
+
+        {activeSubModule === "masters" && (
+          <CasesMasterView
+            cases={cases}
+            loading={loading}
+            setShowFollowUpForm={setShowFollowUpForm}
+            setShowPaymentForm={setShowPaymentForm}
+            openHistory={openHistory}
+            userRole={userRole}
+            onEditCase={handleEditCase}
+            onDeleteCase={handleDeleteCase}
           />
         )}
 
