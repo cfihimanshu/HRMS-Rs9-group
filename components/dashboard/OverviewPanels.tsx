@@ -2176,7 +2176,10 @@ export function DepartmentDashboard({
   const teamList = deptStats.teamList || [];
 
   const uniqueDepartments = departments.filter((department, index, list) =>
-    department?.name && list.findIndex(item => item.name === department.name) === index
+    department?.name &&
+    !/^\d+$/.test(String(department.name).trim()) &&
+    !String(department.name).startsWith("DEPT_") &&
+    list.findIndex(item => item.name === department.name) === index
   );
   const filteredTeamList = teamList.filter((member: any) => {
     const search = teamSearch.trim().toLowerCase();
@@ -2235,27 +2238,34 @@ export function DepartmentDashboard({
 
   return (
     <div className="space-y-6 animate-fade-in overflow-x-hidden">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
+      {/* Top Header & Actions */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-5 rounded-2xl border transition-all shadow-sm bg-gradient-to-r from-white via-slate-50/50 to-white dark:from-gray-900 dark:via-gray-900/80 dark:to-gray-900 border-slate-200/80 dark:border-gray-800">
         <div>
-          <h1 className={`text-xl sm:text-2xl font-bold tracking-tight ${isDark ? "text-white" : "text-slate-800"}`}>
-            Department Head Dashboard
-          </h1>
-          <p className={`text-xs sm:text-sm mt-0.5 sm:mt-1 ${isDark ? "text-gray-400" : "text-slate-500"}`}>
-            Manager view — team performance, daily tasks, and approvals
+          <div className="flex items-center gap-2.5">
+            <h1 className={`text-xl sm:text-2xl font-black tracking-tight ${isDark ? "text-white" : "text-slate-900"}`}>
+              Department Head Dashboard
+            </h1>
+            <span className="hidden sm:inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-indigo-50 text-indigo-700 dark:bg-indigo-950/50 dark:text-indigo-300 border border-indigo-200/60 dark:border-indigo-800/60">
+              Manager View
+            </span>
+          </div>
+          <p className={`text-xs sm:text-sm mt-1 font-medium ${isDark ? "text-gray-400" : "text-slate-500"}`}>
+            Track team performance, daily attendance, active workload, and approvals
           </p>
         </div>
-        <div className="flex flex-wrap items-center gap-2 sm:gap-3 w-full sm:w-auto">
+
+        <div className="flex flex-wrap items-center gap-2.5 w-full md:w-auto">
           {isGlobal && (
             <div className="flex items-center gap-2 w-full sm:w-auto">
-              <span className={`text-xs font-bold uppercase tracking-wider ${isDark ? "text-gray-400" : "text-slate-550"}`}>
-                Department:
+              <span className={`text-xs font-bold uppercase tracking-wider ${isDark ? "text-gray-400" : "text-slate-500"}`}>
+                Dept:
               </span>
               <select
                 value={selectedDeptId}
                 onChange={(e) => onDeptChange?.(e.target.value)}
-                className={`w-full sm:w-auto text-xs sm:text-sm border rounded-lg px-3 py-1.5 outline-none font-semibold transition-all shadow-sm ${isDark
-                  ? "bg-gray-800 border-gray-700 text-gray-200 focus:border-indigo-500"
-                  : "bg-white border-slate-200 text-slate-700 focus:border-indigo-500"
+                className={`w-full sm:w-auto text-xs sm:text-sm border rounded-xl px-3.5 py-2 outline-none font-semibold transition-all shadow-xs cursor-pointer ${isDark
+                  ? "bg-gray-800 border-gray-700 text-gray-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
+                  : "bg-white border-slate-200 text-slate-700 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
                   }`}
               >
                 <option value="all">All Departments</option>
@@ -2267,23 +2277,27 @@ export function DepartmentDashboard({
               </select>
             </div>
           )}
+
           <div className="flex items-center gap-2 w-full sm:w-auto">
             <button
               onClick={onRefresh}
-              className="flex-1 sm:flex-initial border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 px-3 py-2 rounded-lg text-xs sm:text-sm font-semibold transition-colors flex items-center justify-center gap-1.5"
+              className={`flex-1 sm:flex-initial border px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all flex items-center justify-center gap-1.5 shadow-xs hover:scale-[1.02] active:scale-[0.98] ${isDark
+                ? "border-gray-700 bg-gray-800 hover:bg-gray-750 text-gray-200"
+                : "border-slate-200 bg-white hover:bg-slate-50 text-slate-700"
+                }`}
             >
-              <RotateCw className="w-4 h-4" /> Refresh
+              <RotateCw className="w-3.5 h-3.5" /> Refresh
             </button>
             <button
               onClick={exportDepartmentReport}
               disabled={teamList.length === 0}
-              className="flex-1 sm:flex-initial border border-emerald-200 bg-emerald-50 hover:bg-emerald-100 disabled:opacity-50 text-emerald-700 px-3 py-2 rounded-lg text-xs sm:text-sm font-semibold transition-colors flex items-center justify-center gap-1.5"
+              className="flex-1 sm:flex-initial border border-emerald-200/80 bg-emerald-50/80 hover:bg-emerald-100 disabled:opacity-50 text-emerald-700 dark:bg-emerald-950/30 dark:border-emerald-800/60 dark:text-emerald-300 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all flex items-center justify-center gap-1.5 shadow-xs hover:scale-[1.02] active:scale-[0.98]"
             >
-              <Download className="w-4 h-4" /> Export
+              <Download className="w-3.5 h-3.5" /> Export
             </button>
             <button
               onClick={() => setShowHiringModal(true)}
-              className="flex-1 sm:flex-initial bg-indigo-600 hover:bg-indigo-700 text-white px-3.5 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-medium transition-colors shadow-sm flex items-center justify-center gap-1.5 shrink-0"
+              className="flex-1 sm:flex-initial bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all shadow-sm hover:shadow flex items-center justify-center gap-1.5 shrink-0 hover:scale-[1.02] active:scale-[0.98]"
             >
               <PlusCircle className="w-4 h-4" /> Add Requirement
             </button>
@@ -2300,64 +2314,89 @@ export function DepartmentDashboard({
 
       {/* 1. Team Members Popup Modal */}
       {showTeamModal && (
-        <div className="fixed inset-0 bg-black/20 backdrop-blur-md z-[9999] flex items-center justify-center p-4">
-          <div className={`w-full max-w-2xl rounded-2xl shadow-xl overflow-hidden border ${isDark ? "bg-gray-900 border-gray-800 text-white" : "bg-white border-slate-200 text-slate-800"}`}>
-            <div className="px-6 py-4 border-b border-slate-200 dark:border-gray-800 flex justify-between items-center">
-              <div>
-                <h3 className="text-lg font-bold">Team Directory</h3>
-                <p className="text-xs text-slate-500 dark:text-gray-400">Total active team members</p>
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[9999] flex items-center justify-center p-4">
+          <div className={`w-full max-w-2xl rounded-2xl shadow-2xl overflow-hidden border animate-scale-up ${isDark ? "bg-gray-900 border-gray-800 text-white" : "bg-white border-slate-200 text-slate-800"}`}>
+            <div className="px-6 py-4.5 border-b border-slate-100 dark:border-gray-800 flex justify-between items-center bg-slate-50/50 dark:bg-gray-850/50">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 flex items-center justify-center font-bold">
+                  <Users className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold">Team Directory</h3>
+                  <p className="text-xs text-slate-500 dark:text-gray-400">Total active team members ({filteredTeamList.length})</p>
+                </div>
               </div>
               <button
                 onClick={() => setShowTeamModal(false)}
-                className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-gray-800 text-slate-400 hover:text-slate-600"
+                className="p-2 rounded-xl hover:bg-slate-200/60 dark:hover:bg-gray-800 text-slate-400 hover:text-slate-600 transition-colors"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
             <div className="px-6 pt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <input
-                value={teamSearch}
-                onChange={(event) => setTeamSearch(event.target.value)}
-                placeholder="Search employee, role..."
-                className="border border-slate-200 rounded-lg px-3 py-2 text-xs outline-none focus:border-indigo-400"
-              />
-              <select
-                value={attendanceFilter}
-                onChange={(event) => setAttendanceFilter(event.target.value)}
-                className="border border-slate-200 rounded-lg px-3 py-2 text-xs outline-none focus:border-indigo-400"
-              >
-                <option value="all">All Attendance</option>
-                <option value="present">Present</option>
-                <option value="absent">Absent</option>
-                <option value="on leave">On Leave</option>
-              </select>
+              <div className="relative">
+                <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                <input
+                  value={teamSearch}
+                  onChange={(event) => setTeamSearch(event.target.value)}
+                  placeholder="Search employee, role, department..."
+                  className={`w-full border rounded-xl pl-9 pr-3 py-2 text-xs outline-none transition-all ${isDark ? "bg-gray-800 border-gray-700 text-white focus:border-indigo-500" : "border-slate-200 focus:border-indigo-500 bg-white"}`}
+                />
+              </div>
+              <div className="relative">
+                <Filter className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                <select
+                  value={attendanceFilter}
+                  onChange={(event) => setAttendanceFilter(event.target.value)}
+                  className={`w-full border rounded-xl pl-9 pr-3 py-2 text-xs outline-none transition-all cursor-pointer ${isDark ? "bg-gray-800 border-gray-700 text-white focus:border-indigo-500" : "border-slate-200 focus:border-indigo-500 bg-white"}`}
+                >
+                  <option value="all">All Attendance</option>
+                  <option value="present">Present</option>
+                  <option value="absent">Absent</option>
+                  <option value="on leave">On Leave</option>
+                </select>
+              </div>
             </div>
-            <div className="p-6 max-h-[60vh] overflow-y-auto space-y-3">
+            <div className="p-6 max-h-[60vh] overflow-y-auto space-y-2.5 custom-scrollbar">
               {filteredTeamList.length === 0 ? (
-                <p className="text-center text-sm text-slate-400 py-4">No team members found.</p>
+                <div className="py-12 text-center text-sm text-slate-400">No team members found matching your search.</div>
               ) : (
-                filteredTeamList.map((m: any) => (
-                  <div key={m.id} className={`p-4 rounded-xl border flex items-center justify-between ${isDark ? "bg-gray-800/50 border-gray-700" : "bg-slate-50/50 border-slate-150"}`}>
-                    <div>
-                      <h4 className="text-sm font-bold">{m.name}</h4>
-                      <p className="text-xs text-slate-500 dark:text-gray-400 mt-0.5">
-                        {m.designation || m.role} • {m.department}
-                      </p>
-                      <p className="text-[10px] text-slate-400 mt-1">
-                        Tasks {m.tasksCompleted || 0}/{m.tasksTotal || 0}
-                        {m.tasksOverdue ? ` • ${m.tasksOverdue} overdue` : ""}
-                      </p>
+                filteredTeamList.map((m: any) => {
+                  const initials = (m.name || "U").split(" ").map((n: string) => n[0]).slice(0, 2).join("").toUpperCase();
+                  const isPresent = m.attendanceStatus === "Present";
+                  const isOnLeave = m.attendanceStatus === "On Leave";
+
+                  return (
+                    <div key={m.id} className={`p-3.5 rounded-xl border flex items-center justify-between transition-all hover:border-indigo-200 dark:hover:border-indigo-800/60 ${isDark ? "bg-gray-800/40 border-gray-800" : "bg-slate-50/60 border-slate-200/70"}`}>
+                      <div className="flex items-center gap-3">
+                        <div className="relative">
+                          <div className={`w-9 h-9 rounded-xl flex items-center justify-center font-bold text-xs shadow-xs ${isPresent ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300" : isOnLeave ? "bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300" : "bg-rose-100 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300"}`}>
+                            {initials}
+                          </div>
+                          <span className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 ${isDark ? "border-gray-900" : "border-white"} ${isPresent ? "bg-emerald-500" : isOnLeave ? "bg-amber-500" : "bg-rose-500"}`} />
+                        </div>
+                        <div>
+                          <h4 className="text-xs sm:text-sm font-bold">{m.name}</h4>
+                          <p className="text-[11px] text-slate-500 dark:text-gray-400 mt-0.5">
+                            {m.designation || m.role} • <span className="font-semibold">{m.department}</span>
+                          </p>
+                          <p className="text-[10px] text-slate-400 mt-0.5">
+                            Tasks: <span className="font-bold text-slate-600 dark:text-gray-300">{m.tasksCompleted || 0}/{m.tasksTotal || 0}</span>
+                            {m.tasksOverdue ? <span className="text-rose-500 font-bold ml-1.5"> • {m.tasksOverdue} overdue</span> : ""}
+                          </p>
+                        </div>
+                      </div>
+                      <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full border shadow-xs ${isPresent
+                          ? "bg-emerald-50 text-emerald-700 border-emerald-200/80 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800"
+                          : isOnLeave
+                            ? "bg-amber-50 text-amber-700 border-amber-200/80 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800"
+                            : "bg-rose-50 text-rose-700 border-rose-200/80 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-800"
+                        }`}>
+                        {m.attendanceStatus || "Absent"}
+                      </span>
                     </div>
-                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${m.attendanceStatus === "Present"
-                        ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-                        : m.attendanceStatus === "On Leave"
-                          ? "bg-amber-50 text-amber-700 border-amber-200"
-                          : "bg-rose-50 text-rose-700 border-rose-200"
-                      }`}>
-                      {m.attendanceStatus || "Absent"}
-                    </span>
-                  </div>
-                ))
+                  );
+                })
               )}
             </div>
           </div>
@@ -2366,25 +2405,30 @@ export function DepartmentDashboard({
 
       {/* 2. SOD/EOD Compliance Popup Modal */}
       {showSodEodModal && (
-        <div className="fixed inset-0 bg-black/20 backdrop-blur-md z-[9999] flex items-center justify-center p-4">
-          <div className={`w-full max-w-3xl rounded-2xl shadow-xl overflow-hidden border ${isDark ? "bg-gray-900 border-gray-800 text-white" : "bg-white border-slate-200 text-slate-800"}`}>
-            <div className="px-6 py-4 border-b border-slate-200 dark:border-gray-800 flex justify-between items-center">
-              <div>
-                <h3 className="text-lg font-bold">Today's Compliance Status</h3>
-                <p className="text-xs text-slate-500 dark:text-gray-400">SOD and EOD submissions check</p>
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[9999] flex items-center justify-center p-4">
+          <div className={`w-full max-w-3xl rounded-2xl shadow-2xl overflow-hidden border animate-scale-up ${isDark ? "bg-gray-900 border-gray-800 text-white" : "bg-white border-slate-200 text-slate-800"}`}>
+            <div className="px-6 py-4.5 border-b border-slate-100 dark:border-gray-800 flex justify-between items-center bg-slate-50/50 dark:bg-gray-850/50">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-teal-50 dark:bg-teal-950/50 text-teal-600 dark:text-teal-400 flex items-center justify-center font-bold">
+                  <Clock className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold">Today's Compliance Status</h3>
+                  <p className="text-xs text-slate-500 dark:text-gray-400">SOD and EOD daily submissions audit</p>
+                </div>
               </div>
               <button
                 onClick={() => setShowSodEodModal(false)}
-                className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-gray-800 text-slate-400 hover:text-slate-600"
+                className="p-2 rounded-xl hover:bg-slate-200/60 dark:hover:bg-gray-800 text-slate-400 hover:text-slate-600 transition-colors"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
-            <div className="p-6 max-h-[60vh] overflow-y-auto">
+            <div className="p-6 max-h-[60vh] overflow-y-auto custom-scrollbar">
               <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse">
                   <thead>
-                    <tr className="border-b border-slate-200 dark:border-gray-800 text-xs font-bold uppercase tracking-wider text-slate-400">
+                    <tr className="border-b border-slate-200 dark:border-gray-800 text-[11px] font-bold uppercase tracking-wider text-slate-400">
                       <th className="pb-3 pl-2">Employee</th>
                       <th className="pb-3">SOD Status / Time</th>
                       <th className="pb-3">EOD Status / Time</th>
@@ -2400,18 +2444,20 @@ export function DepartmentDashboard({
                         : null;
 
                       return (
-                        <tr key={m.id} className="text-xs font-medium">
-                          <td className="py-3.5 pl-2">
-                            <div className="font-bold">{m.name}</div>
+                        <tr key={m.id} className="text-xs font-medium hover:bg-slate-50/50 dark:hover:bg-gray-800/30 transition-colors">
+                          <td className="py-3 pl-2">
+                            <div className="font-bold text-slate-800 dark:text-gray-100">{m.name}</div>
                             <div className="text-[10px] text-slate-400 mt-0.5">{m.designation || m.role}</div>
                           </td>
-                          <td className="py-3.5">
-                            <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full font-bold border ${m.sodTime ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/20 dark:text-emerald-400" : "bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/20 dark:text-rose-400"}`}>
+                          <td className="py-3">
+                            <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full font-bold border shadow-xs ${m.sodTime ? "bg-emerald-50 text-emerald-700 border-emerald-200/80 dark:bg-emerald-950/30 dark:text-emerald-400 dark:border-emerald-800/60" : "bg-rose-50 text-rose-700 border-rose-200/80 dark:bg-rose-950/30 dark:text-rose-400 dark:border-rose-800/60"}`}>
+                              <span className={`w-1.5 h-1.5 rounded-full ${m.sodTime ? "bg-emerald-500" : "bg-rose-500"}`} />
                               {m.sodTime ? sodTimeLabel : "Pending"}
                             </span>
                           </td>
-                          <td className="py-3.5">
-                            <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full font-bold border ${m.eodTime ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/20 dark:text-emerald-400" : "bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/20 dark:text-rose-450"}`}>
+                          <td className="py-3">
+                            <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full font-bold border shadow-xs ${m.eodTime ? "bg-emerald-50 text-emerald-700 border-emerald-200/80 dark:bg-emerald-950/30 dark:text-emerald-400 dark:border-emerald-800/60" : "bg-rose-50 text-rose-700 border-rose-200/80 dark:bg-rose-950/30 dark:text-rose-400 dark:border-rose-800/60"}`}>
+                              <span className={`w-1.5 h-1.5 rounded-full ${m.eodTime ? "bg-emerald-500" : "bg-rose-500"}`} />
                               {m.eodTime ? eodTimeLabel : "Pending"}
                             </span>
                           </td>
@@ -2426,7 +2472,8 @@ export function DepartmentDashboard({
         </div>
       )}
 
-      <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2.5 sm:gap-4">
+      {/* Top 5 Stat Cards */}
+      <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
         <StatCard
           title="Team Members"
           value={deptStats.teamMembers?.toString() || "0"}
@@ -2473,125 +2520,215 @@ export function DepartmentDashboard({
         />
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
+      {/* Middle Row: 3 Widget Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {/* Card 1: Task Pipeline */}
         <button
           type="button"
           onClick={() => onNavigateTodayTasks?.()}
-          className={`p-4 sm:p-5 rounded-xl border shadow-sm text-left transition-colors ${isDark ? "bg-gray-900 border-gray-800 hover:border-indigo-700" : "bg-white border-slate-200 hover:border-indigo-300"}`}
+          className={`p-5 rounded-2xl border shadow-sm text-left transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md group ${isDark ? "bg-gray-900 border-gray-800 hover:border-indigo-600/60" : "bg-white border-slate-200 hover:border-indigo-400/60"}`}
         >
           <div className="flex items-center justify-between">
-            <h2 className={`text-sm font-bold ${isDark ? "text-white" : "text-slate-800"}`}>Today's Task Pipeline</h2>
-            <span className="text-xs font-bold text-indigo-600">{taskCompletionRate}% done</span>
+            <div className="flex items-center gap-2">
+              <div className="w-7 h-7 rounded-lg bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 flex items-center justify-center font-bold">
+                <Briefcase className="w-4 h-4" />
+              </div>
+              <h2 className={`text-sm font-bold ${isDark ? "text-white" : "text-slate-800"}`}>Today's Task Pipeline</h2>
+            </div>
+            <span className="text-xs font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/60 px-2 py-0.5 rounded-full border border-indigo-100 dark:border-indigo-900/60">
+              {taskCompletionRate}% done
+            </span>
           </div>
+
           <div className="grid grid-cols-4 gap-2 mt-4 text-center">
             {[
-              ["Completed", deptStats.completedTasks || 0, "text-emerald-600"],
-              ["In Progress", deptStats.inProgressTasks || 0, "text-amber-600"],
-              ["Pending", deptStats.pendingTasks || 0, "text-slate-600"],
-              ["Overdue", deptStats.overdueTasks || 0, "text-rose-600"]
-            ].map(([label, value, color]) => (
-              <div key={String(label)}>
-                <div className={`text-base sm:text-lg font-bold ${color}`}>{value}</div>
-                <div className="text-[9px] sm:text-[10px] text-slate-500 mt-0.5">{label}</div>
+              ["Completed", deptStats.completedTasks || 0, "text-emerald-600 dark:text-emerald-400", "bg-emerald-50/60 dark:bg-emerald-950/30 border-emerald-100 dark:border-emerald-900/40"],
+              ["In Progress", deptStats.inProgressTasks || 0, "text-amber-600 dark:text-amber-400", "bg-amber-50/60 dark:bg-amber-950/30 border-amber-100 dark:border-amber-900/40"],
+              ["Pending", deptStats.pendingTasks || 0, "text-slate-600 dark:text-slate-300", "bg-slate-50 dark:bg-gray-800 border-slate-100 dark:border-gray-700/60"],
+              ["Overdue", deptStats.overdueTasks || 0, "text-rose-600 dark:text-rose-400", "bg-rose-50/60 dark:bg-rose-950/30 border-rose-100 dark:border-rose-900/40"]
+            ].map(([label, value, color, bg]) => (
+              <div key={String(label)} className={`rounded-xl p-2 border ${bg} transition-all`}>
+                <div className={`text-base sm:text-lg font-black ${color}`}>{value}</div>
+                <div className="text-[10px] font-semibold text-slate-500 dark:text-gray-400 mt-0.5 truncate">{label}</div>
               </div>
             ))}
           </div>
-          <div className={`h-2 rounded-full mt-4 overflow-hidden ${isDark ? "bg-gray-800" : "bg-slate-100"}`}>
-            <div className="h-full bg-indigo-500 rounded-full" style={{ width: `${Math.min(100, taskCompletionRate)}%` }} />
+
+          <div className="mt-4">
+            <div className={`h-2 rounded-full overflow-hidden ${isDark ? "bg-gray-800" : "bg-slate-100"}`}>
+              <div
+                className="h-full bg-gradient-to-r from-indigo-500 to-teal-400 rounded-full transition-all duration-500"
+                style={{ width: `${Math.min(100, taskCompletionRate)}%` }}
+              />
+            </div>
           </div>
         </button>
 
+        {/* Card 2: Attendance Today */}
         <button
           type="button"
           onClick={() => setShowTeamModal(true)}
-          className={`p-4 sm:p-5 rounded-xl border shadow-sm text-left transition-colors ${isDark ? "bg-gray-900 border-gray-800 hover:border-emerald-700" : "bg-white border-slate-200 hover:border-emerald-300"}`}
+          className={`p-5 rounded-2xl border shadow-sm text-left transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md group ${isDark ? "bg-gray-900 border-gray-800 hover:border-emerald-600/60" : "bg-white border-slate-200 hover:border-emerald-400/60"}`}
         >
           <div className="flex items-center justify-between">
-            <h2 className={`text-sm font-bold ${isDark ? "text-white" : "text-slate-800"}`}>Attendance Today</h2>
-            <Users className="w-4 h-4 text-emerald-500" />
+            <div className="flex items-center gap-2">
+              <div className="w-7 h-7 rounded-lg bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-bold">
+                <Users className="w-4 h-4" />
+              </div>
+              <h2 className={`text-sm font-bold ${isDark ? "text-white" : "text-slate-800"}`}>Attendance Today</h2>
+            </div>
+            <span className="text-[11px] font-semibold text-slate-400 group-hover:text-emerald-600 transition-colors flex items-center gap-0.5">
+              View <ChevronRight className="w-3 h-3" />
+            </span>
           </div>
-          <div className="grid grid-cols-3 gap-2.5 sm:gap-3 mt-4">
+
+          <div className="grid grid-cols-3 gap-2.5 mt-4">
             {[
-              ["Present", deptStats.presentToday || 0, "bg-emerald-50 text-emerald-700"],
-              ["On Leave", deptStats.onLeaveToday || 0, "bg-amber-50 text-amber-700"],
-              ["Absent", deptStats.absentToday || 0, "bg-rose-50 text-rose-700"]
-            ].map(([label, value, color]) => (
-              <div key={String(label)} className={`rounded-lg p-2.5 sm:p-3 ${color}`}>
-                <div className="text-lg sm:text-xl font-bold">{value}</div>
-                <div className="text-[9px] sm:text-[10px] font-semibold mt-1">{label}</div>
+              ["Present", deptStats.presentToday || 0, "bg-emerald-50/80 text-emerald-700 border-emerald-200/80 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-900/60"],
+              ["On Leave", deptStats.onLeaveToday || 0, "bg-amber-50/80 text-amber-700 border-amber-200/80 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-900/60"],
+              ["Absent", deptStats.absentToday || 0, "bg-rose-50/80 text-rose-700 border-rose-200/80 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-900/60"]
+            ].map(([label, value, colorClass]) => (
+              <div key={String(label)} className={`rounded-xl p-3 border shadow-2xs ${colorClass} transition-transform group-hover:scale-[1.02]`}>
+                <div className="text-xl font-black">{value}</div>
+                <div className="text-[10px] font-bold mt-0.5 opacity-90">{label}</div>
               </div>
             ))}
           </div>
+
+          <div className="mt-3.5 flex items-center justify-between text-[11px] text-slate-400 font-medium pt-1 border-t border-slate-100 dark:border-gray-800">
+            <span>Total Team Members</span>
+            <span className="font-bold text-slate-700 dark:text-gray-200">{deptStats.teamMembers || 0}</span>
+          </div>
         </button>
 
-        <div className={`p-4 sm:p-5 rounded-xl border shadow-sm ${isDark ? "bg-gray-900 border-gray-800" : "bg-white border-slate-200"}`}>
+        {/* Card 3: Manager Attention */}
+        <div className={`p-5 rounded-2xl border shadow-sm ${isDark ? "bg-gray-900 border-gray-800" : "bg-white border-slate-200"}`}>
           <div className="flex items-center justify-between">
-            <h2 className={`text-sm font-bold ${isDark ? "text-white" : "text-slate-800"}`}>Manager Attention</h2>
-            <AlertTriangle className="w-4 h-4 text-amber-500" />
+            <div className="flex items-center gap-2">
+              <div className="w-7 h-7 rounded-lg bg-amber-50 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400 flex items-center justify-center font-bold">
+                <AlertTriangle className="w-4 h-4" />
+              </div>
+              <h2 className={`text-sm font-bold ${isDark ? "text-white" : "text-slate-800"}`}>Manager Attention</h2>
+            </div>
+            <span className="text-[11px] font-bold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/60 px-2 py-0.5 rounded-full border border-amber-200/60 dark:border-amber-900/60">
+              {(deptStats.pendingLeaves || 0) + (deptStats.pendingExpenses || 0) + (deptStats.sodPending || 0) + (deptStats.eodPending || 0)} Action items
+            </span>
           </div>
-          <div className="grid grid-cols-2 gap-2 mt-4 text-xs">
-            <button onClick={() => onNavigateTab("ess-leaves")} className="rounded-lg border border-slate-200 p-2.5 sm:p-3 text-left hover:bg-slate-50">
-              <span className="block text-base sm:text-lg font-bold text-indigo-600">{deptStats.pendingLeaves || 0}</span>
-              Pending Leaves
+
+          <div className="grid grid-cols-2 gap-2.5 mt-4 text-xs">
+            <button
+              onClick={() => onNavigateTab("ess-leaves")}
+              className={`rounded-xl border p-2.5 text-left transition-all duration-150 hover:border-indigo-300 hover:shadow-xs group ${isDark ? "border-gray-800 bg-gray-800/40 hover:bg-gray-800" : "border-slate-200/80 bg-slate-50/50 hover:bg-white"}`}
+            >
+              <span className="block text-lg font-black text-indigo-600 dark:text-indigo-400 group-hover:scale-105 transition-transform">{deptStats.pendingLeaves || 0}</span>
+              <span className="text-[11px] font-semibold text-slate-600 dark:text-gray-300">Pending Leaves</span>
             </button>
-            <button onClick={() => onNavigateTab("ess-expenses")} className="rounded-lg border border-slate-200 p-2.5 sm:p-3 text-left hover:bg-slate-50">
-              <span className="block text-base sm:text-lg font-bold text-indigo-600">{deptStats.pendingExpenses || 0}</span>
-              Pending Expenses
+            <button
+              onClick={() => onNavigateTab("ess-expenses")}
+              className={`rounded-xl border p-2.5 text-left transition-all duration-150 hover:border-indigo-300 hover:shadow-xs group ${isDark ? "border-gray-800 bg-gray-800/40 hover:bg-gray-800" : "border-slate-200/80 bg-slate-50/50 hover:bg-white"}`}
+            >
+              <span className="block text-lg font-black text-indigo-600 dark:text-indigo-400 group-hover:scale-105 transition-transform">{deptStats.pendingExpenses || 0}</span>
+              <span className="text-[11px] font-semibold text-slate-600 dark:text-gray-300">Pending Expenses</span>
             </button>
-            <button onClick={() => setShowSodEodModal(true)} className="rounded-lg border border-slate-200 p-2.5 sm:p-3 text-left hover:bg-slate-50">
-              <span className="block text-base sm:text-lg font-bold text-rose-600">{deptStats.sodPending || 0}</span>
-              SOD Pending
+            <button
+              onClick={() => setShowSodEodModal(true)}
+              className={`rounded-xl border p-2.5 text-left transition-all duration-150 hover:border-rose-300 hover:shadow-xs group ${isDark ? "border-gray-800 bg-gray-800/40 hover:bg-gray-800" : "border-slate-200/80 bg-slate-50/50 hover:bg-white"}`}
+            >
+              <span className="block text-lg font-black text-rose-600 dark:text-rose-400 group-hover:scale-105 transition-transform">{deptStats.sodPending || 0}</span>
+              <span className="text-[11px] font-semibold text-slate-600 dark:text-gray-300">SOD Pending</span>
             </button>
-            <button onClick={() => setShowSodEodModal(true)} className="rounded-lg border border-slate-200 p-2.5 sm:p-3 text-left hover:bg-slate-50">
-              <span className="block text-base sm:text-lg font-bold text-rose-600">{deptStats.eodPending || 0}</span>
-              EOD Pending
+            <button
+              onClick={() => setShowSodEodModal(true)}
+              className={`rounded-xl border p-2.5 text-left transition-all duration-150 hover:border-rose-300 hover:shadow-xs group ${isDark ? "border-gray-800 bg-gray-800/40 hover:bg-gray-800" : "border-slate-200/80 bg-slate-50/50 hover:bg-white"}`}
+            >
+              <span className="block text-lg font-black text-rose-600 dark:text-rose-400 group-hover:scale-105 transition-transform">{deptStats.eodPending || 0}</span>
+              <span className="text-[11px] font-semibold text-slate-600 dark:text-gray-300">EOD Pending</span>
             </button>
           </div>
         </div>
       </div>
 
+      {/* Lower Section: 2 Columns */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Left Column (Span 2): Workload & Trends */}
         <div className="lg:col-span-2 space-y-6">
-          <div className={`p-4 sm:p-5 rounded-xl border shadow-sm ${isDark ? "bg-gray-900 border-gray-800" : "bg-white border-slate-200"}`}>
+          {/* Team Workload Card */}
+          <div className={`p-5 rounded-2xl border shadow-sm ${isDark ? "bg-gray-900 border-gray-800" : "bg-white border-slate-200"}`}>
             <div className="flex items-center justify-between mb-4">
               <div>
-                <h2 className={`text-base sm:text-lg font-bold ${isDark ? "text-white" : "text-slate-800"}`}>Team Workload Today</h2>
-                <p className="text-xs text-slate-500 mt-0.5">Overdue and high-workload employees appear first</p>
+                <div className="flex items-center gap-2">
+                  <h2 className={`text-base sm:text-lg font-bold ${isDark ? "text-white" : "text-slate-800"}`}>Team Workload Today</h2>
+                  <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 dark:bg-gray-800 dark:text-gray-300">
+                    Top {teamWorkload.length}
+                  </span>
+                </div>
+                <p className="text-xs text-slate-500 mt-0.5">Overdue and high-workload employees prioritized</p>
               </div>
-              <button onClick={() => setShowTeamModal(true)} className="text-xs font-bold text-indigo-600 hover:text-indigo-700">View all</button>
+              <button
+                onClick={() => setShowTeamModal(true)}
+                className="text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 flex items-center gap-1 transition-colors"
+              >
+                View all team <ChevronRight className="w-3.5 h-3.5" />
+              </button>
             </div>
+
             {teamWorkload.length === 0 ? (
-              <div className="py-8 text-center text-sm text-slate-400">No team data available for this department.</div>
+              <div className="py-12 text-center text-sm text-slate-400">No team data available for this department.</div>
             ) : (
               <div className="overflow-x-auto custom-scrollbar">
-                <div className="min-w-[460px] divide-y divide-slate-100">
+                <div className="min-w-[500px] divide-y divide-slate-100 dark:divide-gray-800">
                   {teamWorkload.map((member: any) => {
                     const completion = member.tasksTotal
                       ? Math.round(((member.tasksCompleted || 0) / member.tasksTotal) * 100)
                       : 0;
+                    const initials = (member.name || "U").split(" ").map((n: string) => n[0]).slice(0, 2).join("").toUpperCase();
+                    const isPresent = member.attendanceStatus === "Present";
+                    const isOnLeave = member.attendanceStatus === "On Leave";
+
                     return (
-                      <div key={member.id} className="grid grid-cols-[minmax(140px,1fr)_minmax(110px,1fr)_70px_80px] items-center gap-3 py-3 text-xs">
-                        <div className="min-w-0">
-                          <div className={`font-bold truncate ${isDark ? "text-gray-100" : "text-slate-700"}`}>{member.name}</div>
-                          <div className="text-[10px] text-slate-400 truncate">{member.designation || member.role || "Team member"}</div>
-                        </div>
-                        <div>
-                          <div className={`h-1.5 rounded-full overflow-hidden ${isDark ? "bg-gray-800" : "bg-slate-100"}`}>
-                            <div className="h-full bg-indigo-500 rounded-full" style={{ width: `${Math.min(100, completion)}%` }} />
+                      <div key={member.id} className="grid grid-cols-[minmax(180px,1.4fr)_minmax(140px,1fr)_80px_90px] items-center gap-3 py-3 text-xs hover:bg-slate-50/50 dark:hover:bg-gray-850/40 rounded-xl px-2 transition-colors">
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <div className="relative shrink-0">
+                            <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-bold text-[11px] ${isPresent ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300" : isOnLeave ? "bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300" : "bg-rose-100 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300"}`}>
+                              {initials}
+                            </div>
+                            <span className={`absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full border ${isDark ? "border-gray-900" : "border-white"} ${isPresent ? "bg-emerald-500" : isOnLeave ? "bg-amber-500" : "bg-rose-500"}`} />
                           </div>
-                          <div className="text-[10px] text-slate-400 mt-1">{member.tasksCompleted || 0}/{member.tasksTotal || 0} completed</div>
+                          <div className="min-w-0">
+                            <div className={`font-bold truncate ${isDark ? "text-gray-100" : "text-slate-800"}`}>{member.name}</div>
+                            <div className="text-[10px] text-slate-400 truncate">{member.designation || member.role || "Team member"}</div>
+                          </div>
                         </div>
-                        <span className={`font-bold ${member.tasksOverdue ? "text-rose-600" : "text-slate-400"}`}>
-                          {member.tasksOverdue || 0} overdue
-                        </span>
-                        <span className={`text-[10px] font-bold text-center px-2 py-1 rounded-full ${member.attendanceStatus === "Present"
-                            ? "bg-emerald-50 text-emerald-700"
-                            : member.attendanceStatus === "On Leave"
-                              ? "bg-amber-50 text-amber-700"
-                              : "bg-rose-50 text-rose-700"
-                          }`}>
-                          {member.attendanceStatus || "Absent"}
-                        </span>
+
+                        <div>
+                          <div className={`h-2 rounded-full overflow-hidden ${isDark ? "bg-gray-800" : "bg-slate-100"}`}>
+                            <div
+                              className={`h-full rounded-full transition-all duration-300 ${completion === 100 ? "bg-emerald-500" : completion > 50 ? "bg-indigo-500" : "bg-amber-500"}`}
+                              style={{ width: `${Math.min(100, completion)}%` }}
+                            />
+                          </div>
+                          <div className="text-[10px] text-slate-400 mt-1 flex justify-between">
+                            <span>{member.tasksCompleted || 0}/{member.tasksTotal || 0} done</span>
+                            <span className="font-semibold">{completion}%</span>
+                          </div>
+                        </div>
+
+                        <div className="text-right">
+                          <span className={`font-bold inline-block px-2 py-0.5 rounded-md text-[11px] ${member.tasksOverdue ? "text-rose-600 bg-rose-50 dark:bg-rose-950/40 dark:text-rose-400" : "text-slate-400"}`}>
+                            {member.tasksOverdue ? `${member.tasksOverdue} overdue` : "0 overdue"}
+                          </span>
+                        </div>
+
+                        <div className="text-right">
+                          <span className={`text-[10px] font-bold inline-block px-2.5 py-1 rounded-full border shadow-2xs ${isPresent
+                              ? "bg-emerald-50 text-emerald-700 border-emerald-200/80 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800"
+                              : isOnLeave
+                                ? "bg-amber-50 text-amber-700 border-amber-200/80 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800"
+                                : "bg-rose-50 text-rose-700 border-rose-200/80 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-800"
+                            }`}>
+                            {member.attendanceStatus || "Absent"}
+                          </span>
+                        </div>
                       </div>
                     );
                   })}
@@ -2600,41 +2737,71 @@ export function DepartmentDashboard({
             )}
           </div>
 
-          <div className={`p-6 rounded-xl border shadow-sm ${isDark ? "bg-gray-900 border-gray-800" : "bg-white border-slate-200"}`}>
+          {/* Performance Trends Chart */}
+          <div className={`p-5 rounded-2xl border shadow-sm ${isDark ? "bg-gray-900 border-gray-800" : "bg-white border-slate-200"}`}>
             <div className="flex items-center justify-between mb-4">
-              <h2 className={`text-lg font-bold ${isDark ? "text-white" : "text-slate-800"}`}>Team Performance Trends</h2>
-              <span className={`text-xs font-medium ${isDark ? "text-gray-400" : "text-slate-500"}`}>SOD Compliance — Last 6 Months</span>
+              <div className="flex items-center gap-2">
+                <div className="w-7 h-7 rounded-lg bg-teal-50 dark:bg-teal-950/50 text-teal-600 dark:text-teal-400 flex items-center justify-center font-bold">
+                  <TrendingUp className="w-4 h-4" />
+                </div>
+                <h2 className={`text-base sm:text-lg font-bold ${isDark ? "text-white" : "text-slate-800"}`}>Team Performance Trends</h2>
+              </div>
+              <span className={`text-xs font-semibold px-2.5 py-0.5 rounded-full border ${isDark ? "bg-gray-800 border-gray-700 text-gray-400" : "bg-slate-50 border-slate-200 text-slate-500"}`}>
+                SOD Compliance • Last 6 Months
+              </span>
             </div>
             <PerformanceChart dark={isDark} data={deptStats.performanceTrend || []} />
           </div>
         </div>
 
+        {/* Right Column (Span 1): Compliance & Activity Feed */}
         <div className="space-y-6">
-          <div className={`p-5 rounded-xl border shadow-sm ${isDark ? "bg-gray-900 border-gray-800" : "bg-white border-slate-200"}`}>
+          {/* Daily Compliance Card */}
+          <div className={`p-5 rounded-2xl border shadow-sm ${isDark ? "bg-gray-900 border-gray-800" : "bg-white border-slate-200"}`}>
             <div className="flex items-center justify-between mb-4">
-              <h2 className={`text-sm font-bold ${isDark ? "text-white" : "text-slate-800"}`}>Daily Compliance</h2>
-              <button onClick={() => setShowSodEodModal(true)} className="text-[10px] font-bold text-indigo-600">Inspect</button>
-            </div>
-            {[
-              ["SOD submitted", deptStats.sod || 0, sodComplianceRate, "bg-indigo-500"],
-              ["EOD submitted", deptStats.eod || 0, eodComplianceRate, "bg-emerald-500"]
-            ].map(([label, value, percent, color]) => (
-              <div key={String(label)} className="mb-4 last:mb-0">
-                <div className="flex justify-between text-xs mb-1.5">
-                  <span className="text-slate-500">{label}</span>
-                  <span className={`font-bold ${isDark ? "text-white" : "text-slate-700"}`}>{value}/{deptStats.teamMembers || 0} ({percent}%)</span>
+              <div className="flex items-center gap-2">
+                <div className="w-7 h-7 rounded-lg bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 flex items-center justify-center font-bold">
+                  <Clock3 className="w-4 h-4" />
                 </div>
-                <div className={`h-2 rounded-full overflow-hidden ${isDark ? "bg-gray-800" : "bg-slate-100"}`}>
-                  <div className={`h-full rounded-full ${color}`} style={{ width: `${Math.min(100, Number(percent))}%` }} />
+                <h2 className={`text-sm font-bold ${isDark ? "text-white" : "text-slate-800"}`}>Daily Compliance</h2>
+              </div>
+              <button
+                onClick={() => setShowSodEodModal(true)}
+                className="text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 flex items-center gap-0.5"
+              >
+                Inspect <ChevronRight className="w-3 h-3" />
+              </button>
+            </div>
+
+            {[
+              ["SOD Submitted", deptStats.sod || 0, sodComplianceRate, "from-indigo-500 to-indigo-600"],
+              ["EOD Submitted", deptStats.eod || 0, eodComplianceRate, "from-teal-500 to-emerald-500"]
+            ].map(([label, value, percent, gradient]) => (
+              <div key={String(label)} className="mb-4 last:mb-0 p-3 rounded-xl border border-slate-100 dark:border-gray-800/80 bg-slate-50/50 dark:bg-gray-800/30">
+                <div className="flex justify-between items-center text-xs mb-2">
+                  <span className="font-semibold text-slate-600 dark:text-gray-300">{label}</span>
+                  <span className={`font-bold px-2 py-0.5 rounded-full text-[11px] ${isDark ? "bg-gray-800 text-white" : "bg-white text-slate-700 border border-slate-200/60"}`}>
+                    {value}/{deptStats.teamMembers || 0} ({percent}%)
+                  </span>
+                </div>
+                <div className={`h-2.5 rounded-full overflow-hidden ${isDark ? "bg-gray-800" : "bg-slate-200/70"}`}>
+                  <div className={`h-full rounded-full bg-gradient-to-r ${gradient} transition-all duration-500`} style={{ width: `${Math.min(100, Number(percent))}%` }} />
                 </div>
               </div>
             ))}
           </div>
-          <div className={`p-6 rounded-xl border shadow-sm ${isDark ? "bg-gray-900 border-gray-800" : "bg-white border-slate-200"}`}>
-            <div className="flex items-center justify-between mb-6">
-              <h2 className={`text-lg font-bold ${isDark ? "text-white" : "text-slate-800"}`}>Team Activity</h2>
+
+          {/* Team Activity Feed Card */}
+          <div className={`p-5 rounded-2xl border shadow-sm ${isDark ? "bg-gray-900 border-gray-800" : "bg-white border-slate-200"}`}>
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <div className="w-7 h-7 rounded-lg bg-purple-50 dark:bg-purple-950/50 text-purple-600 dark:text-purple-400 flex items-center justify-center font-bold">
+                  <Activity className="w-4 h-4" />
+                </div>
+                <h2 className={`text-base font-bold ${isDark ? "text-white" : "text-slate-800"}`}>Team Activity</h2>
+              </div>
             </div>
-            <ActivityFeed dark={isDark} logs={deptStats.teamActivities || []} maxHeight="max-h-[390px]" />
+            <ActivityFeed dark={isDark} logs={deptStats.teamActivities || []} maxHeight="max-h-[380px]" />
           </div>
         </div>
       </div>

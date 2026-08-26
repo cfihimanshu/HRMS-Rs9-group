@@ -5,13 +5,15 @@ import EmployeeProfile from "@/models/sequelize/EmployeeProfile";
 import { Op } from "sequelize";
 
 const COMMON_DEPARTMENTS = [
-  "Admin",
-  "HR",
-  "Assets Management",
-  "Accounts",
-  "IT",
+  "Management",
+  "Human Resources",
+  "IT & Software",
+  "Finance & Accounts",
+  "Operations",
+  "Security & Legal",
   "Business Development",
-  "Operations"
+  "Admin",
+  "Assets Management"
 ];
 
 async function seedDefaultDepartments() {
@@ -58,23 +60,59 @@ export async function GET(req: Request) {
     });
 
     const getCanonicalName = (name: string): string => {
-      const s = (name || "").trim().toLowerCase();
-      if (s.includes("hr") || s.includes("human")) return "Human Resources";
-      if (s.includes("it") || s.includes("tech") || s.includes("software") || s.includes("information technology")) return "IT & Software";
-      if (s.includes("account") || s.includes("finance")) return "Finance & Accounts";
-      if (s.includes("legal") || s.includes("recovery") || s.includes("security")) return "Security & Legal";
-      if (s.includes("admin") || s.includes("operation") || s.includes("ops")) return "Operations";
-      if (s.includes("management") || s.includes("board")) return "Management";
-      if (s.includes("business development") || s.includes("bda") || s.includes("sales")) return "Business Development";
-      return name.trim();
+      if (!name) return "";
+      const raw = String(name).trim();
+
+      // If name is purely numeric or timestamp like "1781768049091", ignore it
+      if (/^\d+$/.test(raw)) return "";
+
+      const s = raw.toLowerCase();
+
+      // Handle internal DEPT_ codes like "DEPT_ATPL_MAN_469739399", "DEPT_CFI_OPE_..."
+      if (s.startsWith("dept_") || s.includes("_")) {
+        const parts = s.split("_");
+        for (const p of parts) {
+          const code = p.toUpperCase();
+          if (code === "MAN" || code === "MGMT" || code === "OWNER") return "Management";
+          if (code === "OPE" || code === "OPS") return "Operations";
+          if (code === "SEC" || code === "LEG") return "Security & Legal";
+          if (code === "HR" || code === "HUMAN") return "Human Resources";
+          if (code === "FIN" || code === "ACC" || code === "ACCOUNTS") return "Finance & Accounts";
+          if (code === "IT" || code === "TECH" || code === "DEV" || code === "SW") return "IT & Software";
+          if (code === "BDA" || code === "SALES" || code === "MKT") return "Business Development";
+          if (code === "ADM" || code === "ADMIN") return "Admin";
+        }
+      }
+
+      if (s.includes("owner") || s.includes("director") || s.includes("board") || s.includes("executive") || s.includes("management") || s.includes("mgmt")) return "Management";
+      if (s.includes("hr") || s.includes("human") || s.includes("recruit") || s.includes("talent")) return "Human Resources";
+      if (s.includes("it") || s.includes("tech") || s.includes("software") || s.includes("developer") || s.includes("information technology")) return "IT & Software";
+      if (s.includes("account") || s.includes("finance") || s.includes("payroll") || s.includes("tax")) return "Finance & Accounts";
+      if (s.includes("legal") || s.includes("recovery") || s.includes("security") || s.includes("facility")) return "Security & Legal";
+      if (s.includes("admin") || s.includes("operation") || s.includes("ops") || s.includes("logistics")) return "Operations";
+      if (s.includes("business development") || s.includes("bda") || s.includes("sales") || s.includes("marketing")) return "Business Development";
+      if (s.includes("asset") || s.includes("inventory")) return "Assets Management";
+
+      // If it still contains underscores and numbers, it is an unmapped internal ID
+      if (raw.includes("_") && /\d/.test(raw)) return "";
+
+      return raw;
     };
 
     const canonicalMap = new Map<string, { id: string; name: string }>();
 
+    // Always include standard departments
+    COMMON_DEPARTMENTS.forEach(name => {
+      const canonical = getCanonicalName(name) || name;
+      if (!canonicalMap.has(canonical.toLowerCase())) {
+        canonicalMap.set(canonical.toLowerCase(), { id: canonical, name: canonical });
+      }
+    });
+
     dbDepartments.forEach((d: any) => {
       if (!d.name) return;
       const canonical = getCanonicalName(d.name);
-      if (!canonicalMap.has(canonical.toLowerCase())) {
+      if (canonical && !canonicalMap.has(canonical.toLowerCase())) {
         canonicalMap.set(canonical.toLowerCase(), { id: canonical, name: canonical });
       }
     });
@@ -84,7 +122,7 @@ export async function GET(req: Request) {
     profiles.forEach((p: any) => {
       if (!p.department) return;
       const canonical = getCanonicalName(p.department);
-      if (!canonicalMap.has(canonical.toLowerCase())) {
+      if (canonical && !canonicalMap.has(canonical.toLowerCase())) {
         canonicalMap.set(canonical.toLowerCase(), { id: canonical, name: canonical });
       }
     });
