@@ -69,6 +69,12 @@ export function checkUserAccess(
   if (normAllowed.includes(role)) {
     return true;
   }
+  if (role.includes("manager") && normAllowed.some(r => r.includes("manager"))) {
+    return true;
+  }
+  if (role.includes("head") && normAllowed.some(r => r.includes("head"))) {
+    return true;
+  }
 
   // 3. Administration department members have full access
   if (dept.includes("administration")) {

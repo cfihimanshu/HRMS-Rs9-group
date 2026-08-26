@@ -51,6 +51,18 @@ async function ensureLegalRecoveryColumns() {
 
 import BankMaster from "@/models/sequelize/BankMaster";
 import LegalNotice from "@/models/sequelize/LegalNotice";
+import LegalWorkLog from "@/models/sequelize/LegalWorkLog";
+
+// Helper to safely parse financial details JSON
+function parseFinances(details: any) {
+  if (!details) return null;
+  if (typeof details === "object") return details;
+  try {
+    return JSON.parse(details);
+  } catch {
+    return null;
+  }
+}
 
 // GET all cases with dynamic notice billing, received & pending amounts and branch enrichment
 export async function GET() {
@@ -66,12 +78,13 @@ export async function GET() {
       await BranchMaster.sync().catch(() => {});
       await BankMaster.sync().catch(() => {});
       await LegalNotice.sync().catch(() => {});
+      await LegalWorkLog.sync().catch(() => {});
       await ensureLegalRecoveryColumns();
     } catch (sErr) {
       console.warn("LegalRecoveryMaster sync warning:", sErr);
     }
 
-    const [cases, payments, branches, banks, notices] = await Promise.all([
+    const [cases, payments, branches, banks, notices, workLogs] = await Promise.all([
       LegalRecoveryMaster.findAll({
         order: [["createdAt", "DESC"]],
         raw: true
@@ -87,16 +100,19 @@ export async function GET() {
       }).catch(() => []),
       LegalNotice.findAll({
         raw: true
+      }).catch(() => []),
+      LegalWorkLog.findAll({
+        raw: true
       }).catch(() => [])
     ]);
 
-    // Build payment map by masterId
-    const paymentsByMasterId: Record<number, number> = {};
+    // Build direct payments map by masterId
+    const directPaymentsByMasterId: Record<number, number> = {};
     payments.forEach((p: any) => {
       const mId = Number(p.masterId);
       const amt = parseFloat(p.amount) || 0;
       if (mId) {
-        paymentsByMasterId[mId] = (paymentsByMasterId[mId] || 0) + amt;
+        directPaymentsByMasterId[mId] = (directPaymentsByMasterId[mId] || 0) + amt;
       }
     });
 
@@ -104,7 +120,7 @@ export async function GET() {
     const branchMapByCode: Record<string, any> = {};
     const branchMapById: Record<string, any> = {};
     branches.forEach((b: any) => {
-      if (b.branchCode) branchMapByCode[String(b.branchCode).toLowerCase()] = b;
+      if (b.branchCode) branchMapByCode[String(b.branchCode).toLowerCase().trim()] = b;
       if (b.id) branchMapById[String(b.id)] = b;
     });
 
@@ -116,98 +132,193 @@ export async function GET() {
       if (b.bankName) bankMapByName[b.bankName.trim().toLowerCase()] = b;
     });
 
-    // Group notices by masterId, branchId, and bankId
-    interface NoticeGroup {
-      count: number;
-      billTotal: number;
-      receivedTotal: number;
-      latestDate?: string;
-      noticesList: any[];
+    const getGroupKey = (bank: string, branch: string) => {
+      const bClean = (bank || "").trim().toLowerCase();
+      const brClean = (branch || "").trim().toLowerCase();
+      return `${bClean}___${brClean}`;
+    };
+
+    // 1. Group work logs and notices by Bank & Branch & Category
+    const rawCaseMap = new Map<string, any[]>();
+
+    // Add notices
+    notices.forEach((n: any) => {
+      const resolvedBank = n.bankName || (n.bankId ? bankMapById[String(n.bankId)]?.bankName : undefined) || "Registered Bank";
+      const resolvedBranch = n.branchName || (n.branchId ? branchMapById[String(n.branchId)]?.branchName : undefined) || "General Branch";
+      const catKey = (n.typeOfNotice || n.noticeType || "ADVOCATE NOTICE").toUpperCase().trim();
+      const groupKey = n.masterId && Number(n.masterId) > 0
+        ? `m_${n.masterId}_${catKey}`
+        : `b_${getGroupKey(resolvedBank, resolvedBranch)}_${catKey}`;
+
+      if (!rawCaseMap.has(groupKey)) rawCaseMap.set(groupKey, []);
+      rawCaseMap.get(groupKey)!.push({ ...n, isRawNotice: true, resolvedBank, resolvedBranch });
+    });
+
+    // Add work logs
+    workLogs.forEach((wl: any) => {
+      const resolvedBank = wl.bankName || "Registered Bank";
+      const resolvedBranch = wl.branchName || "General Branch";
+      const catKey = (wl.businessDevOption || wl.category || "ADVOCATE NOTICE").toUpperCase().trim();
+      const groupKey = wl.masterId && Number(wl.masterId) > 0
+        ? `m_${wl.masterId}_${catKey}`
+        : `b_${getGroupKey(resolvedBank, resolvedBranch)}_${catKey}`;
+
+      if (!rawCaseMap.has(groupKey)) rawCaseMap.set(groupKey, []);
+      rawCaseMap.get(groupKey)!.push({ ...wl, isRawNotice: false, resolvedBank, resolvedBranch });
+    });
+
+    // 2. Consolidate each work group to extract accurate Bill Amount, Received Amount, and Pending Amount
+    interface ConsolidatedItem {
+      id: string | number;
+      masterId?: number;
+      bankName: string;
+      branchName: string;
+      noticeType: string;
+      billNo: string;
+      billDate?: string;
+      quantity: number;
+      billAmount: number;
+      amountRcvd: number;
+      pendingAmount: number;
+      handoverTo?: string;
+      dispatchedBy?: string;
+      handoverRemarks?: string;
+      documentUrl?: string;
     }
 
-    const noticeByMasterId: Record<number, NoticeGroup> = {};
-    const noticeByBranchId: Record<string, NoticeGroup> = {};
-    const noticeByBankId: Record<string, NoticeGroup> = {};
+    const consolidatedItemsByBankBranch: Record<string, ConsolidatedItem[]> = {};
+    const consolidatedItemsByMasterId: Record<number, ConsolidatedItem[]> = {};
 
-    notices.forEach((n: any) => {
-      const qty = parseInt(n.quantity) || 1;
-      const bill = parseFloat(n.billAmount) || 0;
-      const rcvd = parseFloat(n.amountRcvd) || 0;
-      const dt = n.billDate || n.noticeDate || n.noticeOrderDate || (n.createdAt ? new Date(n.createdAt).toISOString().split('T')[0] : undefined);
+    rawCaseMap.forEach((items) => {
+      if (!items || items.length === 0) return;
 
-      const noticeItem = {
-        id: n.id,
-        noticeType: n.noticeType || n.typeOfNotice || "Advocate Notice",
-        billNo: n.billNo || "N/A",
-        billDate: dt,
-        quantity: qty,
-        billAmount: bill,
-        amountRcvd: rcvd,
-        pendingAmount: Math.max(0, bill - rcvd),
-        paymentRcvdDate: n.paymentRcvdDate,
-        tdsDeduction: parseFloat(n.tdsDeduction) || 0,
-        gstDeduction: parseFloat(n.gstDeduction) || 0,
-        handoverTo: n.handoverTo,
-        broughtBy: n.broughtBy,
-        dispatchedBy: n.dispatchedBy,
-        handoverRemarks: n.handoverRemarks,
-        documentUrl: n.documentUrl
-      };
+      const primary = items.find(i => i.isRawNotice) || items[0];
+      const bankName = primary.resolvedBank || primary.bankName || "Registered Bank";
+      const branchName = primary.resolvedBranch || primary.branchName || "General Branch";
+      const noticeType = primary.typeOfNotice || primary.noticeType || primary.businessDevOption || primary.category || "Advocate Notice";
 
-      const addStats = (group: NoticeGroup | undefined): NoticeGroup => {
-        const g = group || { count: 0, billTotal: 0, receivedTotal: 0, noticesList: [] };
-        g.count += qty;
-        g.billTotal += bill;
-        g.receivedTotal += rcvd;
-        g.noticesList.push(noticeItem);
-        if (dt && (!g.latestDate || dt > g.latestDate)) {
-          g.latestDate = dt;
+      // Scan all logs in this group for bill and payment details
+      let billNo = primary.billNo || "";
+      let billDate = primary.billDate || "";
+      let billAmount = parseFloat(primary.billAmount) || 0;
+      let receivedAmount = parseFloat(primary.amountRcvd) || 0;
+      let qty = parseInt(primary.quantity || primary.noOfCount) || 1;
+      let handoverTo = primary.handoverTo || primary.personName || "";
+      let dispatchedBy = primary.dispatchedBy || "";
+      let handoverRemarks = primary.handoverRemarks || primary.remarks || "";
+      let docUrl = primary.documentUrl || primary.uploadedFileName || "";
+      let mId = primary.masterId ? Number(primary.masterId) : undefined;
+
+      items.forEach((it) => {
+        const sub = (it.businessDevSubOption || it.subCategory || "").toUpperCase();
+        const fin = parseFinances(it.financialDetails);
+
+        if (it.masterId && Number(it.masterId) > 0) {
+          mId = Number(it.masterId);
         }
-        return g;
-      };
 
-      if (n.masterId) {
-        noticeByMasterId[Number(n.masterId)] = addStats(noticeByMasterId[Number(n.masterId)]);
-      }
-      if (n.branchId) {
-        noticeByBranchId[String(n.branchId)] = addStats(noticeByBranchId[String(n.branchId)]);
-      }
-      if (n.bankId) {
-        noticeByBankId[String(n.bankId)] = addStats(noticeByBankId[String(n.bankId)]);
+        if (it.billNo && it.billNo !== "N/A") {
+          billNo = it.billNo;
+        } else if (fin?.billNo) {
+          billNo = fin.billNo;
+        }
+
+        if (it.billDate) {
+          billDate = it.billDate;
+        } else if (fin?.billDate) {
+          billDate = fin.billDate;
+        }
+
+        if (it.noOfCount) {
+          qty = Math.max(qty, parseInt(it.noOfCount) || 1);
+        }
+
+        if (it.dispatchedBy) dispatchedBy = it.dispatchedBy;
+        if (it.handoverTo || it.personName) handoverTo = it.handoverTo || it.personName;
+        if (it.handoverRemarks || it.remarks) handoverRemarks = it.handoverRemarks || it.remarks;
+        if (it.documentUrl || it.uploadedFileName) docUrl = it.documentUrl || it.uploadedFileName;
+
+        // Bill amount extraction
+        const logBill = parseFloat(fin?.totalBillAmount || it.billAmount || (sub.includes("BILL") ? it.stageAmount : 0)) || 0;
+        if (logBill > billAmount) {
+          billAmount = logBill;
+        }
+
+        // Received amount extraction
+        if (Array.isArray(fin?.paymentInstallments) && fin.paymentInstallments.length > 0) {
+          const sumInst = fin.paymentInstallments.reduce((sum: number, inst: any) => sum + (parseFloat(inst.amount) || 0), 0);
+          if (sumInst > receivedAmount) receivedAmount = sumInst;
+        } else if (fin?.receivedAmount !== undefined && fin?.receivedAmount !== null) {
+          const finRec = parseFloat(fin.receivedAmount) || 0;
+          if (finRec > receivedAmount) receivedAmount = finRec;
+        } else if (sub.includes("PAYMENT") || sub.includes("REQUEST PAYMENT")) {
+          const stageRec = parseFloat(it.stageAmount || it.billAmount) || 0;
+          if (stageRec > receivedAmount) receivedAmount = stageRec;
+        }
+      });
+
+      const pending = Math.max(0, billAmount - receivedAmount);
+
+      // Only include if this work group has reached the billing stage
+      if (billAmount > 0 || receivedAmount > 0 || (billNo && billNo !== "N/A")) {
+        const consolidatedItem: ConsolidatedItem = {
+          id: primary.id || `c_${Date.now()}`,
+          masterId: mId,
+          bankName,
+          branchName,
+          noticeType,
+          billNo: billNo || "N/A",
+          billDate: billDate || (primary.createdAt ? new Date(primary.createdAt).toISOString().split('T')[0] : undefined),
+          quantity: qty,
+          billAmount,
+          amountRcvd: receivedAmount,
+          pendingAmount: pending,
+          handoverTo,
+          dispatchedBy,
+          handoverRemarks,
+          documentUrl: docUrl
+        };
+
+        const bKey = getGroupKey(bankName, branchName);
+        if (!consolidatedItemsByBankBranch[bKey]) consolidatedItemsByBankBranch[bKey] = [];
+        consolidatedItemsByBankBranch[bKey].push(consolidatedItem);
+
+        if (mId && mId > 0) {
+          if (!consolidatedItemsByMasterId[mId]) consolidatedItemsByMasterId[mId] = [];
+          consolidatedItemsByMasterId[mId].push(consolidatedItem);
+        }
       }
     });
 
-    // Track which branches / banks have existing cases
-    const existingCaseKeys = new Set<string>();
+    // Track which bank-branch groups are covered by registered cases
+    const coveredGroupKeys = new Set<string>();
 
     const enrichedCases = cases.map((c: any) => {
       const caseId = Number(c.id);
-      const directReceived = paymentsByMasterId[caseId] || 0;
+      const directReceived = directPaymentsByMasterId[caseId] || 0;
 
       // Find linked branch details
-      const bKey = c.branchId ? String(c.branchId).toLowerCase() : "";
+      const bKey = c.branchId ? String(c.branchId).toLowerCase().trim() : "";
       const linkedBranch = branchMapByCode[bKey] || branchMapById[String(c.branchId)] || null;
       const bankKey = c.bankName ? c.bankName.trim().toLowerCase() : "";
       const linkedBank = bankMapByName[bankKey] || (c.bankId ? bankMapById[String(c.bankId)] : null);
 
-      if (linkedBranch?.id) existingCaseKeys.add(`branch_${linkedBranch.id}`);
-      if (c.branchId) existingCaseKeys.add(`branch_code_${String(c.branchId).toLowerCase()}`);
-      if (linkedBank?.id) existingCaseKeys.add(`bank_${linkedBank.id}`);
+      const resolvedBankName = c.bankName || linkedBank?.bankName || "Registered Bank";
+      const resolvedBranchName = c.branchName || linkedBranch?.branchName || "General Branch";
+      const grpKey = getGroupKey(resolvedBankName, resolvedBranchName);
+      coveredGroupKeys.add(grpKey);
 
-      // Gather notice stats
-      const nStatsMaster = noticeByMasterId[caseId];
-      const nStatsBranch = linkedBranch?.id ? noticeByBranchId[String(linkedBranch.id)] : (c.branchId ? noticeByBranchId[String(c.branchId)] : undefined);
-      const nStatsBank = linkedBank?.id ? noticeByBankId[String(linkedBank.id)] : undefined;
+      // Collect all consolidated items for this case: combine by masterId and by bank+branch
+      const itemsMap = new Map<string | number, ConsolidatedItem>();
 
-      const noticeCount = (nStatsMaster?.count || 0) + (nStatsBranch?.count || 0) || (nStatsBank?.count || 0);
-      const noticeBill = (nStatsMaster?.billTotal || 0) + (nStatsBranch?.billTotal || 0) || (nStatsBank?.billTotal || 0);
-      const noticeRcvd = (nStatsMaster?.receivedTotal || 0) + (nStatsBranch?.receivedTotal || 0) || (nStatsBank?.receivedTotal || 0);
-      const latestNoticeDate = nStatsMaster?.latestDate || nStatsBranch?.latestDate || nStatsBank?.latestDate;
-      const noticesList = [
-        ...(nStatsMaster?.noticesList || []),
-        ...(nStatsBranch?.noticesList || []),
-        ...(!nStatsMaster && !nStatsBranch ? (nStatsBank?.noticesList || []) : [])
-      ];
+      (consolidatedItemsByMasterId[caseId] || []).forEach(item => itemsMap.set(item.id, item));
+      (consolidatedItemsByBankBranch[grpKey] || []).forEach(item => itemsMap.set(item.id, item));
+
+      const noticesList = Array.from(itemsMap.values()).filter(it => it.billAmount > 0 || it.amountRcvd > 0 || (it.billNo && it.billNo !== "N/A"));
+
+      const noticeCount = noticesList.reduce((sum, it) => sum + (it.quantity || 1), 0);
+      const noticeBill = noticesList.reduce((sum, it) => sum + (it.billAmount || 0), 0);
+      const noticeRcvd = noticesList.reduce((sum, it) => sum + (it.amountRcvd || 0), 0);
 
       const rawPending = parseFloat(c.pendingAmount);
       const rawTotalBill = parseFloat(c.totalBillAmount);
@@ -225,19 +336,20 @@ export async function GET() {
         totalBillAmount = totalReceived;
       }
 
+      totalBillAmount = Math.max(totalBillAmount, totalReceived);
       let pendingAmount = Math.max(0, totalBillAmount - totalReceived);
       let status = c.status || (pendingAmount <= 0 && totalBillAmount > 0 ? "Settled" : totalReceived > 0 ? "In Progress" : "Open");
 
       return {
         ...c,
+        bankName: resolvedBankName,
+        branchName: resolvedBranchName,
         noticeCount,
         noticesList,
         totalBillAmount: Number(totalBillAmount.toFixed(2)),
         receivedAmount: Number(totalReceived.toFixed(2)),
         pendingAmount: Number(pendingAmount.toFixed(2)),
-        pendingSince: c.pendingSince || latestNoticeDate || c.createdAt,
         status,
-        // Enrich branch contact info if empty on case
         branchEmail: c.branchEmail || linkedBranch?.branchEmail || "",
         foName: c.foName || linkedBranch?.foName || "",
         foContact: c.foContact || linkedBranch?.foContact || "",
@@ -248,78 +360,48 @@ export async function GET() {
       };
     });
 
-    // Also include other branches ONLY IF they have billed notices
-    for (const br of branches) {
-      const isAlreadyCovered =
-        existingCaseKeys.has(`branch_${br.id}`) ||
-        (br.branchCode && existingCaseKeys.has(`branch_code_${String(br.branchCode).toLowerCase()}`));
+    // Also auto-include all other Bank & Branch groups from consolidated items
+    Object.entries(consolidatedItemsByBankBranch).forEach(([key, items]) => {
+      if (!coveredGroupKeys.has(key)) {
+        coveredGroupKeys.add(key);
 
-      if (!isAlreadyCovered) {
-        const parentBank = bankMapById[String(br.bankId)] || null;
-        const nStats = noticeByBranchId[String(br.id)] || (br.branchCode ? noticeByBranchId[String(br.branchCode)] : undefined);
-        const noticeBill = nStats?.billTotal || 0;
-        const noticeRcvd = nStats?.receivedTotal || 0;
+        const primary = items[0];
+        const bill = items.reduce((sum, it) => sum + (it.billAmount || 0), 0);
+        const rcvd = items.reduce((sum, it) => sum + (it.amountRcvd || 0), 0);
+        const pending = Math.max(0, bill - rcvd);
+        const count = items.reduce((sum, it) => sum + (it.quantity || 1), 0);
 
-        // ONLY include if billing stage reached (bill amount > 0 or notices with billing)
-        if (noticeBill > 0 || noticeRcvd > 0) {
-          const noticeCount = nStats?.count || 0;
-          const pending = Math.max(0, noticeBill - noticeRcvd);
-          const bankName = parentBank?.bankName || "Registered Bank";
-          const branchName = br.branchName || "General Branch";
-
-          let createdCase = null;
-          try {
-            createdCase = await LegalRecoveryMaster.create({
-              bankName,
-              branchName,
-              branchId: br.branchCode || String(br.id),
-              aoName: br.aoName || "",
-              deptManagerName: br.branchManager || "",
-              contactNumber: br.branchManagerContact || br.foContact || "",
-              branchEmail: br.branchEmail || "",
-              foName: br.foName || "",
-              foContact: br.foContact || "",
-              rbo: br.rbo || "",
-              totalBillAmount: noticeBill,
-              pendingAmount: pending,
-              pendingSince: nStats?.latestDate || br.createdAt,
-              status: pending <= 0 ? "Settled" : noticeRcvd > 0 ? "In Progress" : "Open"
-            });
-          } catch (cErr) {
-            console.warn("Auto-create case from branch error:", cErr);
-          }
-
+        if (bill > 0 || rcvd > 0) {
           enrichedCases.push({
-            id: createdCase ? createdCase.id : (br.id * -1000),
-            bankName,
-            branchName,
-            branchId: br.branchCode || String(br.id),
-            aoName: br.aoName || "",
-            deptManagerName: br.branchManager || "",
-            contactNumber: br.branchManagerContact || br.foContact || "",
-            branchEmail: br.branchEmail || "",
-            foName: br.foName || "",
-            foContact: br.foContact || "",
-            rbo: br.rbo || "",
-            noticeCount,
-            noticesList: nStats?.noticesList || [],
-            totalBillAmount: Number(noticeBill.toFixed(2)),
-            receivedAmount: Number(noticeRcvd.toFixed(2)),
+            id: Math.floor(Math.random() * -100000) - 1,
+            bankName: primary.bankName,
+            branchName: primary.branchName,
+            branchId: "N/A",
+            aoName: "",
+            deptManagerName: "",
+            contactNumber: "",
+            branchEmail: "",
+            foName: "",
+            foContact: "",
+            rbo: "",
+            noticeCount: count,
+            noticesList: items,
+            totalBillAmount: Number(bill.toFixed(2)),
+            receivedAmount: Number(rcvd.toFixed(2)),
             pendingAmount: Number(pending.toFixed(2)),
-            pendingSince: nStats?.latestDate || br.createdAt,
-            status: pending <= 0 ? "Settled" : noticeRcvd > 0 ? "In Progress" : "Open",
-            createdAt: br.createdAt
+            pendingSince: primary.billDate || new Date().toISOString(),
+            status: pending <= 0 && bill > 0 ? "Settled" : rcvd > 0 ? "In Progress" : "Open",
+            createdAt: primary.billDate || new Date().toISOString()
           });
         }
       }
-    }
+    });
 
-    // Filter to ONLY return banks/cases where billing stage is reached (totalBillAmount > 0 or receivedAmount > 0 or pendingAmount > 0)
+    // ONLY return banks/cases where the billing stage is reached (totalBillAmount > 0 or receivedAmount > 0)
     const activeBillingCases = enrichedCases.filter((c: any) => {
       const bill = parseFloat(c.totalBillAmount) || 0;
       const rcvd = parseFloat(c.receivedAmount) || 0;
-      const pend = parseFloat(c.pendingAmount) || 0;
-      return bill > 0 || rcvd > 0 || pend > 0 || (c.noticesList && c.noticesList.length > 0);
+      return bill > 0 || rcvd > 0;
     });
 
     return NextResponse.json({ success: true, data: activeBillingCases });

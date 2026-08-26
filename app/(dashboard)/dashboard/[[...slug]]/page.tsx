@@ -1431,7 +1431,9 @@ export default function UnifiedEnterpriseDashboard() {
 
           {activeTab === "legal-recovery" && (() => {
             const userDept = (session?.user as any)?.department || "";
+            const userDesig = (session?.user as any)?.jobTitle || (session?.user as any)?.designation || "";
             const isAdministration = userDept.toLowerCase().includes("administration");
+            const isSalesHead = userRole.toLowerCase().includes("sales head") || userDesig.toLowerCase().includes("sales head") || (userRole.toLowerCase().includes("head") && userDept.toLowerCase().includes("sales"));
             let allowedPageIds: string[] | null = null;
             if (Array.isArray(liveMenuAccess)) {
               allowedPageIds = liveMenuAccess;
@@ -1442,7 +1444,7 @@ export default function UnifiedEnterpriseDashboard() {
               } catch { }
             }
             const hasExplicitAccess = allowedPageIds && allowedPageIds.includes("legal-recovery");
-            const hasAccess = userRole === "Owner" || isAdministration || hasExplicitAccess;
+            const hasAccess = userRole === "Owner" || isAdministration || isSalesHead || hasExplicitAccess;
 
             if (!hasAccess) {
               return (
@@ -1463,7 +1465,9 @@ export default function UnifiedEnterpriseDashboard() {
 
           {activeTab === "security" && (() => {
             const userDept = (session?.user as any)?.department || "";
+            const userDesig = (session?.user as any)?.jobTitle || (session?.user as any)?.designation || "";
             const isAdministration = userDept.toLowerCase().includes("administration");
+            const isSalesHead = userRole.toLowerCase().includes("sales head") || userDesig.toLowerCase().includes("sales head") || (userRole.toLowerCase().includes("head") && userDept.toLowerCase().includes("sales"));
             let allowedPageIds: string[] | null = null;
             if (Array.isArray(liveMenuAccess)) {
               allowedPageIds = liveMenuAccess;
@@ -1474,7 +1478,7 @@ export default function UnifiedEnterpriseDashboard() {
               } catch { }
             }
             const hasExplicitAccess = allowedPageIds && allowedPageIds.includes("security");
-            const hasAccess = userRole === "Owner" || isAdministration || hasExplicitAccess;
+            const hasAccess = userRole === "Owner" || isAdministration || isSalesHead || hasExplicitAccess;
 
             if (!hasAccess) {
               return (

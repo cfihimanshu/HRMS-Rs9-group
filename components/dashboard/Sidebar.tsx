@@ -127,9 +127,11 @@ export default function DashboardSidebar({
   ];
 
   const userDept = user?.department || "";
+  const userDesig = (user?.jobTitle || user?.designation || "");
   const isAdministration = userDept.toLowerCase().includes("administration");
 
   const isOwnerOrDirector = ["Owner", "Director"].some(r => userRole.toLowerCase().includes(r.toLowerCase()));
+  const isSalesHead = userRole.toLowerCase().includes("sales head") || userDesig.toLowerCase().includes("sales head") || (userRole.toLowerCase().includes("head") && userDept.toLowerCase().includes("sales"));
 
   let allowedPageIds: string[] | null = null;
   if (Array.isArray(user?.menuAccess)) {
@@ -162,14 +164,32 @@ export default function DashboardSidebar({
   // Only if menuAccess has NEVER been configured (is null), use default ESS + role rules
   if (effectiveAllowedPageIds === null) {
     effectiveAllowedPageIds = [...DEFAULT_ESS_PAGES];
-    if ((userRole.toLowerCase().includes("bda") || userRole.toLowerCase().includes("manager") || userRole.toLowerCase().includes("director") || userRole.toLowerCase().includes("owner")) && !effectiveAllowedPageIds.includes("bda-leads")) {
+    if ((userRole.toLowerCase().includes("bda") || userRole.toLowerCase().includes("manager") || userRole.toLowerCase().includes("director") || userRole.toLowerCase().includes("owner") || isSalesHead) && !effectiveAllowedPageIds.includes("bda-leads")) {
       effectiveAllowedPageIds.push("bda-leads");
     }
-    if ((userRole.toLowerCase().includes("sales manager") || userRole.toLowerCase() === "dsm" || (userRole.toLowerCase().includes("manager") && userDept.toLowerCase().includes("sales"))) && !effectiveAllowedPageIds.includes("sales-dashboard")) {
+    if ((userRole.toLowerCase().includes("sales manager") || userRole.toLowerCase() === "dsm" || isSalesHead || (userRole.toLowerCase().includes("manager") && userDept.toLowerCase().includes("sales"))) && !effectiveAllowedPageIds.includes("sales-dashboard")) {
       effectiveAllowedPageIds.push("sales-dashboard");
     }
-    if ((userRole.toLowerCase().includes("sales manager") || userRole.toLowerCase() === "dsm" || (userRole.toLowerCase().includes("manager") && userDept.toLowerCase().includes("sales"))) && !effectiveAllowedPageIds.includes("vertical-dashboard")) {
+    if ((userRole.toLowerCase().includes("sales manager") || userRole.toLowerCase() === "dsm" || isSalesHead || (userRole.toLowerCase().includes("manager") && userDept.toLowerCase().includes("sales"))) && !effectiveAllowedPageIds.includes("vertical-dashboard")) {
       effectiveAllowedPageIds.push("vertical-dashboard");
+    }
+    if (isSalesHead) {
+      const salesHeadPages = [
+        "vertical-dashboard",
+        "sales-dashboard",
+        "legal-recovery",
+        "security",
+        "bank-work-report",
+        "scheduled-work",
+        "bda-leads",
+        "bda-directory",
+        "performance"
+      ];
+      if (effectiveAllowedPageIds) {
+        salesHeadPages.forEach(p => {
+          if (!effectiveAllowedPageIds!.includes(p)) effectiveAllowedPageIds!.push(p);
+        });
+      }
     }
   }
 
@@ -177,7 +197,32 @@ export default function DashboardSidebar({
     // 1. OWNER / DIRECTOR: Unconditional access to ALL pages & categories
     if (isOwnerOrDirector) return true;
 
-    // 2. If explicit menuAccess is configured in DB (even if empty []), strictly filter by it!
+    // 2. SALES HEAD: Unconditional access to sales & vertical dashboards, legal recovery, security, bank work, and schedule work report
+    if (isSalesHead && [
+      "vertical-dashboard",
+      "sales-dashboard",
+      "legal-recovery",
+      "security",
+      "bank-work-report",
+      "scheduled-work",
+      "bda-leads",
+      "bda-directory",
+      "performance",
+      "attendance",
+      "tasks",
+      "field-visit",
+      "leave-request",
+      "ess-leaves",
+      "ess-payroll",
+      "ess-expenses",
+      "asset-request",
+      "disciplinary-warnings",
+      "exit"
+    ].includes(item.id)) {
+      return true;
+    }
+
+    // 3. If explicit menuAccess is configured in DB (even if empty []), strictly filter by it!
     if (allowedPageIds !== null) {
       return allowedPageIds.includes(item.id) || allowedPageIds.includes(item.category);
     }
@@ -186,7 +231,7 @@ export default function DashboardSidebar({
       return item.roles.some(role => role.toLowerCase() === userRole.toLowerCase());
     }
 
-    // 3. NON-OWNER USERS: Filter by default permissions & role rules
+    // 4. NON-OWNER USERS: Filter by default permissions & role rules
     const roleLower = userRole.toLowerCase();
 
     if (effectiveAllowedPageIds && effectiveAllowedPageIds.length > 0) {
@@ -208,11 +253,11 @@ export default function DashboardSidebar({
     if (item.id === "scheduled-work") {
       const userVert = user?.vertical || "";
       const isLegalOrSecVert = ["Legal Recovery", "Security", "Legal & Security"].includes(userVert);
-      const isManagerialRole = roleLower.includes("manager") || roleLower.includes("hr") || roleLower.includes("head");
+      const isManagerialRole = roleLower.includes("manager") || roleLower.includes("hr") || roleLower.includes("head") || isSalesHead;
       return isManagerialRole || isLegalOrSecVert;
     }
     if (item.id === "legal-recovery" || item.id === "security") {
-      return isAdministration;
+      return isAdministration || isSalesHead;
     }
     if (item.id === "inventory-management") {
       return isAdministration;
@@ -225,12 +270,14 @@ export default function DashboardSidebar({
         ((user?.department || "").toLowerCase().includes("information technology") ||
           (user?.department || "").toLowerCase().includes("it")));
       if (isITManager) return false;
+      if (isSalesHead) return true;
     }
 
     // Role-based matching for non-owner users
     return item.roles.some(r => {
       const rLower = r.toLowerCase();
       if (rLower === roleLower) return true;
+      if (isSalesHead && (rLower.includes("sales") || rLower.includes("manager") || rLower.includes("dsm") || rLower === "employee")) return true;
       if (roleLower.includes("manager") && (rLower === "department manager" || rLower.includes("manager"))) return true;
       if (roleLower.includes("hr") && rLower.includes("hr")) return true;
       return false;

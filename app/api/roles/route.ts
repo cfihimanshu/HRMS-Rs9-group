@@ -178,19 +178,19 @@ export async function GET(req: Request) {
     });
 
     const filteredRoles = roles.filter((r: any) => {
+      if (!targetCompanyId) {
+        return true; // When querying globally without company filter, return all active roles
+      }
       let comps = r.companies;
       if (typeof comps === 'string') {
         try { comps = JSON.parse(comps); } catch(e) { comps = []; }
       }
       if (!Array.isArray(comps)) comps = [];
 
-      if (targetCompanyId && comps.some((id: any) => id.toString() === targetCompanyId.toString())) {
-        return true;
-      }
       if (comps.length === 0) {
-        return true; // Return global roles for everyone!
+        return true; // Global roles apply to all companies
       }
-      return false;
+      return comps.some((id: any) => id.toString() === targetCompanyId.toString());
     });
 
     return NextResponse.json({ success: true, data: filteredRoles });
@@ -206,9 +206,12 @@ export async function POST(req: Request) {
     const body = await req.json();
     const { name, companyName, companyId, department } = body;
 
-    if (!name) {
+    if (!name || !name.trim()) {
       return NextResponse.json({ success: false, error: "Role name is required" }, { status: 400 });
     }
+
+    const trimmedRoleName = name.trim();
+    const trimmedDept = department ? department.trim() : null;
 
     let targetCompanyId = companyId;
 
@@ -245,33 +248,35 @@ export async function POST(req: Request) {
     }
 
     // Ensure department exists in Department table
-    if (department) {
-      const deptName = department.trim();
+    if (trimmedDept) {
       const existingDept = await Department.findOne({
         where: {
-          name: deptName,
+          name: trimmedDept,
           company: targetCompanyId || null
         }
       });
       if (!existingDept) {
         await Department.create({
           id: Date.now().toString() + "DEPT",
-          name: deptName,
+          name: trimmedDept,
           company: targetCompanyId || null,
           status: "active"
         });
       }
     }
 
-    // Check if role already exists for this department (case insensitive)
+    // Check if role already exists for this department
     let existingRole = await Role.findOne({ 
       where: {
-        name: name.trim(),
-        department: department ? department.trim() : null
+        name: trimmedRoleName,
+        ...(trimmedDept ? { department: trimmedDept } : {})
       }
     });
 
     if (existingRole) {
+      if (!existingRole.department && trimmedDept) {
+        existingRole.department = trimmedDept;
+      }
       if (targetCompanyId) {
         let comps = existingRole.companies;
         if (typeof comps === 'string') {
@@ -282,16 +287,16 @@ export async function POST(req: Request) {
         if (!comps.some((id: any) => id.toString() === targetCompanyId.toString())) {
           comps.push(targetCompanyId);
           existingRole.companies = comps;
-          await existingRole.save();
         }
       }
+      await existingRole.save();
       return NextResponse.json({ success: true, data: existingRole });
     }
 
     const newRole = await Role.create({
-      id: Date.now().toString(),
-      name: name.trim(),
-      department: department ? department.trim() : null,
+      id: "role_" + Date.now(),
+      name: trimmedRoleName,
+      department: trimmedDept,
       permissions: ["read", "write"],
       status: "active",
       companies: targetCompanyId ? [targetCompanyId] : []

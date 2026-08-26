@@ -567,16 +567,17 @@ export default function LegalRecoveryModule({ userRole, triggerToast, sessionUse
       if (audioFile) {
         const formData = new FormData();
         formData.append("file", audioFile);
+        formData.append("purpose", "task-proof");
 
         const uploadRes = await fetch("/api/documents/upload", {
           method: "POST",
           body: formData,
         });
         const uploadResult = await uploadRes.json();
-        if (uploadResult.success) {
+        if (uploadResult.success && uploadResult.url) {
           callRecordingUrl = uploadResult.url;
         } else {
-          triggerToast("Warning: Failed to upload audio. Proceeding without recording.");
+          triggerToast("Warning: Failed to upload attachment. Proceeding without file.");
         }
       }
 
@@ -591,7 +592,8 @@ export default function LegalRecoveryModule({ userRole, triggerToast, sessionUse
         conversationDetails: followUpForm.conversationDetails,
         nextFollowUpDate: followUpForm.nextFollowUpDate,
         callDate: followUpForm.callDate,
-        callRecordingUrl
+        callRecordingUrl,
+        pendingAmount: showFollowUpForm.master.pendingAmount || 0
       };
 
       const res = await fetch("/api/legal-recovery/followup", {
@@ -602,10 +604,11 @@ export default function LegalRecoveryModule({ userRole, triggerToast, sessionUse
 
       const result = await res.json();
       if (result.success) {
-        triggerToast("Follow up saved & Task created successfully!");
+        triggerToast("Bill Follow Up logged & Task created successfully!");
         setShowFollowUpForm({ show: false, master: null });
         setFollowUpForm({ callStatus: "Connected", conversationDetails: "", nextFollowUpDate: "", callDate: new Date().toISOString().split('T')[0] });
         setAudioFile(null);
+        fetchCases();
       } else {
         triggerToast(result.error || "Failed to save follow up");
       }
@@ -1578,15 +1581,33 @@ export default function LegalRecoveryModule({ userRole, triggerToast, sessionUse
                 </div>
 
                 <div>
-                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Upload Document / Recording</label>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold">Upload Document / Recording / Screenshot</label>
+                    <span className="text-[9px] text-slate-400 font-medium">Images, Audio (MP3/M4A/WAV/AMR), PDFs, Docs</span>
+                  </div>
                   <div className="flex items-center gap-3">
                     <input
                       type="file"
-                      accept="*/*"
+                      accept="image/*,audio/*,.pdf,.doc,.docx,.xls,.xlsx,.txt"
                       onChange={e => setAudioFile(e.target.files ? e.target.files[0] : null)}
                       className="block w-full text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 cursor-pointer border border-[#E8E4DF] rounded-lg"
                     />
+                    {audioFile && (
+                      <button
+                        type="button"
+                        onClick={() => setAudioFile(null)}
+                        className="px-2 py-1.5 text-xs text-rose-600 hover:bg-rose-50 border border-rose-200 rounded-lg shrink-0"
+                        title="Remove attachment"
+                      >
+                        Remove
+                      </button>
+                    )}
                   </div>
+                  {audioFile && (
+                    <div className="mt-1 text-[10px] text-emerald-700 font-bold flex items-center gap-1">
+                      📎 Selected: {audioFile.name} ({(audioFile.size / 1024).toFixed(1)} KB)
+                    </div>
+                  )}
                 </div>
 
                 <div className="pt-4 border-t border-[#E8E4DF] flex justify-end gap-2">

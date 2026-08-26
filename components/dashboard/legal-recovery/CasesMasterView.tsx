@@ -31,7 +31,8 @@ export default function CasesMasterView({
   const [localWorkLogs, setLocalWorkLogs] = useState<any[]>([]);
   const [loadingLocalHistory, setLoadingLocalHistory] = useState(false);
 
-  const handleToggleLogs = async (caseId: number) => {
+  const handleToggleLogs = async (caseItem: any) => {
+    const caseId = typeof caseItem === 'object' ? caseItem?.id : caseItem;
     if (expandedCaseId === caseId) {
       setExpandedCaseId(null);
       return;
@@ -41,17 +42,39 @@ export default function CasesMasterView({
     setLocalHistory([]);
     setLocalWorkLogs([]);
     try {
+      const isRealMaster = caseId && Number(caseId) > 0;
+      const followUpUrl = isRealMaster
+        ? `/api/legal-recovery/followup?masterId=${caseId}`
+        : `/api/legal-recovery/followup?scope=all`;
+      const workLogUrl = isRealMaster
+        ? `/api/legal-recovery/work-log?masterId=${caseId}`
+        : `/api/legal-recovery/work-log`;
+
       const [resFollowup, resWorkLogs] = await Promise.all([
-        fetch(`/api/legal-recovery/followup?masterId=${caseId}`),
-        fetch(`/api/legal-recovery/work-log?masterId=${caseId}`)
+        fetch(followUpUrl),
+        fetch(workLogUrl)
       ]);
       const resultFollowup = await resFollowup.json();
       const resultWorkLogs = await resWorkLogs.json();
       if (resultFollowup.success) {
-        setLocalHistory(resultFollowup.data || []);
+        let fData = resultFollowup.data || [];
+        if (!isRealMaster && caseItem?.bankName) {
+          const bNorm = caseItem.bankName.toLowerCase().trim();
+          fData = fData.filter((f: any) => (f.bankName || "").toLowerCase().trim().includes(bNorm));
+        }
+        setLocalHistory(fData);
       }
       if (resultWorkLogs.success) {
-        setLocalWorkLogs(resultWorkLogs.data || []);
+        let wData = resultWorkLogs.data || [];
+        if (!isRealMaster && caseItem?.bankName) {
+          const bNorm = caseItem.bankName.toLowerCase().trim();
+          const brNorm = (caseItem.branchName || "").toLowerCase().trim();
+          wData = wData.filter((w: any) => 
+            (w.bankName || "").toLowerCase().trim().includes(bNorm) &&
+            (!brNorm || (w.branchName || "").toLowerCase().trim().includes(brNorm))
+          );
+        }
+        setLocalWorkLogs(wData);
       }
     } catch (error) {
       console.error("Error loading history:", error);
@@ -139,13 +162,15 @@ export default function CasesMasterView({
     return true;
   });
 
-  // Calculate dynamic totals
-  const totalCasesCount = cases.length;
-  const totalNoticesCount = cases.reduce((sum, c) => sum + (parseInt(c.noticeCount) || 0), 0);
-  const totalBillSum = cases.reduce((sum, c) => sum + (parseFloat(c.totalBillAmount) || (parseFloat(c.pendingAmount) || 0) + (parseFloat(c.receivedAmount) || 0)), 0);
-  const totalReceivedSum = cases.reduce((sum, c) => sum + (parseFloat(c.receivedAmount) || 0), 0);
-  const totalPendingSum = cases.reduce((sum, c) => sum + (parseFloat(c.pendingAmount) || 0), 0);
-  const settledCount = cases.filter(c => c.status === "Settled" || parseFloat(c.pendingAmount) === 0).length;
+  // Calculate dynamic totals from filtered cases
+  const totalCasesCount = filteredCases.length;
+  const totalNoticesCount = filteredCases.reduce((sum, c) => sum + (parseInt(c.noticeCount) || 0), 0);
+  const totalBillSum = filteredCases.reduce((sum, c) => sum + (parseFloat(c.totalBillAmount) || 0), 0);
+  const totalReceivedSum = filteredCases.reduce((sum, c) => sum + (parseFloat(c.receivedAmount) || 0), 0);
+  const totalPendingSum = filteredCases.reduce((sum, c) => sum + (parseFloat(c.pendingAmount) || 0), 0);
+  const settledCount = filteredCases.filter(c => c.status === "Settled" || (parseFloat(c.pendingAmount) <= 0 && parseFloat(c.totalBillAmount) > 0)).length;
+  const filteredUniqueBanks = Array.from(new Set(filteredCases.map(c => c.bankName).filter(Boolean)));
+  const filteredUniqueBranches = Array.from(new Set(filteredCases.map(c => `${c.bankName}_${c.branchName}`).filter(Boolean)));
 
   return (
     <div className="space-y-4 animate-fade-in">
@@ -154,26 +179,26 @@ export default function CasesMasterView({
         <div className="bg-white border border-[#E8E4DF] rounded-xl p-3.5 shadow-2xs">
           <div className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Bank Cases</div>
           <div className="text-xl font-black text-slate-900 mt-1">{totalCasesCount}</div>
-          <div className="text-[9px] text-slate-400 mt-0.5">{uniqueBanks.length} Banks · {uniqueBranches.length} Branches</div>
+          <div className="text-[9px] text-slate-400 mt-0.5">{filteredUniqueBanks.length} Banks · {filteredUniqueBranches.length} Branches</div>
         </div>
 
         <div className="bg-white border border-blue-100 rounded-xl p-3.5 shadow-2xs">
           <div className="text-[10px] font-bold uppercase tracking-wider text-blue-600">Total Notices</div>
           <div className="text-xl font-black text-blue-900 mt-1">{totalNoticesCount}</div>
-          <div className="text-[9px] text-blue-500 mt-0.5 font-medium">All Bank Notices</div>
+          <div className="text-[9px] text-blue-500 mt-0.5 font-medium">Invoiced Notices</div>
         </div>
 
         <div className="bg-white border border-indigo-100 rounded-xl p-3.5 shadow-2xs">
           <div className="text-[10px] font-bold uppercase tracking-wider text-indigo-600">Total Invoiced / Bill</div>
           <div className="text-xl font-black text-indigo-900 mt-1">₹{totalBillSum.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</div>
-          <div className="text-[9px] text-indigo-500 mt-0.5 font-medium">Notices &amp; Bills</div>
+          <div className="text-[9px] text-indigo-500 mt-0.5 font-medium">Billed Amount</div>
         </div>
 
         <div className="bg-white border border-emerald-100 rounded-xl p-3.5 shadow-2xs">
           <div className="text-[10px] font-bold uppercase tracking-wider text-emerald-600">Total Received</div>
           <div className="text-xl font-black text-emerald-700 mt-1">₹{totalReceivedSum.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</div>
           <div className="text-[9px] text-emerald-600 mt-0.5 font-medium">
-            {totalBillSum > 0 ? `${Math.round((totalReceivedSum / totalBillSum) * 100)}% Recovered` : '0%'}
+            {totalBillSum > 0 ? `${Math.min(100, Math.round((totalReceivedSum / totalBillSum) * 100))}% Recovered` : '0%'}
           </div>
         </div>
 
@@ -338,7 +363,7 @@ export default function CasesMasterView({
                     <tr className={`transition-colors ${isExpanded ? 'bg-indigo-50/30' : 'hover:bg-white'}`}>
                       {/* Bank & Branch Details (Clickable row trigger) */}
                       <td 
-                        onClick={() => handleToggleLogs(c.id)}
+                        onClick={() => handleToggleLogs(c)}
                         className="py-3.5 px-4 align-top cursor-pointer group select-none"
                         title="Click to view full notice bills & work breakdown"
                       >
@@ -446,7 +471,7 @@ export default function CasesMasterView({
                           {/* Row 2: Secondary & Admin Buttons */}
                           <div className="flex items-center gap-1.5">
                             <button
-                              onClick={() => handleToggleLogs(c.id)}
+                              onClick={() => handleToggleLogs(c)}
                               className={`px-2 py-1.5 flex-1 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-1 border active:scale-[0.97] cursor-pointer ${
                                 isExpanded
                                   ? 'bg-indigo-600 text-white border-indigo-600 shadow-md'
