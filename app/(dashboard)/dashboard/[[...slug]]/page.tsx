@@ -1287,7 +1287,11 @@ export default function UnifiedEnterpriseDashboard() {
             <ESSLeaves user={session?.user} triggerToast={triggerToast} stats={stats} initialSearchFilter={leaveSearchFilter} setActiveTab={handleNavigateTab} />
           )}
           {activeTab === "ess-payroll" && (
-            <ESSPayroll user={session?.user} triggerToast={triggerToast} />
+            <ESSPayroll user={session?.user} triggerToast={triggerToast} mode="self" />
+          )}
+
+          {activeTab === "payroll-management" && (
+            <ESSPayroll user={session?.user} triggerToast={triggerToast} mode="management" />
           )}
           {activeTab === "ess-expenses" && (
             <ESSExpenses user={session?.user} triggerToast={triggerToast} />

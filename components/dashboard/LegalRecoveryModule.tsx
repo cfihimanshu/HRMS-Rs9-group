@@ -1548,7 +1548,7 @@ export default function LegalRecoveryModule({ userRole, triggerToast, sessionUse
                 </div>
 
                 <div>
-                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Conversation Details / Kya Baat Hui *</label>
+                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Conversation Details *</label>
                   <textarea
                     required
                     rows={4}

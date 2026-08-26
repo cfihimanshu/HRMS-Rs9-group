@@ -49,7 +49,8 @@ import {
   Search,
   Filter,
   Megaphone,
-  ChevronRight
+  ChevronRight,
+  Coins
 } from "lucide-react";
 import StatCard from "./StatCard";
 import AttendanceChart from "./AttendanceChart";
@@ -2205,6 +2206,16 @@ export function DepartmentDashboard({
       (b.tasksTotal || 0) - (a.tasksTotal || 0)
     )
     .slice(0, 6);
+  const activeMembers = teamList.filter((member: any) => !["inactive", "archived"].includes(String(member.status || "active").toLowerCase())).length;
+  const probationMembers = teamList.filter((member: any) => String(member.status || "").toLowerCase() === "probation" || member.isOnProbation).length;
+  const noticeMembers = teamList.filter((member: any) => String(member.status || "").toLowerCase() === "on notice").length;
+  const overloadedMembers = teamList.filter((member: any) => (member.tasksOverdue || 0) > 0 || (member.tasksTotal || 0) >= 8).length;
+  const availableMembers = teamList.filter((member: any) => member.attendanceStatus === "Present" && !(member.tasksOverdue || 0) && (member.tasksTotal || 0) < 8).length;
+  const onLeaveMembers = teamList.filter((member: any) => member.attendanceStatus === "On Leave");
+  const absentMembers = teamList.filter((member: any) => member.attendanceStatus === "Absent");
+  const openPositions = Number(stats?.hiring?.openPositions || stats?.recruitment?.openPositions || stats?.jobs?.open || 0);
+  const trainingPending = Number(stats?.training?.pending || stats?.trainings?.pending || 0);
+  const departmentHealth = Math.round((taskCompletionRate * 0.45) + (sodComplianceRate * 0.2) + (eodComplianceRate * 0.2) + ((deptStats.teamMembers ? ((deptStats.presentToday || 0) / deptStats.teamMembers) * 100 : 0) * 0.15));
 
   const exportDepartmentReport = () => {
     if (teamList.length === 0) return;
@@ -2471,6 +2482,55 @@ export function DepartmentDashboard({
           icon={<TrendingUp className="w-5 h-5 text-teal-500" />}
           dark={isDark}
         />
+      </div>
+
+      {/* Department Command Center */}
+      <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-8 gap-3">
+        {[
+          ["Active Strength", activeMembers, "text-indigo-700 bg-indigo-50", Users],
+          ["Available Today", availableMembers, "text-emerald-700 bg-emerald-50", UserCheck],
+          ["Overloaded", overloadedMembers, "text-rose-700 bg-rose-50", AlertTriangle],
+          ["On Leave", onLeaveMembers.length, "text-amber-700 bg-amber-50", CalendarCheck],
+          ["Probation", probationMembers, "text-purple-700 bg-purple-50", UserPlus],
+          ["On Notice", noticeMembers, "text-orange-700 bg-orange-50", UserMinus],
+          ["Open Positions", openPositions, "text-blue-700 bg-blue-50", Briefcase],
+          ["Training Due", trainingPending, "text-teal-700 bg-teal-50", BookOpen]
+        ].map(([label, value, color, Icon]: any) => <div key={label} className={`rounded-xl border p-3 ${isDark ? "bg-gray-900 border-gray-800" : "bg-white border-slate-200"}`}><div className={`w-fit p-1.5 rounded-lg ${color}`}><Icon className="w-3.5 h-3.5" /></div><div className={`text-xl font-black mt-2 ${isDark ? "text-white" : "text-slate-900"}`}>{value}</div><div className="text-[9px] uppercase tracking-wide font-bold text-slate-500 mt-0.5">{label}</div></div>)}
+      </div>
+
+      <div className="grid grid-cols-1 xl:grid-cols-12 gap-4">
+        <section className={`xl:col-span-4 rounded-xl border p-4 shadow-sm ${isDark ? "bg-gray-900 border-gray-800" : "bg-white border-slate-200"}`}>
+          <div className="flex items-center justify-between border-b border-slate-100 dark:border-gray-800 pb-3 mb-3"><div className="flex items-center gap-2"><ShieldCheck className="w-4 h-4 text-indigo-600" /><h2 className="text-sm font-black">Manager Approval Inbox</h2></div><span className="text-[9px] font-black bg-indigo-50 text-indigo-700 rounded-full px-2 py-1">{deptStats.pendingApprovals || 0} pending</span></div>
+          <div className="space-y-2">{[
+            ["Leave Requests", deptStats.pendingLeaves || 0, "ess-leaves", "text-indigo-600 bg-indigo-50"],
+            ["Expense Claims", deptStats.pendingExpenses || 0, "ess-expenses", "text-amber-600 bg-amber-50"],
+            ["Attendance / SOD", deptStats.sodPending || 0, "performance", "text-rose-600 bg-rose-50"],
+            ["Asset Requests", stats?.pendingApprovals?.pendingAssetRequests || 0, "asset-request", "text-purple-600 bg-purple-50"]
+          ].map(([label, value, tab, color]: any) => <button key={label} onClick={() => onNavigateTab(tab)} className="w-full flex items-center justify-between border rounded-lg p-2.5 hover:bg-slate-50 dark:hover:bg-gray-800"><span className="text-xs font-semibold">{label}</span><span className={`text-[10px] font-black px-2 py-1 rounded-full ${color}`}>{value}</span></button>)}</div>
+        </section>
+
+        <section className={`xl:col-span-4 rounded-xl border p-4 shadow-sm ${isDark ? "bg-gray-900 border-gray-800" : "bg-white border-slate-200"}`}>
+          <div className="flex items-center justify-between border-b border-slate-100 dark:border-gray-800 pb-3 mb-3"><div className="flex items-center gap-2"><CalendarCheck className="w-4 h-4 text-amber-600" /><h2 className="text-sm font-black">Team Availability</h2></div><button onClick={() => setShowTeamModal(true)} className="text-[10px] font-black text-indigo-600">View Team</button></div>
+          <div className="grid grid-cols-3 gap-2 mb-3"><div className="rounded-lg bg-emerald-50 p-2 text-center"><div className="text-lg font-black text-emerald-700">{deptStats.presentToday || 0}</div><div className="text-[9px] font-bold text-emerald-600">Present</div></div><div className="rounded-lg bg-amber-50 p-2 text-center"><div className="text-lg font-black text-amber-700">{onLeaveMembers.length}</div><div className="text-[9px] font-bold text-amber-600">Leave</div></div><div className="rounded-lg bg-rose-50 p-2 text-center"><div className="text-lg font-black text-rose-700">{absentMembers.length}</div><div className="text-[9px] font-bold text-rose-600">Absent</div></div></div>
+          <div className="space-y-1.5 max-h-24 overflow-y-auto">{[...onLeaveMembers, ...absentMembers].slice(0, 5).map((member: any) => <div key={member.id} className="flex justify-between text-[10px] border-t pt-1.5"><span className="font-semibold truncate">{member.name}</span><span className={member.attendanceStatus === "On Leave" ? "text-amber-600" : "text-rose-600"}>{member.attendanceStatus}</span></div>)}{onLeaveMembers.length + absentMembers.length === 0 && <p className="text-[10px] text-center text-slate-400 py-3">Full team available today.</p>}</div>
+        </section>
+
+        <section className={`xl:col-span-4 rounded-xl border p-4 shadow-sm ${isDark ? "bg-gray-900 border-gray-800" : "bg-white border-slate-200"}`}>
+          <div className="flex items-center justify-between border-b border-slate-100 dark:border-gray-800 pb-3 mb-3"><div className="flex items-center gap-2"><Activity className="w-4 h-4 text-emerald-600" /><h2 className="text-sm font-black">Department Health</h2></div><span className={`text-lg font-black ${departmentHealth >= 75 ? "text-emerald-600" : departmentHealth >= 50 ? "text-amber-600" : "text-rose-600"}`}>{departmentHealth}%</span></div>
+          <div className="space-y-3">{[
+            ["Task Completion", taskCompletionRate, "bg-indigo-500"],
+            ["SOD Compliance", sodComplianceRate, "bg-blue-500"],
+            ["EOD Compliance", eodComplianceRate, "bg-emerald-500"],
+            ["Attendance", deptStats.teamMembers ? Math.round(((deptStats.presentToday || 0) / deptStats.teamMembers) * 100) : 0, "bg-amber-500"]
+          ].map(([label, percent, color]: any) => <div key={label}><div className="flex justify-between text-[10px] mb-1"><span className="text-slate-500">{label}</span><span className="font-black">{percent}%</span></div><div className="h-1.5 bg-slate-100 dark:bg-gray-800 rounded-full overflow-hidden"><div className={`h-full rounded-full ${color}`} style={{ width: `${Math.min(100, percent)}%` }} /></div></div>)}</div>
+        </section>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <section className={`rounded-xl border p-4 shadow-sm ${isDark ? "bg-gray-900 border-gray-800" : "bg-white border-slate-200"}`}><div className="flex items-center gap-2 mb-3"><Zap className="w-4 h-4 text-indigo-600" /><h2 className="text-sm font-black">Manager Quick Commands</h2></div><div className="grid grid-cols-2 sm:grid-cols-3 gap-2">{[
+          ["Assign Task", "tasks", CheckSquare], ["Approve Leave", "ess-leaves", CalendarCheck], ["Review Expense", "ess-expenses", Coins], ["Attendance", "performance", Clock], ["Hiring", "hiring", UserPlus], ["Training", "training", BookOpen]
+        ].map(([label, tab, Icon]: any) => <button key={label} onClick={() => onNavigateTab(tab)} className="border rounded-lg p-3 text-left hover:border-indigo-300 hover:bg-indigo-50 dark:hover:bg-gray-800"><Icon className="w-4 h-4 text-indigo-600 mb-2" /><span className="text-[10px] font-black">{label}</span></button>)}</div></section>
+        <section className={`rounded-xl border p-4 shadow-sm ${isDark ? "bg-gray-900 border-gray-800" : "bg-white border-slate-200"}`}><div className="flex items-center gap-2 mb-3"><AlertTriangle className="w-4 h-4 text-amber-500" /><h2 className="text-sm font-black">Workforce Alerts</h2></div><div className="space-y-2">{deptStats.overdueTasks > 0 && <button onClick={() => onNavigateTodayTasks?.()} className="w-full text-left border border-rose-100 bg-rose-50 rounded-lg p-2.5 text-xs font-semibold text-rose-700">{deptStats.overdueTasks} overdue tasks need attention</button>}{probationMembers > 0 && <button onClick={() => onNavigateTab("probation")} className="w-full text-left border border-purple-100 bg-purple-50 rounded-lg p-2.5 text-xs font-semibold text-purple-700">{probationMembers} employee(s) on probation</button>}{noticeMembers > 0 && <button onClick={() => onNavigateTab("employees")} className="w-full text-left border border-orange-100 bg-orange-50 rounded-lg p-2.5 text-xs font-semibold text-orange-700">{noticeMembers} employee(s) serving notice</button>}{deptStats.sodPending > 0 && <button onClick={() => setShowSodEodModal(true)} className="w-full text-left border border-amber-100 bg-amber-50 rounded-lg p-2.5 text-xs font-semibold text-amber-700">{deptStats.sodPending} SOD submission(s) pending</button>}{!deptStats.overdueTasks && !probationMembers && !noticeMembers && !deptStats.sodPending && <div className="py-8 text-center text-xs text-slate-400 border border-dashed rounded-lg">No critical workforce alert.</div>}</div></section>
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">

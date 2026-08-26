@@ -94,7 +94,7 @@ export default function DashboardSidebar({
 
     // Employee Self Service (ESS)
     { id: "ess-leaves", label: "Leave Management", icon: CalendarCheck, category: "Employee Self Service", roles: ["Employee"] },
-    { id: "ess-payroll", label: "My Payslips & Salary", icon: FileText, category: "Employee Self Service", roles: ["Owner", "Director", "HR Head", "HR Executive"] },
+    { id: "ess-payroll", label: "My Payslips & Salary", icon: FileText, category: "Employee Self Service", roles: ["Employee"] },
     { id: "ess-expenses", label: "Expense Claims", icon: Coins, category: "Employee Self Service", roles: ["Owner", "Director", "HR Head", "HR Executive", "Department Manager", "Accounts", "Employee"] },
     { id: "asset-request", label: "Asset Request", icon: Cpu, category: "Employee Self Service", roles: ["Employee", "Owner", "Director", "HR Head", "HR Executive", "Department Manager"] },
 
@@ -102,6 +102,7 @@ export default function DashboardSidebar({
     { id: "attendance", label: "Attendance Punch & SOD", icon: CalendarCheck, category: "Daily Operations", roles: ["Owner", "Director", "HR Head", "HR Executive", "Department Manager", "Accounts", "Trainer", "IT Admin", "DSM", "RIBP / Risk Officer"] },
     { id: "scheduled-work", label: "Schedule Work Report", icon: CalendarClock, category: "Daily Operations", roles: ["Owner", "Director", "HR Head", "HR Executive", "Department Manager", "Accounts", "Trainer", "Employee", "IT Admin", "DSM", "RIBP / Risk Officer"] },
     { id: "tasks", label: "My Tasks (Kanban)", icon: FileEdit, category: "Daily Operations", roles: ["Owner", "Director", "HR Head", "HR Executive", "Department Manager", "Accounts", "Trainer", "Employee", "IT Admin", "DSM", "RIBP / Risk Officer"] },
+    { id: "payroll-management", label: "Payroll Management", icon: Coins, category: "Daily Operations", roles: ["Owner", "Director", "HR Head", "HR Executive", "Payroll Executive", "Accounts"] },
     { id: "bank-work-report", label: "Bank Work Dashboard", icon: Building2, category: "Daily Operations", roles: ["Owner", "Director", "HR Head", "HR Executive", "Department Manager", "Accounts", "Trainer", "Employee", "IT Admin", "DSM", "RIBP / Risk Officer"] },
     { id: "performance", label: "Work Report", icon: FileText, category: "Daily Operations", roles: ["Owner", "Director", "HR Head", "HR Executive", "Department Manager", "Employee"] },
     { id: "live-tracking", label: "Live GPS Tracking", icon: MapPin, category: "Daily Operations", roles: ["Owner", "Director", "HR Head", "Department Manager"] },
@@ -142,6 +143,7 @@ export default function DashboardSidebar({
   const DEFAULT_ESS_PAGES = [
     "ess-dashboard",
     "ess-leaves",
+    "ess-payroll",
     "ess-expenses",
     "asset-request",
     "tasks",
@@ -169,6 +171,10 @@ export default function DashboardSidebar({
     // 2. If explicit menuAccess is configured in DB (even if empty []), strictly filter by it!
     if (allowedPageIds !== null) {
       return allowedPageIds.includes(item.id) || allowedPageIds.includes(item.category);
+    }
+
+    if (item.id === "payroll-management") {
+      return item.roles.some(role => role.toLowerCase() === userRole.toLowerCase());
     }
 
     // 3. NON-OWNER USERS: Filter by default permissions & role rules

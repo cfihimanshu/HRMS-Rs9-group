@@ -1838,7 +1838,7 @@ export default function LegalWorkLogsView({ workLogs, branches, banks, loading, 
                   rows={3}
                   value={remarks}
                   onChange={e => setRemarks(e.target.value)}
-                  placeholder={bankWorkCategory === "Bill Follow Up" ? "Call par kya baat hui, payment commitment aur next follow-up details..." : "Enter specific work instructions, execution notes or completed tasks summary..."}
+                  placeholder={bankWorkCategory === "Bill Follow Up" ? "Conversation details, payment commitment, and next follow-up information..." : "Enter specific work instructions, execution notes or completed tasks summary..."}
                   className="w-full p-3 border border-slate-300 rounded-xl text-xs font-bold text-slate-950 bg-white focus:outline-none focus:border-purple-600 focus:ring-2 focus:ring-purple-600/10 shadow-2xs transition-all"
                 />
               </div>

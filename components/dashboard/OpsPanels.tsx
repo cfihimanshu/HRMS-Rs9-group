@@ -827,7 +827,7 @@ export function DailyCommitments({
       if (video && video.readyState >= 2 && video.videoWidth > 0 && video.videoHeight > 0) return video;
       await new Promise(resolve => setTimeout(resolve, 150));
     }
-    throw new Error("Camera abhi ready nahi hai. Camera permission allow karke 2-3 seconds baad dobara click karein.");
+    throw new Error("The camera is not ready yet. Allow camera access and try again after 2–3 seconds.");
   };
 
   const captureSodPhotoAndSubmit = async () => {
@@ -891,7 +891,7 @@ export function DailyCommitments({
 
     try {
       const readyVideo = await waitForCameraReady(videoRef);
-      if (!canvasRef.current) throw new Error("Verification canvas initialize nahi hua.");
+      if (!canvasRef.current) throw new Error("The verification canvas could not be initialized.");
 
       const context = canvasRef.current.getContext("2d");
       if (!context) {
@@ -1005,7 +1005,7 @@ export function DailyCommitments({
 
     try {
       const readyVideo = await waitForCameraReady(eodVideoRef);
-      if (!eodCanvasRef.current) throw new Error("Verification canvas initialize nahi hua.");
+      if (!eodCanvasRef.current) throw new Error("The verification canvas could not be initialized.");
 
       const context = eodCanvasRef.current.getContext("2d");
       if (!context) {

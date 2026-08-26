@@ -140,7 +140,7 @@ export default function OwnerCommandCentre({ sessionUser, stats, riskAlertList, 
         securityWork: Number(taskData.data?.modules?.securityWork || 0)
       });
     } catch (error: any) {
-      if (error?.name !== "AbortError") toastRef.current("Work data refresh nahi ho saka");
+      if (error?.name !== "AbortError") toastRef.current("Work data could not be refreshed");
     } finally {
       if (!signal?.aborted && requestId === requestIdRef.current && mountedRef.current) setLoading(false);
     }
@@ -169,7 +169,7 @@ export default function OwnerCommandCentre({ sessionUser, stats, riskAlertList, 
         vehiclesAssigned: Number(vehicleData?.summary?.assigned || vehicleRows.filter((item: any) => String(item.status).toLowerCase() === "assigned").length)
       });
     } catch (error: any) {
-      if (error?.name !== "AbortError") toastRef.current("Operational data refresh nahi ho saka");
+      if (error?.name !== "AbortError") toastRef.current("Operational data could not be refreshed");
     }
   }, [selectedCompanyId]);
 
@@ -182,7 +182,7 @@ export default function OwnerCommandCentre({ sessionUser, stats, riskAlertList, 
       if (controller.signal.aborted) return;
       setVerticals(verticalData?.success ? safeArray(verticalData.data) : []);
       setDepartments(deptData?.success ? safeArray(deptData.data) : []);
-    }).catch(error => { if (error?.name !== "AbortError") toastRef.current("Dashboard masters load nahi hue"); });
+    }).catch(error => { if (error?.name !== "AbortError") toastRef.current("Dashboard master data could not be loaded"); });
     return () => controller.abort();
   }, []);
 

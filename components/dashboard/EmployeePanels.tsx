@@ -23,6 +23,7 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
   const [filterRole, setFilterRole] = useState<string>("All");
   const [filterCompany, setFilterCompany] = useState<string>("All");
   const [filterVertical, setFilterVertical] = useState<string>("All");
+  const [filterDepartment, setFilterDepartment] = useState<string>("All");
   const [filterStatus, setFilterStatus] = useState<string>("Active");
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
@@ -943,10 +944,26 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
     hrCompany = companies[0];
   }
 
+  const getEmployeeDepartment = (emp: any) => {
+    const department = emp?.department || emp?.employeeProfile?.department || emp?.profile?.department;
+    if (typeof department === "object") return department?.name || department?.departmentName || "Unassigned";
+    return String(department || "").trim() || "Unassigned";
+  };
+
+  const departmentSummary = Array.from(employees.reduce((summary: Map<string, { total: number; active: number }>, emp: any) => {
+    const department = getEmployeeDepartment(emp);
+    const current = summary.get(department) || { total: 0, active: 0 };
+    current.total += 1;
+    if (!["inactive", "archived"].includes(String(emp.status || "active").toLowerCase())) current.active += 1;
+    summary.set(department, current);
+    return summary;
+  }, new Map<string, { total: number; active: number }>()).entries()).map(([department, counts]) => ({ department, ...counts })).sort((a, b) => b.total - a.total || a.department.localeCompare(b.department));
+
   const filteredEmployees = employees.filter(emp => {
     const matchesSearch = emp.name.toLowerCase().includes(search.toLowerCase()) ||
       emp.email.toLowerCase().includes(search.toLowerCase());
     const matchesFilter = filterRole === "All" || emp.role === filterRole;
+    const matchesDepartment = filterDepartment === "All" || getEmployeeDepartment(emp) === filterDepartment;
 
     let empComps: any[] = [];
     if (Array.isArray(emp.companies)) {
@@ -1008,7 +1025,7 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
       }
     }
 
-    return matchesSearch && matchesFilter && matchesCompanyFilter && matchesVerticalFilter && matchesCompany && matchesStatusFilter;
+    return matchesSearch && matchesFilter && matchesDepartment && matchesCompanyFilter && matchesVerticalFilter && matchesCompany && matchesStatusFilter;
   });
 
   // Filter top company dropdown options based on role
@@ -1609,6 +1626,12 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
         </div>
       ) : (
         <>
+          {/* Department-wise Headcount Overview */}
+          <div className={`rounded-2xl border p-4 shadow-sm ${isDark ? "bg-gray-900 border-gray-800" : "bg-white border-slate-200"}`}>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4"><div className="flex items-center gap-2"><span className="p-2 rounded-lg bg-indigo-50 text-indigo-600"><Building2 className="w-4 h-4" /></span><div><h2 className={`text-sm font-black ${isDark ? "text-white" : "text-slate-800"}`}>Department-wise Employee Strength</h2><p className="text-[10px] text-slate-500">Click a department card to filter employees</p></div></div><div className="flex gap-2 text-[10px] font-black"><span className="bg-indigo-50 text-indigo-700 border border-indigo-100 rounded-full px-2.5 py-1">{departmentSummary.length} Departments</span><span className="bg-emerald-50 text-emerald-700 border border-emerald-100 rounded-full px-2.5 py-1">{employees.length} Employees</span></div></div>
+            {loading ? <div className="py-8 text-center text-xs text-slate-400 animate-pulse">Department strength loading...</div> : <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3"><button type="button" onClick={() => setFilterDepartment("All")} className={`text-left rounded-xl border p-3 transition-all ${filterDepartment === "All" ? "border-indigo-500 bg-indigo-50 ring-1 ring-indigo-200" : isDark ? "border-gray-700 bg-gray-800 hover:border-indigo-500" : "border-slate-200 bg-slate-50 hover:border-indigo-300"}`}><p className="text-[10px] font-black uppercase tracking-wide text-indigo-600">All Departments</p><p className={`text-2xl font-black mt-2 ${isDark ? "text-white" : "text-slate-900"}`}>{employees.length}</p><p className="text-[9px] text-slate-500 mt-1">Total employees</p></button>{departmentSummary.map(item => <button type="button" key={item.department} onClick={() => setFilterDepartment(item.department)} className={`text-left rounded-xl border p-3 transition-all ${filterDepartment === item.department ? "border-indigo-500 bg-indigo-50 ring-1 ring-indigo-200" : isDark ? "border-gray-700 bg-gray-800 hover:border-indigo-500" : "border-slate-200 bg-white hover:border-indigo-300 hover:shadow-sm"}`}><div className="flex items-start justify-between gap-2"><p className={`text-[10px] leading-tight font-black line-clamp-2 ${isDark ? "text-gray-200" : "text-slate-700"}`}>{item.department}</p><Building2 className="w-3.5 h-3.5 text-indigo-400 shrink-0" /></div><p className={`text-2xl font-black mt-2 ${isDark ? "text-white" : "text-slate-900"}`}>{item.total}</p><p className="text-[9px] text-emerald-600 mt-1">{item.active} active</p></button>)}</div>}
+          </div>
+
           {/* Filter and Search Bar */}
           <div className={`border rounded-xl p-3.5 sm:p-4 flex flex-col lg:flex-row lg:items-center justify-between gap-3 sm:gap-4 shadow-sm ${isDark ? "bg-gray-900 border-gray-800" : "bg-white border-slate-200"}`}>
             <div className="flex-1 relative w-full">
@@ -1622,6 +1645,17 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
               />
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-2 lg:flex lg:flex-wrap items-center gap-2.5 sm:gap-3 w-full lg:w-auto">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
+                <span className={`text-[10px] sm:text-xs font-bold font-mono ${isDark ? "text-gray-400" : "text-slate-500"}`}>Department:</span>
+                <select
+                  className={`w-full sm:w-auto border rounded-lg px-2.5 py-1.5 sm:py-2 text-xs font-semibold focus:outline-none focus:border-indigo-500 ${isDark ? "bg-gray-800 border-gray-700 text-gray-300" : "bg-slate-50 border-slate-200 text-slate-700"}`}
+                  value={filterDepartment}
+                  onChange={e => setFilterDepartment(e.target.value)}
+                >
+                  <option value="All">All Departments</option>
+                  {departmentSummary.map(item => <option key={item.department} value={item.department}>{item.department} ({item.total})</option>)}
+                </select>
+              </div>
               <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
                 <span className={`text-[10px] sm:text-xs font-bold font-mono ${isDark ? "text-gray-400" : "text-slate-500"}`}>Company:</span>
                 <select
@@ -1689,6 +1723,7 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
                   <thead className={`${isDark ? "bg-gray-800 text-gray-400" : "bg-slate-50 text-slate-500"}`}>
                     <tr>
                       <th className="px-6 py-4 font-bold text-xs uppercase font-mono">Employee</th>
+                      <th className="px-6 py-4 font-bold text-xs uppercase font-mono">Department</th>
                       <th className="px-6 py-4 font-bold text-xs uppercase font-mono">Company</th>
                       <th className="px-6 py-4 font-bold text-xs uppercase font-mono">Role & ID</th>
                       <th className="px-6 py-4 font-bold text-xs uppercase font-mono">Status</th>
@@ -1698,7 +1733,7 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
                   <tbody className={`divide-y ${isDark ? "divide-gray-800 text-gray-300" : "divide-slate-100 text-slate-700"}`}>
                     {filteredEmployees.length === 0 ? (
                       <tr>
-                        <td colSpan={isManagement ? 5 : 4} className="px-6 py-8 text-center italic text-slate-400">No employees found.</td>
+                        <td colSpan={isManagement ? 6 : 5} className="px-6 py-8 text-center italic text-slate-400">No employees found.</td>
                       </tr>
                     ) : (
                       filteredEmployees.map(emp => (
@@ -1769,6 +1804,7 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
                                 </div>
                               </div>
                             </td>
+                            <td className="px-6 py-4"><span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-black ${getEmployeeDepartment(emp) === "Unassigned" ? "bg-amber-50 text-amber-700 border border-amber-200" : "bg-purple-50 text-purple-700 border border-purple-100"}`}><Building2 className="w-3 h-3" />{getEmployeeDepartment(emp)}</span></td>
                             <td className="px-6 py-4">
                               {emp.companies && emp.companies.length > 0 ? (
                                 <div className="flex flex-col">
@@ -1855,7 +1891,7 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
                           </tr>
                           {expandedRow === emp.id && (
                             <tr className={`border-b ${isDark ? "border-gray-800" : "border-slate-100"}`}>
-                              <td colSpan={isManagement ? 5 : 4} className="p-0">
+                              <td colSpan={isManagement ? 6 : 5} className="p-0">
                                 <div className={`p-6 m-4 rounded-xl border shadow-inner ${isDark ? "bg-gray-900/50 border-gray-800" : "bg-white border-slate-200"}`}>
                                   <div className="flex items-center gap-2 mb-4 pb-2 border-b border-dashed border-slate-300 dark:border-gray-700">
                                     <ShieldCheck className="w-4 h-4 text-emerald-500" />
