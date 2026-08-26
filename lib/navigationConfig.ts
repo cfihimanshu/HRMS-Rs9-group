@@ -43,6 +43,7 @@ export const MASTER_NAV_ITEMS: NavItem[] = [
   { id: "vehicle-registry", label: "Vehicle Registry", category: "Administration & IT" },
   { id: "domain-record", label: "Domain Record", category: "Administration & IT" },
   { id: "legal-recovery", label: "Legal Recovery", category: "Administration & IT" },
+  { id: "security", label: "Security", category: "Administration & IT" },
   { id: "audit-trail", label: "System Audit Trail", category: "Administration & IT" },
 
   // Employee Self Service

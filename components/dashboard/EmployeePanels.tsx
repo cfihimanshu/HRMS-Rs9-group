@@ -140,7 +140,7 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
       return;
     }
     setTopRole(val);
-    setFormData(prev => ({ ...prev, role: val, jobTitle: val }));
+    setFormData(prev => ({ ...prev, role: val, jobTitle: val, designation: val }));
   };
 
   const [formData, setFormData] = useState({
@@ -450,7 +450,8 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
   };
 
   const handleAddCustomRole = async () => {
-    if (!customRoleName.trim()) {
+    const newRole = customRoleName.trim();
+    if (!newRole) {
       triggerToast("Role name cannot be empty");
       return;
     }
@@ -459,14 +460,14 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          name: customRoleName.trim(),
+          name: newRole,
           department: formData.department,
           companyId: formData.companyId || undefined
         })
       });
       const data = await res.json();
       if (data.success) {
-        triggerToast(`Role "${customRoleName.trim()}" created under "${formData.department}" successfully!`);
+        triggerToast(`Role "${newRole}" created under "${formData.department}" successfully!`);
         setShowCustomRoleInput(false);
         setCustomRoleName("");
 
@@ -476,12 +477,20 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
           await fetchGlobalRoles();
         }
 
+        setDbRoles(prev => {
+          if (!prev.some((r: any) => (r.name || "").toLowerCase() === newRole.toLowerCase() && (r.department || "").toLowerCase() === (formData.department || "").toLowerCase())) {
+            return [...prev, { name: newRole, department: formData.department }];
+          }
+          return prev;
+        });
+
         setFormData(prev => ({
           ...prev,
-          role: customRoleName.trim(),
-          jobTitle: customRoleName.trim()
+          role: newRole,
+          jobTitle: newRole,
+          designation: newRole
         }));
-        setTopRole(customRoleName.trim());
+        setTopRole(newRole);
       } else {
         triggerToast("Failed to create role: " + data.error);
       }
@@ -697,7 +706,8 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
   };
 
   const handleEditAddCustomRole = async () => {
-    if (!editCustomRoleName.trim()) {
+    const newRole = editCustomRoleName.trim();
+    if (!newRole) {
       triggerToast("Role name cannot be empty");
       return;
     }
@@ -707,14 +717,14 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          name: editCustomRoleName.trim(),
+          name: newRole,
           department: editForm.department,
           companyId: currentCompanyId
         })
       });
       const data = await res.json();
       if (data.success) {
-        triggerToast(`Role "${editCustomRoleName.trim()}" created under "${editForm.department}" successfully!`);
+        triggerToast(`Role "${newRole}" created under "${editForm.department}" successfully!`);
         setShowEditCustomRoleInput(false);
         setEditCustomRoleName("");
 
@@ -724,9 +734,17 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
           await fetchGlobalRoles();
         }
 
+        setDbRoles(prev => {
+          if (!prev.some((r: any) => (r.name || "").toLowerCase() === newRole.toLowerCase() && (r.department || "").toLowerCase() === (editForm.department || "").toLowerCase())) {
+            return [...prev, { name: newRole, department: editForm.department }];
+          }
+          return prev;
+        });
+
         setEditForm(prev => ({
           ...prev,
-          role: editCustomRoleName.trim()
+          role: newRole,
+          designation: newRole
         }));
       } else {
         triggerToast("Failed to create role: " + data.error);
@@ -798,7 +816,7 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
       mobile: emp.mobile || "",
       role: emp.role || "Employee",
       status: emp.status || "active",
-      designation: profile.designation || "",
+      designation: emp.role || profile.designation || "Employee",
       department: typeof profile.department === "object" ? (profile.department?.name || "") : (profile.department || ""),
       vertical: emp.vertical || profile.vertical || "",
       dateOfJoining: formatDate(profile.dateOfJoining),
@@ -819,6 +837,13 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
       reportingManager: profile.reportingManager || "",
       profilePhoto: profile.profilePhoto || ""
     });
+
+    const compId = (emp.companies && emp.companies[0]) ? (typeof emp.companies[0] === 'object' ? emp.companies[0].id : emp.companies[0]) : "";
+    if (compId) {
+      fetchCompanyRoles(compId);
+    } else {
+      fetchGlobalRoles();
+    }
 
     setShowEditModal(true);
   };
@@ -1064,7 +1089,10 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
     return roles.length > 0 ? roles : ["Employee"];
   };
 
-  const finalRolesList = getRolesForDept(formData.department);
+  const rawFinalRolesList = getRolesForDept(formData.department);
+  const finalRolesList = (formData.role && !rawFinalRolesList.includes(formData.role) && formData.role !== "add_custom_role")
+    ? [formData.role, ...rawFinalRolesList]
+    : rawFinalRolesList;
 
   // Get all unique roles of actually created users/employees across all companies
   const uniqueRoleNames = Array.from(new Set(employees.map((emp: any) => emp.role).filter(Boolean))).sort();
@@ -1125,7 +1153,10 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
     editDisplayDesignations.push({ id: "desig_employee_default", name: "Employee" });
   }
 
-  const editRolesList = getRolesForDept(editForm.department);
+  const rawEditRolesList = getRolesForDept(editForm.department);
+  const editRolesList = (editForm.role && !rawEditRolesList.includes(editForm.role) && editForm.role !== "add_custom_role")
+    ? [editForm.role, ...rawEditRolesList]
+    : rawEditRolesList;
 
   const editDeptEmployees = employees.filter((emp: any) => {
     const statusLower = (emp.status || "").toLowerCase();

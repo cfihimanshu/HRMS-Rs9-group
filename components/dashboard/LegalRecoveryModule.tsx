@@ -114,7 +114,8 @@ export default function LegalRecoveryModule({ userRole, triggerToast, sessionUse
   const [nbfcBranchForm, setNbfcBranchForm] = useState({ nbfcId: "", branchName: "", branchCode: "", branchEmail: "", branchManager: "", branchManagerContact: "", aoName: "", foName: "", foContact: "", rbo: "" });
   const [caseForm, setCaseForm] = useState({
     bankName: "", branchName: "", branchId: "", aoName: "",
-    deptManagerName: "", contactNumber: "", pendingAmount: "", pendingSince: ""
+    deptManagerName: "", contactNumber: "", branchEmail: "", foName: "", foContact: "", rbo: "",
+    totalBillAmount: "", pendingAmount: "", pendingSince: "", status: "Open"
   });
   const [editCaseId, setEditCaseId] = useState<number | null>(null);
   const [selectedBankIdForCase, setSelectedBankIdForCase] = useState("");
@@ -478,8 +479,8 @@ export default function LegalRecoveryModule({ userRole, triggerToast, sessionUse
 
   const handleAddCaseSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!caseForm.bankName || !caseForm.pendingAmount) {
-      triggerToast("Bank Name and Pending Amount are required.");
+    if (!caseForm.bankName) {
+      triggerToast("Bank Name is required.");
       return;
     }
     if (submittingCase) return;
@@ -499,15 +500,16 @@ export default function LegalRecoveryModule({ userRole, triggerToast, sessionUse
         setSelectedBankIdForCase("");
         setCaseForm({
           bankName: "", branchName: "", branchId: "", aoName: "",
-          deptManagerName: "", contactNumber: "", pendingAmount: "", pendingSince: ""
+          deptManagerName: "", contactNumber: "", branchEmail: "", foName: "", foContact: "", rbo: "",
+          totalBillAmount: "", pendingAmount: "", pendingSince: "", status: "Open"
         });
         fetchCases();
       } else {
-        triggerToast(result.error || "Failed to add case");
+        triggerToast(result.error || "Failed to save case");
       }
     } catch (error) {
       console.error(error);
-      triggerToast("Error adding case");
+      triggerToast("Error saving case");
     } finally {
       setSubmittingCase(false);
     }
@@ -534,11 +536,24 @@ export default function LegalRecoveryModule({ userRole, triggerToast, sessionUse
     const matchingBank = banksList.find((bank: any) => bank.bankName === c.bankName || String(bank.id) === String(c.bankId || ""));
     setSelectedBankIdForCase(matchingBank ? String(matchingBank.id) : "");
     setCaseForm({
-      bankName: c.bankName || "", branchName: c.branchName || "", branchId: c.branchId || "", aoName: c.aoName || "",
-      deptManagerName: c.deptManagerName || "", contactNumber: c.contactNumber || "", pendingAmount: c.pendingAmount || "", pendingSince: c.pendingSince ? new Date(c.pendingSince).toISOString().split('T')[0] : ""
+      bankName: c.bankName || "",
+      branchName: c.branchName || "",
+      branchId: c.branchId || "",
+      aoName: c.aoName || "",
+      deptManagerName: c.deptManagerName || "",
+      contactNumber: c.contactNumber || "",
+      branchEmail: c.branchEmail || "",
+      foName: c.foName || "",
+      foContact: c.foContact || "",
+      rbo: c.rbo || "",
+      totalBillAmount: c.totalBillAmount !== undefined && c.totalBillAmount !== null ? String(c.totalBillAmount) : "",
+      pendingAmount: c.pendingAmount !== undefined && c.pendingAmount !== null ? String(c.pendingAmount) : "",
+      pendingSince: c.pendingSince ? new Date(c.pendingSince).toISOString().split('T')[0] : "",
+      status: c.status || "Open"
     });
     setEditCaseId(c.id);
     setShowAddCaseForm(true);
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const handleFollowUpSubmit = async (e: React.FormEvent) => {
@@ -552,16 +567,17 @@ export default function LegalRecoveryModule({ userRole, triggerToast, sessionUse
       if (audioFile) {
         const formData = new FormData();
         formData.append("file", audioFile);
+        formData.append("purpose", "task-proof");
 
         const uploadRes = await fetch("/api/documents/upload", {
           method: "POST",
           body: formData,
         });
         const uploadResult = await uploadRes.json();
-        if (uploadResult.success) {
+        if (uploadResult.success && uploadResult.url) {
           callRecordingUrl = uploadResult.url;
         } else {
-          triggerToast("Warning: Failed to upload audio. Proceeding without recording.");
+          triggerToast("Warning: Failed to upload attachment. Proceeding without file.");
         }
       }
 
@@ -576,7 +592,8 @@ export default function LegalRecoveryModule({ userRole, triggerToast, sessionUse
         conversationDetails: followUpForm.conversationDetails,
         nextFollowUpDate: followUpForm.nextFollowUpDate,
         callDate: followUpForm.callDate,
-        callRecordingUrl
+        callRecordingUrl,
+        pendingAmount: showFollowUpForm.master.pendingAmount || 0
       };
 
       const res = await fetch("/api/legal-recovery/followup", {
@@ -587,10 +604,11 @@ export default function LegalRecoveryModule({ userRole, triggerToast, sessionUse
 
       const result = await res.json();
       if (result.success) {
-        triggerToast("Follow up saved & Task created successfully!");
+        triggerToast("Bill Follow Up logged & Task created successfully!");
         setShowFollowUpForm({ show: false, master: null });
         setFollowUpForm({ callStatus: "Connected", conversationDetails: "", nextFollowUpDate: "", callDate: new Date().toISOString().split('T')[0] });
         setAudioFile(null);
+        fetchCases();
       } else {
         triggerToast(result.error || "Failed to save follow up");
       }
@@ -865,41 +883,6 @@ export default function LegalRecoveryModule({ userRole, triggerToast, sessionUse
             <span className="text-[10px] text-slate-500 mt-1 uppercase tracking-wider font-semibold">Previous Work Entries</span>
           </button>
 
-          {/* Module 9: NBFC Master */}
-          <button
-            onClick={() => setActiveSubModule("nbfcs")}
-            className="group flex flex-col items-center justify-center p-6 bg-white border border-[#E8E4DF] rounded-2xl hover:shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:border-indigo-200 transition-all duration-300"
-          >
-            <div className="w-16 h-16 bg-gradient-to-br from-indigo-50 to-indigo-100 text-indigo-600 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform shadow-sm">
-              <Building2 size={28} strokeWidth={2} />
-            </div>
-            <span className="font-bold text-sm text-slate-800">NBFC Master</span>
-            <span className="text-[10px] text-slate-500 mt-1 uppercase tracking-wider font-semibold">Add NBFC</span>
-          </button>
-
-          {/* Module 10: NBFC Branch Master */}
-          <button
-            onClick={() => setActiveSubModule("nbfc-branches")}
-            className="group flex flex-col items-center justify-center p-6 bg-white border border-[#E8E4DF] rounded-2xl hover:shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:border-violet-200 transition-all duration-300"
-          >
-            <div className="w-16 h-16 bg-gradient-to-br from-violet-50 to-violet-100 text-violet-600 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform shadow-sm">
-              <Network size={28} strokeWidth={2} />
-            </div>
-            <span className="font-bold text-sm text-slate-800">NBFC Branch Master</span>
-            <span className="text-[10px] text-slate-500 mt-1 uppercase tracking-wider font-semibold">Add NBFC Branches</span>
-          </button>
-
-          {/* Module 11: Security */}
-          <button
-            onClick={() => setActiveSubModule("security")}
-            className="group flex flex-col items-center justify-center p-6 bg-white border border-[#E8E4DF] rounded-2xl hover:shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:border-emerald-200 transition-all duration-300"
-          >
-            <div className="w-16 h-16 bg-gradient-to-br from-emerald-50 to-emerald-100 text-emerald-600 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform shadow-sm">
-              <ShieldCheck size={28} strokeWidth={2} />
-            </div>
-            <span className="font-bold text-sm text-slate-800">Security</span>
-            <span className="text-[10px] text-slate-500 mt-1 uppercase tracking-wider font-semibold">Security Deposits &amp; Bills</span>
-          </button>
 
           {/* Module 13: Legal Work Entry History */}
           <button
@@ -1156,21 +1139,34 @@ export default function LegalRecoveryModule({ userRole, triggerToast, sessionUse
           </div>
         )}
 
-        {/* Add New Case Form */}
+        {/* Add / Edit Case Form */}
         {showAddCaseForm && activeSubModule === "masters" && (
           <div className="bg-white border border-[#E8E4DF] rounded-xl p-5 shadow-sm animate-slide-down">
             <div className="flex justify-between items-center border-b border-[#E8E4DF] pb-3 mb-4">
               <h3 className="text-sm font-bold text-slate-800 flex items-center gap-1.5">
-                <Building className="w-4 h-4 text-emerald-600" /> {editCaseId ? "Edit Recovery Case" : "Register New Recovery Case"}
+                <Building className="w-4 h-4 text-emerald-600" /> {editCaseId ? "✏️ Edit Bank Recovery Case & Details" : "Register New Bank Recovery Case"}
               </h3>
-              <button onClick={() => { setShowAddCaseForm(false); setEditCaseId(null); }} className="text-slate-400 hover:text-slate-600">
+              <button
+                onClick={() => {
+                  setShowAddCaseForm(false);
+                  setEditCaseId(null);
+                  setSelectedBankIdForCase("");
+                  setCaseForm({
+                    bankName: "", branchName: "", branchId: "", aoName: "",
+                    deptManagerName: "", contactNumber: "", branchEmail: "", foName: "", foContact: "", rbo: "",
+                    totalBillAmount: "", pendingAmount: "", pendingSince: "", status: "Open"
+                  });
+                }}
+                className="text-slate-400 hover:text-slate-600"
+              >
                 <X className="w-4 h-4" />
               </button>
             </div>
             <form onSubmit={handleAddCaseSubmit} className="space-y-4">
+              {/* Row 1: Bank & Branch Selection */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Bank Name *</label>
+                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Select Bank *</label>
                   <select
                     required
                     value={selectedBankIdForCase}
@@ -1178,9 +1174,9 @@ export default function LegalRecoveryModule({ userRole, triggerToast, sessionUse
                       const bId = e.target.value;
                       setSelectedBankIdForCase(bId);
                       const bName = banksList.find(b => b.id.toString() === bId)?.bankName || "";
-                      setCaseForm({ ...caseForm, bankName: bName, branchName: "", branchId: "" }); // reset branch on bank change
+                      setCaseForm({ ...caseForm, bankName: bName, branchName: "", branchId: "", aoName: "", deptManagerName: "", contactNumber: "", branchEmail: "", foName: "", foContact: "", rbo: "" });
                     }}
-                    className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs focus:outline-none"
+                    className="w-full bg-white border border-[#E8E4DF] focus:border-emerald-500 rounded-lg px-3 py-2 text-xs focus:outline-none font-semibold text-slate-800"
                   >
                     <option value="">-- Select Registered Bank --</option>
                     {banksList.map(b => (
@@ -1192,193 +1188,190 @@ export default function LegalRecoveryModule({ userRole, triggerToast, sessionUse
                   )}
                 </div>
                 <div>
-                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Branch Name</label>
+                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Select Branch (Auto-Populates Details)</label>
                   <select
                     value={caseForm.branchId}
                     onChange={e => {
                       const brId = e.target.value;
-                      const branch = branchesList.find(br => br.branchCode === brId);
+                      const branch = branchesList.find(br => br.branchCode === brId || String(br.id) === brId);
                       setCaseForm({
                         ...caseForm,
-                        branchId: brId,
+                        branchId: branch ? (branch.branchCode || String(branch.id)) : brId,
                         branchName: branch?.branchName || "",
                         aoName: branch?.aoName || "",
                         deptManagerName: branch?.branchManager || "",
-                        contactNumber: branch?.branchManagerContact || branch?.foContact || ""
+                        contactNumber: branch?.branchManagerContact || branch?.foContact || "",
+                        branchEmail: branch?.branchEmail || "",
+                        foName: branch?.foName || "",
+                        foContact: branch?.foContact || "",
+                        rbo: branch?.rbo || ""
                       });
                     }}
-                    className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs focus:outline-none"
+                    className="w-full bg-white border border-[#E8E4DF] focus:border-emerald-500 rounded-lg px-3 py-2 text-xs focus:outline-none font-semibold text-slate-800"
                     disabled={!selectedBankIdForCase}
                   >
                     <option value="">-- Select Branch --</option>
                     {branchesList.filter(br => br.bankId.toString() === selectedBankIdForCase).map(br => (
-                      <option key={br.id} value={br.branchCode}>{br.branchName} ({br.branchCode})</option>
+                      <option key={br.id} value={br.branchCode || br.id}>{br.branchName} ({br.branchCode || 'No Code'})</option>
                     ))}
                   </select>
                   {selectedBankIdForCase && branchesList.filter(br => br.bankId.toString() === selectedBankIdForCase).length === 0 && (
-                    <p className="text-[10px] text-amber-500 mt-1">No branches found. Add them in 'Branch Master'.</p>
+                    <p className="text-[10px] text-amber-500 mt-1">No branches found for this bank. Add them in 'Branch Master'.</p>
                   )}
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              {/* Row 2: Financial Details */}
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 p-3 bg-emerald-50/40 border border-emerald-100 rounded-xl">
                 <div>
-                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">AO Name</label>
-                  <input type="text" readOnly placeholder="Auto-filled from Branch" value={caseForm.aoName} className="w-full bg-slate-50 border border-[#E8E4DF] rounded-lg px-3 py-2 text-xs focus:outline-none text-slate-500 cursor-not-allowed" />
-                </div>
-                <div>
-                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Dept Manager Name</label>
-                  <input type="text" readOnly placeholder="Auto-filled from Branch" value={caseForm.deptManagerName} className="w-full bg-slate-50 border border-[#E8E4DF] rounded-lg px-3 py-2 text-xs focus:outline-none text-slate-500 cursor-not-allowed" />
-                </div>
-                <div>
-                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Contact Number</label>
-                  <input type="text" readOnly placeholder="Auto-filled from Branch" value={caseForm.contactNumber} className="w-full bg-slate-50 border border-[#E8E4DF] rounded-lg px-3 py-2 text-xs focus:outline-none text-slate-500 cursor-not-allowed" />
-                </div>
-                <div>
-                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Pending Amount (₹) *</label>
-                  <input required type="number" step="0.01" value={caseForm.pendingAmount} onChange={e => setCaseForm({ ...caseForm, pendingAmount: e.target.value })} className="w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs focus:outline-none font-semibold" />
-                </div>
-              </div>
-              <div>
-                <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Pending Since (Date)</label>
-                <input type="date" value={caseForm.pendingSince} onChange={e => setCaseForm({ ...caseForm, pendingSince: e.target.value })} className="w-full max-w-xs bg-white border border-[#E8E4DF] focus:border-[#C9A84C] rounded-lg px-3 py-2 text-xs focus:outline-none" />
-              </div>
-              <div className="flex justify-end pt-3">
-                <button disabled={submittingCase} type="submit" className="px-4 py-2 bg-emerald-600 text-white rounded-lg text-xs font-semibold uppercase tracking-wider hover:bg-emerald-700 disabled:opacity-50">
-                  {submittingCase ? "Saving..." : (editCaseId ? "Update Case" : "Save Case")}
-                </button>
-              </div>
-            </form>
-          </div>
-        )}
-
-        {/* Add New NBFC Form */}
-        {showAddNbfcForm && activeSubModule === "nbfcs" && (
-          <div className="bg-white border border-[#E8E4DF] rounded-xl p-5 shadow-sm animate-slide-down">
-            <div className="flex justify-between items-center border-b border-[#E8E4DF] pb-3 mb-4">
-              <h3 className="text-sm font-bold text-slate-800 flex items-center gap-1.5">
-                <Building2 className="w-4 h-4 text-indigo-600" /> Register New NBFC Master
-              </h3>
-              <button onClick={() => setShowAddNbfcForm(false)} className="text-slate-400 hover:text-slate-600">
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-            <form onSubmit={handleAddNbfcSubmit} className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">NBFC Name *</label>
-                  <input required type="text" placeholder="e.g. Bajaj Finance Limited" value={nbfcForm.nbfcName}
+                  <label className="block text-[9px] uppercase tracking-wider text-emerald-800 font-bold mb-1">Total Bill Amount (₹)</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    placeholder="0.00"
+                    value={caseForm.totalBillAmount}
                     onChange={e => {
                       const val = e.target.value;
-                      const words = val.split(/\s+/).filter(w => !['of', 'and', 'the', 'in', 'limited', 'ltd'].includes(w.toLowerCase()));
-                      let autoCode = "";
-                      if (words.length === 1) {
-                        autoCode = words[0].substring(0, 3).toUpperCase();
-                      } else if (words.length > 1) {
-                        autoCode = words.map(w => w[0]).join('').substring(0, 4).toUpperCase();
-                      }
-                      setNbfcForm({ ...nbfcForm, nbfcName: val, nbfcCode: autoCode });
+                      setCaseForm({
+                        ...caseForm,
+                        totalBillAmount: val,
+                        pendingAmount: !caseForm.pendingAmount || caseForm.pendingAmount === caseForm.totalBillAmount ? val : caseForm.pendingAmount
+                      });
                     }}
-                    className="w-full bg-white border border-[#E8E4DF] focus:border-indigo-500 rounded-lg px-3 py-2 text-xs focus:outline-none font-semibold"
+                    className="w-full bg-white border border-emerald-200 focus:border-emerald-500 rounded-lg px-3 py-2 text-xs focus:outline-none font-bold text-slate-800"
                   />
                 </div>
                 <div>
-                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">NBFC Code (Auto / Editable) *</label>
-                  <input required type="text" placeholder="e.g. BFL" value={nbfcForm.nbfcCode}
-                    onChange={e => setNbfcForm({ ...nbfcForm, nbfcCode: e.target.value.toUpperCase() })}
-                    className="w-full bg-white border border-[#E8E4DF] focus:border-indigo-500 rounded-lg px-3 py-2 text-xs focus:outline-none font-mono font-bold text-indigo-700"
-                  />
-                </div>
-              </div>
-              <div className="flex justify-end">
-                <button disabled={submittingNbfc} type="submit" className="px-4 py-2 bg-indigo-600 text-white rounded-lg text-xs font-semibold uppercase tracking-wider hover:bg-indigo-700 disabled:opacity-50">
-                  {submittingNbfc ? "Saving..." : "Save NBFC Master"}
-                </button>
-              </div>
-            </form>
-          </div>
-        )}
-
-        {/* Add / Edit NBFC Branch Form */}
-        {showAddNbfcBranchForm && activeSubModule === "nbfc-branches" && (
-          <div className="bg-white border border-[#E8E4DF] rounded-xl p-5 shadow-sm animate-slide-down">
-            <div className="flex justify-between items-center border-b border-[#E8E4DF] pb-3 mb-4">
-              <h3 className="text-sm font-bold text-slate-800 flex items-center gap-1.5">
-                <Network className="w-4 h-4 text-violet-600" /> {editNbfcBranchId ? "✏️ Edit NBFC Branch Details" : "Register New NBFC Branch"}
-              </h3>
-              <button onClick={() => { setShowAddNbfcBranchForm(false); setEditNbfcBranchId(null); setNbfcBranchForm({ nbfcId: "", branchName: "", branchCode: "", branchEmail: "", branchManager: "", branchManagerContact: "", aoName: "", foName: "", foContact: "", rbo: "" }); }} className="text-slate-400 hover:text-slate-600">
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-            <form onSubmit={handleAddNbfcBranchSubmit} className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Select NBFC *</label>
-                  <select
+                  <label className="block text-[9px] uppercase tracking-wider text-rose-800 font-bold mb-1">Pending Amount (₹) *</label>
+                  <input
                     required
-                    value={nbfcBranchForm.nbfcId}
-                    onChange={e => setNbfcBranchForm({ ...nbfcBranchForm, nbfcId: e.target.value })}
-                    className="w-full bg-white border border-[#E8E4DF] focus:border-violet-500 rounded-lg px-3 py-2 text-xs focus:outline-none font-semibold text-slate-700"
+                    type="number"
+                    step="0.01"
+                    placeholder="0.00"
+                    value={caseForm.pendingAmount}
+                    onChange={e => setCaseForm({ ...caseForm, pendingAmount: e.target.value })}
+                    className="w-full bg-white border border-rose-200 focus:border-rose-500 rounded-lg px-3 py-2 text-xs focus:outline-none font-bold text-rose-700"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[9px] uppercase tracking-wider text-slate-600 font-bold mb-1">Pending Since (Date)</label>
+                  <input
+                    type="date"
+                    value={caseForm.pendingSince}
+                    onChange={e => setCaseForm({ ...caseForm, pendingSince: e.target.value })}
+                    className="w-full bg-white border border-slate-200 focus:border-indigo-500 rounded-lg px-3 py-2 text-xs focus:outline-none text-slate-700 font-medium"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[9px] uppercase tracking-wider text-slate-600 font-bold mb-1">Case Status</label>
+                  <select
+                    value={caseForm.status}
+                    onChange={e => setCaseForm({ ...caseForm, status: e.target.value })}
+                    className="w-full bg-white border border-slate-200 focus:border-indigo-500 rounded-lg px-3 py-2 text-xs focus:outline-none font-semibold text-slate-700"
                   >
-                    <option value="">-- Choose an NBFC --</option>
-                    {nbfcsList.map(n => (
-                      <option key={n.id} value={n.id}>{n.nbfcName} ({n.nbfcCode})</option>
-                    ))}
+                    <option value="Open">Open</option>
+                    <option value="In Progress">In Progress</option>
+                    <option value="Settled">Settled / Closed</option>
                   </select>
                 </div>
+              </div>
+
+              {/* Row 3: Key Officials Details */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
-                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Branch Name / Area *</label>
-                  <input required type="text" placeholder="e.g. Malviya Nagar" value={nbfcBranchForm.branchName}
-                    onChange={e => setNbfcBranchForm({ ...nbfcBranchForm, branchName: e.target.value })}
-                    className="w-full bg-white border border-[#E8E4DF] focus:border-violet-500 rounded-lg px-3 py-2 text-xs focus:outline-none"
+                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">AO Name (Authorised Officer)</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Rahul Sharma"
+                    value={caseForm.aoName}
+                    onChange={e => setCaseForm({ ...caseForm, aoName: e.target.value })}
+                    className="w-full bg-white border border-[#E8E4DF] focus:border-emerald-500 rounded-lg px-3 py-2 text-xs focus:outline-none"
                   />
                 </div>
                 <div>
-                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Branch Code (Manual / Numeric) *</label>
-                  <input required type="text" placeholder="e.g. NBF-501" value={nbfcBranchForm.branchCode}
-                    onChange={e => setNbfcBranchForm({ ...nbfcBranchForm, branchCode: e.target.value })}
-                    className="w-full bg-white border border-[#E8E4DF] focus:border-violet-500 rounded-lg px-3 py-2 text-xs focus:outline-none font-mono font-bold"
+                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Branch / Dept Manager Name</label>
+                  <input
+                    type="text"
+                    placeholder="Manager Name"
+                    value={caseForm.deptManagerName}
+                    onChange={e => setCaseForm({ ...caseForm, deptManagerName: e.target.value })}
+                    className="w-full bg-white border border-[#E8E4DF] focus:border-emerald-500 rounded-lg px-3 py-2 text-xs focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Manager Contact Number</label>
+                  <input
+                    type="text"
+                    placeholder="Phone / Mobile"
+                    value={caseForm.contactNumber}
+                    onChange={e => setCaseForm({ ...caseForm, contactNumber: e.target.value })}
+                    className="w-full bg-white border border-[#E8E4DF] focus:border-emerald-500 rounded-lg px-3 py-2 text-xs focus:outline-none"
                   />
                 </div>
               </div>
 
+              {/* Row 4: Additional Branch & Field Details */}
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <div>
                   <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Branch Email</label>
-                  <input type="email" placeholder="Email" value={nbfcBranchForm.branchEmail} onChange={e => setNbfcBranchForm({ ...nbfcBranchForm, branchEmail: e.target.value })} className="w-full bg-white border border-[#E8E4DF] focus:border-violet-500 rounded-lg px-3 py-2 text-xs focus:outline-none" />
+                  <input
+                    type="email"
+                    placeholder="branch@bank.com"
+                    value={caseForm.branchEmail}
+                    onChange={e => setCaseForm({ ...caseForm, branchEmail: e.target.value })}
+                    className="w-full bg-white border border-[#E8E4DF] focus:border-emerald-500 rounded-lg px-3 py-2 text-xs focus:outline-none"
+                  />
                 </div>
                 <div>
-                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Branch Manager</label>
-                  <input type="text" placeholder="Manager Name" value={nbfcBranchForm.branchManager} onChange={e => setNbfcBranchForm({ ...nbfcBranchForm, branchManager: e.target.value })} className="w-full bg-white border border-[#E8E4DF] focus:border-violet-500 rounded-lg px-3 py-2 text-xs focus:outline-none" />
-                </div>
-                <div>
-                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Manager Contact</label>
-                  <input type="text" placeholder="Mobile Number" value={nbfcBranchForm.branchManagerContact} onChange={e => setNbfcBranchForm({ ...nbfcBranchForm, branchManagerContact: e.target.value })} className="w-full bg-white border border-[#E8E4DF] focus:border-violet-500 rounded-lg px-3 py-2 text-xs focus:outline-none" />
-                </div>
-                <div>
-                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">AO Name</label>
-                  <input type="text" placeholder="Account Officer" value={nbfcBranchForm.aoName} onChange={e => setNbfcBranchForm({ ...nbfcBranchForm, aoName: e.target.value })} className="w-full bg-white border border-[#E8E4DF] focus:border-violet-500 rounded-lg px-3 py-2 text-xs focus:outline-none" />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">FO Name</label>
-                  <input type="text" placeholder="Field Officer Name" value={nbfcBranchForm.foName} onChange={e => setNbfcBranchForm({ ...nbfcBranchForm, foName: e.target.value })} className="w-full bg-white border border-[#E8E4DF] focus:border-violet-500 rounded-lg px-3 py-2 text-xs focus:outline-none" />
+                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">FO Name (Field Officer)</label>
+                  <input
+                    type="text"
+                    placeholder="FO Name"
+                    value={caseForm.foName}
+                    onChange={e => setCaseForm({ ...caseForm, foName: e.target.value })}
+                    className="w-full bg-white border border-[#E8E4DF] focus:border-emerald-500 rounded-lg px-3 py-2 text-xs focus:outline-none"
+                  />
                 </div>
                 <div>
                   <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">FO Contact Number</label>
-                  <input type="text" placeholder="Phone Number" value={nbfcBranchForm.foContact} onChange={e => setNbfcBranchForm({ ...nbfcBranchForm, foContact: e.target.value })} className="w-full bg-white border border-[#E8E4DF] focus:border-violet-500 rounded-lg px-3 py-2 text-xs focus:outline-none" />
+                  <input
+                    type="text"
+                    placeholder="FO Phone"
+                    value={caseForm.foContact}
+                    onChange={e => setCaseForm({ ...caseForm, foContact: e.target.value })}
+                    className="w-full bg-white border border-[#E8E4DF] focus:border-emerald-500 rounded-lg px-3 py-2 text-xs focus:outline-none"
+                  />
                 </div>
                 <div>
-                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">RBO</label>
-                  <input type="text" placeholder="Regional Business Office" value={nbfcBranchForm.rbo} onChange={e => setNbfcBranchForm({ ...nbfcBranchForm, rbo: e.target.value })} className="w-full bg-white border border-[#E8E4DF] focus:border-violet-500 rounded-lg px-3 py-2 text-xs focus:outline-none" />
+                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">RBO / Region / Zone</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Jaipur Zone - RBO 2"
+                    value={caseForm.rbo}
+                    onChange={e => setCaseForm({ ...caseForm, rbo: e.target.value })}
+                    className="w-full bg-white border border-[#E8E4DF] focus:border-emerald-500 rounded-lg px-3 py-2 text-xs focus:outline-none"
+                  />
                 </div>
               </div>
 
-              <div className="flex justify-end">
-                <button disabled={submittingNbfcBranch} type="submit" className="px-4 py-2 bg-violet-600 text-white rounded-lg text-xs font-semibold uppercase tracking-wider hover:bg-violet-700 disabled:opacity-50">
-                  {submittingNbfcBranch ? "Saving..." : (editNbfcBranchId ? "Update Branch" : "Save Branch")}
+              {/* Form Actions */}
+              <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowAddCaseForm(false);
+                    setEditCaseId(null);
+                  }}
+                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-semibold uppercase tracking-wider"
+                >
+                  Cancel
+                </button>
+                <button
+                  disabled={submittingCase}
+                  type="submit"
+                  className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold uppercase tracking-wider shadow-md transition disabled:opacity-50"
+                >
+                  {submittingCase ? "Saving..." : (editCaseId ? "Update Case Details" : "Save Recovery Case")}
                 </button>
               </div>
             </form>
@@ -1588,15 +1581,33 @@ export default function LegalRecoveryModule({ userRole, triggerToast, sessionUse
                 </div>
 
                 <div>
-                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Upload Document / Recording</label>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold">Upload Document / Recording / Screenshot</label>
+                    <span className="text-[9px] text-slate-400 font-medium">Images, Audio (MP3/M4A/WAV/AMR), PDFs, Docs</span>
+                  </div>
                   <div className="flex items-center gap-3">
                     <input
                       type="file"
-                      accept="*/*"
+                      accept="image/*,audio/*,.pdf,.doc,.docx,.xls,.xlsx,.txt"
                       onChange={e => setAudioFile(e.target.files ? e.target.files[0] : null)}
                       className="block w-full text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 cursor-pointer border border-[#E8E4DF] rounded-lg"
                     />
+                    {audioFile && (
+                      <button
+                        type="button"
+                        onClick={() => setAudioFile(null)}
+                        className="px-2 py-1.5 text-xs text-rose-600 hover:bg-rose-50 border border-rose-200 rounded-lg shrink-0"
+                        title="Remove attachment"
+                      >
+                        Remove
+                      </button>
+                    )}
                   </div>
+                  {audioFile && (
+                    <div className="mt-1 text-[10px] text-emerald-700 font-bold flex items-center gap-1">
+                      📎 Selected: {audioFile.name} ({(audioFile.size / 1024).toFixed(1)} KB)
+                    </div>
+                  )}
                 </div>
 
                 <div className="pt-4 border-t border-[#E8E4DF] flex justify-end gap-2">

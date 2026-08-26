@@ -7,11 +7,10 @@ import sequelize from "@/lib/sequelize";
 import BdaLead from "@/models/sequelize/BdaLead";
 import BdaCallLog from "@/models/sequelize/BdaCallLog";
 
-const isManager = (role = "") => ["owner", "director", "head", "manager", "hr executive"].some(value => role.toLowerCase().includes(value));
-const canViewSalesDashboard = (role = "", department = "") => {
-  const normalized = role.toLowerCase();
-  return normalized.includes("owner") || normalized.includes("director") || normalized.includes("sales manager") || normalized === "dsm" || (normalized.includes("manager") && department.toLowerCase().includes("sales"));
-};
+import User from "@/models/sequelize/User";
+import EmployeeProfile from "@/models/sequelize/EmployeeProfile";
+
+const isManager = (role = "") => ["owner", "director", "head", "manager", "hr executive", "sales head", "dsm", "sales"].some(value => role.toLowerCase().includes(value));
 
 export async function GET(req: Request) {
   try {
@@ -23,10 +22,45 @@ export async function GET(req: Request) {
     await sequelize.authenticate();
     await BdaCallLog.sync();
     const userId = String((session.user as any).id || "");
-    const role = String((session.user as any).role || "");
+    const sessionRole = String((session.user as any).role || "");
+    const sessionDept = String((session.user as any).department || "");
+
+    // Fetch live user and profile from database so updated permissions apply immediately
+    const dbUser = await User.findByPk(userId, { raw: true }).catch(() => null);
+    const profile = await EmployeeProfile.findOne({ where: { user: userId }, raw: true }).catch(() => null);
+
+    const role = (dbUser?.role || sessionRole || "").toLowerCase();
+    const dept = (profile?.department || sessionDept || "").toLowerCase();
+    const desig = (profile?.designation || (session.user as any)?.jobTitle || (session.user as any)?.designation || "").toLowerCase();
+
+    let menuAccessList: string[] = [];
+    if (Array.isArray(dbUser?.menuAccess)) {
+      menuAccessList = dbUser.menuAccess;
+    } else if (typeof dbUser?.menuAccess === "string" && dbUser.menuAccess) {
+      try {
+        const parsed = JSON.parse(dbUser.menuAccess);
+        if (Array.isArray(parsed)) menuAccessList = parsed;
+      } catch {}
+    }
+
+    const canView =
+      role.includes("owner") ||
+      role.includes("director") ||
+      role.includes("sales") ||
+      role.includes("head") ||
+      role.includes("manager") ||
+      role === "dsm" ||
+      desig.includes("sales") ||
+      desig.includes("head") ||
+      dept.includes("sales") ||
+      menuAccessList.includes("sales-dashboard") ||
+      menuAccessList.includes("vertical-dashboard") ||
+      menuAccessList.includes("Dashboards");
 
     if (!leadId) {
-      if (!canViewSalesDashboard(role, String((session.user as any).department || ""))) return NextResponse.json({ success: false, error: "Owner or Sales Manager access is required" }, { status: 403 });
+      if (!canView) {
+        return NextResponse.json({ success: false, error: "Owner, Sales Manager, or Sales Head access is required" }, { status: 403 });
+      }
       const calls = await BdaCallLog.findAll({ order: [["callDateTime", "DESC"], ["id", "DESC"]], limit: 2000 });
       return NextResponse.json({ success: true, data: calls });
     }
@@ -34,7 +68,9 @@ export async function GET(req: Request) {
     const lead = await BdaLead.findByPk(leadId);
     if (!lead) return NextResponse.json({ success: false, error: "Lead not found" }, { status: 404 });
 
-    if (!isManager(role) && String(lead.assignedTo || "") !== userId) {
+    const isManagerial = canView || ["owner", "director", "head", "manager", "hr executive", "sales head", "dsm"].some(v => role.includes(v));
+
+    if (!isManagerial && String(lead.assignedTo || "") !== userId) {
       return NextResponse.json({ success: false, error: "You can only view calls for leads assigned to you" }, { status: 403 });
     }
 

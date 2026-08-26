@@ -32,7 +32,7 @@ const parseCompanies = (value: any): string[] => {
 
 export async function GET(request: Request) {
   try {
-    const auth = await requireApiSession(MANAGEMENT_ROLES);
+    const auth = await requireApiSession();
     if (auth.response) return auth.response;
     const params = new URL(request.url).searchParams;
     const scope = params.get("scope") === "overall" ? "overall" : "today";

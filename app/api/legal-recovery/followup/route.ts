@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
+export const dynamic = "force-dynamic";
 import LegalRecoveryFollowUp from "@/models/sequelize/LegalRecoveryFollowUp";
 import LegalRecoveryMaster from "@/models/sequelize/LegalRecoveryMaster";
+import LegalWorkLog from "@/models/sequelize/LegalWorkLog";
+import LegalWorkHistory from "@/models/sequelize/LegalWorkHistory";
 import TaskLog from "@/models/sequelize/TaskLog";
 import sequelize from "@/lib/sequelize";
 import { Op } from "sequelize";
@@ -13,6 +16,8 @@ export async function POST(request: Request) {
     // Sync models if tables don't exist
     await LegalRecoveryFollowUp.sync();
     await TaskLog.sync();
+    await LegalWorkLog.sync().catch(() => {});
+    await LegalWorkHistory.sync().catch(() => {});
 
     // Sanitize nextFollowUpDate to prevent invalid date / empty string DB errors
     let cleanNextFollowUpDate: string | null = null;
@@ -58,7 +63,7 @@ export async function POST(request: Request) {
 
     // 2. Create Follow Up entry
     const followupData = {
-      masterId: data.masterId,
+      masterId: data.masterId || 0,
       callerId: data.callerId,
       callerName: data.callerName,
       callStatus: data.callStatus,
@@ -72,6 +77,59 @@ export async function POST(request: Request) {
     };
     
     const newFollowUp = await LegalRecoveryFollowUp.create(followupData);
+
+    // 3. Create Bill Follow Up entry in LegalWorkLog & LegalWorkHistory
+    const callWorkDate = data.callDate || new Date().toISOString().split('T')[0];
+    const callRemarks = `[Call: ${data.callStatus || 'Connected'}] ${data.conversationDetails || 'Follow-up call logged'}`;
+
+    try {
+      await LegalWorkLog.create({
+        masterId: data.masterId && Number(data.masterId) > 0 ? Number(data.masterId) : 0,
+        workDate: callWorkDate,
+        typeOfWork: "Bank Related",
+        workLocation: "Office",
+        bankName: data.bankName || "Registered Bank",
+        branchName: data.branchName || "General Branch",
+        category: "Bill Follow Up",
+        subCategory: "BILL FOLLOW UP",
+        businessDevOption: "Bill Follow Up",
+        businessDevSubOption: "BILL FOLLOW UP",
+        noOfCount: "1",
+        broughtBy: data.callerName,
+        employeeName: data.callerName,
+        employeeId: data.callerId,
+        uploadedFileName: data.callRecordingUrl || undefined,
+        remarks: callRemarks,
+        financialDetails: JSON.stringify({
+          billFollowUpCallDate: callWorkDate,
+          callStatus: data.callStatus,
+          nextFollowUpDate: data.nextFollowUpDate,
+          conversationDetails: data.conversationDetails,
+          callRecordingUrl: data.callRecordingUrl,
+          taskId: newTask.id
+        })
+      });
+    } catch (wlErr) {
+      console.warn("LegalWorkLog creation warning on follow-up:", wlErr);
+    }
+
+    try {
+      await LegalWorkHistory.create({
+        masterId: data.masterId && Number(data.masterId) > 0 ? Number(data.masterId) : 0,
+        category: "Bill Follow Up",
+        subCategory: "BILL FOLLOW UP",
+        bankName: data.bankName || "Registered Bank",
+        branchName: data.branchName || "General Branch",
+        employeeId: data.callerId,
+        employeeName: data.callerName,
+        attachmentUrl: data.callRecordingUrl || undefined,
+        remarks: callRemarks,
+        status: "Completed",
+        amount: 0
+      });
+    } catch (whErr) {
+      console.warn("LegalWorkHistory creation warning on follow-up:", whErr);
+    }
 
     return NextResponse.json({ success: true, data: newFollowUp, task: newTask });
   } catch (error: any) {

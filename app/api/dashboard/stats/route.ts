@@ -824,6 +824,47 @@ export async function GET(req: Request) {
         }
       }
     });
+    const allDepts = await Department.findAll({ attributes: ['id', 'name', 'code'], raw: true }).catch(() => []);
+    const deptMap = new Map<string, string>();
+    allDepts.forEach((d: any) => {
+      if (d.id) deptMap.set(String(d.id), d.name);
+      if (d.code) deptMap.set(String(d.code), d.name);
+    });
+
+    const formatDeptName = (rawDept: any, role?: string, designation?: string): string => {
+      if (rawDept) {
+        const str = String(rawDept).trim();
+        if (str && str !== 'N/A' && deptMap.has(str)) {
+          return deptMap.get(str)!;
+        }
+
+        if (str.startsWith("DEPT_") || str.startsWith("dept_")) {
+          const parts = str.split("_");
+          if (parts.length >= 3) {
+            const code = parts[2].toUpperCase();
+            if (code === "MAN" || code === "MGMT") return "Management";
+            if (code === "OPE" || code === "OPS") return "Operations";
+            if (code === "SEC" || code === "LEG") return "Security & Legal";
+            if (code === "HR") return "Human Resources";
+            if (code === "FIN" || code === "ACC") return "Finance & Accounts";
+            if (code === "IT" || code === "TECH" || code === "DEV") return "IT & Software";
+            return code.charAt(0) + code.slice(1).toLowerCase();
+          }
+        }
+      }
+
+      // Infer department intelligently from User Role or Designation
+      const roleStr = `${role || ""} ${designation || ""}`.toLowerCase();
+      if (roleStr.includes("hr") || roleStr.includes("human") || roleStr.includes("recruit") || roleStr.includes("hiring")) return "Human Resources";
+      if (roleStr.includes("engineer") || roleStr.includes("developer") || roleStr.includes("it") || roleStr.includes("tech") || roleStr.includes("wordpress") || roleStr.includes("network") || roleStr.includes("software")) return "IT & Software";
+      if (roleStr.includes("owner") || roleStr.includes("director") || roleStr.includes("ceo") || roleStr.includes("coo") || roleStr.includes("cco") || roleStr.includes("cfmo") || roleStr.includes("head")) return "Management";
+      if (roleStr.includes("legal") || roleStr.includes("recovery") || roleStr.includes("security") || roleStr.includes("facility") || roleStr.includes("guard")) return "Security & Legal";
+      if (roleStr.includes("finance") || roleStr.includes("account") || roleStr.includes("billing") || roleStr.includes("payroll")) return "Finance & Accounts";
+      if (roleStr.includes("admin") || roleStr.includes("operation") || roleStr.includes("logistics") || roleStr.includes("manager")) return "Operations";
+
+      return "Operations";
+    };
+
     // 8. Department Dashboard metrics
     // Calculate deptStats dynamically for Managers/Owners
     let deptStats: any = null;
@@ -1283,51 +1324,8 @@ export async function GET(req: Request) {
       };
     }
 
-    // Fetch staff list & departments for dashboard viewing (filtered by userFilter)
-    const [staffUsers, allDepts] = await Promise.all([
-      User.findAll({ where: userFilter, attributes: ['id', 'name', 'email', 'role', 'status', 'companies'] }),
-      Department.findAll({ attributes: ['id', 'name', 'code'], raw: true }).catch(() => [])
-    ]);
-
-    const deptMap = new Map<string, string>();
-    allDepts.forEach((d: any) => {
-      if (d.id) deptMap.set(String(d.id), d.name);
-      if (d.code) deptMap.set(String(d.code), d.name);
-    });
-
-    const formatDeptName = (rawDept: any, role?: string, designation?: string): string => {
-      if (rawDept) {
-        const str = String(rawDept).trim();
-        if (str && str !== 'N/A' && deptMap.has(str)) {
-          return deptMap.get(str)!;
-        }
-
-        if (str.startsWith("DEPT_") || str.startsWith("dept_")) {
-          const parts = str.split("_");
-          if (parts.length >= 3) {
-            const code = parts[2].toUpperCase();
-            if (code === "MAN" || code === "MGMT") return "Management";
-            if (code === "OPE" || code === "OPS") return "Operations";
-            if (code === "SEC" || code === "LEG") return "Security & Legal";
-            if (code === "HR") return "Human Resources";
-            if (code === "FIN" || code === "ACC") return "Finance & Accounts";
-            if (code === "IT" || code === "TECH" || code === "DEV") return "IT & Software";
-            return code.charAt(0) + code.slice(1).toLowerCase();
-          }
-        }
-      }
-
-      // Infer department intelligently from User Role or Designation
-      const roleStr = `${role || ""} ${designation || ""}`.toLowerCase();
-      if (roleStr.includes("hr") || roleStr.includes("human") || roleStr.includes("recruit") || roleStr.includes("hiring")) return "Human Resources";
-      if (roleStr.includes("engineer") || roleStr.includes("developer") || roleStr.includes("it") || roleStr.includes("tech") || roleStr.includes("wordpress") || roleStr.includes("network") || roleStr.includes("software")) return "IT & Software";
-      if (roleStr.includes("owner") || roleStr.includes("director") || roleStr.includes("ceo") || roleStr.includes("coo") || roleStr.includes("cco") || roleStr.includes("cfmo") || roleStr.includes("head")) return "Management";
-      if (roleStr.includes("legal") || roleStr.includes("recovery") || roleStr.includes("security") || roleStr.includes("facility") || roleStr.includes("guard")) return "Security & Legal";
-      if (roleStr.includes("finance") || roleStr.includes("account") || roleStr.includes("billing") || roleStr.includes("payroll")) return "Finance & Accounts";
-      if (roleStr.includes("admin") || roleStr.includes("operation") || roleStr.includes("logistics") || roleStr.includes("manager")) return "Operations";
-
-      return "Operations";
-    };
+    // Fetch staff list for dashboard viewing (filtered by userFilter)
+    const staffUsers = await User.findAll({ where: userFilter, attributes: ['id', 'name', 'email', 'role', 'status', 'companies'] });
 
     const staffProfileIds = staffUsers.map((u: any) => u.id);
     let staffProfiles: any[] = [];

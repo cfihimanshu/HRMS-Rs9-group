@@ -9,7 +9,15 @@ export const MANAGEMENT_ROLES = [
   "HR Head",
   "HR Executive",
   "Department Manager",
+  "Operation Manager",
+  "Sales Head",
+  "Sales Manager",
+  "DSM",
+  "IT Manager",
   "IT Admin",
+  "Recovery Manager",
+  "Legal Head",
+  "CCO",
 ] as const;
 
 export async function requireApiSession(allowedRoles?: readonly string[]) {
@@ -21,12 +29,31 @@ export async function requireApiSession(allowedRoles?: readonly string[]) {
     };
   }
 
-  const role = String((session.user as any).role || "");
-  if (allowedRoles && !allowedRoles.includes(role)) {
-    return {
-      session: null,
-      response: NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 }),
-    };
+  const role = String((session.user as any).role || "").toLowerCase();
+  const dept = String((session.user as any).department || "").toLowerCase();
+  const desig = String((session.user as any).jobTitle || (session.user as any).designation || "").toLowerCase();
+
+  if (allowedRoles && allowedRoles.length > 0) {
+    const isOwnerOrAdmin = role.includes("owner") || role.includes("director") || dept.includes("administration");
+    const isAllowed =
+      isOwnerOrAdmin ||
+      allowedRoles.some(r => {
+        const rLower = r.toLowerCase();
+        return (
+          rLower === role ||
+          (role.includes("manager") && rLower.includes("manager")) ||
+          (role.includes("head") && rLower.includes("head")) ||
+          (desig.includes("manager") && rLower.includes("manager")) ||
+          (desig.includes("head") && rLower.includes("head"))
+        );
+      });
+
+    if (!isAllowed) {
+      return {
+        session: null,
+        response: NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 }),
+      };
+    }
   }
 
   return { session, response: null };

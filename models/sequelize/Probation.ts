@@ -68,6 +68,14 @@ Probation.init(
       type: DataTypes.FLOAT,
       allowNull: true,
     },
+    kpis: {
+      type: DataTypes.JSON,
+      allowNull: true,
+    },
+    monthlyEvaluations: {
+      type: DataTypes.JSON,
+      allowNull: true,
+    },
     totalDays: {
       type: DataTypes.FLOAT,
       field: "attendanceSummary.totalDays",

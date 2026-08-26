@@ -31,16 +31,26 @@ const ALLOWED_UPLOAD_TYPES = new Set([
   "audio/mpeg",
   "audio/mp3",
   "audio/wav",
+  "audio/x-wav",
   "audio/m4a",
+  "audio/x-m4a",
+  "audio/mp4",
+  "audio/aac",
+  "audio/ogg",
+  "audio/webm",
+  "audio/amr",
+  "audio/3gpp",
+  "audio/flac",
   "video/mp4",
   "video/quicktime",
   "video/x-msvideo",
+  "video/webm",
 ]);
 
 const SAFE_EXTENSIONS = new Set([
   ".pdf", ".jpg", ".jpeg", ".png", ".webp", ".gif", ".bmp", ".tif", ".tiff",
   ".csv", ".txt", ".rtf", ".doc", ".docx", ".xls", ".xlsx", ".odt",
-  ".zip", ".rar", ".7z", ".mp3", ".wav", ".m4a", ".mp4", ".mov", ".avi"
+  ".zip", ".rar", ".7z", ".mp3", ".wav", ".m4a", ".aac", ".ogg", ".weba", ".webm", ".amr", ".3gp", ".flac", ".mp4", ".mov", ".avi"
 ]);
 
 const UNSAFE_TASK_EXTENSIONS = new Set([

@@ -50,18 +50,41 @@ export default function BankWorkReportModal({ open, onClose, tasks, banks, staff
   const [query, setQuery] = useState("");
   const [selectedBranch, setSelectedBranch] = useState("");
 
-  const reportRows = useMemo(() => tasks.map(task => ({
-    ...task,
-    bankName: readDetail(task.description, "Bank"),
-    branchName: readDetail(task.description, "Branch"),
-    category: readDetail(task.description, "Related Category") || "General",
-    callbackDate: readDetail(task.description, "Call Back Date") || task.deadlineAt || "",
-    employeeId: String(task.employee?.id || ""),
-    employeeName: task.employee?.name || "Unknown Staff",
-    forwardedName: task.forwardedUser?.name || staff.find(person => String(person.id) === String(task.forwardedTo))?.name || "-",
-  })).filter(task => {
-    if (!task.bankName || !task.branchName) return false;
-    if (bankName && task.bankName !== bankName) return false;
+  const parseBankInfoFromTask = (task: ReportTask) => {
+    let bName = (task as any).bankName || readDetail(task.description, "Bank");
+    let brName = (task as any).branchName || readDetail(task.description, "Branch");
+
+    if (!bName && task.taskTitle && task.taskTitle.toLowerCase().includes("bank:")) {
+      const match = task.taskTitle.match(/bank:\s*([^-]+)(?:\s*-\s*([^(]+))?/i);
+      if (match) {
+        bName = match[1]?.trim() || "";
+        if (!brName && match[2]) {
+          brName = match[2]?.trim() || "General Branch";
+        }
+      }
+    }
+
+    return {
+      bankName: bName || "",
+      branchName: brName || (bName ? "General Branch" : "")
+    };
+  };
+
+  const reportRows = useMemo(() => tasks.map(task => {
+    const { bankName: bName, branchName: brName } = parseBankInfoFromTask(task);
+    return {
+      ...task,
+      bankName: bName,
+      branchName: brName,
+      category: readDetail(task.description, "Related Category") || (task as any).category || "General",
+      callbackDate: readDetail(task.description, "Call Back Date") || task.deadlineAt || (task as any).scheduledAt || "",
+      employeeId: String(task.employee?.id || ""),
+      employeeName: task.employee?.name || "Unknown Staff",
+      forwardedName: task.forwardedUser?.name || staff.find(person => String(person.id) === String(task.forwardedTo))?.name || "-",
+    };
+  }).filter(task => {
+    if (!task.bankName) return false;
+    if (bankName && !task.bankName.toLowerCase().includes(bankName.toLowerCase()) && !bankName.toLowerCase().includes(task.bankName.toLowerCase())) return false;
     if (status && task.status !== status) return false;
     if (staffId && task.employeeId !== staffId) return false;
     const taskDate = String(task.date || task.createdAt || "").slice(0, 10);

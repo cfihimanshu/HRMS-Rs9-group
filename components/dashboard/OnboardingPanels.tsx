@@ -13,7 +13,19 @@ import {
   PenTool,
   Send,
   Download,
-  RefreshCw
+  RefreshCw,
+  Target,
+  Users,
+  Award,
+  Shield,
+  Sparkles,
+  TrendingUp,
+  ChevronRight,
+  Activity,
+  MessageSquare,
+  AlertTriangle,
+  UserCheck,
+  Calendar
 } from "lucide-react";
 
 interface OnboardingProps {
@@ -1141,19 +1153,77 @@ export function ProbationEvaluation({
   const [submitting, setSubmitting] = useState(false);
   const [showInitForm, setShowInitForm] = useState(false);
   const [newProbationEmployee, setNewProbationEmployee] = useState("");
+  const [selectedMonthIndex, setSelectedMonthIndex] = useState<number>(1);
+  const [isEditing, setIsEditing] = useState<boolean>(true);
+  const [activeTabFilter, setActiveTabFilter] = useState<"all" | "active" | "due" | "confirmed">("all");
 
   // Evaluation Form State
   const [evalForm, setEvalForm] = useState({
-    kpi: 0,
-    attendance: 0,
-    sodeod: 0,
-    behaviour: 0,
-    reporting: 0,
-    loyalty: 0,
-    risk: 0,
+    kpi: 75,
+    attendance: 80,
+    sodeod: 75,
+    behaviour: 85,
+    reporting: 75,
+    loyalty: 80,
+    risk: 80,
     feedback: "",
     verdict: "Confirm"
   });
+
+  const MILESTONE_TITLES = [
+    { m: 1, code: "M1", title: "Induction & Basics", desc: "Orientation & SOP Understanding" },
+    { m: 2, code: "M2", title: "SOP Check & Compliance", desc: "Process & Tool Discipline" },
+    { m: 3, code: "M3", title: "Mid-Term Review", desc: "Quarterly Work Progress" },
+    { m: 4, code: "M4", title: "Core KPI Sprint", desc: "Task Quality & Productivity" },
+    { m: 5, code: "M5", title: "Audit Preparation", desc: "Behaviour & Team Alignment" },
+    { m: 6, code: "M6", title: "Final Verdict Confirmation", desc: "Employment Confirmation Audit" }
+  ];
+
+  const getMonthDateName = (prob: any, mIdx: number) => {
+    if (!prob?.startDate) return `Month ${mIdx}`;
+    const d = new Date(prob.startDate);
+    d.setMonth(d.getMonth() + (mIdx - 1));
+    return d.toLocaleString("en-US", { month: "short", year: "numeric" });
+  };
+
+  const switchMonth = (prob: any, mIdx: number) => {
+    setSelectedMonthIndex(mIdx);
+    const monthlyData = prob?.monthlyEvaluations?.[mIdx];
+
+    if (monthlyData) {
+      const getScore = (name: string) => {
+        const found = monthlyData.kpis?.find((k: any) => k.kpiName === name);
+        return found ? Number(found.score) || 0 : 0;
+      };
+
+      setEvalForm({
+        kpi: getScore("KPI"),
+        attendance: getScore("Attendance"),
+        sodeod: getScore("SOD/EOD"),
+        behaviour: getScore("Behaviour"),
+        reporting: getScore("Reporting"),
+        loyalty: getScore("Loyalty"),
+        risk: getScore("Risk Score"),
+        feedback: monthlyData.feedback || "",
+        verdict: prob?.status === "active" ? "Confirm" : (prob?.status || "Confirm")
+      });
+      setIsEditing(false); // Saved view mode
+    } else {
+      // Unfilled month: fresh active fill mode
+      setEvalForm({
+        kpi: 75,
+        attendance: 80,
+        sodeod: 75,
+        behaviour: 85,
+        reporting: 75,
+        loyalty: 80,
+        risk: 80,
+        feedback: "",
+        verdict: prob?.status === "active" ? "Confirm" : (prob?.status || "Confirm")
+      });
+      setIsEditing(true); // Active fill mode
+    }
+  };
 
   const loadData = async () => {
     try {
@@ -1189,23 +1259,22 @@ export function ProbationEvaluation({
     setSelectedProbationer(prob);
     setShowInitForm(false);
 
-    // Auto-fill existing KPIs if available
-    const getScore = (name: string) => {
-      const found = prob.kpis?.find((k: any) => k.kpiName === name);
-      return found ? found.score : 0;
-    };
-
-    setEvalForm({
-      kpi: getScore("KPI"),
-      attendance: getScore("Attendance"),
-      sodeod: getScore("SOD/EOD"),
-      behaviour: getScore("Behaviour"),
-      reporting: getScore("Reporting"),
-      loyalty: getScore("Loyalty"),
-      risk: getScore("Risk Score"),
-      feedback: prob.feedback || "",
-      verdict: prob.status === "active" ? "Confirm" : prob.status
-    });
+    // Auto-advance to the earliest unfilled month, or pick Month 1
+    let defaultMonth = 1;
+    if (prob.monthlyEvaluations) {
+      let foundUnfilled = false;
+      for (let m = 1; m <= 6; m++) {
+        if (!prob.monthlyEvaluations[m]) {
+          defaultMonth = m;
+          foundUnfilled = true;
+          break;
+        }
+      }
+      if (!foundUnfilled) {
+        defaultMonth = 6; // All filled, view Month 6
+      }
+    }
+    switchMonth(prob, defaultMonth);
   };
 
   const handleInitializeProbation = async (e: React.FormEvent) => {
@@ -1264,6 +1333,7 @@ export function ProbationEvaluation({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           probationId: selectedProbationer.id,
+          monthIndex: selectedMonthIndex,
           status: evalForm.verdict,
           kpis: kpisArray,
           feedback: evalForm.feedback
@@ -1272,7 +1342,43 @@ export function ProbationEvaluation({
 
       const data = await res.json();
       if (data.success) {
-        triggerToast(`Probation evaluated! Verdict: ${evalForm.verdict}`);
+        const curTitle = MILESTONE_TITLES.find(t => t.m === selectedMonthIndex)?.title || `Month ${selectedMonthIndex}`;
+        triggerToast(`${curTitle} saved successfully!`);
+
+        // Update current selected probationer object locally
+        const updatedMonthly = {
+          ...(selectedProbationer.monthlyEvaluations || {}),
+          [selectedMonthIndex]: {
+            monthIndex: selectedMonthIndex,
+            score: Math.round(
+              ((evalForm.kpi || 0) +
+                (evalForm.attendance || 0) +
+                (evalForm.sodeod || 0) +
+                (evalForm.behaviour || 0) +
+                (evalForm.reporting || 0) +
+                (evalForm.loyalty || 0) +
+                (evalForm.risk || 0)) / 7
+            ),
+            kpis: kpisArray,
+            feedback: evalForm.feedback,
+            evaluatedAt: new Date().toISOString()
+          }
+        };
+
+        const updatedProb = {
+          ...selectedProbationer,
+          ...data.data,
+          monthlyEvaluations: updatedMonthly
+        };
+        setSelectedProbationer(updatedProb);
+
+        // Advance to next month if available
+        if (selectedMonthIndex < 6) {
+          switchMonth(updatedProb, selectedMonthIndex + 1);
+        } else {
+          setIsEditing(false);
+        }
+
         loadData();
       } else {
         triggerToast("Error evaluating probation: " + data.error);
@@ -1284,85 +1390,261 @@ export function ProbationEvaluation({
     }
   };
 
-  const filteredProbationers = probationers.filter(p => p.employee?.name?.toLowerCase().includes(searchQuery.toLowerCase()));
+  // Dynamic average score calculator across the 7 metrics
+  const avgScore = Math.round(
+    ((evalForm.kpi || 0) +
+      (evalForm.attendance || 0) +
+      (evalForm.sodeod || 0) +
+      (evalForm.behaviour || 0) +
+      (evalForm.reporting || 0) +
+      (evalForm.loyalty || 0) +
+      (evalForm.risk || 0)) / 7
+  );
+
+  const getScoreColor = (score: number) => {
+    if (score >= 80) return "text-emerald-600 bg-emerald-50 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800";
+    if (score >= 60) return "text-indigo-600 bg-indigo-50 border-indigo-200 dark:bg-indigo-950/40 dark:text-indigo-300 dark:border-indigo-800";
+    if (score >= 40) return "text-amber-600 bg-amber-50 border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800";
+    return "text-rose-600 bg-rose-50 border-rose-200 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-800";
+  };
+
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case "Confirm":
+        return "bg-emerald-50 text-emerald-700 border-emerald-200/80 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800";
+      case "Extend":
+        return "bg-purple-50 text-purple-700 border-purple-200/80 dark:bg-purple-950/40 dark:text-purple-300 dark:border-purple-800";
+      case "Restrict role":
+        return "bg-amber-50 text-amber-700 border-amber-200/80 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800";
+      case "Exit":
+        return "bg-rose-50 text-rose-700 border-rose-200/80 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-800";
+      default:
+        return "bg-blue-50 text-blue-700 border-blue-200/80 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800";
+    }
+  };
+
+  // Summary counts
+  const totalProbationers = probationers.length;
+  const activeCount = probationers.filter(p => p.status === "active").length;
+  const dueCount = probationers.filter(p => {
+    const months = Math.round((new Date().getTime() - new Date(p.startDate).getTime()) / (1000 * 60 * 60 * 24 * 30));
+    return p.status === "active" && months >= 5;
+  }).length;
+  const confirmedCount = probationers.filter(p => p.status === "Confirm").length;
+
+  const filteredProbationers = probationers.filter(p => {
+    const matchesSearch = p.employee?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      p.employee?.employeeProfile?.designation?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      p.employee?.role?.toLowerCase().includes(searchQuery.toLowerCase());
+
+    if (!matchesSearch) return false;
+
+    if (activeTabFilter === "active") return p.status === "active";
+    if (activeTabFilter === "confirmed") return p.status === "Confirm";
+    if (activeTabFilter === "due") {
+      const months = Math.round((new Date().getTime() - new Date(p.startDate).getTime()) / (1000 * 60 * 60 * 24 * 30));
+      return p.status === "active" && months >= 5;
+    }
+    return true;
+  });
 
   // Filter out employees who are already in the probation list
   const availableEmployees = employees.filter(emp => !probationers.some(p => p.employee?.id === emp.id));
 
-  return (
-    <div className="space-y-8 animate-fadeIn text-slate-800">
+  // Current selected month metadata
+  const currentMilestone = MILESTONE_TITLES.find(t => t.m === selectedMonthIndex) || MILESTONE_TITLES[0];
+  const isSelectedMonthSaved = Boolean(selectedProbationer?.monthlyEvaluations?.[selectedMonthIndex]);
+  const currentMonthDate = selectedProbationer ? getMonthDateName(selectedProbationer, selectedMonthIndex) : "";
 
-      <div className="flex justify-between items-center">
+  const quickFeedbackSuggestions = [
+    "Consistently delivers tasks on time.",
+    "Strong technical execution and problem solving.",
+    "Active participant in SOD/EOD daily reporting.",
+    "Great team player with positive workplace etiquette.",
+    "Needs improvement on reporting discipline.",
+    "Recommend confirmation based on stellar performance."
+  ];
+
+  const handleAddFeedbackTag = (tag: string) => {
+    setEvalForm(prev => ({
+      ...prev,
+      feedback: prev.feedback ? `${prev.feedback} ${tag}` : tag
+    }));
+  };
+
+  return (
+    <div className="space-y-6 animate-fade-in text-slate-800 dark:text-gray-100">
+      {/* Header Banner */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 rounded-2xl border transition-all shadow-xs bg-gradient-to-r from-white via-slate-50/50 to-white dark:from-gray-900 dark:via-gray-900/80 dark:to-gray-900 border-slate-200/80 dark:border-gray-800">
         <div>
-          <h1 className="text-xl font-black text-slate-800">Probation Evaluation Matrix</h1>
-          <p className="text-xs text-slate-500 mt-1">Standard 6-Month Track — Performance, Behaviour, & Final Confirmation</p>
+          <div className="flex items-center gap-2.5">
+            <h1 className="text-xl sm:text-2xl font-black tracking-tight text-slate-900 dark:text-white">
+              Probation Evaluation Matrix
+            </h1>
+            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-indigo-50 text-indigo-700 dark:bg-indigo-950/50 dark:text-indigo-300 border border-indigo-200/60 dark:border-indigo-800/60">
+              6-Month Audit Track
+            </span>
+          </div>
+          <p className="text-xs sm:text-sm mt-1 font-medium text-slate-500 dark:text-gray-400">
+            Step-by-step 6-month evaluation progression. Fill each month to advance, view past scores, and edit anytime.
+          </p>
         </div>
-        <div className="flex gap-2">
+
+        <div className="flex items-center gap-2.5">
           <button
             onClick={() => setShowInitForm(true)}
-            className="bg-[#714B67] hover:bg-[#5F3F56] px-4 py-2 rounded-lg text-xs font-bold text-white transition-all shadow-sm flex items-center gap-1.5"
+            className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-all shadow-sm hover:shadow flex items-center justify-center gap-1.5 shrink-0 hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
           >
             <Plus className="w-4 h-4" /> Initialize Track
           </button>
           <button
             onClick={loadData}
             disabled={loading}
-            className="p-2 border border-slate-200 rounded-lg hover:bg-slate-50 text-slate-600 transition duration-150 shrink-0"
+            className="p-2.5 border border-slate-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:bg-slate-50 dark:hover:bg-gray-750 text-slate-600 dark:text-gray-300 rounded-xl transition-all shadow-xs shrink-0 cursor-pointer"
+            title="Refresh list"
           >
             <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
           </button>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+      {/* Top 4 Stats Overview Cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        <div className="p-4 rounded-2xl border bg-white dark:bg-gray-900 border-slate-200/80 dark:border-gray-800 shadow-xs flex items-center gap-3.5">
+          <div className="w-10 h-10 rounded-xl bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 flex items-center justify-center font-bold shrink-0">
+            <Users className="w-5 h-5" />
+          </div>
+          <div>
+            <div className="text-xs font-semibold text-slate-500 dark:text-gray-400">Total In Track</div>
+            <div className="text-xl font-black text-slate-900 dark:text-white mt-0.5">{totalProbationers}</div>
+          </div>
+        </div>
 
-        {/* Left Side: Probationers list */}
-        <div className="lg:col-span-4 bg-white border border-slate-200 rounded-xl p-4 flex flex-col h-[680px] shadow-sm">
-          <h3 className="text-xs font-black tracking-widest text-[#714B67] uppercase font-mono mb-3">Active Probationers</h3>
+        <div className="p-4 rounded-2xl border bg-white dark:bg-gray-900 border-slate-200/80 dark:border-gray-800 shadow-xs flex items-center gap-3.5">
+          <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 flex items-center justify-center font-bold shrink-0">
+            <Activity className="w-5 h-5" />
+          </div>
+          <div>
+            <div className="text-xs font-semibold text-slate-500 dark:text-gray-400">Active Probation</div>
+            <div className="text-xl font-black text-slate-900 dark:text-white mt-0.5">{activeCount}</div>
+          </div>
+        </div>
+
+        <div className="p-4 rounded-2xl border bg-white dark:bg-gray-900 border-slate-200/80 dark:border-gray-800 shadow-xs flex items-center gap-3.5">
+          <div className="w-10 h-10 rounded-xl bg-amber-50 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400 flex items-center justify-center font-bold shrink-0">
+            <Clock className="w-5 h-5" />
+          </div>
+          <div>
+            <div className="text-xs font-semibold text-slate-500 dark:text-gray-400">Due for Review (M5-6)</div>
+            <div className="text-xl font-black text-amber-600 dark:text-amber-400 mt-0.5">{dueCount}</div>
+          </div>
+        </div>
+
+        <div className="p-4 rounded-2xl border bg-white dark:bg-gray-900 border-slate-200/80 dark:border-gray-800 shadow-xs flex items-center gap-3.5">
+          <div className="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-bold shrink-0">
+            <CheckCircle className="w-5 h-5" />
+          </div>
+          <div>
+            <div className="text-xs font-semibold text-slate-500 dark:text-gray-400">Confirmed Staff</div>
+            <div className="text-xl font-black text-emerald-600 dark:text-emerald-400 mt-0.5">{confirmedCount}</div>
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        {/* Left Side: Probationers List */}
+        <div className="lg:col-span-4 bg-white dark:bg-gray-900 border border-slate-200/80 dark:border-gray-800 rounded-2xl p-4 flex flex-col h-[820px] shadow-sm">
+          {/* Quick Filter Tabs */}
+          <div className="flex items-center gap-1.5 p-1 bg-slate-100 dark:bg-gray-800 rounded-xl mb-3">
+            {[
+              { id: "all", label: "All" },
+              { id: "active", label: "Active" },
+              { id: "due", label: "Due M5-6" },
+              { id: "confirmed", label: "Confirmed" }
+            ].map(tab => (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => setActiveTabFilter(tab.id as any)}
+                className={`flex-1 py-1.5 text-[11px] font-bold rounded-lg transition-all cursor-pointer ${activeTabFilter === tab.id
+                    ? "bg-white dark:bg-gray-900 text-slate-900 dark:text-white shadow-2xs"
+                    : "text-slate-500 dark:text-gray-400 hover:text-slate-700 dark:hover:text-gray-200"
+                  }`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
 
           <div className="relative mb-3">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+            <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
             <input
               type="text"
-              placeholder="Search employee..."
+              placeholder="Search employee, designation..."
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
-              className="w-full bg-slate-50 border border-slate-200 rounded-lg pl-9 pr-4 py-2 text-xs font-semibold focus:outline-none focus:border-[#714B67] text-slate-800"
+              className="w-full bg-slate-50/70 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-xl pl-9 pr-3 py-2 text-xs font-semibold focus:outline-none focus:border-indigo-500 dark:focus:border-indigo-400 text-slate-800 dark:text-gray-100 transition-colors shadow-2xs"
             />
           </div>
 
-          <div className="flex-1 overflow-y-auto space-y-2 pr-1 scrollbar-thin">
+          <div className="flex-1 overflow-y-auto space-y-2.5 pr-1 custom-scrollbar">
             {loading ? (
-              <div className="text-center py-10 font-bold text-slate-400 text-[10px] animate-pulse">Loading probation records...</div>
+              <div className="text-center py-20 font-bold text-slate-400 text-xs animate-pulse">
+                Loading probation records...
+              </div>
             ) : filteredProbationers.length === 0 ? (
-              <div className="text-center py-10 text-slate-400 font-bold text-[10px]">No active probationers found</div>
+              <div className="text-center py-20 text-slate-400 font-bold text-xs">
+                No probationers found
+              </div>
             ) : (
               filteredProbationers.map((p, i) => {
                 const isSelected = selectedProbationer && selectedProbationer.id === p.id && !showInitForm;
                 const status = p.status;
-                const monthsElapsed = Math.round((new Date().getTime() - new Date(p.startDate).getTime()) / (1000 * 60 * 60 * 24 * 30));
+                const initials = (p.employee?.name || "U").split(" ").map((n: string) => n[0]).slice(0, 2).join("").toUpperCase();
+                const evaluatedCount = Object.keys(p.monthlyEvaluations || {}).length;
+                const progressPercent = Math.round((evaluatedCount / 6) * 100);
 
                 return (
                   <button
-                    key={i}
+                    key={p.id || i}
                     onClick={() => handleSelectProbationer(p)}
-                    className={`w-full text-left p-3 rounded-lg border transition-all flex flex-col gap-2 ${isSelected
-                        ? "bg-[#714B67]/5 border-[#714B67] shadow-sm"
-                        : "bg-white border-slate-100 hover:border-slate-350 hover:bg-slate-50/50"
+                    className={`w-full text-left p-3.5 rounded-xl border transition-all flex flex-col gap-2.5 cursor-pointer ${isSelected
+                        ? "bg-indigo-50/50 dark:bg-indigo-950/30 border-indigo-400 dark:border-indigo-600 shadow-xs ring-1 ring-indigo-400/30"
+                        : "bg-slate-50/40 dark:bg-gray-800/40 border-slate-200/70 dark:border-gray-800 hover:border-slate-300 dark:hover:border-gray-700 hover:bg-white dark:hover:bg-gray-800"
                       }`}
                   >
-                    <div className="flex items-center justify-between">
-                      <div className="font-bold text-slate-800 text-xs truncate">{p.employee?.name || "Unknown"}</div>
-                      <span className="text-[10px] text-slate-500 font-mono">M-{Math.max(1, Math.min(6, monthsElapsed))}/6</span>
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-bold text-xs shrink-0 ${isSelected ? "bg-indigo-600 text-white" : "bg-slate-200 dark:bg-gray-700 text-slate-700 dark:text-gray-300"}`}>
+                          {initials}
+                        </div>
+                        <div className="min-w-0">
+                          <div className="font-bold text-xs text-slate-800 dark:text-gray-100 truncate">{p.employee?.name || "Unknown"}</div>
+                          <div className="text-[10px] text-slate-400 truncate">{p.employee?.employeeProfile?.designation || p.employee?.designation || p.employee?.role || "Employee"}</div>
+                        </div>
+                      </div>
+
+                      <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-md bg-slate-100 dark:bg-gray-800 text-slate-600 dark:text-gray-300 shrink-0">
+                        {evaluatedCount}/6 Done
+                      </span>
                     </div>
-                    <div className="flex items-center justify-between mt-1">
-                      <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full border self-start ${status === "Confirm" ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/20" :
-                          status === "Exit" ? "bg-red-500/10 text-red-600 border-red-500/20" :
-                            status === "Restrict role" ? "bg-orange-500/10 text-orange-600 border-orange-500/20" :
-                              status === "Extend" ? "bg-purple-500/10 text-purple-600 border-purple-500/20" :
-                                "bg-blue-500/10 text-blue-600 border-blue-500/20"
-                        }`}>
+
+                    {/* Progress indicator */}
+                    <div className="space-y-1">
+                      <div className="h-1.5 rounded-full overflow-hidden bg-slate-200/80 dark:bg-gray-700">
+                        <div
+                          className="h-full bg-gradient-to-r from-indigo-500 to-teal-400 rounded-full transition-all duration-300"
+                          style={{ width: `${progressPercent}%` }}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between pt-0.5">
+                      <span className={`text-[9px] font-black uppercase px-2.5 py-0.5 rounded-full border shadow-2xs ${getStatusBadge(status)}`}>
                         {status === "active" ? "In Progress" : status}
+                      </span>
+                      <span className="text-[10px] text-indigo-600 dark:text-indigo-400 font-semibold flex items-center gap-1">
+                        {evaluatedCount === 6 ? "✓ All 6 Months Filled" : `Next: M${evaluatedCount + 1}`}
                       </span>
                     </div>
                   </button>
@@ -1375,52 +1657,62 @@ export function ProbationEvaluation({
         {/* Right Side: Evaluation Workspace */}
         <div className="lg:col-span-8">
           {showInitForm ? (
-            <div className="bg-white border border-slate-200 rounded-xl p-8 shadow-sm flex flex-col h-[680px]">
-              <div className="mb-8 border-b border-slate-100 pb-4">
-                <h2 className="text-xl font-black text-slate-850 flex items-center gap-2">
-                  <UserPlus className="w-5 h-5 text-[#714B67]" />
-                  Initialize 6-Month Probation
-                </h2>
-                <p className="text-xs text-slate-500 mt-2 max-w-lg leading-relaxed">
-                  Select an employee who has just completed their training or onboarding to officially start their 6-month probation tracking journey.
-                </p>
+            <div className="bg-white dark:bg-gray-900 border border-slate-200/80 dark:border-gray-800 rounded-2xl p-7 shadow-sm flex flex-col h-[820px]">
+              <div className="mb-6 border-b border-slate-100 dark:border-gray-800 pb-4">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-9 h-9 rounded-xl bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 flex items-center justify-center font-bold">
+                    <UserPlus className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-black text-slate-800 dark:text-white">
+                      Initialize 6-Month Probation
+                    </h2>
+                    <p className="text-xs text-slate-500 dark:text-gray-400 mt-0.5">
+                      Select an employee to officially begin their 6-month probation journey
+                    </p>
+                  </div>
+                </div>
               </div>
 
-              <form onSubmit={handleInitializeProbation} className="space-y-6 max-w-md">
+              <form onSubmit={handleInitializeProbation} className="space-y-6 max-w-lg">
                 <div>
-                  <label className="text-[10px] uppercase font-black tracking-widest text-slate-500 block mb-2">Select Employee</label>
+                  <label className="text-[11px] uppercase font-bold tracking-wider text-slate-600 dark:text-gray-300 block mb-2">
+                    Select Employee
+                  </label>
                   <select
-                    className="w-full border border-slate-200 rounded-lg p-3 text-xs focus:border-[#714B67] outline-none text-slate-700 bg-slate-50"
+                    className="w-full border border-slate-200 dark:border-gray-700 rounded-xl p-3 text-xs font-semibold focus:border-indigo-500 dark:focus:border-indigo-400 outline-none text-slate-700 dark:text-gray-200 bg-slate-50/60 dark:bg-gray-800 shadow-2xs cursor-pointer"
                     value={newProbationEmployee}
                     onChange={e => setNewProbationEmployee(e.target.value)}
                     required
                   >
-                    <option value="">-- Select an employee --</option>
+                    <option value="">-- Choose an employee --</option>
                     {availableEmployees.map((emp, i) => (
-                      <option key={i} value={emp.id}>{emp.name} ({emp.employeeProfile?.designation || emp.role})</option>
+                      <option key={emp.id || i} value={emp.id}>
+                        {emp.name} ({emp.employeeProfile?.designation || emp.role} • {emp.employeeProfile?.department || "General"})
+                      </option>
                     ))}
                   </select>
                 </div>
 
-                <div className="bg-blue-50/50 border border-blue-100 p-4 rounded-lg flex gap-3 text-blue-800">
-                  <Clock className="w-5 h-5 shrink-0 text-blue-500" />
-                  <div className="text-xs font-semibold leading-relaxed">
-                    By initializing, the system will automatically calculate the probation end date as 6 months from today. You can monitor their progress during this period.
+                <div className="bg-indigo-50/60 dark:bg-indigo-950/30 border border-indigo-200/80 dark:border-indigo-900/60 p-4 rounded-xl flex gap-3 text-indigo-900 dark:text-indigo-200">
+                  <Clock className="w-5 h-5 shrink-0 text-indigo-600 dark:text-indigo-400 mt-0.5" />
+                  <div className="text-xs font-medium leading-relaxed">
+                    By initializing, the system will automatically calculate the probation end date as <strong>6 months from today</strong>. You will be able to evaluate each month sequentially.
                   </div>
                 </div>
 
-                <div className="pt-4 flex gap-3">
+                <div className="pt-2 flex gap-3">
                   <button
                     type="submit"
                     disabled={submitting || !newProbationEmployee}
-                    className="bg-[#714B67] hover:bg-[#5F3F56] text-white px-6 py-2.5 rounded-lg text-xs font-bold transition-all shadow-md flex-1 disabled:opacity-50"
+                    className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2.5 rounded-xl text-xs font-bold transition-all shadow-sm hover:shadow flex-1 disabled:opacity-50 cursor-pointer"
                   >
-                    Start Probation Track
+                    {submitting ? "Initializing..." : "Start Probation Track"}
                   </button>
                   <button
                     type="button"
                     onClick={() => { setShowInitForm(false); if (probationers.length > 0) handleSelectProbationer(probationers[0]); }}
-                    className="bg-white border border-slate-200 hover:bg-slate-50 text-slate-600 px-6 py-2.5 rounded-lg text-xs font-bold transition-all flex-1"
+                    className="bg-white dark:bg-gray-800 border border-slate-200 dark:border-gray-700 hover:bg-slate-50 dark:hover:bg-gray-750 text-slate-600 dark:text-gray-300 px-6 py-2.5 rounded-xl text-xs font-bold transition-all flex-1 cursor-pointer"
                   >
                     Cancel
                   </button>
@@ -1428,24 +1720,28 @@ export function ProbationEvaluation({
               </form>
             </div>
           ) : selectedProbationer ? (
-            <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm flex flex-col h-[680px]">
-
-              {/* Profile details banner */}
-              <div className="flex justify-between items-start gap-4 pb-4 border-b border-slate-150 shrink-0">
-                <div>
-                  <h2 className="text-lg font-black text-slate-850 flex items-center gap-2">
-                    <UserPlus className="w-5 h-5 text-[#714B67]" />
-                    {selectedProbationer.employee?.name || "Unknown"}
-                  </h2>
-                  <div className="text-slate-500 text-[10px] mt-1.5 flex flex-wrap gap-x-4 gap-y-1">
-                    <span>Company: <strong className="text-[#714B67]">{selectedProbationer.employee?.companies?.[0]?.name || "N/A"}</strong></span>
-                    <span>Role/Designation: <strong className="text-[#714B67]">{selectedProbationer.employee?.designation || selectedProbationer.employee?.role}</strong></span>
-                    <span>Started: <strong className="text-slate-700">{new Date(selectedProbationer.startDate).toLocaleDateString()}</strong></span>
-                    <span>Ends: <strong className="text-[#714B67]">{new Date(selectedProbationer.endDate).toLocaleDateString()}</strong></span>
+            <div className="bg-white dark:bg-gray-900 border border-slate-200/80 dark:border-gray-800 rounded-2xl p-6 shadow-sm flex flex-col h-[820px]">
+              {/* Profile Details Banner */}
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-4 border-b border-slate-100 dark:border-gray-800 shrink-0">
+                <div className="flex items-center gap-3">
+                  <div className="w-11 h-11 rounded-xl bg-gradient-to-tr from-indigo-600 to-indigo-700 text-white flex items-center justify-center font-black text-sm shadow-xs">
+                    {(selectedProbationer.employee?.name || "U").split(" ").map((n: string) => n[0]).slice(0, 2).join("").toUpperCase()}
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-black text-slate-900 dark:text-white">
+                      {selectedProbationer.employee?.name || "Unknown"}
+                    </h2>
+                    <div className="text-slate-500 dark:text-gray-400 text-[11px] mt-0.5 flex flex-wrap gap-x-3 gap-y-1">
+                      <span>Role: <strong className="text-slate-700 dark:text-gray-200">{selectedProbationer.employee?.designation || selectedProbationer.employee?.role}</strong></span>
+                      <span>•</span>
+                      <span>Started: <strong className="text-slate-700 dark:text-gray-200">{new Date(selectedProbationer.startDate).toLocaleDateString()}</strong></span>
+                      <span>•</span>
+                      <span>Target: <strong className="text-indigo-600 dark:text-indigo-400">{new Date(selectedProbationer.endDate).toLocaleDateString()}</strong></span>
+                    </div>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-end">
                   {selectedProbationer.employee && (
                     <button
                       type="button"
@@ -1455,161 +1751,300 @@ export function ProbationEvaluation({
                           onViewWorkReport(empId);
                         }
                       }}
-                      className="px-3.5 py-2 bg-[#714B67]/5 hover:bg-[#714B67]/10 border border-[#714B67]/25 rounded-lg flex items-center gap-1.5 text-[#714B67] font-bold text-xs transition-all duration-200 shadow-sm"
+                      className="px-3.5 py-2 bg-indigo-50/70 hover:bg-indigo-100 dark:bg-indigo-950/40 dark:hover:bg-indigo-900/50 border border-indigo-200/80 dark:border-indigo-800/60 rounded-xl flex items-center gap-1.5 text-indigo-700 dark:text-indigo-300 font-bold text-xs transition-all shadow-2xs cursor-pointer"
                     >
                       <FileText className="w-3.5 h-3.5" />
                       Work Report
                     </button>
                   )}
 
-                  <div className={`px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-center min-w-32`}>
-                    <span className="text-[9px] uppercase font-black tracking-widest text-slate-500 block mb-0.5">Verdict Status</span>
-                    <span className={`text-xs font-bold ${selectedProbationer.status === 'active' ? 'text-blue-600' : 'text-[#714B67]'}`}>
+                  <div className={`px-3.5 py-1.5 rounded-xl border text-center ${getStatusBadge(selectedProbationer.status)}`}>
+                    <span className="text-[9px] uppercase font-bold tracking-wider block opacity-70">Verdict</span>
+                    <span className="text-xs font-black">
                       {selectedProbationer.status === 'active' ? "In Progress" : selectedProbationer.status}
                     </span>
                   </div>
                 </div>
               </div>
 
+              {/* Compact & Classy 6-Month Milestone Stepper Strip */}
+              <div className="my-2.5 shrink-0 space-y-2">
+                <div className="flex items-center gap-1 p-1 bg-slate-100/90 dark:bg-gray-800/90 rounded-xl border border-slate-200/60 dark:border-gray-700/60">
+                  {MILESTONE_TITLES.map(step => {
+                    const isSelected = step.m === selectedMonthIndex;
+                    const savedData = selectedProbationer?.monthlyEvaluations?.[step.m];
+                    const isFilled = Boolean(savedData);
+
+                    return (
+                      <button
+                        key={step.m}
+                        type="button"
+                        onClick={() => switchMonth(selectedProbationer, step.m)}
+                        className={`flex-1 py-2 px-2 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${isSelected
+                            ? "bg-indigo-600 text-white shadow-xs"
+                            : isFilled
+                              ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300 hover:bg-emerald-100"
+                              : "text-slate-600 dark:text-gray-400 hover:text-slate-900 dark:hover:text-white hover:bg-white/60 dark:hover:bg-gray-700/60"
+                          }`}
+                      >
+                        {isFilled ? (
+                          <CheckCircle className="w-3.5 h-3.5 text-emerald-500 dark:text-emerald-400 shrink-0" />
+                        ) : (
+                          <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${isSelected ? "bg-white" : "bg-slate-400"}`} />
+                        )}
+                        <span className="truncate">{step.code}: {step.title.split(" ")[0]}</span>
+                        {isFilled && (
+                          <span className={`text-[10px] font-mono font-black ${isSelected ? "text-indigo-100" : "text-emerald-600 dark:text-emerald-400"}`}>
+                            {savedData.score}%
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Inline Milestone Header & Action Banner */}
+                <div className="flex items-center justify-between px-1 text-xs">
+                  <div className="flex items-center gap-2">
+                    <span className="font-black text-slate-800 dark:text-gray-200">
+                      {currentMilestone.code}: {currentMilestone.title} ({currentMonthDate})
+                    </span>
+                    <span className="text-[11px] text-slate-400 font-medium hidden sm:inline">
+                      • {currentMilestone.desc}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    {isSelectedMonthSaved && !isEditing ? (
+                      <button
+                        type="button"
+                        onClick={() => setIsEditing(true)}
+                        className="px-2.5 py-1 bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 border border-indigo-200/80 dark:border-indigo-800 rounded-lg text-xs font-bold transition-all flex items-center gap-1 cursor-pointer"
+                      >
+                        <PenTool className="w-3 h-3" /> Edit Details
+                      </button>
+                    ) : isSelectedMonthSaved && isEditing ? (
+                      <button
+                        type="button"
+                        onClick={() => switchMonth(selectedProbationer, selectedMonthIndex)}
+                        className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 dark:bg-gray-800 text-slate-600 dark:text-gray-300 rounded-lg text-xs font-bold transition-all cursor-pointer"
+                      >
+                        Cancel Edit
+                      </button>
+                    ) : (
+                      <span className="text-[11px] text-indigo-600 dark:text-indigo-400 font-bold">
+                        • New Review Fill Mode
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+
               {/* Scrollable Form Content */}
-              <div className="flex-1 overflow-y-auto py-5 pr-2 scrollbar-thin">
-                <form id="eval-form" onSubmit={handleSubmitEvaluation} className="space-y-8">
+              <div className="flex-1 overflow-y-auto py-1 pr-1.5 custom-scrollbar">
+                <form id="eval-form" onSubmit={handleSubmitEvaluation} className="space-y-4">
+                  {/* 7 Performance Pillars - Professional 0-100 Numeric Scoring */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+                    {[
+                      { label: "1. Core KPI Delivery", key: "kpi", val: evalForm.kpi, desc: "Task quality, speed & targets", icon: <Target className="w-3.5 h-3.5 text-indigo-500" /> },
+                      { label: "2. Attendance & Punctuality", key: "attendance", val: evalForm.attendance, desc: "Punch timing & regularity", icon: <Calendar className="w-3.5 h-3.5 text-emerald-500" /> },
+                      { label: "3. SOD / EOD Regularity", key: "sodeod", val: evalForm.sodeod, desc: "Daily task declarations", icon: <Clock className="w-3.5 h-3.5 text-teal-500" /> },
+                      { label: "4. Behaviour & Culture Fit", key: "behaviour", val: evalForm.behaviour, desc: "Team collaboration & etiquette", icon: <Users className="w-3.5 h-3.5 text-purple-500" /> },
+                      { label: "5. Reporting Discipline", key: "reporting", val: evalForm.reporting, desc: "Updates to reporting manager", icon: <MessageSquare className="w-3.5 h-3.5 text-blue-500" /> },
+                      { label: "6. Loyalty & Stability Index", key: "loyalty", val: evalForm.loyalty, desc: "Long-term engagement & trust", icon: <Shield className="w-3.5 h-3.5 text-amber-500" /> },
+                      { label: "7. Reliability & Risk Score", key: "risk", val: evalForm.risk, desc: "Dependability (higher is safer)", icon: <AlertTriangle className="w-3.5 h-3.5 text-rose-500" /> }
+                    ].map(metric => (
+                      <div
+                        key={metric.key}
+                        className="p-3 rounded-xl border border-slate-200/70 dark:border-gray-800 bg-slate-50/40 dark:bg-gray-850/40 space-y-2 transition-all hover:border-slate-300"
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-1.5">
+                            {metric.icon}
+                            <div>
+                              <label className="text-xs font-bold text-slate-800 dark:text-gray-200 block leading-tight">{metric.label}</label>
+                              <span className="text-[10px] text-slate-400 leading-tight">{metric.desc}</span>
+                            </div>
+                          </div>
 
-                  {/* The 7 Metrics Grid */}
-                  <div>
-                    <h4 className="text-[10px] font-black tracking-widest text-slate-400 uppercase font-mono mb-4 border-b border-slate-100 pb-2">Scoring Metrics (0-100 Scale)</h4>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5">
-
-                      {/* Metric 1 */}
-                      <div>
-                        <div className="flex justify-between mb-1">
-                          <label className="text-[10px] font-bold text-slate-700">1. Core KPI Delivery</label>
-                          <span className="text-[10px] font-mono text-[#714B67] font-black">{evalForm.kpi}%</span>
+                          <div className="flex items-center gap-1.5">
+                            <input
+                              type="number"
+                              min={0}
+                              max={100}
+                              disabled={!isEditing}
+                              value={metric.val}
+                              onChange={e => {
+                                const v = Math.max(0, Math.min(100, Number(e.target.value) || 0));
+                                setEvalForm({ ...evalForm, [metric.key]: v });
+                              }}
+                              className={`w-14 text-center font-mono font-black text-xs py-1 px-1 rounded-lg border transition-all ${getScoreColor(metric.val)} ${isEditing ? "bg-white dark:bg-gray-800 shadow-2xs focus:ring-2 focus:ring-indigo-500/30 outline-none" : "cursor-not-allowed opacity-75"}`}
+                            />
+                            <span className="text-[10px] font-bold text-slate-400">/ 100</span>
+                          </div>
                         </div>
-                        <input type="range" min="0" max="100" className="w-full accent-[#714B67] h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer"
-                          value={evalForm.kpi} onChange={e => setEvalForm({ ...evalForm, kpi: Number(e.target.value) })} />
-                      </div>
 
-                      {/* Metric 2 */}
-                      <div>
-                        <div className="flex justify-between mb-1">
-                          <label className="text-[10px] font-bold text-slate-700">2. Attendance & Punctuality</label>
-                          <span className="text-[10px] font-mono text-[#714B67] font-black">{evalForm.attendance}%</span>
+                        {/* Sleek Slider + Quick Jump Chips */}
+                        <div className="flex items-center gap-2.5 pt-0.5">
+                          <input
+                            type="range"
+                            min={0}
+                            max={100}
+                            disabled={!isEditing}
+                            value={metric.val}
+                            onChange={e => setEvalForm({ ...evalForm, [metric.key]: Number(e.target.value) })}
+                            className={`flex-1 accent-indigo-600 h-1.5 bg-slate-200 dark:bg-gray-700 rounded-lg appearance-none ${isEditing ? "cursor-pointer" : "cursor-not-allowed opacity-60"}`}
+                          />
+
+                          {isEditing && (
+                            <div className="flex items-center gap-1 shrink-0">
+                              {[25, 50, 75, 100].map(pt => (
+                                <button
+                                  key={pt}
+                                  type="button"
+                                  onClick={() => setEvalForm({ ...evalForm, [metric.key]: pt })}
+                                  className={`px-1.5 py-0.5 text-[9px] font-bold rounded transition-all border ${metric.val === pt
+                                      ? "bg-indigo-600 text-white border-indigo-600"
+                                      : "bg-white dark:bg-gray-800 text-slate-500 border-slate-200 dark:border-gray-700 hover:border-indigo-300"
+                                    }`}
+                                >
+                                  {pt}
+                                </button>
+                              ))}
+                            </div>
+                          )}
                         </div>
-                        <input type="range" min="0" max="100" className="w-full accent-[#714B67] h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer"
-                          value={evalForm.attendance} onChange={e => setEvalForm({ ...evalForm, attendance: Number(e.target.value) })} />
                       </div>
+                    ))}
+                  </div>
 
-                      {/* Metric 3 */}
-                      <div>
-                        <div className="flex justify-between mb-1">
-                          <label className="text-[10px] font-bold text-slate-700">3. SOD / EOD Regularity</label>
-                          <span className="text-[10px] font-mono text-[#714B67] font-black">{evalForm.sodeod}%</span>
-                        </div>
-                        <input type="range" min="0" max="100" className="w-full accent-[#714B67] h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer"
-                          value={evalForm.sodeod} onChange={e => setEvalForm({ ...evalForm, sodeod: Number(e.target.value) })} />
-                      </div>
-
-                      {/* Metric 4 */}
-                      <div>
-                        <div className="flex justify-between mb-1">
-                          <label className="text-[10px] font-bold text-slate-700">4. Behaviour & Culture Fit</label>
-                          <span className="text-[10px] font-mono text-[#714B67] font-black">{evalForm.behaviour}%</span>
-                        </div>
-                        <input type="range" min="0" max="100" className="w-full accent-[#714B67] h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer"
-                          value={evalForm.behaviour} onChange={e => setEvalForm({ ...evalForm, behaviour: Number(e.target.value) })} />
-                      </div>
-
-                      {/* Metric 5 */}
-                      <div>
-                        <div className="flex justify-between mb-1">
-                          <label className="text-[10px] font-bold text-slate-700">5. Reporting Discipline</label>
-                          <span className="text-[10px] font-mono text-[#714B67] font-black">{evalForm.reporting}%</span>
-                        </div>
-                        <input type="range" min="0" max="100" className="w-full accent-[#714B67] h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer"
-                          value={evalForm.reporting} onChange={e => setEvalForm({ ...evalForm, reporting: Number(e.target.value) })} />
-                      </div>
-
-                      {/* Metric 6 */}
-                      <div>
-                        <div className="flex justify-between mb-1">
-                          <label className="text-[10px] font-bold text-slate-700">6. Loyalty & Stability Index</label>
-                          <span className="text-[10px] font-mono text-[#714B67] font-black">{evalForm.loyalty}%</span>
-                        </div>
-                        <input type="range" min="0" max="100" className="w-full accent-[#714B67] h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer"
-                          value={evalForm.loyalty} onChange={e => setEvalForm({ ...evalForm, loyalty: Number(e.target.value) })} />
-                      </div>
-
-                      {/* Metric 7 */}
-                      <div>
-                        <div className="flex justify-between mb-1">
-                          <label className="text-[10px] font-bold text-slate-700">7. Risk Score (Higher is better)</label>
-                          <span className="text-[10px] font-mono text-[#714B67] font-black">{evalForm.risk}%</span>
-                        </div>
-                        <input type="range" min="0" max="100" className="w-full accent-amber-500 h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer"
-                          value={evalForm.risk} onChange={e => setEvalForm({ ...evalForm, risk: Number(e.target.value) })} />
-                      </div>
-
+                  {/* Summary Metric Strip */}
+                  <div className="p-2.5 rounded-xl border border-indigo-200/80 dark:border-indigo-900/60 bg-indigo-50/40 dark:bg-indigo-950/20 flex items-center justify-between">
+                    <div>
+                      <span className="text-xs font-black text-indigo-900 dark:text-indigo-200">
+                        {currentMilestone.code} Overall Score Average
+                      </span>
+                      <p className="text-[10px] text-slate-500">Aggregated across all 7 evaluation pillars</p>
                     </div>
+                    <span className={`text-sm font-black px-3 py-1 rounded-xl border shadow-2xs ${getScoreColor(avgScore)}`}>
+                      {avgScore}%
+                    </span>
                   </div>
 
                   {/* Manager Feedback */}
                   <div>
-                    <h4 className="text-[10px] font-black tracking-widest text-slate-400 uppercase font-mono mb-3 border-b border-slate-100 pb-2">8. Manager Descriptive Feedback</h4>
+                    <h4 className="text-[11px] font-black tracking-wider text-slate-400 uppercase font-mono mb-2">
+                      8. Manager Descriptive Feedback for {currentMilestone.code}
+                    </h4>
+
+                    {/* Quick suggestion tags (only in edit mode) */}
+                    {isEditing && (
+                      <div className="flex flex-wrap gap-1.5 mb-2">
+                        {quickFeedbackSuggestions.map((tag, idx) => (
+                          <button
+                            key={idx}
+                            type="button"
+                            onClick={() => handleAddFeedbackTag(tag)}
+                            className="text-[10px] font-semibold px-2 py-0.5 rounded-lg border bg-slate-100 hover:bg-indigo-50 hover:text-indigo-700 hover:border-indigo-200 dark:bg-gray-800 dark:hover:bg-indigo-950/50 dark:hover:text-indigo-300 dark:border-gray-700 transition-colors cursor-pointer"
+                          >
+                            + {tag}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+
                     <textarea
-                      required rows={3}
-                      className="w-full border border-slate-200 bg-slate-50 rounded-lg p-3 text-xs font-semibold focus:border-[#714B67] outline-none text-slate-700"
-                      placeholder="Enter detailed feedback on the employee's performance during the probation period..."
+                      required
+                      rows={3}
+                      disabled={!isEditing}
+                      className={`w-full border border-slate-200 dark:border-gray-700 rounded-xl p-3.5 text-xs font-semibold focus:border-indigo-500 dark:focus:border-indigo-400 outline-none text-slate-700 dark:text-gray-200 transition-colors shadow-2xs ${isEditing ? "bg-slate-50/50 dark:bg-gray-800" : "bg-slate-100/70 dark:bg-gray-850 cursor-not-allowed opacity-80"}`}
+                      placeholder={`Enter detailed observations and milestone remarks for ${currentMilestone.code} (${currentMonthDate})...`}
                       value={evalForm.feedback}
                       onChange={e => setEvalForm({ ...evalForm, feedback: e.target.value })}
                     />
                   </div>
 
-                  {/* Final Action Verdict */}
-                  <div className="bg-amber-50/50 border border-amber-200 rounded-xl p-5 shadow-sm">
-                    <h4 className="text-[10px] font-black tracking-widest text-amber-700 uppercase font-mono mb-4 flex items-center gap-1.5">
-                      <AlertCircle className="w-4 h-4" /> Final Probation Verdict
-                    </h4>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-end">
-                      <div>
-                        <label className="text-[10px] font-bold text-slate-600 block mb-2">Select Outcome Decision</label>
-                        <select
-                          className="w-full border border-slate-300 rounded-lg p-3 text-xs font-bold text-slate-800 focus:border-[#714B67] outline-none shadow-sm"
-                          value={evalForm.verdict}
-                          onChange={e => setEvalForm({ ...evalForm, verdict: e.target.value })}
-                        >
-                          <option value="Confirm">Confirm (Passed Probation)</option>
-                          <option value="Extend">Extend Probation Period</option>
-                          <option value="Restrict role">Restrict Role / Demote</option>
-                          <option value="Exit">Terminate / Exit Employee</option>
-                        </select>
+                  {/* Final Action Verdict Cards & Save Action */}
+                  <div className="p-5 rounded-2xl border border-slate-200/80 dark:border-gray-800 bg-gradient-to-br from-slate-50 via-white to-slate-50/50 dark:from-gray-900 dark:via-gray-850 dark:to-gray-900 shadow-xs space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Award className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+                        <h4 className="text-xs font-black tracking-wider text-slate-900 dark:text-white uppercase font-mono">
+                          Overall Probation Outcome Decision
+                        </h4>
                       </div>
+                      <span className="text-[11px] font-bold text-slate-400">Current Status: {selectedProbationer.status}</span>
+                    </div>
 
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                      {[
+                        { id: "Confirm", title: "Confirm", desc: "Passed & Permanent", color: "border-emerald-500 bg-emerald-50/80 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300" },
+                        { id: "Extend", title: "Extend", desc: "Grant More Time", color: "border-purple-500 bg-purple-50/80 text-purple-800 dark:bg-purple-950/40 dark:text-purple-300" },
+                        { id: "Restrict role", title: "Restrict Role", desc: "Modify Scope", color: "border-amber-500 bg-amber-50/80 text-amber-800 dark:bg-amber-950/40 dark:text-amber-300" },
+                        { id: "Exit", title: "Exit", desc: "Terminate Journey", color: "border-rose-500 bg-rose-50/80 text-rose-800 dark:bg-rose-950/40 dark:text-rose-300" }
+                      ].map(outcome => {
+                        const isSelected = evalForm.verdict === outcome.id;
+
+                        return (
+                          <button
+                            key={outcome.id}
+                            type="button"
+                            disabled={!isEditing}
+                            onClick={() => setEvalForm({ ...evalForm, verdict: outcome.id })}
+                            className={`p-3 rounded-xl border text-left transition-all ${isEditing ? "cursor-pointer" : "cursor-not-allowed"} ${isSelected
+                                ? `${outcome.color} shadow-xs ring-2 ring-indigo-500/30 font-bold scale-[1.02]`
+                                : "bg-white dark:bg-gray-800 border-slate-200 dark:border-gray-700 text-slate-600 dark:text-gray-300 hover:border-slate-300"
+                              }`}
+                          >
+                            <div className="font-black text-xs">{outcome.title}</div>
+                            <div className="text-[10px] opacity-75 mt-0.5 truncate">{outcome.desc}</div>
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    {/* Action button */}
+                    {isEditing ? (
                       <button
                         type="submit"
                         disabled={submitting}
-                        className="w-full bg-gradient-to-r from-[#714B67] to-[#5F3F56] hover:opacity-90 text-white py-3 rounded-lg text-xs font-black tracking-wide transition-all shadow-md flex items-center justify-center gap-2"
+                        className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-3.5 rounded-xl text-xs sm:text-sm font-black tracking-wide transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-2 hover:scale-[1.005] active:scale-[0.995] disabled:opacity-50 cursor-pointer"
                       >
-                        <CheckCircle className="w-4 h-4" /> Finalize Evaluation
+                        <CheckCircle className="w-4 h-4" />
+                        {submitting
+                          ? "Saving Evaluation..."
+                          : isSelectedMonthSaved
+                            ? `Update & Save ${currentMilestone.code} (${currentMonthDate}) Evaluation`
+                            : selectedMonthIndex < 6
+                              ? `Save ${currentMilestone.code} (${currentMonthDate}) & Proceed to M${selectedMonthIndex + 1}`
+                              : `Save Final ${currentMilestone.code} & Complete Probation Evaluation`
+                        }
                       </button>
-                    </div>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => setIsEditing(true)}
+                        className="w-full bg-slate-900 hover:bg-slate-800 dark:bg-indigo-600 dark:hover:bg-indigo-700 text-white py-3.5 rounded-xl text-xs sm:text-sm font-black tracking-wide transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-2 hover:scale-[1.005] active:scale-[0.995] cursor-pointer"
+                      >
+                        <PenTool className="w-4 h-4" /> Edit {currentMilestone.code} ({currentMonthDate}) Details
+                      </button>
+                    )}
                   </div>
-
                 </form>
               </div>
             </div>
           ) : (
-            <div className="text-center py-32 bg-white rounded-xl border border-slate-200 shadow-sm flex flex-col justify-center items-center h-[680px]">
-              <FileText className="w-12 h-12 text-slate-300 mb-4 animate-bounce" />
-              <h4 className="text-sm font-black text-slate-800 uppercase tracking-wide">No Probationer Selected</h4>
-              <p className="text-xs text-slate-400 mt-2 max-w-xs leading-normal">
-                Select an employee from the left panel to evaluate their probation metrics, or initialize a new probation track.
+            <div className="text-center py-40 bg-white dark:bg-gray-900 rounded-2xl border border-slate-200/80 dark:border-gray-800 shadow-sm flex flex-col justify-center items-center h-[820px]">
+              <div className="w-14 h-14 rounded-2xl bg-indigo-50 dark:bg-indigo-950/50 text-indigo-500 flex items-center justify-center mb-4">
+                <FileText className="w-7 h-7" />
+              </div>
+              <h4 className="text-sm font-black text-slate-800 dark:text-gray-200">No Probationer Selected</h4>
+              <p className="text-xs text-slate-400 mt-1 max-w-xs leading-relaxed">
+                Select an employee from the left panel to evaluate their 6-month milestones or click Initialize Track to start a new journey.
               </p>
             </div>
           )}
         </div>
-
       </div>
     </div>
   );
