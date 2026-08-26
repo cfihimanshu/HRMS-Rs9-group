@@ -580,6 +580,7 @@ export default function AdministratorAccess({ userRole, triggerToast, sessionUse
       { id: "hr-dash", roles: ["Owner", "Director", "HR Head", "HR Executive"] },
       { id: "dept-dash", roles: ["Owner", "Director", "Department Manager"] },
       { id: "sales-dashboard", roles: ["Owner", "Sales Manager", "DSM"] },
+      { id: "vertical-dashboard", roles: ["Owner", "Director", "Sales Manager", "DSM"] },
       { id: "ess-dashboard", roles: ["Employee"] },
       { id: "ess-leaves", roles: ["Employee"] },
       { id: "ess-payroll", roles: ["Owner", "Director", "HR Head", "HR Executive"] },
@@ -644,6 +645,7 @@ export default function AdministratorAccess({ userRole, triggerToast, sessionUse
     const employeeDepartment = String(emp.department || emp.employeeProfile?.department?.name || emp.employeeProfile?.department || "").toLowerCase();
     if (roleLower.includes("sales manager") || roleLower === "dsm" || (roleLower.includes("manager") && employeeDepartment.includes("sales"))) {
       effectivePageIds.add("sales-dashboard");
+      effectivePageIds.add("vertical-dashboard");
     }
 
     return Array.from(effectivePageIds);
