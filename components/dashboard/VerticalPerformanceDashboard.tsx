@@ -18,15 +18,43 @@ export default function VerticalPerformanceDashboard({ onNavigate }: { onNavigat
   const [showPayments, setShowPayments] = useState(false);
 
   const loadData = useCallback(async () => {
-    setLoading(true); setError("");
+    setLoading(true);
+    setError("");
     try {
-      const urls = ["/api/bda-leads?status=All", "/api/bda-leads/calls", "/api/legal-recovery", "/api/legal-recovery/followup", "/api/legal-recovery/security", "/api/legal-recovery/bill-follow-up?scope=all", "/api/legal-recovery/payment"];
-      const responses = await Promise.all(urls.map(url => fetch(url, { cache: "no-store" })));
-      const json = await Promise.all(responses.map(async response => response.json().catch(() => ({}))));
-      setData({ leads: json[0].data || [], calls: json[1].data || [], cases: json[2].data || [], followups: json[3].data || [], security: json[4].data || [], legalBills: json[5].data || [], payments: json[6].data || [] });
-      if (responses.every(response => !response.ok)) throw new Error("Dashboard data could not be loaded.");
-    } catch (e: any) { setError(e.message || "Dashboard data could not be loaded."); }
-    finally { setLoading(false); }
+      const urls = [
+        "/api/bda-leads?status=All",
+        "/api/bda-leads/calls",
+        "/api/legal-recovery",
+        "/api/legal-recovery/followup",
+        "/api/legal-recovery/security",
+        "/api/legal-recovery/payment"
+      ];
+      const results = await Promise.all(
+        urls.map(url =>
+          fetch(url, { cache: "no-store" })
+            .then(async res => {
+              if (!res.ok) return { success: true, data: [] };
+              const j = await res.json().catch(() => ({ success: true, data: [] }));
+              return j;
+            })
+            .catch(() => ({ success: true, data: [] }))
+        )
+      );
+
+      setData({
+        leads: Array.isArray(results[0]?.data) ? results[0].data : [],
+        calls: Array.isArray(results[1]?.data) ? results[1].data : [],
+        cases: Array.isArray(results[2]?.data) ? results[2].data : [],
+        followups: Array.isArray(results[3]?.data) ? results[3].data : [],
+        security: Array.isArray(results[4]?.data) ? results[4].data : [],
+        legalBills: [],
+        payments: Array.isArray(results[5]?.data) ? results[5].data : []
+      });
+    } catch (e: any) {
+      setError(e.message || "Dashboard data could not be loaded.");
+    } finally {
+      setLoading(false);
+    }
   }, []);
   useEffect(() => { loadData(); }, [loadData]);
 

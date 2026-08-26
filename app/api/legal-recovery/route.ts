@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+export const dynamic = "force-dynamic";
 import LegalRecoveryMaster from "@/models/sequelize/LegalRecoveryMaster";
 import LegalRecoveryPayment from "@/models/sequelize/LegalRecoveryPayment";
 import BranchMaster from "@/models/sequelize/BranchMaster";
