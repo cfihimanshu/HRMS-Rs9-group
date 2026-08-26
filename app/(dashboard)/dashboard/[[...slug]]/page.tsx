@@ -64,6 +64,7 @@ import AssetsRegistry from "@/components/dashboard/AssetsRegistry";
 import InventoryManagement from "@/components/dashboard/InventoryManagement";
 import AdministratorAccess from "@/components/dashboard/AdministratorAccess";
 import LegalRecovery from "@/components/dashboard/LegalRecoveryModule";
+import SecurityModule from "@/components/dashboard/SecurityModule";
 import DisciplinaryActions from "@/components/dashboard/DisciplinaryActions"; // disciplinary warnings view
 import KanbanBoard from "@/components/dashboard/KanbanBoard";
 import BankWorkReportDashboard from "@/components/dashboard/BankWorkReportDashboard";
@@ -1448,6 +1449,38 @@ export default function UnifiedEnterpriseDashboard() {
 
             return (
               <LegalRecovery
+                userRole={userRole}
+                triggerToast={triggerToast}
+                sessionUser={session?.user}
+              />
+            );
+          })()}
+
+          {activeTab === "security" && (() => {
+            const userDept = (session?.user as any)?.department || "";
+            const isAdministration = userDept.toLowerCase().includes("administration");
+            let allowedPageIds: string[] | null = null;
+            if (Array.isArray(liveMenuAccess)) {
+              allowedPageIds = liveMenuAccess;
+            } else if (typeof liveMenuAccess === "string" && liveMenuAccess) {
+              try {
+                const parsed = JSON.parse(liveMenuAccess);
+                if (Array.isArray(parsed)) allowedPageIds = parsed;
+              } catch { }
+            }
+            const hasExplicitAccess = allowedPageIds && allowedPageIds.includes("security");
+            const hasAccess = userRole === "Owner" || isAdministration || hasExplicitAccess;
+
+            if (!hasAccess) {
+              return (
+                <div className="p-8 text-center text-red-500 font-bold bg-white rounded-xl shadow border border-red-100">
+                  Access Denied: You do not have permission to access the Security page.
+                </div>
+              );
+            }
+
+            return (
+              <SecurityModule
                 userRole={userRole}
                 triggerToast={triggerToast}
                 sessionUser={session?.user}

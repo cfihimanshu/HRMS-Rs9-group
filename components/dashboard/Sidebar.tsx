@@ -91,6 +91,7 @@ export default function DashboardSidebar({
     { id: "vehicle-registry", label: "Vehicle Registry", icon: Car, category: "Administration & IT", roles: ["Owner", "Director", "HR Head", "HR Executive", "Department Manager", "IT Admin"] },
     { id: "domain-record", label: "Domain Record", icon: Globe, category: "Administration & IT", roles: ["Owner", "Director", "HR Head", "HR Executive", "IT Admin"] },
     { id: "legal-recovery", label: "Legal Recovery", icon: Scale, category: "Administration & IT", roles: ["Owner"] },
+    { id: "security", label: "Security", icon: ShieldCheck, category: "Administration & IT", roles: ["Owner"] },
     { id: "audit-trail", label: "System Audit Trail", icon: History, category: "Administration & IT", roles: ["Owner", "Director", "HR Head"] },
 
     // Employee Self Service (ESS)
@@ -206,7 +207,7 @@ export default function DashboardSidebar({
       const isManagerialRole = roleLower.includes("manager") || roleLower.includes("hr") || roleLower.includes("head");
       return isManagerialRole || isLegalOrSecVert;
     }
-    if (item.id === "legal-recovery") {
+    if (item.id === "legal-recovery" || item.id === "security") {
       return isAdministration;
     }
     if (item.id === "inventory-management") {

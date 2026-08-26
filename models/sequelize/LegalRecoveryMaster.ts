@@ -34,6 +34,26 @@ LegalRecoveryMaster.init(
       type: DataTypes.STRING,
       allowNull: true,
     },
+    branchEmail: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    foName: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    foContact: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    rbo: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    totalBillAmount: {
+      type: DataTypes.DECIMAL(15, 2),
+      allowNull: true,
+    },
     pendingAmount: {
       type: DataTypes.DECIMAL(15, 2),
       allowNull: true,
@@ -45,7 +65,7 @@ LegalRecoveryMaster.init(
     status: {
       type: DataTypes.STRING,
       allowNull: true,
-      defaultValue: "Open", // Open, In Progress, Closed
+      defaultValue: "Open", // Open, In Progress, Closed, Settled
     },
     createdAt: {
       type: DataTypes.DATE,
