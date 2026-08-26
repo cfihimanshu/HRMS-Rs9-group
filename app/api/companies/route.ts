@@ -35,7 +35,7 @@ async function seedDefaultCompanies() {
   }
 }
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
     const isDbConnected = await safeAuthenticate(4000);
     if (!isDbConnected) {
@@ -44,8 +44,9 @@ export async function GET() {
 
     await seedDefaultCompanies();
 
+    const includeInactive = new URL(request.url).searchParams.get("includeInactive") === "true";
     const companies = await Company.findAll({
-      where: { status: "active" },
+      where: includeInactive ? {} : { status: "active" },
       order: [["name", "ASC"]],
     });
     return NextResponse.json({ success: true, data: companies });

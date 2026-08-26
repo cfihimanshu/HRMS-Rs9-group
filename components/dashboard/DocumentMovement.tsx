@@ -286,7 +286,7 @@ export default function DocumentMovement({ triggerToast }: Props) {
     try {
       const text = await file.text();
       const lines = text.split(/\r?\n/).filter(Boolean);
-      if (lines.length < 2) throw new Error("CSV mein header aur kam se kam ek record hona chahiye");
+      if (lines.length < 2) throw new Error("The CSV must contain a header and at least one record");
       const parseLine = (line: string) => {
         const values: string[] = []; let value = ""; let quoted = false;
         for (let index = 0; index < line.length; index += 1) {
@@ -330,7 +330,7 @@ export default function DocumentMovement({ triggerToast }: Props) {
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-serif text-[#1C1C1A]">Document Movement Register</h1>
-          <p className="text-xs text-[#77736C] mt-1">Original custody, handover, return and acknowledgement ka complete audit trail.</p>
+          <p className="text-xs text-[#77736C] mt-1">A complete audit trail of original document custody, handover, return, and acknowledgement.</p>
         </div>
         <div className="flex flex-wrap gap-2">
           <button onClick={sendAlerts} className="inline-flex items-center gap-2 rounded-xl border border-[#DDD8D0] px-3 py-2.5 text-xs"><AlertTriangle className="w-4 h-4" /> Run Alerts</button>
@@ -359,7 +359,7 @@ export default function DocumentMovement({ triggerToast }: Props) {
           </div>
           <div className="relative flex-1">
             <Search className="absolute left-3 top-2.5 w-4 h-4 text-[#9C9890]" />
-            <input value={search} onChange={event => setSearch(event.target.value)} placeholder="Document no., title, source, holder ya purpose search karein..." className="w-full rounded-lg border border-[#DDD8D0] pl-9 pr-3 py-2 text-xs outline-none focus:border-[#C9A84C]" />
+            <input value={search} onChange={event => setSearch(event.target.value)} placeholder="Search by document number, title, source, holder, or purpose..." className="w-full rounded-lg border border-[#DDD8D0] pl-9 pr-3 py-2 text-xs outline-none focus:border-[#C9A84C]" />
           </div>
           <select value={status} onChange={event => setStatus(event.target.value)} className="rounded-lg border border-[#DDD8D0] bg-white px-3 py-2 text-xs outline-none">
             {["All", "In Custody", "Handed Over", "Returned", "Archived"].map(option => <option key={option}>{option}</option>)}
@@ -376,7 +376,7 @@ export default function DocumentMovement({ triggerToast }: Props) {
               {loading ? (
                 <tr><td colSpan={7} className="py-14 text-center"><Loader2 className="w-6 h-6 animate-spin mx-auto text-[#C9A84C]" /></td></tr>
               ) : documents.length === 0 ? (
-                <tr><td colSpan={7} className="py-14 text-center text-xs text-[#77736C]">Koi document record nahi mila.</td></tr>
+                <tr><td colSpan={7} className="py-14 text-center text-xs text-[#77736C]">No document records found.</td></tr>
               ) : documents.map(document => (
                 <tr key={document.id} className="hover:bg-[#FCFAF7] align-top">
                   <td className="px-4 py-3"><div className="font-semibold text-xs text-[#1C1C1A]">{document.title}</div><div className="text-[10px] text-[#8D6E16] font-mono mt-1">{document.documentNumber}</div><div className="text-[10px] text-[#77736C]">{document.documentType} · {document.documentNature}</div></td>
@@ -408,7 +408,7 @@ export default function DocumentMovement({ triggerToast }: Props) {
         <Modal onClose={() => setShowRegister(false)} wide>
           <form onSubmit={registerDocument}>
             <div className="sticky top-0 z-10 bg-[#FAFAF7] border-b border-[#E8E4DF] px-6 py-4 flex justify-between items-center">
-              <div><h2 className="font-serif text-xl">Register New Document</h2><p className="text-[11px] text-[#77736C]">Initial receive/custody entry automatically history mein save hogi.</p></div>
+              <div><h2 className="font-serif text-xl">Register New Document</h2><p className="text-[11px] text-[#77736C]">The initial receipt/custody entry will be saved to history automatically.</p></div>
               <button type="button" onClick={() => setShowRegister(false)}><X className="w-5 h-5" /></button>
             </div>
             <div className="p-6 grid md:grid-cols-3 gap-4">
@@ -447,7 +447,7 @@ export default function DocumentMovement({ triggerToast }: Props) {
                   }} />
                 </span>
               </label>
-              <div className="md:col-span-3"><TextArea label="Purpose — document kyun liya?" required value={registerForm.purpose} onChange={(e: any) => setRegisterForm({ ...registerForm, purpose: e.target.value })} placeholder="Case filing, verification, audit, signature..." /></div>
+              <div className="md:col-span-3"><TextArea label="Purpose for receiving the document" required value={registerForm.purpose} onChange={(e: any) => setRegisterForm({ ...registerForm, purpose: e.target.value })} placeholder="Case filing, verification, audit, signature..." /></div>
               <div className="md:col-span-3"><TextArea label="Remarks" value={registerForm.remarks} onChange={(e: any) => setRegisterForm({ ...registerForm, remarks: e.target.value })} placeholder="Condition, pages, seal or any special note..." /></div>
             </div>
             <div className="px-6 py-4 border-t border-[#E8E4DF] flex justify-end gap-3">
@@ -470,14 +470,14 @@ export default function DocumentMovement({ triggerToast }: Props) {
               {!["ACCEPT", "REJECT"].includes(movementForm.action) && <Input label="Receiver Department" value={movementForm.toDepartment} onChange={(e: any) => setMovementForm({ ...movementForm, toDepartment: e.target.value })} placeholder="Legal / HR / External" />}
               {!["ACCEPT", "REJECT"].includes(movementForm.action) && <Input label="Movement Date & Time" required type="datetime-local" value={movementForm.movedAt} onChange={(e: any) => setMovementForm({ ...movementForm, movedAt: e.target.value })} />}
               {!["ACCEPT", "REJECT"].includes(movementForm.action) && <Input label="Next Due Date" type="date" value={movementForm.dueDate} onChange={(e: any) => setMovementForm({ ...movementForm, dueDate: e.target.value })} />}
-              {!["ACCEPT", "REJECT"].includes(movementForm.action) && <div className="md:col-span-2"><TextArea label="Purpose / Reason" required value={movementForm.purpose} onChange={(e: any) => setMovementForm({ ...movementForm, purpose: e.target.value })} placeholder="Document kisko aur kyun diya/return kiya?" /></div>}
+              {!["ACCEPT", "REJECT"].includes(movementForm.action) && <div className="md:col-span-2"><TextArea label="Purpose / Reason" required value={movementForm.purpose} onChange={(e: any) => setMovementForm({ ...movementForm, purpose: e.target.value })} placeholder="Who received or returned the document, and why?" /></div>}
               {movementForm.action === "INCIDENT" && <Select label="Incident Status" value={movementForm.incidentStatus} onChange={(e: any) => setMovementForm({ ...movementForm, incidentStatus: e.target.value })}>{["Missing", "Damaged", "Under Investigation", "Destroyed", "Confidential Hold"].map(option => <option key={option}>{option}</option>)}</Select>}
               {movementForm.action === "CORRECT" && <div className="md:col-span-2"><Input label="Corrected Document Title" required value={movementForm.correctionTitle} onChange={(e: any) => setMovementForm({ ...movementForm, correctionTitle: e.target.value })} /></div>}
               {!["ACCEPT", "REJECT"].includes(movementForm.action) && <label className="md:col-span-2 block">
                 <span className="block text-[10px] font-bold uppercase tracking-wider text-[#77736C] mb-1.5">Acknowledgement / Receipt Proof</span>
                 <span className="flex items-center gap-2 rounded-lg border border-dashed border-[#C9A84C] bg-[#FFFDF7] px-3 py-2.5 text-xs cursor-pointer">
                   {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
-                  {movementForm.acknowledgementUrl ? "Receipt uploaded ✓" : "Signed receipt / acknowledgement upload karein"}
+                  {movementForm.acknowledgementUrl ? "Receipt uploaded ✓" : "Upload the signed receipt / acknowledgement"}
                   <input type="file" className="hidden" accept=".pdf,.jpg,.jpeg,.png,.webp" onChange={async e => {
                     try { const url = await uploadFile(e.target.files?.[0]); if (url) setMovementForm(form => ({ ...form, acknowledgementUrl: url })); }
                     catch (error: any) { notify(error.message); }
@@ -506,7 +506,7 @@ export default function DocumentMovement({ triggerToast }: Props) {
                 <div key={label} className="rounded-xl bg-white border border-[#E8E4DF] p-3"><div className="text-[9px] uppercase tracking-wider text-[#77736C]">{label}</div><div className="text-xs font-semibold mt-1">{value}</div></div>
               ))}
             </div>
-            {qrData && <div className="mb-6 rounded-xl border border-violet-200 bg-violet-50 p-4 flex items-center gap-4"><img src={qrData} alt="Document QR" className="w-28 h-28 bg-white rounded-lg" /><div><div className="font-semibold text-sm">Scan Document</div><div className="text-xs text-[#77736C] mt-1">QR scan karke custody record open karein.</div></div></div>}
+            {qrData && <div className="mb-6 rounded-xl border border-violet-200 bg-violet-50 p-4 flex items-center gap-4"><img src={qrData} alt="Document QR" className="w-28 h-28 bg-white rounded-lg" /><div><div className="font-semibold text-sm">Scan Document</div><div className="text-xs text-[#77736C] mt-1">Scan the QR code to open the custody record.</div></div></div>}
             <h3 className="text-xs font-bold uppercase tracking-widest text-[#77736C] mb-4">Complete Custody Timeline</h3>
             <div className="space-y-0">
               {selected.movements.map((movement: any, index: number) => (

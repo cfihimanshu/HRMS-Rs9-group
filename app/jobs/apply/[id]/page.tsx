@@ -314,12 +314,12 @@ export default function CandidateApplyPage() {
           
           <div className="mt-4 pt-4 border-t border-slate-100 text-xs leading-relaxed space-y-4">
             <div>
-              <strong className="block text-slate-900 font-bold mb-1">About Us (हमारे बारे में):</strong>
+              <strong className="block text-slate-900 font-bold mb-1">About Us:</strong>
               <p className="text-slate-600 font-medium">
-                हम <span className="font-bold text-[#714B67]">Acolyte Group</span> हैं – जयपुर आधारित एक बहु-उद्योग समूह जो Legal Recovery, Banking Services, Startup Consultancy, Digital Media, Property & Security Solutions जैसे क्षेत्रों में कार्यरत है।
+                We are <span className="font-bold text-[#714B67]">Acolyte Group</span>, a Jaipur-based multi-industry group operating in Legal Recovery, Banking Services, Startup Consultancy, Digital Media, and Property &amp; Security Solutions.
               </p>
               <p className="text-slate-600 font-medium mt-1">
-                हमारा लक्ष्य है – युवाओं को रोजगार, प्रशिक्षण और साझेदारी के माध्यम से आर्थिक सशक्तिकरण और डिजिटल विकास की दिशा में जोड़ना।
+                Our goal is to empower young people economically and advance digital development through employment, training, and partnerships.
               </p>
             </div>
 

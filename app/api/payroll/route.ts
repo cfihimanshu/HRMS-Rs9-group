@@ -6,6 +6,9 @@ import User from "@/models/sequelize/User";
 import Payroll from "@/models/sequelize/Payroll";
 import EmployeeProfile from "@/models/sequelize/EmployeeProfile";
 
+const payrollRoles = ["owner", "director", "hr head", "hr executive", "payroll executive", "accounts", "cfo", "it admin"];
+const canManagePayroll = (role: unknown) => payrollRoles.includes(String(role || "").toLowerCase().trim());
+
 // GET: Fetch Payslips
 export async function GET(req: Request) {
   try {
@@ -19,7 +22,8 @@ export async function GET(req: Request) {
 
     const user = (session?.user as any);
     const userRole = (user?.role || "").toLowerCase();
-    const isEmployeeOnly = userRole === "employee";
+    const requestedSelfScope = new URL(req.url).searchParams.get("scope") === "self";
+    const isEmployeeOnly = requestedSelfScope || !canManagePayroll(userRole);
     
     // Employees see only their payslips, Managers/HR/Owners see all
     const filter = isEmployeeOnly ? { employee: String(user.id) } : {};
@@ -75,7 +79,7 @@ export async function POST(req: Request) {
     }
 
     const userRole = ((session.user as any).role || "").toLowerCase();
-    const canProcess = userRole.includes("owner") || userRole.includes("director") || userRole.includes("hr") || userRole.includes("accounts") || userRole.includes("admin") || userRole.includes("cfo") || userRole.includes("manager");
+    const canProcess = canManagePayroll(userRole);
     if (!canProcess) {
       return NextResponse.json({ success: false, error: "Unauthorized access for payroll processing" }, { status: 401 });
     }
@@ -83,14 +87,17 @@ export async function POST(req: Request) {
     await sequelize.authenticate();
     await Payroll.sync().catch(() => {});
 
-    const { employeeId, month, year, basicPay, hra, conveyance, specialAllowance, pfDeduction, ptDeduction, tdsDeduction } = await req.json();
+    const { employeeId, month, year, basicPay, hra, conveyance, specialAllowance, bonus, pfDeduction, esiDeduction, ptDeduction, tdsDeduction, lossOfPay } = await req.json();
 
     if (!employeeId || !month || !year) {
       return NextResponse.json({ success: false, error: "Missing required fields" }, { status: 400 });
     }
 
-    const totalEarnings = (basicPay || 0) + (hra || 0) + (conveyance || 0) + (specialAllowance || 0);
-    const totalDeductions = (pfDeduction || 0) + (ptDeduction || 0) + (tdsDeduction || 0);
+    const existing = await Payroll.findOne({ where: { employee: String(employeeId), month, year: Number(year) } });
+    if (existing) return NextResponse.json({ success: false, error: "Payroll has already been generated for this employee for the selected month" }, { status: 409 });
+
+    const totalEarnings = Number(basicPay || 0) + Number(hra || 0) + Number(conveyance || 0) + Number(specialAllowance || 0) + Number(bonus || 0);
+    const totalDeductions = Number(pfDeduction || 0) + Number(esiDeduction || 0) + Number(ptDeduction || 0) + Number(tdsDeduction || 0) + Number(lossOfPay || 0);
     const netPay = totalEarnings - totalDeductions;
 
     const payslip = await Payroll.create({
@@ -102,11 +109,13 @@ export async function POST(req: Request) {
       hra: hra || 0,
       conveyance: conveyance || 0,
       specialAllowance: specialAllowance || 0,
+      bonus: bonus || 0,
       totalEarnings,
       pfDeduction: pfDeduction || 0,
-      esiDeduction: 0,
+      esiDeduction: esiDeduction || 0,
       ptDeduction: ptDeduction || 0,
       tdsDeduction: tdsDeduction || 0,
+      lossOfPay: lossOfPay || 0,
       totalDeductions,
       netPay,
       status: "Processed"
@@ -122,6 +131,29 @@ export async function POST(req: Request) {
   }
 }
 
+// PUT: Update payroll payment/workflow status
+export async function PUT(req: Request) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user || !canManagePayroll((session.user as any).role)) {
+      return NextResponse.json({ success: false, error: "Unauthorized payroll action" }, { status: 401 });
+    }
+    const { id, status, paymentDate, transactionRef } = await req.json();
+    const validStatuses = ["Draft", "HR Verified", "Accounts Approved", "Processed", "Paid", "Locked"];
+    if (!id || !validStatuses.includes(status)) return NextResponse.json({ success: false, error: "Valid payroll id and status required" }, { status: 400 });
+    await sequelize.authenticate();
+    const payroll = await Payroll.findByPk(id);
+    if (!payroll) return NextResponse.json({ success: false, error: "Payroll record not found" }, { status: 404 });
+    payroll.status = status;
+    if (paymentDate !== undefined) payroll.paymentDate = paymentDate ? new Date(paymentDate) : null;
+    if (transactionRef !== undefined) payroll.transactionRef = transactionRef || null;
+    await payroll.save();
+    return NextResponse.json({ success: true, data: payroll });
+  } catch (error: any) {
+    return NextResponse.json({ success: false, error: error.message || "Payroll update failed" }, { status: 500 });
+  }
+}
+
 // DELETE: Delete a Payslip
 export async function DELETE(req: Request) {
   try {
@@ -131,7 +163,7 @@ export async function DELETE(req: Request) {
     }
 
     const userRole = ((session.user as any).role || "").toLowerCase();
-    const canDelete = userRole.includes("owner") || userRole.includes("director") || userRole.includes("hr") || userRole.includes("accounts") || userRole.includes("admin") || userRole.includes("cfo") || userRole.includes("manager");
+    const canDelete = canManagePayroll(userRole);
     if (!canDelete) {
       return NextResponse.json({ success: false, error: "Unauthorized access for payslip deletion" }, { status: 401 });
     }
@@ -145,6 +177,9 @@ export async function DELETE(req: Request) {
 
     await sequelize.authenticate();
     await Payroll.sync().catch(() => {});
+
+    const record = await Payroll.findByPk(id);
+    if (record?.status === "Locked") return NextResponse.json({ success: false, error: "Locked payroll cannot be deleted" }, { status: 409 });
 
     const deletedCount = await Payroll.destroy({
       where: { id }

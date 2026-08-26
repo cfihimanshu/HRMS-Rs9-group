@@ -87,7 +87,7 @@ export default function NbfcMasterView({
     e.preventDefault();
     if (!showFollowUpModal.nbfc) return;
     if (!followUpForm.conversationDetails.trim()) {
-      triggerToast?.("Please enter conversation details / kya baat hui");
+      triggerToast?.("Please enter the conversation details");
       return;
     }
 

@@ -199,8 +199,15 @@ export async function GET(req: Request) {
 
     // 6. Attendance, SOD/EOD compliances (today's counts)
     const now = new Date();
-    const dayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
-    const dayEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+    const indiaParts = new Intl.DateTimeFormat("en-CA", {
+      timeZone: "Asia/Kolkata", year: "numeric", month: "2-digit", day: "2-digit"
+    }).formatToParts(now).reduce((parts: Record<string, string>, part) => {
+      if (part.type !== "literal") parts[part.type] = part.value;
+      return parts;
+    }, {});
+    const indiaDate = `${indiaParts.year}-${indiaParts.month}-${indiaParts.day}`;
+    const dayStart = new Date(`${indiaDate}T00:00:00.000+05:30`);
+    const dayEnd = new Date(`${indiaDate}T23:59:59.999+05:30`);
     const today = dayStart;
     const endOfToday = dayEnd;
     const tomorrow = new Date(dayStart);
@@ -1363,7 +1370,7 @@ export async function GET(req: Request) {
           email: u.email || '',
           role: u.role || 'Employee',
           status: u.status || 'active',
-          companies: Array.isArray(u.companies) ? u.companies.join(', ') : (u.companies || 'N/A'),
+          companies: u.companies || [],
           department: userDept,
           designation: staffProfilesMap[u.id]?.designation || 'N/A',
           vertical: staffProfilesMap[u.id]?.vertical || 'Unassigned',

@@ -69,7 +69,7 @@ export async function POST(request: Request) {
     const existingSod = await SodReport.findOne({ where: { employee: employeeId, date: { [Op.gte]: dayStart, [Op.lt]: nextDay } } });
     const existingEod = await EodReport.findOne({ where: { employee: employeeId, date: { [Op.gte]: dayStart, [Op.lt]: nextDay } } });
     if (existingSod || existingEod) {
-      return NextResponse.json({ success: false, error: "Selected staff ki is date par SOD/EOD entry pehle se maujood hai" }, { status: 409 });
+      return NextResponse.json({ success: false, error: "An SOD/EOD entry already exists for the selected employee on this date" }, { status: 409 });
     }
 
     const result = await sequelize.transaction(async transaction => {

@@ -233,7 +233,7 @@ export default function VehicleRegistry({ triggerToast }: { triggerToast?: (m: s
     setModal("edit");
   };
   const deleteVehicle = async () => {
-    if (!window.confirm(`${selected.registrationNumber} ko permanently delete karein? Iske documents aur assignment history bhi remove ho jayegi.`)) return;
+    if (!window.confirm(`Permanently delete ${selected.registrationNumber}? Its documents and assignment history will also be removed.`)) return;
     setSaving(true);
     try {
       const r = await fetch(`/api/vehicles?vehicleId=${encodeURIComponent(selected.id)}`, { method: "DELETE" });
@@ -242,7 +242,7 @@ export default function VehicleRegistry({ triggerToast }: { triggerToast?: (m: s
     } catch (e: any) { notify(e.message); } finally { setSaving(false); }
   };
   const deleteDocument = async (documentId: string) => {
-    if (!window.confirm("Is document ko delete karein?")) return;
+    if (!window.confirm("Delete this document?")) return;
     const r = await fetch(`/api/vehicles?documentId=${encodeURIComponent(documentId)}`, { method: "DELETE" });
     const j = await r.json(); if (!r.ok) return notify(j.error || "Document delete failed");
     notify("✓ Document deleted"); await detail(selected);
@@ -346,7 +346,7 @@ export default function VehicleRegistry({ triggerToast }: { triggerToast?: (m: s
       <Input label="Purchase Date" type="date" value={vehicleForm.purchaseDate} onChange={(e: any) => setVehicleForm({ ...vehicleForm, purchaseDate: e.target.value })} /><Input label="Purchase Value" type="number" value={vehicleForm.purchaseValue} onChange={(e: any) => setVehicleForm({ ...vehicleForm, purchaseValue: e.target.value })} /><Input label="Odometer (KM)" type="number" value={vehicleForm.odometer} onChange={(e: any) => setVehicleForm({ ...vehicleForm, odometer: e.target.value })} />
       <label className="md:col-span-3 border border-dashed border-[#C9A84C] bg-white rounded-xl p-3 text-xs cursor-pointer flex items-center gap-2"><Upload className="w-4 h-4"/>{vehicleForm.photoUrl ? "Vehicle photo uploaded ✓" : "Upload Vehicle Photo"}<input type="file" className="hidden" accept=".jpg,.jpeg,.png,.webp" onChange={async e=>{try{const url=await upload(e.target.files?.[0]);setVehicleForm({...vehicleForm,photoUrl:url});}catch(x:any){notify(x.message)}}}/></label>
       <label className="md:col-span-3 text-xs"><span className="block text-[10px] uppercase font-bold mb-1">Remarks</span><textarea value={vehicleForm.remarks ?? ""} onChange={e => setVehicleForm({ ...vehicleForm, remarks: e.target.value })} className="w-full border rounded-lg p-3" /></label>
-      {modal !== "edit" && <div className="md:col-span-3 border-t pt-5"><h3 className="text-sm font-semibold mb-1">Vehicle Documents</h3><p className="text-[10px] text-slate-500 mb-4">RC aur Insurance abhi upload karein. Renewal documents baad mein bhi add ho sakte hain.</p>
+      {modal !== "edit" && <div className="md:col-span-3 border-t pt-5"><h3 className="text-sm font-semibold mb-1">Vehicle Documents</h3><p className="text-[10px] text-slate-500 mb-4">Upload the registration certificate and insurance now. Renewal documents can be added later.</p>
         <div className="grid md:grid-cols-2 gap-3">{registrationDocs.map((doc, index) => <div key={doc.documentType} className="border bg-white rounded-xl p-3">
           <div className="font-semibold text-xs mb-3">{doc.documentType}</div><div className="grid grid-cols-2 gap-2">
             <Input label="Document Number" value={doc.documentNumber} onChange={(e:any)=>setRegistrationDocs(ds=>ds.map((d,i)=>i===index?{...d,documentNumber:e.target.value}:d))}/>

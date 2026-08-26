@@ -3796,14 +3796,14 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
                       <div>
-                        <label className="block text-[9px] uppercase tracking-wider text-amber-950 font-bold mb-1">Servicing Status * (servecing hui h ki nhi)</label>
+                        <label className="block text-[9px] uppercase tracking-wider text-amber-950 font-bold mb-1">Servicing Status *</label>
                         <select
                           value={assetFields.acServicingStatus || "Done (Serviced)"}
                           onChange={(e) => setAssetFields(p => ({ ...p, acServicingStatus: e.target.value }))}
                           className="w-full bg-white border border-amber-300 rounded-lg px-3 py-2 text-xs text-black font-semibold"
                         >
                           <option value="Done (Serviced)">Yes - Serviced (Hui H)</option>
-                          <option value="Pending / Due">No - Servicing Due (Nahi Hui)</option>
+                          <option value="Pending / Due">No - Servicing Due</option>
                           <option value="Under AMC Contract">Under AMC Contract</option>
                           <option value="Not Required Yet">Not Required Yet (New AC)</option>
                         </select>
@@ -3818,7 +3818,7 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
                         />
                       </div>
                       <div>
-                        <label className="block text-[9px] uppercase tracking-wider text-amber-950 font-bold mb-1">Servicing Cost Amount (kitne ki hui)</label>
+                        <label className="block text-[9px] uppercase tracking-wider text-amber-950 font-bold mb-1">Servicing Cost Amount</label>
                         <input
                           type="number"
                           placeholder="e.g. 1500"
@@ -6330,7 +6330,7 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
                 <textarea value={assignmentNotes} onChange={(e) => setAssignmentNotes(e.target.value)} rows={3} placeholder="Condition, accessories, handover remarks..." className="w-full resize-none border border-slate-300 rounded-lg px-3 py-2.5 text-sm" />
               </div>
               <div className="bg-indigo-50 border border-indigo-100 rounded-lg p-3 text-xs text-indigo-800">
-                Assignment save hote hi Inventory status “In Use” ho jayega aur employee Assets Registry mein asset dikhne lagega.
+                Saving the assignment will change the inventory status to “In Use” and display the asset in the employee’s Assets Registry.
               </div>
             </div>
             <div className="px-5 py-4 border-t border-slate-200 flex justify-end gap-2">
@@ -6363,7 +6363,7 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
             </div>
             <div className="p-5 overflow-y-auto">
               {(historyAsset.assignmentHistory || []).length === 0 ? (
-                <div className="py-10 text-center text-sm text-slate-500">Is asset ke liye abhi koi assignment event record nahi hai.</div>
+                <div className="py-10 text-center text-sm text-slate-500">No assignment events have been recorded for this asset.</div>
               ) : (
                 <div className="space-y-3">
                   {(historyAsset.assignmentHistory || []).map((entry: any) => (

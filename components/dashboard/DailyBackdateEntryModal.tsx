@@ -47,7 +47,7 @@ export default function DailyBackdateEntryModal({ open, onClose, onSaved, curren
       if (branchData.success) setBranches(branchData.data || []);
       if (nbfcData.success) setNbfcs((nbfcData.data || []).filter((item: Nbfc & { isActive?: boolean }) => item.isActive !== false));
       if (staffData.success) setStaff(staffData.data || []);
-    }).catch(() => setError("Bank/branch master load nahi hua."));
+    }).catch(() => setError("Bank and branch master data could not be loaded."));
     if (currentUser?.role !== "Owner") {
       setEmployeeId(String(currentUser?.id || ""));
     }
@@ -57,51 +57,51 @@ export default function DailyBackdateEntryModal({ open, onClose, onSaved, curren
   const updateTask = (index: number, patch: Partial<WorkItem>) => setTasks(rows => rows.map((row, i) => i === index ? { ...row, ...patch } : row));
 
   const addBank = async (index: number) => {
-    const bankName = window.prompt("New bank name enter karein:")?.trim();
+    const bankName = window.prompt("Enter the new bank name:")?.trim();
     if (!bankName) return;
     try {
       const res = await fetch("/api/banks", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ bankName }) });
       const data = await res.json();
-      if (!data.success) throw new Error(data.error || "Bank add nahi hua");
+      if (!data.success) throw new Error(data.error || "The bank could not be added");
       const bank = data.data as Bank;
       setBanks(rows => [...rows, bank].sort((a, b) => a.bankName.localeCompare(b.bankName)));
       updateTask(index, { bankId: String(bank.id), bankName: bank.bankName, branchName: "", aoName: "", rboName: "" });
-    } catch (e: any) { setError(e.message || "Bank add nahi hua"); }
+    } catch (e: any) { setError(e.message || "The bank could not be added"); }
   };
 
   const addBranch = async (index: number) => {
     const task = tasks[index];
-    if (!task.bankId) return setError("Pehle bank select karein.");
-    const branchName = window.prompt("New branch name enter karein:")?.trim();
+    if (!task.bankId) return setError("Select a bank first.");
+    const branchName = window.prompt("Enter the new branch name:")?.trim();
     if (!branchName) return;
-    const branchCode = window.prompt("Branch code enter karein:")?.trim();
-    if (!branchCode) return setError("Branch code required hai.");
+    const branchCode = window.prompt("Enter the branch code:")?.trim();
+    if (!branchCode) return setError("The branch code is required.");
     try {
       const res = await fetch("/api/legal-recovery/branches", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ bankId: task.bankId, bankName: task.bankName, branchName, branchCode }) });
       const data = await res.json();
-      if (!data.success) throw new Error(data.error || "Branch add nahi hui");
+      if (!data.success) throw new Error(data.error || "The branch could not be added");
       const branch = data.data as Branch;
       setBranches(rows => [...rows, branch].sort((a, b) => a.branchName.localeCompare(b.branchName)));
       updateTask(index, { branchName: branch.branchName });
-    } catch (e: any) { setError(e.message || "Branch add nahi hui"); }
+    } catch (e: any) { setError(e.message || "The branch could not be added"); }
   };
 
   const addNbfc = async (index: number) => {
-    const nbfcName = window.prompt("New NBFC name enter karein:")?.trim();
+    const nbfcName = window.prompt("Enter the new NBFC name:")?.trim();
     if (!nbfcName) return;
     const nbfcCode = window.prompt("NBFC code (optional):")?.trim() || "";
     try {
       const res = await fetch("/api/legal-recovery/nbfc", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ nbfcName, nbfcCode }) });
       const data = await res.json();
-      if (!data.success) throw new Error(data.error || "NBFC add nahi hui");
+      if (!data.success) throw new Error(data.error || "The NBFC could not be added");
       const nbfc = data.data as Nbfc;
       setNbfcs(rows => [...rows, nbfc].sort((a, b) => a.nbfcName.localeCompare(b.nbfcName)));
       updateTask(index, { nbfcName: nbfc.nbfcName });
-    } catch (e: any) { setError(e.message || "NBFC add nahi hui"); }
+    } catch (e: any) { setError(e.message || "The NBFC could not be added"); }
   };
 
   const addManualOption = (index: number, field: "aoName" | "rboName", label: string) => {
-    const value = window.prompt(`New ${label} enter karein:`)?.trim();
+    const value = window.prompt(`Enter the new ${label}:`)?.trim();
     if (value) updateTask(index, { [field]: value });
   };
 
@@ -125,40 +125,40 @@ export default function DailyBackdateEntryModal({ open, onClose, onSaved, curren
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
     setError("");
-    if (!employeeId || !workDate || !sodTime || !eodTime) return setError("Staff, date, SOD aur EOD time required hain.");
+    if (!employeeId || !workDate || !sodTime || !eodTime) return setError("Employee, date, SOD time, and EOD time are required.");
     const sodTime24 = to24HourTime(sodTime, sodPeriod);
     const eodTime24 = to24HourTime(eodTime, eodPeriod);
-    if (!sodTime24 || !eodTime24) return setError("SOD aur EOD time 01:00 se 12:59 ke beech select karein.");
-    if (eodTime24 <= sodTime24) return setError("EOD time SOD time ke baad hona chahiye.");
-    if (!tasks.length || tasks.some(t => !t.title.trim() || !t.relatedCategory || !t.type || !t.progressNote.trim() || !t.proofAttachment)) return setError("Har task mein title, related category, task type, progress note aur proof required hai.");
-    if (tasks.some(t => ["Bank Related", "Branch Related", "Case Related"].includes(t.relatedCategory) && (!t.bankName || !t.branchName))) return setError("Bank/Branch/Case Related task mein bank aur branch select karna required hai.");
-    if (tasks.some(t => t.relatedCategory === "AO Related" && (!t.bankName || !t.aoName))) return setError("AO Related task mein bank aur AO select karna required hai.");
-    if (tasks.some(t => t.relatedCategory === "RBO Related" && (!t.bankName || !t.rboName))) return setError("RBO Related task mein bank aur RBO select karna required hai.");
-    if (tasks.some(t => t.relatedCategory === "Fix Security Related" && !t.nbfcName)) return setError("Fix Security Related task mein NBFC select karna required hai.");
+    if (!sodTime24 || !eodTime24) return setError("Select SOD and EOD times between 01:00 and 12:59.");
+    if (eodTime24 <= sodTime24) return setError("The EOD time must be after the SOD time.");
+    if (!tasks.length || tasks.some(t => !t.title.trim() || !t.relatedCategory || !t.type || !t.progressNote.trim() || !t.proofAttachment)) return setError("A title, related category, task type, progress note, and proof are required for every task.");
+    if (tasks.some(t => ["Bank Related", "Branch Related", "Case Related"].includes(t.relatedCategory) && (!t.bankName || !t.branchName))) return setError("Select a bank and branch for every Bank-, Branch-, or Case-Related task.");
+    if (tasks.some(t => t.relatedCategory === "AO Related" && (!t.bankName || !t.aoName))) return setError("Select a bank and AO for every AO-Related task.");
+    if (tasks.some(t => t.relatedCategory === "RBO Related" && (!t.bankName || !t.rboName))) return setError("Select a bank and RBO for every RBO-Related task.");
+    if (tasks.some(t => t.relatedCategory === "Fix Security Related" && !t.nbfcName)) return setError("Select an NBFC for every Fixed Security-Related task.");
     setSaving(true);
     try {
       const res = await fetch("/api/tasks/backdate-daily", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ employeeId, workDate, sodTime: sodTime24, eodTime: eodTime24, tasks }) });
       const data = await res.json();
-      if (!data.success) throw new Error(data.error || "Entry save nahi hui");
+      if (!data.success) throw new Error(data.error || "The entry could not be saved");
       setEmployeeId(""); setWorkDate(""); setSodTime("09:00"); setSodPeriod("AM"); setEodTime("06:00"); setEodPeriod("PM"); setTasks([emptyTask()]);
       onSaved(); onClose();
-    } catch (e: any) { setError(e.message || "Entry save nahi hui"); } finally { setSaving(false); }
+    } catch (e: any) { setError(e.message || "The entry could not be saved"); } finally { setSaving(false); }
   };
 
   return <div className="fixed inset-0 z-[10000] bg-slate-950/60 backdrop-blur-sm flex items-center justify-center p-3" onMouseDown={e => { if (e.target === e.currentTarget) onClose(); }}>
     <form onSubmit={submit} className="bg-white rounded-2xl shadow-2xl w-full max-w-5xl max-h-[94vh] overflow-y-auto">
       <div className="sticky top-0 bg-white z-10 border-b px-5 py-4 flex items-center justify-between">
-        <div className="flex items-center gap-2"><CalendarClock className="w-5 h-5 text-[#714B67]" /><div><h2 className="font-black text-slate-900">Daily Back-Date Entry</h2><p className="text-[10px] text-slate-500">SOD, EOD aur unlimited daily task records</p></div></div>
+        <div className="flex items-center gap-2"><CalendarClock className="w-5 h-5 text-[#714B67]" /><div><h2 className="font-black text-slate-900">Daily Back-Date Entry</h2><p className="text-[10px] text-slate-500">SOD, EOD, and unlimited daily task records</p></div></div>
         <button type="button" onClick={onClose}><X className="w-5 h-5 text-slate-500" /></button>
       </div>
       <div className="p-5 space-y-4">
         <div className="grid sm:grid-cols-4 gap-3 rounded-xl bg-purple-50 border border-purple-100 p-3">
           <label className="text-[10px] font-black text-slate-600">STAFF *{currentUser?.role === "Owner" ? <select required value={employeeId} onChange={e => setEmployeeId(e.target.value)} className="mt-1 w-full border rounded-lg p-2 text-xs bg-white"><option value="">Select staff</option>{staff.map(s => <option key={s.id} value={s.id}>{s.name} ({s.role})</option>)}</select> : <div className="mt-1 w-full border rounded-lg p-2 text-xs bg-slate-100 text-slate-700">{currentUser?.name || "Logged-in Staff"} (Self)</div>}</label>
           <label className="text-[10px] font-black text-slate-600">WORK DATE *<input required type="date" max={new Date().toISOString().slice(0, 10)} value={workDate} onChange={e => setWorkDate(e.target.value)} className="mt-1 w-full border rounded-lg p-2 text-xs bg-white" /></label>
-          <label className="text-[10px] font-black text-slate-600">SOD TIME *<div className="mt-1 flex gap-1"><input required type="text" inputMode="numeric" placeholder="09:00" pattern="(?:0?[1-9]|1[0-2]):[0-5][0-9]" title="12-hour time likhein, jaise 09:00" value={sodTime} onChange={e => setSodTime(e.target.value)} className="min-w-0 flex-1 border rounded-lg p-2 text-xs bg-white" /><select value={sodPeriod} onChange={e => setSodPeriod(e.target.value as "AM" | "PM")} className="border rounded-lg px-2 text-xs font-bold bg-white"><option>AM</option><option>PM</option></select></div></label>
-          <label className="text-[10px] font-black text-slate-600">EOD TIME *<div className="mt-1 flex gap-1"><input required type="text" inputMode="numeric" placeholder="06:00" pattern="(?:0?[1-9]|1[0-2]):[0-5][0-9]" title="12-hour time likhein, jaise 06:00" value={eodTime} onChange={e => setEodTime(e.target.value)} className="min-w-0 flex-1 border rounded-lg p-2 text-xs bg-white" /><select value={eodPeriod} onChange={e => setEodPeriod(e.target.value as "AM" | "PM")} className="border rounded-lg px-2 text-xs font-bold bg-white"><option>AM</option><option>PM</option></select></div></label>
+          <label className="text-[10px] font-black text-slate-600">SOD TIME *<div className="mt-1 flex gap-1"><input required type="text" inputMode="numeric" placeholder="09:00" pattern="(?:0?[1-9]|1[0-2]):[0-5][0-9]" title="Enter a 12-hour time, such as 09:00" value={sodTime} onChange={e => setSodTime(e.target.value)} className="min-w-0 flex-1 border rounded-lg p-2 text-xs bg-white" /><select value={sodPeriod} onChange={e => setSodPeriod(e.target.value as "AM" | "PM")} className="border rounded-lg px-2 text-xs font-bold bg-white"><option>AM</option><option>PM</option></select></div></label>
+          <label className="text-[10px] font-black text-slate-600">EOD TIME *<div className="mt-1 flex gap-1"><input required type="text" inputMode="numeric" placeholder="06:00" pattern="(?:0?[1-9]|1[0-2]):[0-5][0-9]" title="Enter a 12-hour time, such as 06:00" value={eodTime} onChange={e => setEodTime(e.target.value)} className="min-w-0 flex-1 border rounded-lg p-2 text-xs bg-white" /><select value={eodPeriod} onChange={e => setEodPeriod(e.target.value as "AM" | "PM")} className="border rounded-lg px-2 text-xs font-bold bg-white"><option>AM</option><option>PM</option></select></div></label>
         </div>
-        <div className="flex justify-between items-center"><div><h3 className="text-sm font-black">Daily Tasks ({tasks.length})</h3><p className="text-[10px] text-slate-500">Har task ka proof aur progress note mandatory hai.</p></div><button type="button" onClick={() => setTasks(r => [...r, emptyTask()])} className="bg-[#714B67] text-white rounded-lg px-3 py-2 text-xs font-black flex gap-1"><Plus className="w-4 h-4" /> Add Task</button></div>
+        <div className="flex justify-between items-center"><div><h3 className="text-sm font-black">Daily Tasks ({tasks.length})</h3><p className="text-[10px] text-slate-500">Proof and a progress note are mandatory for every task.</p></div><button type="button" onClick={() => setTasks(r => [...r, emptyTask()])} className="bg-[#714B67] text-white rounded-lg px-3 py-2 text-xs font-black flex gap-1"><Plus className="w-4 h-4" /> Add Task</button></div>
         <div className="space-y-3">{tasks.map((task, index) => <div key={index} className="border rounded-xl p-3 bg-slate-50">
           <div className="flex justify-between mb-2"><span className="text-xs font-black text-[#714B67]">Task #{index + 1}</span>{tasks.length > 1 && <button type="button" onClick={() => setTasks(r => r.filter((_, i) => i !== index))}><Trash2 className="w-4 h-4 text-rose-500" /></button>}</div>
           <div className="grid sm:grid-cols-3 gap-2">

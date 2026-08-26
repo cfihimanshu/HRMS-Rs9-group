@@ -561,7 +561,7 @@ export default function SecurityMasterView({
     setFollowUpError("");
     if (!showFollowUpModal.item) return;
     if (!followUpForm.conversationDetails.trim()) {
-      const msg = "Please enter conversation details / kya baat hui";
+      const msg = "Please enter the conversation details";
       setFollowUpError(msg);
       triggerToast(msg);
       return;

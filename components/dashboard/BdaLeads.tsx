@@ -78,6 +78,20 @@ interface BdaUserItem {
   department?: string;
 }
 
+interface BdaCallLogItem {
+  id: number;
+  bdaName?: string;
+  callDateTime: string;
+  callType: string;
+  callStatus: string;
+  durationSeconds?: number;
+  conversationNotes: string;
+  customerInterest?: string;
+  leadStatus?: string;
+  nextCallbackAt?: string;
+  forwardedTo?: string;
+}
+
 // Helper to fix audio Data URLs & MIME types for browser HTML5 audio playback (.aac, .m4a, .mp3, etc.)
 const fixAudioDataUrl = (url: string, fileName?: string, fileType?: string) => {
   if (!url) return url;
@@ -402,10 +416,77 @@ export default function BdaLeads({
     email: "",
     companyName: "",
     city: "",
-    salesReason: "Pitching",
+    salesReason: "",
     customSalesReason: "",
     remarks: ""
   });
+
+  const [showCallModal, setShowCallModal] = useState(false);
+  const [callLead, setCallLead] = useState<BdaLeadItem | null>(null);
+  const [callHistory, setCallHistory] = useState<BdaCallLogItem[]>([]);
+  const [callHistoryLoading, setCallHistoryLoading] = useState(false);
+  const [savingCall, setSavingCall] = useState(false);
+  const [callForm, setCallForm] = useState({
+    callType: "",
+    callStatus: "",
+    durationMinutes: "",
+    conversationNotes: "",
+    customerInterest: "",
+    leadStatus: "",
+    nextCallbackAt: "",
+    forwardedTo: "",
+  });
+
+  const openCallModal = async (lead: BdaLeadItem) => {
+    setCallLead(lead);
+    setCallForm({ callType: "", callStatus: "", durationMinutes: "", conversationNotes: "", customerInterest: "", leadStatus: lead.status || "", nextCallbackAt: "", forwardedTo: "" });
+    setCallHistory([]);
+    setShowCallModal(true);
+    setCallHistoryLoading(true);
+    try {
+      const response = await fetch(`/api/bda-leads/calls?leadId=${lead.id}`);
+      const data = await response.json();
+      if (data.success) setCallHistory(data.data || []);
+      else triggerToast?.(data.error || "Call history could not be loaded");
+    } catch (error: any) {
+      triggerToast?.(error.message || "Call history could not be loaded");
+    } finally {
+      setCallHistoryLoading(false);
+    }
+  };
+
+  const saveCallLog = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!callLead) return;
+    setSavingCall(true);
+    try {
+      const response = await fetch("/api/bda-leads/calls", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          leadId: callLead.id,
+          callType: callForm.callType,
+          callStatus: callForm.callStatus,
+          durationSeconds: callForm.durationMinutes ? Math.round(Number(callForm.durationMinutes) * 60) : null,
+          conversationNotes: callForm.conversationNotes,
+          customerInterest: callForm.customerInterest,
+          leadStatus: callForm.leadStatus,
+          nextCallbackAt: callForm.nextCallbackAt || null,
+          forwardedTo: callForm.forwardedTo || null,
+        }),
+      });
+      const data = await response.json();
+      if (!data.success) throw new Error(data.error || "Call could not be logged");
+      setCallHistory(previous => [data.data, ...previous]);
+      setCallForm(previous => ({ ...previous, callType: "", callStatus: "", durationMinutes: "", conversationNotes: "", customerInterest: "", nextCallbackAt: "", forwardedTo: "" }));
+      triggerToast?.("Call logged successfully");
+      fetchLeads();
+    } catch (error: any) {
+      triggerToast?.(error.message || "Call could not be logged");
+    } finally {
+      setSavingCall(false);
+    }
+  };
 
   // Fetch Leads & BDAs on mount
   useEffect(() => {
@@ -648,7 +729,7 @@ export default function BdaLeads({
         } else {
           triggerToast?.("✅ Lead created successfully!");
           setShowAddModal(false);
-          setManualForm({ name: "", phone: "", email: "", companyName: "", city: "", salesReason: "Pitching", customSalesReason: "", remarks: "" });
+          setManualForm({ name: "", phone: "", email: "", companyName: "", city: "", salesReason: "", customSalesReason: "", remarks: "" });
           fetchLeads();
         }
       } else {
@@ -1531,6 +1612,16 @@ export default function BdaLeads({
 
       {/* Main Leads Table */}
       <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 px-4 py-3 bg-slate-50 border-b border-slate-200">
+          <div>
+            <p className="text-xs font-black text-slate-800">Lead Directory</p>
+            <p className="text-[10px] font-semibold text-slate-500">Click a row for a quick timeline, or use Details for the complete lead workspace.</p>
+          </div>
+          <div className="flex items-center gap-3 text-[10px] font-bold text-slate-500">
+            <span className="flex items-center gap-1"><Phone className="w-3.5 h-3.5 text-emerald-600" /> Call entry</span>
+            <span className="flex items-center gap-1"><Eye className="w-3.5 h-3.5 text-indigo-600" /> Full details</span>
+          </div>
+        </div>
         {/* Table Data Container: Vertical Scroll & Sticky Header */}
         <div className="overflow-x-auto max-h-[620px] overflow-y-auto custom-scrollbar">
           <table className="w-full text-left border-collapse">
@@ -1713,20 +1804,20 @@ export default function BdaLeads({
                         {/* Actions */}
                         {visibleColumns.actions && (
                           <td className="p-3 text-right" onClick={(e) => e.stopPropagation()}>
-                            <div className="flex items-center justify-end gap-1">
+                            <div className="flex items-center justify-end gap-1.5 whitespace-nowrap">
                               <button
-                                onClick={() => handleOpenEditModal(lead, false)}
-                                className="p-1.5 text-slate-500 hover:text-indigo-700 hover:bg-indigo-50 rounded-lg transition-all"
-                                title="View Full Lead & Stage Details"
+                                onClick={() => openCallModal(lead)}
+                                className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-[11px] font-black text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-lg transition-all"
+                                title="Log Call"
                               >
-                                <Eye className="w-4 h-4" />
+                                <Phone className="w-3.5 h-3.5" /> Call
                               </button>
                               <button
-                                onClick={() => handleOpenEditModal(lead, true)}
-                                className="p-1.5 text-slate-500 hover:text-purple-700 hover:bg-purple-50 rounded-lg transition-all"
-                                title="Edit Lead Details, Stage Info & Recordings"
+                                onClick={() => handleOpenEditModal(lead, false)}
+                                className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-[11px] font-black text-indigo-700 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 rounded-lg transition-all"
+                                title="Open all lead details and editing options"
                               >
-                                <Edit className="w-4 h-4" />
+                                <Eye className="w-3.5 h-3.5" /> Details
                               </button>
                               <button
                                 onClick={() => handleDeleteLead(lead.id)}
@@ -2441,20 +2532,29 @@ export default function BdaLeads({
       {/* ========================================================================= */}
       {showDetailsModal && activeLead && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-xl w-full p-6 space-y-4 border border-slate-200 shadow-2xl animate-fade-in max-h-[90vh] overflow-y-auto">
+          <div className="bg-white rounded-3xl max-w-4xl w-full p-6 space-y-4 border border-slate-200 shadow-2xl animate-fade-in max-h-[90vh] overflow-y-auto">
 
             {/* Modal Header */}
-            <div className="flex justify-between items-center pb-3 border-b border-slate-200">
+            <div className="flex justify-between items-center gap-3 pb-3 border-b border-slate-200">
               <div>
                 <h3 className="font-extrabold text-base text-slate-900 flex items-center gap-2">
                   <Briefcase className="w-4 h-4 text-purple-600" />
                   Lead Details & Management ({activeLead.leadId})
                 </h3>
-                <p className="text-xs font-semibold text-slate-500">Source: {activeLead.source || "Excel Import"}</p>
+                <p className="text-xs font-semibold text-slate-500">All lead information, stage details, documents, remarks, and editing tools in one place · Source: {activeLead.source || "Excel Import"}</p>
               </div>
-              <button onClick={() => setShowDetailsModal(false)} className="text-slate-400 hover:text-slate-600">
-                <X className="w-5 h-5" />
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => { setShowDetailsModal(false); openCallModal(activeLead); }}
+                  className="inline-flex items-center gap-1.5 px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-black shadow-sm"
+                >
+                  <Phone className="w-3.5 h-3.5" /> Log Call
+                </button>
+                <button onClick={() => setShowDetailsModal(false)} className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
             </div>
 
             {/* CARD 1: BASIC LEAD INFO & STATUS */}
@@ -3388,10 +3488,12 @@ export default function BdaLeads({
                 <div>
                   <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">Sales Reason / Purpose</label>
                   <select
+                    required
                     value={manualForm.salesReason}
                     onChange={e => setManualForm({ ...manualForm, salesReason: e.target.value })}
                     className="w-full border border-slate-300 rounded-xl p-2 font-bold focus:outline-none focus:border-purple-600"
                   >
+                    <option value="" disabled>Select sales reason</option>
                     <option value="Pitching">Pitching</option>
                     <option value="Follow Up">Follow Up</option>
                     <option value="Client Meeting">Client Meeting</option>
@@ -3439,6 +3541,87 @@ export default function BdaLeads({
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* BDA CALL LOG MODAL */}
+      {showCallModal && callLead && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[70] flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-4xl w-full border border-slate-200 shadow-2xl max-h-[92vh] overflow-hidden flex flex-col">
+            <div className="flex items-center justify-between p-5 border-b border-slate-200">
+              <div>
+                <h3 className="font-extrabold text-base text-slate-900 flex items-center gap-2"><Phone className="w-5 h-5 text-emerald-600" /> Log BDA Call</h3>
+                <p className="text-xs text-slate-500 mt-1">{callLead.leadId} · {callLead.name} {callLead.companyName ? `· ${callLead.companyName}` : ""}</p>
+              </div>
+              <button type="button" onClick={() => setShowCallModal(false)} className="p-1.5 text-slate-400 hover:bg-slate-100 rounded-lg"><X className="w-5 h-5" /></button>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-0 overflow-y-auto">
+              <form onSubmit={saveCallLog} className="p-5 space-y-4 border-r border-slate-200">
+                <div className="grid grid-cols-2 gap-3">
+                  <label className="text-[10px] font-black uppercase text-slate-600">Call Type *
+                    <select required value={callForm.callType} onChange={event => setCallForm({ ...callForm, callType: event.target.value })} className="mt-1 w-full border rounded-xl p-2.5 text-xs font-bold bg-white">
+                      <option value="" disabled>Select call type</option>
+                      <option value="Outgoing">Outgoing</option><option value="Incoming">Incoming</option><option value="WhatsApp">WhatsApp</option>
+                    </select>
+                  </label>
+                  <label className="text-[10px] font-black uppercase text-slate-600">Call Status *
+                    <select required value={callForm.callStatus} onChange={event => setCallForm({ ...callForm, callStatus: event.target.value })} className="mt-1 w-full border rounded-xl p-2.5 text-xs font-bold bg-white">
+                      <option value="" disabled>Select call status</option>
+                      <option>Connected</option><option>No Answer</option><option>Busy</option><option>Switched Off</option><option>Wrong Number</option>
+                    </select>
+                  </label>
+                  <label className="text-[10px] font-black uppercase text-slate-600">Customer Interest
+                    <select value={callForm.customerInterest} onChange={event => setCallForm({ ...callForm, customerInterest: event.target.value })} className="mt-1 w-full border rounded-xl p-2.5 text-xs font-bold bg-white">
+                      <option value="">Select interest</option><option>Interested</option><option>Not Interested</option><option>Callback</option><option>Need Information</option>
+                    </select>
+                  </label>
+                  <label className="text-[10px] font-black uppercase text-slate-600">Call Duration (minutes)
+                    <input type="number" min="0" step="0.1" value={callForm.durationMinutes} onChange={event => setCallForm({ ...callForm, durationMinutes: event.target.value })} placeholder="e.g. 5" className="mt-1 w-full border rounded-xl p-2.5 text-xs font-bold" />
+                  </label>
+                  <label className="text-[10px] font-black uppercase text-slate-600">Lead Status
+                    <select value={callForm.leadStatus} onChange={event => setCallForm({ ...callForm, leadStatus: event.target.value })} className="mt-1 w-full border rounded-xl p-2.5 text-xs font-bold bg-white">
+                      <option value="">Select lead status</option><option>New</option><option>Assigned</option><option>In Progress</option><option>Qualified</option><option>Converted</option><option>Lost</option>
+                    </select>
+                  </label>
+                  <label className="text-[10px] font-black uppercase text-slate-600">Next Callback
+                    <input type="datetime-local" value={callForm.nextCallbackAt} onChange={event => setCallForm({ ...callForm, nextCallbackAt: event.target.value })} className="mt-1 w-full border rounded-xl p-2.5 text-xs font-bold" />
+                  </label>
+                </div>
+                <label className="block text-[10px] font-black uppercase text-slate-600">Forwarded To
+                  <select value={callForm.forwardedTo} onChange={event => setCallForm({ ...callForm, forwardedTo: event.target.value })} className="mt-1 w-full border rounded-xl p-2.5 text-xs font-bold bg-white">
+                    <option value="">Not forwarded</option>
+                    {finalBdaList.map(user => <option key={user.id} value={user.id}>{user.name}</option>)}
+                  </select>
+                </label>
+                <label className="block text-[10px] font-black uppercase text-slate-600">Conversation Notes *
+                  <textarea required rows={4} value={callForm.conversationNotes} onChange={event => setCallForm({ ...callForm, conversationNotes: event.target.value })} placeholder="Enter the discussion, requirement, commitment, and next action..." className="mt-1 w-full border rounded-xl p-3 text-xs font-semibold" />
+                </label>
+                <button disabled={savingCall} type="submit" className="w-full bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 text-white rounded-xl py-2.5 text-xs font-black">{savingCall ? "Saving Call..." : "Save Call Entry"}</button>
+              </form>
+
+              <div className="p-5 bg-slate-50">
+                <h4 className="text-xs font-black uppercase text-slate-700 flex items-center gap-2"><History className="w-4 h-4 text-purple-600" /> Complete Call History ({callHistory.length})</h4>
+                <div className="mt-3 space-y-3 max-h-[590px] overflow-y-auto pr-1">
+                  {callHistoryLoading && <div className="py-12 text-center text-xs text-slate-400">Loading call history...</div>}
+                  {!callHistoryLoading && callHistory.length === 0 && <div className="py-12 text-center text-xs text-slate-400 border border-dashed rounded-xl">No calls have been logged for this lead.</div>}
+                  {callHistory.map(call => (
+                    <div key={call.id} className="bg-white border border-slate-200 rounded-xl p-3 shadow-sm">
+                      <div className="flex items-start justify-between gap-3"><div><span className="text-[10px] font-black text-emerald-700 bg-emerald-50 rounded-full px-2 py-1">{call.callStatus}</span><span className="ml-2 text-[10px] font-bold text-slate-500">{call.callType}</span></div><span className="text-[10px] text-slate-500 whitespace-nowrap">{new Date(call.callDateTime).toLocaleString("en-IN")}</span></div>
+                      <p className="mt-2 text-xs font-semibold text-slate-700 whitespace-pre-wrap">{call.conversationNotes}</p>
+                      <div className="mt-2 flex flex-wrap gap-2 text-[10px] text-slate-500">
+                        {call.bdaName && <span>By: <b>{call.bdaName}</b></span>}
+                        {call.durationSeconds != null && <span>Duration: <b>{Math.round(call.durationSeconds / 60)} min</b></span>}
+                        {call.customerInterest && <span>Interest: <b>{call.customerInterest}</b></span>}
+                        {call.leadStatus && <span>Lead: <b>{call.leadStatus}</b></span>}
+                      </div>
+                      {call.nextCallbackAt && <div className="mt-2 text-[10px] font-bold text-amber-700 bg-amber-50 rounded-lg px-2 py-1">Next callback: {new Date(call.nextCallbackAt).toLocaleString("en-IN")}</div>}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       )}

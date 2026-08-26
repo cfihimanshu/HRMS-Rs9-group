@@ -304,13 +304,13 @@ export function ESSDashboard({ user, triggerToast, setActiveTab, toggleModal, st
       {/* Daily Employee Workspace */}
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-5">
         <section className="xl:col-span-5 bg-white border border-[#E8E4DF] rounded-2xl p-4 shadow-[0_2px_12px_rgba(0,0,0,0.03)]">
-          <div className="flex items-center justify-between border-b border-[#E8E4DF] pb-3 mb-3"><div><div className="flex items-center gap-2"><Calendar className="w-4 h-4 text-indigo-600" /><h2 className="text-sm font-bold text-slate-900">Today&apos;s Schedule</h2></div><p className="text-[10px] text-slate-500 mt-1">Tasks, meetings aur planned work</p></div><button type="button" onClick={() => setActiveTab?.("tasks", "", user?.name || user?.email)} className="text-[10px] font-black text-indigo-600 flex items-center">Open Kanban <ChevronRight className="w-3.5 h-3.5" /></button></div>
-          <div className="space-y-2 max-h-52 overflow-y-auto custom-scrollbar">{todayTasks.slice(0, 6).map((task: any) => <button type="button" key={task.id} onClick={() => setActiveTab?.("tasks", task.id, user?.name || user?.email)} className="w-full text-left flex items-center gap-3 border rounded-xl p-3 hover:border-indigo-300 hover:bg-indigo-50/40 transition-all"><div className="w-14 shrink-0 text-[10px] font-black text-indigo-700">{formatScheduleTime(task.scheduledAt || task.date)}</div><div className="min-w-0 flex-1"><p className="text-xs font-bold text-slate-800 truncate">{task.taskTitle || "Scheduled task"}</p><p className="text-[10px] text-slate-500 mt-0.5 truncate">{task.taskType || "General"}</p></div><span className={`text-[9px] font-black rounded-full px-2 py-1 ${task.status === "Completed" ? "bg-emerald-50 text-emerald-700" : task.status === "In Progress" ? "bg-blue-50 text-blue-700" : "bg-amber-50 text-amber-700"}`}>{task.status || "Pending"}</span></button>)}{!loadingTasks && todayTasks.length === 0 && <div className="py-10 text-center border border-dashed rounded-xl text-xs text-slate-400">Aaj ke liye koi scheduled task nahi hai.</div>}{loadingTasks && <div className="py-10 text-center text-xs text-slate-400">Schedule loading...</div>}</div>
+          <div className="flex items-center justify-between border-b border-[#E8E4DF] pb-3 mb-3"><div><div className="flex items-center gap-2"><Calendar className="w-4 h-4 text-indigo-600" /><h2 className="text-sm font-bold text-slate-900">Today&apos;s Schedule</h2></div><p className="text-[10px] text-slate-500 mt-1">Tasks, meetings, and planned work</p></div><button type="button" onClick={() => setActiveTab?.("tasks", "", user?.name || user?.email)} className="text-[10px] font-black text-indigo-600 flex items-center">Open Kanban <ChevronRight className="w-3.5 h-3.5" /></button></div>
+          <div className="space-y-2 max-h-52 overflow-y-auto custom-scrollbar">{todayTasks.slice(0, 6).map((task: any) => <button type="button" key={task.id} onClick={() => setActiveTab?.("tasks", task.id, user?.name || user?.email)} className="w-full text-left flex items-center gap-3 border rounded-xl p-3 hover:border-indigo-300 hover:bg-indigo-50/40 transition-all"><div className="w-14 shrink-0 text-[10px] font-black text-indigo-700">{formatScheduleTime(task.scheduledAt || task.date)}</div><div className="min-w-0 flex-1"><p className="text-xs font-bold text-slate-800 truncate">{task.taskTitle || "Scheduled task"}</p><p className="text-[10px] text-slate-500 mt-0.5 truncate">{task.taskType || "General"}</p></div><span className={`text-[9px] font-black rounded-full px-2 py-1 ${task.status === "Completed" ? "bg-emerald-50 text-emerald-700" : task.status === "In Progress" ? "bg-blue-50 text-blue-700" : "bg-amber-50 text-amber-700"}`}>{task.status || "Pending"}</span></button>)}{!loadingTasks && todayTasks.length === 0 && <div className="py-10 text-center border border-dashed rounded-xl text-xs text-slate-400">No tasks are scheduled for today.</div>}{loadingTasks && <div className="py-10 text-center text-xs text-slate-400">Schedule loading...</div>}</div>
         </section>
 
         <section className="xl:col-span-4 bg-white border border-[#E8E4DF] rounded-2xl p-4 shadow-[0_2px_12px_rgba(0,0,0,0.03)]">
           <div className="flex items-center justify-between border-b border-[#E8E4DF] pb-3 mb-3"><div className="flex items-center gap-2"><Clock className="w-4 h-4 text-rose-600" /><div><h2 className="text-sm font-bold text-slate-900">Callback & Deadline Watch</h2><p className="text-[10px] text-slate-500">Upcoming follow-ups</p></div></div>{overdueCount > 0 && <span className="bg-rose-100 text-rose-700 rounded-full px-2 py-1 text-[9px] font-black">{overdueCount} overdue</span>}</div>
-          <div className="space-y-2 max-h-52 overflow-y-auto custom-scrollbar">{upcomingCallbacks.map((task: any) => <button type="button" key={task.id} onClick={() => setActiveTab?.("tasks", task.id, user?.name || user?.email)} className="w-full text-left border rounded-xl p-3 hover:bg-rose-50/40"><div className="flex justify-between gap-2"><p className="text-xs font-bold text-slate-800 truncate">{task.taskTitle}</p><span className="text-[9px] font-black text-rose-600 whitespace-nowrap">{new Date(task.deadlineAt || task.scheduledAt).toLocaleDateString("en-IN", { day: "2-digit", month: "short" })}</span></div><p className="text-[10px] text-slate-500 mt-1 truncate">{task.description || "Follow-up pending"}</p></button>)}{!loadingTasks && upcomingCallbacks.length === 0 && <div className="py-10 text-center border border-dashed rounded-xl text-xs text-slate-400">Koi upcoming callback nahi hai.</div>}{loadingTasks && <div className="py-10 text-center text-xs text-slate-400">Callbacks loading...</div>}</div>
+          <div className="space-y-2 max-h-52 overflow-y-auto custom-scrollbar">{upcomingCallbacks.map((task: any) => <button type="button" key={task.id} onClick={() => setActiveTab?.("tasks", task.id, user?.name || user?.email)} className="w-full text-left border rounded-xl p-3 hover:bg-rose-50/40"><div className="flex justify-between gap-2"><p className="text-xs font-bold text-slate-800 truncate">{task.taskTitle}</p><span className="text-[9px] font-black text-rose-600 whitespace-nowrap">{new Date(task.deadlineAt || task.scheduledAt).toLocaleDateString("en-IN", { day: "2-digit", month: "short" })}</span></div><p className="text-[10px] text-slate-500 mt-1 truncate">{task.description || "Follow-up pending"}</p></button>)}{!loadingTasks && upcomingCallbacks.length === 0 && <div className="py-10 text-center border border-dashed rounded-xl text-xs text-slate-400">No upcoming callbacks.</div>}{loadingTasks && <div className="py-10 text-center text-xs text-slate-400">Callbacks loading...</div>}</div>
         </section>
 
         <section className="xl:col-span-3 bg-white border border-[#E8E4DF] rounded-2xl p-4 shadow-[0_2px_12px_rgba(0,0,0,0.03)]">
@@ -318,14 +318,14 @@ export function ESSDashboard({ user, triggerToast, setActiveTab, toggleModal, st
           <div className="grid grid-cols-2 gap-2">
             <button type="button" onClick={() => setActiveTab?.("ess-payroll")} className="border rounded-xl p-3 hover:border-emerald-300 hover:bg-emerald-50 text-left"><WalletCards className="w-4 h-4 text-emerald-600 mb-2" /><p className="text-[10px] font-black text-slate-700">Latest Payslip</p></button>
             <button type="button" onClick={() => setActiveTab?.("document-movement")} className="border rounded-xl p-3 hover:border-purple-300 hover:bg-purple-50 text-left"><FolderOpen className="w-4 h-4 text-purple-600 mb-2" /><p className="text-[10px] font-black text-slate-700">Documents</p></button>
-            <button type="button" onClick={() => triggerToast("HR Helpdesk request module connect kiya ja sakta hai.")} className="border rounded-xl p-3 hover:border-blue-300 hover:bg-blue-50 text-left"><Headphones className="w-4 h-4 text-blue-600 mb-2" /><p className="text-[10px] font-black text-slate-700">HR Helpdesk</p></button>
+            <button type="button" onClick={() => triggerToast("The HR Helpdesk request module can be connected here.")} className="border rounded-xl p-3 hover:border-blue-300 hover:bg-blue-50 text-left"><Headphones className="w-4 h-4 text-blue-600 mb-2" /><p className="text-[10px] font-black text-slate-700">HR Helpdesk</p></button>
             <button type="button" onClick={() => setActiveTab?.("employees")} className="border rounded-xl p-3 hover:border-amber-300 hover:bg-amber-50 text-left"><UserCheck className="w-4 h-4 text-amber-600 mb-2" /><p className="text-[10px] font-black text-slate-700">My Profile</p></button>
           </div>
         </section>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-        <section className="bg-gradient-to-r from-indigo-50 to-white border border-indigo-100 rounded-2xl p-4"><div className="flex items-center gap-2 mb-3"><Bell className="w-4 h-4 text-indigo-600" /><h2 className="text-sm font-bold text-slate-900">Alerts & Announcements</h2></div><div className="space-y-2"><div className="bg-white/80 border border-indigo-100 rounded-xl p-3 flex items-center justify-between"><div><p className="text-xs font-bold text-slate-800">Daily declaration status</p><p className="text-[10px] text-slate-500 mt-0.5">{stats?.currentUserCompliance?.hasSod ? (stats?.currentUserCompliance?.hasEod ? "Aaj ka SOD aur EOD complete hai." : "SOD complete hai, EOD submit karna baaki hai.") : "Kaam shuru karne se pehle SOD declare karein."}</p></div><span className={`text-[9px] px-2 py-1 rounded-full font-black ${stats?.currentUserCompliance?.hasEod ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"}`}>{stats?.currentUserCompliance?.hasEod ? "Done" : "Action"}</span></div>{overdueCount > 0 && <div className="bg-white/80 border border-rose-100 rounded-xl p-3"><p className="text-xs font-bold text-rose-700">{overdueCount} task deadline overdue</p><p className="text-[10px] text-slate-500 mt-0.5">Kanban open karke overdue work update karein.</p></div>}</div></section>
+        <section className="bg-gradient-to-r from-indigo-50 to-white border border-indigo-100 rounded-2xl p-4"><div className="flex items-center gap-2 mb-3"><Bell className="w-4 h-4 text-indigo-600" /><h2 className="text-sm font-bold text-slate-900">Alerts & Announcements</h2></div><div className="space-y-2"><div className="bg-white/80 border border-indigo-100 rounded-xl p-3 flex items-center justify-between"><div><p className="text-xs font-bold text-slate-800">Daily declaration status</p><p className="text-[10px] text-slate-500 mt-0.5">{stats?.currentUserCompliance?.hasSod ? (stats?.currentUserCompliance?.hasEod ? "Today's SOD and EOD are complete." : "SOD is complete; EOD still needs to be submitted.") : "Declare SOD before starting work."}</p></div><span className={`text-[9px] px-2 py-1 rounded-full font-black ${stats?.currentUserCompliance?.hasEod ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"}`}>{stats?.currentUserCompliance?.hasEod ? "Done" : "Action"}</span></div>{overdueCount > 0 && <div className="bg-white/80 border border-rose-100 rounded-xl p-3"><p className="text-xs font-bold text-rose-700">{overdueCount} task deadline overdue</p><p className="text-[10px] text-slate-500 mt-0.5">Open Kanban and update the overdue work.</p></div>}</div></section>
         <section className="bg-white border border-[#E8E4DF] rounded-2xl p-4"><div className="flex items-center gap-2 mb-3"><CalendarCheck className="w-4 h-4 text-[#714B67]" /><h2 className="text-sm font-bold text-slate-900">Today&apos;s Attendance Timeline</h2></div><div className="grid grid-cols-3 gap-2"><div className="rounded-xl bg-indigo-50 border border-indigo-100 p-3"><p className="text-[9px] uppercase font-black text-indigo-600">Start of Day</p><p className="text-xs font-bold text-slate-800 mt-2">{stats?.currentUserCompliance?.hasSod ? "Submitted" : "Pending"}</p></div><div className="rounded-xl bg-slate-50 border p-3"><p className="text-[9px] uppercase font-black text-slate-500">Work Status</p><p className="text-xs font-bold text-slate-800 mt-2">{stats?.currentUserCompliance?.hasSod ? "Active Day" : "Not Started"}</p></div><div className="rounded-xl bg-emerald-50 border border-emerald-100 p-3"><p className="text-[9px] uppercase font-black text-emerald-600">End of Day</p><p className="text-xs font-bold text-slate-800 mt-2">{stats?.currentUserCompliance?.hasEod ? "Submitted" : "Pending"}</p></div></div></section>
       </div>
 
@@ -1424,7 +1424,7 @@ export function ESSLeaves({ user, triggerToast, stats, initialSearchFilter, setA
   );
 }
 
-export function ESSPayroll({ user, triggerToast }: ESSProps) {
+export function ESSPayroll({ user, triggerToast, mode = "self" }: ESSProps & { mode?: "self" | "management" }) {
   const [employees, setEmployees] = useState<any[]>([]);
   const [selectedEmpId, setSelectedEmpId] = useState("");
   const [baseSalary, setBaseSalary] = useState<number | "">(13000);
@@ -1440,10 +1440,18 @@ export function ESSPayroll({ user, triggerToast }: ESSProps) {
   const [absentFineOverride, setAbsentFineOverride] = useState<number | "">("");
   const [calcBase, setCalcBase] = useState(true);
   const [calcOvertime, setCalcOvertime] = useState(true);
+  const [hraInput, setHraInput] = useState<number | "">(0);
+  const [conveyanceInput, setConveyanceInput] = useState<number | "">(0);
+  const [specialAllowanceInput, setSpecialAllowanceInput] = useState<number | "">(0);
+  const [incentiveInput, setIncentiveInput] = useState<number | "">(0);
+  const [pfInput, setPfInput] = useState<number | "">(0);
+  const [esiInput, setEsiInput] = useState<number | "">(0);
+  const [ptInput, setPtInput] = useState<number | "">(0);
+  const [tdsInput, setTdsInput] = useState<number | "">(0);
 
   const [loading, setLoading] = useState(false);
   const roleLower = (user?.role || "").toLowerCase();
-  const isAdmin = ["owner", "director", "hr", "admin", "cfo", "manager", "executive"].some(r => roleLower.includes(r)) || true;
+  const isAdmin = mode === "management" && ["owner", "director", "hr head", "hr executive", "payroll executive", "accounts", "cfo", "it admin"].includes(roleLower.trim());
 
   const monthMap: { [key: string]: number } = {
     "January": 0, "February": 1, "March": 2, "April": 3, "May": 4, "June": 5,
@@ -1533,11 +1541,22 @@ export function ESSPayroll({ user, triggerToast }: ESSProps) {
   useEffect(() => {
     const approvedPaidLeaves = employeeLeaves
       .filter((l: any) => (l.type || "").toLowerCase() !== "unpaid leave")
-      .reduce((sum: number, l: any) => sum + Number(l.days || 1), 0);
+      .reduce((sum: number, leave: any) => {
+        const start = new Date(leave.startDate || leave.createdAt);
+        const end = new Date(leave.endDate || leave.startDate || leave.createdAt);
+        const today = new Date();
+        let paidWorkingDays = 0;
+        for (const date = new Date(start.getFullYear(), start.getMonth(), start.getDate()); date <= end; date.setDate(date.getDate() + 1)) {
+          const isSelectedMonth = date.getMonth() === selectedMonthIndex && date.getFullYear() === numericYear;
+          const isElapsed = numericYear < today.getFullYear() || (numericYear === today.getFullYear() && (selectedMonthIndex < today.getMonth() || (selectedMonthIndex === today.getMonth() && date.getDate() <= today.getDate())));
+          if (isSelectedMonth && isElapsed && date.getDay() !== 0) paidWorkingDays += 1;
+        }
+        return sum + paidWorkingDays;
+      }, 0);
 
-    setPaidLeavesInput(approvedPaidLeaves);
+    setPaidLeavesInput(Math.min(1, approvedPaidLeaves));
     setAbsentFineOverride("");
-  }, [selectedEmpId, selectedMonthIndex, payrollYear, employeeLeaves]);
+  }, [selectedEmpId, selectedMonthIndex, payrollYear, numericYear, employeeLeaves]);
 
   const getLocalDateString = (dateObj: any) => {
     const d = new Date(dateObj);
@@ -1565,6 +1584,19 @@ export function ESSPayroll({ user, triggerToast }: ESSProps) {
     let totalMinutes = 0;
     let totalBaseMinutes = 0;
     let totalOtMinutes = 0;
+    const today = new Date();
+    const selectedMonthStart = new Date(numericYear, selectedMonthIndex, 1);
+    const currentMonthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+    const cutoffDay = selectedMonthStart > currentMonthStart
+      ? 0
+      : selectedMonthStart.getTime() === currentMonthStart.getTime()
+        ? today.getDate()
+        : daysInSelectedMonth;
+    let expectedWorkingDays = 0;
+    for (let dayNumber = 1; dayNumber <= cutoffDay; dayNumber += 1) {
+      if (new Date(numericYear, selectedMonthIndex, dayNumber).getDay() !== 0) expectedWorkingDays += 1;
+    }
+
     Object.keys(summary).forEach((dateStr) => {
       const day = summary[dateStr];
       let dayMinutes = 0;
@@ -1577,8 +1609,6 @@ export function ESSPayroll({ user, triggerToast }: ESSProps) {
         let diffMins = Math.round(diffMs / 60000);
         if (diffMins > 1440) diffMins = 1440;
         dayMinutes = diffMins;
-      } else if (day.sod) {
-        dayMinutes = 540; // standard 9-hour shift fallback
       }
 
       day.minutes = dayMinutes;
@@ -1590,23 +1620,20 @@ export function ESSPayroll({ user, triggerToast }: ESSProps) {
       totalOtMinutes += otMins;
     });
 
-    const registeredWorkDays = Object.keys(summary).length;
-    const numPaidLeaves = Number(paidLeavesInput || 0);
-
-    // Total Payable Days = Present Worked Days + Weekly Offs (Sundays) + Paid Leaves (capped at 30 days standard)
-    // If no SOD/EOD entries exist yet for employee in month, default to full month minus unpaid leaves
-    let payableDays = registeredWorkDays > 0
-      ? Math.min(30, registeredWorkDays + sundaysInSelectedMonth + numPaidLeaves)
-      : Math.min(30, 30 - Math.max(0, totalAppliedLeaveDays - numPaidLeaves));
-
-    if (payableDays < 0) payableDays = 0;
-
-    // Unpaid leaves / LOP days = Total applied leaves in month minus marked Paid Leaves
-    const unpaidLeaveDays = Math.max(0, 30 - payableDays);
+    const registeredWorkDays = Object.entries(summary).filter(([dateStr, day]) => {
+      const date = new Date(`${dateStr}T00:00:00`);
+      return Boolean(day.sod && day.eod) && date.getDay() !== 0 && date.getDate() <= cutoffDay;
+    }).length;
+    const absentDays = Math.max(0, expectedWorkingDays - registeredWorkDays);
+    const numPaidLeaves = Math.min(1, absentDays, Math.max(0, Number(paidLeavesInput || 0)));
+    const unpaidLeaveDays = Math.max(0, absentDays - numPaidLeaves);
+    const payableDays = Math.max(0, 30 - unpaidLeaveDays);
 
     return {
       days: summary,
       registeredWorkDays,
+      expectedWorkingDays,
+      absentDays,
       payableDays,
       unpaidLeaveDays,
       numPaidLeaves,
@@ -1614,7 +1641,7 @@ export function ESSPayroll({ user, triggerToast }: ESSProps) {
       totalBaseMinutes,
       totalOtMinutes
     };
-  }, [employeeSods, employeeEods, sundaysInSelectedMonth, paidLeavesInput, totalAppliedLeaveDays]);
+  }, [employeeSods, employeeEods, paidLeavesInput, numericYear, selectedMonthIndex, daysInSelectedMonth]);
 
   const numBaseSalary = Number(baseSalary || 0);
   // Base Salary is constant (e.g. 13,000) across 28, 30, or 31 day months, based on standard 30 days per-day rate
@@ -1633,7 +1660,9 @@ export function ESSPayroll({ user, triggerToast }: ESSProps) {
   const calculatedBaseAmount = calcBase ? Math.max(0, Math.round(numBaseSalary - absentFineAmount)) : 0;
   const calculatedOtAmount = calcOvertime ? Math.round(dailyWorkSummary.totalOtMinutes * perMinuteSalary) : 0;
 
-  const calculatedNetSalary = calculatedBaseAmount + calculatedOtAmount;
+  const additionalEarnings = Number(hraInput || 0) + Number(conveyanceInput || 0) + Number(specialAllowanceInput || 0) + Number(incentiveInput || 0);
+  const statutoryDeductions = Number(pfInput || 0) + Number(esiInput || 0) + Number(ptInput || 0) + Number(tdsInput || 0);
+  const calculatedNetSalary = Math.max(0, calculatedBaseAmount + calculatedOtAmount + additionalEarnings - statutoryDeductions);
 
   useEffect(() => {
     fetchData();
@@ -1644,12 +1673,17 @@ export function ESSPayroll({ user, triggerToast }: ESSProps) {
     try {
       // Fetch employee list, payroll list, work reports, leaves, and imposed fines in parallel for instant rendering
       const [empRes, pRes, res, leaveRes, fineRes] = await Promise.all([
-        fetch("/api/employees?all=true").catch(() => null),
-        fetch("/api/payroll").catch(() => null),
+        isAdmin ? fetch("/api/employees?all=true").catch(() => null) : Promise.resolve(null),
+        fetch(isAdmin ? "/api/payroll" : "/api/payroll?scope=self").catch(() => null),
         fetch("/api/reports/work-report").catch(() => null),
         fetch("/api/leaves").catch(() => null),
         fetch("/api/fines").catch(() => null)
       ]);
+
+      if (!isAdmin && user?.id) {
+        setEmployees([{ id: user.id, name: user.name || "Employee", email: user.email || "" }]);
+        setSelectedEmpId(String(user.id));
+      }
 
       if (empRes) {
         try {
@@ -1752,13 +1786,16 @@ export function ESSPayroll({ user, triggerToast }: ESSProps) {
         employeeId: selectedEmpId,
         month: payrollMonth,
         year: Number(payrollYear),
-        basicPay: calculatedNetSalary,
-        hra: 0,
-        conveyance: 0,
-        specialAllowance: 0,
-        pfDeduction: 0,
-        ptDeduction: 0,
-        tdsDeduction: 0
+        basicPay: numBaseSalary,
+        hra: Number(hraInput || 0),
+        conveyance: Number(conveyanceInput || 0),
+        specialAllowance: Number(specialAllowanceInput || 0),
+        bonus: calculatedOtAmount + Number(incentiveInput || 0),
+        pfDeduction: Number(pfInput || 0),
+        esiDeduction: Number(esiInput || 0),
+        ptDeduction: Number(ptInput || 0),
+        tdsDeduction: Number(tdsInput || 0),
+        lossOfPay: absentFineAmount
       };
 
       const res = await fetch("/api/payroll", {
@@ -1778,6 +1815,35 @@ export function ESSPayroll({ user, triggerToast }: ESSProps) {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handlePayrollStatus = async (id: string, status: string) => {
+    const transactionRef = status === "Paid" ? window.prompt("Enter the bank transaction/reference number:")?.trim() : "";
+    if (status === "Paid" && !transactionRef) return;
+    setLoading(true);
+    try {
+      const res = await fetch("/api/payroll", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id, status, transactionRef, paymentDate: status === "Paid" ? new Date().toISOString() : undefined }) });
+      const data = await res.json();
+      if (!data.success) throw new Error(data.error || "Payroll status update failed");
+      triggerToast(`Payroll status updated to ${status}`);
+      await fetchData();
+    } catch (error: any) { triggerToast(error.message || "Payroll status update failed"); } finally { setLoading(false); }
+  };
+
+  const payrollTotals = useMemo(() => processedPayslips.reduce((summary: any, slip: any) => {
+    summary.gross += Number(slip.totalEarnings || 0);
+    summary.deductions += Number(slip.totalDeductions || 0);
+    summary.net += Number(slip.netPay || 0);
+    if (slip.status === "Paid") summary.paid += 1; else summary.pending += 1;
+    return summary;
+  }, { gross: 0, deductions: 0, net: 0, paid: 0, pending: 0 }), [processedPayslips]);
+
+  const exportPayrollRegister = () => {
+    const rows = processedPayslips.map((slip: any) => ({ Employee: slip.employee?.name || "Employee", Month: slip.month, Year: slip.year, Gross: slip.totalEarnings || 0, Deductions: slip.totalDeductions || 0, Net: slip.netPay || 0, Status: slip.status, "Payment Date": slip.paymentDate ? new Date(slip.paymentDate).toLocaleDateString("en-IN") : "", "Transaction Ref": slip.transactionRef || "" }));
+    if (!rows.length) return triggerToast("No payroll records to export");
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(rows), "Payroll Register");
+    XLSX.writeFile(workbook, `Payroll_Register_${new Date().toISOString().slice(0, 10)}.xlsx`);
   };
 
   const handleDeletePayslip = async (id: string) => {
@@ -1812,7 +1878,7 @@ export function ESSPayroll({ user, triggerToast }: ESSProps) {
       <div className="border-b border-[#E8E4DF] pb-5">
         <span className="text-[9px] uppercase tracking-widest text-[#C9A84C] font-bold">Compensation</span>
         <h1 className="text-xl font-light tracking-wide font-serif" style={{ fontFamily: "'Playfair Display', serif" }}>
-          Payroll & Salary Administration
+          {isAdmin ? "Payroll & Salary Administration" : "My Payslips & Salary"}
         </h1>
         {/* <p className="text-[10px] text-[#9C9890] uppercase tracking-wider mt-1.5 font-semibold">
           {isAdmin
@@ -1820,6 +1886,10 @@ export function ESSPayroll({ user, triggerToast }: ESSProps) {
             : "Monitor salary structures, payslips and run simulators."
           }
         </p> */}
+      </div>
+
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
+        {[{ label: "Payroll Records", value: processedPayslips.length, tone: "text-indigo-700 bg-indigo-50" }, { label: "Gross Payroll", value: `₹${payrollTotals.gross.toLocaleString("en-IN")}`, tone: "text-slate-700 bg-slate-50" }, { label: "Deductions", value: `₹${payrollTotals.deductions.toLocaleString("en-IN")}`, tone: "text-rose-700 bg-rose-50" }, { label: "Net Payable", value: `₹${payrollTotals.net.toLocaleString("en-IN")}`, tone: "text-emerald-700 bg-emerald-50" }, { label: "Paid / Pending", value: `${payrollTotals.paid} / ${payrollTotals.pending}`, tone: "text-amber-700 bg-amber-50" }].map(card => <div key={card.label} className={`border border-[#E8E4DF] rounded-xl p-4 ${card.tone}`}><div className="text-[9px] uppercase tracking-wider font-black opacity-70">{card.label}</div><div className="text-lg font-black mt-2">{card.value}</div></div>)}
       </div>
 
       {isAdmin && (
@@ -1909,6 +1979,10 @@ export function ESSPayroll({ user, triggerToast }: ESSProps) {
                 </div>
               </div>
 
+              <div className="p-4 bg-[#FAFAF7] rounded-xl border border-[#E8E4DF] space-y-3"><div className="flex items-center justify-between"><span className="text-[10px] uppercase font-bold text-[#C9A84C] tracking-wider">Salary Structure & Statutory Components</span><span className="text-[9px] text-[#9C9890]">Monthly amounts (₹)</span></div><div className="grid grid-cols-2 md:grid-cols-4 gap-3">{[
+                ["HRA", hraInput, setHraInput], ["Conveyance", conveyanceInput, setConveyanceInput], ["Special Allowance", specialAllowanceInput, setSpecialAllowanceInput], ["Incentive / Bonus", incentiveInput, setIncentiveInput], ["PF Deduction", pfInput, setPfInput], ["ESI Deduction", esiInput, setEsiInput], ["Professional Tax", ptInput, setPtInput], ["TDS", tdsInput, setTdsInput]
+              ].map(([label, value, setter]: any) => <label key={label} className="text-[9px] uppercase font-bold text-[#77736C]">{label}<input type="number" min="0" value={value} onChange={event => setter(event.target.value === "" ? "" : Math.max(0, Number(event.target.value)))} className="mt-1 w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] p-2 rounded-lg text-xs font-bold outline-none" /></label>)}</div></div>
+
               {/* Month Leaves & Imposed Absent Fines Record Section */}
               <div className="p-4 bg-[#FAFAF7] rounded-xl border border-[#E8E4DF] space-y-4">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[#E8E4DF] pb-2">
@@ -1923,14 +1997,14 @@ export function ESSPayroll({ user, triggerToast }: ESSProps) {
                   <div className="flex flex-wrap items-center gap-4">
                     <div className="flex items-center gap-2">
                       <label className="text-[9px] uppercase font-bold text-[#9C9890] tracking-wider whitespace-nowrap">
-                        Mark Paid Leaves:
+                        Paid Leave (Max 1/Month):
                       </label>
                       <input
                         type="number"
                         min="0"
-                        max={daysInSelectedMonth}
+                        max={1}
                         value={paidLeavesInput}
-                        onChange={(e) => setPaidLeavesInput(e.target.value === "" ? "" : Math.max(0, Number(e.target.value)))}
+                        onChange={(e) => setPaidLeavesInput(e.target.value === "" ? "" : Math.min(1, Math.max(0, Number(e.target.value))))}
                         className="w-20 bg-[#FCFBF9] border border-[#E8E4DF] focus:border-[#C9A84C] px-2 py-1 rounded text-xs font-bold text-[#1C1C1A] outline-none shadow-inner [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                         placeholder="0"
                       />
@@ -2052,9 +2126,10 @@ export function ESSPayroll({ user, triggerToast }: ESSProps) {
                     Attendance & Present Days Breakdown:
                   </div>
                   <div className="text-[#1C1C1A] font-bold">
-                    {dailyWorkSummary.registeredWorkDays} Days Present (SOD/EOD) + {sundaysInSelectedMonth} Sundays + {dailyWorkSummary.numPaidLeaves} Paid Leaves
+                    {dailyWorkSummary.registeredWorkDays} Present / {dailyWorkSummary.expectedWorkingDays} Working Days (SOD + EOD mandatory)
                   </div>
                 </div>
+                <div className="flex justify-between border-b border-[#E8E4DF]/50 pb-2 text-[11px] font-medium text-amber-700"><div>Auto-detected Absence (excluding Sundays and future dates):</div><div className="font-bold">{dailyWorkSummary.absentDays} Days — {dailyWorkSummary.numPaidLeaves} Paid + {dailyWorkSummary.unpaidLeaveDays} Unpaid</div></div>
                 <div className="flex justify-between border-b border-[#E8E4DF]/50 pb-2 text-[11px] font-medium">
                   <div className="text-[#5D5B57]">
                     Calculated Total Payable Days:
@@ -2105,6 +2180,7 @@ export function ESSPayroll({ user, triggerToast }: ESSProps) {
                   <div>Calculated Net Payout</div>
                   <div className="text-[#6B8F71] text-sm">₹{calculatedNetSalary.toLocaleString()}</div>
                 </div>
+                <div className="grid grid-cols-2 gap-2 text-[10px]"><div className="bg-emerald-50 text-emerald-700 rounded-lg p-2">Additional earnings: +₹{(additionalEarnings + calculatedOtAmount).toLocaleString()}</div><div className="bg-rose-50 text-rose-700 rounded-lg p-2">Statutory deductions: -₹{statutoryDeductions.toLocaleString()}</div></div>
               </div>
 
               <button
@@ -2136,7 +2212,7 @@ export function ESSPayroll({ user, triggerToast }: ESSProps) {
 
               <div className="p-3 bg-[#FAFAF7] rounded-lg border border-[#E8E4DF]">
                 <span className="font-semibold text-[#1C1C1A] block mb-1">🌴 Paid Leave Benefit</span>
-                Marking a leave as Paid Leave waives the daily absent fine and retains full salary.
+                Maximum 1 approved leave per employee per month is paid. Additional leave days are treated as unpaid absence and deducted from salary.
               </div>
 
               <div className="p-3 bg-[#FAFAF7] rounded-lg border border-[#E8E4DF]">
@@ -2151,9 +2227,7 @@ export function ESSPayroll({ user, triggerToast }: ESSProps) {
       {/* Payslip History Section */}
       <div className="grid grid-cols-1 gap-6">
         <div className="bg-[#FCFBF9] border border-[#E8E4DF] rounded-xl p-6 shadow-[0_2px_20px_rgba(0,0,0,0.02)]">
-          <h2 className="text-[10px] font-bold uppercase text-[#C9A84C] tracking-widest mb-6">
-            {isAdmin ? "Processed Payslip Registry" : "My Personal Salary structure & Simulator"}
-          </h2>
+          <div className="flex items-center justify-between mb-6"><h2 className="text-[10px] font-bold uppercase text-[#C9A84C] tracking-widest">{isAdmin ? "Processed Payslip Registry" : "My Payslips & Salary"}</h2>{isAdmin && <button type="button" onClick={exportPayrollRegister} className="border border-emerald-200 bg-emerald-50 text-emerald-700 rounded-lg px-3 py-2 text-[9px] uppercase tracking-wider font-black flex items-center gap-1"><Download className="w-3.5 h-3.5" /> Export Register</button>}</div>
 
           {!isAdmin && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
@@ -2291,7 +2365,9 @@ export function ESSPayroll({ user, triggerToast }: ESSProps) {
                         </span>
                       </td>
                       {isAdmin && (
-                        <td className="py-4 pl-2 text-right">
+                        <td className="py-4 pl-2 text-right"><div className="flex justify-end gap-2">
+                          {slip.status !== "Paid" && slip.status !== "Locked" && <button onClick={() => handlePayrollStatus(slip.id, "Paid")} disabled={loading} className="border border-emerald-500 text-emerald-600 hover:bg-emerald-500 hover:text-white px-3 py-1.5 rounded-lg text-[9px] uppercase tracking-wider font-bold transition-all">Mark Paid</button>}
+                          {slip.status === "Paid" && <button onClick={() => handlePayrollStatus(slip.id, "Locked")} disabled={loading} className="border border-slate-400 text-slate-600 hover:bg-slate-700 hover:text-white px-3 py-1.5 rounded-lg text-[9px] uppercase tracking-wider font-bold transition-all">Lock</button>}
                           <button
                             onClick={() => handleDeletePayslip(slip.id)}
                             disabled={loading}
@@ -2300,7 +2376,7 @@ export function ESSPayroll({ user, triggerToast }: ESSProps) {
                             <Trash2 className="w-3 h-3" />
                             Delete
                           </button>
-                        </td>
+                        </div></td>
                       )}
                     </tr>
                   ))
