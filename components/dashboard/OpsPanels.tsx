@@ -3342,10 +3342,14 @@ export function PerformanceCompliance({
             totalDuration = `${val.toFixed(2)} Hrs`;
           }
         } else if (item.sod?.createdAt && item.eod?.createdAt) {
-          const sodMs = new Date(item.sod.createdAt).getTime();
-          const eodMs = new Date(item.eod.createdAt).getTime();
-          if (eodMs > sodMs) {
-            const diffHours = (eodMs - sodMs) / (1000 * 60 * 60);
+          const sodMs = new Date(item.sod.createdAt || item.sod.date).getTime();
+          const eodMs = new Date(item.eod.createdAt || item.eod.date).getTime();
+          let diffMs = eodMs - sodMs;
+          if (diffMs < 0) {
+            diffMs += 24 * 60 * 60 * 1000;
+          }
+          if (diffMs > 0) {
+            const diffHours = diffMs / (1000 * 60 * 60);
             numericHours = diffHours;
             totalDuration = `${diffHours.toFixed(2)} Hrs`;
           }
@@ -3586,8 +3590,14 @@ export function PerformanceCompliance({
               const eodDateStr = dateKey(e.date || e.createdAt);
               const matchingSod = employeeSods.find((s: any) => dateKey(s.date || s.createdAt) === eodDateStr);
               if (matchingSod?.createdAt) {
-                const diff = new Date(e.createdAt).getTime() - new Date(matchingSod.createdAt).getTime();
-                if (diff > 0 && diff < 16 * 3600000) workMs += diff;
+                let diff = new Date(e.createdAt || e.date).getTime() - new Date(matchingSod.createdAt || matchingSod.date).getTime();
+                if (diff < 0) {
+                  diff += 24 * 3600000;
+                }
+                const empVert = String(profile?.vertical || user?.vertical || "").toLowerCase();
+                const empDept = String(profile?.department || user?.department || "").toLowerCase();
+                const isSecurity = empVert.includes("security") || empDept.includes("security");
+                if (diff > 0 && (isSecurity || diff < 24 * 3600000)) workMs += diff;
               }
             }
           });
@@ -4011,10 +4021,14 @@ export function PerformanceCompliance({
               durationStr = `${val.toFixed(2)} Hrs`;
             }
           } else if (item.sod?.createdAt && item.eod?.createdAt) {
-            const sodMs = new Date(item.sod.createdAt).getTime();
-            const eodMs = new Date(item.eod.createdAt).getTime();
-            if (eodMs > sodMs) {
-              const diffHours = (eodMs - sodMs) / (1000 * 60 * 60);
+            const sodMs = new Date(item.sod.createdAt || item.sod.date).getTime();
+            const eodMs = new Date(item.eod.createdAt || item.eod.date).getTime();
+            let diffMs = eodMs - sodMs;
+            if (diffMs < 0) {
+              diffMs += 24 * 60 * 60 * 1000;
+            }
+            if (diffMs > 0) {
+              const diffHours = diffMs / (1000 * 60 * 60);
               numericHours = diffHours;
               durationStr = `${diffHours.toFixed(2)} Hrs`;
             }
@@ -4353,9 +4367,12 @@ export function PerformanceCompliance({
           if (item.eod) empStats.eodCount++;
 
           if (item.sod && item.eod) {
-            const sodTime = new Date(item.sod.createdAt).getTime();
-            const eodTime = new Date(item.eod.createdAt).getTime();
-            const diff = eodTime - sodTime;
+            const sodTime = new Date(item.sod.createdAt || item.sod.date).getTime();
+            const eodTime = new Date(item.eod.createdAt || item.eod.date).getTime();
+            let diff = eodTime - sodTime;
+            if (diff < 0) {
+              diff += 24 * 3600000;
+            }
             if (diff > 0) {
               empStats.totalWorkMs += diff;
             }
@@ -6706,9 +6723,13 @@ export function PerformanceCompliance({
                     {filteredList.map((item: any) => {
                       const getDuration = (sod: any, eod: any) => {
                         if (!sod || !eod) return "-";
-                        const sodTime = new Date(sod.createdAt);
-                        const eodTime = new Date(eod.createdAt);
-                        const diffMs = eodTime.getTime() - sodTime.getTime();
+                        const sodTime = new Date(sod.createdAt || sod.date);
+                        const eodTime = new Date(eod.createdAt || eod.date);
+                        let diffMs = eodTime.getTime() - sodTime.getTime();
+                        if (diffMs < 0) {
+                          // Handle cross-midnight / overnight shift on same nominal date
+                          diffMs += 24 * 60 * 60 * 1000;
+                        }
                         if (diffMs < 0) return "-";
                         const diffHrs = Math.floor(diffMs / (1000 * 60 * 60));
                         const diffMins = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));

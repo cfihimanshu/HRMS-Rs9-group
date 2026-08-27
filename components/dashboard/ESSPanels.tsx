@@ -1601,13 +1601,15 @@ export function ESSPayroll({ user, triggerToast, mode = "self" }: ESSProps & { m
       const day = summary[dateStr];
       let dayMinutes = 0;
       if (day.sod && day.eod) {
-        const sodTime = new Date(day.sod.createdAt);
-        const eodTime = new Date(day.eod.createdAt);
+        const sodTime = new Date(day.sod.createdAt || day.sod.date);
+        const eodTime = new Date(day.eod.createdAt || day.eod.date);
         let diffMs = eodTime.getTime() - sodTime.getTime();
+        if (diffMs < 0) {
+          diffMs += 24 * 60 * 60 * 1000;
+        }
         if (diffMs < 0) diffMs = 0;
 
         let diffMins = Math.round(diffMs / 60000);
-        if (diffMins > 1440) diffMins = 1440;
         dayMinutes = diffMins;
       }
 

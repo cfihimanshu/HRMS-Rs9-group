@@ -29,6 +29,7 @@ export async function POST(req: Request) {
       transactionId,
       proofUrl,
       remarks,
+      installmentsJson,
     } = body;
 
     if (!securityId) {
@@ -36,7 +37,7 @@ export async function POST(req: Request) {
     }
 
     const numericAmount = Number(amount);
-    if (!numericAmount || numericAmount <= 0) {
+    if (isNaN(numericAmount) || numericAmount < 0) {
       return NextResponse.json({ success: false, error: "Valid Payment Amount is required" }, { status: 400 });
     }
 
@@ -62,13 +63,18 @@ export async function POST(req: Request) {
     });
 
     // 2. Update legal_securities Record
-    const existingReceived = Number(record.receivedAmount || 0);
-    const newTotalReceived = existingReceived + numericAmount;
+    let newTotalReceived = 0;
+    if (installmentsJson !== undefined && installmentsJson !== null) {
+      newTotalReceived = numericAmount;
+    } else {
+      const existingReceived = Number(record.receivedAmount || 0);
+      newTotalReceived = existingReceived + numericAmount;
+    }
     const billAmt = Number(record.billAmount || 0);
 
     let updatedStatus = "Partially Paid";
     if (billAmt > 0 && newTotalReceived >= billAmt) {
-      updatedStatus = "Paid";
+      updatedStatus = "Payment Done";
     } else if (newTotalReceived <= 0) {
       updatedStatus = "Due";
     }
@@ -78,6 +84,7 @@ export async function POST(req: Request) {
       receivedDate: paymentDate || new Date().toISOString().split("T")[0],
       paymentStatus: updatedStatus,
       paymentMethod: paymentMode || record.paymentMethod,
+      ...(installmentsJson !== undefined ? { installmentsJson } : {}),
       ...(proofUrl ? { billInvoiceUrl: proofUrl } : {}),
       ...(remarks ? { remarks: (record.remarks ? `${record.remarks}\n[Payment Logged: ₹${numericAmount} - ${transactionId || ""}]` : `Payment Logged: ₹${numericAmount} - ${transactionId || ""}`) } : {}),
     });

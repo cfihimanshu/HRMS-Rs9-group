@@ -137,6 +137,10 @@ LegalSecurity.init(
       type: DataTypes.STRING,
       allowNull: true,
     },
+    installmentsJson: {
+      type: DataTypes.TEXT("long"),
+      allowNull: true,
+    },
     receivedAmount: {
       type: DataTypes.DECIMAL(12, 2),
       allowNull: true,

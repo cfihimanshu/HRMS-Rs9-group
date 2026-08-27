@@ -5,7 +5,7 @@ import {
   Plus, Search, RefreshCw, ShieldCheck, DollarSign, CheckCircle2,
   Clock, Edit, Trash2, Download, Filter, SlidersHorizontal, Tag, Calendar,
   Building2, MapPin, Banknote, Receipt, FileText, Upload, PhoneCall, Zap, UserPlus,
-  Camera, User, Image as ImageIcon, ChevronDown, ChevronRight
+  Camera, User, Image as ImageIcon, ChevronDown, ChevronRight, X, Eye, Layers, ListOrdered, Split
 } from "lucide-react";
 
 const STANDARD_SHIFTS = [
@@ -329,6 +329,21 @@ export default function SecurityMasterView({
   const [filterCompany, setFilterCompany] = useState("All");
   const [filterStatus, setFilterStatus] = useState("All");
 
+  // Total Entries Bank-Wise Breakdown Modal State
+  const [showTotalEntriesModal, setShowTotalEntriesModal] = useState(false);
+  const [expandedBanksMap, setExpandedBanksMap] = useState<Record<string, boolean>>({});
+  const [entriesModalSearch, setEntriesModalSearch] = useState("");
+
+  // Total Received Bank-Wise Breakdown Modal State
+  const [showReceivedSummaryModal, setShowReceivedSummaryModal] = useState(false);
+  const [expandedReceivedBanksMap, setExpandedReceivedBanksMap] = useState<Record<string, boolean>>({});
+  const [receivedModalSearch, setReceivedModalSearch] = useState("");
+
+  // Pending Due Cases Bank-Wise Breakdown Modal State
+  const [showPendingDueModal, setShowPendingDueModal] = useState(false);
+  const [expandedPendingBanksMap, setExpandedPendingBanksMap] = useState<Record<string, boolean>>({});
+  const [pendingDueModalSearch, setPendingDueModalSearch] = useState("");
+
   // Dynamic Companies List State
   const [companiesList, setCompaniesList] = useState<string[]>([
     "Force009",
@@ -354,11 +369,23 @@ export default function SecurityMasterView({
   // For additional guard cards - track which card is adding new
   const [addGuardForCard, setAddGuardForCard] = useState<"primary" | number | null>(null);
 
+  interface PaymentInstallment {
+    id: string;
+    installmentNo: number;
+    amount: string;
+    date: string;
+    status: "Received" | "Pending";
+    paymentMethod: string;
+    transactionId: string;
+    payerName: string;
+  }
+
   // Receive Payment Action Modal State
   const [showReceiveModal, setShowReceiveModal] = useState<{ show: boolean; item: any | null }>({
     show: false,
     item: null,
   });
+  const [receiveInstallments, setReceiveInstallments] = useState<PaymentInstallment[]>([]);
   const [receiveForm, setReceiveForm] = useState({
     receivedAmount: "",
     receivedDate: new Date().toISOString().split("T")[0],
@@ -400,7 +427,19 @@ export default function SecurityMasterView({
     customSiteType: "",
     paymentDays: "30 Days",
     paymentStatus: "Due",
+    // Received Payment Fields
+    receivedAmount: "",
+    receivedDate: new Date().toISOString().split("T")[0],
     paymentMethod: "Bank Transfer (NEFT/RTGS)",
+    customPaymentMethod: "",
+    transactionId: "",
+    payerName: "",
+    // Installment Plan
+    isInstallmentPlan: false,
+    installments: [] as PaymentInstallment[],
+    // Source Fields
+    sourceType: "BDA",
+    sourceName: "",
     source: "BDA",
     remarks: "",
   });
@@ -428,7 +467,16 @@ export default function SecurityMasterView({
       customSiteType: "",
       paymentDays: "30 Days",
       paymentStatus: "Due",
+      receivedAmount: "",
+      receivedDate: new Date().toISOString().split("T")[0],
       paymentMethod: "Bank Transfer (NEFT/RTGS)",
+      customPaymentMethod: "",
+      transactionId: "",
+      payerName: "",
+      isInstallmentPlan: false,
+      installments: [],
+      sourceType: "BDA",
+      sourceName: "",
       source: "BDA",
       remarks: "",
     });
@@ -436,6 +484,99 @@ export default function SecurityMasterView({
     setTimelineUnit("Days");
     setBillingFile(null);
     setShowAddBillingModal(true);
+  };
+
+  const handleAddInstallment = () => {
+    setBillingForm((prev) => {
+      const nextNo = prev.installments.length + 1;
+      const bAmt = Number(prev.billAmount) || 0;
+      const existingSum = prev.installments.reduce((sum, i) => sum + (Number(i.amount) || 0), 0);
+      const rem = Math.max(0, bAmt - existingSum);
+      const newInst: PaymentInstallment = {
+        id: `inst_${Date.now()}_${Math.random()}`,
+        installmentNo: nextNo,
+        amount: rem > 0 ? String(rem) : "",
+        date: new Date().toISOString().split("T")[0],
+        status: "Pending",
+        paymentMethod: prev.paymentMethod || "Bank Transfer (NEFT/RTGS)",
+        transactionId: "",
+        payerName: prev.payerName || "",
+      };
+      const updatedList = [...prev.installments, newInst];
+      return {
+        ...prev,
+        isInstallmentPlan: true,
+        installments: updatedList,
+      };
+    });
+  };
+
+  const handleRemoveInstallment = (id: string) => {
+    setBillingForm((prev) => {
+      const filtered = prev.installments.filter((i) => i.id !== id);
+      const renumbered = filtered.map((item, idx) => ({ ...item, installmentNo: idx + 1 }));
+      const recSum = renumbered.filter((i) => i.status === "Received").reduce((acc, curr) => acc + (Number(curr.amount) || 0), 0);
+      return {
+        ...prev,
+        installments: renumbered,
+        isInstallmentPlan: renumbered.length > 0,
+        receivedAmount: renumbered.length > 0 ? String(recSum) : prev.receivedAmount,
+      };
+    });
+  };
+
+  const handleUpdateInstallment = (id: string, field: keyof PaymentInstallment, value: any) => {
+    setBillingForm((prev) => {
+      const updated = prev.installments.map((item) => {
+        if (item.id === id) {
+          return { ...item, [field]: value };
+        }
+        return item;
+      });
+      const recSum = updated.filter((i) => i.status === "Received").reduce((acc, curr) => acc + (Number(curr.amount) || 0), 0);
+      return {
+        ...prev,
+        installments: updated,
+        receivedAmount: String(recSum),
+      };
+    });
+  };
+
+  const handleAutoSplitInstallments = (count: number) => {
+    const total = Number(billingForm.billAmount) || 0;
+    if (total <= 0) {
+      triggerToast("Please enter a valid Bill Amount (₹) first to split into installments");
+      return;
+    }
+    const perPart = Math.floor(total / count);
+    const remainder = total - perPart * count;
+    const today = new Date();
+
+    const newInsts: PaymentInstallment[] = [];
+    for (let i = 0; i < count; i++) {
+      const instDate = new Date(today);
+      instDate.setMonth(today.getMonth() + i);
+      const amt = i === 0 ? perPart + remainder : perPart;
+      newInsts.push({
+        id: `inst_${Date.now()}_${i}`,
+        installmentNo: i + 1,
+        amount: String(amt),
+        date: instDate.toISOString().split("T")[0],
+        status: i === 0 && billingForm.paymentStatus === "Partially Paid" ? "Received" : "Pending",
+        paymentMethod: billingForm.paymentMethod || "Bank Transfer (NEFT/RTGS)",
+        transactionId: "",
+        payerName: billingForm.payerName || "",
+      });
+    }
+
+    const recSum = newInsts.filter((i) => i.status === "Received").reduce((acc, curr) => acc + (Number(curr.amount) || 0), 0);
+    setBillingForm((prev) => ({
+      ...prev,
+      isInstallmentPlan: true,
+      installments: newInsts,
+      receivedAmount: String(recSum),
+    }));
+    triggerToast(`Bill Amount auto-split into ${count} equal installments!`);
   };
 
   const handleBillingSubmit = async (e: React.FormEvent) => {
@@ -461,6 +602,55 @@ export default function SecurityMasterView({
         ? billingForm.customSiteType.trim()
         : billingForm.siteType;
 
+      let finalSource = billingForm.source;
+      if (billingForm.sourceType && billingForm.sourceName.trim()) {
+        finalSource = `${billingForm.sourceType}: ${billingForm.sourceName.trim()}`;
+      } else if (billingForm.sourceType) {
+        finalSource = billingForm.sourceType;
+      }
+
+      let finalPaymentMethod = billingForm.paymentMethod;
+      if (billingForm.paymentMethod === "Other" && billingForm.customPaymentMethod.trim()) {
+        finalPaymentMethod = billingForm.customPaymentMethod.trim();
+      }
+      const extraPayDetails: string[] = [];
+      if (billingForm.transactionId.trim()) extraPayDetails.push(`Txn: ${billingForm.transactionId.trim()}`);
+      if (billingForm.payerName.trim()) extraPayDetails.push(`Payer: ${billingForm.payerName.trim()}`);
+      if (extraPayDetails.length > 0) {
+        finalPaymentMethod = `${finalPaymentMethod} (${extraPayDetails.join(" | ")})`;
+      }
+
+      let finalReceivedAmount = 0;
+      let finalReceivedDate: string | null = null;
+      let finalPaymentStatus = billingForm.paymentStatus;
+      let finalInstallmentsJson: string | null = null;
+
+      if (billingForm.isInstallmentPlan && billingForm.installments.length > 0) {
+        finalInstallmentsJson = JSON.stringify(billingForm.installments);
+        const receivedInsts = billingForm.installments.filter((i) => i.status === "Received");
+        finalReceivedAmount = receivedInsts.reduce((acc, curr) => acc + (Number(curr.amount) || 0), 0);
+        const billAmt = Number(billingForm.billAmount) || 0;
+        if (finalReceivedAmount >= billAmt && billAmt > 0) {
+          finalPaymentStatus = "Payment Done";
+        } else if (finalReceivedAmount > 0) {
+          finalPaymentStatus = "Partially Paid";
+        } else {
+          finalPaymentStatus = "Due";
+        }
+        if (receivedInsts.length > 0) {
+          const sorted = receivedInsts.map((i) => i.date).filter(Boolean).sort();
+          finalReceivedDate = sorted[sorted.length - 1] || new Date().toISOString().split("T")[0];
+        }
+      } else {
+        if (billingForm.paymentStatus === "Payment Done") {
+          finalReceivedAmount = Number(billingForm.receivedAmount) || Number(billingForm.billAmount) || 0;
+          finalReceivedDate = billingForm.receivedDate || new Date().toISOString().split("T")[0];
+        } else if (billingForm.paymentStatus === "Partially Paid") {
+          finalReceivedAmount = Number(billingForm.receivedAmount) || 0;
+          finalReceivedDate = billingForm.receivedDate || new Date().toISOString().split("T")[0];
+        }
+      }
+
       const payload = {
         company: billingForm.company,
         billNo: billingForm.billNo,
@@ -479,9 +669,12 @@ export default function SecurityMasterView({
         durationDays: null,
         paymentDays: null,
         billInvoiceUrl,
-        paymentStatus: billingForm.paymentStatus,
-        paymentMethod: billingForm.paymentStatus !== "Due" ? billingForm.paymentMethod : null,
-        source: billingForm.source,
+        paymentStatus: finalPaymentStatus,
+        paymentMethod: finalPaymentStatus !== "Due" ? finalPaymentMethod : null,
+        receivedAmount: finalReceivedAmount,
+        receivedDate: finalReceivedDate,
+        installmentsJson: finalInstallmentsJson,
+        source: finalSource,
         remarks: billingForm.remarks,
       };
 
@@ -1344,11 +1537,91 @@ export default function SecurityMasterView({
     }
   };
 
+  // Receive Payment Installment Helpers
+  const handleAddReceiveInstallment = () => {
+    if (!showReceiveModal.item) return;
+    const bAmt = Number(showReceiveModal.item.billAmount) || 0;
+    const existingSum = receiveInstallments.reduce((sum, i) => sum + (Number(i.amount) || 0), 0);
+    const rem = Math.max(0, bAmt - existingSum);
+    const nextNo = receiveInstallments.length + 1;
+    const newInst: PaymentInstallment = {
+      id: `inst_${Date.now()}_${Math.random()}`,
+      installmentNo: nextNo,
+      amount: rem > 0 ? String(rem) : "",
+      date: new Date().toISOString().split("T")[0],
+      status: "Pending",
+      paymentMethod: receiveForm.paymentMethod || "Bank Transfer (NEFT/RTGS)",
+      transactionId: "",
+      payerName: "",
+    };
+    setReceiveInstallments((prev) => [...prev, newInst]);
+  };
+
+  const handleRemoveReceiveInstallment = (id: string) => {
+    setReceiveInstallments((prev) => {
+      const filtered = prev.filter((i) => i.id !== id);
+      return filtered.map((item, idx) => ({ ...item, installmentNo: idx + 1 }));
+    });
+  };
+
+  const handleUpdateReceiveInstallment = (id: string, field: keyof PaymentInstallment, value: any) => {
+    setReceiveInstallments((prev) =>
+      prev.map((item) => {
+        if (item.id === id) {
+          return { ...item, [field]: value };
+        }
+        return item;
+      })
+    );
+  };
+
+  const handleAutoSplitReceiveInstallments = (count: number) => {
+    if (!showReceiveModal.item) return;
+    const total = Number(showReceiveModal.item.billAmount) || 0;
+    if (total <= 0) {
+      triggerToast("Please enter a valid Bill Amount first to split into installments");
+      return;
+    }
+    const perPart = Math.floor(total / count);
+    const remainder = total - perPart * count;
+    const today = new Date();
+
+    const newInsts: PaymentInstallment[] = [];
+    for (let i = 0; i < count; i++) {
+      const instDate = new Date(today);
+      instDate.setMonth(today.getMonth() + i);
+      const amt = i === 0 ? perPart + remainder : perPart;
+      newInsts.push({
+        id: `inst_${Date.now()}_${i}`,
+        installmentNo: i + 1,
+        amount: String(amt),
+        date: instDate.toISOString().split("T")[0],
+        status: "Pending",
+        paymentMethod: receiveForm.paymentMethod || "Bank Transfer (NEFT/RTGS)",
+        transactionId: "",
+        payerName: "",
+      });
+    }
+    setReceiveInstallments(newInsts);
+    triggerToast(`Bill Amount auto-split into ${count} equal installments!`);
+  };
+
   // Receive Payment Action Modal Handler
   const handleOpenReceiveModal = (item: any) => {
     setShowReceiveModal({ show: true, item });
+    let existingInsts: PaymentInstallment[] = [];
+    if (item.installmentsJson) {
+      try {
+        const parsed = JSON.parse(item.installmentsJson);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          existingInsts = parsed;
+        }
+      } catch (e) {}
+    }
+    setReceiveInstallments(existingInsts);
+    const pendingBal = Math.max(0, Number(item.billAmount || 0) - Number(item.receivedAmount || 0));
     setReceiveForm({
-      receivedAmount: "",
+      receivedAmount: pendingBal > 0 ? String(pendingBal) : (item.receivedAmount ? String(item.receivedAmount) : ""),
       receivedDate: new Date().toISOString().split("T")[0],
       paymentMethod: item.paymentMethod || "Bank Transfer (NEFT/RTGS)",
       customPaymentMethod: "",
@@ -1356,7 +1629,7 @@ export default function SecurityMasterView({
       bankName: "",
       chequeDate: "",
       payerName: "",
-      remarks: "",
+      remarks: item.remarks || "",
     });
     setReceiveProofFile(null);
   };
@@ -1365,10 +1638,19 @@ export default function SecurityMasterView({
     e.preventDefault();
     if (!showReceiveModal.item?.id) return;
 
-    const amt = Number(receiveForm.receivedAmount);
-    if (!amt || amt <= 0) {
-      triggerToast("Please enter a valid received amount");
-      return;
+    let finalAmount = 0;
+    let finalInstallmentsJson: string | null = null;
+
+    if (receiveInstallments.length > 0) {
+      finalInstallmentsJson = JSON.stringify(receiveInstallments);
+      const receivedInsts = receiveInstallments.filter((i) => i.status === "Received");
+      finalAmount = receivedInsts.reduce((acc, curr) => acc + (Number(curr.amount) || 0), 0);
+    } else {
+      finalAmount = Number(receiveForm.receivedAmount);
+      if (!finalAmount || finalAmount <= 0) {
+        triggerToast("Please enter a valid received amount");
+        return;
+      }
     }
 
     setSubmittingReceive(true);
@@ -1411,12 +1693,13 @@ export default function SecurityMasterView({
 
       const payload = {
         securityId: showReceiveModal.item.id,
-        amount: amt,
+        amount: finalAmount,
         paymentDate: receiveForm.receivedDate,
         paymentMode: effectivePaymentMode,
         transactionId: formattedTransactionId,
         proofUrl: proofUrl,
         remarks: receiveForm.remarks,
+        installmentsJson: finalInstallmentsJson,
       };
 
       const res = await fetch("/api/legal-recovery/security/payment", {
@@ -1427,7 +1710,7 @@ export default function SecurityMasterView({
 
       const data = await res.json();
       if (data.success) {
-        triggerToast(`Payment of ₹${amt.toLocaleString("en-IN")} logged successfully & saved to DB!`);
+        triggerToast(`Payment of ₹${finalAmount.toLocaleString("en-IN")} logged successfully & saved to DB!`);
         setShowReceiveModal({ show: false, item: null });
         fetchEntries();
       } else {
@@ -1582,7 +1865,19 @@ export default function SecurityMasterView({
         (item.guardName || "").toLowerCase().includes(searchTerm.toLowerCase());
 
       const matchesCompany = filterCompany === "All" || item.company === filterCompany;
-      const matchesStatus = filterStatus === "All" || item.paymentStatus === filterStatus;
+
+      let matchesStatus = true;
+      if (filterStatus === "All" || filterStatus === "ALL") {
+        matchesStatus = true;
+      } else if (filterStatus === "Received" || filterStatus === "Total Received" || filterStatus === "Payment Done") {
+        matchesStatus = Number(item.receivedAmount || 0) > 0 || item.paymentStatus === "Payment Done" || item.paymentStatus === "Partially Paid" || item.paymentStatus === "Paid";
+      } else if (filterStatus === "Due" || filterStatus === "Pending") {
+        const bAmt = Number(item.billAmount || 0);
+        const rAmt = Number(item.receivedAmount || 0);
+        matchesStatus = (bAmt - rAmt > 0) || item.paymentStatus === "Due" || item.paymentStatus === "Partially Paid";
+      } else {
+        matchesStatus = item.paymentStatus === filterStatus;
+      }
 
       if (!matchesSearch || !matchesCompany || !matchesStatus) return false;
 
@@ -1633,7 +1928,185 @@ export default function SecurityMasterView({
   // Metrics
   const totalBilled = useMemo(() => entries.reduce((acc, curr) => acc + Number(curr.billAmount || 0), 0), [entries]);
   const totalReceived = useMemo(() => entries.reduce((acc, curr) => acc + Number(curr.receivedAmount || 0), 0), [entries]);
-  const totalDueCount = useMemo(() => entries.filter((item) => item.paymentStatus === "Due").length, [entries]);
+  const totalDueCount = useMemo(() => entries.filter((item) => {
+    const bAmt = Number(item.billAmount || 0);
+    const rAmt = Number(item.receivedAmount || 0);
+    return (bAmt - rAmt > 0) || item.paymentStatus === "Due" || item.paymentStatus === "Partially Paid";
+  }).length, [entries]);
+
+  // Bank-Wise Grouping for Total Entries Modal
+  const bankWiseEntriesMap = useMemo(() => {
+    const map = new Map<string, {
+      nbfcName: string;
+      works: any[];
+      totalBillAmount: number;
+      totalReceivedAmount: number;
+      totalPendingAmount: number;
+      dueCount: number;
+      paidCount: number;
+      partialCount: number;
+    }>();
+
+    entries.forEach((item) => {
+      const bankName = (item.nbfcName || item.company || "General / Unassigned").trim();
+      if (!map.has(bankName)) {
+        map.set(bankName, {
+          nbfcName: bankName,
+          works: [],
+          totalBillAmount: 0,
+          totalReceivedAmount: 0,
+          totalPendingAmount: 0,
+          dueCount: 0,
+          paidCount: 0,
+          partialCount: 0,
+        });
+      }
+      const group = map.get(bankName)!;
+      group.works.push(item);
+      const bAmt = Number(item.billAmount || 0);
+      const rAmt = Number(item.receivedAmount || 0);
+      const pAmt = Math.max(0, bAmt - rAmt);
+      group.totalBillAmount += bAmt;
+      group.totalReceivedAmount += rAmt;
+      group.totalPendingAmount += pAmt;
+      if (item.paymentStatus === "Payment Done" || item.paymentStatus === "Paid") group.paidCount++;
+      else if (item.paymentStatus === "Partially Paid") group.partialCount++;
+      else group.dueCount++;
+    });
+
+    return Array.from(map.values()).sort((a, b) => b.totalBillAmount - a.totalBillAmount);
+  }, [entries]);
+
+  const filteredModalBanks = useMemo(() => {
+    if (!entriesModalSearch.trim()) return bankWiseEntriesMap;
+    const term = entriesModalSearch.toLowerCase().trim();
+    return bankWiseEntriesMap.filter((group) => {
+      const matchesBank = group.nbfcName.toLowerCase().includes(term);
+      const matchesWork = group.works.some((w: any) =>
+        (w.branchName || "").toLowerCase().includes(term) ||
+        (w.location || "").toLowerCase().includes(term) ||
+        (w.billNo || "").toLowerCase().includes(term) ||
+        (w.company || "").toLowerCase().includes(term) ||
+        (w.siteType || "").toLowerCase().includes(term)
+      );
+      return matchesBank || matchesWork;
+    });
+  }, [bankWiseEntriesMap, entriesModalSearch]);
+
+  // Bank-Wise Grouping for Total Received Modal
+  const bankWiseReceivedMap = useMemo(() => {
+    const map = new Map<string, {
+      nbfcName: string;
+      works: any[];
+      totalBillAmount: number;
+      totalReceivedAmount: number;
+      totalPendingAmount: number;
+      paidCount: number;
+      partialCount: number;
+    }>();
+
+    entries.forEach((item) => {
+      const rAmt = Number(item.receivedAmount || 0);
+      const bAmt = Number(item.billAmount || 0);
+      const pAmt = Math.max(0, bAmt - rAmt);
+      if (rAmt > 0 || item.paymentStatus === "Payment Done" || item.paymentStatus === "Partially Paid" || item.paymentStatus === "Paid") {
+        const bankName = (item.nbfcName || item.company || "General / Unassigned").trim();
+        if (!map.has(bankName)) {
+          map.set(bankName, {
+            nbfcName: bankName,
+            works: [],
+            totalBillAmount: 0,
+            totalReceivedAmount: 0,
+            totalPendingAmount: 0,
+            paidCount: 0,
+            partialCount: 0,
+          });
+        }
+        const group = map.get(bankName)!;
+        group.works.push(item);
+        group.totalBillAmount += bAmt;
+        group.totalReceivedAmount += rAmt;
+        group.totalPendingAmount += pAmt;
+        if (item.paymentStatus === "Payment Done" || item.paymentStatus === "Paid") group.paidCount++;
+        else group.partialCount++;
+      }
+    });
+
+    return Array.from(map.values()).sort((a, b) => b.totalReceivedAmount - a.totalReceivedAmount);
+  }, [entries]);
+
+  const filteredReceivedModalBanks = useMemo(() => {
+    if (!receivedModalSearch.trim()) return bankWiseReceivedMap;
+    const term = receivedModalSearch.toLowerCase().trim();
+    return bankWiseReceivedMap.filter((group) => {
+      const matchesBank = group.nbfcName.toLowerCase().includes(term);
+      const matchesWork = group.works.some((w: any) =>
+        (w.branchName || "").toLowerCase().includes(term) ||
+        (w.location || "").toLowerCase().includes(term) ||
+        (w.billNo || "").toLowerCase().includes(term) ||
+        (w.company || "").toLowerCase().includes(term) ||
+        (w.paymentMethod || "").toLowerCase().includes(term)
+      );
+      return matchesBank || matchesWork;
+    });
+  }, [bankWiseReceivedMap, receivedModalSearch]);
+
+  // Bank-Wise Grouping for Pending Due Cases Modal
+  const bankWisePendingDueMap = useMemo(() => {
+    const map = new Map<string, {
+      nbfcName: string;
+      works: any[];
+      totalBillAmount: number;
+      totalReceivedAmount: number;
+      totalPendingAmount: number;
+      dueCount: number;
+      partialCount: number;
+    }>();
+
+    entries.forEach((item) => {
+      const bAmt = Number(item.billAmount || 0);
+      const rAmt = Number(item.receivedAmount || 0);
+      const pAmt = Math.max(0, bAmt - rAmt);
+      if (pAmt > 0 || item.paymentStatus === "Due" || item.paymentStatus === "Partially Paid") {
+        const bankName = (item.nbfcName || item.company || "General / Unassigned").trim();
+        if (!map.has(bankName)) {
+          map.set(bankName, {
+            nbfcName: bankName,
+            works: [],
+            totalBillAmount: 0,
+            totalReceivedAmount: 0,
+            totalPendingAmount: 0,
+            dueCount: 0,
+            partialCount: 0,
+          });
+        }
+        const group = map.get(bankName)!;
+        group.works.push(item);
+        group.totalBillAmount += bAmt;
+        group.totalReceivedAmount += rAmt;
+        group.totalPendingAmount += pAmt;
+        if (item.paymentStatus === "Partially Paid") group.partialCount++;
+        else group.dueCount++;
+      }
+    });
+
+    return Array.from(map.values()).sort((a, b) => b.totalPendingAmount - a.totalPendingAmount);
+  }, [entries]);
+
+  const filteredPendingModalBanks = useMemo(() => {
+    if (!pendingDueModalSearch.trim()) return bankWisePendingDueMap;
+    const term = pendingDueModalSearch.toLowerCase().trim();
+    return bankWisePendingDueMap.filter((group) => {
+      const matchesBank = group.nbfcName.toLowerCase().includes(term);
+      const matchesWork = group.works.some((w: any) =>
+        (w.branchName || "").toLowerCase().includes(term) ||
+        (w.location || "").toLowerCase().includes(term) ||
+        (w.billNo || "").toLowerCase().includes(term) ||
+        (w.company || "").toLowerCase().includes(term)
+      );
+      return matchesBank || matchesWork;
+    });
+  }, [bankWisePendingDueMap, pendingDueModalSearch]);
 
   // Dynamic Export CSV Functionality respecting Visible Columns
   const exportToCSV = () => {
@@ -1773,17 +2246,23 @@ export default function SecurityMasterView({
       {/* Summary Metrics */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div
-          onClick={() => setFilterStatus("All")}
-          title="Click to view all entries"
-          className={`bg-white border rounded-xl p-4 shadow-sm flex items-center gap-3 cursor-pointer hover:shadow-md transition-all ${filterStatus === "All" ? "border-indigo-400 ring-2 ring-indigo-100" : "border-slate-200"
-            }`}
+          onClick={() => {
+            setFilterStatus("ALL");
+            setShowTotalEntriesModal(true);
+            setEntriesModalSearch("");
+          }}
+          title="Click to view Bank / NBFC Wise Summary & All Works"
+          className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm flex items-center gap-3 cursor-pointer hover:shadow-md hover:border-indigo-400 ring-1 ring-transparent hover:ring-indigo-100 transition-all group"
         >
-          <div className="w-10 h-10 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold">
+          <div className="w-10 h-10 rounded-lg bg-indigo-50 text-indigo-600 group-hover:bg-indigo-600 group-hover:text-white transition-colors flex items-center justify-center font-bold shrink-0 shadow-2xs">
             <ShieldCheck className="w-5 h-5" />
           </div>
-          <div>
-            <p className="text-[10px] uppercase font-black text-slate-400">Total Entries</p>
-            <p className="text-lg font-black text-slate-900">{entries.length}</p>
+          <div className="min-w-0">
+            <div className="flex items-center gap-1.5">
+              <p className="text-[10px] uppercase font-black text-slate-400 group-hover:text-indigo-600 transition-colors truncate">Total Entries</p>
+              <span className="text-[8px] font-black uppercase tracking-wider text-indigo-700 bg-indigo-50 px-1.5 py-0.5 rounded border border-indigo-150 group-hover:bg-indigo-100 shrink-0">Breakdown</span>
+            </div>
+            <p className="text-lg font-black text-slate-900 leading-tight mt-0.5">{entries.length}</p>
           </div>
         </div>
 
@@ -1798,32 +2277,48 @@ export default function SecurityMasterView({
         </div>
 
         <div
-          onClick={() => setFilterStatus("Payment Done")}
-          title="Click to filter Payment Done entries"
-          className={`bg-white border rounded-xl p-4 shadow-sm flex items-center gap-3 cursor-pointer hover:shadow-md transition-all ${filterStatus === "Payment Done" ? "border-emerald-400 ring-2 ring-emerald-100" : "border-slate-200"
-            }`}
+          onClick={() => {
+            setFilterStatus("Received");
+            setShowReceivedSummaryModal(true);
+            setReceivedModalSearch("");
+          }}
+          title="Click to view Bank / NBFC Wise Received & Pending Summary"
+          className={`bg-white border rounded-xl p-4 shadow-sm flex items-center gap-3 cursor-pointer hover:shadow-md hover:border-emerald-400 ring-1 ring-transparent hover:ring-emerald-100 transition-all group ${
+            filterStatus === "Received" ? "border-emerald-400 ring-2 ring-emerald-100" : "border-slate-200"
+          }`}
         >
-          <div className="w-10 h-10 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold">
+          <div className="w-10 h-10 rounded-lg bg-emerald-50 text-emerald-600 group-hover:bg-emerald-600 group-hover:text-white transition-colors flex items-center justify-center font-bold shrink-0 shadow-2xs">
             <CheckCircle2 className="w-5 h-5" />
           </div>
-          <div>
-            <p className="text-[10px] uppercase font-black text-slate-400">Total Received</p>
-            <p className="text-lg font-black text-emerald-700">₹{totalReceived.toLocaleString("en-IN")}</p>
+          <div className="min-w-0">
+            <div className="flex items-center gap-1.5">
+              <p className="text-[10px] uppercase font-black text-slate-400 group-hover:text-emerald-600 transition-colors truncate">Total Received</p>
+              <span className="text-[8px] font-black uppercase tracking-wider text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-150 group-hover:bg-emerald-100 shrink-0">Breakdown</span>
+            </div>
+            <p className="text-lg font-black text-emerald-700 leading-tight mt-0.5">₹{totalReceived.toLocaleString("en-IN")}</p>
           </div>
         </div>
 
         <div
-          onClick={() => setFilterStatus("Due")}
-          title="Click to filter Pending Due Cases"
-          className={`bg-white border rounded-xl p-4 shadow-sm flex items-center gap-3 cursor-pointer hover:shadow-md transition-all ${filterStatus === "Due" ? "border-rose-400 ring-2 ring-rose-100" : "border-slate-200"
-            }`}
+          onClick={() => {
+            setFilterStatus("Due");
+            setShowPendingDueModal(true);
+            setPendingDueModalSearch("");
+          }}
+          title="Click to view Bank / NBFC Wise Pending Due Cases Summary"
+          className={`bg-white border rounded-xl p-4 shadow-sm flex items-center gap-3 cursor-pointer hover:shadow-md hover:border-rose-400 ring-1 ring-transparent hover:ring-rose-100 transition-all group ${
+            filterStatus === "Due" ? "border-rose-400 ring-2 ring-rose-100" : "border-slate-200"
+          }`}
         >
-          <div className="w-10 h-10 rounded-lg bg-rose-50 text-rose-600 flex items-center justify-center font-bold">
+          <div className="w-10 h-10 rounded-lg bg-rose-50 text-rose-600 group-hover:bg-rose-600 group-hover:text-white transition-colors flex items-center justify-center font-bold shrink-0 shadow-2xs">
             <Clock className="w-5 h-5" />
           </div>
-          <div>
-            <p className="text-[10px] uppercase font-black text-slate-400">Pending Due Cases</p>
-            <p className="text-lg font-black text-rose-700">{totalDueCount} Entries</p>
+          <div className="min-w-0">
+            <div className="flex items-center gap-1.5">
+              <p className="text-[10px] uppercase font-black text-slate-400 group-hover:text-rose-600 transition-colors truncate">Pending Due Cases</p>
+              <span className="text-[8px] font-black uppercase tracking-wider text-rose-700 bg-rose-50 px-1.5 py-0.5 rounded border border-rose-150 group-hover:bg-rose-100 shrink-0">Breakdown</span>
+            </div>
+            <p className="text-lg font-black text-rose-700 leading-tight mt-0.5">{totalDueCount} Entries</p>
           </div>
         </div>
       </div>
@@ -2463,18 +2958,39 @@ export default function SecurityMasterView({
                       <td className="py-3.5 px-3.5 text-center whitespace-nowrap">
                         <div className="flex flex-col items-center gap-0.5">
                           <span
-                            className={`px-2.5 py-0.5 rounded-full text-[10px] font-black border ${item.paymentStatus === "Payment Done"
-                              ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-                              : "bg-rose-50 text-rose-700 border-rose-200"
-                              }`}
+                            className={`px-2.5 py-0.5 rounded-full text-[10px] font-black border ${
+                              item.paymentStatus === "Payment Done"
+                                ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                                : item.paymentStatus === "Partially Paid"
+                                ? "bg-amber-50 text-amber-700 border-amber-200"
+                                : "bg-rose-50 text-rose-700 border-rose-200"
+                            }`}
                           >
                             {item.paymentStatus || "Due"}
                           </span>
-                          {item.paymentStatus !== "Due" && item.paymentMethod && (
-                            <span className="text-[9px] font-bold text-slate-500 font-mono">
-                              ({item.paymentMethod})
-                            </span>
-                          )}
+                          {(() => {
+                            if (item.installmentsJson) {
+                              try {
+                                const parsed = JSON.parse(item.installmentsJson);
+                                if (Array.isArray(parsed) && parsed.length > 0) {
+                                  const paidCount = parsed.filter((p: any) => p.status === "Received").length;
+                                  return (
+                                    <span className="text-[9px] font-bold text-purple-700 bg-purple-50 border border-purple-200 px-1.5 py-0.2 rounded mt-0.5">
+                                      Installments ({paidCount}/{parsed.length} Paid)
+                                    </span>
+                                  );
+                                }
+                              } catch (e) {}
+                            }
+                            if (item.paymentStatus !== "Due" && item.paymentMethod) {
+                              return (
+                                <span className="text-[9px] font-bold text-slate-500 font-mono">
+                                  ({item.paymentMethod})
+                                </span>
+                              );
+                            }
+                            return null;
+                          })()}
                         </div>
                       </td>
                     )}
@@ -3673,294 +4189,530 @@ export default function SecurityMasterView({
             </div>
 
             {/* Form */}
-            <form onSubmit={handleReceiveSubmit} className="p-6 space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* Received Amount */}
-                <div>
-                  <label className="block text-[10px] uppercase font-black text-slate-500 tracking-wider mb-1">
-                    Received Amount (₹) *
-                  </label>
-                  <input
-                    type="number"
-                    min="0"
-                    step="any"
-                    required
-                    className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-xs font-bold text-slate-900 focus:outline-none focus:border-emerald-500"
-                    placeholder="Enter amount e.g. 45000"
-                    value={receiveForm.receivedAmount}
-                    onChange={(e) => setReceiveForm({ ...receiveForm, receivedAmount: e.target.value })}
-                  />
-                </div>
+            <form onSubmit={handleReceiveSubmit} className="p-6 space-y-4 overflow-y-auto max-h-[calc(90vh-140px)]">
+              {/* Option Switcher / Action Bar */}
+              <div className="flex items-center justify-between gap-2 pb-2 border-b border-slate-100 flex-wrap">
+                <span className="text-xs font-black uppercase tracking-wider text-slate-700 font-mono">
+                  {receiveInstallments.length > 0 ? "Installments Schedule Mode" : "Payment Mode"}
+                </span>
 
-                {/* Received Date */}
-                <DatePickerInput
-                  label="Received Date *"
-                  value={receiveForm.receivedDate}
-                  onChange={(val) => setReceiveForm({ ...receiveForm, receivedDate: val })}
-                  placeholder="DD/MM/YYYY"
-                />
+                <button
+                  type="button"
+                  onClick={handleAddReceiveInstallment}
+                  className="px-3 py-1.5 bg-emerald-700 hover:bg-emerald-800 text-white rounded-lg text-xs font-black shadow-2xs flex items-center gap-1.5 transition-all"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>+ Add Installment (किस्त जोड़ें)</span>
+                </button>
               </div>
 
-              {/* Payment Method / Mode & Dynamic Mode Details */}
-              <div className="space-y-3 bg-emerald-50/40 p-4 border border-emerald-100 rounded-xl">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {/* Payment Method / Mode */}
-                  <div>
-                    <label className="block text-[10px] uppercase font-black text-slate-600 tracking-wider mb-1">
-                      Payment Method / Mode *
-                    </label>
-                    <select
-                      className="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-xs font-bold text-slate-900 focus:outline-none focus:border-emerald-500 font-bold"
-                      value={receiveForm.paymentMethod}
-                      onChange={(e) => setReceiveForm({ ...receiveForm, paymentMethod: e.target.value })}
-                    >
-                      <option value="Bank Transfer (NEFT/RTGS)">Bank Transfer (NEFT/RTGS)</option>
-                      <option value="UPI / QR Code">UPI / QR Code</option>
-                      <option value="Cheque">Cheque</option>
-                      <option value="Cash">Cash</option>
-                      <option value="Demand Draft (DD)">Demand Draft (DD)</option>
-                      <option value="Credit / Debit Card">Credit / Debit Card</option>
-                      <option value="Other">➕ Other (Specify Custom Method)</option>
-                    </select>
+              {/* INSTALLMENTS MODE */}
+              {receiveInstallments.length > 0 ? (
+                <div className="space-y-3">
+                  <div className="flex flex-wrap items-center justify-between gap-2 bg-emerald-100/70 p-2.5 rounded-xl text-xs">
+                    <div className="flex items-center gap-2">
+                      <ListOrdered className="w-4 h-4 text-emerald-800" />
+                      <span className="font-bold text-emerald-900">
+                        Installments Schedule ({receiveInstallments.length} Part{receiveInstallments.length === 1 ? "" : "s"})
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-[10px] text-emerald-800 font-bold">Auto Split:</span>
+                      {[2, 3, 4].map((cnt) => (
+                        <button
+                          key={cnt}
+                          type="button"
+                          onClick={() => handleAutoSplitReceiveInstallments(cnt)}
+                          className="px-2 py-0.5 text-[10px] font-bold bg-white text-emerald-800 rounded border border-emerald-300 hover:bg-emerald-50 transition-colors shadow-2xs"
+                        >
+                          {cnt} Parts
+                        </button>
+                      ))}
+                      <button
+                        type="button"
+                        onClick={() => setReceiveInstallments([])}
+                        className="text-[10px] text-emerald-800 underline hover:text-emerald-950 font-bold ml-1"
+                      >
+                        Reset to Single
+                      </button>
+                    </div>
                   </div>
 
-                  {/* If "Other" selected -> Custom Method Input */}
-                  {receiveForm.paymentMethod === "Other" && (
-                    <div>
-                      <label className="block text-[10px] uppercase font-black text-emerald-800 tracking-wider mb-1">
-                        Specify Custom Payment Method *
-                      </label>
-                      <input
-                        type="text"
-                        required
-                        autoFocus
-                        className="w-full bg-white border border-emerald-600 rounded-lg p-2.5 text-xs font-bold text-slate-900 focus:outline-none placeholder:text-slate-400"
-                        placeholder="e.g. Wallet, Crypto, Adjustment, Voucher..."
-                        value={receiveForm.customPaymentMethod}
-                        onChange={(e) => setReceiveForm({ ...receiveForm, customPaymentMethod: e.target.value })}
-                      />
-                    </div>
-                  )}
+                  {/* Financial summary for installments */}
+                  {(() => {
+                    const totalBill = Number(showReceiveModal.item.billAmount) || 0;
+                    const instTotal = receiveInstallments.reduce((sum, i) => sum + (Number(i.amount) || 0), 0);
+                    const instReceived = receiveInstallments
+                      .filter((i) => i.status === "Received")
+                      .reduce((sum, i) => sum + (Number(i.amount) || 0), 0);
+                    const instPending = Math.max(0, totalBill - instReceived);
+
+                    return (
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
+                        <div className="bg-slate-50 p-2 rounded-lg border border-slate-200">
+                          <span className="text-[9px] uppercase font-bold text-slate-400 block">Bill Amount</span>
+                          <span className="font-black text-slate-900 font-mono">₹{totalBill.toLocaleString("en-IN")}</span>
+                        </div>
+                        <div className="bg-slate-50 p-2 rounded-lg border border-slate-200">
+                          <span className="text-[9px] uppercase font-bold text-slate-400 block">Installments Total</span>
+                          <span className="font-black font-mono text-indigo-700">₹{instTotal.toLocaleString("en-IN")}</span>
+                        </div>
+                        <div className="bg-emerald-50 p-2 rounded-lg border border-emerald-200">
+                          <span className="text-[9px] uppercase font-bold text-emerald-600 block">Total Received</span>
+                          <span className="font-black font-mono text-emerald-700">₹{instReceived.toLocaleString("en-IN")}</span>
+                        </div>
+                        <div className="bg-rose-50 p-2 rounded-lg border border-rose-200">
+                          <span className="text-[9px] uppercase font-bold text-rose-600 block">Pending Balance</span>
+                          <span className="font-black font-mono text-rose-700">₹{instPending.toLocaleString("en-IN")}</span>
+                        </div>
+                      </div>
+                    );
+                  })()}
+
+                  {/* List of installment cards */}
+                  <div className="space-y-2.5 max-h-64 overflow-y-auto pr-1">
+                    {receiveInstallments.map((inst, idx) => {
+                      const isReceived = inst.status === "Received";
+                      return (
+                        <div
+                          key={inst.id}
+                          className={`p-3 rounded-xl border transition-all ${
+                            isReceived
+                              ? "bg-emerald-50/50 border-emerald-300 ring-1 ring-emerald-200"
+                              : "bg-white border-slate-200 shadow-2xs"
+                          }`}
+                        >
+                          <div className="grid grid-cols-1 sm:grid-cols-12 gap-2 items-center">
+                            {/* Number */}
+                            <div className="sm:col-span-3 flex items-center gap-1.5">
+                              <span className="w-5 h-5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-black flex items-center justify-center shrink-0">
+                                {idx + 1}
+                              </span>
+                              <span className="text-xs font-black text-slate-800">
+                                Installment #{idx + 1}
+                              </span>
+                            </div>
+
+                            {/* Amount */}
+                            <div className="sm:col-span-3">
+                              <div className="relative">
+                                <span className="absolute left-2.5 top-2 text-xs font-bold text-slate-400">₹</span>
+                                <input
+                                  type="number"
+                                  min="0"
+                                  step="any"
+                                  required
+                                  placeholder="Amount"
+                                  className="w-full bg-white border border-slate-300 rounded-lg pl-6 pr-2 py-1.5 text-xs font-bold text-slate-900 focus:outline-none focus:border-emerald-600"
+                                  value={inst.amount}
+                                  onChange={(e) => handleUpdateReceiveInstallment(inst.id, "amount", e.target.value)}
+                                />
+                              </div>
+                            </div>
+
+                            {/* Date */}
+                            <div className="sm:col-span-3">
+                              <input
+                                type="date"
+                                required
+                                className="w-full bg-white border border-slate-300 rounded-lg px-2 py-1.5 text-xs font-bold text-slate-900 focus:outline-none focus:border-emerald-600 font-mono"
+                                value={inst.date}
+                                onChange={(e) => handleUpdateReceiveInstallment(inst.id, "date", e.target.value)}
+                              />
+                            </div>
+
+                            {/* Status Toggle & Delete */}
+                            <div className="sm:col-span-3 flex items-center gap-1">
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  handleUpdateReceiveInstallment(inst.id, "status", isReceived ? "Pending" : "Received")
+                                }
+                                className={`flex-1 py-1.5 px-2 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all border flex items-center justify-center gap-1 ${
+                                  isReceived
+                                    ? "bg-emerald-600 hover:bg-emerald-700 text-white border-emerald-600 shadow-2xs"
+                                    : "bg-amber-50 hover:bg-amber-100 text-amber-800 border-amber-300"
+                                }`}
+                              >
+                                {isReceived ? (
+                                  <>
+                                    <CheckCircle2 className="w-3 h-3" />
+                                    <span>Received</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <Clock className="w-3 h-3" />
+                                    <span>Pending</span>
+                                  </>
+                                )}
+                              </button>
+
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveReceiveInstallment(inst.id)}
+                                className="p-1.5 text-rose-400 hover:text-rose-700 hover:bg-rose-50 rounded-lg transition-colors shrink-0"
+                                title="Remove Installment"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          </div>
+
+                          {/* Extra details if received */}
+                          {isReceived && (
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mt-2.5 pt-2 border-t border-emerald-200/80 animate-fadeIn text-[11px]">
+                              <div>
+                                <label className="block text-[9px] uppercase font-bold text-emerald-800 mb-0.5">
+                                  Payment Method
+                                </label>
+                                <select
+                                  className="w-full bg-white border border-emerald-300 rounded-lg p-1.5 text-[11px] font-bold text-slate-800 focus:outline-none focus:border-emerald-600"
+                                  value={inst.paymentMethod}
+                                  onChange={(e) => handleUpdateReceiveInstallment(inst.id, "paymentMethod", e.target.value)}
+                                >
+                                  <option value="Bank Transfer (NEFT/RTGS)">Bank Transfer (NEFT/RTGS)</option>
+                                  <option value="UPI / QR Code">UPI / QR Code</option>
+                                  <option value="Cheque">Cheque</option>
+                                  <option value="Cash">Cash</option>
+                                  <option value="Direct Bank Deposit">Direct Bank Deposit</option>
+                                  <option value="Other">Other</option>
+                                </select>
+                              </div>
+
+                              <div>
+                                <label className="block text-[9px] uppercase font-bold text-emerald-800 mb-0.5">
+                                  UTR / Ref No.
+                                </label>
+                                <input
+                                  type="text"
+                                  className="w-full bg-white border border-emerald-300 rounded-lg p-1.5 text-[11px] font-bold text-slate-800 focus:outline-none focus:border-emerald-600"
+                                  placeholder="e.g. UTR123456"
+                                  value={inst.transactionId}
+                                  onChange={(e) => handleUpdateReceiveInstallment(inst.id, "transactionId", e.target.value)}
+                                />
+                              </div>
+
+                              <div>
+                                <label className="block text-[9px] uppercase font-bold text-emerald-800 mb-0.5">
+                                  Payer / Sender Bank
+                                </label>
+                                <input
+                                  type="text"
+                                  className="w-full bg-white border border-emerald-300 rounded-lg p-1.5 text-[11px] font-bold text-slate-800 focus:outline-none focus:border-emerald-600"
+                                  placeholder="e.g. Balaji / HDFC"
+                                  value={inst.payerName}
+                                  onChange={(e) => handleUpdateReceiveInstallment(inst.id, "payerName", e.target.value)}
+                                />
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={handleAddReceiveInstallment}
+                    className="w-full py-2 bg-white hover:bg-emerald-50 text-emerald-800 border border-dashed border-emerald-300 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 shadow-2xs"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>+ Add Another Installment Row</span>
+                  </button>
                 </div>
-
-                {/* DYNAMIC FIELD LAYOUT BASED ON PAYMENT MODE */}
-                {/* 1. Bank Transfer */}
-                {receiveForm.paymentMethod === "Bank Transfer (NEFT/RTGS)" && (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
+              ) : (
+                /* SINGLE PAYMENT FORM */
+                <>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* Received Amount */}
                     <div>
                       <label className="block text-[10px] uppercase font-black text-slate-500 tracking-wider mb-1">
-                        UTR / Transaction Ref No. *
+                        Received Amount (₹) *
                       </label>
                       <input
-                        type="text"
+                        type="number"
+                        min="0"
+                        step="any"
                         required
-                        className="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-xs font-bold text-slate-900 focus:outline-none focus:border-emerald-500"
-                        placeholder="e.g. UTR129381923"
-                        value={receiveForm.transactionId}
-                        onChange={(e) => setReceiveForm({ ...receiveForm, transactionId: e.target.value })}
+                        className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-xs font-bold text-slate-900 focus:outline-none focus:border-emerald-500"
+                        placeholder="Enter amount e.g. 45000"
+                        value={receiveForm.receivedAmount}
+                        onChange={(e) => setReceiveForm({ ...receiveForm, receivedAmount: e.target.value })}
                       />
                     </div>
-                    <div>
-                      <label className="block text-[10px] uppercase font-black text-slate-500 tracking-wider mb-1">
-                        Sender Bank Name
-                      </label>
-                      <input
-                        type="text"
-                        className="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-xs font-bold text-slate-900 focus:outline-none focus:border-emerald-500"
-                        placeholder="e.g. HDFC Bank / SBI"
-                        value={receiveForm.bankName}
-                        onChange={(e) => setReceiveForm({ ...receiveForm, bankName: e.target.value })}
-                      />
-                    </div>
-                  </div>
-                )}
 
-                {/* 2. UPI / QR Code */}
-                {receiveForm.paymentMethod === "UPI / QR Code" && (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
-                    <div>
-                      <label className="block text-[10px] uppercase font-black text-slate-500 tracking-wider mb-1">
-                        UPI Ref / UTR No. *
-                      </label>
-                      <input
-                        type="text"
-                        required
-                        className="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-xs font-bold text-slate-900 focus:outline-none focus:border-emerald-500"
-                        placeholder="e.g. 419283019283"
-                        value={receiveForm.transactionId}
-                        onChange={(e) => setReceiveForm({ ...receiveForm, transactionId: e.target.value })}
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-[10px] uppercase font-black text-slate-500 tracking-wider mb-1">
-                        UPI App / VPA ID
-                      </label>
-                      <input
-                        type="text"
-                        className="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-xs font-bold text-slate-900 focus:outline-none focus:border-emerald-500"
-                        placeholder="e.g. PhonePe / Google Pay / user@upi"
-                        value={receiveForm.payerName}
-                        onChange={(e) => setReceiveForm({ ...receiveForm, payerName: e.target.value })}
-                      />
-                    </div>
-                  </div>
-                )}
-
-                {/* 3. Cheque */}
-                {receiveForm.paymentMethod === "Cheque" && (
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-1">
-                    <div>
-                      <label className="block text-[10px] uppercase font-black text-slate-500 tracking-wider mb-1">
-                        Cheque Number *
-                      </label>
-                      <input
-                        type="text"
-                        required
-                        className="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-xs font-bold text-slate-900 focus:outline-none focus:border-emerald-500"
-                        placeholder="e.g. CHQ-819203"
-                        value={receiveForm.transactionId}
-                        onChange={(e) => setReceiveForm({ ...receiveForm, transactionId: e.target.value })}
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-[10px] uppercase font-black text-slate-500 tracking-wider mb-1">
-                        Issuing Bank Name
-                      </label>
-                      <input
-                        type="text"
-                        className="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-xs font-bold text-slate-900 focus:outline-none focus:border-emerald-500"
-                        placeholder="e.g. ICICI Bank"
-                        value={receiveForm.bankName}
-                        onChange={(e) => setReceiveForm({ ...receiveForm, bankName: e.target.value })}
-                      />
-                    </div>
-                    <div>
-                      <DatePickerInput
-                        label="Cheque Date"
-                        value={receiveForm.chequeDate}
-                        onChange={(val) => setReceiveForm({ ...receiveForm, chequeDate: val })}
-                        placeholder="DD/MM/YYYY"
-                      />
-                    </div>
-                  </div>
-                )}
-
-                {/* 4. Cash */}
-                {receiveForm.paymentMethod === "Cash" && (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
-                    <div>
-                      <label className="block text-[10px] uppercase font-black text-slate-500 tracking-wider mb-1">
-                        Cash Receipt / Slip No.
-                      </label>
-                      <input
-                        type="text"
-                        className="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-xs font-bold text-slate-900 focus:outline-none focus:border-emerald-500"
-                        placeholder="e.g. RCP-10293"
-                        value={receiveForm.transactionId}
-                        onChange={(e) => setReceiveForm({ ...receiveForm, transactionId: e.target.value })}
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-[10px] uppercase font-black text-slate-500 tracking-wider mb-1">
-                        Handed Over By / Collector
-                      </label>
-                      <input
-                        type="text"
-                        className="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-xs font-bold text-slate-900 focus:outline-none focus:border-emerald-500"
-                        placeholder="e.g. Ramesh Kumar (Agent)"
-                        value={receiveForm.payerName}
-                        onChange={(e) => setReceiveForm({ ...receiveForm, payerName: e.target.value })}
-                      />
-                    </div>
-                  </div>
-                )}
-
-                {/* 5. Demand Draft (DD) */}
-                {receiveForm.paymentMethod === "Demand Draft (DD)" && (
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-1">
-                    <div>
-                      <label className="block text-[10px] uppercase font-black text-slate-500 tracking-wider mb-1">
-                        DD Number *
-                      </label>
-                      <input
-                        type="text"
-                        required
-                        className="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-xs font-bold text-slate-900 focus:outline-none focus:border-emerald-500"
-                        placeholder="e.g. DD-991823"
-                        value={receiveForm.transactionId}
-                        onChange={(e) => setReceiveForm({ ...receiveForm, transactionId: e.target.value })}
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-[10px] uppercase font-black text-slate-500 tracking-wider mb-1">
-                        Issuing Bank Name
-                      </label>
-                      <input
-                        type="text"
-                        className="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-xs font-bold text-slate-900 focus:outline-none focus:border-emerald-500"
-                        placeholder="e.g. Axis Bank"
-                        value={receiveForm.bankName}
-                        onChange={(e) => setReceiveForm({ ...receiveForm, bankName: e.target.value })}
-                      />
-                    </div>
-                    <div>
-                      <DatePickerInput
-                        label="DD Issue Date"
-                        value={receiveForm.chequeDate}
-                        onChange={(val) => setReceiveForm({ ...receiveForm, chequeDate: val })}
-                        placeholder="DD/MM/YYYY"
-                      />
-                    </div>
-                  </div>
-                )}
-
-                {/* 6. Credit / Debit Card */}
-                {receiveForm.paymentMethod === "Credit / Debit Card" && (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
-                    <div>
-                      <label className="block text-[10px] uppercase font-black text-slate-500 tracking-wider mb-1">
-                        Card Ref / Auth Code *
-                      </label>
-                      <input
-                        type="text"
-                        required
-                        className="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-xs font-bold text-slate-900 focus:outline-none focus:border-emerald-500"
-                        placeholder="e.g. AUTH-881920"
-                        value={receiveForm.transactionId}
-                        onChange={(e) => setReceiveForm({ ...receiveForm, transactionId: e.target.value })}
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-[10px] uppercase font-black text-slate-500 tracking-wider mb-1">
-                        Card Type / Last 4 Digits
-                      </label>
-                      <input
-                        type="text"
-                        className="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-xs font-bold text-slate-900 focus:outline-none focus:border-emerald-500"
-                        placeholder="e.g. HDFC Visa ending 4321"
-                        value={receiveForm.payerName}
-                        onChange={(e) => setReceiveForm({ ...receiveForm, payerName: e.target.value })}
-                      />
-                    </div>
-                  </div>
-                )}
-
-                {/* 7. Other */}
-                {receiveForm.paymentMethod === "Other" && (
-                  <div className="pt-1">
-                    <label className="block text-[10px] uppercase font-black text-slate-500 tracking-wider mb-1">
-                      Transaction Ref / Receipt / Details
-                    </label>
-                    <input
-                      type="text"
-                      className="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-xs font-bold text-slate-900 focus:outline-none focus:border-emerald-500"
-                      placeholder="e.g. Ref #12345 or transaction details..."
-                      value={receiveForm.transactionId}
-                      onChange={(e) => setReceiveForm({ ...receiveForm, transactionId: e.target.value })}
+                    {/* Received Date */}
+                    <DatePickerInput
+                      label="Received Date *"
+                      value={receiveForm.receivedDate}
+                      onChange={(val) => setReceiveForm({ ...receiveForm, receivedDate: val })}
+                      placeholder="DD/MM/YYYY"
                     />
                   </div>
-                )}
-              </div>
+
+                  {/* Payment Method / Mode & Dynamic Mode Details */}
+                  <div className="space-y-3 bg-emerald-50/40 p-4 border border-emerald-100 rounded-xl">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      {/* Payment Method / Mode */}
+                      <div>
+                        <label className="block text-[10px] uppercase font-black text-slate-600 tracking-wider mb-1">
+                          Payment Method / Mode *
+                        </label>
+                        <select
+                          className="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-xs font-bold text-slate-900 focus:outline-none focus:border-emerald-500 font-bold"
+                          value={receiveForm.paymentMethod}
+                          onChange={(e) => setReceiveForm({ ...receiveForm, paymentMethod: e.target.value })}
+                        >
+                          <option value="Bank Transfer (NEFT/RTGS)">Bank Transfer (NEFT/RTGS)</option>
+                          <option value="UPI / QR Code">UPI / QR Code</option>
+                          <option value="Cheque">Cheque</option>
+                          <option value="Cash">Cash</option>
+                          <option value="Demand Draft (DD)">Demand Draft (DD)</option>
+                          <option value="Credit / Debit Card">Credit / Debit Card</option>
+                          <option value="Other">➕ Other (Specify Custom Method)</option>
+                        </select>
+                      </div>
+
+                      {/* If "Other" selected -> Custom Method Input */}
+                      {receiveForm.paymentMethod === "Other" && (
+                        <div>
+                          <label className="block text-[10px] uppercase font-black text-emerald-800 tracking-wider mb-1">
+                            Specify Custom Payment Method *
+                          </label>
+                          <input
+                            type="text"
+                            required
+                            autoFocus
+                            className="w-full bg-white border border-emerald-600 rounded-lg p-2.5 text-xs font-bold text-slate-900 focus:outline-none placeholder:text-slate-400"
+                            placeholder="e.g. Wallet, Crypto, Adjustment, Voucher..."
+                            value={receiveForm.customPaymentMethod}
+                            onChange={(e) => setReceiveForm({ ...receiveForm, customPaymentMethod: e.target.value })}
+                          />
+                        </div>
+                      )}
+                    </div>
+
+                    {/* DYNAMIC FIELD LAYOUT BASED ON PAYMENT MODE */}
+                    {/* 1. Bank Transfer */}
+                    {receiveForm.paymentMethod === "Bank Transfer (NEFT/RTGS)" && (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
+                        <div>
+                          <label className="block text-[10px] uppercase font-black text-slate-500 tracking-wider mb-1">
+                            UTR / Transaction Ref No. *
+                          </label>
+                          <input
+                            type="text"
+                            required
+                            className="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-xs font-bold text-slate-900 focus:outline-none focus:border-emerald-500"
+                            placeholder="e.g. UTR129381923"
+                            value={receiveForm.transactionId}
+                            onChange={(e) => setReceiveForm({ ...receiveForm, transactionId: e.target.value })}
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[10px] uppercase font-black text-slate-500 tracking-wider mb-1">
+                            Sender Bank Name
+                          </label>
+                          <input
+                            type="text"
+                            className="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-xs font-bold text-slate-900 focus:outline-none focus:border-emerald-500"
+                            placeholder="e.g. HDFC Bank / SBI"
+                            value={receiveForm.bankName}
+                            onChange={(e) => setReceiveForm({ ...receiveForm, bankName: e.target.value })}
+                          />
+                        </div>
+                      </div>
+                    )}
+
+                    {/* 2. UPI / QR Code */}
+                    {receiveForm.paymentMethod === "UPI / QR Code" && (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
+                        <div>
+                          <label className="block text-[10px] uppercase font-black text-slate-500 tracking-wider mb-1">
+                            UPI Ref / UTR No. *
+                          </label>
+                          <input
+                            type="text"
+                            required
+                            className="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-xs font-bold text-slate-900 focus:outline-none focus:border-emerald-500"
+                            placeholder="e.g. 419283019283"
+                            value={receiveForm.transactionId}
+                            onChange={(e) => setReceiveForm({ ...receiveForm, transactionId: e.target.value })}
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[10px] uppercase font-black text-slate-500 tracking-wider mb-1">
+                            UPI App / VPA ID
+                          </label>
+                          <input
+                            type="text"
+                            className="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-xs font-bold text-slate-900 focus:outline-none focus:border-emerald-500"
+                            placeholder="e.g. PhonePe / Google Pay / user@upi"
+                            value={receiveForm.payerName}
+                            onChange={(e) => setReceiveForm({ ...receiveForm, payerName: e.target.value })}
+                          />
+                        </div>
+                      </div>
+                    )}
+
+                    {/* 3. Cheque */}
+                    {receiveForm.paymentMethod === "Cheque" && (
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-1">
+                        <div>
+                          <label className="block text-[10px] uppercase font-black text-slate-500 tracking-wider mb-1">
+                            Cheque Number *
+                          </label>
+                          <input
+                            type="text"
+                            required
+                            className="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-xs font-bold text-slate-900 focus:outline-none focus:border-emerald-500"
+                            placeholder="e.g. CHQ-819203"
+                            value={receiveForm.transactionId}
+                            onChange={(e) => setReceiveForm({ ...receiveForm, transactionId: e.target.value })}
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[10px] uppercase font-black text-slate-500 tracking-wider mb-1">
+                            Issuing Bank Name
+                          </label>
+                          <input
+                            type="text"
+                            className="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-xs font-bold text-slate-900 focus:outline-none focus:border-emerald-500"
+                            placeholder="e.g. ICICI Bank"
+                            value={receiveForm.bankName}
+                            onChange={(e) => setReceiveForm({ ...receiveForm, bankName: e.target.value })}
+                          />
+                        </div>
+                        <div>
+                          <DatePickerInput
+                            label="Cheque Date"
+                            value={receiveForm.chequeDate}
+                            onChange={(val) => setReceiveForm({ ...receiveForm, chequeDate: val })}
+                            placeholder="DD/MM/YYYY"
+                          />
+                        </div>
+                      </div>
+                    )}
+
+                    {/* 4. Cash */}
+                    {receiveForm.paymentMethod === "Cash" && (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
+                        <div>
+                          <label className="block text-[10px] uppercase font-black text-slate-500 tracking-wider mb-1">
+                            Cash Receipt / Slip No.
+                          </label>
+                          <input
+                            type="text"
+                            className="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-xs font-bold text-slate-900 focus:outline-none focus:border-emerald-500"
+                            placeholder="e.g. RCP-10293"
+                            value={receiveForm.transactionId}
+                            onChange={(e) => setReceiveForm({ ...receiveForm, transactionId: e.target.value })}
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[10px] uppercase font-black text-slate-500 tracking-wider mb-1">
+                            Handed Over By / Collector
+                          </label>
+                          <input
+                            type="text"
+                            className="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-xs font-bold text-slate-900 focus:outline-none focus:border-emerald-500"
+                            placeholder="e.g. Ramesh Kumar (Agent)"
+                            value={receiveForm.payerName}
+                            onChange={(e) => setReceiveForm({ ...receiveForm, payerName: e.target.value })}
+                          />
+                        </div>
+                      </div>
+                    )}
+
+                    {/* 5. Demand Draft (DD) */}
+                    {receiveForm.paymentMethod === "Demand Draft (DD)" && (
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-1">
+                        <div>
+                          <label className="block text-[10px] uppercase font-black text-slate-500 tracking-wider mb-1">
+                            DD Number *
+                          </label>
+                          <input
+                            type="text"
+                            required
+                            className="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-xs font-bold text-slate-900 focus:outline-none focus:border-emerald-500"
+                            placeholder="e.g. DD-991823"
+                            value={receiveForm.transactionId}
+                            onChange={(e) => setReceiveForm({ ...receiveForm, transactionId: e.target.value })}
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[10px] uppercase font-black text-slate-500 tracking-wider mb-1">
+                            Issuing Bank Name
+                          </label>
+                          <input
+                            type="text"
+                            className="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-xs font-bold text-slate-900 focus:outline-none focus:border-emerald-500"
+                            placeholder="e.g. Axis Bank"
+                            value={receiveForm.bankName}
+                            onChange={(e) => setReceiveForm({ ...receiveForm, bankName: e.target.value })}
+                          />
+                        </div>
+                        <div>
+                          <DatePickerInput
+                            label="DD Issue Date"
+                            value={receiveForm.chequeDate}
+                            onChange={(val) => setReceiveForm({ ...receiveForm, chequeDate: val })}
+                            placeholder="DD/MM/YYYY"
+                          />
+                        </div>
+                      </div>
+                    )}
+
+                    {/* 6. Credit / Debit Card */}
+                    {receiveForm.paymentMethod === "Credit / Debit Card" && (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
+                        <div>
+                          <label className="block text-[10px] uppercase font-black text-slate-500 tracking-wider mb-1">
+                            Card Ref / Auth Code *
+                          </label>
+                          <input
+                            type="text"
+                            required
+                            className="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-xs font-bold text-slate-900 focus:outline-none focus:border-emerald-500"
+                            placeholder="e.g. AUTH-881920"
+                            value={receiveForm.transactionId}
+                            onChange={(e) => setReceiveForm({ ...receiveForm, transactionId: e.target.value })}
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[10px] uppercase font-black text-slate-500 tracking-wider mb-1">
+                            Card Type / Last 4 Digits
+                          </label>
+                          <input
+                            type="text"
+                            className="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-xs font-bold text-slate-900 focus:outline-none focus:border-emerald-500"
+                            placeholder="e.g. HDFC Visa ending 4321"
+                            value={receiveForm.payerName}
+                            onChange={(e) => setReceiveForm({ ...receiveForm, payerName: e.target.value })}
+                          />
+                        </div>
+                      </div>
+                    )}
+
+                    {/* 7. Other */}
+                    {receiveForm.paymentMethod === "Other" && (
+                      <div className="pt-1">
+                        <label className="block text-[10px] uppercase font-black text-slate-500 tracking-wider mb-1">
+                          Transaction Ref / Receipt / Details
+                        </label>
+                        <input
+                          type="text"
+                          className="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-xs font-bold text-slate-900 focus:outline-none focus:border-emerald-500"
+                          placeholder="e.g. Ref #12345 or transaction details..."
+                          value={receiveForm.transactionId}
+                          onChange={(e) => setReceiveForm({ ...receiveForm, transactionId: e.target.value })}
+                        />
+                      </div>
+                    )}
+                  </div>
+                </>
+              )}
 
               {/* Payment Proof File Upload */}
               <div>
@@ -4747,52 +5499,485 @@ export default function SecurityMasterView({
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                  {/* Payment Status */}
+                  {/* Payment Status Dropdown */}
                   <div>
                     <label className="block text-[10px] uppercase font-black text-slate-500 tracking-wider mb-1">
-                      Payment Status
+                      Payment Status *
                     </label>
                     <select
-                      className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-xs font-bold text-slate-900 focus:outline-none focus:border-[#714B67]"
+                      className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-xs font-bold text-slate-900 focus:outline-none focus:border-indigo-600"
                       value={billingForm.paymentStatus}
-                      onChange={(e) => setBillingForm({ ...billingForm, paymentStatus: e.target.value })}
+                      onChange={(e) => {
+                        const newStatus = e.target.value;
+                        setBillingForm((prev) => ({
+                          ...prev,
+                          paymentStatus: newStatus,
+                          receivedAmount:
+                            newStatus === "Payment Done"
+                              ? prev.receivedAmount || prev.billAmount || ""
+                              : prev.receivedAmount,
+                        }));
+                      }}
                     >
-                      <option value="Due">Due</option>
-                      <option value="Payment Done">Payment Done</option>
+                      <option value="Due">Due (Pending)</option>
+                      <option value="Payment Done">Payment Done (Received)</option>
+                      <option value="Partially Paid">Partially Paid</option>
                     </select>
                   </div>
 
-                  {/* Source */}
+                  {/* Source Selection & Name Specification */}
                   <div>
                     <label className="block text-[10px] uppercase font-black text-slate-500 tracking-wider mb-1">
-                      Source
+                      Source *
                     </label>
-                    <div className="flex flex-col gap-1.5">
+                    <div className="flex flex-col gap-2">
                       <div className="flex gap-1.5 flex-wrap">
-                        {["BDA", "Direct", "Reference", "Agent"].map((src) => (
+                        {["BDA", "Direct", "Reference", "Agent", "Other"].map((src) => (
                           <button
                             key={src}
                             type="button"
-                            onClick={() => setBillingForm({ ...billingForm, source: src })}
-                            className={`px-2.5 py-0.5 text-[10px] font-bold rounded border transition-all ${billingForm.source === src
-                              ? "bg-[#714B67] text-white border-[#714B67]"
-                              : "bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-200"
-                              }`}
+                            onClick={() =>
+                              setBillingForm((prev) => ({
+                                ...prev,
+                                sourceType: src,
+                                source: src,
+                              }))
+                            }
+                            className={`px-3 py-1 text-xs font-bold rounded-lg border transition-all ${
+                              billingForm.sourceType === src
+                                ? "bg-indigo-600 text-white border-indigo-600 shadow-2xs"
+                                : "bg-slate-100 text-slate-700 border-slate-200 hover:bg-slate-200"
+                            }`}
                           >
                             {src}
                           </button>
                         ))}
                       </div>
-                      <input
-                        type="text"
-                        className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 text-xs font-bold text-slate-900 focus:outline-none focus:border-[#714B67]"
-                        placeholder="e.g. BDA or custom source..."
-                        value={billingForm.source}
-                        onChange={(e) => setBillingForm({ ...billingForm, source: e.target.value })}
-                      />
+
+                      {/* Dynamic Name Input based on selected Source */}
+                      {billingForm.sourceType === "BDA" && (
+                        <div className="animate-fadeIn">
+                          <label className="block text-[9px] uppercase font-bold text-indigo-700 mb-0.5">
+                            BDA Executive / Staff Name *
+                          </label>
+                          <input
+                            type="text"
+                            required
+                            className="w-full bg-indigo-50/50 border border-indigo-200 rounded-lg p-2 text-xs font-bold text-slate-900 focus:outline-none focus:border-indigo-600 placeholder:text-slate-400 placeholder:font-normal"
+                            placeholder="e.g. Rahul Sharma (BDA)"
+                            value={billingForm.sourceName}
+                            onChange={(e) => setBillingForm({ ...billingForm, sourceName: e.target.value })}
+                          />
+                        </div>
+                      )}
+
+                      {billingForm.sourceType === "Reference" && (
+                        <div className="animate-fadeIn">
+                          <label className="block text-[9px] uppercase font-bold text-indigo-700 mb-0.5">
+                            Referred By (Name &amp; Contact) *
+                          </label>
+                          <input
+                            type="text"
+                            required
+                            className="w-full bg-indigo-50/50 border border-indigo-200 rounded-lg p-2 text-xs font-bold text-slate-900 focus:outline-none focus:border-indigo-600 placeholder:text-slate-400 placeholder:font-normal"
+                            placeholder="e.g. Mr. Amit Verma (9876543210)"
+                            value={billingForm.sourceName}
+                            onChange={(e) => setBillingForm({ ...billingForm, sourceName: e.target.value })}
+                          />
+                        </div>
+                      )}
+
+                      {billingForm.sourceType === "Agent" && (
+                        <div className="animate-fadeIn">
+                          <label className="block text-[9px] uppercase font-bold text-indigo-700 mb-0.5">
+                            Agent / Agency Name *
+                          </label>
+                          <input
+                            type="text"
+                            required
+                            className="w-full bg-indigo-50/50 border border-indigo-200 rounded-lg p-2 text-xs font-bold text-slate-900 focus:outline-none focus:border-indigo-600 placeholder:text-slate-400 placeholder:font-normal"
+                            placeholder="e.g. Apex Security Agency / Vikram"
+                            value={billingForm.sourceName}
+                            onChange={(e) => setBillingForm({ ...billingForm, sourceName: e.target.value })}
+                          />
+                        </div>
+                      )}
+
+                      {billingForm.sourceType === "Other" && (
+                        <div className="animate-fadeIn">
+                          <label className="block text-[9px] uppercase font-bold text-indigo-700 mb-0.5">
+                            Specify Source Name / Channel *
+                          </label>
+                          <input
+                            type="text"
+                            required
+                            className="w-full bg-indigo-50/50 border border-indigo-200 rounded-lg p-2 text-xs font-bold text-slate-900 focus:outline-none focus:border-indigo-600 placeholder:text-slate-400 placeholder:font-normal"
+                            placeholder="e.g. Online Portal / Newspaper Ad"
+                            value={billingForm.sourceName}
+                            onChange={(e) => setBillingForm({ ...billingForm, sourceName: e.target.value })}
+                          />
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
+
+                {/* LOG RECEIVED PAYMENT DETAILS (When Payment Done or Partially Paid) */}
+                {(billingForm.paymentStatus === "Payment Done" || billingForm.paymentStatus === "Partially Paid") && (
+                  <div className="mb-4 p-4 rounded-xl bg-emerald-50/70 border border-emerald-200 animate-fadeIn space-y-3.5">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-emerald-200/80">
+                      <div className="flex items-center gap-2 text-emerald-800 font-black text-xs">
+                        <Banknote className="w-4 h-4 text-emerald-600" />
+                        <span>Log Received Payment Details</span>
+                        <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full">
+                          {billingForm.paymentStatus}
+                        </span>
+                      </div>
+
+                      {/* Button to Add Installments */}
+                      <button
+                        type="button"
+                        onClick={handleAddInstallment}
+                        className="px-3 py-1 bg-emerald-700 hover:bg-emerald-800 text-white rounded-lg text-xs font-black shadow-2xs flex items-center gap-1.5 transition-all self-start sm:self-auto"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                        <span>+ Add Installment (किस्त जोड़ें)</span>
+                      </button>
+                    </div>
+
+                    {/* If NO Installments: Show Single Payment Form */}
+                    {billingForm.installments.length === 0 ? (
+                      <>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+                          {/* Received Amount */}
+                          <div>
+                            <label className="block text-[10px] uppercase font-black text-emerald-800 tracking-wider mb-1">
+                              Received Amount (₹) *
+                            </label>
+                            <input
+                              type="number"
+                              min="0"
+                              step="any"
+                              required
+                              className="w-full bg-white border border-emerald-300 rounded-lg p-2.5 text-xs font-bold text-slate-900 focus:outline-none focus:border-emerald-600"
+                              placeholder="Enter received amount"
+                              value={billingForm.receivedAmount}
+                              onChange={(e) => setBillingForm({ ...billingForm, receivedAmount: e.target.value })}
+                            />
+                            {billingForm.billAmount && (
+                              <div className="flex items-center justify-between text-[10px] text-emerald-700 mt-1 font-semibold">
+                                <span>Bill Amount: ₹{Number(billingForm.billAmount).toLocaleString("en-IN")}</span>
+                                <button
+                                  type="button"
+                                  onClick={() => setBillingForm({ ...billingForm, receivedAmount: billingForm.billAmount })}
+                                  className="text-emerald-800 underline hover:text-emerald-950 font-bold"
+                                >
+                                  Set Full Amount
+                                </button>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Received Date */}
+                          <div>
+                            <DatePickerInput
+                              label="Received Date *"
+                              value={billingForm.receivedDate}
+                              onChange={(val) => setBillingForm({ ...billingForm, receivedDate: val })}
+                              placeholder="DD/MM/YYYY"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5">
+                          {/* Payment Method */}
+                          <div>
+                            <label className="block text-[10px] uppercase font-black text-emerald-800 tracking-wider mb-1">
+                              Payment Mode / Method
+                            </label>
+                            <select
+                              className="w-full bg-white border border-emerald-300 rounded-lg p-2.5 text-xs font-bold text-slate-900 focus:outline-none focus:border-emerald-600"
+                              value={billingForm.paymentMethod}
+                              onChange={(e) => setBillingForm({ ...billingForm, paymentMethod: e.target.value })}
+                            >
+                              <option value="Bank Transfer (NEFT/RTGS)">Bank Transfer (NEFT/RTGS)</option>
+                              <option value="UPI / QR Code">UPI / QR Code / Netbanking</option>
+                              <option value="Cheque / Demand Draft">Cheque / Demand Draft</option>
+                              <option value="Cash">Cash</option>
+                              <option value="Direct Bank Deposit">Direct Bank Deposit</option>
+                              <option value="Other">Other</option>
+                            </select>
+                          </div>
+
+                          {/* Transaction ID / Cheque No */}
+                          <div>
+                            <label className="block text-[10px] uppercase font-black text-emerald-800 tracking-wider mb-1">
+                              Transaction ID / Cheque No.
+                            </label>
+                            <input
+                              type="text"
+                              className="w-full bg-white border border-emerald-300 rounded-lg p-2.5 text-xs font-bold text-slate-900 focus:outline-none focus:border-emerald-600"
+                              placeholder="e.g. UTR / Txn ID / Cheque #"
+                              value={billingForm.transactionId}
+                              onChange={(e) => setBillingForm({ ...billingForm, transactionId: e.target.value })}
+                            />
+                          </div>
+
+                          {/* Payer / Bank Name */}
+                          <div>
+                            <label className="block text-[10px] uppercase font-black text-emerald-800 tracking-wider mb-1">
+                              Payer / Client Name
+                            </label>
+                            <input
+                              type="text"
+                              className="w-full bg-white border border-emerald-300 rounded-lg p-2.5 text-xs font-bold text-slate-900 focus:outline-none focus:border-emerald-600"
+                              placeholder="e.g. Balaji Finance / Ramesh"
+                              value={billingForm.payerName}
+                              onChange={(e) => setBillingForm({ ...billingForm, payerName: e.target.value })}
+                            />
+                          </div>
+                        </div>
+
+                        {billingForm.paymentMethod === "Other" && (
+                          <div>
+                            <label className="block text-[10px] uppercase font-bold text-emerald-800 tracking-wider mb-1">
+                              Specify Custom Payment Method *
+                            </label>
+                            <input
+                              type="text"
+                              required
+                              className="w-full bg-white border border-emerald-300 rounded-lg p-2 text-xs font-bold text-slate-900 focus:outline-none focus:border-emerald-600"
+                              placeholder="e.g. Wallet, POS, Crypto, etc."
+                              value={billingForm.customPaymentMethod}
+                              onChange={(e) => setBillingForm({ ...billingForm, customPaymentMethod: e.target.value })}
+                            />
+                          </div>
+                        )}
+                      </>
+                    ) : (
+                      /* If Installments are Added: Show Installment Breakdowns Inside */
+                      <div className="space-y-3">
+                        <div className="flex flex-wrap items-center justify-between gap-2 bg-emerald-100/70 p-2.5 rounded-xl text-xs">
+                          <div className="flex items-center gap-2">
+                            <ListOrdered className="w-4 h-4 text-emerald-800" />
+                            <span className="font-bold text-emerald-900">
+                              Installments Schedule ({billingForm.installments.length} Part{billingForm.installments.length === 1 ? "" : "s"})
+                            </span>
+                          </div>
+
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="text-[10px] text-emerald-800 font-bold">Auto Split:</span>
+                            {[2, 3, 4].map((cnt) => (
+                              <button
+                                key={cnt}
+                                type="button"
+                                onClick={() => handleAutoSplitInstallments(cnt)}
+                                className="px-2 py-0.5 text-[10px] font-bold bg-white text-emerald-800 rounded border border-emerald-300 hover:bg-emerald-50 transition-colors shadow-2xs"
+                              >
+                                {cnt} Parts
+                              </button>
+                            ))}
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setBillingForm((prev) => ({
+                                  ...prev,
+                                  installments: [],
+                                  isInstallmentPlan: false,
+                                }))
+                              }
+                              className="text-[10px] text-emerald-800 underline hover:text-emerald-950 font-bold ml-1"
+                            >
+                              Reset to Single
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Financial summary for installments */}
+                        {(() => {
+                          const totalBill = Number(billingForm.billAmount) || 0;
+                          const instTotal = billingForm.installments.reduce((sum, i) => sum + (Number(i.amount) || 0), 0);
+                          const instReceived = billingForm.installments
+                            .filter((i) => i.status === "Received")
+                            .reduce((sum, i) => sum + (Number(i.amount) || 0), 0);
+                          const instPending = Math.max(0, totalBill - instReceived);
+
+                          return (
+                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
+                              <div className="bg-white p-2 rounded-lg border border-emerald-200">
+                                <span className="text-[9px] uppercase font-bold text-slate-400 block">Bill Amount</span>
+                                <span className="font-black text-slate-900 font-mono">₹{totalBill.toLocaleString("en-IN")}</span>
+                              </div>
+                              <div className="bg-white p-2 rounded-lg border border-emerald-200">
+                                <span className="text-[9px] uppercase font-bold text-slate-400 block">Installments Total</span>
+                                <span className="font-black font-mono text-indigo-700">₹{instTotal.toLocaleString("en-IN")}</span>
+                              </div>
+                              <div className="bg-white p-2 rounded-lg border border-emerald-200">
+                                <span className="text-[9px] uppercase font-bold text-emerald-600 block">Total Received</span>
+                                <span className="font-black font-mono text-emerald-700">₹{instReceived.toLocaleString("en-IN")}</span>
+                              </div>
+                              <div className="bg-white p-2 rounded-lg border border-emerald-200">
+                                <span className="text-[9px] uppercase font-bold text-rose-600 block">Pending Balance</span>
+                                <span className="font-black font-mono text-rose-700">₹{instPending.toLocaleString("en-IN")}</span>
+                              </div>
+                            </div>
+                          );
+                        })()}
+
+                        {/* List of installment cards */}
+                        <div className="space-y-2.5 max-h-72 overflow-y-auto pr-1">
+                          {billingForm.installments.map((inst, idx) => {
+                            const isReceived = inst.status === "Received";
+                            return (
+                              <div
+                                key={inst.id}
+                                className={`p-3 rounded-xl border transition-all ${
+                                  isReceived
+                                    ? "bg-white border-emerald-300 ring-1 ring-emerald-200"
+                                    : "bg-white/80 border-slate-200 shadow-2xs"
+                                }`}
+                              >
+                                <div className="grid grid-cols-1 sm:grid-cols-12 gap-2 items-center">
+                                  {/* Number */}
+                                  <div className="sm:col-span-3 flex items-center gap-1.5">
+                                    <span className="w-5 h-5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-black flex items-center justify-center shrink-0">
+                                      {idx + 1}
+                                    </span>
+                                    <span className="text-xs font-black text-slate-800">
+                                      Installment #{idx + 1}
+                                    </span>
+                                  </div>
+
+                                  {/* Amount */}
+                                  <div className="sm:col-span-3">
+                                    <div className="relative">
+                                      <span className="absolute left-2.5 top-2 text-xs font-bold text-slate-400">₹</span>
+                                      <input
+                                        type="number"
+                                        min="0"
+                                        step="any"
+                                        required
+                                        placeholder="Amount"
+                                        className="w-full bg-slate-50 border border-slate-300 rounded-lg pl-6 pr-2 py-1.5 text-xs font-bold text-slate-900 focus:outline-none focus:border-emerald-600"
+                                        value={inst.amount}
+                                        onChange={(e) => handleUpdateInstallment(inst.id, "amount", e.target.value)}
+                                      />
+                                    </div>
+                                  </div>
+
+                                  {/* Date */}
+                                  <div className="sm:col-span-3">
+                                    <input
+                                      type="date"
+                                      required
+                                      className="w-full bg-slate-50 border border-slate-300 rounded-lg px-2 py-1.5 text-xs font-bold text-slate-900 focus:outline-none focus:border-emerald-600 font-mono"
+                                      value={inst.date}
+                                      onChange={(e) => handleUpdateInstallment(inst.id, "date", e.target.value)}
+                                    />
+                                  </div>
+
+                                  {/* Status Toggle & Delete */}
+                                  <div className="sm:col-span-3 flex items-center gap-1">
+                                    <button
+                                      type="button"
+                                      onClick={() =>
+                                        handleUpdateInstallment(inst.id, "status", isReceived ? "Pending" : "Received")
+                                      }
+                                      className={`flex-1 py-1.5 px-2 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all border flex items-center justify-center gap-1 ${
+                                        isReceived
+                                          ? "bg-emerald-600 hover:bg-emerald-700 text-white border-emerald-600 shadow-2xs"
+                                          : "bg-amber-50 hover:bg-amber-100 text-amber-800 border-amber-300"
+                                      }`}
+                                    >
+                                      {isReceived ? (
+                                        <>
+                                          <CheckCircle2 className="w-3 h-3" />
+                                          <span>Received</span>
+                                        </>
+                                      ) : (
+                                        <>
+                                          <Clock className="w-3 h-3" />
+                                          <span>Pending</span>
+                                        </>
+                                      )}
+                                    </button>
+
+                                    <button
+                                      type="button"
+                                      onClick={() => handleRemoveInstallment(inst.id)}
+                                      className="p-1.5 text-rose-400 hover:text-rose-700 hover:bg-rose-50 rounded-lg transition-colors shrink-0"
+                                      title="Remove Installment"
+                                    >
+                                      <Trash2 className="w-3.5 h-3.5" />
+                                    </button>
+                                  </div>
+                                </div>
+
+                                {/* Extra details if received */}
+                                {isReceived && (
+                                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mt-2.5 pt-2 border-t border-emerald-100 animate-fadeIn text-[11px]">
+                                    <div>
+                                      <label className="block text-[9px] uppercase font-bold text-emerald-800 mb-0.5">
+                                        Payment Method
+                                      </label>
+                                      <select
+                                        className="w-full bg-slate-50 border border-emerald-300 rounded-lg p-1.5 text-[11px] font-bold text-slate-800 focus:outline-none focus:border-emerald-600"
+                                        value={inst.paymentMethod}
+                                        onChange={(e) => handleUpdateInstallment(inst.id, "paymentMethod", e.target.value)}
+                                      >
+                                        <option value="Bank Transfer (NEFT/RTGS)">Bank Transfer (NEFT/RTGS)</option>
+                                        <option value="UPI / QR Code">UPI / QR Code</option>
+                                        <option value="Cheque / Demand Draft">Cheque / Demand Draft</option>
+                                        <option value="Cash">Cash</option>
+                                        <option value="Direct Bank Deposit">Direct Bank Deposit</option>
+                                        <option value="Other">Other</option>
+                                      </select>
+                                    </div>
+
+                                    <div>
+                                      <label className="block text-[9px] uppercase font-bold text-emerald-800 mb-0.5">
+                                        UTR / Txn ID / Cheque #
+                                      </label>
+                                      <input
+                                        type="text"
+                                        className="w-full bg-slate-50 border border-emerald-300 rounded-lg p-1.5 text-[11px] font-bold text-slate-800 focus:outline-none focus:border-emerald-600"
+                                        placeholder="e.g. UTR123456"
+                                        value={inst.transactionId}
+                                        onChange={(e) => handleUpdateInstallment(inst.id, "transactionId", e.target.value)}
+                                      />
+                                    </div>
+
+                                    <div>
+                                      <label className="block text-[9px] uppercase font-bold text-emerald-800 mb-0.5">
+                                        Payer / Notes
+                                      </label>
+                                      <input
+                                        type="text"
+                                        className="w-full bg-slate-50 border border-emerald-300 rounded-lg p-1.5 text-[11px] font-bold text-slate-800 focus:outline-none focus:border-emerald-600"
+                                        placeholder="e.g. Payer Name"
+                                        value={inst.payerName}
+                                        onChange={(e) => handleUpdateInstallment(inst.id, "payerName", e.target.value)}
+                                      />
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={handleAddInstallment}
+                          className="w-full py-2 bg-white hover:bg-emerald-100 text-emerald-800 border border-dashed border-emerald-300 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 shadow-2xs"
+                        >
+                          <Plus className="w-3.5 h-3.5" />
+                          <span>+ Add Another Installment Row</span>
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 {/* Additional Remarks */}
                 <div>
@@ -5263,6 +6448,844 @@ export default function SecurityMasterView({
                 </button>
               </div>
             </form>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* TOTAL ENTRIES BANK / NBFC WORK & BILLING SUMMARY MODAL */}
+      {mounted && showTotalEntriesModal && createPortal(
+        <div
+          className="fixed inset-0 z-[99999] bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-5 animate-in fade-in duration-200"
+          onClick={() => setShowTotalEntriesModal(false)}
+        >
+          <div
+            className="bg-white rounded-2xl max-w-4xl w-full shadow-2xl overflow-hidden border border-slate-200 max-h-[90vh] flex flex-col font-sans text-slate-800"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Modal Header */}
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center px-5 py-4 border-b border-slate-200 bg-gradient-to-r from-indigo-50/90 via-white to-purple-50/50 gap-3">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 bg-indigo-600 text-white rounded-xl shadow-md shrink-0">
+                  <Building2 className="w-5 h-5" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h2 className="text-base font-black text-slate-900">
+                      Bank &amp; NBFC Work &amp; Billing Summary
+                    </h2>
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-indigo-100 text-indigo-800 border border-indigo-200">
+                      {entries.length} Total Entries
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-500 font-medium mt-0.5">
+                    Click any Bank / NBFC name to see related works, total bill, received, and pending amounts.
+                  </p>
+                </div>
+              </div>
+
+              <button
+                onClick={() => setShowTotalEntriesModal(false)}
+                className="p-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-700 transition-colors self-end sm:self-auto"
+                title="Close Modal"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Overview Totals & Search Bar */}
+            <div className="bg-slate-50 px-5 py-3 border-b border-slate-200 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 text-xs">
+              <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+                <div className="flex items-center gap-1.5 bg-white px-2.5 py-1.5 rounded-lg border border-slate-200 shadow-2xs font-bold text-slate-700">
+                  <span className="text-slate-400 font-normal">Banks / NBFCs:</span>
+                  <span className="text-indigo-600 font-black">{bankWiseEntriesMap.length}</span>
+                </div>
+                <div className="flex items-center gap-1.5 bg-blue-50/80 px-2.5 py-1.5 rounded-lg border border-blue-200 font-bold text-blue-900">
+                  <span className="text-blue-500 font-normal">Total Bill:</span>
+                  <span className="font-black">₹{totalBilled.toLocaleString("en-IN")}</span>
+                </div>
+                <div className="flex items-center gap-1.5 bg-emerald-50/80 px-2.5 py-1.5 rounded-lg border border-emerald-200 font-bold text-emerald-900">
+                  <span className="text-emerald-500 font-normal">Total Received:</span>
+                  <span className="font-black">₹{totalReceived.toLocaleString("en-IN")}</span>
+                </div>
+                <div className="flex items-center gap-1.5 bg-rose-50/80 px-2.5 py-1.5 rounded-lg border border-rose-200 font-bold text-rose-900">
+                  <span className="text-rose-500 font-normal">Total Pending:</span>
+                  <span className="font-black">₹{Math.max(0, totalBilled - totalReceived).toLocaleString("en-IN")}</span>
+                </div>
+              </div>
+
+              {/* Modal Search Input */}
+              <div className="relative w-full sm:w-64">
+                <Search className="w-3.5 h-3.5 absolute left-3 top-2.5 text-slate-400" />
+                <input
+                  type="text"
+                  className="w-full bg-white border border-slate-200 rounded-lg pl-8 pr-3 py-1.5 text-xs font-bold text-slate-800 focus:outline-none focus:border-indigo-600 shadow-2xs"
+                  placeholder="Search Bank, Branch, Bill..."
+                  value={entriesModalSearch}
+                  onChange={(e) => setEntriesModalSearch(e.target.value)}
+                />
+              </div>
+            </div>
+
+            {/* Modal Body: Bank / NBFC List & Expanded Works */}
+            <div className="p-4 sm:p-5 overflow-y-auto max-h-[calc(90vh-170px)] space-y-3">
+              {filteredModalBanks.length === 0 ? (
+                <div className="text-center py-12 text-slate-400">
+                  <Building2 className="w-10 h-10 mx-auto mb-2 text-slate-300" />
+                  <p className="text-xs font-bold">No Banks / NBFCs or Works match your search.</p>
+                </div>
+              ) : (
+                filteredModalBanks.map((bankGroup) => {
+                  const isExpanded = !!expandedBanksMap[bankGroup.nbfcName];
+                  const toggleExpand = () => {
+                    setExpandedBanksMap((prev) => ({
+                      ...prev,
+                      [bankGroup.nbfcName]: !prev[bankGroup.nbfcName],
+                    }));
+                  };
+
+                  return (
+                    <div
+                      key={bankGroup.nbfcName}
+                      className={`border rounded-2xl transition-all overflow-hidden ${
+                        isExpanded
+                          ? "border-indigo-300 bg-white shadow-md ring-1 ring-indigo-100"
+                          : "border-slate-200 bg-white hover:border-slate-300 shadow-2xs"
+                      }`}
+                    >
+                      {/* Bank Header Clickable Bar */}
+                      <div
+                        onClick={toggleExpand}
+                        className="p-3.5 sm:p-4 cursor-pointer flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-gradient-to-r from-slate-50/80 to-white hover:bg-slate-50 transition-colors select-none"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="w-9 h-9 rounded-xl bg-indigo-50 border border-indigo-100 text-indigo-700 flex items-center justify-center font-black shrink-0">
+                            <Building2 className="w-4 h-4" />
+                          </div>
+                          <div>
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <h3 className="text-sm font-black text-slate-900 hover:text-indigo-600 transition-colors">
+                                {bankGroup.nbfcName}
+                              </h3>
+                              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-600 border border-slate-200">
+                                {bankGroup.works.length} {bankGroup.works.length === 1 ? "Work" : "Works"}
+                              </span>
+                            </div>
+                            <p className="text-[10px] text-slate-400 font-mono mt-0.5">
+                              Click to {isExpanded ? "hide" : "view"} all work details &amp; payment breakup
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* Right Side Summary Stats for this Bank */}
+                        <div className="flex items-center gap-2 sm:gap-3 flex-wrap sm:flex-nowrap justify-between sm:justify-end">
+                          <div className="text-left sm:text-right px-2.5 py-1 bg-blue-50/70 rounded-lg border border-blue-100">
+                            <span className="text-[9px] uppercase font-bold text-blue-600 font-mono block">Total Work Amt</span>
+                            <span className="text-xs font-black text-blue-800">₹{bankGroup.totalBillAmount.toLocaleString("en-IN")}</span>
+                          </div>
+
+                          <div className="text-left sm:text-right px-2.5 py-1 bg-emerald-50/70 rounded-lg border border-emerald-100">
+                            <span className="text-[9px] uppercase font-bold text-emerald-600 font-mono block">Received</span>
+                            <span className="text-xs font-black text-emerald-800">₹{bankGroup.totalReceivedAmount.toLocaleString("en-IN")}</span>
+                          </div>
+
+                          <div className="text-left sm:text-right px-2.5 py-1 bg-rose-50/70 rounded-lg border border-rose-100">
+                            <span className="text-[9px] uppercase font-bold text-rose-600 font-mono block">Pending</span>
+                            <span className="text-xs font-black text-rose-800">₹{bankGroup.totalPendingAmount.toLocaleString("en-IN")}</span>
+                          </div>
+
+                          <div className="p-1 rounded-full bg-slate-100 text-slate-500 shrink-0 ml-1">
+                            {isExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Expanded Detailed Works Table */}
+                      {isExpanded && (
+                        <div className="border-t border-slate-100 p-3 sm:p-4 bg-slate-50/50 animate-fadeIn">
+                          <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-2xs">
+                            <table className="w-full text-left text-xs border-collapse min-w-[720px]">
+                              <thead>
+                                <tr className="bg-slate-100/90 border-b border-slate-200 text-slate-600 font-black uppercase text-[10px] tracking-wider">
+                                  <th className="py-2.5 px-3">#</th>
+                                  <th className="py-2.5 px-3">Branch &amp; Site Area</th>
+                                  <th className="py-2.5 px-3">Bill No. &amp; Date</th>
+                                  <th className="py-2.5 px-3">Company</th>
+                                  <th className="py-2.5 px-3">Guards / Shift</th>
+                                  <th className="py-2.5 px-3 text-right">Bill Amount</th>
+                                  <th className="py-2.5 px-3 text-right">Received</th>
+                                  <th className="py-2.5 px-3 text-right">Pending</th>
+                                  <th className="py-2.5 px-3 text-center">Status</th>
+                                </tr>
+                              </thead>
+                              <tbody className="divide-y divide-slate-100 font-semibold text-slate-700">
+                                {bankGroup.works.map((work: any, wIdx: number) => {
+                                  const bAmt = Number(work.billAmount || 0);
+                                  const rAmt = Number(work.receivedAmount || 0);
+                                  const pAmt = Math.max(0, bAmt - rAmt);
+                                  return (
+                                    <tr key={work.id || wIdx} className="hover:bg-slate-50/70 transition-colors">
+                                      <td className="py-2.5 px-3 text-slate-400 font-mono">{wIdx + 1}</td>
+                                      <td className="py-2.5 px-3">
+                                        <div className="flex flex-col">
+                                          <span className="font-bold text-slate-900">{work.branchName || "General Branch"}</span>
+                                          <span className="text-[10px] text-slate-500 font-mono">
+                                            {work.location || "Site Area N/A"} {work.siteType ? `(${work.siteType})` : ""}
+                                          </span>
+                                        </div>
+                                      </td>
+                                      <td className="py-2.5 px-3">
+                                        <div className="flex flex-col">
+                                          <div className="flex items-center gap-1.5">
+                                            <span className="font-mono font-bold text-indigo-700">{work.billNo || "—"}</span>
+                                            {work.billInvoiceUrl && (
+                                              <button
+                                                type="button"
+                                                onClick={() => window.open(work.billInvoiceUrl, "_blank")}
+                                                className="text-[8px] font-black px-1 py-0.5 rounded bg-indigo-50 text-indigo-700 border border-indigo-200 hover:bg-indigo-100 uppercase"
+                                                title="View Bill File"
+                                              >
+                                                Bill
+                                              </button>
+                                            )}
+                                          </div>
+                                          <span className="text-[10px] text-slate-400 font-mono">{work.billDate || "—"}</span>
+                                        </div>
+                                      </td>
+                                      <td className="py-2.5 px-3 text-slate-600 text-[11px]">{work.company || "Force009"}</td>
+                                      <td className="py-2.5 px-3 text-[11px]">
+                                        {work.totalDailyGuards ? (
+                                          <span className="text-slate-700 font-bold">{work.totalDailyGuards} Guard(s)</span>
+                                        ) : (
+                                          <span className="text-slate-400 italic">None</span>
+                                        )}
+                                      </td>
+                                      <td className="py-2.5 px-3 text-right font-black text-slate-900">
+                                        ₹{bAmt.toLocaleString("en-IN")}
+                                      </td>
+                                      <td className="py-2.5 px-3 text-right font-black text-emerald-600">
+                                        ₹{rAmt.toLocaleString("en-IN")}
+                                        {work.receivedDate && (
+                                          <span className="block text-[9px] text-slate-400 font-mono font-normal">{work.receivedDate}</span>
+                                        )}
+                                        {(() => {
+                                          let insts: any[] = [];
+                                          try {
+                                            if (work.installmentsJson) insts = JSON.parse(work.installmentsJson);
+                                          } catch {}
+                                          if (Array.isArray(insts) && insts.length > 0) {
+                                            const paidCount = insts.filter((i) => i.status === "Received").length;
+                                            return (
+                                              <span className="block mt-0.5 text-[8px] font-bold text-purple-700 bg-purple-50 px-1 py-0.5 rounded border border-purple-200">
+                                                {paidCount}/{insts.length} Installments
+                                              </span>
+                                            );
+                                          }
+                                          return null;
+                                        })()}
+                                      </td>
+                                      <td className="py-2.5 px-3 text-right font-black text-rose-600">
+                                        ₹{pAmt.toLocaleString("en-IN")}
+                                      </td>
+                                      <td className="py-2.5 px-3 text-center">
+                                        <span
+                                          className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider border ${
+                                            work.paymentStatus === "Payment Done"
+                                              ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                                              : work.paymentStatus === "Partially Paid"
+                                              ? "bg-amber-50 text-amber-700 border-amber-200"
+                                              : "bg-rose-50 text-rose-700 border-rose-200"
+                                          }`}
+                                        >
+                                          {work.paymentStatus || "Due"}
+                                        </span>
+                                      </td>
+                                    </tr>
+                                  );
+                                })}
+                              </tbody>
+                              <tfoot className="bg-slate-50 font-bold border-t border-slate-200 text-slate-900 text-xs">
+                                <tr>
+                                  <td colSpan={5} className="py-2.5 px-3 text-right font-black uppercase text-[10px] text-slate-500 font-mono">
+                                    Bank Total:
+                                  </td>
+                                  <td className="py-2.5 px-3 text-right font-black text-blue-900">
+                                    ₹{bankGroup.totalBillAmount.toLocaleString("en-IN")}
+                                  </td>
+                                  <td className="py-2.5 px-3 text-right font-black text-emerald-700">
+                                    ₹{bankGroup.totalReceivedAmount.toLocaleString("en-IN")}
+                                  </td>
+                                  <td className="py-2.5 px-3 text-right font-black text-rose-700">
+                                    ₹{bankGroup.totalPendingAmount.toLocaleString("en-IN")}
+                                  </td>
+                                  <td></td>
+                                </tr>
+                              </tfoot>
+                            </table>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })
+              )}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="px-5 py-3 bg-slate-50 border-t border-slate-200 flex justify-between items-center text-xs">
+              <span className="text-slate-500 font-mono text-[11px]">
+                Showing {filteredModalBanks.length} of {bankWiseEntriesMap.length} Banks / NBFCs
+              </span>
+              <button
+                onClick={() => setShowTotalEntriesModal(false)}
+                className="px-4 py-2 bg-slate-800 hover:bg-slate-900 text-white rounded-xl font-bold transition-colors shadow-2xs"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* ── 2. Total Received Bank-Wise Breakdown Modal ── */}
+      {mounted && showReceivedSummaryModal && createPortal(
+        <div
+          className="fixed inset-0 z-[99999] bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-5 animate-in fade-in duration-200"
+          onClick={() => setShowReceivedSummaryModal(false)}
+        >
+          <div
+            className="bg-white rounded-2xl max-w-4xl w-full shadow-2xl overflow-hidden border border-slate-200 max-h-[90vh] flex flex-col font-sans text-slate-800"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Modal Header */}
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center px-5 py-4 border-b border-emerald-200 bg-gradient-to-r from-emerald-50 via-white to-teal-50 gap-3">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 bg-emerald-600 text-white rounded-xl shadow-md shrink-0">
+                  <CheckCircle2 className="w-5 h-5" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h2 className="text-base font-black text-slate-900">
+                      Bank &amp; NBFC Received &amp; Pending Payments Summary
+                    </h2>
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-100 text-emerald-800 border border-emerald-200">
+                      ₹{totalReceived.toLocaleString("en-IN")} Total Received
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-500 font-medium mt-0.5">
+                    Click any Bank / NBFC name to view received amount, pending balance, and individual work records.
+                  </p>
+                </div>
+              </div>
+
+              <button
+                onClick={() => setShowReceivedSummaryModal(false)}
+                className="p-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-700 transition-colors self-end sm:self-auto"
+                title="Close Modal"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Overview Totals & Search Bar */}
+            <div className="bg-slate-50 px-5 py-3 border-b border-slate-200 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 text-xs">
+              <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+                <div className="flex items-center gap-1.5 bg-white px-2.5 py-1.5 rounded-lg border border-slate-200 shadow-2xs font-bold text-slate-700">
+                  <span className="text-slate-400 font-normal">Banks / NBFCs:</span>
+                  <span className="text-emerald-700 font-black">{bankWiseReceivedMap.length}</span>
+                </div>
+                <div className="flex items-center gap-1.5 bg-emerald-50 px-2.5 py-1.5 rounded-lg border border-emerald-200 font-bold text-emerald-900">
+                  <span className="text-emerald-600 font-normal">Total Received:</span>
+                  <span className="font-black">₹{totalReceived.toLocaleString("en-IN")}</span>
+                </div>
+                <div className="flex items-center gap-1.5 bg-rose-50 px-2.5 py-1.5 rounded-lg border border-rose-200 font-bold text-rose-900">
+                  <span className="text-rose-500 font-normal">Remaining Pending:</span>
+                  <span className="font-black">₹{Math.max(0, totalBilled - totalReceived).toLocaleString("en-IN")}</span>
+                </div>
+                <div className="flex items-center gap-1.5 bg-blue-50 px-2.5 py-1.5 rounded-lg border border-blue-200 font-bold text-blue-900">
+                  <span className="text-blue-500 font-normal">Total Billed:</span>
+                  <span className="font-black">₹{totalBilled.toLocaleString("en-IN")}</span>
+                </div>
+              </div>
+
+              {/* Modal Search Input */}
+              <div className="relative w-full sm:w-64">
+                <Search className="w-3.5 h-3.5 absolute left-3 top-2.5 text-slate-400" />
+                <input
+                  type="text"
+                  className="w-full bg-white border border-slate-200 rounded-lg pl-8 pr-3 py-1.5 text-xs font-bold text-slate-800 focus:outline-none focus:border-emerald-600 shadow-2xs"
+                  placeholder="Search Bank, Branch, Bill..."
+                  value={receivedModalSearch}
+                  onChange={(e) => setReceivedModalSearch(e.target.value)}
+                />
+              </div>
+            </div>
+
+            {/* Modal Body: Bank / NBFC List & Expanded Works */}
+            <div className="p-4 sm:p-5 overflow-y-auto max-h-[calc(90vh-170px)] space-y-3">
+              {filteredReceivedModalBanks.length === 0 ? (
+                <div className="text-center py-12 text-slate-400">
+                  <CheckCircle2 className="w-10 h-10 mx-auto mb-2 text-slate-300" />
+                  <p className="text-xs font-bold">No received payment records found matching your search.</p>
+                </div>
+              ) : (
+                filteredReceivedModalBanks.map((bankGroup) => {
+                  const isExpanded = !!expandedReceivedBanksMap[bankGroup.nbfcName];
+                  const toggleExpand = () => {
+                    setExpandedReceivedBanksMap((prev) => ({
+                      ...prev,
+                      [bankGroup.nbfcName]: !prev[bankGroup.nbfcName],
+                    }));
+                  };
+
+                  return (
+                    <div
+                      key={bankGroup.nbfcName}
+                      className={`border rounded-2xl transition-all overflow-hidden ${
+                        isExpanded
+                          ? "border-emerald-300 bg-white shadow-md ring-1 ring-emerald-100"
+                          : "border-slate-200 bg-white hover:border-slate-300 shadow-2xs"
+                      }`}
+                    >
+                      {/* Bank Header Clickable Bar */}
+                      <div
+                        onClick={toggleExpand}
+                        className="p-3.5 sm:p-4 cursor-pointer flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-gradient-to-r from-emerald-50/40 to-white hover:bg-emerald-50/70 transition-colors select-none"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="w-9 h-9 rounded-xl bg-emerald-50 border border-emerald-100 text-emerald-700 flex items-center justify-center font-black shrink-0">
+                            <Building2 className="w-4 h-4" />
+                          </div>
+                          <div>
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <h3 className="text-sm font-black text-slate-900 hover:text-emerald-700 transition-colors">
+                                {bankGroup.nbfcName}
+                              </h3>
+                              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
+                                {bankGroup.works.length} {bankGroup.works.length === 1 ? "Work" : "Works"}
+                              </span>
+                            </div>
+                            <p className="text-[10px] text-slate-400 font-mono mt-0.5">
+                              Click to {isExpanded ? "hide" : "view"} payment breakup and works
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* Right Side Summary Stats for this Bank */}
+                        <div className="flex items-center gap-2 sm:gap-3 flex-wrap sm:flex-nowrap justify-between sm:justify-end">
+                          <div className="text-left sm:text-right px-2.5 py-1 bg-emerald-50 rounded-lg border border-emerald-200">
+                            <span className="text-[9px] uppercase font-bold text-emerald-700 font-mono block">Received Amount</span>
+                            <span className="text-xs font-black text-emerald-800">₹{bankGroup.totalReceivedAmount.toLocaleString("en-IN")}</span>
+                          </div>
+
+                          <div className="text-left sm:text-right px-2.5 py-1 bg-rose-50 rounded-lg border border-rose-100">
+                            <span className="text-[9px] uppercase font-bold text-rose-600 font-mono block">Pending Balance</span>
+                            <span className="text-xs font-black text-rose-800">₹{bankGroup.totalPendingAmount.toLocaleString("en-IN")}</span>
+                          </div>
+
+                          <div className="text-left sm:text-right px-2.5 py-1 bg-blue-50/70 rounded-lg border border-blue-100">
+                            <span className="text-[9px] uppercase font-bold text-blue-600 font-mono block">Total Work Amt</span>
+                            <span className="text-xs font-black text-blue-800">₹{bankGroup.totalBillAmount.toLocaleString("en-IN")}</span>
+                          </div>
+
+                          <div className="p-1 rounded-full bg-slate-100 text-slate-500 shrink-0 ml-1">
+                            {isExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Expanded Detailed Works Table */}
+                      {isExpanded && (
+                        <div className="border-t border-slate-100 p-3 sm:p-4 bg-slate-50/50 animate-fadeIn">
+                          <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-2xs">
+                            <table className="w-full text-left text-xs border-collapse min-w-[720px]">
+                              <thead>
+                                <tr className="bg-slate-100/90 border-b border-slate-200 text-slate-600 font-black uppercase text-[10px] tracking-wider">
+                                  <th className="py-2.5 px-3">#</th>
+                                  <th className="py-2.5 px-3">Branch &amp; Site Area</th>
+                                  <th className="py-2.5 px-3">Bill No. &amp; Date</th>
+                                  <th className="py-2.5 px-3 text-right">Bill Amount</th>
+                                  <th className="py-2.5 px-3 text-right">Received Amount</th>
+                                  <th className="py-2.5 px-3 text-right">Pending Balance</th>
+                                  <th className="py-2.5 px-3">Payment Details</th>
+                                  <th className="py-2.5 px-3 text-center">Status</th>
+                                </tr>
+                              </thead>
+                              <tbody className="divide-y divide-slate-100 font-semibold text-slate-700">
+                                {bankGroup.works.map((work: any, wIdx: number) => {
+                                  const bAmt = Number(work.billAmount || 0);
+                                  const rAmt = Number(work.receivedAmount || 0);
+                                  const pAmt = Math.max(0, bAmt - rAmt);
+                                  return (
+                                    <tr key={work.id || wIdx} className="hover:bg-slate-50/70 transition-colors">
+                                      <td className="py-2.5 px-3 text-slate-400 font-mono">{wIdx + 1}</td>
+                                      <td className="py-2.5 px-3">
+                                        <div className="flex flex-col">
+                                          <span className="font-bold text-slate-900">{work.branchName || "General Branch"}</span>
+                                          <span className="text-[10px] text-slate-500 font-mono">
+                                            {work.location || "Site Area N/A"} {work.siteType ? `(${work.siteType})` : ""}
+                                          </span>
+                                        </div>
+                                      </td>
+                                      <td className="py-2.5 px-3">
+                                        <div className="flex flex-col">
+                                          <span className="font-mono font-bold text-indigo-700">{work.billNo || "—"}</span>
+                                          <span className="text-[10px] text-slate-400 font-mono">{work.billDate || "—"}</span>
+                                        </div>
+                                      </td>
+                                      <td className="py-2.5 px-3 text-right font-black text-slate-900">
+                                        ₹{bAmt.toLocaleString("en-IN")}
+                                      </td>
+                                      <td className="py-2.5 px-3 text-right font-black text-emerald-600 bg-emerald-50/30">
+                                        ₹{rAmt.toLocaleString("en-IN")}
+                                        {work.receivedDate && (
+                                          <span className="block text-[9px] text-emerald-700 font-mono font-normal">Date: {work.receivedDate}</span>
+                                        )}
+                                        {(() => {
+                                          let insts: any[] = [];
+                                          try {
+                                            if (work.installmentsJson) insts = JSON.parse(work.installmentsJson);
+                                          } catch {}
+                                          if (Array.isArray(insts) && insts.length > 0) {
+                                            const paidCount = insts.filter((i) => i.status === "Received").length;
+                                            return (
+                                              <span className="block mt-0.5 text-[8px] font-bold text-purple-700 bg-purple-50 px-1 py-0.5 rounded border border-purple-200">
+                                                {paidCount}/{insts.length} Installments
+                                              </span>
+                                            );
+                                          }
+                                          return null;
+                                        })()}
+                                      </td>
+                                      <td className="py-2.5 px-3 text-right font-black text-rose-600">
+                                        ₹{pAmt.toLocaleString("en-IN")}
+                                      </td>
+                                      <td className="py-2.5 px-3 text-[11px]">
+                                        <span className="font-bold text-slate-800 block">{work.paymentMethod || "Bank Transfer"}</span>
+                                      </td>
+                                      <td className="py-2.5 px-3 text-center">
+                                        <span
+                                          className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider border ${
+                                            work.paymentStatus === "Payment Done"
+                                              ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                                              : work.paymentStatus === "Partially Paid"
+                                              ? "bg-amber-50 text-amber-700 border-amber-200"
+                                              : "bg-rose-50 text-rose-700 border-rose-200"
+                                          }`}
+                                        >
+                                          {work.paymentStatus || "Due"}
+                                        </span>
+                                      </td>
+                                    </tr>
+                                  );
+                                })}
+                              </tbody>
+                              <tfoot className="bg-slate-50 font-bold border-t border-slate-200 text-slate-900 text-xs">
+                                <tr>
+                                  <td colSpan={3} className="py-2.5 px-3 text-right font-black uppercase text-[10px] text-slate-500 font-mono">
+                                    Bank Total:
+                                  </td>
+                                  <td className="py-2.5 px-3 text-right font-black text-blue-900">
+                                    ₹{bankGroup.totalBillAmount.toLocaleString("en-IN")}
+                                  </td>
+                                  <td className="py-2.5 px-3 text-right font-black text-emerald-700">
+                                    ₹{bankGroup.totalReceivedAmount.toLocaleString("en-IN")}
+                                  </td>
+                                  <td className="py-2.5 px-3 text-right font-black text-rose-700">
+                                    ₹{bankGroup.totalPendingAmount.toLocaleString("en-IN")}
+                                  </td>
+                                  <td colSpan={2}></td>
+                                </tr>
+                              </tfoot>
+                            </table>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })
+              )}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="px-5 py-3 bg-slate-50 border-t border-slate-200 flex justify-between items-center text-xs">
+              <span className="text-slate-500 font-mono text-[11px]">
+                Showing {filteredReceivedModalBanks.length} of {bankWiseReceivedMap.length} Banks / NBFCs with received payments
+              </span>
+              <button
+                onClick={() => setShowReceivedSummaryModal(false)}
+                className="px-4 py-2 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl font-bold transition-colors shadow-2xs"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* ── 3. Pending Due Cases Bank-Wise Breakdown Modal ── */}
+      {mounted && showPendingDueModal && createPortal(
+        <div
+          className="fixed inset-0 z-[99999] bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-5 animate-in fade-in duration-200"
+          onClick={() => setShowPendingDueModal(false)}
+        >
+          <div
+            className="bg-white rounded-2xl max-w-4xl w-full shadow-2xl overflow-hidden border border-slate-200 max-h-[90vh] flex flex-col font-sans text-slate-800"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Modal Header */}
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center px-5 py-4 border-b border-rose-200 bg-gradient-to-r from-rose-50 via-white to-amber-50 gap-3">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 bg-rose-600 text-white rounded-xl shadow-md shrink-0">
+                  <Clock className="w-5 h-5" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h2 className="text-base font-black text-slate-900">
+                      Bank &amp; NBFC Pending Due Cases Summary
+                    </h2>
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-rose-100 text-rose-800 border border-rose-200">
+                      {totalDueCount} Pending Cases
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-500 font-medium mt-0.5">
+                    Click any Bank / NBFC name to view pending due amounts and take action on unpaid cases.
+                  </p>
+                </div>
+              </div>
+
+              <button
+                onClick={() => setShowPendingDueModal(false)}
+                className="p-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-700 transition-colors self-end sm:self-auto"
+                title="Close Modal"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Overview Totals & Search Bar */}
+            <div className="bg-slate-50 px-5 py-3 border-b border-slate-200 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 text-xs">
+              <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+                <div className="flex items-center gap-1.5 bg-white px-2.5 py-1.5 rounded-lg border border-slate-200 shadow-2xs font-bold text-slate-700">
+                  <span className="text-slate-400 font-normal">Banks with Due:</span>
+                  <span className="text-rose-700 font-black">{bankWisePendingDueMap.length}</span>
+                </div>
+                <div className="flex items-center gap-1.5 bg-rose-50 px-2.5 py-1.5 rounded-lg border border-rose-200 font-bold text-rose-900">
+                  <span className="text-rose-600 font-normal">Total Pending Amount:</span>
+                  <span className="font-black">₹{Math.max(0, totalBilled - totalReceived).toLocaleString("en-IN")}</span>
+                </div>
+                <div className="flex items-center gap-1.5 bg-emerald-50 px-2.5 py-1.5 rounded-lg border border-emerald-200 font-bold text-emerald-900">
+                  <span className="text-emerald-600 font-normal">Already Received:</span>
+                  <span className="font-black">₹{totalReceived.toLocaleString("en-IN")}</span>
+                </div>
+                <div className="flex items-center gap-1.5 bg-blue-50 px-2.5 py-1.5 rounded-lg border border-blue-200 font-bold text-blue-900">
+                  <span className="text-blue-500 font-normal">Total Billed:</span>
+                  <span className="font-black">₹{totalBilled.toLocaleString("en-IN")}</span>
+                </div>
+              </div>
+
+              {/* Modal Search Input */}
+              <div className="relative w-full sm:w-64">
+                <Search className="w-3.5 h-3.5 absolute left-3 top-2.5 text-slate-400" />
+                <input
+                  type="text"
+                  className="w-full bg-white border border-slate-200 rounded-lg pl-8 pr-3 py-1.5 text-xs font-bold text-slate-800 focus:outline-none focus:border-rose-600 shadow-2xs"
+                  placeholder="Search Bank, Branch, Bill..."
+                  value={pendingDueModalSearch}
+                  onChange={(e) => setPendingDueModalSearch(e.target.value)}
+                />
+              </div>
+            </div>
+
+            {/* Modal Body: Bank / NBFC List & Expanded Works */}
+            <div className="p-4 sm:p-5 overflow-y-auto max-h-[calc(90vh-170px)] space-y-3">
+              {filteredPendingModalBanks.length === 0 ? (
+                <div className="text-center py-12 text-slate-400">
+                  <Clock className="w-10 h-10 mx-auto mb-2 text-slate-300" />
+                  <p className="text-xs font-bold">No pending due records found matching your search.</p>
+                </div>
+              ) : (
+                filteredPendingModalBanks.map((bankGroup) => {
+                  const isExpanded = !!expandedPendingBanksMap[bankGroup.nbfcName];
+                  const toggleExpand = () => {
+                    setExpandedPendingBanksMap((prev) => ({
+                      ...prev,
+                      [bankGroup.nbfcName]: !prev[bankGroup.nbfcName],
+                    }));
+                  };
+
+                  return (
+                    <div
+                      key={bankGroup.nbfcName}
+                      className={`border rounded-2xl transition-all overflow-hidden ${
+                        isExpanded
+                          ? "border-rose-300 bg-white shadow-md ring-1 ring-rose-100"
+                          : "border-slate-200 bg-white hover:border-slate-300 shadow-2xs"
+                      }`}
+                    >
+                      {/* Bank Header Clickable Bar */}
+                      <div
+                        onClick={toggleExpand}
+                        className="p-3.5 sm:p-4 cursor-pointer flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-gradient-to-r from-rose-50/40 to-white hover:bg-rose-50/70 transition-colors select-none"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="w-9 h-9 rounded-xl bg-rose-50 border border-rose-100 text-rose-700 flex items-center justify-center font-black shrink-0">
+                            <Building2 className="w-4 h-4" />
+                          </div>
+                          <div>
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <h3 className="text-sm font-black text-slate-900 hover:text-rose-700 transition-colors">
+                                {bankGroup.nbfcName}
+                              </h3>
+                              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-800 border border-rose-200">
+                                {bankGroup.works.length} {bankGroup.works.length === 1 ? "Pending Case" : "Pending Cases"}
+                              </span>
+                            </div>
+                            <p className="text-[10px] text-slate-400 font-mono mt-0.5">
+                              Click to {isExpanded ? "hide" : "view"} pending cases breakup
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* Right Side Summary Stats for this Bank */}
+                        <div className="flex items-center gap-2 sm:gap-3 flex-wrap sm:flex-nowrap justify-between sm:justify-end">
+                          <div className="text-left sm:text-right px-2.5 py-1 bg-rose-50 rounded-lg border border-rose-200">
+                            <span className="text-[9px] uppercase font-bold text-rose-700 font-mono block">Pending Due Amount</span>
+                            <span className="text-xs font-black text-rose-800">₹{bankGroup.totalPendingAmount.toLocaleString("en-IN")}</span>
+                          </div>
+
+                          <div className="text-left sm:text-right px-2.5 py-1 bg-emerald-50 rounded-lg border border-emerald-100">
+                            <span className="text-[9px] uppercase font-bold text-emerald-600 font-mono block">Received So Far</span>
+                            <span className="text-xs font-black text-emerald-800">₹{bankGroup.totalReceivedAmount.toLocaleString("en-IN")}</span>
+                          </div>
+
+                          <div className="text-left sm:text-right px-2.5 py-1 bg-blue-50/70 rounded-lg border border-blue-100">
+                            <span className="text-[9px] uppercase font-bold text-blue-600 font-mono block">Total Work Amt</span>
+                            <span className="text-xs font-black text-blue-800">₹{bankGroup.totalBillAmount.toLocaleString("en-IN")}</span>
+                          </div>
+
+                          <div className="p-1 rounded-full bg-slate-100 text-slate-500 shrink-0 ml-1">
+                            {isExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Expanded Detailed Works Table */}
+                      {isExpanded && (
+                        <div className="border-t border-slate-100 p-3 sm:p-4 bg-slate-50/50 animate-fadeIn">
+                          <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-2xs">
+                            <table className="w-full text-left text-xs border-collapse min-w-[720px]">
+                              <thead>
+                                <tr className="bg-slate-100/90 border-b border-slate-200 text-slate-600 font-black uppercase text-[10px] tracking-wider">
+                                  <th className="py-2.5 px-3">#</th>
+                                  <th className="py-2.5 px-3">Branch &amp; Site Area</th>
+                                  <th className="py-2.5 px-3">Bill No. &amp; Date</th>
+                                  <th className="py-2.5 px-3 text-right">Bill Amount</th>
+                                  <th className="py-2.5 px-3 text-right">Received</th>
+                                  <th className="py-2.5 px-3 text-right">Pending Amount</th>
+                                  <th className="py-2.5 px-3 text-center">Status</th>
+                                  <th className="py-2.5 px-3 text-center">Action</th>
+                                </tr>
+                              </thead>
+                              <tbody className="divide-y divide-slate-100 font-semibold text-slate-700">
+                                {bankGroup.works.map((work: any, wIdx: number) => {
+                                  const bAmt = Number(work.billAmount || 0);
+                                  const rAmt = Number(work.receivedAmount || 0);
+                                  const pAmt = Math.max(0, bAmt - rAmt);
+                                  return (
+                                    <tr key={work.id || wIdx} className="hover:bg-slate-50/70 transition-colors">
+                                      <td className="py-2.5 px-3 text-slate-400 font-mono">{wIdx + 1}</td>
+                                      <td className="py-2.5 px-3">
+                                        <div className="flex flex-col">
+                                          <span className="font-bold text-slate-900">{work.branchName || "General Branch"}</span>
+                                          <span className="text-[10px] text-slate-500 font-mono">
+                                            {work.location || "Site Area N/A"} {work.siteType ? `(${work.siteType})` : ""}
+                                          </span>
+                                        </div>
+                                      </td>
+                                      <td className="py-2.5 px-3">
+                                        <div className="flex flex-col">
+                                          <span className="font-mono font-bold text-indigo-700">{work.billNo || "—"}</span>
+                                          <span className="text-[10px] text-slate-400 font-mono">{work.billDate || "—"}</span>
+                                        </div>
+                                      </td>
+                                      <td className="py-2.5 px-3 text-right font-black text-slate-900">
+                                        ₹{bAmt.toLocaleString("en-IN")}
+                                      </td>
+                                      <td className="py-2.5 px-3 text-right font-black text-emerald-600">
+                                        ₹{rAmt.toLocaleString("en-IN")}
+                                      </td>
+                                      <td className="py-2.5 px-3 text-right font-black text-rose-600 bg-rose-50/30">
+                                        ₹{pAmt.toLocaleString("en-IN")}
+                                      </td>
+                                      <td className="py-2.5 px-3 text-center">
+                                        <span
+                                          className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider border ${
+                                            work.paymentStatus === "Partially Paid"
+                                              ? "bg-amber-50 text-amber-700 border-amber-200"
+                                              : "bg-rose-50 text-rose-700 border-rose-200"
+                                          }`}
+                                        >
+                                          {work.paymentStatus || "Due"}
+                                        </span>
+                                      </td>
+                                      <td className="py-2.5 px-3 text-center">
+                                        <button
+                                          type="button"
+                                          onClick={() => {
+                                            setShowPendingDueModal(false);
+                                            handleOpenReceiveModal(work);
+                                          }}
+                                          className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[10px] font-black shadow-2xs transition-all"
+                                        >
+                                          Log Payment
+                                        </button>
+                                      </td>
+                                    </tr>
+                                  );
+                                })}
+                              </tbody>
+                              <tfoot className="bg-slate-50 font-bold border-t border-slate-200 text-slate-900 text-xs">
+                                <tr>
+                                  <td colSpan={3} className="py-2.5 px-3 text-right font-black uppercase text-[10px] text-slate-500 font-mono">
+                                    Bank Total:
+                                  </td>
+                                  <td className="py-2.5 px-3 text-right font-black text-blue-900">
+                                    ₹{bankGroup.totalBillAmount.toLocaleString("en-IN")}
+                                  </td>
+                                  <td className="py-2.5 px-3 text-right font-black text-emerald-700">
+                                    ₹{bankGroup.totalReceivedAmount.toLocaleString("en-IN")}
+                                  </td>
+                                  <td className="py-2.5 px-3 text-right font-black text-rose-700">
+                                    ₹{bankGroup.totalPendingAmount.toLocaleString("en-IN")}
+                                  </td>
+                                  <td colSpan={2}></td>
+                                </tr>
+                              </tfoot>
+                            </table>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })
+              )}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="px-5 py-3 bg-slate-50 border-t border-slate-200 flex justify-between items-center text-xs">
+              <span className="text-slate-500 font-mono text-[11px]">
+                Showing {filteredPendingModalBanks.length} of {bankWisePendingDueMap.length} Banks / NBFCs with pending balance
+              </span>
+              <button
+                onClick={() => setShowPendingDueModal(false)}
+                className="px-4 py-2 bg-rose-700 hover:bg-rose-800 text-white rounded-xl font-bold transition-colors shadow-2xs"
+              >
+                Close
+              </button>
+            </div>
           </div>
         </div>,
         document.body
