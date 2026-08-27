@@ -210,6 +210,26 @@ TaskLog.init(
     sequelize,
     tableName: "tasklogs",
     timestamps: true,
+    hooks: {
+      beforeValidate: (task: any) => {
+        if (task.deadlineAt) return;
+        const now = new Date();
+        const scheduled = task.scheduledAt ? new Date(task.scheduledAt) : null;
+        const base = scheduled && !Number.isNaN(scheduled.getTime()) && scheduled > now ? scheduled : (task.createdAt ? new Date(task.createdAt) : now);
+        task.deadlineHours = task.deadlineHours || 2;
+        task.deadlineAt = new Date(base.getTime() + Number(task.deadlineHours) * 60 * 60 * 1000);
+      },
+      beforeBulkCreate: (tasks: any[]) => {
+        const now = new Date();
+        tasks.forEach(task => {
+          if (task.deadlineAt) return;
+          const scheduled = task.scheduledAt ? new Date(task.scheduledAt) : null;
+          const base = scheduled && !Number.isNaN(scheduled.getTime()) && scheduled > now ? scheduled : (task.createdAt ? new Date(task.createdAt) : now);
+          task.deadlineHours = task.deadlineHours || 2;
+          task.deadlineAt = new Date(base.getTime() + Number(task.deadlineHours) * 60 * 60 * 1000);
+        });
+      },
+    },
     indexes: [
       { fields: ["employee"] },
       { fields: ["date"] },

@@ -8,6 +8,7 @@ import {
   Package, WalletCards, UserPlus, Megaphone, FileText, Car, Database,
   ClipboardList, FolderKanban, UserRoundCheck
 } from "lucide-react";
+import OwnerFinanceOverview from "./OwnerFinanceOverview";
 
 type Props = {
   sessionUser?: any;
@@ -326,6 +327,8 @@ export default function OwnerCommandCentre({ sessionUser, stats, riskAlertList, 
         </div>
       </div>
     </div>
+
+    <OwnerFinanceOverview onNavigate={onNavigateTab} />
 
     <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3">
       <MetricCard label="Active Employees" value={filteredStaff.length || stats?.roles?.employees || 0} detail="Group workforce" icon={Users} tone="plum" onClick={() => onNavigateTab("employees")} />

@@ -7740,7 +7740,7 @@ export function LeaveRequestTab({ sessionUser, initialSearchFilter }: { sessionU
     // 3. Status Filter
     if (filterStatus !== "All") {
       if (filterStatus === "Pending") {
-        if (!["Pending", "Pending Manager Approval", "Pending HR Approval"].includes(leave.status)) {
+        if (!["Pending", "Pending Manager Approval", "Pending Recommender Approval", "Pending HR Approval", "Pending Owner Approval"].includes(leave.status)) {
           return false;
         }
       } else {
@@ -8380,7 +8380,7 @@ export function LeaveRequestTab({ sessionUser, initialSearchFilter }: { sessionU
                         // Show actions if current user is an authorized approver for another employee's leave
                         const showActions =
                           (isDirectReportManager || isManager || isOwnerOrDirector || isHR) &&
-                          (leave.status === "Pending" || leave.status === "Pending Manager Approval" || leave.status === "Pending HR Approval");
+                          (["Pending", "Pending Manager Approval", "Pending Recommender Approval", "Pending HR Approval", "Pending Owner Approval"].includes(leave.status));
 
                         return (
                           <tr key={leave.id} className="hover:bg-slate-50/50">
@@ -8445,8 +8445,8 @@ export function LeaveRequestTab({ sessionUser, initialSearchFilter }: { sessionU
                                   </div>
                                 ) : (
                                   <span className="text-slate-450 text-[11px] italic">
-                                    {leave.status === "Pending HR Approval"
-                                      ? "Forwarded to HR - Awaiting HR Review"
+                                    {leave.status === "Pending Owner Approval"
+                                      ? "Recommended - Awaiting Owner Review"
                                       : leave.remarks ? `Remarks: ${leave.remarks}` : "Awaiting Manager Review"}
                                   </span>
                                 )}
@@ -8456,14 +8456,14 @@ export function LeaveRequestTab({ sessionUser, initialSearchFilter }: { sessionU
                             {/* processed info for Employees */}
                             {!canApprove && (
                               <td className="py-3.5 px-4 text-slate-500 text-[11px] italic max-w-xs truncate">
-                                {leave.status !== "Pending" && leave.status !== "Pending Manager Approval" && leave.status !== "Pending HR Approval" ? (
+                                {!["Pending", "Pending Manager Approval", "Pending Recommender Approval", "Pending HR Approval", "Pending Owner Approval"].includes(leave.status) ? (
                                   <span>
                                     By: {leave.approvedBy?.name || "HR/Manager"}
                                     {leave.remarks ? ` (${leave.remarks})` : ""}
                                   </span>
                                 ) : (
                                   <span>
-                                    {leave.status === "Pending Manager Approval" ? "Awaiting Manager Review" : "Awaiting HR Review"}
+                                    {leave.status === "Pending Owner Approval" ? "Awaiting Owner Review" : "Awaiting Department Manager Review"}
                                   </span>
                                 )}
                               </td>

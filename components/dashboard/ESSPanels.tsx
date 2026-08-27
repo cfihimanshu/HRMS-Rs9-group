@@ -1094,7 +1094,7 @@ export function ESSLeaves({ user, triggerToast, stats, initialSearchFilter, setA
       // 3. Status Filter
       if (filterStatus !== "All") {
         if (filterStatus === "Pending") {
-          if (!["Pending", "Pending Manager Approval", "Pending HR Approval"].includes(l.status)) {
+          if (!["Pending", "Pending Manager Approval", "Pending Recommender Approval", "Pending HR Approval", "Pending Owner Approval"].includes(l.status)) {
             return false;
           }
         } else if (l.status !== filterStatus) {
@@ -1409,7 +1409,7 @@ export function ESSLeaves({ user, triggerToast, stats, initialSearchFilter, setA
                       </span>
                     </td>
                     <td className="py-3 px-3 text-slate-500 text-[11px] italic">
-                      {l.status !== "Pending Manager Approval" && l.status !== "Pending HR Approval" ?
+                      {!['Pending', 'Pending Manager Approval', 'Pending Recommender Approval', 'Pending HR Approval', 'Pending Owner Approval'].includes(l.status) ?
                         (l.approvedBy?.name ? `By: ${l.approvedBy?.name} ${l.remarks ? `(${l.remarks})` : ''}` : (l.remarks || 'No remarks')) :
                         'Awaiting Approval'}
                     </td>

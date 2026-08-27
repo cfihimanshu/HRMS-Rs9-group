@@ -33,6 +33,8 @@ BdaCallLog.init(
       { fields: ["bdaUserId"] },
       { fields: ["callDateTime"] },
       { fields: ["nextCallbackAt"] },
+      { name: "idx_bda_calls_user_date", fields: ["bdaUserId", "callDateTime"] },
+      { name: "idx_bda_calls_lead_date", fields: ["leadId", "callDateTime"] },
     ],
   }
 );

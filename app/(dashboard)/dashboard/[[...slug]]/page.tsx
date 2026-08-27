@@ -20,6 +20,7 @@ import {
 // Import modular panels
 import DashboardSidebar from "@/components/dashboard/Sidebar";
 import Topbar from "@/components/dashboard/Topbar";
+import IncompleteWorkAlert from "@/components/dashboard/IncompleteWorkAlert";
 import HiringRequisitionModal from "@/components/dashboard/HiringRequisitionModal";
 import { HrDashboard, DepartmentDashboard } from "@/components/dashboard/OverviewPanels";
 import OwnerCommandCentre from "@/components/dashboard/OwnerCommandCentre";
@@ -100,6 +101,7 @@ export default function UnifiedEnterpriseDashboard() {
   const [businessLeadsFilter, setBusinessLeadsFilter] = useState<string>("All");
   const [kanbanSearchFilter, setKanbanSearchFilter] = useState<string>("");
   const [kanbanUserFilter, setKanbanUserFilter] = useState<string>("All");
+  const [kanbanOverdueOnly, setKanbanOverdueOnly] = useState(false);
   const [performanceSubTab, setPerformanceSubTab] = useState<string>("visual-dashboard");
   const [leaveSearchFilter, setLeaveSearchFilter] = useState<string>("");
 
@@ -125,7 +127,9 @@ export default function UnifiedEnterpriseDashboard() {
       setKanbanUserFilter("All");
       setLeaveSearchFilter("");
     } else if (tab === "tasks") {
-      setKanbanSearchFilter(filter || "");
+      const overdueOnly = filter === "__overdue__";
+      setKanbanOverdueOnly(overdueOnly);
+      setKanbanSearchFilter(overdueOnly ? "" : (filter || ""));
       setKanbanUserFilter(userFilter || "All");
       setBusinessLeadsFilter("All");
       setLeaveSearchFilter("");
@@ -141,6 +145,7 @@ export default function UnifiedEnterpriseDashboard() {
       setKanbanSearchFilter("");
       setKanbanUserFilter("All");
       setLeaveSearchFilter("");
+      setKanbanOverdueOnly(false);
     }
   };
   const [mobileMenuOpen, setMobileMenuOpen] = useState<boolean>(false);
@@ -1254,6 +1259,8 @@ export default function UnifiedEnterpriseDashboard() {
         {/* Tab Panel Body container */}
         <div className="flex-1 overflow-y-auto px-4 py-4 md:px-8 md:py-8 custom-scrollbar">
 
+          <IncompleteWorkAlert onOpenTasks={() => handleNavigateTab("tasks", "__overdue__")} />
+
           {activeTab === "dashboard" && (
             <OwnerCommandCentre
               sessionUser={session?.user}
@@ -1566,6 +1573,7 @@ export default function UnifiedEnterpriseDashboard() {
               initialDateFilter={taskDateFilter}
               initialSearchFilter={kanbanSearchFilter}
               initialUserFilter={kanbanUserFilter}
+              overdueOnly={kanbanOverdueOnly}
             />
           )}
 

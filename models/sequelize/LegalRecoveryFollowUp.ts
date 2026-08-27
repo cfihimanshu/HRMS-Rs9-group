@@ -68,7 +68,10 @@ LegalRecoveryFollowUp.init(
     tableName: "legal_recovery_followups",
     timestamps: true,
     indexes: [
-      { fields: ["masterId"] }
+      { fields: ["masterId"] },
+      { name: "idx_lrf_next_date", fields: ["nextFollowUpDate"] },
+      { name: "idx_lrf_caller_date", fields: ["callerId", "callDate"] },
+      { name: "idx_lrf_task", fields: ["taskId"] }
     ]
   }
 );

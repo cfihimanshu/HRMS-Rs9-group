@@ -31,6 +31,8 @@ const formatDuration = (seconds: number) => {
   return hours ? `${hours}h ${minutes}m` : `${minutes} min`;
 };
 
+let salesDashboardCache: { at: number; leads: any[]; calls: any[] } | null = null;
+
 export default function SalesDashboard({ onNavigate }: SalesDashboardProps) {
   const [leads, setLeads] = useState<any[]>([]);
   const [calls, setCalls] = useState<any[]>([]);
@@ -39,19 +41,33 @@ export default function SalesDashboard({ onNavigate }: SalesDashboardProps) {
   const [period, setPeriod] = useState("30");
   const [bdaFilter, setBdaFilter] = useState("All");
 
-  const loadData = useCallback(async () => {
+  const loadData = useCallback(async (force = false) => {
+    if (!force && salesDashboardCache && Date.now() - salesDashboardCache.at < 60_000) {
+      setLeads(salesDashboardCache.leads);
+      setCalls(salesDashboardCache.calls);
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     setError("");
     try {
       const [leadResponse, callResponse] = await Promise.all([
-        fetch("/api/bda-leads?status=All"),
+        fetch("/api/bda-leads?status=All&lean=1"),
         fetch("/api/bda-leads/calls"),
       ]);
       const [leadData, callData] = await Promise.all([leadResponse.json(), callResponse.json()]);
       if (!leadData.success) throw new Error(leadData.error || "Sales leads could not be loaded");
       if (!callData.success) throw new Error(callData.error || "Sales call data could not be loaded");
-      setLeads(leadData.data || []);
-      setCalls(callData.data || []);
+      const filteredLeads = (leadData.data || []).filter((lead: any) => {
+        if (lead.source !== "Work Report") return true;
+        const title = String(lead.name || "").trim();
+        return Boolean(title && !/^(general|others?)$/i.test(title));
+      });
+      const visibleLeadIds = new Set(filteredLeads.map((lead: any) => String(lead.id)));
+      setLeads(filteredLeads);
+      const filteredCalls = (callData.data || []).filter((call: any) => !String(call.leadCode || "").startsWith("TASK-") || visibleLeadIds.has(String(call.leadId)));
+      setCalls(filteredCalls);
+      salesDashboardCache = { at: Date.now(), leads: filteredLeads, calls: filteredCalls };
     } catch (loadError: any) {
       setError(loadError.message || "Sales dashboard could not be loaded");
     } finally {
@@ -143,7 +159,7 @@ export default function SalesDashboard({ onNavigate }: SalesDashboardProps) {
   }).sort((a, b) => Number(b.convertedAmount || 0) - Number(a.convertedAmount || 0)), [visibleLeads, calls]);
 
   if (loading) return <div className="min-h-[65vh] bg-white border rounded-2xl flex flex-col items-center justify-center"><RefreshCw className="w-8 h-8 animate-spin text-indigo-600" /><p className="mt-3 text-sm font-bold text-slate-500">Loading sales dashboard...</p></div>;
-  if (error) return <div className="min-h-[55vh] bg-white border rounded-2xl flex flex-col items-center justify-center text-center p-6"><AlertCircle className="w-9 h-9 text-rose-500" /><h2 className="mt-3 font-black text-slate-800">Sales dashboard could not be loaded</h2><p className="text-xs text-slate-500 mt-1">{error}</p><button onClick={loadData} className="mt-4 px-4 py-2 bg-indigo-600 text-white rounded-xl text-xs font-black">Retry</button></div>;
+  if (error) return <div className="min-h-[55vh] bg-white border rounded-2xl flex flex-col items-center justify-center text-center p-6"><AlertCircle className="w-9 h-9 text-rose-500" /><h2 className="mt-3 font-black text-slate-800">Sales dashboard could not be loaded</h2><p className="text-xs text-slate-500 mt-1">{error}</p><button onClick={() => loadData(true)} className="mt-4 px-4 py-2 bg-indigo-600 text-white rounded-xl text-xs font-black">Retry</button></div>;
 
   return <div className="p-4 md:p-6 space-y-5 bg-slate-50 min-h-screen">
     <div className="bg-white border border-slate-200 rounded-2xl p-5 flex flex-col lg:flex-row lg:items-center justify-between gap-4 shadow-sm">
@@ -151,7 +167,7 @@ export default function SalesDashboard({ onNavigate }: SalesDashboardProps) {
       <div className="flex flex-wrap gap-2">
         <select value={period} onChange={event => setPeriod(event.target.value)} className="border rounded-xl px-3 py-2 text-xs font-bold bg-white"><option value="7">Last 7 days</option><option value="30">Last 30 days</option><option value="90">Last 90 days</option><option value="all">All time</option></select>
         <select value={bdaFilter} onChange={event => setBdaFilter(event.target.value)} className="border rounded-xl px-3 py-2 text-xs font-bold bg-white"><option value="All">All BDA users</option>{bdas.map(bda => <option key={bda.id} value={bda.id}>{bda.name}</option>)}</select>
-        <button onClick={loadData} className="p-2.5 border rounded-xl bg-white hover:bg-slate-50" title="Refresh"><RefreshCw className="w-4 h-4" /></button>
+        <button onClick={() => loadData(true)} className="p-2.5 border rounded-xl bg-white hover:bg-slate-50" title="Refresh"><RefreshCw className="w-4 h-4" /></button>
         <button onClick={() => onNavigate?.("bda-leads")} className="px-3 py-2 bg-indigo-600 text-white rounded-xl text-xs font-black flex items-center gap-1">Open Leads <ArrowRight className="w-3.5 h-3.5" /></button>
       </div>
     </div>

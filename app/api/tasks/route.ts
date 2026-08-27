@@ -765,6 +765,15 @@ export async function POST(req: Request) {
       completedAt: status === "Completed" ? effectiveEntryDate : null,
     });
 
+    // Sales call entries created from My Tasks/Work Report must feed the same
+    // lead and call-log data used by BDA Leads and the Sales Dashboard.
+    try {
+      const { syncSalesTask } = await import("@/lib/syncSalesTask");
+      await syncSalesTask(record.get({ plain: true }));
+    } catch (salesSyncError) {
+      console.error("Failed to sync sales task to BDA pipeline:", salesSyncError);
+    }
+
     // Auto-create LegalRecoverySchedule entry so tasks created from My Tasks page appear in Schedule Work Report
     try {
       const LegalRecoverySchedule = (sequelize.models as any).LegalRecoverySchedule || (await import("@/models/sequelize/LegalRecoverySchedule")).default;

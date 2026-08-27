@@ -30,7 +30,13 @@ export async function GET(request: Request) {
     const { getAuthorizedApplicantIdsForApprover } = await import("@/lib/approvalRouting");
     let whereClause: any = {};
     const { isGeneralApprover, overrideApplicantIds } = await getAuthorizedApplicantIdsForApprover("expense_claims", userId, userRole);
-    if (isOwner || isGeneralApprover) {
+    const isDepartmentManager = roleLower === "department manager" || roleLower === "department-manager";
+    if (isOwner) {
+      whereClause = {};
+    } else if (isDepartmentManager) {
+      const { getDepartmentMemberIds } = await import("@/lib/twoStageApproval");
+      whereClause = { employee: { [Op.in]: await getDepartmentMemberIds(userId) } };
+    } else if (isGeneralApprover) {
       whereClause = {};
     } else if (overrideApplicantIds.length > 0) {
       whereClause = {
@@ -108,6 +114,8 @@ export async function POST(request: Request) {
 
     const nextId = "EXP-" + Date.now().toString().slice(-6) + Math.floor(Math.random() * 100);
 
+    const { getTwoStageRoute } = await import("@/lib/twoStageApproval");
+    const approvalRoute = await getTwoStageRoute(userId);
     const newExpense = await Expense.create({
       id: nextId,
       employee: userId,
@@ -120,14 +128,18 @@ export async function POST(request: Request) {
       receiptUrl: receiptUrl || null,
       advanceAmount: numAdvance,
       netPayable: numNet,
-      status: "Pending",
+      status: approvalRoute.initialStatus,
       remarks: `Submitted by ${userName}`,
     });
 
     // Notify designated Approver users via In-App Notification and Email (Dynamic Routing Matrix)
     try {
-      const { getApproversForWorkflow } = await import("@/lib/approvalRouting");
-      const routing = await getApproversForWorkflow("expense_claims", userId);
+      const routing = {
+        notifyApp: true,
+        notifyEmail: true,
+        approverUserIds: approvalRoute.initialApprovers.map((u: any) => String(u.id)),
+        approverEmails: approvalRoute.initialApprovers.map((u: any) => u.email).filter(Boolean),
+      };
 
       if (routing.notifyApp && routing.approverUserIds.length > 0) {
         await Notification.sync();
@@ -265,15 +277,18 @@ export async function PUT(request: Request) {
       return NextResponse.json({ success: false, error: "Claim record not found" }, { status: 404 });
     }
 
-    const { isUserAuthorizedApprover } = await import("@/lib/approvalRouting");
-    const isAuthorized = await isUserAuthorizedApprover("expense_claims", userId, userRole, claim.employee);
-    if (!isAuthorized) {
-      return NextResponse.json({ success: false, error: "Forbidden: You are not an authorized approver for expense claims." }, { status: 403 });
+    const { processTwoStageApproval } = await import("@/lib/twoStageApproval");
+    const decision = await processTwoStageApproval({
+      applicantId: String(claim.employee), actorId: String(userId), requestedStatus: status,
+      currentStatus: String(claim.status || "Pending"),
+    });
+    if (!decision.allowed) {
+      return NextResponse.json({ success: false, error: decision.error }, { status: 403 });
     }
 
-    claim.status = status;
+    claim.status = decision.nextStatus;
     if (remarks !== undefined) claim.remarks = remarks;
-    if (status === "Approved" || status === "Reimbursed") {
+    if (decision.nextStatus === "Approved" || decision.nextStatus === "Reimbursed") {
       claim.approvedBy = userName;
     }
 
@@ -285,15 +300,31 @@ export async function PUT(request: Request) {
       const empUser = await User.findOne({ where: { id: claim.employee }, raw: true }) as any;
 
       const claimNet = claim.netPayable || claim.amount || 0;
-      const isApproved = status === "Approved" || status === "Reimbursed";
+      const effectiveStatus = decision.nextStatus;
+      const isApproved = effectiveStatus === "Approved" || effectiveStatus === "Reimbursed";
 
       await Notification.create({
         id: Date.now().toString() + Math.random().toString(36).substring(2, 8),
         recipient: claim.employee,
-        title: `Expense Claim ${status}`,
-        message: `Your expense claim (${claim.id}) for ₹${Number(claimNet).toLocaleString("en-IN")} was ${status.toLowerCase()} by ${userName}.`,
+        title: `Expense Claim ${effectiveStatus}`,
+        message: effectiveStatus === "Pending Owner Approval"
+          ? `Your expense claim (${claim.id}) was recommended by ${userName} and sent to the Owner for final approval.`
+          : `Your expense claim (${claim.id}) for ₹${Number(claimNet).toLocaleString("en-IN")} was ${effectiveStatus.toLowerCase()} by ${userName}.`,
         read: false,
       });
+
+      if (effectiveStatus === "Pending Owner Approval") {
+        for (const owner of decision.notifyUsers) {
+          if (String(owner.id) === String(claim.employee)) continue;
+          await Notification.create({
+            id: Date.now().toString() + Math.random().toString(36).substring(2, 8),
+            recipient: owner.id,
+            title: "Expense Claim Awaiting Final Approval",
+            message: `${userName} recommended claim ${claim.id} for ₹${Number(claimNet).toLocaleString("en-IN")}. Your final decision is required.`,
+            read: false,
+          });
+        }
+      }
 
       if (empUser && empUser.email) {
         const statusBadgeBg = isApproved ? "#dcfce7" : "#ffe4e6";
@@ -322,19 +353,19 @@ export async function PUT(request: Request) {
 <body>
 <div class="wrap">
   <div class="header">
-    <h1>${icon} Expense Claim ${status}</h1>
+    <h1>${icon} Expense Claim ${effectiveStatus}</h1>
     <p>Your reimbursement request status has been updated</p>
   </div>
   <div class="body">
-    <div class="status-badge">${status}</div>
+    <div class="status-badge">${effectiveStatus}</div>
     <p>Hi <strong>${empUser.name || "Employee"}</strong>,</p>
-    <p>Your reimbursement request (<strong>${claim.id}</strong>) has been <strong>${status.toLowerCase()}</strong> by <strong>${userName}</strong>.</p>
+    <p>Your reimbursement request (<strong>${claim.id}</strong>) is now <strong>${effectiveStatus.toLowerCase()}</strong> after action by <strong>${userName}</strong>.</p>
     
     <div class="box">
       <div class="row"><span class="label">Claim ID:</span><span class="val">${claim.id}</span></div>
       <div class="row"><span class="label">Category:</span><span class="val">${claim.category}</span></div>
       <div class="row"><span class="label">Net Amount:</span><span class="val">₹${Number(claimNet).toLocaleString("en-IN")}</span></div>
-      <div class="row"><span class="label">Status:</span><span class="val" style="color:${statusBadgeColor}">${status}</span></div>
+      <div class="row"><span class="label">Status:</span><span class="val" style="color:${statusBadgeColor}">${effectiveStatus}</span></div>
       <div class="row"><span class="label">Processed By:</span><span class="val">${userName}</span></div>
       ${remarks ? `<p style="margin:8px 0 0;font-size:12px;color:#475569"><strong>Remarks:</strong> ${remarks}</p>` : ""}
     </div>
@@ -350,7 +381,7 @@ export async function PUT(request: Request) {
 
         await sendEmail({
           to: empUser.email,
-          subject: `${icon} Your Expense Claim (${claim.id}) has been ${status}`,
+          subject: `${icon} Your Expense Claim (${claim.id}) is ${effectiveStatus}`,
           html: htmlContent,
         });
       }

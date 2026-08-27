@@ -25,13 +25,16 @@ export async function GET(req: Request) {
     const roleLower = userRole.toLowerCase();
 
     await sequelize.authenticate();
-    await BdaLead.sync({ alter: true }).catch(() => {});
-    await EmployeeProfile.sync({ alter: true }).catch(() => {});
+    await Promise.all([
+      BdaLead.sync().catch(() => {}),
+      EmployeeProfile.sync().catch(() => {}),
+    ]);
 
     const { searchParams } = new URL(req.url);
     const search = searchParams.get("search") || "";
     const status = searchParams.get("status") || "";
     const assignedTo = searchParams.get("assignedTo") || "";
+    const lean = searchParams.get("lean") === "1";
 
     // Role-based & Reporting Manager visibility
     let isManagerial = ["owner", "director", "hr head", "hr executive", "department manager", "operation manager", "manager", "dsm", "head"].some(
@@ -101,10 +104,40 @@ export async function GET(req: Request) {
       order: [["id", "DESC"]],
     });
 
-    // Auto-reformat IDs and recover converted services from TaskLogs history if lost
+    // Fetch recovery candidates once. Previously this query ran separately for
+    // every lead, causing slow requests and database ECONNRESET errors.
+    let recoveryTasks: any[] = [];
+    try {
+      if (lean) throw new Error("LEAN_READ");
+      const recoveryConditions: any[] = [];
+      for (const lead of leads) {
+        if (lead.convertedServicesJson && lead.convertedServicesJson !== "[]") continue;
+        if (lead.leadId) recoveryConditions.push({ description: { [Op.like]: `%${lead.leadId}%` } });
+        if (lead.assignedTo && lead.phone?.trim()) {
+          recoveryConditions.push({ employee: lead.assignedTo, contactNo: lead.phone.trim() });
+        }
+      }
+      if (recoveryConditions.length) {
+        recoveryTasks = await TaskLog.findAll({
+          where: { [Op.or]: recoveryConditions },
+          attributes: ["employee", "contactNo", "description", "progressNotes"],
+          limit: 1000,
+          raw: true,
+        }) as any[];
+      }
+    } catch (recoverErr) {
+      if ((recoverErr as any)?.message !== "LEAN_READ") {
+        console.warn("BDA lead recovery batch skipped:", (recoverErr as any)?.message || recoverErr);
+      }
+    }
+
+    // Auto-reformat IDs and recover converted services from the batch above.
     for (const lead of leads) {
+      if (lean) continue;
       const cleanId = `BDALEAD-${String(lead.id).padStart(3, "0")}`;
-      if (lead.leadId !== cleanId) {
+      // Work Report leads retain their source identity in rawExtraJson. Rewriting
+      // them breaks idempotent task sync and can create duplicate leads.
+      if (lead.source !== "Work Report" && lead.leadId !== cleanId) {
         lead.leadId = cleanId;
         await lead.save().catch(() => {});
       }
@@ -112,15 +145,12 @@ export async function GET(req: Request) {
       // Auto-recover converted services if missing but recorded in task progress notes
       if (!lead.convertedServicesJson || lead.convertedServicesJson === "[]") {
         try {
-          const searchConditions: any[] = [];
-          if (lead.leadId) searchConditions.push({ description: { [Op.like]: `%${lead.leadId}%` } });
-          if (lead.assignedTo && lead.phone && lead.phone.trim()) {
-            searchConditions.push({ employee: lead.assignedTo, contactNo: lead.phone.trim() });
-          }
-
-          if (searchConditions.length > 0) {
-            const tasks = await TaskLog.findAll({ where: { [Op.or]: searchConditions } });
-            for (const t of tasks) {
+          const matchingTasks = recoveryTasks.filter((task: any) =>
+            (lead.leadId && String(task.description || "").includes(String(lead.leadId))) ||
+            (lead.assignedTo && lead.phone?.trim() && String(task.employee) === String(lead.assignedTo) && String(task.contactNo || "") === lead.phone.trim())
+          );
+          if (matchingTasks.length > 0) {
+            for (const t of matchingTasks) {
               if (t.progressNotes && t.progressNotes.includes("Lead Converted! Services:")) {
                 const match = t.progressNotes.match(/Services:\s*([^|]+)\|\s*Total Amount:\s*₹?\s*(\d+(?:\.\d+)?)/i);
                 if (match) {
@@ -180,7 +210,7 @@ export async function POST(req: Request) {
     }
 
     await sequelize.authenticate();
-    await BdaLead.sync({ alter: true }).catch(() => {});
+    await BdaLead.sync().catch(() => {});
 
     const body = await req.json();
     const leadsInput = Array.isArray(body.leads) ? body.leads : [body];
@@ -384,7 +414,7 @@ export async function PUT(req: Request) {
     }
 
     await sequelize.authenticate();
-    await BdaLead.sync({ alter: true }).catch(() => {});
+    await BdaLead.sync().catch(() => {});
 
     const body = await req.json();
     const {

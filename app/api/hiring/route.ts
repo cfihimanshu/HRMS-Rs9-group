@@ -132,7 +132,9 @@ export async function POST(req: Request) {
       dateOfRequirement: dateOfRequirement ? new Date(dateOfRequirement) : new Date(),
       riskLevel,
       expectedOutput,
-      status: "Pending HR Sourcing Review",   // Step 1 → goes to HR Sourcing first
+      // Hiring requests are normally raised by a Department Manager, so they go
+      // directly to the Owner. A manager cannot recommend their own request.
+      status: "Pending Owner Approval",
       createdBy: creatorName,
     });
 
@@ -142,7 +144,7 @@ export async function POST(req: Request) {
         applicantId,
         requestType: "Hiring Requisition",
         action: "created",
-        details: `${creatorName} has created a new hiring requisition for ${qty} x ${role} in ${department} department (Status: Pending HR Sourcing Review).`,
+        details: `${creatorName} has created a new hiring requisition for ${qty} x ${role} in ${department} department (Status: Pending Owner Approval).`,
         fallbackDepartment: department,
       });
     } catch (notifErr) {

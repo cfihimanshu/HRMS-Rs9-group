@@ -303,6 +303,11 @@ export async function POST(req: Request) {
       initialStatus = "Pending HR Approval";
     }
 
+    // Every request now follows Recommender -> Owner final approval.
+    const { getTwoStageRoute } = await import("@/lib/twoStageApproval");
+    const twoStageRoute = await getTwoStageRoute(applicantId);
+    initialStatus = twoStageRoute.initialStatus;
+
     const leave = await Leave.create({
       id: Date.now().toString(),
       employee: applicantId,
@@ -312,7 +317,7 @@ export async function POST(req: Request) {
       days,
       reason,
       status: initialStatus,
-      managerStatus: initialStatus === "Pending Manager Approval" ? "Pending" : "Approved",
+      managerStatus: initialStatus === "Pending Recommender Approval" ? "Pending" : "Approved",
       hrStatus: "Pending",
     });
 
@@ -331,8 +336,12 @@ export async function POST(req: Request) {
 
     // ── Dynamic Approval Matrix Routing for Leaves
     try {
-      const { getApproversForWorkflow } = await import("@/lib/approvalRouting");
-      const routing = await getApproversForWorkflow("leave_requests", applicantId);
+      const routing = {
+        notifyApp: true,
+        notifyEmail: true,
+        approverUserIds: twoStageRoute.initialApprovers.map((u: any) => String(u.id)),
+        approverEmails: twoStageRoute.initialApprovers.map((u: any) => u.email).filter(Boolean),
+      };
       const applicantUser = await User.findByPk(applicantId);
 
       if (applicantUser) {
@@ -484,6 +493,9 @@ export async function GET(req: Request) {
 
     if (isGlobalManagerOrOwner) {
       filter = {}; // Owner, Directors & HR see ALL leaves from ALL employees across all companies
+    } else if (userRole === "Department Manager") {
+      const { getDepartmentMemberIds } = await import("@/lib/twoStageApproval");
+      filter = { employee: { [Op.in]: await getDepartmentMemberIds(userId) } };
     } else if (isGeneralApprover) {
       if (loggedInUserCompanies.length > 0) {
         const allTargetUserIds = Array.from(new Set([...sameCompanyUserIds, ...directReportUserIds]));
@@ -497,23 +509,6 @@ export async function GET(req: Request) {
       const allowedUsers = Array.from(new Set([userId, ...overrideApplicantIds, ...directReportUserIds]));
       filter = {
         employee: { [Op.in]: allowedUsers }
-      };
-    } else if (userRole === "Department Manager") {
-      const managerProfile = await EmployeeProfile.findOne({ where: { user: userId } });
-      let deptUserIds: string[] = [];
-      if (managerProfile && managerProfile.department) {
-        const profilesInDept = await EmployeeProfile.findAll({
-          where: { department: managerProfile.department },
-          attributes: ["user"]
-        });
-        deptUserIds = profilesInDept.map((p: any) => p.user).filter(Boolean);
-      }
-      const allTargetUserIds = Array.from(new Set([...deptUserIds, ...directReportUserIds]));
-      filter = {
-        [Op.or]: [
-          { employee: userId },
-          { employee: { [Op.in]: allTargetUserIds } }
-        ]
       };
     } else {
       if (directReportUserIds.length > 0) {
@@ -590,8 +585,6 @@ export async function PUT(req: Request) {
       return NextResponse.json({ success: false, error: "Leave has already been processed" }, { status: 400 });
     }
 
-    let finalStatus = currentStatus;
-
     const applicantId = (leave as any).employee;
     const applicantProfile = await EmployeeProfile.findOne({ where: { user: applicantId } });
     const applicantUser = await User.findByPk(applicantId);
@@ -649,69 +642,31 @@ export async function PUT(req: Request) {
     const isGlobalManagerOrOwner = ["owner", "director", "hr head", "hr-head", "hr executive", "hr-executive", "admin", "super admin", "cfo"].some(r => roleLower.includes(r)) ||
       roleLower.includes("owner") || roleLower.includes("director") || roleLower.includes("hr");
 
-    // Dynamic Check against Approval Matrix for leave_requests
-    const { isUserAuthorizedApprover } = await import("@/lib/approvalRouting");
-    const isAuthorizedMatrixUser = await isUserAuthorizedApprover("leave_requests", loggedInUserId, loggedInUserRole, applicantId);
-    const isPrivileged = isGlobalManagerOrOwner || isAuthorizedMatrixUser || isDirectReportManager;
-    if (!isPrivileged) {
-      return NextResponse.json({ success: false, error: "Access Denied: You do not have approval rights for leave requests." }, { status: 403 });
+    const { processTwoStageApproval } = await import("@/lib/twoStageApproval");
+    const decision = await processTwoStageApproval({
+      applicantId: String(applicantId), actorId: String(loggedInUserId), requestedStatus: status,
+      currentStatus: String(currentStatus),
+    });
+    if (!decision.allowed) {
+      return NextResponse.json({ success: false, error: decision.error }, { status: 403 });
     }
+    const finalStatus = decision.nextStatus;
 
-    if (currentStatus === "Pending Manager Approval" || currentStatus === "Pending") {
+    if (decision.stage === "recommender") {
       // Who can approve Manager stage?
       // 1. Owner / Director / HR Head / Admin (Global bypass)
       // 2. Assigned Direct Reporting Manager (bypass company/department match)
       // 3. Department Manager (same department)
       // 4. Authorized matrix user
-      const isDeptManager = loggedInUserRole === "Department Manager";
-      const isCompanyManager = ["Owner", "Director"].includes(loggedInUserRole) || (loggedInUserRole || "").toLowerCase().includes("manager");
-
-      if (!isGlobalManagerOrOwner && !isDirectReportManager && loggedInUserCompanies.length > 0 && !isSameCompany) {
-        return NextResponse.json({ success: false, error: "Access Denied: Applicant belongs to a different company." }, { status: 403 });
-      }
-
-      if (isGlobalManagerOrOwner || isDirectReportManager) {
-        // Global manager / Owner / Director / Direct Reporting manager bypass department/company check
-      } else if (isDeptManager) {
-        const managerProfile = await EmployeeProfile.findOne({ where: { user: loggedInUserId } });
-        if (!applicantProfile || !managerProfile || applicantProfile.department !== managerProfile.department) {
-          return NextResponse.json({ success: false, error: "Access Denied: You are not the manager of this department." }, { status: 403 });
-        }
-      } else if (!isCompanyManager && !isAuthorizedMatrixUser) {
-        return NextResponse.json({ success: false, error: "Access Denied: Only authorized managers can approve at this stage." }, { status: 403 });
-      }
-
-      // If Owner or Director approves, set to final Approved directly. Otherwise move to Pending HR Approval.
-      if (["owner", "director"].some(r => roleLower.includes(r))) {
-        finalStatus = status === "Approved" ? "Approved" : "Rejected";
-        (leave as any).managerStatus = status;
-        (leave as any).hrStatus = status;
-      } else {
-        finalStatus = status === "Approved" ? "Pending HR Approval" : "Rejected";
-        (leave as any).managerStatus = status;
-      }
+      (leave as any).managerStatus = status;
       if (remarks) (leave as any).managerRemarks = remarks;
-    } else if (currentStatus === "Pending HR Approval") {
+    } else {
       // Who can approve HR stage?
       // 1. Owner / Director / HR Head / HR Executive / Admin (Global bypass)
       // 2. Authorized matrix user
-      const isHR = isGlobalManagerOrOwner || isAuthorizedMatrixUser;
-
-      if (!isGlobalManagerOrOwner && loggedInUserCompanies.length > 0 && !isSameCompany) {
-        return NextResponse.json({ success: false, error: "Access Denied: Applicant belongs to a different company." }, { status: 403 });
-      }
-
-      if (!isHR) {
-        return NextResponse.json({ success: false, error: "Access Denied: You are not an authorized approver for HR stage." }, { status: 403 });
-      }
-
-      finalStatus = status === "Approved" ? "Approved" : "Rejected";
-
       // Update HR fields
       (leave as any).hrStatus = status; // Approved / Rejected
       if (remarks) (leave as any).hrRemarks = remarks;
-    } else {
-      return NextResponse.json({ success: false, error: "This leave request cannot be processed in its current state." }, { status: 400 });
     }
 
     (leave as any).status = finalStatus;
@@ -720,14 +675,28 @@ export async function PUT(req: Request) {
 
     await leave.save();
 
+    if (finalStatus === "Pending Owner Approval") {
+      await Notification.sync();
+      for (const owner of decision.notifyUsers) {
+        if (String(owner.id) === String(applicantId)) continue;
+        await Notification.create({
+          id: Date.now().toString() + Math.random().toString(36).substring(2, 8),
+          recipient: owner.id,
+          title: "Leave Request Awaiting Final Approval",
+          message: `${applicantUser?.name || "Employee"}'s leave was recommended by the Department Manager. Your final decision is required.`,
+          read: false,
+        });
+      }
+    }
+
     // In-app notifications for leave status updates
     try {
-      if (currentStatus === "Pending Manager Approval" && finalStatus === "Pending HR Approval") {
+      if (finalStatus === "Pending Owner Approval") {
         await sendRequestNotification({
           applicantId,
           requestType: "Leave",
           action: "approved_by_manager",
-          details: `Leave request by ${applicantUser?.name || "Employee"} is approved by Manager and is now pending HR approval. Remarks: ${remarks || "None"}`
+          details: `Leave request by ${applicantUser?.name || "Employee"} is recommended by the Department Manager and is now pending Owner approval. Remarks: ${remarks || "None"}`
         });
       } else if (finalStatus === "Approved") {
         await sendRequestNotification({
@@ -740,7 +709,7 @@ export async function PUT(req: Request) {
         await sendRequestNotification({
           applicantId,
           requestType: "Leave",
-          action: currentStatus === "Pending Manager Approval" ? "rejected_by_manager" : "rejected_by_hr",
+          action: decision.stage === "recommender" ? "rejected_by_manager" : "rejected_by_hr",
           details: `Leave request by ${applicantUser?.name || "Employee"} has been rejected. Remarks: ${remarks || "None"}`
         });
       }
@@ -753,10 +722,12 @@ export async function PUT(req: Request) {
       const formattedStart = new Date((leave as any).startDate).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
       const formattedEnd = new Date((leave as any).endDate).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
 
-      if (currentStatus === "Pending Manager Approval" && finalStatus === "Pending HR Approval") {
-        // 1. Manager Approved: Email HR for next approval stage
-        const hrUsers = await findHRUsers(applicantId);
-        const emails = hrUsers.map((h: any) => h.email).filter(Boolean);
+      if (finalStatus === "Pending Owner Approval") {
+        // Recommender approved: notify Owners for the final decision.
+        const activeUsers = await User.findAll({ where: { status: "active" }, raw: true }) as any[];
+        const emails = activeUsers
+          .filter((u: any) => /owner|director/i.test(String(u.role || "")))
+          .map((u: any) => u.email).filter(Boolean);
         if (emails.length > 0) {
           const emailHtml = getLeaveAppliedEmailHtml({
             applicantName: applicantUser?.name || "Employee",
@@ -771,7 +742,7 @@ export async function PUT(req: Request) {
 
           await sendEmail({
             to: emails,
-            subject: `🌴 Leave Approval Required (HR): ${applicantUser?.name} – ${(leave as any).type}`,
+            subject: `🌴 Final Leave Approval Required (Owner): ${applicantUser?.name} – ${(leave as any).type}`,
             html: emailHtml,
           });
         }
