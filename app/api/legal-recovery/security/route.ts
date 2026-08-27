@@ -13,6 +13,19 @@ async function syncSecurityTableSchema() {
     } catch (syncErr: any) {
       // Ignored if already synced
     }
+
+    // Ensure installmentsJson and other dynamic columns exist in MySQL table
+    try {
+      const [columns]: any = await sequelize.query("SHOW COLUMNS FROM legal_securities LIKE 'installmentsJson'");
+      if (!columns || columns.length === 0) {
+        await sequelize.query("ALTER TABLE legal_securities ADD COLUMN installmentsJson LONGTEXT NULL AFTER source");
+      }
+    } catch (colErr: any) {
+      // Fallback: try adding directly ignoring duplicate column error
+      try {
+        await sequelize.query("ALTER TABLE legal_securities ADD COLUMN installmentsJson LONGTEXT NULL");
+      } catch (e) {}
+    }
   } catch (err: any) {
     console.warn("LegalSecurity sync warning:", err.message);
   }
@@ -83,6 +96,7 @@ export async function POST(req: Request) {
       paymentDays,
       paymentStatus = "Due",
       source,
+      installmentsJson,
       receivedAmount,
       receivedDate,
       remarks,
@@ -122,6 +136,7 @@ export async function POST(req: Request) {
       paymentDays: paymentDays ? String(paymentDays) : "",
       paymentStatus: paymentStatus || "Due",
       source: source || "",
+      installmentsJson: installmentsJson || "",
       receivedAmount: receivedAmount ? Number(receivedAmount) : 0,
       receivedDate: receivedDate || null,
       remarks: remarks || "",
@@ -177,6 +192,7 @@ export async function PUT(req: Request) {
       paymentDays,
       paymentStatus,
       source,
+      installmentsJson,
       receivedAmount,
       receivedDate,
       remarks,
@@ -221,6 +237,7 @@ export async function PUT(req: Request) {
       paymentDays: paymentDays !== undefined ? String(paymentDays) : record.paymentDays,
       paymentStatus: paymentStatus ?? record.paymentStatus,
       source: source ?? record.source,
+      installmentsJson: installmentsJson !== undefined ? installmentsJson : record.installmentsJson,
       receivedAmount: receivedAmount !== undefined ? Number(receivedAmount) : record.receivedAmount,
       receivedDate: receivedDate !== undefined ? (receivedDate || null) : record.receivedDate,
       remarks: remarks ?? record.remarks,
