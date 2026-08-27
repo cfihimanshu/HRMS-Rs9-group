@@ -659,7 +659,7 @@ export async function GET(req: Request) {
 
     // --- Current User Dynamic Stats (ESS) ---
     const userId = (session.user as any).id;
-    await EmployeeProfile.sync({ alter: true }).catch(() => {});
+    await EmployeeProfile.sync().catch(() => {});
     const userProfile = await EmployeeProfile.findOne({ where: { user: userId } });
     let casualLeave = 12;
     let sickLeave = 12;
@@ -869,20 +869,19 @@ export async function GET(req: Request) {
     // Calculate deptStats dynamically for Managers/Owners
     let deptStats: any = null;
     const userRole = (session.user as any).role;
-    const isManager = (role: string) => {
-      const r = (role || "").toLowerCase();
-      return r === "department manager" || r.includes("manager") || r === "dsm" || r === "owner" || r === "director" || r === "hr head" || r === "hr executive";
+    const userDesignation = String((userProfile as any)?.designation || "");
+    const isManager = (role: string, designation = "") => {
+      const r = `${role || ""} ${designation || ""}`.toLowerCase();
+      return r.includes("manager") || r.includes("department head") || r === "dsm" || r.includes("owner") || r.includes("director") || r.includes("hr head") || r.includes("hr executive");
     };
 
-    if (isManager(userRole)) {
+    if (isManager(userRole, userDesignation)) {
       let deptUserIds: any[] = [];
-      let managerProfile = null;
+      let managerProfile: any = userProfile;
       const deptFilterParam = searchParams.get("department");
 
       const isSpecificManager = !["Owner", "Director", "HR Head", "HR Executive"].includes(userRole);
       if (isSpecificManager) {
-        managerProfile = await EmployeeProfile.findOne({ where: { user: userId } });
-        
         let deptProfiles: any[] = [];
         if (managerProfile && managerProfile.department) {
           deptProfiles = await EmployeeProfile.findAll({
