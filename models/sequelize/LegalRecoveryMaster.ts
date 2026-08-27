@@ -80,6 +80,11 @@ LegalRecoveryMaster.init(
     sequelize,
     tableName: "legal_recovery_masters",
     timestamps: true,
+    indexes: [
+      { name: "idx_lrm_pending_age", fields: ["pendingAmount", "pendingSince"] },
+      { name: "idx_lrm_status_updated", fields: ["status", "updatedAt"] },
+      { name: "idx_lrm_bank_branch", fields: ["bankName", "branchId"] },
+    ],
   }
 );
 

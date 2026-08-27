@@ -167,11 +167,13 @@ const SearchableCombobox = ({
 export default function KanbanBoard({
   initialDateFilter,
   initialSearchFilter,
-  initialUserFilter
+  initialUserFilter,
+  overdueOnly = false,
 }: {
   initialDateFilter?: string;
   initialSearchFilter?: string;
   initialUserFilter?: string;
+  overdueOnly?: boolean;
 }) {
   const { data: session, status } = useSession();
   const sessionUser = session?.user;
@@ -332,7 +334,7 @@ export default function KanbanBoard({
       fetchModes();
       fetchProjects();
     }
-  }, [session, status]);
+  }, [session, status, overdueOnly]);
 
   const fetchProjects = async () => {
     try {
@@ -521,6 +523,31 @@ export default function KanbanBoard({
 
   const fetchTasks = async () => {
     try {
+      if (overdueOnly) {
+        const overdueResponse = await fetch("/api/tasks/incomplete-alerts?limit=all", { cache: "no-store" });
+        const overdueData = await overdueResponse.json();
+        if (!overdueResponse.ok || !overdueData.success) throw new Error(overdueData.error || "Overdue tasks could not be loaded");
+        if (Array.isArray(overdueData.data)) {
+          setTasks(overdueData.data.map((item: any) => ({
+            id: String(item.id),
+            taskTitle: item.title || "Untitled task",
+            taskType: item.taskType || "General",
+            description: item.description || "",
+            progressNotes: "",
+            status: item.status || "Pending",
+            createdAt: item.createdAt || item.deadline,
+            date: item.date || item.createdAt || item.deadline,
+            deadlineAt: item.deadline,
+            forwardedTo: item.assigneeId || null,
+            employee: item.assigneeId ? { id: item.assigneeId, name: item.assigneeName || "Employee", role: "Employee" } : null,
+            timerState: "Stopped",
+            elapsedSeconds: Number(item.elapsedSeconds || 0),
+          })));
+          setOverallTaskTotal(Number(overdueData.count || overdueData.data.length));
+        }
+        setLoading(false);
+        return;
+      }
       // Tier 1: Load Today's tasks for instant 0ms speed
       const resToday = await fetch("/api/tasks?range=today");
       const dataToday = await resToday.json();
@@ -1421,7 +1448,9 @@ export default function KanbanBoard({
         const offset = taskDate.getTimezoneOffset() * 60000;
         const localDateStr = new Date(taskDate.getTime() - offset).toISOString().split("T")[0];
 
-        if (datePreset === "custom" || startDate || endDate) {
+        if (overdueOnly) {
+          matchDate = true;
+        } else if (datePreset === "custom" || startDate || endDate) {
           if (startDate && localDateStr < startDate) matchDate = false;
           if (endDate && localDateStr > endDate) matchDate = false;
         } else if (datePreset === "month" || datePreset === "last_month") {
@@ -1447,7 +1476,15 @@ export default function KanbanBoard({
       matchQuery = title.includes(query) || description.includes(query) || taskId.includes(query) || status.includes(query) || query.includes(title);
     }
 
-    return matchUser && matchDate && matchQuery;
+    const deadline = t.deadlineAt
+      ? new Date(t.deadlineAt)
+      : new Date(new Date(t.createdAt || t.date).getTime() + 2 * 60 * 60 * 1000);
+    const matchOverdue = !overdueOnly || (
+      !["completed", "cancelled", "canceled"].includes(String(t.status || "").toLowerCase()) &&
+      !Number.isNaN(deadline.getTime()) && deadline.getTime() <= Date.now()
+    );
+
+    return matchUser && matchDate && matchQuery && matchOverdue;
   });
 
   const parseTaskDescription = (rawDesc: string = "", task: Task) => {
@@ -2052,7 +2089,7 @@ export default function KanbanBoard({
       {viewMode === "kanban" ? (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 flex-1 items-start">
           {/* Kanban Grid */}
-          {cols.map(col => {
+          {cols.filter(col => !overdueOnly || col.id !== "Completed").map(col => {
             const isOver = dragOverCol === col.id;
             return (
               <div

@@ -30,7 +30,7 @@ export async function POST(req: Request) {
     }
 
     await sequelize.authenticate();
-    await BdaLead.sync({ alter: true }).catch(() => {});
+    await BdaLead.sync().catch(() => {});
     await TaskLog.sync({ alter: true }).catch(() => {});
 
     // Find assigned BDA user details

@@ -163,6 +163,12 @@ LegalSecurity.init(
     sequelize,
     tableName: "legal_securities",
     timestamps: true,
+    indexes: [
+      { name: "idx_security_bill_date", fields: ["billDate"] },
+      { name: "idx_security_payment_status", fields: ["paymentStatus"] },
+      { name: "idx_security_creator_date", fields: ["createdBy", "createdAt"] },
+      { name: "idx_security_nbfc_branch", fields: ["nbfcId", "branchId"] },
+    ],
   }
 );
 

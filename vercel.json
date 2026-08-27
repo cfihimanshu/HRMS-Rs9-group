@@ -1,0 +1,12 @@
+{
+  "crons": [
+    {
+      "path": "/api/tasks/incomplete-reminders",
+      "schedule": "*/15 * * * *"
+    },
+    {
+      "path": "/api/legal-recovery/pending-summary-reminder",
+      "schedule": "30 14 * * *"
+    }
+  ]
+}

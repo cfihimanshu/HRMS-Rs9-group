@@ -7,9 +7,10 @@ type Row = Record<string, any>;
 const money = (value: number) => `₹${Math.round(value || 0).toLocaleString("en-IN")}`;
 const dateLabel = (value: any) => value ? new Date(value).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }) : "—";
 const numeric = (value: any) => Number(String(value ?? 0).replace(/[^0-9.-]/g, "")) || 0;
+let verticalDashboardCache: { at: number; data: any } | null = null;
 
 export default function VerticalPerformanceDashboard({ onNavigate }: { onNavigate?: (tab: string) => void }) {
-  const [data, setData] = useState<{ leads: Row[]; calls: Row[]; cases: Row[]; followups: Row[]; security: Row[]; legalBills: Row[]; payments: Row[] }>({ leads: [], calls: [], cases: [], followups: [], security: [], legalBills: [], payments: [] });
+  const [data, setData] = useState<{ leads: Row[]; calls: Row[]; cases: Row[]; followups: Row[]; security: Row[]; legalBills: Row[]; payments: Row[]; users: Row[] }>({ leads: [], calls: [], cases: [], followups: [], security: [], legalBills: [], payments: [], users: [] });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [period, setPeriod] = useState("month");
@@ -17,7 +18,12 @@ export default function VerticalPerformanceDashboard({ onNavigate }: { onNavigat
   const [followupTab, setFollowupTab] = useState("Today");
   const [showPayments, setShowPayments] = useState(false);
 
-  const loadData = useCallback(async () => {
+  const loadData = useCallback(async (force = false) => {
+    if (!force && verticalDashboardCache && Date.now() - verticalDashboardCache.at < 60_000) {
+      setData(verticalDashboardCache.data);
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     setError("");
     try {
@@ -27,7 +33,8 @@ export default function VerticalPerformanceDashboard({ onNavigate }: { onNavigat
         "/api/legal-recovery",
         "/api/legal-recovery/followup",
         "/api/legal-recovery/security",
-        "/api/legal-recovery/payment"
+        "/api/legal-recovery/payment",
+        "/api/tasks/company-users"
       ];
       const results = await Promise.all(
         urls.map(url =>
@@ -41,15 +48,18 @@ export default function VerticalPerformanceDashboard({ onNavigate }: { onNavigat
         )
       );
 
-      setData({
+      const nextData = {
         leads: Array.isArray(results[0]?.data) ? results[0].data : [],
         calls: Array.isArray(results[1]?.data) ? results[1].data : [],
         cases: Array.isArray(results[2]?.data) ? results[2].data : [],
         followups: Array.isArray(results[3]?.data) ? results[3].data : [],
         security: Array.isArray(results[4]?.data) ? results[4].data : [],
         legalBills: [],
-        payments: Array.isArray(results[5]?.data) ? results[5].data : []
-      });
+        payments: Array.isArray(results[5]?.data) ? results[5].data : [],
+        users: Array.isArray(results[6]?.data) ? results[6].data : []
+      };
+      setData(nextData);
+      verticalDashboardCache = { at: Date.now(), data: nextData };
     } catch (e: any) {
       setError(e.message || "Dashboard data could not be loaded.");
     } finally {
@@ -69,7 +79,9 @@ export default function VerticalPerformanceDashboard({ onNavigate }: { onNavigat
   const now = new Date(); const todayKey = now.toLocaleDateString("sv-SE");
 
   const verticals = useMemo(() => {
-    const converted = leads.filter(x => String(x.status).toLowerCase() === "converted");
+    const isMediaLead = (lead: Row) => /\b(media|gpde|gdpe)\b/i.test(`${lead.salesReason || ""} ${lead.convertedServicesJson || ""} ${lead.serviceName || ""}`);
+    const mediaLeads = leads.filter(isMediaLead);
+    const businessLeads = leads.filter(x => !isMediaLead(x));
     
     // Legal Recovery dynamic metrics from active cases
     const legalTotalBilled = cases.reduce((s, x) => s + numeric(x.totalBillAmount), 0);
@@ -84,13 +96,16 @@ export default function VerticalPerformanceDashboard({ onNavigate }: { onNavigat
     const securityCompletedCount = security.filter(x => /paid|received|complete/i.test(x.paymentStatus || "") || (numeric(x.billAmount) > 0 && numeric(x.receivedAmount) >= numeric(x.billAmount))).length;
 
     // Sales & Business Consultancy dynamic metrics
-    const salesRevenue = converted.reduce((s, x) => s + numeric(x.convertedAmount), 0);
-    const salesPending = leads.filter(x => !/converted|lost/i.test(x.status || "")).reduce((s, x) => s + numeric(x.convertedAmount), 0);
+    const salesRevenue = businessLeads.filter(x => /converted/i.test(x.status || "")).reduce((s, x) => s + numeric(x.convertedAmount), 0);
+    const salesPending = businessLeads.filter(x => !/converted|lost/i.test(x.status || "")).reduce((s, x) => s + numeric(x.convertedAmount), 0);
+    const mediaRevenue = mediaLeads.filter(x => /converted/i.test(x.status || "")).reduce((s, x) => s + numeric(x.convertedAmount), 0);
+    const mediaPending = mediaLeads.filter(x => !/converted|lost/i.test(x.status || "")).reduce((s, x) => s + numeric(x.convertedAmount), 0);
 
     return [
       { name: "Legal Recovery", icon: Scale, color: "purple", assigned: cases.length, completed: legalCompletedCount, billed: legalTotalBilled, collected: legalTotalReceived, pending: legalTotalPending },
       { name: "Security Services", icon: Shield, color: "blue", assigned: security.length, completed: securityCompletedCount, billed: securityBilled, collected: securityReceived, pending: securityPending },
-      { name: "Business Consultancy & Sales / BDA", icon: Users, color: "green", assigned: leads.length, completed: converted.length, billed: salesRevenue, collected: salesRevenue, pending: salesPending },
+      { name: "Business Consultancy / Sales BDA", icon: Users, color: "green", assigned: businessLeads.length, completed: businessLeads.filter(x => /converted/i.test(x.status || "")).length, billed: salesRevenue, collected: salesRevenue, pending: salesPending },
+      { name: "Media GPDE", icon: BarChart3, color: "violet", assigned: mediaLeads.length, completed: mediaLeads.filter(x => /converted/i.test(x.status || "")).length, billed: mediaRevenue, collected: mediaRevenue, pending: mediaPending },
     ].map(v => ({ ...v, achievement: v.assigned ? Math.round(v.completed / v.assigned * 100) : 0 }));
   }, [leads, cases, security]);
 
@@ -99,7 +114,7 @@ export default function VerticalPerformanceDashboard({ onNavigate }: { onNavigat
   const pendingBillsTotal = verticals.reduce((s, x) => s + x.pending, 0);
   const followups = useMemo(() => {
     const legal = data.followups.map(x => ({ id: `l-${x.id}`, date: x.nextFollowUpDate, client: x.bankName || "Legal case", detail: x.branchName || x.conversationDetails, vertical: "Legal Recovery", owner: x.callerName || "Unassigned", amount: numeric(cases.find(c => String(c.id) === String(x.masterId))?.pendingAmount) }));
-    const sales = data.calls.filter(x => x.nextCallbackAt).map(x => ({ id: `s-${x.id}`, date: x.nextCallbackAt, client: x.leadName || x.customerName || "Sales lead", detail: x.conversationNotes, vertical: "Business Consultancy & Sales / BDA", owner: x.bdaName || "Unassigned", amount: numeric(data.leads.find(l => String(l.id) === String(x.leadId))?.convertedAmount) }));
+    const sales = data.calls.filter(x => x.nextCallbackAt).map(x => { const lead = data.leads.find(l => String(l.id) === String(x.leadId)); const media = /\b(media|gpde|gdpe)\b/i.test(`${lead?.salesReason || ""} ${lead?.convertedServicesJson || ""} ${lead?.serviceName || ""}`); return { id: `s-${x.id}`, date: x.nextCallbackAt, client: x.leadName || x.customerName || "Sales lead", detail: x.conversationNotes, vertical: media ? "Media GPDE" : "Business Consultancy / Sales BDA", owner: x.bdaName || "Unassigned", amount: numeric(lead?.convertedAmount) }; });
     return [...legal, ...sales].filter(x => x.date).sort((a, b) => +new Date(a.date) - +new Date(b.date));
   }, [data.followups, data.calls, data.leads, cases]);
   const categorized = (item: any) => { const key = new Date(item.date).toLocaleDateString("sv-SE"); return key < todayKey ? "Overdue" : key === todayKey ? "Today" : "Upcoming"; };
@@ -107,6 +122,7 @@ export default function VerticalPerformanceDashboard({ onNavigate }: { onNavigat
 
   const people = useMemo(() => {
     const map = new Map<string, any>();
+    const userNames = new Map(data.users.map(user => [String(user.id), String(user.name || user.id)]));
     
     // Helper to sanitize and check if a name is a real internal staff member
     const isValidStaffName = (name: string) => {
@@ -130,17 +146,19 @@ export default function VerticalPerformanceDashboard({ onNavigate }: { onNavigat
     };
 
     const get = (name: string, role: string) => {
-      const cleanName = (name || "").trim();
+      const cleanName = (userNames.get(String(name || "")) || name || "").trim();
       if (!isValidStaffName(cleanName)) return null;
-      if (!map.has(cleanName)) {
-        map.set(cleanName, { name: cleanName, role, assigned: 0, completed: 0, followups: 0, revenue: 0 });
+      const key = `${cleanName}-${role}`;
+      if (!map.has(key)) {
+        map.set(key, { name: cleanName, role, assigned: 0, completed: 0, followups: 0, payments: 0, revenue: 0 });
       }
-      return map.get(cleanName);
+      return map.get(key);
     };
 
     // 1. Sales & BDA leads (Assigned employees)
     leads.forEach(x => {
-      const p = get(x.assignedToName, "Business Consultancy & Sales");
+      const role = /\b(media|gpde|gdpe)\b/i.test(`${x.salesReason || ""} ${x.convertedServicesJson || ""} ${x.serviceName || ""}`) ? "Media GPDE" : "Business Consultancy / Sales BDA";
+      const p = get(x.assignedToName, role);
       if (p) {
         p.assigned++;
         if (/converted/i.test(x.status || "")) {
@@ -152,7 +170,9 @@ export default function VerticalPerformanceDashboard({ onNavigate }: { onNavigat
 
     // 2. Sales Calling executives
     calls.forEach(x => {
-      const p = get(x.bdaName, "Business Consultancy & Sales");
+      const lead = data.leads.find(item => String(item.id) === String(x.leadId));
+      const role = /\b(media|gpde|gdpe)\b/i.test(`${lead?.salesReason || ""} ${lead?.convertedServicesJson || ""} ${lead?.serviceName || ""}`) ? "Media GPDE" : "Business Consultancy / Sales BDA";
+      const p = get(x.bdaName, role);
       if (p && x.nextCallbackAt) p.followups++;
     });
 
@@ -165,12 +185,13 @@ export default function VerticalPerformanceDashboard({ onNavigate }: { onNavigat
     // 4. Legal Recovery payment collectors
     data.payments.forEach(x => {
       const p = get(x.receivedBy || x.employeeName, "Legal Recovery");
-      if (p) p.revenue += numeric(x.amount);
+      if (p) { p.payments++; p.completed++; p.revenue += numeric(x.amount); }
     });
 
-    // 5. Security services staff
+    // 5. Security services staff. `createdBy` is only the data-entry user and
+    // must not be credited as the person who performed the security work.
     security.forEach(x => {
-      const p = get(x.createdBy || x.guardName, "Security Services");
+      const p = get(x.guardName || x.assignedStaffName || x.employeeName, "Security Services");
       if (p) {
         p.assigned++;
         if (/paid|received|complete/i.test(x.paymentStatus || "")) p.completed++;
@@ -179,9 +200,9 @@ export default function VerticalPerformanceDashboard({ onNavigate }: { onNavigat
     });
 
     return [...map.values()]
-      .map(x => ({ ...x, achievement: x.assigned ? Math.round((x.completed / x.assigned) * 100) : (x.revenue > 0 ? 100 : 0) }))
-      .sort((a, b) => b.revenue - a.revenue || b.completed - a.completed || b.followups - a.followups);
-  }, [leads, calls, data.followups, data.payments, security]);
+      .map(x => ({ ...x, activity: x.completed + x.followups, score: x.completed + x.followups }))
+      .sort((a, b) => b.score - a.score || b.revenue - a.revenue || b.completed - a.completed);
+  }, [leads, calls, data.leads, data.followups, data.payments, security, data.users]);
 
   const pendingRows = useMemo(() => {
     const legalRows = cases
@@ -193,19 +214,21 @@ export default function VerticalPerformanceDashboard({ onNavigate }: { onNavigat
         ref: x.noticesList?.[0]?.billNo || (x.branchId && x.branchId !== "N/A" ? x.branchId : `CASE-${x.id}`),
         due: x.pendingSince || x.createdAt,
         amount: numeric(x.pendingAmount),
-        owner: x.branchName || "General"
+        location: x.branchName || "General Branch",
+        amountDetail: "Bank-case pending amount"
       }));
 
     const securityRows = security
       .filter(x => numeric(x.billAmount) > numeric(x.receivedAmount))
       .map(x => ({
         id: `q-${x.id}`,
-        client: x.company || x.clientName || "Security Client",
-        vertical: "Security Services",
+        client: x.nbfcName || x.company || x.clientName || "Security Client",
+        vertical: x.nbfcName || x.nbfcId ? "Security Services (NBFC)" : "Security Services",
         ref: x.billNo || `SEC-${x.id}`,
         due: x.billDate || x.createdAt,
         amount: numeric(x.billAmount) - numeric(x.receivedAmount),
-        owner: x.createdBy || "Unassigned"
+        location: x.branchName || x.location || x.siteType || "General Site",
+        amountDetail: `Bill ${money(numeric(x.billAmount))} − received ${money(numeric(x.receivedAmount))}`
       }));
 
     return [...legalRows, ...securityRows].sort((a, b) => b.amount - a.amount);
@@ -227,7 +250,7 @@ export default function VerticalPerformanceDashboard({ onNavigate }: { onNavigat
   const filteredVerticals = vertical === "All" ? verticals : verticals.filter(x => x.name === vertical);
 
   if (loading) return <div className="min-h-[65vh] bg-white border rounded-2xl flex items-center justify-center gap-3"><RefreshCw className="w-7 h-7 animate-spin text-[#744868]"/><b className="text-slate-600">Loading vertical dashboard...</b></div>;
-  if (error) return <div className="min-h-[50vh] bg-white border rounded-2xl flex flex-col items-center justify-center"><AlertTriangle className="text-rose-500"/><b className="mt-2">{error}</b><button onClick={loadData} className="mt-4 bg-[#744868] text-white px-4 py-2 rounded-lg">Retry</button></div>;
+  if (error) return <div className="min-h-[50vh] bg-white border rounded-2xl flex flex-col items-center justify-center"><AlertTriangle className="text-rose-500"/><b className="mt-2">{error}</b><button onClick={() => loadData(true)} className="mt-4 bg-[#744868] text-white px-4 py-2 rounded-lg">Retry</button></div>;
 
   return (
     <div className="p-4 md:p-6 bg-[#f7f7f9] min-h-screen space-y-4 text-slate-800">
@@ -248,7 +271,7 @@ export default function VerticalPerformanceDashboard({ onNavigate }: { onNavigat
             <option>All</option>
             {verticals.map(x=><option key={x.name}>{x.name}</option>)}
           </select>
-          <button onClick={loadData} className="btn"><RefreshCw className="w-4 h-4"/>Refresh</button>
+          <button onClick={() => loadData(true)} className="btn"><RefreshCw className="w-4 h-4"/>Refresh</button>
           <button onClick={()=>window.print()} className="btn bg-[#744868] text-white"><Download className="w-4 h-4"/>Export</button>
         </div>
       </header>
@@ -409,8 +432,9 @@ export default function VerticalPerformanceDashboard({ onNavigate }: { onNavigat
                 <th>Assigned</th>
                 <th>Completed</th>
                 <th>Follow-ups</th>
-                <th>Revenue</th>
-                <th>Achievement</th>
+                <th>Payments</th>
+                <th>Amount Collected</th>
+                <th>Activity</th>
               </tr>
             </thead>
             <tbody>
@@ -418,24 +442,18 @@ export default function VerticalPerformanceDashboard({ onNavigate }: { onNavigat
                 <tr key={`${p.name}-${p.role}`}>
                   <td>
                     <b>{p.name}</b>
-                    {i === 0 && people.length > 1 && p.revenue > 0 ? <span className="badge ml-2 bg-purple-100 text-purple-800">Top performer</span> : null}
+                    {i === 0 && p.score > 0 ? <span className="badge ml-2 bg-purple-100 text-purple-800">Top performer</span> : null}
                   </td>
                   <td>{p.role}</td>
                   <td>{p.assigned}</td>
                   <td>{p.completed}</td>
                   <td>{p.followups}</td>
-                  <td className="font-black text-slate-900">{money(p.revenue)}</td>
-                  <td>
-                    <div className="flex items-center gap-2">
-                      <div className="w-20 h-2 bg-slate-100 rounded-full overflow-hidden">
-                        <div className="h-full bg-emerald-500 rounded-full" style={{ width: `${Math.min(100, p.achievement)}%` }} />
-                      </div>
-                      <span className="font-bold text-slate-700">{p.achievement}%</span>
-                    </div>
-                  </td>
+                  <td className="font-black text-emerald-700">{p.payments}</td>
+                  <td className="font-black text-emerald-700">{money(p.revenue)}</td>
+                  <td><span className="badge">{p.activity} action{p.activity === 1 ? "" : "s"}</span></td>
                 </tr>
               ))}
-              {!people.length && <tr><td colSpan={7} className="empty">No employee activity recorded.</td></tr>}
+              {!people.length && <tr><td colSpan={8} className="empty">No employee activity recorded.</td></tr>}
             </tbody>
           </table>
         </div>
@@ -463,10 +481,10 @@ export default function VerticalPerformanceDashboard({ onNavigate }: { onNavigat
                 <tr>
                   <th>Client</th>
                   <th>Vertical</th>
-                  <th>Reference</th>
-                  <th>Due</th>
-                  <th>Amount</th>
-                  <th>Owner</th>
+                  <th>Branch Code / Bill No.</th>
+                  <th>Pending Since / Bill Date</th>
+                  <th>Pending Amount</th>
+                  <th>Branch / Site</th>
                 </tr>
               </thead>
               <tbody>
@@ -476,8 +494,8 @@ export default function VerticalPerformanceDashboard({ onNavigate }: { onNavigat
                     <td>{x.vertical}</td>
                     <td>{x.ref}</td>
                     <td>{dateLabel(x.due)}</td>
-                    <td className="text-rose-600 font-bold">{money(x.amount)}</td>
-                    <td>{x.owner}</td>
+                    <td className="text-rose-600 font-bold" title={x.amountDetail}>{money(x.amount)}</td>
+                    <td>{x.location}</td>
                   </tr>
                 ))}
                 {!pendingRows.length && <tr><td colSpan={6} className="empty">No pending bills recorded.</td></tr>}

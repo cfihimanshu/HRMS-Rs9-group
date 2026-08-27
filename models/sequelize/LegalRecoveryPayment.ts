@@ -56,7 +56,9 @@ LegalRecoveryPayment.init(
     tableName: "legal_recovery_payments",
     timestamps: true,
     indexes: [
-      { fields: ["masterId"] }
+      { fields: ["masterId"] },
+      { name: "idx_lrp_payment_date", fields: ["paymentDate"] },
+      { name: "idx_lrp_receiver_date", fields: ["receivedBy", "paymentDate"] }
     ]
   }
 );

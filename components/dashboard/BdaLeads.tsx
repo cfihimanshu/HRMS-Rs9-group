@@ -497,11 +497,20 @@ export default function BdaLeads({
   const fetchLeads = async () => {
     setLoading(true);
     try {
+      const syncResponse = await fetch("/api/bda-leads/sync-task-calls", { method: "POST" });
+      const syncData = await syncResponse.json().catch(() => ({ data: {} }));
+      const validTaskLeadCodes = new Set<string>(Array.isArray(syncData?.data?.validLeadCodes) ? syncData.data.validLeadCodes : []);
+      const validTaskIds = new Set<string>(Array.isArray(syncData?.data?.validTaskIds) ? syncData.data.validTaskIds : []);
       // Always fetch all master leads so top KPI cards remain fixed & accurate
       const res = await fetch("/api/bda-leads?status=All");
       const data = await res.json();
       if (data.success) {
-        setLeads(data.data || []);
+        setLeads((data.data || []).filter((lead: any) => {
+          if (lead.source !== "Work Report") return true;
+          let sourceTaskId = "";
+          try { sourceTaskId = String(JSON.parse(lead.rawExtraJson || "{}").sourceTaskId || ""); } catch {}
+          return validTaskIds.has(sourceTaskId) || validTaskLeadCodes.has(String(lead.leadId));
+        }));
       } else {
         triggerToast?.("Failed to load leads: " + data.error);
       }

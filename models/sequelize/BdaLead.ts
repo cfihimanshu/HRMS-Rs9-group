@@ -100,6 +100,7 @@ BdaLead.init(
       { fields: ["assignedTo"] },
       { fields: ["status"] },
       { fields: ["leadId"] },
+      { name: "idx_bda_leads_status_assignee_created", fields: ["status", "assignedTo", "createdAt"] },
     ],
   }
 );

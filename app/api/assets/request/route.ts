@@ -382,12 +382,14 @@ export async function POST(req: Request) {
         return NextResponse.json({ success: false, error: "Asset Type and Reason are required." }, { status: 400 });
       }
 
+      const { getTwoStageRoute } = await import("@/lib/twoStageApproval");
+      const approvalRoute = await getTwoStageRoute(userId);
       const newRequest = await AssetRequest.create({
         employee_id: userId,
         asset_type,
         reason,
         priority: priority || "Medium",
-        status: "Pending Owner Approval"
+        status: approvalRoute.initialStatus
       });
 
       // --- Send Notification & Email directly to Owners ---
@@ -398,33 +400,14 @@ export async function POST(req: Request) {
         const requesterName = requester?.name || "An employee";
         const dept = requesterProfile?.department || "General";
 
-        // Query Owners & Directors for direct approval
-        const owners = await User.findAll({
-          where: {
-            role: { [Op.in]: ["Owner", "Director", "owner", "director"] },
-            status: "active"
-          }
-        });
-
-        // Also check matrix / override approvers
-        const { getApproversForWorkflow } = await import("@/lib/approvalRouting");
-        const routing = await getApproversForWorkflow("asset_request", userId);
-        const extraApprovers = await User.findAll({
-          where: {
-            id: routing.approverUserIds,
-            status: "active"
-          }
-        });
-
-        const allMatched = [...owners, ...extraApprovers];
-        const uniqueApprovers = Array.from(new Map(allMatched.map(u => [u.id, u])).values());
+        const uniqueApprovers: any[] = approvalRoute.initialApprovers;
 
         // Create a portal notification for each owner/approver
         await sendRequestNotification({
           applicantId: userId,
           requestType: "Asset",
           action: "created",
-          details: `${requesterName} has requested a new asset: ${asset_type}. Priority: ${priority || "Medium"}. Awaiting Owner approval.`
+          details: `${requesterName} has requested a new asset: ${asset_type}. Priority: ${priority || "Medium"}. Status: ${approvalRoute.initialStatus}.`
         });
 
         const ownerEmails: string[] = [];
@@ -551,12 +534,18 @@ export async function POST(req: Request) {
       }
 
       // Enforce approval/dispatch workflows
+      let approvalDecision: any = null;
       if (status === "Approved" || status === "Rejected") {
-        const { isUserAuthorizedApprover } = await import("@/lib/approvalRouting");
-        const canApproveAsset = await isUserAuthorizedApprover("asset_request", userId, userRole, request.employee_id);
-        if (!canApproveAsset && !isDeptManager) {
-          return NextResponse.json({ success: false, error: "Forbidden: You are not authorized to approve/reject asset requests." }, { status: 403 });
+        const { processTwoStageApproval } = await import("@/lib/twoStageApproval");
+        const decision = await processTwoStageApproval({
+          applicantId: String(request.employee_id), actorId: String(userId), requestedStatus: status,
+          currentStatus: String(request.status || "Pending"),
+        });
+        if (!decision.allowed) {
+          return NextResponse.json({ success: false, error: decision.error }, { status: 403 });
         }
+        approvalDecision = decision;
+        body.status = decision.nextStatus;
       } else if (status === "Dispatched" || status === "Dispatched (Inventory)" || status === "Dispatched (New Purchase)") {
         if (!isOwnerOrDirector && !isAdministration) {
           return NextResponse.json({ success: false, error: "Forbidden. Only Administration department users or Owners can dispatch assets." }, { status: 403 });
@@ -565,12 +554,26 @@ export async function POST(req: Request) {
         return NextResponse.json({ success: false, error: "Invalid status update." }, { status: 400 });
       }
 
-      let nextStatus = status;
+      let nextStatus = body.status;
 
       await request.update({
         status: nextStatus,
         admin_remarks: admin_remarks || request.admin_remarks
       });
+
+      if (nextStatus === "Pending Owner Approval" && approvalDecision) {
+        await Notification.sync();
+        for (const owner of approvalDecision.notifyUsers) {
+          if (String(owner.id) === String(request.employee_id)) continue;
+          await Notification.create({
+            id: Date.now().toString() + Math.random().toString(36).substring(2, 8),
+            recipient: owner.id,
+            title: "Asset Request Awaiting Final Approval",
+            message: `The Department Manager recommended the ${request.asset_type} request. Your final decision is required.`,
+            read: false,
+          });
+        }
+      }
 
       try {
         let actionVal: "approved" | "rejected" | "dispatched" | "approved_by_manager" | "hold" = "approved";

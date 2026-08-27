@@ -275,7 +275,7 @@ export function AssetRequestLogs({ sessionUser, triggerToast, setActiveTab }: As
 
     let matchesStatus = statusFilter === "" ||
       r.status === statusFilter ||
-      (statusFilter === "Pending" && (r.status === "Pending Manager Approval" || r.status === "Pending Owner Approval" || r.status === "Pending")) ||
+      (statusFilter === "Pending" && (["Pending", "Pending Manager Approval", "Pending Recommender Approval", "Pending Owner Approval"].includes(r.status))) ||
       (statusFilter === "Approved" && (r.status === "Approved" || (r.status && r.status.startsWith("Dispatched")))) ||
       (statusFilter === "Dispatched" && r.status && r.status.startsWith("Dispatched"));
 
@@ -293,6 +293,7 @@ export function AssetRequestLogs({ sessionUser, triggerToast, setActiveTab }: As
     switch (status) {
       case "Pending":
       case "Pending Manager Approval":
+      case "Pending Recommender Approval":
       case "Pending Owner Approval":
         return "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-900/30";
       case "Approved":
@@ -610,7 +611,7 @@ export function AssetRequestLogs({ sessionUser, triggerToast, setActiveTab }: As
                   <tbody className={`divide-y text-xs ${isDark ? "divide-gray-800 text-gray-200" : "divide-slate-150 text-slate-700"}`}>
                     {filteredRequests.map((req) => {
                       const parsed = parseRequisitionReason(req.reason);
-                      const isPendingState = req.status === "Pending Manager Approval" || req.status === "Pending Owner Approval" || req.status === "Pending";
+                      const isPendingState = ["Pending", "Pending Manager Approval", "Pending Recommender Approval", "Pending Owner Approval"].includes(req.status);
                       const isApprovedState = req.status === "Approved";
 
                       return (
@@ -828,7 +829,7 @@ export function AssetRequestLogs({ sessionUser, triggerToast, setActiveTab }: As
 
                       {/* Admin Actions Panel (Approve/Reject controls) */}
                       {((isManager || (req.employee_id && String(req.employee_id) !== String(sessionUser?.id))) &&
-                        (req.status === "Pending Manager Approval" || req.status === "Pending Owner Approval" || req.status === "Pending")) && (
+                        (["Pending", "Pending Manager Approval", "Pending Recommender Approval", "Pending Owner Approval"].includes(req.status))) && (
                           <div className="mt-4 pt-3 border-t border-dashed border-slate-200 dark:border-gray-700 flex flex-col md:flex-row items-center gap-3">
                             <input
                               type="text"
