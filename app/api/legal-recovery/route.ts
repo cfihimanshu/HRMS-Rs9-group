@@ -43,6 +43,12 @@ async function ensureLegalRecoveryColumns() {
           allowNull: true
         }).catch(() => {});
       }
+      if (!tableDesc.archivedAt) {
+        await queryInterface.addColumn("legal_recovery_masters", "archivedAt", {
+          type: DataTypes.DATE,
+          allowNull: true
+        }).catch(() => {});
+      }
     }
     columnsEnsured = true;
   } catch (e) {
@@ -53,6 +59,7 @@ async function ensureLegalRecoveryColumns() {
 import BankMaster from "@/models/sequelize/BankMaster";
 import LegalNotice from "@/models/sequelize/LegalNotice";
 import LegalWorkLog from "@/models/sequelize/LegalWorkLog";
+import LegalRecoveryBill from "@/models/sequelize/LegalRecoveryBill";
 
 // Helper to safely parse financial details JSON
 function parseFinances(details: any) {
@@ -85,8 +92,10 @@ export async function GET() {
       console.warn("LegalRecoveryMaster sync warning:", sErr);
     }
 
-    const [cases, payments, branches, banks, notices, workLogs] = await Promise.all([
+    await LegalRecoveryBill.sync().catch(() => {});
+    const [cases, payments, branches, banks, notices, workLogs, importedBills] = await Promise.all([
       LegalRecoveryMaster.findAll({
+        where: { archivedAt: null },
         order: [["createdAt", "DESC"]],
         raw: true
       }),
@@ -104,8 +113,16 @@ export async function GET() {
       }).catch(() => []),
       LegalWorkLog.findAll({
         raw: true
-      }).catch(() => [])
+      }).catch(() => []),
+      LegalRecoveryBill.findAll({ raw: true }).catch(() => [])
     ]);
+
+    const importedBillsByMaster: Record<number, any[]> = {};
+    importedBills.forEach((bill: any) => {
+      const masterId = Number(bill.masterId);
+      if (!importedBillsByMaster[masterId]) importedBillsByMaster[masterId] = [];
+      importedBillsByMaster[masterId].push(bill);
+    });
 
     // Build direct payments map by masterId
     const directPaymentsByMasterId: Record<number, number> = {};
@@ -313,7 +330,11 @@ export async function GET() {
       const itemsMap = new Map<string | number, ConsolidatedItem>();
 
       (consolidatedItemsByMasterId[caseId] || []).forEach(item => itemsMap.set(item.id, item));
-      (consolidatedItemsByBankBranch[grpKey] || []).forEach(item => itemsMap.set(item.id, item));
+      // Bank/branch fallback is only for legacy unlinked items. Never attach a work
+      // item belonging to another master case that happens to share the branch.
+      (consolidatedItemsByBankBranch[grpKey] || [])
+        .filter(item => !item.masterId || Number(item.masterId) === caseId)
+        .forEach(item => itemsMap.set(item.id, item));
 
       const noticesList = Array.from(itemsMap.values()).filter(it => it.billAmount > 0 || it.amountRcvd > 0 || (it.billNo && it.billNo !== "N/A"));
 
@@ -323,23 +344,56 @@ export async function GET() {
 
       const rawPending = parseFloat(c.pendingAmount);
       const rawTotalBill = parseFloat(c.totalBillAmount);
+      const caseImportedBills = importedBillsByMaster[caseId] || [];
+      const hasImportedBills = caseImportedBills.length > 0;
+      // Total billed mirrors the spreadsheet Bill Amount column, including
+      // cancelled historical invoices. Pending is strictly Status=Pending Due.
+      const importedBillTotal = caseImportedBills
+        .reduce((sum: number, b: any) => sum + (parseFloat(b.billAmount) || 0), 0);
+      const importedReceivedTotal = caseImportedBills
+        .filter((b: any) => String(b.status).toLowerCase() === "received")
+        .reduce((sum: number, b: any) => sum + (parseFloat(b.receivedAmount) || 0), 0);
+      const importedTdsTotal = caseImportedBills
+        .filter((b: any) => String(b.status).toLowerCase() !== "cancelled")
+        .reduce((sum: number, b: any) => sum + (parseFloat(b.tdsAmount) || 0), 0);
+      const importedPendingTotal = caseImportedBills
+        .filter((b: any) => String(b.status).toLowerCase() === "pending")
+        .reduce((sum: number, b: any) => sum + (parseFloat(b.dueAmount) || 0), 0);
 
-      const totalReceived = directReceived + noticeRcvd;
+      const loggedReceived = directReceived + noticeRcvd;
 
+      // Master values are the accounting source of truth. Work logs/notices are
+      // only a fallback for legacy cases that do not have master finance values.
       let totalBillAmount = 0;
-      if (!isNaN(rawTotalBill) && rawTotalBill > 0) {
-        totalBillAmount = Math.max(rawTotalBill, noticeBill);
+      if (hasImportedBills) {
+        totalBillAmount = importedBillTotal;
+      } else if (!isNaN(rawTotalBill) && rawTotalBill > 0) {
+        totalBillAmount = rawTotalBill;
       } else if (noticeBill > 0) {
         totalBillAmount = noticeBill;
       } else if (!isNaN(rawPending) && rawPending > 0) {
-        totalBillAmount = rawPending + totalReceived;
+        totalBillAmount = rawPending + loggedReceived;
       } else {
-        totalBillAmount = totalReceived;
+        totalBillAmount = loggedReceived;
       }
 
-      totalBillAmount = Math.max(totalBillAmount, totalReceived);
-      let pendingAmount = Math.max(0, totalBillAmount - totalReceived);
-      let status = c.status || (pendingAmount <= 0 && totalBillAmount > 0 ? "Settled" : totalReceived > 0 ? "In Progress" : "Open");
+      const hasStoredPending = !isNaN(rawPending) && rawPending >= 0;
+      const pendingAmount = hasImportedBills
+        ? importedPendingTotal
+        : hasStoredPending
+        ? rawPending
+        : Math.max(0, totalBillAmount - loggedReceived);
+      const totalReceived = hasImportedBills
+        ? importedReceivedTotal
+        : !isNaN(rawTotalBill) && rawTotalBill > 0 && hasStoredPending
+        ? Math.max(0, rawTotalBill - pendingAmount)
+        : loggedReceived;
+      totalBillAmount = Math.max(totalBillAmount, totalReceived + pendingAmount);
+      const status = pendingAmount <= 0 && totalBillAmount > 0
+        ? "Settled"
+        : totalReceived > 0
+          ? "In Progress"
+          : (c.status || "Open");
 
       return {
         ...c,
@@ -347,6 +401,10 @@ export async function GET() {
         branchName: resolvedBranchName,
         noticeCount,
         noticesList,
+        importedBills: caseImportedBills,
+        importedBillCount: caseImportedBills.length,
+        tdsAmount: Number(importedTdsTotal.toFixed(2)),
+        companyCodes: Array.from(new Set(caseImportedBills.map((b: any) => b.companyCode).filter(Boolean))),
         totalBillAmount: Number(totalBillAmount.toFixed(2)),
         receivedAmount: Number(totalReceived.toFixed(2)),
         pendingAmount: Number(pendingAmount.toFixed(2)),
@@ -361,42 +419,8 @@ export async function GET() {
       };
     });
 
-    // Also auto-include all other Bank & Branch groups from consolidated items
-    Object.entries(consolidatedItemsByBankBranch).forEach(([key, items]) => {
-      if (!coveredGroupKeys.has(key)) {
-        coveredGroupKeys.add(key);
-
-        const primary = items[0];
-        const bill = items.reduce((sum, it) => sum + (it.billAmount || 0), 0);
-        const rcvd = items.reduce((sum, it) => sum + (it.amountRcvd || 0), 0);
-        const pending = Math.max(0, bill - rcvd);
-        const count = items.reduce((sum, it) => sum + (it.quantity || 1), 0);
-
-        if (bill > 0 || rcvd > 0) {
-          enrichedCases.push({
-            id: Math.floor(Math.random() * -100000) - 1,
-            bankName: primary.bankName,
-            branchName: primary.branchName,
-            branchId: "N/A",
-            aoName: "",
-            deptManagerName: "",
-            contactNumber: "",
-            branchEmail: "",
-            foName: "",
-            foContact: "",
-            rbo: "",
-            noticeCount: count,
-            noticesList: items,
-            totalBillAmount: Number(bill.toFixed(2)),
-            receivedAmount: Number(rcvd.toFixed(2)),
-            pendingAmount: Number(pending.toFixed(2)),
-            pendingSince: primary.billDate || new Date().toISOString(),
-            status: pending <= 0 && bill > 0 ? "Settled" : rcvd > 0 ? "In Progress" : "Open",
-            createdAt: primary.billDate || new Date().toISOString()
-          });
-        }
-      }
-    });
+    // Unlinked work logs/notices remain available in their history screens, but
+    // they must not recreate financial Bank Cases after the active register is cleared.
 
     // ONLY return banks/cases where the billing stage is reached (totalBillAmount > 0 or receivedAmount > 0)
     const activeBillingCases = enrichedCases.filter((c: any) => {

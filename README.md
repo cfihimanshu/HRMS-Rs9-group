@@ -34,3 +34,14 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+# Rs9 HRMS PWA deployment
+
+The application includes an installable browser PWA and authenticated Web Push notifications. Configure these environment variables on the production server before building/deploying:
+
+```env
+NEXT_PUBLIC_VAPID_PUBLIC_KEY=<public VAPID key>
+VAPID_PRIVATE_KEY=<private VAPID key>
+VAPID_SUBJECT=mailto:admin@cfi247.com
+```
+
+Keep the private key secret and never commit it. Run `npm run db:migrate` during deployment to create the push-subscription table. PWA installation and push notifications require HTTPS in production (localhost is allowed during development).

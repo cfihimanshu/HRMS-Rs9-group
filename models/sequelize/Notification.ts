@@ -40,6 +40,22 @@ Notification.init(
     sequelize,
     tableName: "notifications",
     timestamps: true,
+    hooks: {
+      afterCreate: async (notification: any) => {
+        if (!notification.recipient) return;
+        try {
+          const { sendWebPushToUser } = await import("@/lib/webPush");
+          await sendWebPushToUser(String(notification.recipient), {
+            title: notification.title || "Rs9 HRMS",
+            body: notification.message || "You have a new update.",
+            url: "/dashboard",
+            tag: `notification-${notification.id}`,
+          });
+        } catch (error) {
+          console.error("Notification push hook failed:", error);
+        }
+      },
+    },
   }
 );
 

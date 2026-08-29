@@ -8398,10 +8398,18 @@ export function LeaveRequestTab({ sessionUser, initialSearchFilter }: { sessionU
                         const end = new Date(leave.endDate);
 
                         const isDirectReportManager = leave.employee && String(leave.employee.id) !== String(sessionUser?.id);
-                        // Show actions if current user is an authorized approver for another employee's leave
-                        const showActions =
-                          (isDirectReportManager || isManager || isOwnerOrDirector || isHR) &&
-                          (["Pending", "Pending Manager Approval", "Pending Recommender Approval", "Pending HR Approval", "Pending Owner Approval"].includes(leave.status));
+                        const isPendingOwnerApproval = leave.status === "Pending Owner Approval";
+                        const isPendingRecommenderApproval = [
+                          "Pending",
+                          "Pending Manager Approval",
+                          "Pending Recommender Approval",
+                          "Pending HR Approval"
+                        ].includes(leave.status);
+                        // Owner-stage actions must never be exposed to the recommender.
+                        // The API enforces the same rule; this keeps the UI aligned with it.
+                        const showActions = isPendingOwnerApproval
+                          ? isOwnerOrDirector
+                          : isPendingRecommenderApproval && (isOwnerOrDirector || isDirectReportManager || isManager);
 
                         return (
                           <tr key={leave.id} className="hover:bg-slate-50/50">
@@ -8455,7 +8463,7 @@ export function LeaveRequestTab({ sessionUser, initialSearchFilter }: { sessionU
                                       onClick={() => handleUpdateStatus(leave.id, "Approved")}
                                       className="bg-emerald-600 hover:bg-emerald-700 text-white px-2.5 py-1 rounded text-[10px] font-bold transition-all shadow"
                                     >
-                                      {isManager ? "Approve & Forward" : "Final Approve"}
+                                      {isPendingOwnerApproval ? "Final Approve" : "Recommend & Forward"}
                                     </button>
                                     <button
                                       onClick={() => handleUpdateStatus(leave.id, "Rejected")}

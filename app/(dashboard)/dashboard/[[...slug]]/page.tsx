@@ -104,6 +104,7 @@ export default function UnifiedEnterpriseDashboard() {
   const [kanbanOverdueOnly, setKanbanOverdueOnly] = useState(false);
   const [performanceSubTab, setPerformanceSubTab] = useState<string>("visual-dashboard");
   const [leaveSearchFilter, setLeaveSearchFilter] = useState<string>("");
+  const [legalRecoverySubModule, setLegalRecoverySubModule] = useState<"launcher" | "masters">("launcher");
 
   const handleNavigateTab = (tab: string, filter?: string, userFilter?: string) => {
     const isOwner = userRole === "Owner" || rawRole === "Owner" || rawRole?.toLowerCase() === "owner" || userRole?.toLowerCase() === "owner";
@@ -115,6 +116,9 @@ export default function UnifiedEnterpriseDashboard() {
     }
 
     setActiveTab(tab);
+    if (tab === "legal-recovery") {
+      setLegalRecoverySubModule(filter === "masters" ? "masters" : "launcher");
+    }
     if (typeof window !== "undefined") {
       const targetPath = `/dashboard/${tab}`;
       if (window.location.pathname !== targetPath) {
@@ -1466,6 +1470,7 @@ export default function UnifiedEnterpriseDashboard() {
                 userRole={userRole}
                 triggerToast={triggerToast}
                 sessionUser={session?.user}
+                initialSubModule={legalRecoverySubModule}
               />
             );
           })()}

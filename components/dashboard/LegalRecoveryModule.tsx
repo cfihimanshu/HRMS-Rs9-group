@@ -3,7 +3,7 @@ import React, { useState, useEffect } from "react";
 import {
   Search, PlusCircle, PhoneCall, RefreshCw, X, Building, Banknote,
   FileAudio, History, Calendar, CheckCircle, ArrowLeft, LayoutGrid, FileText,
-  Landmark, Network, Filter, Briefcase, Building2, ShieldCheck
+  Landmark, Network, Filter, Briefcase, Building2, ShieldCheck, Upload, TableProperties
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import BankMasterView from "./legal-recovery/BankMasterView";
@@ -15,11 +15,14 @@ import NbfcMasterView from "./legal-recovery/NbfcMasterView";
 import NbfcBranchMasterView from "./legal-recovery/NbfcBranchMasterView";
 import SecurityMasterView from "./legal-recovery/SecurityMasterView";
 import LegalWorkEntryHistoryView from "./legal-recovery/LegalWorkEntryHistoryView";
+import ImportBillsModal from "./legal-recovery/ImportBillsModal";
+import BillsExcelViewModal from "./legal-recovery/BillsExcelViewModal";
 
 interface LegalRecoveryModuleProps {
   userRole?: string;
   triggerToast: (msg: string) => void;
   sessionUser?: any;
+  initialSubModule?: "launcher" | "masters";
 }
 
 const WORK_CATEGORIES: Record<string, string[]> = {
@@ -61,8 +64,8 @@ const WORK_CATEGORIES: Record<string, string[]> = {
   ]
 };
 
-export default function LegalRecoveryModule({ userRole, triggerToast, sessionUser }: LegalRecoveryModuleProps) {
-  const [activeSubModule, setActiveSubModule] = useState<"launcher" | "follow-up" | "masters" | "history" | "banks" | "branches" | "collections" | "work-logs" | "notices" | "old-notice-archive" | "nbfcs" | "nbfc-branches" | "security" | "work-history" | "legal-work-entry-history">("launcher");
+export default function LegalRecoveryModule({ userRole, triggerToast, sessionUser, initialSubModule = "launcher" }: LegalRecoveryModuleProps) {
+  const [activeSubModule, setActiveSubModule] = useState<"launcher" | "follow-up" | "masters" | "history" | "banks" | "branches" | "collections" | "work-logs" | "notices" | "old-notice-archive" | "nbfcs" | "nbfc-branches" | "security" | "work-history" | "legal-work-entry-history">(initialSubModule);
   const [cases, setCases] = useState<any[]>([]);
   const [banksList, setBanksList] = useState<any[]>([]);
   const [branchesList, setBranchesList] = useState<any[]>([]);
@@ -72,6 +75,8 @@ export default function LegalRecoveryModule({ userRole, triggerToast, sessionUse
 
   // Modals state
   const [showAddCaseForm, setShowAddCaseForm] = useState(false);
+  const [showImportBills, setShowImportBills] = useState(false);
+  const [showBillsExcelView, setShowBillsExcelView] = useState(false);
   const [showAddBankForm, setShowAddBankForm] = useState(false);
   const [showAddBranchForm, setShowAddBranchForm] = useState(false);
   const [showAddNbfcForm, setShowAddNbfcForm] = useState(false);
@@ -995,16 +1000,29 @@ export default function LegalRecoveryModule({ userRole, triggerToast, sessionUse
             )}
 
             {activeSubModule === "masters" && (
-              <button
+              <><button
+                onClick={() => setShowBillsExcelView(true)}
+                className="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white rounded-lg text-[10px] font-semibold tracking-wider uppercase transition-all flex items-center gap-1.5 shadow-sm"
+              >
+                <TableProperties className="w-3.5 h-3.5" /> Excel View
+              </button><button
+                onClick={() => setShowImportBills(true)}
+                className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-[10px] font-semibold tracking-wider uppercase transition-all flex items-center gap-1.5 shadow-sm"
+              >
+                <Upload className="w-3.5 h-3.5" /> Import Bills
+              </button><button
                 onClick={() => setShowAddCaseForm(!showAddCaseForm)}
                 className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[10px] font-semibold tracking-wider uppercase transition-all flex items-center gap-1.5 shadow-sm"
               >
                 <PlusCircle className="w-3.5 h-3.5" />
                 {showAddCaseForm ? "Close Form" : "Add New Case"}
-              </button>
+              </button></>
             )}
           </div>
         </div>
+
+        {showImportBills && <ImportBillsModal onClose={() => setShowImportBills(false)} onImported={fetchCases} />}
+        {showBillsExcelView && <BillsExcelViewModal onClose={() => setShowBillsExcelView(false)} />}
 
         {/* Add New Bank Form */}
         {showAddBankForm && activeSubModule === "banks" && (

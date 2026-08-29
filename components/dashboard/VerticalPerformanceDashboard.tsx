@@ -9,7 +9,7 @@ const dateLabel = (value: any) => value ? new Date(value).toLocaleDateString("en
 const numeric = (value: any) => Number(String(value ?? 0).replace(/[^0-9.-]/g, "")) || 0;
 let verticalDashboardCache: { at: number; data: any } | null = null;
 
-export default function VerticalPerformanceDashboard({ onNavigate }: { onNavigate?: (tab: string) => void }) {
+export default function VerticalPerformanceDashboard({ onNavigate }: { onNavigate?: (tab: string, filter?: string) => void }) {
   const [data, setData] = useState<{ leads: Row[]; calls: Row[]; cases: Row[]; followups: Row[]; security: Row[]; legalBills: Row[]; payments: Row[]; users: Row[] }>({ leads: [], calls: [], cases: [], followups: [], security: [], legalBills: [], payments: [], users: [] });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -314,17 +314,17 @@ export default function VerticalPerformanceDashboard({ onNavigate }: { onNavigat
                 <span>Work completed</span>
                 <b className="text-right">{v.completed} / {v.assigned}</b>
                 <span>{v.name === "Legal Recovery" ? "Total case amount" : "Billed amount"}</span>
-                <b className="text-right">{money(v.billed)}</b>
+                {v.name === "Legal Recovery" ? <button type="button" onClick={() => onNavigate?.("legal-recovery", "masters")} className="text-right font-bold underline underline-offset-2 hover:text-[#744868]">{money(v.billed)}</button> : <b className="text-right">{money(v.billed)}</b>}
                 <span>{v.name === "Legal Recovery" ? "Payments received" : "Collected"}</span>
                 {v.name === "Legal Recovery" ? (
-                  <button type="button" onClick={()=>setShowPayments(true)} className="text-right text-emerald-600 font-bold underline underline-offset-2 hover:text-emerald-800" title="View payment details">
+                  <button type="button" onClick={() => onNavigate?.("legal-recovery", "masters")} className="text-right text-emerald-600 font-bold underline underline-offset-2 hover:text-emerald-800" title="Open Bank Cases">
                     {money(v.collected)} <Eye className="inline w-3 h-3 ml-1"/>
                   </button>
                 ) : (
                   <b className="text-right text-emerald-600">{money(v.collected)}</b>
                 )}
                 <span>{v.name === "Legal Recovery" ? "Remaining amount" : "Pending"}</span>
-                <b className="text-right text-rose-600">{money(v.pending)}</b>
+                {v.name === "Legal Recovery" ? <button type="button" onClick={() => onNavigate?.("legal-recovery", "masters")} className="text-right text-rose-600 font-bold underline underline-offset-2 hover:text-rose-800">{money(v.pending)}</button> : <b className="text-right text-rose-600">{money(v.pending)}</b>}
               </div>
               <div className="mt-4 h-2 rounded-full bg-slate-100">
                 <div className="h-2 rounded-full bg-[#744868]" style={{width:`${Math.min(100,v.achievement)}%`}}/>
@@ -548,7 +548,7 @@ export default function VerticalPerformanceDashboard({ onNavigate }: { onNavigat
         <button onClick={() => onNavigate?.("sales-dashboard")} className="btn hover:bg-slate-50">
           Open Sales Dashboard <ArrowRight className="w-4 h-4"/>
         </button>
-        <button onClick={() => onNavigate?.("legal-recovery")} className="btn bg-[#744868] text-white hover:bg-[#5e3853]">
+        <button onClick={() => onNavigate?.("legal-recovery", "masters")} className="btn bg-[#744868] text-white hover:bg-[#5e3853]">
           Open Legal Recovery <ArrowRight className="w-4 h-4"/>
         </button>
       </div>

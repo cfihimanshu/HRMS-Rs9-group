@@ -67,6 +67,10 @@ LegalRecoveryMaster.init(
       allowNull: true,
       defaultValue: "Open", // Open, In Progress, Closed, Settled
     },
+    archivedAt: {
+      type: DataTypes.DATE,
+      allowNull: true,
+    },
     createdAt: {
       type: DataTypes.DATE,
       allowNull: true,
@@ -83,6 +87,7 @@ LegalRecoveryMaster.init(
     indexes: [
       { name: "idx_lrm_pending_age", fields: ["pendingAmount", "pendingSince"] },
       { name: "idx_lrm_status_updated", fields: ["status", "updatedAt"] },
+      { name: "idx_lrm_archived", fields: ["archivedAt"] },
       { name: "idx_lrm_bank_branch", fields: ["bankName", "branchId"] },
     ],
   }

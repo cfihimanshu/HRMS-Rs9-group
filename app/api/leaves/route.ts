@@ -321,19 +321,6 @@ export async function POST(req: Request) {
       hrStatus: "Pending",
     });
 
-    // In-app notifications
-    try {
-      const applicantUser = await User.findByPk(applicantId);
-      await sendRequestNotification({
-        applicantId,
-        requestType: "Leave",
-        action: "created",
-        details: `${applicantUser?.name || "An employee"} has applied for a ${days}-day ${type} leave (Status: ${initialStatus}).`
-      });
-    } catch (notifErr) {
-      console.error("Error creating leave notifications:", notifErr);
-    }
-
     // ── Dynamic Approval Matrix Routing for Leaves
     try {
       const routing = {
@@ -433,7 +420,7 @@ export async function GET(req: Request) {
     }
 
     await sequelize.authenticate();
-    await EmployeeProfile.sync({ alter: true }).catch(() => {});
+    await EmployeeProfile.sync().catch(() => {});
 
     const userRole = (session.user as any).role;
     const userId = (session.user as any).id;
@@ -445,6 +432,10 @@ export async function GET(req: Request) {
 
     // Get mapped company IDs of the logged-in user
     const loggedInUser = await User.findByPk(userId);
+    const loggedInProfile: any = await EmployeeProfile.findOne({ where: { user: userId }, raw: true });
+    const managerIdentity = `${roleLower} ${String(loggedInProfile?.designation || "").toLowerCase()}`;
+    const isDepartmentRecommender = managerIdentity.includes("manager") ||
+      managerIdentity.includes("department head") || managerIdentity.includes("team lead");
     let loggedInUserCompanies: any[] = [];
     if (loggedInUser && loggedInUser.companies) {
       try {
@@ -493,7 +484,7 @@ export async function GET(req: Request) {
 
     if (isGlobalManagerOrOwner) {
       filter = {}; // Owner, Directors & HR see ALL leaves from ALL employees across all companies
-    } else if (userRole === "Department Manager") {
+    } else if (isDepartmentRecommender) {
       const { getDepartmentMemberIds } = await import("@/lib/twoStageApproval");
       filter = { employee: { [Op.in]: await getDepartmentMemberIds(userId) } };
     } else if (isGeneralApprover) {

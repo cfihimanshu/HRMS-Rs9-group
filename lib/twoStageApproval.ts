@@ -12,8 +12,8 @@ export function isOwnerUser(user: any) {
 }
 
 export function isDepartmentManagerUser(user: any) {
-  const role = roleOf(user);
-  return role === "department manager" || role === "department-manager" || role.includes("department manager");
+  const identity = `${roleOf(user)} ${String(user?.designation || "").trim().toLowerCase()}`;
+  return identity.includes("manager") || identity.includes("department head") || identity.includes("team lead");
 }
 
 async function activeUsers() {
@@ -30,13 +30,16 @@ export async function getTwoStageRoute(applicantId: string) {
   const applicantProfile: any = await EmployeeProfile.findOne({ where: { user: applicantId }, raw: true });
   const users = await activeUsers();
   const owners = users.filter(isOwnerUser);
-  const managerUsers = users.filter(isDepartmentManagerUser);
-  const profiles = await profilesForUsers(managerUsers.map((u: any) => String(u.id)));
+  const profiles = await profilesForUsers(users.map((u: any) => String(u.id)));
+  const profileByUser = new Map(profiles.map((profile: any) => [String(profile.user), profile]));
+  const managerUsers = users.filter((user: any) =>
+    isDepartmentManagerUser({ ...user, designation: profileByUser.get(String(user.id))?.designation })
+  );
   const department = String(applicantProfile?.department || "");
 
   let recommenders = managerUsers.filter((manager: any) => {
     if (String(manager.id) === String(applicantId)) return false;
-    const managerProfile = profiles.find((p: any) => String(p.user) === String(manager.id));
+    const managerProfile = profileByUser.get(String(manager.id));
     return department && String(managerProfile?.department || "") === department;
   });
 
@@ -51,7 +54,10 @@ export async function getTwoStageRoute(applicantId: string) {
     if (direct && String(direct.id) !== String(applicantId)) recommenders = [direct];
   }
 
-  const startsWithOwner = isOwnerUser(applicant) || isDepartmentManagerUser(applicant) || recommenders.length === 0;
+  const startsWithOwner = isOwnerUser(applicant) || isDepartmentManagerUser({
+    ...applicant,
+    designation: applicantProfile?.designation,
+  }) || recommenders.length === 0;
   return {
     applicant,
     applicantProfile,
