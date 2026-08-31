@@ -71,6 +71,7 @@ export default function LegalRecoveryModule({ userRole, triggerToast, sessionUse
   const [branchesList, setBranchesList] = useState<any[]>([]);
   const [nbfcsList, setNbfcsList] = useState<any[]>([]);
   const [nbfcBranchesList, setNbfcBranchesList] = useState<any[]>([]);
+  const [pocEmployees, setPocEmployees] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Modals state
@@ -120,7 +121,7 @@ export default function LegalRecoveryModule({ userRole, triggerToast, sessionUse
   const [caseForm, setCaseForm] = useState({
     bankName: "", branchName: "", branchId: "", aoName: "",
     deptManagerName: "", contactNumber: "", branchEmail: "", foName: "", foContact: "", rbo: "",
-    totalBillAmount: "", pendingAmount: "", pendingSince: "", status: "Open"
+    pocName: "", totalBillAmount: "", pendingAmount: "", pendingSince: "", status: "Open"
   });
   const [editCaseId, setEditCaseId] = useState<number | null>(null);
   const [selectedBankIdForCase, setSelectedBankIdForCase] = useState("");
@@ -207,11 +208,45 @@ export default function LegalRecoveryModule({ userRole, triggerToast, sessionUse
     }
   };
 
+  const fetchPocEmployees = async () => {
+    try {
+      const res = await fetch("/api/employees");
+      const data = await res.json();
+      if (res.ok && data.success) {
+        const legalRecoveryEmployees = (data.data || [])
+          .filter((employee: any) => {
+            const status = String(employee.status || "active").trim().toLowerCase();
+            const vertical = String(employee.vertical || employee.employeeProfile?.vertical || "").trim().toLowerCase();
+            const department = String(
+              employee.employeeProfile?.department?.name ||
+              employee.employeeProfile?.department ||
+              employee.department?.name ||
+              employee.department ||
+              ""
+            ).trim().toLowerCase();
+            const isActive = !["inactive", "terminated", "resigned", "disabled", "blocked"].includes(status);
+            const belongsToLegalRecovery = (vertical.includes("legal") && vertical.includes("recovery")) ||
+              vertical === "legal & security" ||
+              (department.includes("legal") && department.includes("recovery")) ||
+              department === "legal & security";
+
+            return isActive && belongsToLegalRecovery;
+          })
+          .sort((a: any, b: any) => String(a.name || "").localeCompare(String(b.name || "")));
+
+        setPocEmployees(legalRecoveryEmployees);
+      }
+    } catch (error) {
+      console.error("Error fetching Legal Recovery employees:", error);
+    }
+  };
+
   useEffect(() => {
     fetchBanks();
     fetchBranches();
     fetchNbfcs();
     fetchNbfcBranches();
+    fetchPocEmployees();
   }, []);
 
   useEffect(() => {
@@ -506,7 +541,7 @@ export default function LegalRecoveryModule({ userRole, triggerToast, sessionUse
         setCaseForm({
           bankName: "", branchName: "", branchId: "", aoName: "",
           deptManagerName: "", contactNumber: "", branchEmail: "", foName: "", foContact: "", rbo: "",
-          totalBillAmount: "", pendingAmount: "", pendingSince: "", status: "Open"
+          pocName: "", totalBillAmount: "", pendingAmount: "", pendingSince: "", status: "Open"
         });
         fetchCases();
       } else {
@@ -537,6 +572,37 @@ export default function LegalRecoveryModule({ userRole, triggerToast, sessionUse
     }
   };
 
+  const handleAssignPoc = async (caseItem: any, pocName: string) => {
+    const res = await fetch("/api/legal-recovery", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: caseItem.id, pocName })
+    });
+    const result = await res.json();
+    if (!res.ok || !result.success) {
+      triggerToast(result.error || "POC assign nahi ho saka");
+      throw new Error(result.error || "Failed to assign POC");
+    }
+    setCases(current => current.map(item => item.id === caseItem.id ? { ...item, pocName } : item));
+    triggerToast("POC Employee assigned successfully!");
+  };
+
+  const handleBulkAssignPoc = async (caseIds: number[], pocName: string) => {
+    const res = await fetch("/api/legal-recovery", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ids: caseIds, pocName })
+    });
+    const result = await res.json();
+    if (!res.ok || !result.success) {
+      triggerToast(result.error || "POC bulk assign nahi ho saka");
+      throw new Error(result.error || "Failed to bulk assign POC");
+    }
+    const selectedIds = new Set(caseIds.map(Number));
+    setCases(current => current.map(item => selectedIds.has(Number(item.id)) ? { ...item, pocName } : item));
+    triggerToast(`${result.updatedCount || caseIds.length} cases par POC assigned successfully!`);
+  };
+
   const handleEditCase = (c: any) => {
     const matchingBank = banksList.find((bank: any) => bank.bankName === c.bankName || String(bank.id) === String(c.bankId || ""));
     setSelectedBankIdForCase(matchingBank ? String(matchingBank.id) : "");
@@ -551,6 +617,7 @@ export default function LegalRecoveryModule({ userRole, triggerToast, sessionUse
       foName: c.foName || "",
       foContact: c.foContact || "",
       rbo: c.rbo || "",
+      pocName: c.pocName || "",
       totalBillAmount: c.totalBillAmount !== undefined && c.totalBillAmount !== null ? String(c.totalBillAmount) : "",
       pendingAmount: c.pendingAmount !== undefined && c.pendingAmount !== null ? String(c.pendingAmount) : "",
       pendingSince: c.pendingSince ? new Date(c.pendingSince).toISOString().split('T')[0] : "",
@@ -1172,7 +1239,7 @@ export default function LegalRecoveryModule({ userRole, triggerToast, sessionUse
                   setCaseForm({
                     bankName: "", branchName: "", branchId: "", aoName: "",
                     deptManagerName: "", contactNumber: "", branchEmail: "", foName: "", foContact: "", rbo: "",
-                    totalBillAmount: "", pendingAmount: "", pendingSince: "", status: "Open"
+                    pocName: "", totalBillAmount: "", pendingAmount: "", pendingSince: "", status: "Open"
                   });
                 }}
                 className="text-slate-400 hover:text-slate-600"
@@ -1438,6 +1505,10 @@ export default function LegalRecoveryModule({ userRole, triggerToast, sessionUse
             userRole={userRole}
             onEditCase={handleEditCase}
             onDeleteCase={handleDeleteCase}
+            pocEmployees={pocEmployees}
+            onAssignPoc={handleAssignPoc}
+            onBulkAssignPoc={handleBulkAssignPoc}
+            currentUserName={sessionUser?.name || ""}
           />
         )}
 

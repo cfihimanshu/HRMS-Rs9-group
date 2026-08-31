@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { createPortal } from "react-dom";
 import { Search, Filter, PhoneCall, History, Banknote, RefreshCw, Edit2, Trash2, Download, X, Briefcase, Calendar, FileAudio, ChevronDown, ChevronUp, Building, FileText } from "lucide-react";
 
 export default function CasesMasterView({ 
@@ -9,7 +10,11 @@ export default function CasesMasterView({
   openHistory,
   userRole,
   onEditCase,
-  onDeleteCase
+  onDeleteCase,
+  pocEmployees = [],
+  onAssignPoc,
+  onBulkAssignPoc,
+  currentUserName = ""
 }: { 
   cases: any[], 
   loading: boolean,
@@ -18,13 +23,25 @@ export default function CasesMasterView({
   openHistory: (id: number) => void,
   userRole?: string,
   onEditCase?: (c: any) => void,
-  onDeleteCase?: (id: number) => void
+  onDeleteCase?: (id: number) => void,
+  pocEmployees?: any[],
+  onAssignPoc?: (caseItem: any, pocName: string) => Promise<void>,
+  onBulkAssignPoc?: (caseIds: number[], pocName: string) => Promise<void>,
+  currentUserName?: string
 }) {
   const [searchQuery, setSearchQuery] = useState("");
   const [bankFilter, setBankFilter] = useState("");
   const [branchFilter, setBranchFilter] = useState("");
+  const [pocFilter, setPocFilter] = useState("");
   const [showFilterOptions, setShowFilterOptions] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
+  const [openHeaderFilter, setOpenHeaderFilter] = useState("");
+  const [headerFilterSearch, setHeaderFilterSearch] = useState<Record<string, string>>({});
+  const [headerSelections, setHeaderSelections] = useState<Record<string, string[]>>({});
+  const [pocCase, setPocCase] = useState<any | null>(null);
+  const [selectedPoc, setSelectedPoc] = useState("");
+  const [savingPoc, setSavingPoc] = useState(false);
+  const [selectedCaseIds, setSelectedCaseIds] = useState<number[]>([]);
   
   const [expandedCaseId, setExpandedCaseId] = useState<number | null>(null);
   const [localHistory, setLocalHistory] = useState<any[]>([]);
@@ -89,6 +106,7 @@ export default function CasesMasterView({
     { key: "branchId", label: "Branch Code" },
     { key: "noticeCount", label: "Notice Count" },
     { key: "rbo", label: "RBO / Zone" },
+    { key: "pocName", label: "POC Employee" },
     { key: "branchEmail", label: "Branch Email" },
     { key: "aoName", label: "AO Name" },
     { key: "deptManagerName", label: "Branch Manager" },
@@ -140,6 +158,29 @@ export default function CasesMasterView({
 
   const uniqueBanks = Array.from(new Set(cases.map(c => c.bankName).filter(Boolean)));
   const uniqueBranches = Array.from(new Set(cases.map(c => c.branchName).filter(Boolean)));
+  const uniquePocs = Array.from(new Set(cases.map(c => c.pocName).filter(Boolean)));
+
+  const getDetailsValue = (c: any) => `${c.bankName || "Unknown Bank"} — ${c.branchName || "General Branch"}`;
+  const getOfficialsValue = (c: any) => c.pocName || "Not Assigned";
+  const getAmountValue = (c: any) => {
+    const total = parseFloat(c.totalBillAmount) || 0;
+    const received = parseFloat(c.receivedAmount) || 0;
+    const pending = Number.isFinite(parseFloat(c.pendingAmount)) ? parseFloat(c.pendingAmount) : Math.max(0, total - received);
+    return `Bill ₹${total.toLocaleString("en-IN")} · Received ₹${received.toLocaleString("en-IN")} · Pending ₹${pending.toLocaleString("en-IN")}`;
+  };
+  const getStatusValue = (c: any) => {
+    const total = parseFloat(c.totalBillAmount) || 0;
+    const received = parseFloat(c.receivedAmount) || 0;
+    const pending = Number.isFinite(parseFloat(c.pendingAmount)) ? parseFloat(c.pendingAmount) : Math.max(0, total - received);
+    return pending <= 0 ? "Settled" : (c.status || "Open");
+  };
+
+  const headerOptions: Record<string, string[]> = {
+    details: Array.from(new Set(cases.map(getDetailsValue))).sort(),
+    officials: Array.from(new Set(cases.map(getOfficialsValue))).sort(),
+    amount: Array.from(new Set(cases.map(getAmountValue))).sort(),
+    status: Array.from(new Set(cases.map(getStatusValue))).sort()
+  };
 
   const filteredCases = cases.filter(c => {
     if (searchQuery) {
@@ -149,6 +190,7 @@ export default function CasesMasterView({
         c.branchName?.toLowerCase().includes(q) ||
         c.branchId?.toLowerCase().includes(q) ||
         c.aoName?.toLowerCase().includes(q) ||
+        c.pocName?.toLowerCase().includes(q) ||
         c.deptManagerName?.toLowerCase().includes(q) ||
         c.foName?.toLowerCase().includes(q) ||
         c.rbo?.toLowerCase().includes(q) ||
@@ -158,6 +200,11 @@ export default function CasesMasterView({
 
     if (bankFilter && c.bankName !== bankFilter) return false;
     if (branchFilter && c.branchName !== branchFilter) return false;
+    if (pocFilter && c.pocName !== pocFilter) return false;
+    if (headerSelections.details && !headerSelections.details.includes(getDetailsValue(c))) return false;
+    if (headerSelections.officials && !headerSelections.officials.includes(getOfficialsValue(c))) return false;
+    if (headerSelections.amount && !headerSelections.amount.includes(getAmountValue(c))) return false;
+    if (headerSelections.status && !headerSelections.status.includes(getStatusValue(c))) return false;
     
     return true;
   });
@@ -171,6 +218,58 @@ export default function CasesMasterView({
   const settledCount = filteredCases.filter(c => c.status === "Settled" || (parseFloat(c.pendingAmount) <= 0 && parseFloat(c.totalBillAmount) > 0)).length;
   const filteredUniqueBanks = Array.from(new Set(filteredCases.map(c => c.bankName).filter(Boolean)));
   const filteredUniqueBranches = Array.from(new Set(filteredCases.map(c => `${c.bankName}_${c.branchName}`).filter(Boolean)));
+  const filteredCaseIds = filteredCases.map(c => Number(c.id));
+  const allFilteredSelected = filteredCaseIds.length > 0 && filteredCaseIds.every(id => selectedCaseIds.includes(id));
+
+  const renderExcelHeader = (label: string, filterKey: string, align = "left") => {
+    const options = headerOptions[filterKey] || [];
+    const selected = headerSelections[filterKey] || options;
+    const search = headerFilterSearch[filterKey] || "";
+    const visibleOptions = options.filter(option => option.toLowerCase().includes(search.toLowerCase()));
+    const isFiltered = selected.length !== options.length;
+
+    return (
+      <th className={`relative py-3.5 px-4 ${align === "center" ? "text-center" : "text-left"}`}>
+        <button type="button" onClick={() => setOpenHeaderFilter(openHeaderFilter === filterKey ? "" : filterKey)} className={`inline-flex w-full items-center gap-1.5 ${align === "center" ? "justify-center" : "justify-between"}`}>
+          <span>{label}</span>
+          <ChevronDown className={`h-3.5 w-3.5 rounded ${isFiltered ? "bg-indigo-600 text-white" : "text-slate-500"}`} />
+        </button>
+        {openHeaderFilter === filterKey && (
+          <div className="absolute left-2 top-full z-50 mt-1 w-72 rounded-xl border border-slate-200 bg-white p-3 text-left normal-case tracking-normal shadow-2xl" onClick={event => event.stopPropagation()}>
+            <input
+              autoFocus
+              value={search}
+              onChange={e => setHeaderFilterSearch({ ...headerFilterSearch, [filterKey]: e.target.value })}
+              placeholder="Search values..."
+              className="w-full rounded-md border border-slate-200 px-2.5 py-2 text-[10px] font-semibold text-slate-700 focus:border-indigo-400 focus:outline-none"
+            />
+            <div className="mt-2 flex items-center justify-between border-b border-slate-100 pb-2">
+              <button type="button" onClick={() => setHeaderSelections({ ...headerSelections, [filterKey]: options })} className="text-[9px] font-black text-indigo-600 hover:underline">Select All</button>
+              <button type="button" onClick={() => setHeaderSelections({ ...headerSelections, [filterKey]: options })} className="text-[9px] font-black text-rose-600 hover:underline">Clear Filter</button>
+            </div>
+            <div className="mt-2 max-h-56 space-y-1 overflow-y-auto">
+              {visibleOptions.map(option => (
+                <label key={option} className="flex cursor-pointer items-start gap-2 rounded px-1.5 py-1 text-[10px] font-semibold text-slate-700 hover:bg-slate-50">
+                  <input
+                    type="checkbox"
+                    checked={selected.includes(option)}
+                    onChange={e => setHeaderSelections({
+                      ...headerSelections,
+                      [filterKey]: e.target.checked ? [...selected, option] : selected.filter(value => value !== option)
+                    })}
+                    className="mt-0.5"
+                  />
+                  <span className="break-words">{option}</span>
+                </label>
+              ))}
+              {!visibleOptions.length && <p className="py-4 text-center text-[10px] text-slate-400">No values found</p>}
+            </div>
+            <button type="button" onClick={() => setOpenHeaderFilter("")} className="mt-2 w-full rounded-md bg-slate-800 py-1.5 text-[9px] font-black text-white">Done</button>
+          </div>
+        )}
+      </th>
+    );
+  };
 
   return (
     <div className="space-y-4 animate-fade-in">
@@ -222,7 +321,7 @@ export default function CasesMasterView({
           <input 
             type="text" 
             className="bg-transparent border-none focus:outline-none text-xs w-full font-semibold text-slate-700 placeholder:text-[#9C9890] placeholder:font-normal" 
-            placeholder="Search Cases by Bank, Branch, AO, Manager, FO or RBO..."
+            placeholder="Search by Bank, Branch, POC, AO, Manager, FO or RBO..."
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
           />
@@ -230,9 +329,9 @@ export default function CasesMasterView({
         <div className="relative flex items-center">
           <button 
             onClick={() => setShowFilterOptions(!showFilterOptions)}
-            className={`px-4 py-3.5 h-full border border-[#E8E4DF] hover:bg-[#F5F0EA] rounded-xl text-[10px] font-semibold tracking-wider uppercase transition-all flex items-center gap-1.5 shadow-sm ${showFilterOptions || bankFilter || branchFilter ? 'bg-[#F5F0EA] text-[#1C1C1A]' : 'bg-[#FCFBF9] text-[#5D5B57]'}`}
+            className={`px-4 py-3.5 h-full border border-[#E8E4DF] hover:bg-[#F5F0EA] rounded-xl text-[10px] font-semibold tracking-wider uppercase transition-all flex items-center gap-1.5 shadow-sm ${showFilterOptions || bankFilter || branchFilter || pocFilter ? 'bg-[#F5F0EA] text-[#1C1C1A]' : 'bg-[#FCFBF9] text-[#5D5B57]'}`}
           >
-            <Filter className="w-3.5 h-3.5" /> {(bankFilter || branchFilter) ? "Filtered" : "Filter"}
+            <Filter className="w-3.5 h-3.5" /> {(bankFilter || branchFilter || pocFilter) ? "Filtered" : "Filter"}
           </button>
           
           {showFilterOptions && (
@@ -251,11 +350,19 @@ export default function CasesMasterView({
                   {uniqueBranches.map(br => <option key={String(br)} value={String(br)}>{String(br)}</option>)}
                 </select>
               </div>
+              <div>
+                <label className="text-[10px] font-bold text-violet-600 uppercase tracking-wider mb-1 block">POC Employee</label>
+                <select value={pocFilter} onChange={e => setPocFilter(e.target.value)} className="w-full text-xs p-2.5 border border-violet-200 rounded-lg bg-violet-50/40 focus:outline-none focus:border-violet-500 font-semibold text-slate-700">
+                  <option value="">All POC Employees</option>
+                  {uniquePocs.map(poc => <option key={String(poc)} value={String(poc)}>{String(poc)}</option>)}
+                </select>
+              </div>
               
               <div className="flex justify-end mt-2 pt-3 border-t border-slate-100">
                 <button onClick={() => {
                   setBankFilter("");
                   setBranchFilter("");
+                  setPocFilter("");
                   setShowFilterOptions(false);
                 }} className="text-[10px] text-rose-600 font-bold uppercase tracking-wider hover:underline flex items-center gap-1">
                   <RefreshCw className="w-3 h-3" /> Clear Filters
@@ -271,6 +378,15 @@ export default function CasesMasterView({
             className="px-4 py-3.5 h-full border border-emerald-200 bg-emerald-50 hover:bg-emerald-100 rounded-xl text-[10px] font-semibold tracking-wider uppercase transition-all flex items-center gap-1.5 shadow-sm text-emerald-800"
           >
             <Download className="w-3.5 h-3.5" /> Export
+          </button>
+        )}
+        {userRole === "Owner" && selectedCaseIds.length > 0 && (
+          <button
+            type="button"
+            onClick={() => { setPocCase({ bulk: true }); setSelectedPoc(""); }}
+            className="px-4 py-3.5 h-full rounded-xl bg-violet-700 text-white text-[10px] font-black uppercase tracking-wider shadow-sm hover:bg-violet-800"
+          >
+            Assign POC ({selectedCaseIds.length})
           </button>
         )}
       </div>
@@ -331,23 +447,87 @@ export default function CasesMasterView({
         </div>
       )}
 
+      {pocCase && typeof document !== "undefined" && createPortal(
+        <div className="fixed inset-0 z-[60] bg-slate-900/30 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="w-full max-w-md rounded-2xl bg-white border border-violet-100 shadow-2xl p-5">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <h3 className="text-sm font-black text-slate-900">{pocCase.bulk ? "Assign POC to Multiple Cases" : "Assign POC Employee"}</h3>
+                <p className="mt-1 text-[10px] text-slate-500">{pocCase.bulk ? `${selectedCaseIds.length} cases selected` : `${pocCase.bankName} · ${pocCase.branchName || "General Branch"}`}</p>
+              </div>
+              <button type="button" onClick={() => setPocCase(null)} className="text-slate-400 hover:text-slate-700"><X className="w-5 h-5" /></button>
+            </div>
+            <label className="mt-5 block text-[9px] font-black uppercase tracking-wider text-violet-700">Legal Recovery Employee</label>
+            <input
+              type="text"
+              list="case-poc-employees"
+              value={selectedPoc}
+              onChange={e => setSelectedPoc(e.target.value)}
+              placeholder="Type employee name..."
+              className="mt-1 w-full rounded-lg border border-violet-200 bg-violet-50/40 px-3 py-2.5 text-xs font-semibold focus:border-violet-500 focus:outline-none"
+            />
+            <datalist id="case-poc-employees">
+              {pocEmployees.map(employee => (
+                <option key={employee.id} value={employee.name} label={employee.employeeProfile?.employeeId || employee.employeeId || employee.name} />
+              ))}
+            </datalist>
+            <div className="mt-5 flex justify-end gap-2">
+              <button type="button" onClick={() => setPocCase(null)} className="rounded-lg border border-slate-200 px-4 py-2 text-[10px] font-bold text-slate-600">Cancel</button>
+              <button
+                type="button"
+                disabled={savingPoc || !selectedPoc.trim()}
+                onClick={async () => {
+                  if (pocCase.bulk ? !onBulkAssignPoc : !onAssignPoc) return;
+                  setSavingPoc(true);
+                  try {
+                    if (pocCase.bulk) {
+                      await onBulkAssignPoc!(selectedCaseIds, selectedPoc.trim());
+                      setSelectedCaseIds([]);
+                    } else {
+                      await onAssignPoc!(pocCase, selectedPoc.trim());
+                    }
+                    setPocCase(null);
+                  } finally {
+                    setSavingPoc(false);
+                  }
+                }}
+                className="rounded-lg bg-violet-700 px-4 py-2 text-[10px] font-black text-white disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {savingPoc ? "Saving..." : "Assign POC"}
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
       {/* Table */}
       <div className="bg-[#FCFBF9] border border-[#E8E4DF] rounded-xl overflow-hidden shadow-sm">
         <div className="overflow-x-auto">
           <table className="w-full border-collapse text-left min-w-max">
             <thead>
               <tr className="border-b border-[#E8E4DF] bg-[#F5F0EA]/40 text-[#5D5B57] text-[10px] uppercase font-bold tracking-wider">
-                <th className="py-3.5 px-4">Bank &amp; Branch Details</th>
-                <th className="py-3.5 px-4">Key Officials &amp; Contacts</th>
-                <th className="py-3.5 px-4">Bill &amp; Recovery Summary</th>
-                <th className="py-3.5 px-3 text-center">Status</th>
+                <th className="w-10 py-3.5 px-3 text-center">
+                  {userRole === "Owner" && <input
+                    type="checkbox"
+                    aria-label="Select all filtered cases"
+                    checked={allFilteredSelected}
+                    onChange={e => setSelectedCaseIds(e.target.checked
+                      ? Array.from(new Set([...selectedCaseIds, ...filteredCaseIds]))
+                      : selectedCaseIds.filter(id => !filteredCaseIds.includes(id)))}
+                  />}
+                </th>
+                {renderExcelHeader("Bank & Branch Details", "details")}
+                {renderExcelHeader("Key Officials & Contacts", "officials")}
+                {renderExcelHeader("Bill & Recovery Summary", "amount")}
+                {renderExcelHeader("Status", "status", "center")}
                 <th className="py-3.5 px-4 text-center">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[#E8E4DF] text-xs">
               {filteredCases.length === 0 && (
                 <tr>
-                  <td colSpan={5} className="py-12 text-center text-slate-400 font-medium">
+                  <td colSpan={6} className="py-12 text-center text-slate-400 font-medium">
                     No recovery cases found. Click "Add New Case" above to register bank cases.
                   </td>
                 </tr>
@@ -357,10 +537,21 @@ export default function CasesMasterView({
                 const received = parseFloat(c.receivedAmount) || 0;
                 const pending = parseFloat(c.pendingAmount) !== undefined ? parseFloat(c.pendingAmount) : Math.max(0, totalBill - received);
                 const isExpanded = expandedCaseId === c.id;
+                const canEditCase = userRole === "Owner" || (currentUserName && String(c.pocName || "").trim().toLowerCase() === currentUserName.trim().toLowerCase());
 
                 return (
                   <React.Fragment key={c.id}>
                     <tr className={`transition-colors ${isExpanded ? 'bg-indigo-50/30' : 'hover:bg-white'}`}>
+                      <td className="py-3.5 px-3 text-center align-top">
+                        {userRole === "Owner" && <input
+                          type="checkbox"
+                          aria-label={`Select ${c.bankName} ${c.branchName || "case"}`}
+                          checked={selectedCaseIds.includes(Number(c.id))}
+                          onChange={e => setSelectedCaseIds(e.target.checked
+                            ? [...selectedCaseIds, Number(c.id)]
+                            : selectedCaseIds.filter(id => id !== Number(c.id)))}
+                        />}
+                      </td>
                       {/* Bank & Branch Details (Clickable row trigger) */}
                       <td 
                         onClick={() => handleToggleLogs(c)}
@@ -397,6 +588,15 @@ export default function CasesMasterView({
 
                       {/* Key Officials */}
                       <td className="py-3.5 px-4 align-top space-y-1">
+                        <div className="text-xs font-bold text-violet-800">
+                          <span className="text-[9px] uppercase font-bold text-violet-700 bg-violet-50 px-1.5 py-0.5 rounded mr-1">POC</span>
+                          {c.pocName || 'Not Assigned'}
+                          {userRole === "Owner" && (
+                            <button type="button" onClick={(event) => { event.stopPropagation(); setPocCase(c); setSelectedPoc(c.pocName || ""); }} className="ml-2 text-[9px] font-black text-violet-700 underline underline-offset-2 hover:text-violet-900">
+                              Assign
+                            </button>
+                          )}
+                        </div>
                         <div className="text-xs font-semibold text-slate-800">
                           <span className="text-[9px] uppercase font-bold text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded mr-1">AO</span>
                           {c.aoName || 'Not Assigned'}
@@ -482,7 +682,7 @@ export default function CasesMasterView({
                               <History className="w-3 h-3" /> Details
                             </button>
 
-                            {userRole === "Owner" && (
+                            {canEditCase && (
                               <>
                                 <button
                                   onClick={() => onEditCase && onEditCase(c)}
@@ -491,13 +691,15 @@ export default function CasesMasterView({
                                 >
                                   <Edit2 className="w-3 h-3" /> Edit
                                 </button>
-                                <button
-                                  onClick={() => onDeleteCase && onDeleteCase(c.id)}
-                                  className="px-2 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider bg-rose-50 text-rose-800 border border-rose-200 hover:bg-rose-600 hover:text-white transition-all flex items-center justify-center gap-0.5 shadow-sm active:scale-[0.97] cursor-pointer"
-                                  title="Delete Case"
-                                >
-                                  <Trash2 className="w-3 h-3" /> Delete
-                                </button>
+                                {userRole === "Owner" && (
+                                  <button
+                                    onClick={() => onDeleteCase && onDeleteCase(c.id)}
+                                    className="px-2 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider bg-rose-50 text-rose-800 border border-rose-200 hover:bg-rose-600 hover:text-white transition-all flex items-center justify-center gap-0.5 shadow-sm active:scale-[0.97] cursor-pointer"
+                                    title="Delete Case"
+                                  >
+                                    <Trash2 className="w-3 h-3" /> Delete
+                                  </button>
+                                )}
                               </>
                             )}
                           </div>
@@ -508,7 +710,7 @@ export default function CasesMasterView({
                     {/* EXPANDED DROPDOWN SECTION */}
                     {isExpanded && (
                     <tr className="bg-[#FAF9F6] border-b-2 border-indigo-200">
-                      <td colSpan={5} className="p-4 sm:p-5">
+                      <td colSpan={6} className="p-4 sm:p-5">
                         <div className="space-y-5 text-xs font-sans text-[#1C1C1A]">
                           {/* Dropdown Header */}
                           <div className="flex items-center justify-between border-b border-slate-200 pb-3">

@@ -2483,7 +2483,9 @@ export function PerformanceCompliance({
 }) {
   const userRoleNorm = (sessionUser?.role || "").toString().trim().toLowerCase();
   const isGlobalRole = ["owner", "director", "hr head", "hr-head", "hr executive", "hr-executive", "cfo", "legal head", "it admin"].includes(userRoleNorm);
-  const isOwnerOrDirector = isGlobalRole || userRoleNorm.includes("manager") || userRoleNorm === "dsm";
+  const isTeamManagerRole = userRoleNorm.includes("manager") || userRoleNorm.includes("head") ||
+    userRoleNorm.includes("team lead") || userRoleNorm === "dsm";
+  const isOwnerOrDirector = isGlobalRole || isTeamManagerRole;
   const [loading, setLoading] = useState(true);
   const [reports, setReports] = useState<{ sod: any[]; eod: any[]; tasks?: any[]; fieldVisits?: any[] }>({ sod: [], eod: [], tasks: [], fieldVisits: [] });
   const [activeSubTab, setActiveSubTab] = useState<"visual-dashboard" | "sod" | "eod" | "attendance-calendar" | "legal-recovery-schedule">(
@@ -2796,13 +2798,8 @@ export function PerformanceCompliance({
   }, [sessionUser]);
 
   useEffect(() => {
-    if (selectedUser) {
-      fetchUserCalendarData(selectedUser);
-    } else if (sessionUser && !isOwner) {
-      setSelectedUser(sessionUser.id);
-      fetchUserCalendarData(sessionUser.id);
-    }
-  }, [selectedUser, sessionUser]);
+    if (selectedUser) fetchUserCalendarData(selectedUser);
+  }, [selectedUser]);
 
   useEffect(() => {
     if (preselectedUserId) {

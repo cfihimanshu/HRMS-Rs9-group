@@ -133,7 +133,11 @@ export async function GET(req: Request) {
         : employeeId;
     } else if (isReportingManager && !isManager) {
       // Reporting Manager (non-Owner/Director): see own + subordinates' work logs
-      whereClause.employeeId = { [Op.in]: subordinateUserIds };
+      // Preserve the Legal Recovery/Security boundary requested by verticalOnly.
+      const visibleSubordinateIds = verticalOnly && verticalUserIds
+        ? subordinateUserIds.filter(id => verticalUserIds!.includes(String(id)))
+        : subordinateUserIds;
+      whereClause.employeeId = { [Op.in]: visibleSubordinateIds };
     }
 
     // Filter by date

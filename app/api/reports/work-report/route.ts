@@ -36,34 +36,47 @@ export async function GET(req: Request) {
     const isGlobalManager = ["owner", "director", "hr head", "hr-head", "hr executive", "hr-executive", "cfo", "legal head", "it admin"].some(r => normRole.includes(r)) || normRole.includes("owner");
 
     if (!isGlobalManager) {
-      // 1. Get logged-in user's profile to check department
-      const loggedInProfile = await EmployeeProfile.findOne({ where: { user: userId } });
-      
-      // 2. Add department profiles if they are Department Manager
-      if (role === "Department Manager" && loggedInProfile?.department) {
-        const deptProfiles = await EmployeeProfile.findAll({
-          where: { department: loggedInProfile.department },
-          attributes: ['user']
-        });
-        deptProfiles.forEach((p: any) => {
-          if (p.user && !managedUserIds.includes(p.user)) {
-            managedUserIds.push(p.user);
-          }
-        });
+      // Keep this resolver aligned with /api/tasks, where reporting-manager task
+      // visibility is already working. Resolve from the database identity so a
+      // stale session/JWT role or display name cannot reduce the team to self.
+      const dbManager: any = await User.findByPk(userId, {
+        attributes: ["id", "name", "email", "role"],
+        raw: true
+      });
+      const managerName = String(dbManager?.name || session.user.name || "").trim();
+      const managerEmail = String(dbManager?.email || session.user.email || "").trim();
+      const managerProfile: any = await EmployeeProfile.findOne({
+        where: { user: userId },
+        attributes: ["department"],
+        raw: true
+      });
+      const reportConditions: any[] = [];
+
+      for (const managerRef of [managerName, managerEmail].filter(Boolean)) {
+        reportConditions.push(
+          { reportingManager: managerRef },
+          { reportingManager: { [Op.like]: `%${managerRef}%` } },
+          { assignedManager: managerRef },
+          { assignedManager: { [Op.like]: `%${managerRef}%` } }
+        );
       }
 
-      // 3. Add reporting manager subordinates
-      const userName = session.user.name;
-      if (userName) {
-        const reportProfiles = await EmployeeProfile.findAll({
-          where: { reportingManager: userName },
-          attributes: ['user']
-        });
-        reportProfiles.forEach((p: any) => {
-          if (p.user && !managedUserIds.includes(p.user)) {
-            managedUserIds.push(p.user);
-          }
-        });
+      const managedProfileConditions: any[] = [...reportConditions];
+      const managerIdentity = `${String(dbManager?.role || role)} ${String(managerProfile?.designation || "")}`.toLowerCase();
+      if (managerProfile?.department && (managerIdentity.includes("manager") || managerIdentity.includes("head") || managerIdentity.includes("lead"))) {
+        managedProfileConditions.push({ department: managerProfile.department });
+      }
+
+      if (managedProfileConditions.length > 0) {
+        const managedProfiles: any[] = await EmployeeProfile.findAll({
+          where: { [Op.or]: managedProfileConditions },
+          attributes: ["user"],
+          raw: true
+        }) as any[];
+        managedUserIds = Array.from(new Set([
+          String(userId),
+          ...managedProfiles.map(profile => String(profile.user || "")).filter(Boolean)
+        ]));
       }
 
       filter = { employee: { [Op.in]: managedUserIds } };

@@ -49,7 +49,8 @@ export async function getTwoStageRoute(applicantId: string) {
     const normalized = managerRef.replace(/\s*\(.*?\)\s*/g, "").trim().toLowerCase();
     const direct = users.find((u: any) =>
       String(u.id) === managerRef ||
-      String(u.name || "").trim().toLowerCase() === normalized
+      String(u.name || "").trim().toLowerCase() === normalized ||
+      String(u.email || "").trim().toLowerCase() === normalized
     );
     if (direct && String(direct.id) !== String(applicantId)) recommenders = [direct];
   }
@@ -69,12 +70,25 @@ export async function getTwoStageRoute(applicantId: string) {
 }
 
 export async function getDepartmentMemberIds(managerId: string) {
-  const profile: any = await EmployeeProfile.findOne({ where: { user: managerId }, raw: true });
-  if (!profile?.department) return [String(managerId)];
-  const profiles: any[] = await EmployeeProfile.findAll({
-    where: { department: profile.department }, raw: true,
-  }) as any[];
-  return Array.from(new Set([String(managerId), ...profiles.map((p: any) => String(p.user)).filter(Boolean)]));
+  const manager: any = await User.findByPk(managerId, { raw: true });
+  const managerProfile: any = await EmployeeProfile.findOne({ where: { user: managerId }, raw: true });
+  const profiles: any[] = await EmployeeProfile.findAll({ raw: true }) as any[];
+  const managerRefs = [managerId, manager?.name, manager?.email]
+    .map(value => String(value || "").replace(/\s*\(.*?\)\s*/g, "").trim().toLowerCase())
+    .filter(Boolean);
+
+  const isDirectReport = (profile: any) => [profile?.reportingManager, profile?.assignedManager].some(value => {
+    const ref = String(value || "").replace(/\s*\(.*?\)\s*/g, "").trim().toLowerCase();
+    return ref && managerRefs.some(managerRef => ref === managerRef || ref.includes(managerRef));
+  });
+
+  // A manager sees both their own department and explicitly assigned reports,
+  // even when a direct report belongs to another department.
+  const managedProfiles = profiles.filter((profile: any) =>
+    (managerProfile?.department && String(profile.department || "") === String(managerProfile.department)) ||
+    isDirectReport(profile)
+  );
+  return Array.from(new Set([String(managerId), ...managedProfiles.map((p: any) => String(p.user)).filter(Boolean)]));
 }
 
 export async function processTwoStageApproval(params: {
@@ -110,7 +124,7 @@ export async function processTwoStageApproval(params: {
 
   const isAssignedRecommender = route.recommenders.some((u: any) => String(u.id) === String(actorId));
   if (!isAssignedRecommender || String(actorId) === String(applicantId)) {
-    return { allowed: false as const, error: "Only the applicant's Department Manager can recommend this request." };
+    return { allowed: false as const, error: "Only the applicant's reporting manager or Department Manager can recommend this request." };
   }
 
   return {

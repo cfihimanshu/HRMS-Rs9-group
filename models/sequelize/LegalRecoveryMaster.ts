@@ -50,6 +50,10 @@ LegalRecoveryMaster.init(
       type: DataTypes.STRING,
       allowNull: true,
     },
+    pocName: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
     totalBillAmount: {
       type: DataTypes.DECIMAL(15, 2),
       allowNull: true,

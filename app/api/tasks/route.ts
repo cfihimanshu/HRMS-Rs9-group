@@ -483,10 +483,14 @@ export async function GET(req: Request) {
       if (userName && userName.trim()) {
         orConditions.push({ reportingManager: userName.trim() });
         orConditions.push({ reportingManager: { [Op.like]: `%${userName.trim()}%` } });
+        orConditions.push({ assignedManager: userName.trim() });
+        orConditions.push({ assignedManager: { [Op.like]: `%${userName.trim()}%` } });
       }
       if (userEmail && userEmail.trim()) {
         orConditions.push({ reportingManager: userEmail.trim() });
         orConditions.push({ reportingManager: { [Op.like]: `%${userEmail.trim()}%` } });
+        orConditions.push({ assignedManager: userEmail.trim() });
+        orConditions.push({ assignedManager: { [Op.like]: `%${userEmail.trim()}%` } });
       }
 
       if (orConditions.length > 0) {

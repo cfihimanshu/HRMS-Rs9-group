@@ -201,8 +201,8 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: false, error: "Only an Owner user is authorized to onboard another Owner" }, { status: 403 });
     }
 
-    if (!name || !email || !password || !role || !companyId || !employeeId) {
-      return NextResponse.json({ success: false, error: "Missing required fields: name, email, password, role, companyId, employeeId" }, { status: 400 });
+    if (!name || !email || !password || !role || !employeeId || (role !== "Owner" && !companyId)) {
+      return NextResponse.json({ success: false, error: "Missing required employee fields" }, { status: 400 });
     }
 
     // Check if email already exists
@@ -217,15 +217,21 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: false, error: "This Employee ID is already in use" }, { status: 400 });
     }
 
-    // Verify Company exists
-    const company = await Company.findByPk(companyId);
-    if (!company) {
-      return NextResponse.json({ success: false, error: "Selected Company not found" }, { status: 404 });
+    // Owners are group-level users; everyone else must belong to one company.
+    let company: any = null;
+    let companiesList: any[] = [];
+    if (role === "Owner") {
+      companiesList = await Company.findAll({ raw: true });
+    } else {
+      company = await Company.findByPk(companyId);
+      if (!company) {
+        return NextResponse.json({ success: false, error: "Selected Company not found" }, { status: 404 });
+      }
     }
 
     // Resolve or create department for this company
     let resolvedDepartmentId = null;
-    if (department) {
+    if (role !== "Owner" && department) {
       let deptDoc = await Department.findOne({
         where: {
           name: department,
@@ -245,11 +251,7 @@ export async function POST(req: Request) {
 
     const userStatus = role === "Employee" ? "probation" : "active";
 
-    let userCompanies = [company.id];
-    if (role === "Owner") {
-      const companiesList = await Company.findAll({ raw: true });
-      userCompanies = companiesList.map(c => c.id);
-    }
+    const userCompanies = role === "Owner" ? companiesList.map(c => c.id) : [company.id];
 
     // Create User with company linked
     const newUser = await User.create({
@@ -284,12 +286,13 @@ export async function POST(req: Request) {
       id: Date.now().toString(),
       user: newUser.id,
       employeeId,
-      designation: designation || "Employee",
-      department: resolvedDepartmentId,
-      vertical: vertical || null,
+      designation: role === "Owner" ? "Owner" : (designation || "Employee"),
+      department: role === "Owner" ? null : resolvedDepartmentId,
+      vertical: role === "Owner" ? null : (vertical || null),
       dateOfJoining: dateOfJoining || new Date(),
       baseSalary: baseSalary || 0,
-      reportingManager: reportingManager || assignedManager || null,
+      reportingManager: role === "Owner" ? null : (reportingManager || assignedManager || null),
+      assignedManager: role === "Owner" ? null : (assignedManager || null),
       profilePhoto: profilePhoto || null,
       dailyWorkingHours: Number(dailyWorkingHours) || 8,
       workingDays: workingDays || "Mon,Tue,Wed,Thu,Fri,Sat",
@@ -312,14 +315,18 @@ export async function POST(req: Request) {
       action: "CREATE_EMPLOYEE",
       entity: "User",
       entityId: newUser.id,
-      details: `Created new employee profile: ${name} (${email}) as ${role} for company ${company.name}`
+      details: role === "Owner"
+        ? `Created group-level Owner profile: ${name} (${email}) with access to all companies`
+        : `Created new employee profile: ${name} (${email}) as ${role} for company ${company.name}`
     });
 
     await logHRActivity({
       userId: (session.user as any).id,
       userRole: (session.user as any).role,
       action: "CREATE_EMPLOYEE",
-      details: `Created new employee profile: ${name} (${email}) as ${role} for company ${company.name}`
+      details: role === "Owner"
+        ? `Created group-level Owner profile: ${name} (${email}) with access to all companies`
+        : `Created new employee profile: ${name} (${email}) as ${role} for company ${company.name}`
     });
 
     // Send email notification to new employee and all owners

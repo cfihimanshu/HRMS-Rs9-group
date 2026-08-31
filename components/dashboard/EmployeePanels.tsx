@@ -344,8 +344,13 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
       const payload = isOnboardingOwner ? {
         ...formData,
         role: "Owner",
-        department: "Management",
+        companyId: "",
+        department: "",
+        vertical: "",
+        reportingManager: "",
+        assignedManager: "",
         designation: "Owner",
+        jobTitle: "Owner",
         employeeId: "OWNER-" + Date.now(), // Generate a unique OWNER-timestamp value behind the scenes
         baseSalary: 0
       } : {
@@ -1217,10 +1222,14 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
                   setIsOnboardingOwner(true);
                   setFormData(prev => ({
                     ...prev,
-                    companyId: defaultCompanyId,
+                    companyId: "",
                     role: "Owner",
-                    department: "Management",
-                    designation: "Owner"
+                    department: "",
+                    vertical: "",
+                    reportingManager: "",
+                    assignedManager: "",
+                    designation: "Owner",
+                    jobTitle: "Owner"
                   }));
                 }
               }}
@@ -1622,6 +1631,12 @@ export default function EmployeeDirectory({ userRole, triggerToast, sessionUser 
                   </div>
                 ) : (
                   <div className="space-y-4">
+                    <div className={`rounded-xl border p-4 ${isDark ? "border-indigo-800 bg-indigo-950/30" : "border-indigo-200 bg-indigo-50"}`}>
+                      <p className={`text-sm font-black ${isDark ? "text-indigo-200" : "text-indigo-800"}`}>Group-level Owner Access</p>
+                      <p className={`mt-1 text-xs leading-relaxed ${isDark ? "text-gray-400" : "text-slate-600"}`}>
+                        Owner kisi department, reporting manager, company ya vertical ko assign nahi hoga. Is account ko sabhi companies aur verticals ka access automatically milega.
+                      </p>
+                    </div>
                     {/* Owner specific profile inputs */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>

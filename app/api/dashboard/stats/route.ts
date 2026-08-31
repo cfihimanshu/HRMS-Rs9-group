@@ -882,26 +882,8 @@ export async function GET(req: Request) {
 
       const isSpecificManager = !["Owner", "Director", "HR Head", "HR Executive"].includes(userRole);
       if (isSpecificManager) {
-        let deptProfiles: any[] = [];
-        if (managerProfile && managerProfile.department) {
-          deptProfiles = await EmployeeProfile.findAll({
-            where: { department: managerProfile.department },
-            attributes: ["user"]
-          });
-        }
-
-        let reportProfiles: any[] = [];
-        if (dbUser && dbUser.name) {
-          reportProfiles = await EmployeeProfile.findAll({
-            where: { reportingManager: dbUser.name },
-            attributes: ["user"]
-          });
-        }
-
-        deptUserIds = [...new Set([
-          ...deptProfiles.map((p: any) => p.user),
-          ...reportProfiles.map((p: any) => p.user)
-        ])].filter(Boolean);
+        const { getDepartmentMemberIds } = await import("@/lib/twoStageApproval");
+        deptUserIds = await getDepartmentMemberIds(String((session.user as any).id));
       } else if (deptFilterParam && deptFilterParam !== "all") {
         // Global viewer has selected a specific department
         const allActiveUsers = await User.findAll({

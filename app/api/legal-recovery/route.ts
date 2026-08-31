@@ -4,7 +4,9 @@ import LegalRecoveryMaster from "@/models/sequelize/LegalRecoveryMaster";
 import LegalRecoveryPayment from "@/models/sequelize/LegalRecoveryPayment";
 import BranchMaster from "@/models/sequelize/BranchMaster";
 import sequelize, { safeAuthenticate } from "@/lib/sequelize";
-import { DataTypes } from "sequelize";
+import { DataTypes, Op } from "sequelize";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 
 let columnsEnsured = false;
 async function ensureLegalRecoveryColumns() {
@@ -43,6 +45,12 @@ async function ensureLegalRecoveryColumns() {
           allowNull: true
         }).catch(() => {});
       }
+      if (!tableDesc.pocName) {
+        await queryInterface.addColumn("legal_recovery_masters", "pocName", {
+          type: DataTypes.STRING,
+          allowNull: true
+        }).catch(() => {});
+      }
       if (!tableDesc.archivedAt) {
         await queryInterface.addColumn("legal_recovery_masters", "archivedAt", {
           type: DataTypes.DATE,
@@ -75,6 +83,14 @@ function parseFinances(details: any) {
 // GET all cases with dynamic notice billing, received & pending amounts and branch enrichment
 export async function GET() {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user) {
+      return NextResponse.json({ success: false, error: "Unauthorized access" }, { status: 401 });
+    }
+    const sessionUser = session.user as any;
+    const role = String(sessionUser.role || "").trim().toLowerCase();
+    const canViewAll = ["owner", "director"].includes(role) || role.includes("head") || role.includes("manager") || role.includes("admin");
+    const loggedInName = String(sessionUser.name || "").trim().toLowerCase();
     const isDbConnected = await safeAuthenticate(4000);
     if (!isDbConnected) {
       return NextResponse.json({ success: true, data: [] });
@@ -93,7 +109,7 @@ export async function GET() {
     }
 
     await LegalRecoveryBill.sync().catch(() => {});
-    const [cases, payments, branches, banks, notices, workLogs, importedBills] = await Promise.all([
+    const [allCases, payments, branches, banks, notices, workLogs, importedBills] = await Promise.all([
       LegalRecoveryMaster.findAll({
         where: { archivedAt: null },
         order: [["createdAt", "DESC"]],
@@ -116,6 +132,9 @@ export async function GET() {
       }).catch(() => []),
       LegalRecoveryBill.findAll({ raw: true }).catch(() => [])
     ]);
+    const cases = canViewAll
+      ? allCases
+      : allCases.filter((caseItem: any) => String(caseItem.pocName || "").trim().toLowerCase() === loggedInName);
 
     const importedBillsByMaster: Record<number, any[]> = {};
     importedBills.forEach((bill: any) => {
@@ -469,6 +488,14 @@ export async function POST(request: Request) {
 // PUT (Edit) a case
 export async function PUT(request: Request) {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user) {
+      return NextResponse.json({ success: false, error: "Unauthorized access" }, { status: 401 });
+    }
+    const sessionUser = session.user as any;
+    const role = String(sessionUser.role || "").trim().toLowerCase();
+    const canManageAll = ["owner", "director"].includes(role) || role.includes("head") || role.includes("manager") || role.includes("admin");
+    const loggedInName = String(sessionUser.name || "").trim().toLowerCase();
     const data = await request.json();
     const isDbConnected = await safeAuthenticate(6000);
     if (!isDbConnected) {
@@ -476,10 +503,34 @@ export async function PUT(request: Request) {
     }
 
     await ensureLegalRecoveryColumns();
+    if (Array.isArray(data.ids)) {
+      if (!canManageAll) {
+        return NextResponse.json({ success: false, error: "Only authorized managers can bulk assign POC" }, { status: 403 });
+      }
+      const ids = data.ids.map(Number).filter((id: number) => Number.isInteger(id) && id > 0);
+      const pocName = String(data.pocName || "").trim();
+      if (!ids.length || !pocName) {
+        return NextResponse.json({ success: false, error: "Case IDs and POC Employee are required" }, { status: 400 });
+      }
+      const [updatedCount] = await LegalRecoveryMaster.update(
+        { pocName },
+        { where: { id: { [Op.in]: ids } } }
+      );
+      return NextResponse.json({ success: true, updatedCount });
+    }
     const caseItem = await LegalRecoveryMaster.findByPk(data.id);
     if (!caseItem) return NextResponse.json({ success: false, error: "Not found" }, { status: 404 });
-    
-    await caseItem.update(data);
+
+    const currentPoc = String((caseItem as any).pocName || "").trim().toLowerCase();
+    if (!canManageAll && currentPoc !== loggedInName) {
+      return NextResponse.json({ success: false, error: "You can edit only cases assigned to you" }, { status: 403 });
+    }
+
+    const updates = { ...data };
+    delete updates.id;
+    delete updates.ids;
+    if (!canManageAll) delete updates.pocName;
+    await caseItem.update(updates);
     return NextResponse.json({ success: true, data: caseItem });
   } catch (error: any) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });

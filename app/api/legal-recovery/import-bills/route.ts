@@ -6,6 +6,8 @@ import BankMaster from "@/models/sequelize/BankMaster";
 import BranchMaster from "@/models/sequelize/BranchMaster";
 import LegalRecoveryMaster from "@/models/sequelize/LegalRecoveryMaster";
 import LegalRecoveryBill from "@/models/sequelize/LegalRecoveryBill";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
@@ -37,9 +39,16 @@ function normalizedStatus(value: unknown) {
   return "Pending";
 }
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
-    if (billRegisterCache && billRegisterCache.expiresAt > Date.now()) {
+    const session = await getServerSession(authOptions);
+    if (!session?.user) return NextResponse.json({ success: false, error: "Unauthorized access" }, { status: 401 });
+    const sessionUser = session.user as any;
+    const role = String(sessionUser.role || "").trim().toLowerCase();
+    const canViewAll = ["owner", "director"].includes(role) || role.includes("head") || role.includes("manager") || role.includes("admin");
+    const loggedInName = String(sessionUser.name || "").trim().toLowerCase();
+    const forceRefresh = new URL(request.url).searchParams.get("refresh") === "1";
+    if (canViewAll && !forceRefresh && billRegisterCache && billRegisterCache.expiresAt > Date.now()) {
       return NextResponse.json({ success: true, data: billRegisterCache.data }, {
         headers: { "Cache-Control": "private, max-age=15, stale-while-revalidate=45" },
       });
@@ -47,6 +56,7 @@ export async function GET() {
     if (!(await safeAuthenticate(6000))) return NextResponse.json({ success: false, error: "Database connection timeout" }, { status: 503 });
     const data = await sequelize.query<any>(`
       SELECT bills.*,
+        COALESCE(master.pocName, '') AS pocName,
         COALESCE(NULLIF(bills.companyCode, ''), company.code, company.name, '') AS company,
         COALESCE(bank.bankName, '') AS bankName,
         COALESCE(branch.branchName, '') AS branchName,
@@ -57,9 +67,10 @@ export async function GET() {
       LEFT JOIN companys AS company ON company.id = bills.companyId
       LEFT JOIN bank_masters AS bank ON bank.id = bills.bankId
       LEFT JOIN branch_masters AS branch ON branch.id = bills.branchId
+      WHERE (:canViewAll = 1 OR LOWER(TRIM(COALESCE(master.pocName, ''))) = :loggedInName)
       ORDER BY bills.billDate ASC, bills.id ASC
-    `, { type: QueryTypes.SELECT });
-    billRegisterCache = { data, expiresAt: Date.now() + 30_000 };
+    `, { type: QueryTypes.SELECT, replacements: { canViewAll: canViewAll ? 1 : 0, loggedInName } });
+    if (canViewAll) billRegisterCache = { data, expiresAt: Date.now() + 30_000 };
     return NextResponse.json({ success: true, data }, {
       headers: { "Cache-Control": "private, max-age=15, stale-while-revalidate=45" },
     });
@@ -205,5 +216,54 @@ export async function POST(request: Request) {
   } catch (error: any) {
     console.error("Legal recovery bill import error:", error);
     return NextResponse.json({ success: false, error: error.message || "Import failed" }, { status: 500 });
+  }
+}
+
+export async function PUT(request: Request) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user) return NextResponse.json({ success: false, error: "Unauthorized access" }, { status: 401 });
+    if (!(await safeAuthenticate(6000))) return NextResponse.json({ success: false, error: "Database connection timeout" }, { status: 503 });
+
+    const sessionUser = session.user as any;
+    const role = String(sessionUser.role || "").trim().toLowerCase();
+    const canManageAll = ["owner", "director"].includes(role) || role.includes("head") || role.includes("manager") || role.includes("admin");
+    const loggedInName = String(sessionUser.name || "").trim().toLowerCase();
+    const data = await request.json();
+    const bill = await LegalRecoveryBill.findByPk(Number(data.id));
+    if (!bill) return NextResponse.json({ success: false, error: "Invoice not found" }, { status: 404 });
+
+    const master = await LegalRecoveryMaster.findByPk(Number(bill.masterId), { raw: true });
+    if (!master) return NextResponse.json({ success: false, error: "Recovery case not found" }, { status: 404 });
+    if (!canManageAll && String((master as any).pocName || "").trim().toLowerCase() !== loggedInName) {
+      return NextResponse.json({ success: false, error: "You can edit only invoices assigned to you" }, { status: 403 });
+    }
+
+    const billAmount = amount(data.billAmount);
+    const receivedAmount = amount(data.receivedAmount);
+    const tdsAmount = amount(data.tdsAmount);
+    if (billAmount < 0 || receivedAmount < 0 || tdsAmount < 0) {
+      return NextResponse.json({ success: false, error: "Amounts cannot be negative" }, { status: 400 });
+    }
+    const dueAmount = Math.max(0, billAmount - receivedAmount - tdsAmount);
+    const status = data.status === "Cancelled" ? "Cancelled" : dueAmount <= 0 ? "Received" : "Pending";
+    const updates = {
+      billDate: isoDate(data.billDate) || bill.billDate,
+      billAmount,
+      paymentReceivedDate: isoDate(data.paymentReceivedDate),
+      receivedAmount,
+      tdsAmount,
+      tdsPercent: amount(data.tdsPercent),
+      dueAmount,
+      remark: clean(data.remark),
+      status,
+      internalRemark: clean(data.internalRemark)
+    };
+    await bill.update(updates);
+    billRegisterCache = null;
+    return NextResponse.json({ success: true, data: bill.toJSON() });
+  } catch (error: any) {
+    console.error("Legal recovery invoice update error:", error);
+    return NextResponse.json({ success: false, error: error.message || "Invoice update failed" }, { status: 500 });
   }
 }

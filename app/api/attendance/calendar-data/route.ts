@@ -38,7 +38,9 @@ export async function GET(req: Request) {
           where: {
             [Op.or]: [
               { reportingManager: selfUser.name },
-              { reportingManager: { [Op.like]: `%${selfUser.name.trim()}%` } }
+              { reportingManager: { [Op.like]: `%${selfUser.name.trim()}%` } },
+              { assignedManager: selfUser.name },
+              { assignedManager: { [Op.like]: `%${selfUser.name.trim()}%` } }
             ]
           }
         });
@@ -55,8 +57,10 @@ export async function GET(req: Request) {
           const targetProfile = await EmployeeProfile.findOne({ where: { user: targetUserId } });
           const selfProfile = await EmployeeProfile.findOne({ where: { user: loggedInUserId } });
           const isDeptSubordinate = loggedInUserRole === "Department Manager" && selfProfile?.department && targetProfile?.department === selfProfile.department;
-          const isDirectSubordinate = targetProfile?.reportingManager && selfUser?.name && (
-            targetProfile.reportingManager === selfUser.name || targetProfile.reportingManager.includes(selfUser.name)
+          const managerRefs = [targetProfile?.reportingManager, targetProfile?.assignedManager]
+            .filter((ref): ref is string => Boolean(ref));
+          const isDirectSubordinate = selfUser?.name && managerRefs.some((ref: string) =>
+            ref === selfUser.name || ref.includes(selfUser.name)
           );
           allowed = !!(isDeptSubordinate || isDirectSubordinate);
         } catch (_) {}
@@ -114,7 +118,9 @@ export async function GET(req: Request) {
             where: {
               [Op.or]: [
                 { reportingManager: selfUser.name },
-                { reportingManager: { [Op.like]: `%${selfUser.name.trim()}%` } }
+                { reportingManager: { [Op.like]: `%${selfUser.name.trim()}%` } },
+                { assignedManager: selfUser.name },
+                { assignedManager: { [Op.like]: `%${selfUser.name.trim()}%` } }
               ]
             },
             attributes: ["user"],
