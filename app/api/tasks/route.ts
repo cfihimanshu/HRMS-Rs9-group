@@ -1107,9 +1107,8 @@ export async function PUT(req: Request) {
       const LegalRecoverySchedule = (sequelize.models as any).LegalRecoverySchedule || (await import("@/models/sequelize/LegalRecoverySchedule")).default;
       await LegalRecoverySchedule.sync();
 
-      const schedulesToSync: any[] = [];
-
-      // 1. Direct match by taskId or scheduleId
+      // Only sync the schedule explicitly linked to this task. Matching by common
+      // labels such as "Bank" or "Office" can update unrelated employee tasks.
       const directMatches = await LegalRecoverySchedule.findAll({
         where: {
           [Op.or]: [
@@ -1119,32 +1118,8 @@ export async function PUT(req: Request) {
           ]
         }
       });
-      schedulesToSync.push(...directMatches);
 
-      // 2. Fallback match by employeeId and workSection / bankName title match
-      if (task.employee) {
-        const empSchedules = await LegalRecoverySchedule.findAll({
-          where: { employeeId: task.employee }
-        });
-        for (const sch of empSchedules) {
-          if (schedulesToSync.some(s => s.id === sch.id)) continue;
-          const schWork = (sch.workSection || "").toLowerCase().trim();
-          const schBank = (sch.bankName || "").toLowerCase().trim();
-          const schType = (sch.type || "").toLowerCase().trim();
-          const tTitle = (task.taskTitle || "").toLowerCase().trim();
-          const tDesc = (task.description || "").toLowerCase().trim();
-
-          if (
-            (schType && tTitle.includes(`[${schType}]`)) ||
-            (schWork && (tTitle.includes(schWork) || tDesc.includes(schWork))) ||
-            (schBank && schBank.length > 1 && (tTitle.includes(schBank) || tDesc.includes(schBank)))
-          ) {
-            schedulesToSync.push(sch);
-          }
-        }
-      }
-
-      for (const sch of schedulesToSync) {
+      for (const sch of directMatches) {
         if (status !== undefined) {
           const rawSt = String(status).toLowerCase().trim();
           const mappedStatus = (rawSt === "completed" || rawSt === "done") ? "Completed" : (rawSt.includes("progress") || rawSt === "running") ? "In Progress" : "Pending";
