@@ -36,6 +36,9 @@ export async function GET(req: Request) {
           order: [["createdAt", "DESC"]],
           limit: 50,
         });
+        unreadCount = await Notification.count({
+          where: { recipient: userId, read: false }
+        });
       } catch (fallbackErr) {}
     }
 

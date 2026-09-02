@@ -1,6 +1,14 @@
 {
   "crons": [
     {
+      "path": "/api/reports/monthly-work-email",
+      "schedule": "0 19 1 * *"
+    },
+    {
+      "path": "/api/tasks/remind",
+      "schedule": "*/5 * * * *"
+    },
+    {
       "path": "/api/tasks/incomplete-reminders",
       "schedule": "*/15 * * * *"
     },

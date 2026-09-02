@@ -150,6 +150,16 @@ const getSequelizeInstance = () => {
       dialect: "mysql",
       dialectModule: mysql2,
       logging: false,
+      retry: {
+        max: 2,
+        match: [
+          /ETIMEDOUT/i,
+          /ECONNRESET/i,
+          /PROTOCOL_CONNECTION_LOST/i,
+          /Connection lost/i,
+          /SequelizeConnectionError/i,
+        ],
+      },
       dialectOptions: {
         connectTimeout,
         ...(socketPath ? { socketPath } : {}),

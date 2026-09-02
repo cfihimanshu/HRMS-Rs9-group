@@ -1,4 +1,4 @@
-const CACHE_NAME = "rs9-hrms-shell-v1";
+const CACHE_NAME = "rs9-hrms-shell-v2";
 const APP_SHELL = ["/login", "/offline.html", "/icons/rs9-hrms-192.png", "/icons/rs9-hrms-512.png"];
 
 self.addEventListener("install", event => {
@@ -22,7 +22,12 @@ self.addEventListener("fetch", event => {
 });
 
 self.addEventListener("push", event => {
-  const payload = event.data?.json() || {};
+  let payload = {};
+  try {
+    payload = event.data?.json() || {};
+  } catch (_) {
+    payload = { body: event.data?.text() || "You have a new update." };
+  }
   event.waitUntil(self.registration.showNotification(payload.title || "Rs9 HRMS", {
     body: payload.body || "You have a new update.",
     icon: "/icons/rs9-hrms-192.png",

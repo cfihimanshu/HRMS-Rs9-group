@@ -12,7 +12,7 @@ import { CATEGORIES_ORDER } from "@/lib/navigationConfig";
 
 interface SidebarProps {
   activeTab: string;
-  setActiveTab: (tab: string) => void;
+  setActiveTab: (tab: string, filter?: string) => void;
   stats: any;
   user: any;
   triggerToast?: (msg: string) => void;
@@ -32,6 +32,7 @@ export default function DashboardSidebar({
   setMobileMenuOpen
 }: SidebarProps) {
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const [securityMenuOpen, setSecurityMenuOpen] = useState(activeTab === "security");
 
   const handleLogout = useCallback(() => {
     setShowLogoutConfirm(true);
@@ -375,10 +376,15 @@ export default function DashboardSidebar({
                   {groupedMenu[cat]?.map((item) => {
                     const isActive = activeTab === item.id;
                     const ItemIcon = item.icon;
+                    const isSecurityMenu = item.id === "security";
                     return (
+                      <div key={item.id}>
                       <button
-                        key={item.id}
                         onClick={() => {
+                          if (isSecurityMenu) {
+                            setSecurityMenuOpen(open => !open);
+                            return;
+                          }
                           const isOwner = user?.role === "Owner" || String(user?.role || "").toLowerCase() === "owner";
                           if (!isOwner && stats?.currentUserCompliance && !stats.currentUserCompliance.hasSod) {
                             if (item.id !== "attendance" && item.id !== "ess-dashboard" && item.id !== "dashboard" && item.id !== "ess") {
@@ -414,7 +420,24 @@ export default function DashboardSidebar({
                             {item.badge}
                           </span>
                         )}
+                        {isSecurityMenu && (securityMenuOpen ? <ChevronDown className="w-3.5 h-3.5 opacity-60"/> : <ChevronRight className="w-3.5 h-3.5 opacity-60"/>)}
                       </button>
+                      {isSecurityMenu && securityMenuOpen && (
+                        <div className="ml-5 mt-1 space-y-0.5 border-l border-[#DED7CF] dark:border-gray-800 pl-2">
+                          {[
+                            { id: "attendance", label: "Attendance", icon: CalendarCheck },
+                            { id: "projects", label: "Projects", icon: FolderKanban },
+                            { id: "business-development", label: "Business Development", icon: TrendingUp },
+                            { id: "payments", label: "Payments", icon: Coins },
+                          ].map(child => {
+                            const ChildIcon = child.icon;
+                            return <button key={child.id} onClick={() => { setActiveTab("security", child.id); if (setMobileMenuOpen) setMobileMenuOpen(false); }} className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-[10px] text-[#666460] dark:text-gray-400 hover:bg-[#F0EAE4] dark:hover:bg-gray-800 hover:text-[#1C1C1A] dark:hover:text-white">
+                              <ChildIcon className="w-3 h-3 shrink-0"/><span>{child.label}</span>
+                            </button>;
+                          })}
+                        </div>
+                      )}
+                      </div>
                     );
                   })}
                 </div>

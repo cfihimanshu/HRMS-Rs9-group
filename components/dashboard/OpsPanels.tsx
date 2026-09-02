@@ -2486,6 +2486,7 @@ export function PerformanceCompliance({
   const isTeamManagerRole = userRoleNorm.includes("manager") || userRoleNorm.includes("head") ||
     userRoleNorm.includes("team lead") || userRoleNorm === "dsm";
   const isOwnerOrDirector = isGlobalRole || isTeamManagerRole;
+  const canSendMonthlyReports = ["owner", "director", "hr head", "hr-head", "hr executive", "hr-executive"].includes(userRoleNorm);
   const [loading, setLoading] = useState(true);
   const [reports, setReports] = useState<{ sod: any[]; eod: any[]; tasks?: any[]; fieldVisits?: any[] }>({ sod: [], eod: [], tasks: [], fieldVisits: [] });
   const [activeSubTab, setActiveSubTab] = useState<"visual-dashboard" | "sod" | "eod" | "attendance-calendar" | "legal-recovery-schedule">(
@@ -2506,6 +2507,7 @@ export function PerformanceCompliance({
   const [activeDetailsTab, setActiveDetailsTab] = useState<"tasks" | "attendance">("tasks");
   const [selectedDashboardCategory, setSelectedDashboardCategory] = useState<"staff" | "calls" | "tasks" | "payments" | "pendingTasks" | "hrCalls" | null>(null);
   const [loadingExtra, setLoadingExtra] = useState(false);
+  const [sendingMonthlyReports, setSendingMonthlyReports] = useState(false);
   const [dateFilterType, setDateFilterType] = useState<"overall" | "today" | "yesterday" | "current-month" | "last-month" | "custom">("current-month");
   const [startDateFilter, setStartDateFilter] = useState("");
   const [endDateFilter, setEndDateFilter] = useState("");
@@ -2518,6 +2520,22 @@ export function PerformanceCompliance({
   const [selectedUser, setSelectedUser] = useState("");
   const [selectedDept, setSelectedDept] = useState("");
   const [expandedRows, setExpandedRows] = useState<Record<string, boolean>>({});
+
+  const sendMonthlyReportsNow = async () => {
+    if (sendingMonthlyReports) return;
+    if (!window.confirm("Previous month ki reports sabhi active employees ko email karein? Already sent reports duplicate nahi jayengi.")) return;
+    setSendingMonthlyReports(true);
+    try {
+      const response = await fetch("/api/reports/monthly-work-email", { method: "POST" });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || "Monthly reports could not be sent");
+      triggerToast?.(`Monthly reports: ${result.individualSent} employee, ${result.consolidatedSent} consolidated sent; ${result.skipped} already sent`);
+    } catch (error: any) {
+      triggerToast?.(error.message || "Monthly report email failed");
+    } finally {
+      setSendingMonthlyReports(false);
+    }
+  };
   const [expandedUserRows, setExpandedUserRows] = useState<Record<string, boolean>>({});
   const [showFilters, setShowFilters] = useState(false);
   const [exportingMasterReport, setExportingMasterReport] = useState(false);
@@ -4642,6 +4660,7 @@ export function PerformanceCompliance({
         </div>
 
         <div className="flex flex-col sm:flex-row sm:items-center gap-2 w-full lg:w-auto">
+          {canSendMonthlyReports && <button type="button" onClick={sendMonthlyReportsNow} disabled={sendingMonthlyReports} className="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-black shadow-md flex items-center justify-center gap-1.5 disabled:opacity-50 shrink-0 w-full sm:w-auto"><Send className="w-4 h-4"/>{sendingMonthlyReports ? "Sending..." : "Email Monthly Reports"}</button>}
           {activeSubTab !== "visual-dashboard" && (
             <button
               onClick={exportConsolidatedExcel}

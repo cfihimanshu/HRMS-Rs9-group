@@ -1470,6 +1470,14 @@ export function ESSPayroll({ user, triggerToast, mode = "self" }: ESSProps & { m
     return new Date(numericYear, selectedMonthIndex + 1, 0).getDate();
   }, [payrollMonth, numericYear, selectedMonthIndex]);
 
+  const payrollHolidayDates = useMemo(() => {
+    const dates = new Set<string>([
+      `${numericYear}-08-15`, // Independence Day
+    ]);
+    if (numericYear === 2026) dates.add("2026-08-28"); // Raksha Bandhan company holiday
+    return dates;
+  }, [numericYear]);
+
   const sundaysInSelectedMonth = useMemo(() => {
     let count = 0;
     for (let day = 1; day <= daysInSelectedMonth; day++) {
@@ -1590,11 +1598,15 @@ export function ESSPayroll({ user, triggerToast, mode = "self" }: ESSProps & { m
     const cutoffDay = selectedMonthStart > currentMonthStart
       ? 0
       : selectedMonthStart.getTime() === currentMonthStart.getTime()
-        ? today.getDate()
+        // Do not mark the still-running current day absent before its EOD can
+        // be submitted. Current-month attendance is finalized through yesterday.
+        ? Math.max(0, today.getDate() - 1)
         : daysInSelectedMonth;
     let expectedWorkingDays = 0;
     for (let dayNumber = 1; dayNumber <= cutoffDay; dayNumber += 1) {
-      if (new Date(numericYear, selectedMonthIndex, dayNumber).getDay() !== 0) expectedWorkingDays += 1;
+      const date = new Date(numericYear, selectedMonthIndex, dayNumber);
+      const dateKey = `${numericYear}-${String(selectedMonthIndex + 1).padStart(2, "0")}-${String(dayNumber).padStart(2, "0")}`;
+      if (date.getDay() !== 0 && !payrollHolidayDates.has(dateKey)) expectedWorkingDays += 1;
     }
 
     Object.keys(summary).forEach((dateStr) => {
@@ -1624,12 +1636,12 @@ export function ESSPayroll({ user, triggerToast, mode = "self" }: ESSProps & { m
 
     const registeredWorkDays = Object.entries(summary).filter(([dateStr, day]) => {
       const date = new Date(`${dateStr}T00:00:00`);
-      return Boolean(day.sod && day.eod) && date.getDay() !== 0 && date.getDate() <= cutoffDay;
+      return Boolean(day.sod && day.eod) && date.getDay() !== 0 && !payrollHolidayDates.has(dateStr) && date.getDate() <= cutoffDay;
     }).length;
     const absentDays = Math.max(0, expectedWorkingDays - registeredWorkDays);
     const numPaidLeaves = Math.min(1, absentDays, Math.max(0, Number(paidLeavesInput || 0)));
     const unpaidLeaveDays = Math.max(0, absentDays - numPaidLeaves);
-    const payableDays = Math.max(0, 30 - unpaidLeaveDays);
+    const payableDays = Math.max(0, daysInSelectedMonth - unpaidLeaveDays);
 
     return {
       days: summary,
@@ -1643,11 +1655,11 @@ export function ESSPayroll({ user, triggerToast, mode = "self" }: ESSProps & { m
       totalBaseMinutes,
       totalOtMinutes
     };
-  }, [employeeSods, employeeEods, paidLeavesInput, numericYear, selectedMonthIndex, daysInSelectedMonth]);
+  }, [employeeSods, employeeEods, paidLeavesInput, numericYear, selectedMonthIndex, daysInSelectedMonth, payrollHolidayDates]);
 
   const numBaseSalary = Number(baseSalary || 0);
-  // Base Salary is constant (e.g. 13,000) across 28, 30, or 31 day months, based on standard 30 days per-day rate
-  const perDaySalary = numBaseSalary / 30;
+  // Per-day salary follows the actual number of calendar days in the selected month.
+  const perDaySalary = numBaseSalary / daysInSelectedMonth;
   const perMinuteSalary = perDaySalary / 540;
 
   // Unpaid absent days fine calculated from leaves
@@ -1673,9 +1685,12 @@ export function ESSPayroll({ user, triggerToast, mode = "self" }: ESSProps & { m
   const fetchData = async () => {
     setLoading(true);
     try {
-      // Fetch employee list, payroll list, work reports, leaves, and imposed fines in parallel for instant rendering
-      const [empRes, pRes, res, leaveRes, fineRes] = await Promise.all([
-        isAdmin ? fetch("/api/employees?all=true").catch(() => null) : Promise.resolve(null),
+      // Start all requests together, but render the compact employee list first
+      // instead of waiting for the much larger work-report response.
+      const employeeRequest = isAdmin
+        ? fetch("/api/employees?all=true&view=payroll").catch(() => null)
+        : Promise.resolve(null);
+      const supportingRequests = Promise.all([
         fetch(isAdmin ? "/api/payroll" : "/api/payroll?scope=self").catch(() => null),
         fetch("/api/reports/work-report").catch(() => null),
         fetch("/api/leaves").catch(() => null),
@@ -1687,6 +1702,7 @@ export function ESSPayroll({ user, triggerToast, mode = "self" }: ESSProps & { m
         setSelectedEmpId(String(user.id));
       }
 
+      const empRes = await employeeRequest;
       if (empRes) {
         try {
           const empData = await empRes.json();
@@ -1711,6 +1727,8 @@ export function ESSPayroll({ user, triggerToast, mode = "self" }: ESSProps & { m
           if (user?.id) setSelectedEmpId(String(user.id));
         }
       }
+
+      const [pRes, res, leaveRes, fineRes] = await supportingRequests;
 
       if (pRes) {
         try {
@@ -1775,6 +1793,76 @@ export function ESSPayroll({ user, triggerToast, mode = "self" }: ESSProps & { m
     }
   };
 
+  const downloadPayslipPdf = async (slip: any) => {
+    const { default: jsPDF } = await import("jspdf");
+    const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+    const employee = slip.employee || employees.find(emp => String(emp.id || emp._id) === String(slip.employeeId || selectedEmpId));
+    const employeeName = employee?.name || "Employee";
+    const employeeCode = employee?.employeeProfile?.employeeId || employee?.employeeId || slip.employeeId || "N/A";
+    const money = (value: unknown) => `Rs. ${Number(value || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    const line = (label: string, value: string, y: number, strong = false) => {
+      doc.setFont("helvetica", strong ? "bold" : "normal");
+      doc.setFontSize(strong ? 11 : 10);
+      doc.text(label, 22, y);
+      doc.text(value, 188, y, { align: "right" });
+    };
+
+    doc.setFillColor(113, 75, 103);
+    doc.rect(0, 0, 210, 34, "F");
+    doc.setTextColor(255, 255, 255);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(20);
+    doc.text("RS9 GROUP", 18, 15);
+    doc.setFontSize(11);
+    doc.text("SALARY PAYSLIP", 18, 25);
+
+    doc.setTextColor(31, 41, 55);
+    doc.setFontSize(10);
+    doc.text(`Employee: ${employeeName}`, 18, 47);
+    doc.text(`Employee ID: ${employeeCode}`, 18, 54);
+    doc.text(`Payroll Period: ${slip.month} ${slip.year}`, 118, 47);
+    doc.text(`Status: ${slip.status || "Processed"}`, 118, 54);
+    doc.setDrawColor(215, 210, 205);
+    doc.line(18, 61, 192, 61);
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(12);
+    doc.text("Earnings", 20, 73);
+    line("Basic Salary", money(slip.basicPay), 84);
+    line("HRA", money(slip.hra), 92);
+    line("Conveyance", money(slip.conveyance), 100);
+    line("Special Allowance", money(slip.specialAllowance), 108);
+    line("Incentive / Overtime / Bonus", money(slip.bonus), 116);
+    doc.line(20, 122, 190, 122);
+    line("Total Earnings", money(slip.totalEarnings), 131, true);
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(12);
+    doc.text("Deductions", 20, 148);
+    line("PF Deduction", money(slip.pfDeduction), 159);
+    line("ESI Deduction", money(slip.esiDeduction), 167);
+    line("Professional Tax", money(slip.ptDeduction), 175);
+    line("TDS", money(slip.tdsDeduction), 183);
+    line("Absent Fine / Loss of Pay", money(slip.lossOfPay), 191);
+    doc.line(20, 197, 190, 197);
+    line("Total Deductions", money(slip.totalDeductions), 206, true);
+
+    doc.setFillColor(236, 253, 245);
+    doc.roundedRect(18, 217, 174, 24, 3, 3, "F");
+    doc.setTextColor(4, 120, 87);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(14);
+    doc.text("NET PAYABLE", 24, 232);
+    doc.text(money(slip.netPay), 186, 232, { align: "right" });
+
+    doc.setTextColor(100, 116, 139);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(8);
+    doc.text("This is a system-generated payslip from RS9 HRMS.", 105, 274, { align: "center" });
+    const safeName = employeeName.replace(/[^a-zA-Z0-9]+/g, "_").replace(/^_+|_+$/g, "") || "Employee";
+    doc.save(`Payslip_${safeName}_${slip.month}_${slip.year}.pdf`);
+  };
+
   const handleProcessPayroll = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedEmpId) {
@@ -1808,7 +1896,14 @@ export function ESSPayroll({ user, triggerToast, mode = "self" }: ESSProps & { m
       const data = await res.json();
       if (data.success) {
         triggerToast(`🎉 Payroll processed successfully for ${payrollMonth} ${payrollYear}`);
-        fetchData();
+        const selectedEmployee = employees.find(emp => String(emp.id || emp._id) === String(selectedEmpId));
+        try {
+          await downloadPayslipPdf({ ...data.data, employee: selectedEmployee, employeeId: selectedEmpId });
+        } catch (pdfError) {
+          console.error("Payslip PDF generation failed:", pdfError);
+          triggerToast("Payslip saved, but PDF download failed. Use Download PDF from the registry.");
+        }
+        await fetchData();
       } else {
         triggerToast(`Error: ${data.error}`);
       }
@@ -2117,7 +2212,7 @@ export function ESSPayroll({ user, triggerToast, mode = "self" }: ESSProps & { m
                 </div>
                 <div className="flex justify-between border-b border-[#E8E4DF]/50 pb-2 text-[11px] font-medium">
                   <div className="text-[#5D5B57]">
-                    Per-Day Salary Rate (Standard 30 Days):
+                    Per-Day Salary Rate ({daysInSelectedMonth} Calendar Days):
                   </div>
                   <div className="text-[#1C1C1A] font-bold">
                     ₹{perDaySalary.toFixed(2)} / day
@@ -2128,10 +2223,10 @@ export function ESSPayroll({ user, triggerToast, mode = "self" }: ESSProps & { m
                     Attendance & Present Days Breakdown:
                   </div>
                   <div className="text-[#1C1C1A] font-bold">
-                    {dailyWorkSummary.registeredWorkDays} Present / {dailyWorkSummary.expectedWorkingDays} Working Days (SOD + EOD mandatory)
+                    {dailyWorkSummary.registeredWorkDays} Present / {dailyWorkSummary.expectedWorkingDays} Working Days (Sundays & Holidays excluded)
                   </div>
                 </div>
-                <div className="flex justify-between border-b border-[#E8E4DF]/50 pb-2 text-[11px] font-medium text-amber-700"><div>Auto-detected Absence (excluding Sundays and future dates):</div><div className="font-bold">{dailyWorkSummary.absentDays} Days — {dailyWorkSummary.numPaidLeaves} Paid + {dailyWorkSummary.unpaidLeaveDays} Unpaid</div></div>
+                <div className="flex justify-between border-b border-[#E8E4DF]/50 pb-2 text-[11px] font-medium text-amber-700"><div>Auto-detected Absence (excluding Sundays, holidays and future dates):</div><div className="font-bold">{dailyWorkSummary.absentDays} Days — {dailyWorkSummary.numPaidLeaves} Paid + {dailyWorkSummary.unpaidLeaveDays} Unpaid</div></div>
                 <div className="flex justify-between border-b border-[#E8E4DF]/50 pb-2 text-[11px] font-medium">
                   <div className="text-[#5D5B57]">
                     Calculated Total Payable Days:
@@ -2336,13 +2431,13 @@ export function ESSPayroll({ user, triggerToast, mode = "self" }: ESSProps & { m
                   <th className="pb-3 px-2">Basic Salary</th>
                   <th className="pb-3 px-2 text-center">Net Salary</th>
                   <th className="pb-3 px-2">Status</th>
-                  {isAdmin && <th className="pb-3 pl-2 text-right">Actions</th>}
+                  <th className="pb-3 pl-2 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#E8E4DF] text-[#5D5B57] font-medium">
                 {processedPayslips.length === 0 ? (
                   <tr>
-                    <td colSpan={isAdmin ? 6 : 4} className="py-8 text-center text-[#9C9890] italic">
+                    <td colSpan={isAdmin ? 6 : 5} className="py-8 text-center text-[#9C9890] italic">
                       No processed payroll records found.
                     </td>
                   </tr>
@@ -2366,8 +2461,11 @@ export function ESSPayroll({ user, triggerToast, mode = "self" }: ESSProps & { m
                           {slip.status}
                         </span>
                       </td>
-                      {isAdmin && (
-                        <td className="py-4 pl-2 text-right"><div className="flex justify-end gap-2">
+                      <td className="py-4 pl-2 text-right"><div className="flex justify-end gap-2">
+                          <button onClick={() => downloadPayslipPdf(slip)} className="border border-indigo-300 text-indigo-700 hover:bg-indigo-600 hover:text-white px-3 py-1.5 rounded-lg text-[9px] uppercase tracking-wider font-bold transition-all flex items-center gap-1">
+                            <Download className="w-3 h-3" /> Download PDF
+                          </button>
+                          {isAdmin && <>
                           {slip.status !== "Paid" && slip.status !== "Locked" && <button onClick={() => handlePayrollStatus(slip.id, "Paid")} disabled={loading} className="border border-emerald-500 text-emerald-600 hover:bg-emerald-500 hover:text-white px-3 py-1.5 rounded-lg text-[9px] uppercase tracking-wider font-bold transition-all">Mark Paid</button>}
                           {slip.status === "Paid" && <button onClick={() => handlePayrollStatus(slip.id, "Locked")} disabled={loading} className="border border-slate-400 text-slate-600 hover:bg-slate-700 hover:text-white px-3 py-1.5 rounded-lg text-[9px] uppercase tracking-wider font-bold transition-all">Lock</button>}
                           <button
@@ -2378,8 +2476,8 @@ export function ESSPayroll({ user, triggerToast, mode = "self" }: ESSProps & { m
                             <Trash2 className="w-3 h-3" />
                             Delete
                           </button>
+                          </>}
                         </div></td>
-                      )}
                     </tr>
                   ))
                 )}

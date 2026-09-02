@@ -76,8 +76,12 @@ async function resolveTaskNotificationRecipients(task: any) {
 
 let daemonStarted = (global as any).__reminderDaemonStarted || false;
 const isServerless = process.env.VERCEL === "1" || process.env.NODE_ENV === "production";
+// Reminders are handled by /api/tasks/incomplete-reminders via the configured
+// scheduler. The inline loop is opt-in only because a route-module interval can
+// survive hot reloads and repeatedly hit a temporarily unavailable database.
+const inlineReminderDaemonEnabled = process.env.ENABLE_INLINE_TASK_REMINDER_DAEMON === "true";
 
-if (!daemonStarted && !isServerless) {
+if (!daemonStarted && !isServerless && inlineReminderDaemonEnabled) {
   (global as any).__reminderDaemonStarted = true;
   console.log("⏰ [Task Reminder Daemon] Started background check interval (every 30s)...");
 

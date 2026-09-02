@@ -105,6 +105,10 @@ export default function UnifiedEnterpriseDashboard() {
   const [performanceSubTab, setPerformanceSubTab] = useState<string>("visual-dashboard");
   const [leaveSearchFilter, setLeaveSearchFilter] = useState<string>("");
   const [legalRecoverySubModule, setLegalRecoverySubModule] = useState<"launcher" | "masters">("launcher");
+  const [securitySection, setSecuritySection] = useState<"launcher" | "attendance" | "projects" | "business-development" | "payments">(() => {
+    const section = routeParams?.slug?.[1];
+    return ["attendance", "projects", "business-development", "payments"].includes(section || "") ? section as any : "launcher";
+  });
 
   const handleNavigateTab = (tab: string, filter?: string, userFilter?: string) => {
     const isOwner = userRole === "Owner" || rawRole === "Owner" || rawRole?.toLowerCase() === "owner" || userRole?.toLowerCase() === "owner";
@@ -119,8 +123,13 @@ export default function UnifiedEnterpriseDashboard() {
     if (tab === "legal-recovery") {
       setLegalRecoverySubModule(filter === "masters" ? "masters" : "launcher");
     }
+    if (tab === "security") {
+      setSecuritySection(["attendance", "projects", "business-development", "payments"].includes(filter || "")
+        ? filter as "attendance" | "projects" | "business-development" | "payments"
+        : "launcher");
+    }
     if (typeof window !== "undefined") {
-      const targetPath = `/dashboard/${tab}`;
+      const targetPath = tab === "security" && filter ? `/dashboard/${tab}/${filter}` : `/dashboard/${tab}`;
       if (window.location.pathname !== targetPath) {
         window.history.pushState(null, "", targetPath);
       }
@@ -1505,6 +1514,7 @@ export default function UnifiedEnterpriseDashboard() {
                 userRole={userRole}
                 triggerToast={triggerToast}
                 sessionUser={session?.user}
+                initialSection={securitySection}
               />
             );
           })()}

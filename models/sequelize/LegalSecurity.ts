@@ -43,6 +43,14 @@ LegalSecurity.init(
       type: DataTypes.STRING,
       allowNull: true,
     },
+    agentName: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    followUpAt: {
+      type: DataTypes.DATE,
+      allowNull: true,
+    },
     location: {
       type: DataTypes.STRING,
       allowNull: true,
@@ -152,6 +160,15 @@ LegalSecurity.init(
     },
     remarks: {
       type: DataTypes.TEXT,
+      allowNull: true,
+    },
+    workflowStage: {
+      type: DataTypes.STRING,
+      allowNull: true,
+      defaultValue: "bank_visit",
+    },
+    workflowJson: {
+      type: DataTypes.TEXT("long"),
       allowNull: true,
     },
     createdBy: {

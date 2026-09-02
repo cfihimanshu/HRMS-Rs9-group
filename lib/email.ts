@@ -1,4 +1,4 @@
-export async function sendEmail({ to, subject, html }: { to: string | string[], subject: string, html: string }) {
+export async function sendEmail({ to, subject, html, attachments }: { to: string | string[], subject: string, html: string, attachments?: Array<{ filename: string; content: string | Buffer; contentType?: string }> }) {
   try {
     if (typeof window !== "undefined") {
       console.warn("sendEmail called on client side - skipping");
@@ -31,6 +31,7 @@ export async function sendEmail({ to, subject, html }: { to: string | string[], 
       to: recipient,
       subject,
       html,
+      attachments,
     };
 
     const info = await transporter.sendMail(mailOptions);

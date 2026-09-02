@@ -80,7 +80,7 @@ export default function Topbar({
 
   const fetchNotifications = useCallback(async () => {
     try {
-      const res = await fetch("/api/notifications");
+      const res = await fetch("/api/notifications", { cache: "no-store" });
       if (!res.ok) return;
       const data = await res.json();
       if (data.success) {
@@ -108,8 +108,17 @@ export default function Topbar({
 
   useEffect(() => {
     fetchNotifications();
-    const interval = setInterval(fetchNotifications, 30000); // Check every 30s
-    return () => clearInterval(interval);
+    const interval = setInterval(fetchNotifications, 10000);
+    const refreshWhenVisible = () => {
+      if (document.visibilityState === "visible") fetchNotifications();
+    };
+    window.addEventListener("focus", fetchNotifications);
+    document.addEventListener("visibilitychange", refreshWhenVisible);
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener("focus", fetchNotifications);
+      document.removeEventListener("visibilitychange", refreshWhenVisible);
+    };
   }, [fetchNotifications]);
 
   const handleMarkAsRead = async () => {
@@ -178,6 +187,8 @@ export default function Topbar({
 
       if (title.includes("leave")) {
         targetTab = isEmployee ? "ess-leaves" : "leave-request";
+      } else if (title.includes("security follow-up") || title.includes("security workflow")) {
+        targetTab = "security";
       } else if (title.includes("hiring") || title.includes("requisition")) {
         targetTab = "hiring";
       } else if (title.includes("interview")) {

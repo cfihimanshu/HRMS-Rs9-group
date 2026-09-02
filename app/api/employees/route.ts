@@ -51,6 +51,34 @@ export async function GET(req: Request) {
     const userId = (session.user as any).id;
     const dbUser = await User.findByPk(userId, { raw: true });
     const userRole = (dbUser?.role || "Employee").toLowerCase();
+    const { searchParams } = new URL(req.url);
+
+    // Payroll only needs a compact employee identity + salary list. Return it
+    // before loading departments, companies and the full employee directory.
+    if (searchParams.get("view") === "payroll") {
+      const canViewPayroll = /owner|director|hr|payroll|accounts|cfo|it admin/.test(userRole);
+      if (!canViewPayroll) {
+        return NextResponse.json({ success: false, error: "Payroll access denied" }, { status: 403 });
+      }
+      const nonEmployeeRoles = ["Business Associate", "BA", "Business Partner", "Business associate", "Vendor", "Candidate"];
+      const [payrollUsers, payrollProfiles] = await Promise.all([
+        User.findAll({
+          where: { role: { [Op.notIn]: nonEmployeeRoles } },
+          attributes: ["id", "name", "email", "role", "status"],
+          raw: true
+        }),
+        EmployeeProfile.findAll({
+          attributes: ["user", "employeeId", "baseSalary", "designation"],
+          raw: true
+        })
+      ]);
+      const profileMap = new Map((payrollProfiles as any[]).map(profile => [String(profile.user), profile]));
+      const data = (payrollUsers as any[]).map(employee => ({
+        ...employee,
+        employeeProfile: profileMap.get(String(employee.id)) || null
+      }));
+      return NextResponse.json({ success: true, data });
+    }
 
     const isOwnerOrDirector = userRole.includes("owner") || userRole.includes("director") || userRole.includes("cfo") || userRole.includes("legal head") || userRole.includes("it admin") || userRole.includes("admin");
     const isHR = userRole.includes("hr");
@@ -83,7 +111,6 @@ export async function GET(req: Request) {
 
     const adminCompaniesNormalized = getUserCompanies(dbUser);
 
-    const { searchParams } = new URL(req.url);
     const includeAssociates = searchParams.get("includeAssociates") === "true" || searchParams.get("includePartners") === "true";
 
     const nonEmployeeRoles = [

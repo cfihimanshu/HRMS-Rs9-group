@@ -3,6 +3,7 @@ import User from "@/models/sequelize/User";
 import EmployeeProfile from "@/models/sequelize/EmployeeProfile";
 import Department from "@/models/sequelize/Department";
 import { Op } from "sequelize";
+import { sendEmail } from "@/lib/email";
 
 export async function sendRequestNotification({
   applicantId,
@@ -50,7 +51,7 @@ export async function sendRequestNotification({
     // Find Owners (case-insensitive role check)
     const allActiveUsers = await User.findAll({
       where: { status: "active" },
-      attributes: ["id", "role"],
+      attributes: ["id", "name", "role", "email"],
       raw: true
     });
     const owners = allActiveUsers.filter((u: any) => String(u.role || "").toLowerCase().includes("owner"));
@@ -117,6 +118,16 @@ export async function sendRequestNotification({
         message: details,
         read: false
       });
+    }
+
+    const ownerEmails = [...new Set(owners.map((owner: any) => String(owner.email || "").trim()).filter(Boolean))];
+    if (ownerEmails.length) {
+      const emailResult = await sendEmail({
+        to: ownerEmails,
+        subject: `RS9 HRMS — ${title}`,
+        html: `<div style="font-family:Arial,sans-serif;color:#1f2937;line-height:1.6"><h2>${title}</h2><p>${String(details).replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;")}</p><p style="font-size:12px;color:#64748b">RS9 Group HRMS · Automated notification</p></div>`,
+      });
+      if (!emailResult.success) console.error("[sendRequestNotification] Owner email failed:", emailResult.error);
     }
 
   } catch (err) {

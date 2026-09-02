@@ -36,6 +36,17 @@ const readableWorkDetail = (task: any) => {
   return `Complete the assigned task: ${task.taskTitle || "Untitled task"}`;
 };
 
+const indiaMonthKey = (value: Date) => {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Kolkata",
+    year: "numeric",
+    month: "2-digit",
+  }).formatToParts(value);
+  const year = parts.find(part => part.type === "year")?.value;
+  const month = parts.find(part => part.type === "month")?.value;
+  return `${year}-${month}`;
+};
+
 export async function GET(request: Request) {
   try {
     const session = await getServerSession(authOptions);
@@ -44,6 +55,10 @@ export async function GET(request: Request) {
 
     const userId = String((session.user as any).id || "");
     const role = String((session.user as any).role || "").toLowerCase();
+    const requestedMonth = new URL(request.url).searchParams.get("month") || "";
+    const selectedMonth = /^\d{4}-(0[1-9]|1[0-2])$/.test(requestedMonth)
+      ? requestedMonth
+      : indiaMonthKey(new Date());
     const [tasks, users, profiles] = await Promise.all([
       TaskLog.findAll({ where: { status: { [Op.notIn]: ["Completed", "Cancelled", "Canceled"] } }, order: [["createdAt", "ASC"]], raw: true }),
       User.findAll({ attributes: ["id", "name"], raw: true }),
@@ -59,6 +74,8 @@ export async function GET(request: Request) {
 
     const overdue = (tasks as any[]).filter(task => {
       const assignee = String(task.forwardedTo || task.employee || "");
+      const taskMonthDate = new Date(task.scheduledAt || task.date || task.createdAt);
+      if (Number.isNaN(taskMonthDate.getTime()) || indiaMonthKey(taskMonthDate) !== selectedMonth) return false;
       if (deadlineOf(task) > now) return false;
       if (canSeeAll) return true;
       if (isDepartmentManager) return viewerDepartment && String(profileByUser.get(assignee)?.department || "") === viewerDepartment;
@@ -83,7 +100,7 @@ export async function GET(request: Request) {
     });
 
     const showAll = new URL(request.url).searchParams.get("limit") === "all";
-    return NextResponse.json({ success: true, count: overdue.length, data: showAll ? overdue : overdue.slice(0, 50) });
+    return NextResponse.json({ success: true, month: selectedMonth, count: overdue.length, data: showAll ? overdue : overdue.slice(0, 50) });
   } catch (error: any) {
     console.error("[/api/tasks/incomplete-alerts]", error);
     return NextResponse.json({ success: false, error: error.message || "Task alerts could not be loaded" }, { status: 500 });

@@ -15,6 +15,48 @@ import { normalizeRole } from "./roles";
 const LOGIN_WINDOW_MS = 15 * 60 * 1000;
 const LOGIN_MAX_ATTEMPTS = 8;
 const loginAttempts = new Map<string, { count: number; resetAt: number }>();
+type LiveRoleData = { role: string; menuAccess: any; companies: any };
+type LiveRoleCacheEntry = { value?: LiveRoleData; expiresAt: number; pending?: Promise<LiveRoleData | null>; retryAfter?: number };
+const liveRoleCache: Map<string, LiveRoleCacheEntry> = (globalThis as any).__rs9LiveRoleCache || new Map();
+(globalThis as any).__rs9LiveRoleCache = liveRoleCache;
+const LIVE_ROLE_TTL_MS = 5 * 60 * 1000;
+const LIVE_ROLE_FAILURE_BACKOFF_MS = 10 * 60 * 1000;
+
+async function getLiveRoleData(userId: string): Promise<LiveRoleData | null> {
+  const now = Date.now();
+  const cached = liveRoleCache.get(userId);
+  if (cached?.value && cached.expiresAt > now) return cached.value;
+  if (cached?.retryAfter && cached.retryAfter > now) return cached.value || null;
+  if (cached?.pending) return cached.pending;
+
+  const pending = User.findByPk(userId, {
+    attributes: ["role", "menuAccess", "companies"],
+    raw: true,
+  }).then((dbUser: any) => {
+    if (!dbUser) {
+      liveRoleCache.set(userId, { expiresAt: 0, retryAfter: Date.now() + LIVE_ROLE_FAILURE_BACKOFF_MS });
+      return null;
+    }
+    const value = {
+      role: normalizeRole(dbUser.role),
+      menuAccess: dbUser.menuAccess || null,
+      companies: dbUser.companies || null,
+    };
+    liveRoleCache.set(userId, { value, expiresAt: Date.now() + LIVE_ROLE_TTL_MS });
+    return value;
+  }).catch((error: any) => {
+    liveRoleCache.set(userId, {
+      value: cached?.value,
+      expiresAt: cached?.expiresAt || 0,
+      retryAfter: Date.now() + LIVE_ROLE_FAILURE_BACKOFF_MS,
+    });
+    console.warn(`[auth] Live role refresh deferred for ${userId}: ${error?.code || error?.message || "database unavailable"}`);
+    return cached?.value || null;
+  });
+
+  liveRoleCache.set(userId, { ...cached, expiresAt: cached?.expiresAt || 0, pending });
+  return pending;
+}
 
 function enforceLoginRateLimit(key: string) {
   const now = Date.now();
@@ -262,6 +304,10 @@ export const authOptions: NextAuthOptions = {
         }
 
         const systemRole = normalizeRole(user.role);
+        liveRoleCache.set(userIdStr, {
+          value: { role: systemRole, menuAccess: user.menuAccess || null, companies: user.companies || null },
+          expiresAt: Date.now() + LIVE_ROLE_TTL_MS,
+        });
 
         return {
           id: userIdStr,
@@ -301,17 +347,14 @@ export const authOptions: NextAuthOptions = {
         const fiveMinutes = 5 * 60 * 1000;
 
         if (now - lastRefreshed > fiveMinutes) {
-          try {
-            const dbUser = await User.findByPk(token.id as string, { raw: true });
-            if (dbUser) {
-              const systemRole = normalizeRole(dbUser.role);
-              token.role = systemRole;
-              token.menuAccess = dbUser.menuAccess || null;
-              token.companies = dbUser.companies || null;
-              token.lastRefreshed = now;
-            }
-          } catch (err) {
-            console.error("Error fetching live user role in jwt callback:", err);
+          // Mark the attempt immediately so simultaneous API requests do not
+          // create a database-query storm when the remote connection is slow.
+          token.lastRefreshed = now;
+          const liveRole = await getLiveRoleData(String(token.id));
+          if (liveRole) {
+            token.role = liveRole.role;
+            token.menuAccess = liveRole.menuAccess;
+            token.companies = liveRole.companies;
           }
         }
       }

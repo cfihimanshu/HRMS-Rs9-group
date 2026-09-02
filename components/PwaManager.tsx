@@ -27,10 +27,29 @@ export default function PwaManager() {
   useEffect(() => {
     if (!("serviceWorker" in navigator)) return;
     setPushSupported("PushManager" in window && "Notification" in window);
-    navigator.serviceWorker.register("/sw.js").catch(error => console.error("Service worker registration failed:", error));
+    navigator.serviceWorker.register("/sw.js").then(async registration => {
+      await registration.update().catch(() => {});
+      if (!("PushManager" in window) || !("Notification" in window) || Notification.permission !== "granted") {
+        setPushEnabled(false);
+        return;
+      }
+      const subscription = await registration.pushManager.getSubscription();
+      if (!subscription) {
+        setPushEnabled(false);
+        return;
+      }
+      const response = await fetch("/api/push-subscriptions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(subscription.toJSON()),
+      });
+      setPushEnabled(response.ok);
+    }).catch(error => {
+      setPushEnabled(false);
+      console.error("Service worker registration failed:", error);
+    });
     const standalone = window.matchMedia("(display-mode: standalone)").matches || (navigator as any).standalone === true;
     setIsIosInstall(/iphone|ipad|ipod/i.test(navigator.userAgent) && !standalone);
-    setPushEnabled("Notification" in window && Notification.permission === "granted");
     const handlePrompt = (event: Event) => {
       event.preventDefault();
       setInstallPrompt(event as InstallPromptEvent);
@@ -58,7 +77,8 @@ export default function PwaManager() {
       const configResponse = await fetch("/api/push-subscriptions", { cache: "no-store" });
       const config = await configResponse.json();
       if (!config.success || !config.publicKey) throw new Error(config.error || "Push notifications are not configured.");
-      const subscription = await registration.pushManager.subscribe({
+      const existingSubscription = await registration.pushManager.getSubscription();
+      const subscription = existingSubscription || await registration.pushManager.subscribe({
         userVisibleOnly: true,
         applicationServerKey: applicationServerKey(config.publicKey),
       });

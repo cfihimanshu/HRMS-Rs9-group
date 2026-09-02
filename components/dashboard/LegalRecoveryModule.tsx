@@ -814,6 +814,7 @@ export default function LegalRecoveryModule({ userRole, triggerToast, sessionUse
           paymentMode: finalPaymentMode,
           masterId: showPaymentForm.master.id,
           receivedBy: sessionUser?.name || "System",
+          receivedById: sessionUser?.id || "",
           proofUrl: uploadedProofUrl
         })
       });

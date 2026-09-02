@@ -18,6 +18,11 @@ LegalGuard.init(
       type: DataTypes.STRING,
       allowNull: true,
     },
+    monthlySalary: {
+      type: DataTypes.DECIMAL(12, 2),
+      allowNull: false,
+      defaultValue: 0,
+    },
     photoUrl: {
       type: DataTypes.TEXT("long"),
       allowNull: true,

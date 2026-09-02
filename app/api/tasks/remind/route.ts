@@ -5,6 +5,7 @@ import User from "@/models/sequelize/User";
 import Notification from "@/models/sequelize/Notification";
 import { sendEmail } from "@/lib/email";
 import { Op } from "sequelize";
+import EmployeeProfile from "@/models/sequelize/EmployeeProfile";
 
 export const dynamic = "force-dynamic";
 
@@ -29,7 +30,8 @@ export async function GET(req: Request) {
     // Optional secret to protect the endpoint from public access
     const { searchParams } = new URL(req.url);
     const secret = searchParams.get("secret");
-    if (process.env.CRON_SECRET && secret !== process.env.CRON_SECRET) {
+    const authorization = req.headers.get("authorization");
+    if (process.env.CRON_SECRET && secret !== process.env.CRON_SECRET && authorization !== `Bearer ${process.env.CRON_SECRET}`) {
       return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
     }
 
@@ -37,16 +39,12 @@ export async function GET(req: Request) {
     await TaskLog.sync();
 
     const now = new Date();
-    const windowStart = new Date(now.getTime() - 5 * 60 * 1000); // 5 min ago
-
-    // Find tasks where scheduledAt is within last 5 minutes and reminder not sent yet
+    // Include missed runs as well; reminderSent prevents duplicate delivery.
     const dueTasks = await TaskLog.findAll({
       where: {
-        scheduledAt: {
-          [Op.gte]: windowStart,
-          [Op.lte]: now,
-        },
+        scheduledAt: { [Op.lte]: now },
         reminderSent: { [Op.or]: [false, null] },
+        status: { [Op.notIn]: ["Cancelled", "Canceled"] },
       },
     }) as any[];
 
@@ -60,12 +58,14 @@ export async function GET(req: Request) {
     for (const task of dueTasks) {
       try {
         const recipients: string[] = [];
+        const alertRecipientIds = new Set<string>();
 
         // 1. Assigned Employee
         let assignedUserName = "Team Member";
         if (task.employee) {
           const emp = await User.findOne({ where: { id: task.employee }, raw: true }) as any;
           if (emp) {
+            alertRecipientIds.add(String(emp.id));
             assignedUserName = emp.name || "Team Member";
             if (emp.email) recipients.push(emp.email);
 
@@ -96,17 +96,42 @@ export async function GET(req: Request) {
         const assignerId = task.assignedBy || task.createdById;
         if (assignerId && assignerId !== task.employee) {
           const assigner = await User.findOne({ where: { id: assignerId }, raw: true }) as any;
+          if (assigner) alertRecipientIds.add(String(assigner.id));
           if (assigner?.email) recipients.push(assigner.email);
         }
 
         // 3. Forwarded user (if any)
         if (task.forwardedTo && task.forwardedTo !== task.employee) {
           const fwdUser = await User.findOne({ where: { id: task.forwardedTo }, raw: true }) as any;
+          if (fwdUser) alertRecipientIds.add(String(fwdUser.id));
           if (fwdUser?.email) recipients.push(fwdUser.email);
         }
 
+        // Security follow-ups additionally alert every active Owner/Director,
+        // Security vertical/team member and Sales Head.
+        if (/security/i.test(String(task.taskType || ""))) {
+          const [users, profiles] = await Promise.all([
+            User.findAll({ attributes: ["id", "name", "email", "role", "status"], raw: true }) as any,
+            EmployeeProfile.findAll({ attributes: ["user", "employeeId", "designation", "department", "vertical"], raw: true }) as any,
+          ]);
+          const profileByUser = new Map<string, any>();
+          (profiles as any[]).forEach((profile) => {
+            if (profile.user) profileByUser.set(String(profile.user), profile);
+            if (profile.employeeId) profileByUser.set(String(profile.employeeId), profile);
+          });
+          (users as any[]).filter((user) => {
+            if (["inactive", "disabled", "terminated"].includes(String(user.status || "").toLowerCase())) return false;
+            const profile = profileByUser.get(String(user.id)) || {};
+            const identity = [user.role, profile.designation, profile.department, profile.vertical].filter(Boolean).join(" ");
+            return /owner|director|sales\s*head|security|facility|guard/i.test(identity);
+          }).forEach((user) => {
+            alertRecipientIds.add(String(user.id));
+            if (user.email) recipients.push(String(user.email));
+          });
+        }
+
         const uniqueRecipients = Array.from(new Set(recipients.filter(Boolean)));
-        if (uniqueRecipients.length === 0) continue;
+        if (uniqueRecipients.length === 0 && alertRecipientIds.size === 0) continue;
 
         const scheduledLabel = new Date(task.scheduledAt).toLocaleString("en-IN", {
           day: "2-digit", month: "short", year: "numeric",
@@ -153,38 +178,38 @@ export async function GET(req: Request) {
 </div>
 </body></html>`;
 
-        await sendEmail({
-          to: [...new Set(recipients)],
-          subject: `📅 Follow-up Reminder: ${task.taskTitle}`,
-          html,
-        });
+        let emailDelivered = uniqueRecipients.length === 0;
+        if (uniqueRecipients.length) {
+          const emailResult = await sendEmail({
+            to: uniqueRecipients,
+            subject: `📅 Follow-up Reminder: ${task.taskTitle}`,
+            html,
+          });
+          emailDelivered = Boolean(emailResult.success);
+        }
 
         // Insert in-app notifications
         try {
           await Notification.sync();
           
-          if (task.employee) {
-            await Notification.create({
-              id: `notif_${Date.now()}_owner_${task.id.replace(/[^a-zA-Z0-9]/g, "").slice(-6)}`,
-              recipient: task.employee,
-              title: `⏰ Follow-up Due: ${task.taskTitle}`,
-              message: `Your scheduled follow-up task is due now: ${task.taskTitle}.`,
-              read: false
-            });
-          }
-          
-          if (task.forwardedTo) {
-            await Notification.create({
-              id: `notif_${Date.now()}_fwd_${task.id.replace(/[^a-zA-Z0-9]/g, "").slice(-6)}`,
-              recipient: task.forwardedTo,
-              title: `⏰ Forwarded Follow-up Due: ${task.taskTitle}`,
-              message: `A follow-up task forwarded to you is due now: ${task.taskTitle}`,
-              read: false
+          for (const recipientId of alertRecipientIds) {
+            const notificationId = `followup_${new Date(task.scheduledAt).getTime()}_${task.id.replace(/[^a-zA-Z0-9]/g, "").slice(-18)}_${recipientId.replace(/[^a-zA-Z0-9]/g, "").slice(-18)}`;
+            await Notification.findOrCreate({
+              where: { id: notificationId },
+              defaults: {
+                id: notificationId,
+                recipient: recipientId,
+                title: `⏰ Follow-up Due: ${task.taskTitle}`,
+                message: `Security follow-up is due now: ${task.taskTitle}. ${task.description || ""}`.trim(),
+                read: false
+              }
             });
           }
         } catch (notifErr) {
           console.error("Failed to create in-app notification for task reminder:", notifErr);
         }
+
+        if (!emailDelivered) throw new Error("Follow-up email delivery failed; reminder will retry on next scheduler run");
 
         // Mark reminder as sent
         task.reminderSent = true;

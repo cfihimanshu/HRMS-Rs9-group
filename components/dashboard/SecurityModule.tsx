@@ -2,20 +2,25 @@
 import React, { useState, useEffect } from "react";
 import {
   Search, PlusCircle, RefreshCw, X, ArrowLeft, LayoutGrid,
-  Building2, Network, ShieldCheck
+  Building2, Network, ShieldCheck, CalendarCheck, Users
 } from "lucide-react";
 import NbfcMasterView from "./legal-recovery/NbfcMasterView";
 import NbfcBranchMasterView from "./legal-recovery/NbfcBranchMasterView";
 import SecurityMasterView from "./legal-recovery/SecurityMasterView";
+import GuardAttendancePayoutView from "./legal-recovery/GuardAttendancePayoutView";
+import GuardMasterView from "./legal-recovery/GuardMasterView";
+import SecurityProjectsView from "./legal-recovery/SecurityProjectsView";
+import SecurityPaymentsView from "./legal-recovery/SecurityPaymentsView";
 
 interface SecurityModuleProps {
   userRole?: string;
   triggerToast: (msg: string) => void;
   sessionUser?: any;
+  initialSection?: "launcher" | "attendance" | "projects" | "business-development" | "payments";
 }
 
-export default function SecurityModule({ userRole, triggerToast, sessionUser }: SecurityModuleProps) {
-  const [activeSubModule, setActiveSubModule] = useState<"launcher" | "nbfcs" | "nbfc-branches" | "security">("launcher");
+export default function SecurityModule({ userRole, triggerToast, sessionUser, initialSection = "launcher" }: SecurityModuleProps) {
+  const [activeSubModule, setActiveSubModule] = useState<"launcher" | "nbfcs" | "nbfc-branches" | "security" | "guard-master" | "guard-attendance" | "attendance" | "projects" | "business-development" | "payments">("launcher");
   const [nbfcsList, setNbfcsList] = useState<any[]>([]);
   const [nbfcBranchesList, setNbfcBranchesList] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -70,6 +75,11 @@ export default function SecurityModule({ userRole, triggerToast, sessionUser }: 
   useEffect(() => {
     reloadAll();
   }, []);
+
+  useEffect(() => {
+    if (["attendance", "projects", "business-development", "payments"].includes(initialSection)) setActiveSubModule(initialSection as "attendance" | "projects" | "business-development" | "payments");
+    else setActiveSubModule("launcher");
+  }, [initialSection]);
 
   const handleAddNbfcSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -221,6 +231,26 @@ export default function SecurityModule({ userRole, triggerToast, sessionUser }: 
             </div>
             <span className="font-bold text-sm text-slate-800 dark:text-gray-100">Security</span>
             <span className="text-[10px] text-slate-500 dark:text-gray-400 mt-1 uppercase tracking-wider font-semibold">Security Deposits &amp; Bills</span>
+          </button>
+
+          <button
+            onClick={() => setActiveSubModule("guard-attendance")}
+            className="group flex flex-col items-center justify-center p-6 bg-white dark:bg-gray-900 border border-[#E8E4DF] dark:border-gray-800 rounded-2xl hover:shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:border-violet-200 transition-all duration-300 cursor-pointer"
+          >
+            <div className="w-16 h-16 bg-gradient-to-br from-violet-50 to-indigo-100 dark:from-violet-950/50 dark:to-indigo-900/50 text-violet-600 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform shadow-sm">
+              <CalendarCheck size={28} strokeWidth={2} />
+            </div>
+            <span className="font-bold text-sm text-slate-800 dark:text-gray-100">Guard Attendance &amp; Payout</span>
+            <span className="text-[10px] text-slate-500 dark:text-gray-400 mt-1 uppercase tracking-wider font-semibold">Date-wise Attendance &amp; Daily Pay</span>
+          </button>
+
+          <button
+            onClick={() => setActiveSubModule("guard-master")}
+            className="group flex flex-col items-center justify-center p-6 bg-white dark:bg-gray-900 border border-[#E8E4DF] dark:border-gray-800 rounded-2xl hover:shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:border-sky-200 transition-all duration-300 cursor-pointer"
+          >
+            <div className="w-16 h-16 bg-gradient-to-br from-sky-50 to-blue-100 dark:from-sky-950/50 dark:to-blue-900/50 text-sky-600 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform shadow-sm"><Users size={28} strokeWidth={2}/></div>
+            <span className="font-bold text-sm text-slate-800 dark:text-gray-100">Guard Master</span>
+            <span className="text-[10px] text-slate-500 dark:text-gray-400 mt-1 uppercase tracking-wider font-semibold">Name, Mobile &amp; Monthly Salary</span>
           </button>
         </div>
       </div>
@@ -531,13 +561,25 @@ export default function SecurityModule({ userRole, triggerToast, sessionUser }: 
         />
       )}
 
-      {activeSubModule === "security" && (
+      {["security", "business-development"].includes(activeSubModule) && (
         <SecurityMasterView
           nbfcsList={nbfcsList}
           nbfcBranchesList={nbfcBranchesList}
           triggerToast={triggerToast}
         />
       )}
+
+      {activeSubModule === "payments" && (
+        <SecurityPaymentsView triggerToast={triggerToast} />
+      )}
+
+      {activeSubModule === "projects" && <SecurityProjectsView triggerToast={triggerToast} />}
+
+      {(activeSubModule === "guard-attendance" || activeSubModule === "attendance") && (
+        <GuardAttendancePayoutView nbfcsList={nbfcsList} triggerToast={triggerToast} />
+      )}
+
+      {activeSubModule === "guard-master" && <GuardMasterView triggerToast={triggerToast} />}
     </div>
   );
 }

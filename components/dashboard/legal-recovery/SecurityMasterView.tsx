@@ -7,6 +7,7 @@ import {
   Building2, MapPin, Banknote, Receipt, FileText, Upload, PhoneCall, Zap, UserPlus,
   Camera, User, Image as ImageIcon, ChevronDown, ChevronRight, X, Eye, Layers, ListOrdered, Split
 } from "lucide-react";
+import SecurityWorkflowModal, { SECURITY_WORKFLOW_STAGES } from "./SecurityWorkflowModal";
 
 const STANDARD_SHIFTS = [
   "12 Hours Day Shift",
@@ -328,6 +329,7 @@ export default function SecurityMasterView({
   const [searchTerm, setSearchTerm] = useState("");
   const [filterCompany, setFilterCompany] = useState("All");
   const [filterStatus, setFilterStatus] = useState("All");
+  const [workflowItem, setWorkflowItem] = useState<any | null | "new">(null);
 
   // Total Entries Bank-Wise Breakdown Modal State
   const [showTotalEntriesModal, setShowTotalEntriesModal] = useState(false);
@@ -1928,6 +1930,7 @@ export default function SecurityMasterView({
   // Metrics
   const totalBilled = useMemo(() => entries.reduce((acc, curr) => acc + Number(curr.billAmount || 0), 0), [entries]);
   const totalReceived = useMemo(() => entries.reduce((acc, curr) => acc + Number(curr.receivedAmount || 0), 0), [entries]);
+  const totalPendingAmount = useMemo(() => entries.reduce((acc, curr) => acc + Math.max(0, Number(curr.billAmount || 0) - Number(curr.receivedAmount || 0)), 0), [entries]);
   const totalDueCount = useMemo(() => entries.filter((item) => {
     const bAmt = Number(item.billAmount || 0);
     const rAmt = Number(item.receivedAmount || 0);
@@ -2233,6 +2236,15 @@ export default function SecurityMasterView({
 
           {/* Add Billing Details Button */}
           <button
+            onClick={() => setWorkflowItem("new")}
+            className="flex items-center gap-2 bg-purple-600 hover:bg-purple-700 text-white text-xs font-black px-4 py-2.5 rounded-xl shadow-sm transition-all"
+            title="Start bank visit to guard deployment workflow"
+          >
+            <ListOrdered className="w-4 h-4" />
+            <span>New Work Pipeline</span>
+          </button>
+
+          <button
             onClick={handleOpenAddBillingModal}
             className="flex items-center gap-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-800 border border-indigo-200 text-xs font-black px-4 py-2.5 rounded-xl shadow-2xs transition-all"
             title="Add Initial Billing & Work Order Entry"
@@ -2244,7 +2256,7 @@ export default function SecurityMasterView({
       </div>
 
       {/* Summary Metrics */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-4">
         <div
           onClick={() => {
             setFilterStatus("ALL");
@@ -2319,6 +2331,27 @@ export default function SecurityMasterView({
               <span className="text-[8px] font-black uppercase tracking-wider text-rose-700 bg-rose-50 px-1.5 py-0.5 rounded border border-rose-150 group-hover:bg-rose-100 shrink-0">Breakdown</span>
             </div>
             <p className="text-lg font-black text-rose-700 leading-tight mt-0.5">{totalDueCount} Entries</p>
+          </div>
+        </div>
+
+        <div
+          onClick={() => {
+            setFilterStatus("Due");
+            setShowPendingDueModal(true);
+            setPendingDueModalSearch("");
+          }}
+          title="Click to view pending bill amount breakdown"
+          className="bg-white border border-rose-200 rounded-xl p-4 shadow-sm flex items-center gap-3 cursor-pointer hover:shadow-md hover:border-rose-400 transition-all group"
+        >
+          <div className="w-10 h-10 rounded-lg bg-rose-50 text-rose-600 group-hover:bg-rose-600 group-hover:text-white transition-colors flex items-center justify-center shrink-0">
+            <Banknote className="w-5 h-5" />
+          </div>
+          <div className="min-w-0">
+            <div className="flex items-center gap-1.5">
+              <p className="text-[10px] uppercase font-black text-slate-400 group-hover:text-rose-600 truncate">Pending Bill Amount</p>
+              <span className="text-[8px] font-black uppercase text-rose-700 bg-rose-50 px-1.5 py-0.5 rounded border border-rose-150">Breakdown</span>
+            </div>
+            <p className="text-lg font-black text-rose-700 leading-tight mt-0.5">₹{totalPendingAmount.toLocaleString("en-IN")}</p>
           </div>
         </div>
       </div>
@@ -2491,6 +2524,8 @@ export default function SecurityMasterView({
                       )}
                     </th>
                   )}
+
+                  <th className="py-3.5 px-3.5 min-w-[240px]">Security Pipeline</th>
 
                   {/* 4. Site (Formerly Location) */}
                   {visibleColumns.location && (
@@ -2780,6 +2815,21 @@ export default function SecurityMasterView({
                     {/* 3. Branch */}
                     {visibleColumns.branchName && <td className="py-3.5 px-3.5 text-slate-600 whitespace-nowrap">{item.branchName || "—"}</td>}
 
+                    <td className="py-2.5 px-3.5">
+                      {(() => {
+                        if (!String(item.workflowJson || "").trim()) {
+                          return <div className="text-[10px] text-slate-400 italic">Legacy pending bill<br/><span className="font-semibold not-italic">Not linked to pipeline</span></div>;
+                        }
+                        let stages: any = {};
+                        try { stages = JSON.parse(item.workflowJson || "{}"); } catch {}
+                        const completedStages = SECURITY_WORKFLOW_STAGES.filter((stage) => stages?.[stage.key]?.status === "completed").length;
+                        const proofCount = SECURITY_WORKFLOW_STAGES.reduce((sum, stage) => sum
+                          + (Array.isArray(stages?.[stage.key]?.proofUrls) ? stages[stage.key].proofUrls.length : 0)
+                          + (Array.isArray(stages?.[stage.key]?.followUps) ? stages[stage.key].followUps.reduce((proofSum: number, followUp: any) => proofSum + (Array.isArray(followUp.proofUrls) ? followUp.proofUrls.length : 0), 0) : 0), 0);
+                        return <div className="min-w-[210px]"><div className="flex justify-between text-[10px] font-black"><span className="text-purple-700">{completedStages}/10 Stages</span><span className="text-slate-500">{proofCount} Documents</span></div><div className="flex gap-1 mt-1.5">{SECURITY_WORKFLOW_STAGES.map((stage, stageIndex) => <span key={stage.key} title={`${stageIndex + 1}. ${stage.label}: ${stages?.[stage.key]?.status || "pending"}`} className={`h-2 flex-1 rounded-full ${stages?.[stage.key]?.status === "completed" ? "bg-emerald-500" : stages?.[stage.key]?.status === "in_progress" ? "bg-amber-400" : stages?.[stage.key]?.status === "rejected" ? "bg-rose-500" : "bg-slate-200"}`}/>)}</div><button type="button" onClick={() => setWorkflowItem(item)} className="mt-2 text-[10px] font-black text-indigo-700 underline">View stages & documents</button></div>;
+                      })()}
+                    </td>
+
                     {/* 4. Site Area */}
                     {visibleColumns.location && <td className="py-3.5 px-3.5 text-slate-700 font-bold whitespace-nowrap">{item.location || "—"}</td>}
 
@@ -3036,7 +3086,6 @@ export default function SecurityMasterView({
                     {visibleColumns.actions && (
                       <td className="py-2.5 px-3 text-center whitespace-nowrap">
                         <div className="flex items-center justify-center gap-1.5">
-                          {/* Edit Record */}
                           <button
                             type="button"
                             onClick={() => handleOpenEditModal(item)}
@@ -3044,26 +3093,6 @@ export default function SecurityMasterView({
                             title="Edit Record & Guard Details"
                           >
                             <Edit className="w-3.5 h-3.5" />
-                          </button>
-
-                          {/* Log Payment Follow-Up Call */}
-                          <button
-                            type="button"
-                            onClick={() => handleOpenFollowUpModal(item)}
-                            className="p-2 text-purple-600 bg-purple-50 hover:bg-purple-100 border border-purple-200 rounded-lg transition-all shadow-2xs"
-                            title="Log Payment Follow-Up Call"
-                          >
-                            <PhoneCall className="w-3.5 h-3.5" />
-                          </button>
-
-                          {/* Log Received Payment */}
-                          <button
-                            type="button"
-                            onClick={() => handleOpenReceiveModal(item)}
-                            className="p-2 text-emerald-600 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-lg transition-all shadow-2xs"
-                            title="Log Received Payment"
-                          >
-                            <Banknote className="w-3.5 h-3.5" />
                           </button>
 
                           {/* Delete Record */}
@@ -3087,6 +3116,18 @@ export default function SecurityMasterView({
       </div>
 
       {/* ── Add / Edit Security Form Modal ── */}
+      {workflowItem && mounted && createPortal(
+        <SecurityWorkflowModal
+          item={workflowItem === "new" ? null : workflowItem}
+          nbfcsList={nbfcsList}
+          nbfcBranchesList={nbfcBranchesList}
+          onClose={() => setWorkflowItem(null)}
+          onSaved={fetchEntries}
+          triggerToast={triggerToast}
+        />,
+        document.body
+      )}
+
       {showModal && mounted && createPortal(
         <div className="fixed inset-0 z-[99999] bg-slate-900/50 backdrop-blur-sm flex justify-center items-center p-3 sm:p-6 overflow-y-auto animate-fadeIn">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl border border-slate-200 flex flex-col overflow-hidden my-auto max-h-[90vh]">
