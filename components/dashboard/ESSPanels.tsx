@@ -35,6 +35,7 @@ import {
   ChevronRight
 } from "lucide-react";
 import StatCard from "./StatCard";
+import StaffMonthlySettlement from "./StaffMonthlySettlement";
 
 interface ESSProps {
   user: any;
@@ -1988,6 +1989,8 @@ export function ESSPayroll({ user, triggerToast, mode = "self" }: ESSProps & { m
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
         {[{ label: "Payroll Records", value: processedPayslips.length, tone: "text-indigo-700 bg-indigo-50" }, { label: "Gross Payroll", value: `₹${payrollTotals.gross.toLocaleString("en-IN")}`, tone: "text-slate-700 bg-slate-50" }, { label: "Deductions", value: `₹${payrollTotals.deductions.toLocaleString("en-IN")}`, tone: "text-rose-700 bg-rose-50" }, { label: "Net Payable", value: `₹${payrollTotals.net.toLocaleString("en-IN")}`, tone: "text-emerald-700 bg-emerald-50" }, { label: "Paid / Pending", value: `${payrollTotals.paid} / ${payrollTotals.pending}`, tone: "text-amber-700 bg-amber-50" }].map(card => <div key={card.label} className={`border border-[#E8E4DF] rounded-xl p-4 ${card.tone}`}><div className="text-[9px] uppercase tracking-wider font-black opacity-70">{card.label}</div><div className="text-lg font-black mt-2">{card.value}</div></div>)}
       </div>
+
+      {isAdmin && <StaffMonthlySettlement triggerToast={triggerToast} />}
 
       {isAdmin && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">

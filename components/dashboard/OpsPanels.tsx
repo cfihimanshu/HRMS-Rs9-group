@@ -2482,7 +2482,9 @@ export function PerformanceCompliance({
   triggerToast?: (msg: string) => void;
 }) {
   const userRoleNorm = (sessionUser?.role || "").toString().trim().toLowerCase();
-  const isGlobalRole = ["owner", "director", "hr head", "hr-head", "hr executive", "hr-executive", "cfo", "legal head", "it admin"].includes(userRoleNorm);
+  const userDesignationNorm = (sessionUser?.designation || sessionUser?.jobTitle || "").toString().trim().toLowerCase();
+  const isSalesHead = userRoleNorm.includes("sales head") || userDesignationNorm.includes("sales head");
+  const isGlobalRole = isSalesHead || ["owner", "director", "hr head", "hr-head", "hr executive", "hr-executive", "cfo", "legal head", "it admin"].includes(userRoleNorm);
   const isTeamManagerRole = userRoleNorm.includes("manager") || userRoleNorm.includes("head") ||
     userRoleNorm.includes("team lead") || userRoleNorm === "dsm";
   const isOwnerOrDirector = isGlobalRole || isTeamManagerRole;
@@ -2977,13 +2979,17 @@ export function PerformanceCompliance({
       const empId = getEmpIdStr(eod.employee);
       if (!eod.date) return;
       const dObj = new Date(eod.date);
-      const dateStr = dObj.toDateString();
-      const key = `${empId}_${dateStr}`;
+      const linkedSod = eod.sodReportId
+        ? (reports.sod || []).find((sod: any) => String(sod.id) === String(eod.sodReportId))
+        : null;
+      const linkedDate = linkedSod?.date ? new Date(linkedSod.date) : dObj;
+      const linkedDateStr = linkedDate.toDateString();
+      const key = `${empId}_${linkedDateStr}`;
       const existing = map.get(key);
       if (existing) {
         existing.eod = eod;
       } else {
-        map.set(key, { sod: null, eod, tasks: [], fieldVisits: [], date: dObj, dateStr, employee: eod.employee });
+        map.set(key, { sod: linkedSod, eod, tasks: [], fieldVisits: [], date: linkedDate, dateStr: linkedDateStr, employee: eod.employee });
       }
     });
 

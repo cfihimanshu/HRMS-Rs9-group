@@ -8,7 +8,7 @@ export default function SecurityProjectsView({ triggerToast }: { triggerToast: (
   const [projects, setProjects] = useState<any[]>([]);
   const [search, setSearch] = useState("");
   const load = async () => {
-    const projectsResult = await fetch("/api/legal-recovery/security/projects").then(response => response.json());
+    const projectsResult = await fetch("/api/legal-recovery/security/projects", { cache: "no-store" }).then(response => response.json());
     if (projectsResult.success) setProjects(projectsResult.data || []);
   };
   useEffect(() => { load().catch(() => triggerToast("Project register load nahi hua")); }, []); // eslint-disable-line react-hooks/exhaustive-deps

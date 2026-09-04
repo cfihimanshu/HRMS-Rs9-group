@@ -31,6 +31,8 @@ export async function notifyOwners({
   }) as any[];
   const owners = candidates.filter((owner) => !["inactive", "disabled", "terminated"].includes(String(owner.status || "active").toLowerCase()));
   const timestamp = Date.now();
+  const portalBase = String(process.env.NEXTAUTH_URL || "https://hrms.cfi247.com").replace(/\/$/, "");
+  const fullActionUrl = actionUrl.startsWith("http") ? actionUrl : `${portalBase}${actionUrl.startsWith("/") ? actionUrl : `/${actionUrl}`}`;
 
   const notificationResults = await Promise.allSettled(owners.map((owner, index) => Notification.findOrCreate({
     where: { id: eventId ? `${eventId}_${owner.id}` : `owner_${timestamp}_${index}_${owner.id}` },
@@ -43,25 +45,27 @@ export async function notifyOwners({
     },
   })));
 
+  const notificationFailures = notificationResults.filter((result) => result.status === "rejected");
+  const createdCount = notificationResults.reduce((count, result) => result.status === "fulfilled" && Boolean(result.value[1]) ? count + 1 : count, 0);
+  const shouldSendEmail = !eventId || createdCount > 0;
   const emails = [...new Set(owners.map((owner) => String(owner.email || "").trim()).filter(Boolean))];
-  const emailResult = emails.length ? await sendEmail({
+  const emailResult = shouldSendEmail && emails.length ? await sendEmail({
     to: emails,
     subject: `${moduleName} — ${title}`,
     html: `<div style="font-family:Arial,sans-serif;color:#1f2937;line-height:1.6;max-width:680px;margin:auto">
       <h2 style="color:#4338ca">${escapeHtml(title)}</h2>
       <p>${escapeHtml(message)}</p>
-      <p><a href="${escapeHtml(actionUrl)}" style="display:inline-block;background:#4338ca;color:#fff;padding:10px 18px;border-radius:8px;text-decoration:none;font-weight:700">Open ${escapeHtml(moduleName)}</a></p>
+      <p><a href="${escapeHtml(fullActionUrl)}" style="display:inline-block;background:#4338ca;color:#fff;padding:10px 18px;border-radius:8px;text-decoration:none;font-weight:700">Open ${escapeHtml(moduleName)}</a></p>
       <p style="font-size:12px;color:#64748b">RS9 Group HRMS · Automated notification</p>
     </div>`,
   }) : { success: false, error: "No active owner email found" };
 
-  const notificationFailures = notificationResults.filter((result) => result.status === "rejected");
   if (notificationFailures.length) console.error("Owner in-app notification failures:", notificationFailures);
-  if (!emailResult.success) console.error("Owner email notification failed:", emailResult.error);
+  if (shouldSendEmail && !emailResult.success) console.error("Owner email notification failed:", emailResult.error);
 
   return {
     owners: owners.length,
     inAppCreated: notificationResults.length - notificationFailures.length,
-    emailSent: Boolean(emailResult.success),
+    emailSent: shouldSendEmail && Boolean(emailResult.success),
   };
 }

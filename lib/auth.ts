@@ -14,6 +14,9 @@ import { normalizeRole } from "./roles";
 
 const LOGIN_WINDOW_MS = 15 * 60 * 1000;
 const LOGIN_MAX_ATTEMPTS = 8;
+// Keep authenticated users signed in unless they explicitly log out. A finite
+// cookie lifetime is still required by browsers, so use a long rolling window.
+const PERSISTENT_SESSION_MAX_AGE = 365 * 24 * 60 * 60;
 const loginAttempts = new Map<string, { count: number; resetAt: number }>();
 type LiveRoleData = { role: string; menuAccess: any; companies: any };
 type LiveRoleCacheEntry = { value?: LiveRoleData; expiresAt: number; pending?: Promise<LiveRoleData | null>; retryAfter?: number };
@@ -384,7 +387,10 @@ export const authOptions: NextAuthOptions = {
   },
   session: {
     strategy: "jwt",
-    maxAge: 24 * 60 * 60, // 24 hours
+    maxAge: PERSISTENT_SESSION_MAX_AGE,
+  },
+  jwt: {
+    maxAge: PERSISTENT_SESSION_MAX_AGE,
   },
   secret: (() => {
     if (!process.env.NEXTAUTH_SECRET) {

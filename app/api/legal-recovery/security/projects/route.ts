@@ -4,6 +4,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import LegalGuard from "@/models/sequelize/LegalGuard";
 import SecurityProject from "@/models/sequelize/SecurityProject";
+import { notifyOwners } from "@/lib/ownerNotification";
 
 export const dynamic = "force-dynamic";
 const STATUSES = ["Ongoing", "Stuck", "Completed"];
@@ -58,6 +59,7 @@ export async function POST(req: Request) {
       status,
       createdBy: String(session.user.id || session.user.email || session.user.name || ""),
     });
+    await notifyOwners({ title: `Security Project Started: ${body.nbfcName}`, message: `${guard.name} deployed at ${String(body.siteName).trim()} from ${body.siteStartedDate}. Status: ${status}.`, moduleName: "Security Projects", actionUrl: "/dashboard/security/projects", eventId: `security_project_${data.id}` });
     return NextResponse.json({ success: true, data });
   } catch (error: any) {
     return NextResponse.json({ success: false, error: error.message || "Project could not be saved" }, { status: 500 });
@@ -74,6 +76,7 @@ export async function PUT(req: Request) {
     if (body.status !== undefined) {
       if (!STATUSES.includes(body.status)) return NextResponse.json({ success: false, error: "Invalid status" }, { status: 400 });
       await project.update({ status: body.status });
+      await notifyOwners({ title: `Security Project ${body.status}`, message: `${project.nbfcName} / ${project.siteName} (${project.guardName}) status changed to ${body.status}.`, moduleName: "Security Projects", actionUrl: "/dashboard/security/projects", eventId: `security_project_status_${project.sourceSecurityId || project.id}_${body.status}` });
     }
     return NextResponse.json({ success: true, data: project });
   } catch (error: any) {

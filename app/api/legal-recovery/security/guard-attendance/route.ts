@@ -16,6 +16,14 @@ const STATUS_UNITS: Record<string, number> = {
   "Weekly Off": 0,
 };
 
+const indiaDate = () => new Date(Date.now() + 330 * 60 * 1000).toISOString().slice(0, 10);
+const presentIsLocked = (attendanceDate: string, status: string) => {
+  if (status !== "Present") return false;
+  const [year, month] = attendanceDate.slice(0, 7).split("-").map(Number);
+  const monthEnd = `${attendanceDate.slice(0, 7)}-${String(new Date(year, month, 0).getDate()).padStart(2, "0")}`;
+  return indiaDate() < monthEnd;
+};
+
 async function ready() {
   await SecurityGuardAttendance.sync();
   const queryInterface = SecurityGuardAttendance.sequelize!.getQueryInterface();
@@ -93,6 +101,15 @@ export async function POST(req: Request) {
       markedBy: String(session.user.id || session.user.email || session.user.name || ""),
     };
     const existing = await SecurityGuardAttendance.findOne({ where: { securityId, guardId, attendanceDate: body.attendanceDate } });
+    if (existing && presentIsLocked(String(existing.attendanceDate), String(existing.status))) {
+      return NextResponse.json({ success: false, error: "Present attendance month-end tak locked hai" }, { status: 423 });
+    }
+    const existingReplacement = status === "Absent" && replacementGuard
+      ? await SecurityGuardAttendance.findOne({ where: { securityId, guardId: replacementGuard.id, attendanceDate: body.attendanceDate } })
+      : null;
+    if (existingReplacement && presentIsLocked(String(existingReplacement.attendanceDate), String(existingReplacement.status))) {
+      return NextResponse.json({ success: false, error: `${replacementGuard!.name} ki Present attendance month-end tak locked hai` }, { status: 423 });
+    }
     const record = existing ? await existing.update(values) : await SecurityGuardAttendance.create(values);
     let replacementRecord = null;
     if (status === "Absent" && replacementGuard) {
@@ -119,7 +136,6 @@ export async function POST(req: Request) {
         remarks: `Replacement duty for ${guard.name}${body.remarks ? ` · ${String(body.remarks).trim()}` : ""}`,
         markedBy: String(session.user.id || session.user.email || session.user.name || ""),
       };
-      const existingReplacement = await SecurityGuardAttendance.findOne({ where: { securityId, guardId: replacementGuard.id, attendanceDate: body.attendanceDate } });
       replacementRecord = existingReplacement ? await existingReplacement.update(replacementValues) : await SecurityGuardAttendance.create(replacementValues);
     }
     return NextResponse.json({ success: true, data: record, replacementData: replacementRecord, updated: Boolean(existing) });

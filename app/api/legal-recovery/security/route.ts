@@ -57,7 +57,6 @@ async function syncGuardDeploymentProjects(record: any, actorId: string) {
   }
   await SecurityProject.sync();
   await LegalGuard.sync();
-  const projectStatus = deployment.status === "completed" ? "Completed" : deployment.status === "rejected" ? "Stuck" : "Ongoing";
   const fallbackDate = deployment.date || new Date().toISOString().slice(0, 10);
   for (const deployed of deployedGuards) {
     const name = String(deployed.name || "").trim();
@@ -72,14 +71,15 @@ async function syncGuardDeploymentProjects(record: any, actorId: string) {
       guardId: guard?.id || null,
       guardName: guard?.name || name,
       contactNumber: guard?.phone || deployed.phone || "",
-      status: projectStatus,
       createdBy: actorId,
     };
     const existing = await SecurityProject.findOne({ where: guard?.id
       ? { sourceSecurityId: record.id, guardId: guard.id }
       : { sourceSecurityId: record.id, guardName: name } });
+    // Guard deployment creates an active project. Project completion is a separate,
+    // manual decision made later from the Projects register.
     if (existing) await existing.update(values);
-    else await SecurityProject.create(values);
+    else await SecurityProject.create({ ...values, status: "Ongoing" });
   }
 }
 

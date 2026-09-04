@@ -27,6 +27,8 @@ export async function GET(req: Request) {
 
     const loggedInUserRole = (session.user as any).role || "Employee";
     const loggedInUserId = (session.user as any).id;
+    const loginIdentity = `${loggedInUserRole} ${(session.user as any).designation || ""}`.toLowerCase();
+    const isSalesHead = loginIdentity.includes("sales head");
 
     // Check if user is a Reporting Manager
     let isReportingManager = false;
@@ -50,7 +52,7 @@ export async function GET(req: Request) {
 
     // If targetUserId is provided, fetch calendar details for that user
     if (targetUserId) {
-      const isGlobalManager = ["Owner", "Director", "HR Head", "HR Executive"].includes(loggedInUserRole);
+      const isGlobalManager = isSalesHead || ["Owner", "Director", "HR Head", "HR Executive"].includes(loggedInUserRole);
       let allowed = isGlobalManager || targetUserId === loggedInUserId;
       if (!allowed) {
         try {
@@ -92,7 +94,7 @@ export async function GET(req: Request) {
     let companies: any[] = [];
     let users: any[] = [];
 
-    const isGlobalManager = ["Owner", "Director", "HR Head", "HR Executive"].includes(loggedInUserRole);
+    const isGlobalManager = isSalesHead || ["Owner", "Director", "HR Head", "HR Executive"].includes(loggedInUserRole);
 
     if (isGlobalManager) {
       companies = await Company.findAll({ where: { status: "active" }, raw: true }).catch(() => []);

@@ -33,7 +33,9 @@ export async function GET(req: Request) {
     let managedUserIds: any[] = [userId];
 
     const normRole = (role || "").toString().trim().toLowerCase();
-    const isGlobalManager = ["owner", "director", "hr head", "hr-head", "hr executive", "hr-executive", "cfo", "legal head", "it admin"].some(r => normRole.includes(r)) || normRole.includes("owner");
+    const sessionDesignation = String((session.user as any).designation || "").trim().toLowerCase();
+    const isSalesHead = normRole.includes("sales head") || sessionDesignation.includes("sales head");
+    const isGlobalManager = isSalesHead || ["owner", "director", "hr head", "hr-head", "hr executive", "hr-executive", "cfo", "legal head", "it admin"].some(r => normRole.includes(r)) || normRole.includes("owner");
 
     if (!isGlobalManager) {
       // Keep this resolver aligned with /api/tasks, where reporting-manager task

@@ -5,6 +5,7 @@ import { authOptions } from "@/lib/auth";
 import sequelize from "@/lib/sequelize";
 import LegalSecurity from "@/models/sequelize/LegalSecurity";
 import LegalSecurityPayment from "@/models/sequelize/LegalSecurityPayment";
+import { notifyOwners } from "@/lib/ownerNotification";
 
 // POST: Log Received Payment
 export async function POST(req: Request) {
@@ -87,6 +88,14 @@ export async function POST(req: Request) {
       ...(installmentsJson !== undefined ? { installmentsJson } : {}),
       ...(proofUrl ? { billInvoiceUrl: proofUrl } : {}),
       ...(remarks ? { remarks: (record.remarks ? `${record.remarks}\n[Payment Logged: ₹${numericAmount} - ${transactionId || ""}]` : `Payment Logged: ₹${numericAmount} - ${transactionId || ""}`) } : {}),
+    });
+
+    await notifyOwners({
+      title: `Security Payment Received: ₹${numericAmount.toLocaleString("en-IN")}`,
+      message: `${session.user.name || "A user"} logged payment from ${record.nbfcName || record.company || "Security client"} / ${record.branchName || record.location || "Site"}. Bill: ${record.billNo || "N/A"}. Total received: ₹${newTotalReceived.toLocaleString("en-IN")}. Pending: ₹${Math.max(0, billAmt - newTotalReceived).toLocaleString("en-IN")}. Status: ${updatedStatus}.`,
+      moduleName: "Security Payments",
+      actionUrl: "/dashboard/security/payments",
+      eventId: `security_payment_${newPayment.id}`,
     });
 
     return NextResponse.json({ success: true, data: newPayment, updatedRecord: record });

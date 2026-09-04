@@ -16,6 +16,10 @@ EodReport.init(
       type: DataTypes.STRING,
       allowNull: true,
     },
+    sodReportId: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+    },
     date: {
       type: DataTypes.DATE,
       allowNull: true,
@@ -75,7 +79,8 @@ EodReport.init(
     timestamps: true,
     indexes: [
       { fields: ["employee"] },
-      { fields: ["date"] }
+      { fields: ["date"] },
+      { fields: ["sodReportId"] }
     ]
   }
 );

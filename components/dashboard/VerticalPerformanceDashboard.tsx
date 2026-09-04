@@ -1,16 +1,18 @@
 "use client";
 
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { AlertTriangle, ArrowRight, BarChart3, Briefcase, CalendarDays, CheckCircle2, Clock3, Download, Eye, IndianRupee, RefreshCw, Scale, Shield, Target, TrendingUp, Users, X } from "lucide-react";
+import { AlertTriangle, ArrowRight, BarChart3, Briefcase, CalendarDays, CheckCircle2, Clock3, Download, Eye, IndianRupee, MapPin, RefreshCw, Scale, Shield, Target, TrendingUp, Users, X } from "lucide-react";
 
 type Row = Record<string, any>;
+type SecurityOperationRow = Row & { attendance: { present: number; absent: number; payout: number } };
 const money = (value: number) => `₹${Math.round(value || 0).toLocaleString("en-IN")}`;
 const dateLabel = (value: any) => value ? new Date(value).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }) : "—";
 const numeric = (value: any) => Number(String(value ?? 0).replace(/[^0-9.-]/g, "")) || 0;
+const currentMonth = () => { const now = new Date(); return new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 7); };
 let verticalDashboardCache: { at: number; data: any } | null = null;
 
 export default function VerticalPerformanceDashboard({ onNavigate }: { onNavigate?: (tab: string, filter?: string) => void }) {
-  const [data, setData] = useState<{ leads: Row[]; calls: Row[]; cases: Row[]; followups: Row[]; security: Row[]; legalBills: Row[]; payments: Row[]; users: Row[] }>({ leads: [], calls: [], cases: [], followups: [], security: [], legalBills: [], payments: [], users: [] });
+  const [data, setData] = useState<{ leads: Row[]; calls: Row[]; cases: Row[]; followups: Row[]; security: Row[]; legalBills: Row[]; payments: Row[]; users: Row[]; securityProjects: Row[]; guardAttendance: Row[] }>({ leads: [], calls: [], cases: [], followups: [], security: [], legalBills: [], payments: [], users: [], securityProjects: [], guardAttendance: [] });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [period, setPeriod] = useState("month");
@@ -34,7 +36,9 @@ export default function VerticalPerformanceDashboard({ onNavigate }: { onNavigat
         "/api/legal-recovery/followup",
         "/api/legal-recovery/security",
         "/api/legal-recovery/payment",
-        "/api/tasks/company-users"
+        "/api/tasks/company-users",
+        "/api/legal-recovery/security/projects",
+        `/api/legal-recovery/security/guard-attendance?month=${currentMonth()}`
       ];
       const results = await Promise.all(
         urls.map(url =>
@@ -56,7 +60,9 @@ export default function VerticalPerformanceDashboard({ onNavigate }: { onNavigat
         security: Array.isArray(results[4]?.data) ? results[4].data : [],
         legalBills: [],
         payments: Array.isArray(results[5]?.data) ? results[5].data : [],
-        users: Array.isArray(results[6]?.data) ? results[6].data : []
+        users: Array.isArray(results[6]?.data) ? results[6].data : [],
+        securityProjects: Array.isArray(results[7]?.data) ? results[7].data : [],
+        guardAttendance: Array.isArray(results[8]?.data) ? results[8].data : []
       };
       setData(nextData);
       verticalDashboardCache = { at: Date.now(), data: nextData };
@@ -119,6 +125,31 @@ export default function VerticalPerformanceDashboard({ onNavigate }: { onNavigat
   }, [data.followups, data.calls, data.leads, cases]);
   const categorized = (item: any) => { const key = new Date(item.date).toLocaleDateString("sv-SE"); return key < todayKey ? "Overdue" : key === todayKey ? "Today" : "Upcoming"; };
   const visibleFollowups = followups.filter(x => categorized(x) === followupTab && (vertical === "All" || x.vertical === vertical));
+
+  const activeSecurityRows = useMemo<SecurityOperationRow[]>(() => {
+    const attendanceByAssignment = new Map<string, { present: number; absent: number; payout: number }>();
+    data.guardAttendance.forEach(record => {
+      const key = `${record.securityId}-${record.guardId}`;
+      const value = attendanceByAssignment.get(key) || { present: 0, absent: 0, payout: 0 };
+      if (record.status === "Present") value.present += 1;
+      if (record.status === "Absent") value.absent += 1;
+      value.payout += numeric(record.payoutAmount);
+      attendanceByAssignment.set(key, value);
+    });
+    return data.securityProjects
+      .filter(project => String(project.status || "").toLowerCase() === "ongoing")
+      .map(project => ({
+        ...project,
+        attendance: attendanceByAssignment.get(`${project.sourceSecurityId}-${project.guardId}`) || { present: 0, absent: 0, payout: 0 },
+      } as SecurityOperationRow))
+      .sort((a, b) => String(a.nbfcName).localeCompare(String(b.nbfcName)) || String(a.siteName).localeCompare(String(b.siteName)) || String(a.guardName).localeCompare(String(b.guardName)));
+  }, [data.securityProjects, data.guardAttendance]);
+  const securityOperations = useMemo(() => ({
+    projects: new Set(activeSecurityRows.map(row => row.sourceSecurityId ? `source-${row.sourceSecurityId}` : `site-${row.nbfcName}-${row.siteName}`)).size,
+    guards: new Set(activeSecurityRows.map(row => String(row.guardId || row.guardName))).size,
+    present: activeSecurityRows.reduce((sum, row) => sum + row.attendance.present, 0),
+    payout: activeSecurityRows.reduce((sum, row) => sum + row.attendance.payout, 0),
+  }), [activeSecurityRows]);
 
   const people = useMemo(() => {
     const map = new Map<string, any>();
@@ -334,6 +365,25 @@ export default function VerticalPerformanceDashboard({ onNavigate }: { onNavigat
           ))}
         </div>
       </section>
+
+      {(vertical === "All" || vertical === "Security Services") && <section className="card overflow-hidden">
+        <div className="p-5 border-b flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+          <div><h2 className="font-black flex items-center gap-2"><Shield className="w-5 h-5 text-blue-600"/>Live Security Projects & Guard Deployment</h2><p className="sub mt-1">{currentMonth()} attendance ke according ongoing sites, guard presence aur payable payout</p></div>
+          <button type="button" onClick={() => onNavigate?.("security", "attendance")} className="btn self-start"><Eye className="w-4 h-4"/>Open Security Attendance</button>
+        </div>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 p-4 bg-slate-50 border-b">
+          <div className="bg-white border rounded-xl p-3"><p className="label">Ongoing Projects</p><b className="text-xl">{securityOperations.projects}</b></div>
+          <div className="bg-white border rounded-xl p-3"><p className="label">Deployed Guards</p><b className="text-xl">{securityOperations.guards}</b></div>
+          <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3"><p className="label text-emerald-700">Present Duties</p><b className="text-xl text-emerald-700">{securityOperations.present}</b></div>
+          <div className="bg-violet-50 border border-violet-200 rounded-xl p-3"><p className="label text-violet-700">Current Payout</p><b className="text-xl text-violet-700">{money(securityOperations.payout)}</b></div>
+        </div>
+        <div className="overflow-x-auto"><table className="w-full min-w-[900px] text-xs border-collapse">
+          <thead className="bg-[#F3F0EC] text-[9px] uppercase"><tr>{["#", "NBFC / Project", "Site", "Guard", "Started Date", "Present Days", "Absent Days", "Current Payout", "Status"].map(title => <th key={title} className="p-3 border-r last:border-r-0 text-left whitespace-nowrap">{title}</th>)}</tr></thead>
+          <tbody>{activeSecurityRows.map((row, index) => <tr key={`${row.id}-${row.guardId}`} className="border-t hover:bg-slate-50">
+            <td className="p-3 border-r">{index + 1}</td><td className="p-3 border-r font-bold">{row.nbfcName}</td><td className="p-3 border-r"><span className="flex items-center gap-1 font-semibold"><MapPin className="w-3.5 h-3.5 text-blue-500"/>{row.siteName}</span></td><td className="p-3 border-r"><b>{row.guardName}</b><span className="block text-[9px] text-slate-400">{row.contactNumber || "—"}</span></td><td className="p-3 border-r whitespace-nowrap">{dateLabel(row.siteStartedDate)}</td><td className="p-3 border-r font-black text-emerald-700 text-center">{row.attendance.present}</td><td className="p-3 border-r font-black text-rose-600 text-center">{row.attendance.absent}</td><td className="p-3 border-r font-black text-violet-700 text-right">{money(row.attendance.payout)}</td><td className="p-3"><span className="rounded-full px-2 py-1 bg-amber-50 text-amber-700 border border-amber-200 font-bold">Ongoing</span></td>
+          </tr>)}{!activeSecurityRows.length && <tr><td colSpan={9} className="p-10 text-center text-slate-400">Koi ongoing security project available nahi hai.</td></tr>}</tbody>
+        </table></div>
+      </section>}
 
       <div className="grid xl:grid-cols-3 gap-4">
         {/* Work Completed by Vertical */}

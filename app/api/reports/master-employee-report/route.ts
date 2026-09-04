@@ -37,7 +37,9 @@ export async function GET(req: Request) {
     const sessionUserId = String((session.user as any).id);
     const role = String((session.user as any).role || "");
     const normRole = (role || "").toString().trim().toLowerCase();
-    const isGlobalManager = ["owner", "director", "hr head", "hr-head", "hr executive", "hr-executive", "cfo", "legal head", "it admin"].includes(normRole);
+    const sessionDesignation = String((session.user as any).designation || "").trim().toLowerCase();
+    const isSalesHead = normRole.includes("sales head") || sessionDesignation.includes("sales head");
+    const isGlobalManager = isSalesHead || ["owner", "director", "hr head", "hr-head", "hr executive", "hr-executive", "cfo", "legal head", "it admin"].includes(normRole);
     const selfUser = await User.findByPk(sessionUserId, { attributes: ["id", "name"] });
     const selfProfile = await EmployeeProfile.findOne({ where: { user: sessionUserId }, raw: true });
 

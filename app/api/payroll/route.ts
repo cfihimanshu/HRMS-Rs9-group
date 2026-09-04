@@ -5,6 +5,7 @@ import sequelize from "@/lib/sequelize";
 import User from "@/models/sequelize/User";
 import Payroll from "@/models/sequelize/Payroll";
 import EmployeeProfile from "@/models/sequelize/EmployeeProfile";
+import { notifyOwners } from "@/lib/ownerNotification";
 
 const payrollRoles = ["owner", "director", "hr head", "hr executive", "payroll executive", "accounts", "cfo", "it admin"];
 const canManagePayroll = (role: unknown) => payrollRoles.includes(String(role || "").toLowerCase().trim());
@@ -121,6 +122,9 @@ export async function POST(req: Request) {
       status: "Processed"
     });
 
+    const employee = await User.findByPk(String(employeeId), { attributes: ["name", "email"] });
+    await notifyOwners({ title: `Payroll Processed: ${employee?.name || employeeId}`, message: `${session.user.name || "Payroll team"} processed ${month} ${year} payroll. Net payable: ₹${netPay.toLocaleString("en-IN")}.`, moduleName: "Payroll", actionUrl: "/dashboard/payroll-management", eventId: `payroll_created_${payslip.id}` });
+
     return NextResponse.json({ success: true, data: payslip });
   } catch (error: any) {
     console.error("Error in POST /api/payroll:", error);
@@ -148,6 +152,8 @@ export async function PUT(req: Request) {
     if (paymentDate !== undefined) payroll.paymentDate = paymentDate ? new Date(paymentDate) : null;
     if (transactionRef !== undefined) payroll.transactionRef = transactionRef || null;
     await payroll.save();
+    const employee = await User.findByPk(String(payroll.employee), { attributes: ["name"] });
+    await notifyOwners({ title: `Payroll ${status}: ${employee?.name || payroll.employee}`, message: `${payroll.month} ${payroll.year} payroll status changed to ${status}${transactionRef ? ` (Ref: ${transactionRef})` : ""}. Net payable: ₹${Number(payroll.netPay || 0).toLocaleString("en-IN")}.`, moduleName: "Payroll", actionUrl: "/dashboard/payroll-management", eventId: `payroll_status_${payroll.id}_${status}` });
     return NextResponse.json({ success: true, data: payroll });
   } catch (error: any) {
     return NextResponse.json({ success: false, error: error.message || "Payroll update failed" }, { status: 500 });

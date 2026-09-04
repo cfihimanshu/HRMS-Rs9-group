@@ -6,6 +6,11 @@ import { loadDatabaseEnv } from "./db-env.mjs";
 
 const env = loadDatabaseEnv();
 const dryRun = process.argv.includes("--dry-run");
+const onlyIndex = process.argv.indexOf("--only");
+const onlyFile = onlyIndex >= 0 ? process.argv[onlyIndex + 1] : "";
+if (onlyIndex >= 0 && (!onlyFile || onlyFile.startsWith("--") || path.basename(onlyFile) !== onlyFile)) {
+  throw new Error("--only requires one exact migration filename");
+}
 const baselineIndex = process.argv.indexOf("--baseline");
 const baselineFile = baselineIndex >= 0 ? process.argv[baselineIndex + 1] : "";
 if (baselineIndex >= 0 && (!baselineFile || baselineFile.startsWith("--"))) {
@@ -49,7 +54,10 @@ try {
       if (applied.get(file) !== checksum) throw new Error(`Applied migration was modified: ${file}`);
       continue;
     }
-    pending.push({ file, sql, checksum });
+    if (!onlyFile || file === onlyFile) pending.push({ file, sql, checksum });
+  }
+  if (onlyFile && !files.includes(onlyFile)) {
+    throw new Error(`Unknown migration file: ${onlyFile}`);
   }
   if (baselineFile) {
     const migration = pending.find(item => item.file === baselineFile);

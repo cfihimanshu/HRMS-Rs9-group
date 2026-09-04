@@ -1,9 +1,6 @@
 import sequelize from "./sequelize";
 import AuditLog from "../models/sequelize/AuditLog";
-import Notification from "../models/sequelize/Notification";
-import User from "../models/sequelize/User";
-import { sendEmail } from "./email";
-import { Op } from "sequelize";
+import { notifyOwners } from "./ownerNotification";
 
 type AuditValue = Record<string, unknown> | null | undefined;
 
@@ -99,7 +96,7 @@ export async function logAudit(params: AuditParams) {
     ipAddress,
     before,
     after,
-    notifyAdmins = false,
+    notifyAdmins = true,
   } = params;
 
   try {
@@ -130,34 +127,16 @@ export async function logAudit(params: AuditParams) {
 
     if (!notifyAdmins) return audit;
 
-    const admins = await User.findAll({
-      where: { role: { [Op.in]: ["Owner", "Director", "HR Head"] } },
-      attributes: ["id", "email"],
-    });
-    if (admins.length === 0) return audit;
-
     const cleanTitle = action
       .replace(/_/g, " ")
       .replace(/\b\w/g, (character) => character.toUpperCase());
-
-    await Notification.bulkCreate(
-      admins.map((admin: any) => ({
-        id: `${Date.now()}${Math.random().toString(36).substring(2, 8)}`,
-        recipient: admin.id,
-        title: `🔔 ${cleanTitle}`,
-        message: details,
-        read: false,
-      }))
-    );
-
-    const adminEmails = admins.map((admin: any) => admin.email).filter(Boolean);
-    if (adminEmails.length > 0) {
-      sendEmail({
-        to: adminEmails,
-        subject: `RS9 HRMS Alert - ${action}`,
-        html: `<p><strong>${cleanTitle}</strong></p><p>${details}</p><p>Entity: ${entity} (${entityId || "N/A"})</p>`,
-      }).catch((error) => console.error("Async audit email failed:", error));
-    }
+    await notifyOwners({
+      title: `🔔 ${cleanTitle}`,
+      message: `${details} Entity: ${entity}${entityId ? ` (${entityId})` : ""}.`,
+      moduleName: entity,
+      actionUrl: "/dashboard",
+      eventId: `audit_${audit.id}`,
+    });
 
     return audit;
   } catch (error) {
