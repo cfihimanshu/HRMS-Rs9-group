@@ -28,7 +28,7 @@ export default function DailyBackdateEntryModal({ open, onClose, onSaved, curren
   const [sodPeriod, setSodPeriod] = useState<"AM" | "PM">("AM");
   const [eodTime, setEodTime] = useState("06:00");
   const [eodPeriod, setEodPeriod] = useState<"AM" | "PM">("PM");
-  const [tasks, setTasks] = useState<WorkItem[]>([emptyTask()]);
+  const [tasks, setTasks] = useState<WorkItem[]>([]);
   const [banks, setBanks] = useState<Bank[]>([]);
   const [branches, setBranches] = useState<Branch[]>([]);
   const [nbfcs, setNbfcs] = useState<Nbfc[]>([]);
@@ -130,7 +130,7 @@ export default function DailyBackdateEntryModal({ open, onClose, onSaved, curren
     const eodTime24 = to24HourTime(eodTime, eodPeriod);
     if (!sodTime24 || !eodTime24) return setError("Select SOD and EOD times between 01:00 and 12:59.");
     if (eodTime24 <= sodTime24) return setError("The EOD time must be after the SOD time.");
-    if (!tasks.length || tasks.some(t => !t.title.trim() || !t.relatedCategory || !t.type || !t.progressNote.trim() || !t.proofAttachment)) return setError("A title, related category, task type, progress note, and proof are required for every task.");
+    if (tasks.some(t => !t.title.trim() || !t.relatedCategory || !t.type || !t.progressNote.trim())) return setError("Each added task needs a title, related category, task type and progress note. Leave the task list empty for a timing-only entry.");
     if (tasks.some(t => ["Bank Related", "Branch Related", "Case Related"].includes(t.relatedCategory) && (!t.bankName || !t.branchName))) return setError("Select a bank and branch for every Bank-, Branch-, or Case-Related task.");
     if (tasks.some(t => t.relatedCategory === "AO Related" && (!t.bankName || !t.aoName))) return setError("Select a bank and AO for every AO-Related task.");
     if (tasks.some(t => t.relatedCategory === "RBO Related" && (!t.bankName || !t.rboName))) return setError("Select a bank and RBO for every RBO-Related task.");
@@ -140,7 +140,7 @@ export default function DailyBackdateEntryModal({ open, onClose, onSaved, curren
       const res = await fetch("/api/tasks/backdate-daily", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ employeeId, workDate, sodTime: sodTime24, eodTime: eodTime24, tasks }) });
       const data = await res.json();
       if (!data.success) throw new Error(data.error || "The entry could not be saved");
-      setEmployeeId(""); setWorkDate(""); setSodTime("09:00"); setSodPeriod("AM"); setEodTime("06:00"); setEodPeriod("PM"); setTasks([emptyTask()]);
+      setEmployeeId(""); setWorkDate(""); setSodTime("09:00"); setSodPeriod("AM"); setEodTime("06:00"); setEodPeriod("PM"); setTasks([]);
       onSaved(); onClose();
     } catch (e: any) { setError(e.message || "The entry could not be saved"); } finally { setSaving(false); }
   };
@@ -158,9 +158,10 @@ export default function DailyBackdateEntryModal({ open, onClose, onSaved, curren
           <label className="text-[10px] font-black text-slate-600">SOD TIME *<div className="mt-1 flex gap-1"><input required type="text" inputMode="numeric" placeholder="09:00" pattern="(?:0?[1-9]|1[0-2]):[0-5][0-9]" title="Enter a 12-hour time, such as 09:00" value={sodTime} onChange={e => setSodTime(e.target.value)} className="min-w-0 flex-1 border rounded-lg p-2 text-xs bg-white" /><select value={sodPeriod} onChange={e => setSodPeriod(e.target.value as "AM" | "PM")} className="border rounded-lg px-2 text-xs font-bold bg-white"><option>AM</option><option>PM</option></select></div></label>
           <label className="text-[10px] font-black text-slate-600">EOD TIME *<div className="mt-1 flex gap-1"><input required type="text" inputMode="numeric" placeholder="06:00" pattern="(?:0?[1-9]|1[0-2]):[0-5][0-9]" title="Enter a 12-hour time, such as 06:00" value={eodTime} onChange={e => setEodTime(e.target.value)} className="min-w-0 flex-1 border rounded-lg p-2 text-xs bg-white" /><select value={eodPeriod} onChange={e => setEodPeriod(e.target.value as "AM" | "PM")} className="border rounded-lg px-2 text-xs font-bold bg-white"><option>AM</option><option>PM</option></select></div></label>
         </div>
-        <div className="flex justify-between items-center"><div><h3 className="text-sm font-black">Daily Tasks ({tasks.length})</h3><p className="text-[10px] text-slate-500">Proof and a progress note are mandatory for every task.</p></div><button type="button" onClick={() => setTasks(r => [...r, emptyTask()])} className="bg-[#714B67] text-white rounded-lg px-3 py-2 text-xs font-black flex gap-1"><Plus className="w-4 h-4" /> Add Task</button></div>
+        <div className="flex justify-between items-center"><div><h3 className="text-sm font-black">Daily Tasks ({tasks.length})</h3><p className="text-[10px] text-slate-500">Tasks are optional — leave empty to record only the SOD/EOD timing. Proof is optional; a progress note is required on any task you add.</p></div><button type="button" onClick={() => setTasks(r => [...r, emptyTask()])} className="bg-[#714B67] text-white rounded-lg px-3 py-2 text-xs font-black flex gap-1"><Plus className="w-4 h-4" /> Add Task</button></div>
+        {tasks.length === 0 && <div className="text-[11px] text-slate-500 border border-dashed rounded-lg p-3 bg-slate-50">No tasks added. Saving now will record a timing-only SOD/EOD for the selected date.</div>}
         <div className="space-y-3">{tasks.map((task, index) => <div key={index} className="border rounded-xl p-3 bg-slate-50">
-          <div className="flex justify-between mb-2"><span className="text-xs font-black text-[#714B67]">Task #{index + 1}</span>{tasks.length > 1 && <button type="button" onClick={() => setTasks(r => r.filter((_, i) => i !== index))}><Trash2 className="w-4 h-4 text-rose-500" /></button>}</div>
+          <div className="flex justify-between mb-2"><span className="text-xs font-black text-[#714B67]">Task #{index + 1}</span><button type="button" onClick={() => setTasks(r => r.filter((_, i) => i !== index))}><Trash2 className="w-4 h-4 text-rose-500" /></button></div>
           <div className="grid sm:grid-cols-3 gap-2">
             <input required placeholder="Task title / kaam" value={task.title} onChange={e => updateTask(index, { title: e.target.value })} className="border rounded-lg p-2 text-xs font-bold bg-white" />
             <select required value={task.relatedCategory} onChange={e => updateTask(index, { relatedCategory: e.target.value, bankId: "", bankName: "", branchName: "", aoName: "", rboName: "", nbfcName: "" })} className="border rounded-lg p-2 text-xs bg-white">
@@ -222,7 +223,7 @@ export default function DailyBackdateEntryModal({ open, onClose, onSaved, curren
             </select>
             <textarea placeholder="Work details" value={task.details} onChange={e => updateTask(index, { details: e.target.value })} className="sm:col-span-1 border rounded-lg p-2 text-xs bg-white" />
             <textarea required placeholder="Progress note *" value={task.progressNote} onChange={e => updateTask(index, { progressNote: e.target.value })} className="sm:col-span-1 border rounded-lg p-2 text-xs bg-white" />
-            <label className="border border-dashed rounded-lg p-2 text-xs bg-white flex items-center justify-center gap-2 cursor-pointer"><Upload className="w-4 h-4" />{task.uploading ? "Uploading..." : task.proofAttachment ? "Proof uploaded ✓" : "Upload proof *"}<input type="file" className="hidden" accept="image/*,.pdf,audio/*,video/*" onChange={e => uploadProof(index, e.target.files?.[0])} /></label>
+            <label className="border border-dashed rounded-lg p-2 text-xs bg-white flex items-center justify-center gap-2 cursor-pointer"><Upload className="w-4 h-4" />{task.uploading ? "Uploading..." : task.proofAttachment ? "Proof uploaded ✓" : "Upload proof (optional)"}<input type="file" className="hidden" accept="image/*,.pdf,audio/*,video/*" onChange={e => uploadProof(index, e.target.files?.[0])} /></label>
             <label className="text-[10px] font-black text-slate-600">CALL BACK DATE<input type="date" value={task.callbackDate} onChange={e => updateTask(index, { callbackDate: e.target.value })} className="mt-1 w-full border rounded-lg p-2 text-xs font-normal bg-white" /></label>
             <label className="text-[10px] font-black text-slate-600">FORWARDED TO<select value={task.forwardedTo} onChange={e => updateTask(index, { forwardedTo: e.target.value })} className="mt-1 w-full border rounded-lg p-2 text-xs font-normal bg-white"><option value="">Not forwarded</option>{staff.filter(s => String(s.id) !== String(employeeId)).map(s => <option key={s.id} value={s.id}>{s.name} ({s.role})</option>)}</select></label>
           </div>

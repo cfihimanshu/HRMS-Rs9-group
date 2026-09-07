@@ -1,12 +1,13 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
-import { FileSpreadsheet, Search } from "lucide-react";
+import { FileSpreadsheet, Search, Trash2 } from "lucide-react";
 const statuses = ["Ongoing", "Stuck", "Completed"];
 
-export default function SecurityProjectsView({ triggerToast }: { triggerToast: (message: string) => void }) {
+export default function SecurityProjectsView({ triggerToast, userRole }: { triggerToast: (message: string) => void; userRole?: string }) {
   const [projects, setProjects] = useState<any[]>([]);
   const [search, setSearch] = useState("");
+  const isOwner = /owner|director/i.test(String(userRole || ""));
   const load = async () => {
     const projectsResult = await fetch("/api/legal-recovery/security/projects", { cache: "no-store" }).then(response => response.json());
     if (projectsResult.success) setProjects(projectsResult.data || []);
@@ -36,6 +37,18 @@ export default function SecurityProjectsView({ triggerToast }: { triggerToast: (
     }));
     return needle ? combined.filter(project => [project.nbfcName, project.siteName, project.guardName, project.contactNumber, project.status].some(value => String(value || "").toLowerCase().includes(needle))) : combined;
   }, [projects, search]);
+  const removeProjects = async (ids: number[], label: string) => {
+    if (!ids.length) return;
+    if (!window.confirm(`${label} ke ${ids.length} deployment mapping(s) aur unki poori attendance delete kar dein?`)) return;
+    const results = await Promise.all(ids.map(id => fetch(`/api/legal-recovery/security/projects?id=${id}`, { method: "DELETE" }).then(response => response.json())));
+    if (results.every(result => result.success)) {
+      setProjects(previous => previous.filter(project => !ids.includes(project.id)));
+      triggerToast("Deployment delete ho gaya");
+    } else {
+      triggerToast("Kuch mappings delete nahi hue");
+      await load();
+    }
+  };
   const changeStatus = async (ids: number[], status: string) => {
     setProjects(previous => previous.map(project => ids.includes(project.id) ? { ...project, status } : project));
     const results = await Promise.all(ids.map(id => fetch("/api/legal-recovery/security/projects", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id, status }) }).then(response => response.json())));
@@ -45,7 +58,7 @@ export default function SecurityProjectsView({ triggerToast }: { triggerToast: (
   return <div className="space-y-5">
     <div className="bg-white dark:bg-gray-900 border rounded-xl overflow-hidden">
       <div className="p-3 flex flex-col sm:flex-row justify-between gap-3 border-b"><div><h3 className="text-sm font-bold flex items-center gap-2"><FileSpreadsheet className="w-4 h-4 text-emerald-600"/>Projects Excel Register</h3><p className="text-[9px] text-slate-400">Guard Deployment se auto-mapped · {filtered.length} project entries</p></div><label className="relative"><Search className="absolute left-3 top-2.5 w-3.5 h-3.5 text-slate-400"/><input value={search} onChange={event => setSearch(event.target.value)} placeholder="Search NBFC, site, guard..." className="border rounded-lg pl-9 pr-3 py-2 text-xs w-72 max-w-full"/></label></div>
-      <div className="overflow-x-auto"><table className="w-full text-xs border-collapse"><thead className="bg-[#F3F0EC] dark:bg-gray-800 text-[9px] uppercase"><tr>{["#", "NBFC Name", "Site Name", "Started Date", "Guards", "Contact Numbers", "Status"].map(title => <th key={title} className="text-left p-3 border-r last:border-r-0 whitespace-nowrap">{title}</th>)}</tr></thead><tbody>{filtered.map((project, index) => <tr key={project.sourceSecurityId || project.id} className="border-t hover:bg-slate-50 dark:hover:bg-gray-800/50"><td className="p-3 border-r">{index + 1}</td><td className="p-3 border-r font-bold">{project.nbfcName}</td><td className="p-3 border-r">{project.siteName}</td><td className="p-3 border-r whitespace-nowrap">{project.siteStartedDate}</td><td className="p-3 border-r"><b>{project.guardName}</b><span className="block text-[9px] text-slate-400">{project.guardNames.length} guard{project.guardNames.length > 1 ? "s" : ""}</span></td><td className="p-3 border-r">{project.contactNumber || "-"}</td><td className="p-2"><select value={project.status} onChange={event => changeStatus(project.projectIds, event.target.value)} className={`rounded-lg border px-2 py-1.5 text-[10px] font-bold ${project.status === "Completed" ? "bg-emerald-50 text-emerald-700 border-emerald-200" : project.status === "Stuck" ? "bg-rose-50 text-rose-700 border-rose-200" : "bg-amber-50 text-amber-700 border-amber-200"}`}>{statuses.map(status => <option key={status}>{status}</option>)}</select></td></tr>)}{!filtered.length && <tr><td colSpan={7} className="p-8 text-center text-slate-400">No security projects found.</td></tr>}</tbody></table></div>
+      <div className="overflow-x-auto"><table className="w-full text-xs border-collapse"><thead className="bg-[#F3F0EC] dark:bg-gray-800 text-[9px] uppercase"><tr>{["#", "NBFC Name", "Site Name", "Started Date", "Guards", "Contact Numbers", "Status", ...(isOwner ? ["Action"] : [])].map(title => <th key={title} className="text-left p-3 border-r last:border-r-0 whitespace-nowrap">{title}</th>)}</tr></thead><tbody>{filtered.map((project, index) => <tr key={project.sourceSecurityId || project.id} className="border-t hover:bg-slate-50 dark:hover:bg-gray-800/50"><td className="p-3 border-r">{index + 1}</td><td className="p-3 border-r font-bold">{project.nbfcName}</td><td className="p-3 border-r">{project.siteName}</td><td className="p-3 border-r whitespace-nowrap">{project.siteStartedDate}</td><td className="p-3 border-r"><b>{project.guardName}</b><span className="block text-[9px] text-slate-400">{project.guardNames.length} guard{project.guardNames.length > 1 ? "s" : ""}</span></td><td className="p-3 border-r">{project.contactNumber || "-"}</td><td className={`p-2 ${isOwner ? "border-r" : ""}`}><select value={project.status} onChange={event => changeStatus(project.projectIds, event.target.value)} className={`rounded-lg border px-2 py-1.5 text-[10px] font-bold ${project.status === "Completed" ? "bg-emerald-50 text-emerald-700 border-emerald-200" : project.status === "Stuck" ? "bg-rose-50 text-rose-700 border-rose-200" : "bg-amber-50 text-amber-700 border-amber-200"}`}>{statuses.map(status => <option key={status}>{status}</option>)}</select></td>{isOwner && <td className="p-2"><button type="button" aria-label={`${project.siteName} deployment delete karein`} title="Is site ke sabhi guard mappings aur attendance delete karein" onClick={() => removeProjects(project.projectIds, project.siteName)} className="inline-flex items-center gap-1 rounded-lg border border-rose-200 px-2 py-1.5 text-[10px] font-bold text-rose-600 hover:bg-rose-50"><Trash2 className="w-3.5 h-3.5"/>Delete</button></td>}</tr>)}{!filtered.length && <tr><td colSpan={isOwner ? 8 : 7} className="p-8 text-center text-slate-400">No security projects found.</td></tr>}</tbody></table></div>
     </div>
   </div>;
 }

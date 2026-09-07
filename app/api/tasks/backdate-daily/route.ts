@@ -35,14 +35,16 @@ export async function POST(request: Request) {
     const sodAt = dateAt(workDate, sodTime);
     const eodAt = dateAt(workDate, eodTime);
 
-    if (!employeeId || !workDate || !sodTime || !eodTime || !tasks.length) {
-      return NextResponse.json({ success: false, error: "Staff, work date, SOD/EOD time and at least one task are required" }, { status: 400 });
+    if (!employeeId || !workDate || !sodTime || !eodTime) {
+      return NextResponse.json({ success: false, error: "Staff, work date and SOD/EOD time are required" }, { status: 400 });
     }
     if (!Number.isFinite(sodAt.getTime()) || !Number.isFinite(eodAt.getTime()) || sodAt >= eodAt || eodAt > new Date()) {
       return NextResponse.json({ success: false, error: "Invalid historical SOD/EOD date or time" }, { status: 400 });
     }
-    if (tasks.some((task: any) => !String(task.title || "").trim() || !String(task.progressNote || "").trim() || !String(task.proofAttachment || "").trim() || !validStatuses.has(task.status))) {
-      return NextResponse.json({ success: false, error: "Every task needs title, valid status, progress note and proof" }, { status: 400 });
+    // Tasks are optional here: a timing-only back-date entry records just the SOD/EOD.
+    // When tasks are supplied every field except the proof attachment stays mandatory.
+    if (tasks.some((task: any) => !String(task.title || "").trim() || !String(task.progressNote || "").trim() || !validStatuses.has(task.status))) {
+      return NextResponse.json({ success: false, error: "Every task needs a title, valid status and progress note" }, { status: 400 });
     }
     if (tasks.some((task: any) => !validRelatedCategories.has(String(task.relatedCategory || "").trim()) || !String(task.type || "").trim())) {
       return NextResponse.json({ success: false, error: "Every task needs related category and task type" }, { status: 400 });
@@ -77,8 +79,11 @@ export async function POST(request: Request) {
       const completed = tasks.filter((task: any) => task.status === "Completed").map((task: any) => task.title);
       const pending = tasks.filter((task: any) => task.status !== "Completed").map((task: any) => task.title);
       const entryActor = isOwner ? "Owner" : String(session.user?.name || "Staff");
-      const sod = await SodReport.create({ employee: employeeId, date: sodAt, timestamp: sodAt, taskSummary: titles.join("; ").slice(0, 250), taskType: "Daily Back-Date Entry", remarks: `${tasks.length} historical task(s) entered by ${entryActor}`, status: "Submitted", createdAt: sodAt, updatedAt: sodAt }, { transaction });
-      const eod = await EodReport.create({ employee: employeeId, date: eodAt, timestamp: eodAt, completedWork: (completed.join("; ") || "None").slice(0, 250), pendingWork: (pending.join("; ") || "None").slice(0, 250), issues: "", escalationNeeded: false, tomorrowPlan: "Historical entry", status: "Submitted", createdAt: eodAt, updatedAt: eodAt }, { transaction });
+      const timingOnly = tasks.length === 0;
+      const sodSummary = timingOnly ? `Back-date timing entry by ${entryActor}` : titles.join("; ");
+      const sodRemarks = timingOnly ? `Timing-only back-date entry (no tasks) by ${entryActor}` : `${tasks.length} historical task(s) entered by ${entryActor}`;
+      const sod = await SodReport.create({ employee: employeeId, date: sodAt, timestamp: sodAt, taskSummary: sodSummary.slice(0, 250), taskType: "Daily Back-Date Entry", remarks: sodRemarks, status: "Submitted", createdAt: sodAt, updatedAt: sodAt }, { transaction });
+      const eod = await EodReport.create({ employee: employeeId, date: eodAt, timestamp: eodAt, completedWork: (completed.join("; ") || (timingOnly ? "Back-date timing entry (no tasks)" : "None")).slice(0, 250), pendingWork: (pending.join("; ") || "None").slice(0, 250), issues: "", escalationNeeded: false, tomorrowPlan: "Historical entry", status: "Submitted", createdAt: eodAt, updatedAt: eodAt }, { transaction });
       for (let index = 0; index < tasks.length; index += 1) {
         const task = tasks[index];
         // Historical createdAt values do not appear in TaskLog's recent-ID scan,
@@ -95,7 +100,7 @@ export async function POST(request: Request) {
       return { sodId: (sod as any).id, eodId: (eod as any).id, taskCount: tasks.length };
     });
 
-    await logAudit({ userId: loggedInUserId, action: "DAILY_BACKDATE_ENTRY", entity: "TaskLog", entityId: employeeId, details: `${isOwner ? "Owner" : "Staff"} entered ${tasks.length} historical task(s) for ${employeeId} on ${workDate}` });
+    await logAudit({ userId: loggedInUserId, action: "DAILY_BACKDATE_ENTRY", entity: "TaskLog", entityId: employeeId, details: `${isOwner ? "Owner" : "Staff"} entered ${tasks.length === 0 ? "a timing-only SOD/EOD (no tasks)" : `${tasks.length} historical task(s)`} for ${employeeId} on ${workDate} (SOD ${sodTime}, EOD ${eodTime})` });
     return NextResponse.json({ success: true, data: result });
   } catch (error: any) {
     console.error("[POST /api/tasks/backdate-daily]", error);

@@ -2155,6 +2155,115 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
     }
   };
 
+  // SIM-only export: every SIM number in the org, whether it lives as a standalone
+  // "SIM Card" asset in stock or is fitted inside a "Mobile Phone" asset. Rows are
+  // keyed by the last 10 digits so a SIM registered both ways collapses to one line.
+  const exportSimsToCsv = async () => {
+    if (!inventory.length) {
+      triggerToast("No inventory records available to export");
+      return;
+    }
+    try {
+      const XLSX = await import("xlsx");
+      const norm = (value: any) => String(value || "").replace(/\D/g, "").slice(-10);
+      const companyName = (asset: any) => {
+        const match = companies.find((c) => String(c.id) === String(asset.companyId));
+        return match ? match.name : (asset.companyId ? "Assigned Company" : "General Stock");
+      };
+      const rows = new Map<string, any>();
+      const rowFor = (key: string) => {
+        if (!rows.has(key)) {
+          rows.set(key, {
+            "SIM Mobile Number": "", "Operator / Network": "", "ICCID / SIM Number": "",
+            "KYC Name": "", "PUK / PIN": "", "Plan Type": "", "Location": "Stock / Standalone",
+            "Inside Mobile (Asset ID)": "", "Mobile Brand & Model": "", "Mobile IMEI / Serial": "",
+            "SIM Slot": "", "Held By (Employee)": "", "SIM Card Asset ID": "",
+            "SIM Card Status": "", "Company": "", "Registered By": "",
+          });
+        }
+        return rows.get(key);
+      };
+
+      // Pass 1 — standalone "SIM Card" assets
+      inventory
+        .filter((a: any) => String(a.assetType || "").toLowerCase().trim().replace(/s$/, "").includes("sim"))
+        .forEach((asset: any) => {
+          const notes = String(asset.notes || "");
+          const number = String(asset.serialNumber || asset.sim1Number || "").trim();
+          const iccid = (notes.match(/SIM Number \(ICCID\):\s*([^\n|]+)/i)?.[1] || notes.match(/ICCID[^:]*:\s*([0-9A-Za-z]+)/i)?.[1] || "").trim();
+          const key = norm(number) || iccid || asset.id;
+          const row = rowFor(key);
+          row["SIM Mobile Number"] = number || row["SIM Mobile Number"];
+          row["Operator / Network"] = row["Operator / Network"] || String(asset.assetDetail || asset.simCompany || "").replace(/\s*Network\s*$/i, "").trim();
+          row["ICCID / SIM Number"] = row["ICCID / SIM Number"] || iccid;
+          row["KYC Name"] = row["KYC Name"] || String(asset.simKycName || "").trim();
+          row["PUK / PIN"] = row["PUK / PIN"] || String(asset.simPuk || notes.match(/SIM PUK[^:]*:\s*([^\n|]+)/i)?.[1] || "").trim();
+          row["Plan Type"] = row["Plan Type"] || String(asset.simPlanType || "").trim();
+          row["SIM Card Asset ID"] = asset.id || "";
+          row["SIM Card Status"] = asset.status || "Available";
+          row["Company"] = row["Company"] || companyName(asset);
+          row["Registered By"] = row["Registered By"] || asset.registeredBy || "";
+          if (asset.assignedToName || asset.assignedToUserId) {
+            row["Held By (Employee)"] = row["Held By (Employee)"] || asset.assignedToName || `User #${asset.assignedToUserId}`;
+          }
+        });
+
+      // Pass 2 — SIMs fitted inside "Mobile Phone" assets
+      inventory
+        .filter((a: any) => /phone|mobile/.test(String(a.assetType || "").toLowerCase()))
+        .forEach((asset: any) => {
+          const notes = String(asset.notes || "");
+          const slots: Array<{ slot: string; number: string }> = [
+            { slot: "1", number: String(asset.sim1Number || notes.match(/SIM ?1 (?:Mobile No|No|Number|CONFIG):\s*([0-9+\s]{6,})/i)?.[1] || "").trim() },
+            { slot: "2", number: String(asset.sim2Number || notes.match(/SIM ?2 (?:Mobile No|No|Number|CONFIG):\s*([0-9+\s]{6,})/i)?.[1] || "").trim() },
+          ];
+          const operator = String(asset.simCompany || notes.match(/\[Company:\s*([^\]]+)\]/i)?.[1] || "").trim();
+          slots.filter((s) => norm(s.number)).forEach((s) => {
+            const row = rowFor(norm(s.number));
+            row["SIM Mobile Number"] = row["SIM Mobile Number"] || s.number.replace(/\s+/g, "");
+            row["Operator / Network"] = row["Operator / Network"] || operator;
+            row["Location"] = "Inside Mobile";
+            row["Inside Mobile (Asset ID)"] = asset.id || "";
+            row["Mobile Brand & Model"] = asset.assetDetail || "";
+            row["Mobile IMEI / Serial"] = asset.serialNumber || "";
+            row["SIM Slot"] = s.slot;
+            row["Company"] = row["Company"] || companyName(asset);
+            row["Held By (Employee)"] = asset.assignedToName || (asset.assignedToUserId ? `User #${asset.assignedToUserId}` : row["Held By (Employee)"]);
+          });
+        });
+
+      const exportRows = [...rows.values()]
+        .map((r) => ({ ...r, "Held By (Employee)": r["Held By (Employee)"] || "Unassigned / Stock" }))
+        .sort((a, b) => String(a["SIM Mobile Number"]).localeCompare(String(b["SIM Mobile Number"])));
+      if (!exportRows.length) {
+        triggerToast("No SIM records found to export");
+        return;
+      }
+      const ws = XLSX.utils.json_to_sheet(exportRows);
+      const colKeys = Object.keys(exportRows[0]);
+      ws["!cols"] = colKeys.map((key) => {
+        let maxLen = key.length;
+        exportRows.forEach((r) => { const v = String(r[key as keyof typeof r] ?? ""); if (v.length > maxLen) maxLen = v.length; });
+        return { wch: Math.min(Math.max(maxLen + 4, 14), 55) };
+      });
+      const csvString = XLSX.utils.sheet_to_csv(ws);
+      const blob = new Blob([csvString], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.setAttribute("href", url);
+      link.setAttribute("download", `SIM_Inventory_Report_${new Date().toISOString().split("T")[0]}.csv`);
+      link.style.visibility = "hidden";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      triggerToast(`${exportRows.length} SIM record(s) exported`);
+    } catch (err: any) {
+      console.error("Failed to export SIM CSV:", err);
+      triggerToast("SIM export failed: " + (err.message || "Unknown error"));
+    }
+  };
+
   // Calculate quick stats
   const totalCount = inventory.length;
   const availableCount = inventory.filter(a => a.status === "Available").length;
@@ -2197,6 +2306,14 @@ export default function InventoryManagement({ userRole, triggerToast, sessionUse
             <QrCode className="w-3.5 h-3.5" />
             <Printer className="w-3.5 h-3.5" />
             {isBulkSelectMode ? "Exit Bulk Mode" : "Bulk QR Download"}
+          </button>
+          <button
+            onClick={exportSimsToCsv}
+            disabled={loading || inventory.length === 0}
+            className="px-3 py-1.5 bg-sky-600 hover:bg-sky-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg text-[10px] font-semibold tracking-wider uppercase transition-all flex items-center gap-1.5 shadow-sm"
+            title="Export every SIM number in the org — standalone SIM Card stock plus SIMs fitted inside phones — with operator, ICCID, host mobile and holder"
+          >
+            <Download className="w-3.5 h-3.5" /> Export SIMs
           </button>
           <button
             onClick={exportInventoryToCsv}

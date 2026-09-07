@@ -4,7 +4,9 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import LegalGuard from "@/models/sequelize/LegalGuard";
 import SecurityProject from "@/models/sequelize/SecurityProject";
+import SecurityGuardAttendance from "@/models/sequelize/SecurityGuardAttendance";
 import { notifyOwners } from "@/lib/ownerNotification";
+import { isOwnerUser } from "@/lib/twoStageApproval";
 
 export const dynamic = "force-dynamic";
 const STATUSES = ["Ongoing", "Stuck", "Completed"];
@@ -81,5 +83,37 @@ export async function PUT(req: Request) {
     return NextResponse.json({ success: true, data: project });
   } catch (error: any) {
     return NextResponse.json({ success: false, error: error.message || "Project could not be updated" }, { status: 500 });
+  }
+}
+
+export async function DELETE(req: Request) {
+  try {
+    const session: any = await authorized();
+    if (!session) return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
+    if (!isOwnerUser(session.user)) return NextResponse.json({ success: false, error: "Sirf Owner deployment delete kar sakta hai" }, { status: 403 });
+    await ready();
+    const params = new URL(req.url).searchParams;
+    const ids = (params.get("id") || params.get("ids") || "")
+      .split(",")
+      .map(value => Number(value.trim()))
+      .filter(Boolean);
+    if (!ids.length) return NextResponse.json({ success: false, error: "Deployment ID is required" }, { status: 400 });
+    const projects = await SecurityProject.findAll({ where: { id: ids } });
+    if (!projects.length) return NextResponse.json({ success: false, error: "Deployment not found" }, { status: 404 });
+    let removedAttendance = 0;
+    for (const project of projects) {
+      if (project.guardId) {
+        removedAttendance += await SecurityGuardAttendance.destroy({
+          where: {
+            guardId: project.guardId,
+            ...(project.sourceSecurityId ? { securityId: project.sourceSecurityId } : {}),
+          },
+        });
+      }
+    }
+    const removed = await SecurityProject.destroy({ where: { id: projects.map(project => project.id) } });
+    return NextResponse.json({ success: true, removed, removedAttendance });
+  } catch (error: any) {
+    return NextResponse.json({ success: false, error: error.message || "Deployment could not be deleted" }, { status: 500 });
   }
 }

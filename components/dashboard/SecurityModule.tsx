@@ -573,10 +573,10 @@ export default function SecurityModule({ userRole, triggerToast, sessionUser, in
         <SecurityPaymentsView triggerToast={triggerToast} />
       )}
 
-      {activeSubModule === "projects" && <SecurityProjectsView triggerToast={triggerToast} />}
+      {activeSubModule === "projects" && <SecurityProjectsView triggerToast={triggerToast} userRole={userRole} />}
 
       {(activeSubModule === "guard-attendance" || activeSubModule === "attendance") && (
-        <GuardAttendancePayoutView nbfcsList={nbfcsList} triggerToast={triggerToast} />
+        <GuardAttendancePayoutView nbfcsList={nbfcsList} triggerToast={triggerToast} userRole={userRole} />
       )}
 
       {activeSubModule === "guard-master" && <GuardMasterView triggerToast={triggerToast} />}
