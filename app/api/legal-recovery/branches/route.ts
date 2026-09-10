@@ -3,6 +3,8 @@ import BranchMaster from "@/models/sequelize/BranchMaster";
 import sequelize from "@/lib/sequelize";
 import { requireApiSession, MANAGEMENT_ROLES } from "@/lib/apiAuth";
 
+const normalizeBranchValue = (value: unknown) => String(value || "").trim().toLowerCase();
+
 export async function GET(request: Request) {
   try {
     const auth = await requireApiSession();
@@ -27,19 +29,39 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
-    const auth = await requireApiSession(MANAGEMENT_ROLES);
+    // Employees also create branches from their daily work entry forms.
+    const auth = await requireApiSession();
     if (auth.response) return auth.response;
     const data = await request.json();
     await sequelize.authenticate();
     await BranchMaster.sync();
     
-    if (!data.branchCode) {
+    if (!String(data.branchName || "").trim()) {
+      return NextResponse.json({ success: false, error: "Branch Name is required" }, { status: 400 });
+    }
+    if (!String(data.branchCode || "").trim()) {
       return NextResponse.json({ success: false, error: "Branch Code is required" }, { status: 400 });
+    }
+
+    const branchName = String(data.branchName || "").trim();
+    const branchCode = String(data.branchCode).trim();
+    const existingBranches = await BranchMaster.findAll({ where: { bankId: data.bankId } });
+    const duplicate = existingBranches.find(branch =>
+      normalizeBranchValue(branch.branchName) === normalizeBranchValue(branchName) ||
+      normalizeBranchValue(branch.branchCode) === normalizeBranchValue(branchCode)
+    );
+    if (duplicate) {
+      const duplicateField = normalizeBranchValue(duplicate.branchCode) === normalizeBranchValue(branchCode) ? "code" : "name";
+      return NextResponse.json(
+        { success: false, error: `This bank already has a branch with the same ${duplicateField}.` },
+        { status: 409 }
+      );
     }
     
     const newBranch = await BranchMaster.create({
       ...data,
-      branchCode: data.branchCode
+      branchName,
+      branchCode
     });
     
     return NextResponse.json({ success: true, data: newBranch });

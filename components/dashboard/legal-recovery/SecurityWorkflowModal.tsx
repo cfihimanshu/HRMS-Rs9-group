@@ -19,8 +19,8 @@ export const SECURITY_WORKFLOW_STAGES = [
 type StageKey = (typeof SECURITY_WORKFLOW_STAGES)[number]["key"];
 type FollowUpEntry = { id: string; type: string; date: string; time: string; contactName: string; contactDetail: string; details: string; outcome: string; nextFollowUpDate: string; proofUrls: string[] };
 type StageState = { status: "pending" | "in_progress" | "completed" | "rejected"; date: string; notes: string; proofUrls: string[]; followUps?: FollowUpEntry[] };
-type DeployedGuard = { name: string; phone: string; photoUrl: string; shiftType: string; shiftTiming: string; startDate: string; endDate: string; shiftRate: string; allowancePerShift: string };
-const newGuard = (): DeployedGuard => ({ name: "", phone: "", photoUrl: "", shiftType: "8 Hours Morning Shift", shiftTiming: "08:00 AM - 04:00 PM", startDate: "", endDate: "", shiftRate: "", allowancePerShift: "" });
+type DeployedGuard = { name: string; phone: string; photoUrl: string; monthlySalary: string; shiftType: string; shiftTiming: string; startDate: string; endDate: string; shiftRate: string; allowancePerShift: string };
+const newGuard = (): DeployedGuard => ({ name: "", phone: "", photoUrl: "", monthlySalary: "", shiftType: "8 Hours Morning Shift", shiftTiming: "08:00 AM - 04:00 PM", startDate: "", endDate: "", shiftRate: "", allowancePerShift: "" });
 const toLocalDateTimeInput = (value: unknown) => {
   if (!value) return "";
   const date = new Date(String(value));
@@ -75,7 +75,7 @@ export default function SecurityWorkflowModal({ item, nbfcsList, nbfcBranchesLis
   const [savingMaster, setSavingMaster] = useState(false);
   const [dbGuards, setDbGuards] = useState<any[]>([]);
   const [showGuardMasterForm, setShowGuardMasterForm] = useState(false);
-  const [guardMasterForm, setGuardMasterForm] = useState({ name: "", phone: "", photoUrl: "" });
+  const [guardMasterForm, setGuardMasterForm] = useState({ name: "", phone: "", photoUrl: "", monthlySalary: "" });
   const [savingGuardMaster, setSavingGuardMaster] = useState(false);
   const [billDetails, setBillDetails] = useState({
     billNo: String(item?.billNo || ""), billDate: String(item?.billDate || ""),
@@ -161,14 +161,19 @@ export default function SecurityWorkflowModal({ item, nbfcsList, nbfcBranchesLis
     try {
       const response = await fetch("/api/legal-recovery/guards", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: guardMasterForm.name.trim(), phone: guardMasterForm.phone.trim(), photoUrl: guardMasterForm.photoUrl }),
+        body: JSON.stringify({
+          name: guardMasterForm.name.trim(),
+          phone: guardMasterForm.phone.trim(),
+          photoUrl: guardMasterForm.photoUrl,
+          monthlySalary: guardMasterForm.monthlySalary,
+        }),
       });
       const result = await response.json();
       if (!response.ok || !result.success) throw new Error(result.error || "Guard master save failed");
       const saved = result.data;
       setDbGuards((prev) => [...prev.filter((guard) => String(guard.id) !== String(saved.id) && guard.name !== saved.name), saved].sort((a, b) => String(a.name).localeCompare(String(b.name))));
-      setGuards((prev) => [...prev, { ...newGuard(), name: saved.name, phone: saved.phone || "", photoUrl: saved.photoUrl || "" }]);
-      setGuardMasterForm({ name: "", phone: "", photoUrl: "" });
+      setGuards((prev) => [...prev, { ...newGuard(), name: saved.name, phone: saved.phone || "", photoUrl: saved.photoUrl || "", monthlySalary: String(saved.monthlySalary || "") }]);
+      setGuardMasterForm({ name: "", phone: "", photoUrl: "", monthlySalary: "" });
       setShowGuardMasterForm(false);
       triggerToast("Guard Master mein add aur deployment mein select ho gaya");
     } catch (error: any) { triggerToast(error.message || "Guard master save failed"); }
@@ -271,7 +276,7 @@ export default function SecurityWorkflowModal({ item, nbfcsList, nbfcBranchesLis
       }
       await Promise.all(guards.filter((guard) => guard.name.trim()).map((guard) => fetch("/api/legal-recovery/guards", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: guard.name.trim(), phone: guard.phone.trim(), photoUrl: guard.photoUrl }),
+        body: JSON.stringify({ name: guard.name.trim(), phone: guard.phone.trim(), photoUrl: guard.photoUrl, monthlySalary: guard.monthlySalary }),
       })));
       const response = await fetch("/api/legal-recovery/security", {
         method: item?.id ? "PUT" : "POST",
@@ -336,13 +341,14 @@ export default function SecurityWorkflowModal({ item, nbfcsList, nbfcBranchesLis
               {activeKey === "authority_letter" && <label className="block text-xs font-bold text-slate-600 mt-4">Site Location / Complete Address *<textarea value={siteLocation} onChange={(e) => setSiteLocation(e.target.value)} rows={3} placeholder="Security guard deployment ki complete site location/address likhein" className="mt-1 w-full border border-indigo-300 rounded-xl p-3 resize-y"/></label>}
               {activeKey === "guard_deployment" && <div className="mt-5 border-t pt-4">
                 <div className="flex items-center justify-between gap-3"><div><h4 className="text-sm font-black text-slate-900">Guard Deployment Details</h4><p className="text-[11px] text-slate-500">Guard, contact, joining date aur rate details add karein.</p></div><div className="flex gap-2"><button type="button" onClick={() => setShowGuardMasterForm((value) => !value)} className="px-3 py-2 bg-emerald-600 text-white rounded-lg text-xs font-black flex items-center gap-1"><Plus className="w-4 h-4"/> Add Guard to Master</button><button type="button" onClick={() => setGuards((prev) => [...prev, newGuard()])} className="px-3 py-2 bg-indigo-600 text-white rounded-lg text-xs font-black flex items-center gap-1"><Plus className="w-4 h-4"/> Add Guard</button></div></div>
-                {showGuardMasterForm && <div className="mt-3 bg-emerald-50 border border-emerald-200 rounded-xl p-3"><div className="flex justify-between items-center"><b className="text-xs text-emerald-900">Add New Guard in Master</b><button type="button" onClick={() => setShowGuardMasterForm(false)}><X className="w-4 h-4"/></button></div><div className="grid sm:grid-cols-[1fr_220px_auto] gap-2 mt-2"><input autoFocus placeholder="Guard Name *" value={guardMasterForm.name} onChange={(e) => setGuardMasterForm((prev) => ({ ...prev, name: e.target.value }))} className="border rounded-lg p-2 text-xs"/><input type="tel" placeholder="Mobile Number *" value={guardMasterForm.phone} onChange={(e) => setGuardMasterForm((prev) => ({ ...prev, phone: e.target.value.replace(/[^0-9+ -]/g, "") }))} className="border rounded-lg p-2 text-xs"/><button type="button" onClick={addGuardToMaster} disabled={savingGuardMaster} className="px-4 py-2 bg-emerald-600 text-white rounded-lg text-xs font-black disabled:opacity-50">{savingGuardMaster ? "Saving..." : "Save & Select"}</button></div></div>}
+                {showGuardMasterForm && <div className="mt-3 bg-emerald-50 border border-emerald-200 rounded-xl p-3"><div className="flex justify-between items-center"><b className="text-xs text-emerald-900">Add New Guard in Master</b><button type="button" onClick={() => setShowGuardMasterForm(false)}><X className="w-4 h-4"/></button></div><div className="grid sm:grid-cols-[1fr_180px_160px_auto] gap-2 mt-2"><input autoFocus placeholder="Guard Name *" value={guardMasterForm.name} onChange={(e) => setGuardMasterForm((prev) => ({ ...prev, name: e.target.value }))} className="border rounded-lg p-2 text-xs"/><input type="tel" placeholder="Mobile Number *" value={guardMasterForm.phone} onChange={(e) => setGuardMasterForm((prev) => ({ ...prev, phone: e.target.value.replace(/[^0-9+ -]/g, "") }))} className="border rounded-lg p-2 text-xs"/><input type="number" min="0" step="0.01" placeholder="Salary ₹" value={guardMasterForm.monthlySalary} onChange={(e) => setGuardMasterForm((prev) => ({ ...prev, monthlySalary: e.target.value }))} className="border rounded-lg p-2 text-xs"/><button type="button" onClick={addGuardToMaster} disabled={savingGuardMaster} className="px-4 py-2 bg-emerald-600 text-white rounded-lg text-xs font-black disabled:opacity-50">{savingGuardMaster ? "Saving..." : "Save & Select"}</button></div></div>}
                 {guards.length === 0 ? <button type="button" onClick={() => setGuards([newGuard()])} className="mt-3 w-full border-2 border-dashed rounded-xl p-5 text-xs font-bold text-indigo-700">+ Add first deployed guard</button> : <div className="space-y-3 mt-3">{guards.map((guard, index) => <div key={index} className="bg-slate-50 border rounded-xl p-3">
                   <div className="flex justify-between items-center mb-3"><b className="text-xs text-slate-800">Guard #{index + 1}</b><button type="button" onClick={() => setGuards((prev) => prev.filter((_, i) => i !== index))} className="text-rose-600"><Trash2 className="w-4 h-4"/></button></div>
                   <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                    <label className="text-[11px] font-bold text-slate-600">Select / Type Guard<select value={dbGuards.some((entry) => entry.name === guard.name) ? guard.name : ""} onChange={(e) => { const found = dbGuards.find((entry) => entry.name === e.target.value); if (found) updateGuard(index, { name: found.name, phone: found.phone || "", photoUrl: found.photoUrl || "" }); }} className="mt-1 w-full border rounded-lg p-2 bg-white"><option value="">Type name below / Select master</option>{dbGuards.map((entry) => <option key={entry.id || entry.name} value={entry.name}>{entry.name} {entry.phone ? `(${entry.phone})` : ""}</option>)}</select></label>
+                    <label className="text-[11px] font-bold text-slate-600">Select / Type Guard<select value={dbGuards.some((entry) => entry.name === guard.name) ? guard.name : ""} onChange={(e) => { const found = dbGuards.find((entry) => entry.name === e.target.value); if (found) updateGuard(index, { name: found.name, phone: found.phone || "", photoUrl: found.photoUrl || "", monthlySalary: String(found.monthlySalary || "") }); }} className="mt-1 w-full border rounded-lg p-2 bg-white"><option value="">Type name below / Select master</option>{dbGuards.map((entry) => <option key={entry.id || entry.name} value={entry.name}>{entry.name} {entry.phone ? `(${entry.phone})` : ""}</option>)}</select></label>
                     <label className="text-[11px] font-bold text-slate-600">Guard Name *<input value={guard.name} onChange={(e) => updateGuard(index, { name: e.target.value })} className="mt-1 w-full border rounded-lg p-2"/></label>
                     <label className="text-[11px] font-bold text-slate-600">Phone<input value={guard.phone} onChange={(e) => updateGuard(index, { phone: e.target.value })} className="mt-1 w-full border rounded-lg p-2"/></label>
+                    <label className="text-[11px] font-bold text-slate-600">Monthly Salary ₹<input type="number" min="0" step="0.01" value={guard.monthlySalary} onChange={(e) => updateGuard(index, { monthlySalary: e.target.value })} className="mt-1 w-full border rounded-lg p-2"/></label>
                     <label className="text-[11px] font-bold text-slate-600">Guard Photo<span className="mt-1 flex border rounded-lg p-2 bg-white items-center gap-2"><Camera className="w-4 h-4 text-indigo-600"/><span className="truncate flex-1 font-normal">{guard.photoUrl ? "Photo uploaded" : "Upload photo"}</span><input type="file" accept="image/*" className="max-w-[90px] text-[9px]" onChange={(e) => uploadGuardPhoto(index, e.target.files?.[0])}/></span></label>
                     <label className="text-[11px] font-bold text-slate-600">Deployment From<input type="date" value={guard.startDate} onChange={(e) => updateGuard(index, { startDate: e.target.value })} className="mt-1 w-full border rounded-lg p-2"/></label>
                     <div className="grid grid-cols-2 gap-2"><label className="text-[11px] font-bold text-slate-600">Shift Rate ₹<input type="number" value={guard.shiftRate} onChange={(e) => updateGuard(index, { shiftRate: e.target.value })} className="mt-1 w-full border rounded-lg p-2"/></label><label className="text-[11px] font-bold text-slate-600">Allowance ₹<input type="number" value={guard.allowancePerShift} onChange={(e) => updateGuard(index, { allowancePerShift: e.target.value })} className="mt-1 w-full border rounded-lg p-2"/></label></div>

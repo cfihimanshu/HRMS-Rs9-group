@@ -253,6 +253,8 @@ export default function KanbanBoard({
 
   // Bank / Branch master data (from Legal Recovery)
   const [banksList, setBanksList] = useState<{ id: string | number; bankName: string; bankCode: string }[]>([]);
+  const [billInstitutionType, setBillInstitutionType] = useState<"Bank" | "NBFC">("Bank");
+  const [nbfcsList, setNbfcsList] = useState<{ id: string | number; nbfcName: string; nbfcCode?: string }[]>([]);
   const [branchesList, setBranchesList] = useState<{
     id: string | number;
     branchName: string;
@@ -330,6 +332,7 @@ export default function KanbanBoard({
     if (status !== "loading") {
       fetchTasks();
       fetchBanks();
+      fetchNbfcs();
       fetchCategories();
       fetchModes();
       fetchProjects();
@@ -510,6 +513,16 @@ export default function KanbanBoard({
     }
   };
 
+  const fetchNbfcs = async () => {
+    try {
+      const nbfcsResponse = await fetch("/api/legal-recovery/nbfc");
+      const nbfcsData = await nbfcsResponse.json();
+      if (nbfcsData.success) setNbfcsList(nbfcsData.data || []);
+    } catch (err) {
+      console.error("Failed to load NBFC masters:", err);
+    }
+  };
+
   const fetchBranches = async (bankId: string) => {
     if (!bankId) { setBranchesList([]); return; }
     try {
@@ -614,7 +627,7 @@ export default function KanbanBoard({
 
       finalDesc = [
         `Category: ${selectedTaskCategory}${type === "Call" ? ` (${callDirection})` : ` (${bankSubType})`}`,
-        bankName ? `Bank: ${bankName}` : "",
+        bankName ? `${isBillFollowUp && billInstitutionType === "NBFC" ? "NBFC" : "Bank"}: ${bankName}` : "",
         branchName ? `Branch: ${branchName}` : "",
         aoName ? `AO: ${aoName}` : "",
         rboName ? `RBO: ${rboName}` : "",
@@ -708,6 +721,7 @@ export default function KanbanBoard({
         setCaseDetails("");
         setBankSubType("AO related");
         setSelectedBankId("");
+        setBillInstitutionType("Bank");
         setBranchesList([]);
         setOfficerName("");
         setOfficerPhone("");
@@ -2695,73 +2709,107 @@ export default function KanbanBoard({
                                 ) : (
                                   /* Case 2: For all other Task Modes (Call, SMS, Email, Meeting, WhatsApp, Field Visit, etc.) -> Original Bank Fields */
                                   <div className="space-y-2 animate-fade-in">
+                                    {isBillFollowUp && (
+                                      <div>
+                                        <label className="block text-[9px] uppercase tracking-wider text-emerald-700 font-black mb-1">Follow Up With *</label>
+                                        <div className="grid grid-cols-2 gap-2 rounded-lg bg-white border border-emerald-200 p-1">
+                                          {(["Bank", "NBFC"] as const).map(institutionType => (
+                                            <button
+                                              key={institutionType}
+                                              type="button"
+                                              onClick={() => {
+                                                setBillInstitutionType(institutionType);
+                                                setSelectedBankId("");
+                                                setBankName("");
+                                                setBranchName("");
+                                                setRboName("");
+                                                setOfficerName("");
+                                                setOfficerPhone("");
+                                                setBranchesList([]);
+                                              }}
+                                              className={`rounded-md px-3 py-2 text-xs font-black transition ${billInstitutionType === institutionType ? "bg-emerald-600 text-white shadow-sm" : "text-emerald-800 hover:bg-emerald-50"}`}
+                                            >
+                                              Select {institutionType}
+                                            </button>
+                                          ))}
+                                        </div>
+                                      </div>
+                                    )}
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 relative z-20">
-                                      {/* Bank Input - Searchable */}
                                       <SearchableCombobox
-                                        label="Select Bank *"
+                                        label={`Select ${isBillFollowUp ? billInstitutionType : "Bank"} *`}
                                         value={bankName}
-                                        placeholder="Type to search bank..."
-                                        options={banksList.map(b => b.bankName)}
+                                        placeholder={`Type to search ${isBillFollowUp && billInstitutionType === "NBFC" ? "NBFC" : "bank"}...`}
+                                        options={isBillFollowUp && billInstitutionType === "NBFC" ? nbfcsList.map(item => item.nbfcName) : banksList.map(item => item.bankName)}
                                         required
                                         onChange={(val) => {
                                           setBankName(val);
-                                          const bObj = banksList.find(b => b.bankName.toLowerCase() === val.toLowerCase() || String(b.id) === val);
+                                          const institutionList = isBillFollowUp && billInstitutionType === "NBFC"
+                                            ? nbfcsList.map(item => ({ id: item.id, name: item.nbfcName }))
+                                            : banksList.map(item => ({ id: item.id, name: item.bankName }));
+                                          const bObj = institutionList.find(item => item.name.toLowerCase() === val.toLowerCase() || String(item.id) === val);
                                           if (bObj) {
                                             setSelectedBankId(String(bObj.id));
                                             setBranchName("");
                                             setOfficerName("");
                                             setOfficerPhone("");
-                                            fetchBranches(String(bObj.id));
+                                            if (isBillFollowUp && billInstitutionType === "NBFC") setRboName("");
+                                            else fetchBranches(String(bObj.id));
                                           } else {
                                             setSelectedBankId("");
                                           }
                                         }}
                                         onSelectOption={(val) => {
-                                          const bObj = banksList.find(b => b.bankName.toLowerCase() === val.toLowerCase() || String(b.id) === val);
+                                          const institutionList = isBillFollowUp && billInstitutionType === "NBFC"
+                                            ? nbfcsList.map(item => ({ id: item.id, name: item.nbfcName }))
+                                            : banksList.map(item => ({ id: item.id, name: item.bankName }));
+                                          const bObj = institutionList.find(item => item.name.toLowerCase() === val.toLowerCase() || String(item.id) === val);
                                           if (bObj) {
                                             setSelectedBankId(String(bObj.id));
-                                            setBankName(bObj.bankName);
+                                            setBankName(bObj.name);
                                             setBranchName("");
                                             setOfficerName("");
                                             setOfficerPhone("");
-                                            fetchBranches(String(bObj.id));
+                                            if (isBillFollowUp && billInstitutionType === "NBFC") setRboName("");
+                                            else fetchBranches(String(bObj.id));
                                           }
                                         }}
                                       />
 
-                                      {/* Branch Input - Searchable */}
-                                      <SearchableCombobox
-                                        label="Select Branch *"
-                                        value={branchName}
-                                        placeholder={selectedBankId ? "Type to search branch..." : "Select a bank first"}
-                                        options={branchesList.map((br: any) => br.branchName + (br.branchCode ? ` (${br.branchCode})` : ""))}
-                                        disabled={!selectedBankId}
-                                        required
-                                        onChange={(val) => {
-                                          setBranchName(val);
-                                          const cleanVal = val.split(" (")[0].trim();
-                                          const brObj = branchesList.find((b: any) => String(b.id) === val || b.branchName === cleanVal || b.branchName === val);
-                                          if (brObj) {
-                                            setBranchName(brObj.branchName);
-                                            if ((brObj as any).rbo || (brObj as any).rboName) setRboName((brObj as any).rbo || (brObj as any).rboName || "");
-                                            setOfficerName(brObj.branchManager || brObj.aoName || brObj.foName || "");
-                                            setOfficerPhone(brObj.branchManagerContact || brObj.foContact || "");
-                                          }
-                                        }}
-                                        onSelectOption={(val) => {
-                                          const cleanVal = val.split(" (")[0].trim();
-                                          const brObj = branchesList.find((b: any) => String(b.id) === val || b.branchName === cleanVal || b.branchName === val);
-                                          if (brObj) {
-                                            setBranchName(brObj.branchName);
-                                            if ((brObj as any).rbo || (brObj as any).rboName) setRboName((brObj as any).rbo || (brObj as any).rboName || "");
-                                            setOfficerName(brObj.branchManager || brObj.aoName || brObj.foName || "");
-                                            setOfficerPhone(brObj.branchManagerContact || brObj.foContact || "");
-                                          }
-                                        }}
-                                      />
+                                      {(!isBillFollowUp || billInstitutionType === "Bank") && (
+                                        <SearchableCombobox
+                                          label="Select Branch *"
+                                          value={branchName}
+                                          placeholder={selectedBankId ? "Type to search branch..." : "Select a bank first"}
+                                          options={branchesList.map((br: any) => br.branchName + (br.branchCode ? ` (${br.branchCode})` : ""))}
+                                          disabled={!selectedBankId}
+                                          required
+                                          onChange={(val) => {
+                                            setBranchName(val);
+                                            const cleanVal = val.split(" (")[0].trim();
+                                            const brObj = branchesList.find((b: any) => String(b.id) === val || b.branchName === cleanVal || b.branchName === val);
+                                            if (brObj) {
+                                              setBranchName(brObj.branchName);
+                                              if ((brObj as any).rbo || (brObj as any).rboName) setRboName((brObj as any).rbo || (brObj as any).rboName || "");
+                                              setOfficerName(brObj.branchManager || brObj.aoName || brObj.foName || "");
+                                              setOfficerPhone(brObj.branchManagerContact || brObj.foContact || "");
+                                            }
+                                          }}
+                                          onSelectOption={(val) => {
+                                            const cleanVal = val.split(" (")[0].trim();
+                                            const brObj = branchesList.find((b: any) => String(b.id) === val || b.branchName === cleanVal || b.branchName === val);
+                                            if (brObj) {
+                                              setBranchName(brObj.branchName);
+                                              if ((brObj as any).rbo || (brObj as any).rboName) setRboName((brObj as any).rbo || (brObj as any).rboName || "");
+                                              setOfficerName(brObj.branchManager || brObj.aoName || brObj.foName || "");
+                                              setOfficerPhone(brObj.branchManagerContact || brObj.foContact || "");
+                                            }
+                                          }}
+                                        />
+                                      )}
                                     </div>
 
-                                    {isBillFollowUp && (
+                                    {isBillFollowUp && billInstitutionType === "Bank" && (
                                       <SearchableCombobox
                                         label="RBO (Regional Office) *"
                                         value={rboName}

@@ -72,6 +72,7 @@ export default function LegalRecoveryModule({ userRole, triggerToast, sessionUse
   const [nbfcsList, setNbfcsList] = useState<any[]>([]);
   const [nbfcBranchesList, setNbfcBranchesList] = useState<any[]>([]);
   const [pocEmployees, setPocEmployees] = useState<any[]>([]);
+  const [taskForwardEmployees, setTaskForwardEmployees] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Modals state
@@ -127,7 +128,7 @@ export default function LegalRecoveryModule({ userRole, triggerToast, sessionUse
   const [selectedBankIdForCase, setSelectedBankIdForCase] = useState("");
 
   const [followUpForm, setFollowUpForm] = useState({
-    callStatus: "Connected", conversationDetails: "", nextFollowUpDate: "", callDate: new Date().toISOString().split('T')[0]
+    callStatus: "Connected", conversationDetails: "", nextFollowUpDate: "", callDate: new Date().toISOString().split('T')[0], forwardedTo: ""
   });
   const [workLogForm, setWorkLogForm] = useState({
     category: "ADVOCATE NOTICE", subCategory: "NOTICE KA KAM LENA", remarks: "", workDate: new Date().toISOString().split('T')[0]
@@ -213,9 +214,16 @@ export default function LegalRecoveryModule({ userRole, triggerToast, sessionUse
       const res = await fetch("/api/employees");
       const data = await res.json();
       if (res.ok && data.success) {
-        const legalRecoveryEmployees = (data.data || [])
+        const activeEmployees = (data.data || [])
           .filter((employee: any) => {
-            const status = String(employee.status || "active").trim().toLowerCase();
+            const status = String(employee.status || "").trim().toLowerCase();
+            return status === "active";
+          })
+          .sort((a: any, b: any) => String(a.name || "").localeCompare(String(b.name || "")));
+        setTaskForwardEmployees(activeEmployees);
+
+        const legalRecoveryEmployees = activeEmployees
+          .filter((employee: any) => {
             const vertical = String(employee.vertical || employee.employeeProfile?.vertical || "").trim().toLowerCase();
             const department = String(
               employee.employeeProfile?.department?.name ||
@@ -224,15 +232,13 @@ export default function LegalRecoveryModule({ userRole, triggerToast, sessionUse
               employee.department ||
               ""
             ).trim().toLowerCase();
-            const isActive = !["inactive", "terminated", "resigned", "disabled", "blocked"].includes(status);
             const belongsToLegalRecovery = (vertical.includes("legal") && vertical.includes("recovery")) ||
               vertical === "legal & security" ||
               (department.includes("legal") && department.includes("recovery")) ||
               department === "legal & security";
 
-            return isActive && belongsToLegalRecovery;
-          })
-          .sort((a: any, b: any) => String(a.name || "").localeCompare(String(b.name || "")));
+            return belongsToLegalRecovery;
+          });
 
         setPocEmployees(legalRecoveryEmployees);
       }
@@ -665,7 +671,8 @@ export default function LegalRecoveryModule({ userRole, triggerToast, sessionUse
         nextFollowUpDate: followUpForm.nextFollowUpDate,
         callDate: followUpForm.callDate,
         callRecordingUrl,
-        pendingAmount: showFollowUpForm.master.pendingAmount || 0
+        pendingAmount: showFollowUpForm.master.pendingAmount || 0,
+        forwardedTo: followUpForm.forwardedTo || null
       };
 
       const res = await fetch("/api/legal-recovery/followup", {
@@ -676,9 +683,11 @@ export default function LegalRecoveryModule({ userRole, triggerToast, sessionUse
 
       const result = await res.json();
       if (result.success) {
-        triggerToast("Bill Follow Up logged & Task created successfully!");
+        triggerToast(followUpForm.forwardedTo
+          ? "Follow Up logged, current task completed & new task forwarded successfully!"
+          : "Follow Up logged & current linked task completed successfully!");
         setShowFollowUpForm({ show: false, master: null });
-        setFollowUpForm({ callStatus: "Connected", conversationDetails: "", nextFollowUpDate: "", callDate: new Date().toISOString().split('T')[0] });
+        setFollowUpForm({ callStatus: "Connected", conversationDetails: "", nextFollowUpDate: "", callDate: new Date().toISOString().split('T')[0], forwardedTo: "" });
         setAudioFile(null);
         fetchCases();
       } else {
@@ -1671,6 +1680,25 @@ export default function LegalRecoveryModule({ userRole, triggerToast, sessionUse
                 </div>
 
                 <div>
+                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Forward To (Optional)</label>
+                  <select
+                    value={followUpForm.forwardedTo}
+                    onChange={e => setFollowUpForm({ ...followUpForm, forwardedTo: e.target.value })}
+                    className="w-full bg-white border border-[#E8E4DF] focus:border-indigo-500 rounded-lg px-3 py-2.5 text-xs focus:outline-none"
+                  >
+                    <option value="">-- Complete follow-up without forwarding --</option>
+                    {taskForwardEmployees
+                      .filter(employee => String(employee.id) !== String(sessionUser?.id || ""))
+                      .map(employee => (
+                        <option key={employee.id} value={employee.id}>
+                          {employee.name || employee.email || employee.id}{employee.role ? ` (${employee.role})` : ""}
+                        </option>
+                      ))}
+                  </select>
+                  <p className="mt-1 text-[9px] text-slate-400">Select an employee to create a new Legal Follow-up task in their My Tasks.</p>
+                </div>
+
+                <div>
                   <div className="flex items-center justify-between mb-1">
                     <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold">Upload Document / Recording / Screenshot</label>
                     <span className="text-[9px] text-slate-400 font-medium">Images, Audio (MP3/M4A/WAV/AMR), PDFs, Docs</span>
@@ -1705,7 +1733,7 @@ export default function LegalRecoveryModule({ userRole, triggerToast, sessionUse
                     Cancel
                   </button>
                   <button disabled={submittingFollowUp} type="submit" className="px-4 py-2 bg-indigo-600 text-white rounded-lg text-xs font-semibold uppercase tracking-wider hover:bg-indigo-700 disabled:opacity-50">
-                    {submittingFollowUp ? "Saving & Creating Task..." : "Save Follow Up"}
+                    {submittingFollowUp ? "Saving Follow Up..." : "Save Follow Up"}
                   </button>
                 </div>
               </form>

@@ -7,10 +7,20 @@ import LegalWorkHistory from "@/models/sequelize/LegalWorkHistory";
 import TaskLog from "@/models/sequelize/TaskLog";
 import sequelize from "@/lib/sequelize";
 import { Op } from "sequelize";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+import User from "@/models/sequelize/User";
+import Notification from "@/models/sequelize/Notification";
 
 export async function POST(request: Request) {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user) {
+      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
+    }
     const data = await request.json();
+    const callerId = String((session.user as any).id || "");
+    const callerName = String(session.user.name || "Employee");
     await sequelize.authenticate();
     
     // Sync models if tables don't exist
@@ -28,44 +38,98 @@ export async function POST(request: Request) {
       }
     }
     data.nextFollowUpDate = cleanNextFollowUpDate;
+
+    let forwardedUser: any = null;
+    if (data.forwardedTo) {
+      forwardedUser = await User.findByPk(String(data.forwardedTo), { attributes: ["id", "name", "status"], raw: true }) as any;
+      if (!forwardedUser || String(forwardedUser.status || "").trim().toLowerCase() !== "active") {
+        return NextResponse.json({ success: false, error: "Selected employee is not available for task forwarding" }, { status: 400 });
+      }
+    }
     
-    // 1. Create Task in TaskLog (used by Kanban)
+    // Complete the task created by the previous follow-up for this case.
+    const previousFollowUp = await LegalRecoveryFollowUp.findOne({
+      where: { masterId: data.masterId || 0, taskId: { [Op.ne]: null } },
+      order: [["createdAt", "DESC"]],
+    });
+    let completedTaskId: string | null = null;
+    if (previousFollowUp?.taskId) {
+      const previousTask = await TaskLog.findByPk(previousFollowUp.taskId);
+      if (previousTask && previousTask.status !== "Completed") {
+        await previousTask.update({ status: "Completed", timerState: "Stopped", timerStart: null });
+        completedTaskId = String(previousTask.id);
+      }
+    }
+
+    // Create a new task only when this follow-up is forwarded to someone.
     const branchInfo = [
       data.branchName,
       data.branchId ? `(${data.branchId})` : null
     ].filter(Boolean).join(" ");
     const taskTitle = `Legal Follow Up - Bank: ${data.bankName || 'Unknown'}${branchInfo ? ` - ${branchInfo}` : ''}`;
-    const nextId = await TaskLog.generateNextTaskId(data.callerId);
     
     // Construct progress notes array JSON
     const initialNoteObj = {
       id: Date.now().toString(),
       note: data.conversationDetails || "Follow up call logged",
       createdAt: new Date().toISOString(),
-      userName: data.callerName || "System"
+      userName: callerName
     };
     const serializedNotes = JSON.stringify([initialNoteObj]);
-
-    const newTask = await TaskLog.create({
-      id: nextId,
-      employee: data.callerId || null,
-      date: new Date(),
-      taskTitle: taskTitle,
+    const completedCallTaskId = await TaskLog.generateNextTaskId(callerId);
+    const completedCallTask = await TaskLog.create({
+      id: completedCallTaskId,
+      employee: callerId || null,
+      date: data.callDate ? new Date(data.callDate) : new Date(),
+      taskTitle,
       taskType: "CALL",
       description: data.conversationDetails,
-      status: "Pending",
-      scheduledAt: data.nextFollowUpDate ? new Date(data.nextFollowUpDate) : null,
+      status: "Completed",
+      scheduledAt: null,
       timerState: "Stopped",
+      timerStart: null,
       elapsedSeconds: 0,
       proofAttachment: data.callRecordingUrl || null,
-      progressNotes: serializedNotes
+      progressNotes: serializedNotes,
     });
+    let newTask: any = null;
+    if (forwardedUser) {
+      const nextId = await TaskLog.generateNextTaskId(String(forwardedUser.id));
+      newTask = await TaskLog.create({
+        id: nextId,
+        employee: String(forwardedUser.id),
+        assignedBy: callerId || null,
+        forwardedTo: String(forwardedUser.id),
+        date: new Date(),
+        taskTitle,
+        taskType: "CALL",
+        description: data.conversationDetails,
+        status: "Pending",
+        scheduledAt: data.nextFollowUpDate ? new Date(data.nextFollowUpDate) : null,
+        timerState: "Stopped",
+        elapsedSeconds: 0,
+        proofAttachment: data.callRecordingUrl || null,
+        progressNotes: serializedNotes,
+      });
+      try {
+        await Notification.sync();
+        await Notification.create({
+          id: `legal_followup_${newTask.id}_${forwardedUser.id}`,
+          recipient: String(forwardedUser.id),
+          title: "New Legal Follow-up Task",
+          message: `${callerName} forwarded a legal follow-up task to you: ${taskTitle}`,
+          read: false,
+        });
+      } catch (notificationError) {
+        console.error("Legal follow-up forwarding notification error:", notificationError);
+      }
+    }
 
     // 2. Create Follow Up entry
     const followupData = {
       masterId: data.masterId || 0,
-      callerId: data.callerId,
-      callerName: data.callerName,
+      callerId,
+      callerName,
       callStatus: data.callStatus,
       conversationDetails: data.conversationDetails,
       callRecordingUrl: data.callRecordingUrl,
@@ -73,7 +137,7 @@ export async function POST(request: Request) {
       callDate: data.callDate || new Date(),
       bankName: data.bankName,
       branchName: data.branchName,
-      taskId: newTask.id // Link the task
+      taskId: newTask?.id || completedCallTask.id
     };
     
     const newFollowUp = await LegalRecoveryFollowUp.create(followupData);
@@ -95,9 +159,9 @@ export async function POST(request: Request) {
         businessDevOption: "Bill Follow Up",
         businessDevSubOption: "BILL FOLLOW UP",
         noOfCount: "1",
-        broughtBy: data.callerName,
-        employeeName: data.callerName,
-        employeeId: data.callerId,
+        broughtBy: callerName,
+        employeeName: callerName,
+        employeeId: callerId,
         uploadedFileName: data.callRecordingUrl || undefined,
         remarks: callRemarks,
         financialDetails: JSON.stringify({
@@ -106,7 +170,10 @@ export async function POST(request: Request) {
           nextFollowUpDate: data.nextFollowUpDate,
           conversationDetails: data.conversationDetails,
           callRecordingUrl: data.callRecordingUrl,
-          taskId: newTask.id
+          taskId: completedCallTask.id,
+          forwardedTaskId: newTask?.id || null,
+          completedTaskId,
+          forwardedTo: data.forwardedTo || null
         })
       });
     } catch (wlErr) {
@@ -120,8 +187,8 @@ export async function POST(request: Request) {
         subCategory: "BILL FOLLOW UP",
         bankName: data.bankName || "Registered Bank",
         branchName: data.branchName || "General Branch",
-        employeeId: data.callerId,
-        employeeName: data.callerName,
+        employeeId: callerId,
+        employeeName: callerName,
         attachmentUrl: data.callRecordingUrl || undefined,
         remarks: callRemarks,
         status: "Completed",
@@ -131,7 +198,7 @@ export async function POST(request: Request) {
       console.warn("LegalWorkHistory creation warning on follow-up:", whErr);
     }
 
-    return NextResponse.json({ success: true, data: newFollowUp, task: newTask });
+    return NextResponse.json({ success: true, data: newFollowUp, task: newTask, loggedTask: completedCallTask, completedTaskId });
   } catch (error: any) {
     console.error("Legal Followup POST Error:", error);
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });

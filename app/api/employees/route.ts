@@ -38,6 +38,19 @@ function getUserCompanies(user: any): string[] {
   return [];
 }
 
+function parseMenuAccess(value: unknown): string[] {
+  if (Array.isArray(value)) return value.map(String);
+  if (typeof value === "string" && value.trim()) {
+    try {
+      const parsed = JSON.parse(value);
+      return Array.isArray(parsed) ? parsed.map(String) : [];
+    } catch {
+      return [];
+    }
+  }
+  return [];
+}
+
 // GET /api/employees - Get list of all staff members
 export async function GET(req: Request) {
   try {
@@ -96,15 +109,14 @@ export async function GET(req: Request) {
       }
     }
 
-    let isLegalRecoveryUser = false;
-    if (dbUser && dbUser.menuAccess) {
-      try {
-        const parsed = typeof dbUser.menuAccess === "string" ? JSON.parse(dbUser.menuAccess) : dbUser.menuAccess;
-        if (Array.isArray(parsed) && parsed.includes("legal-recovery")) {
-          isLegalRecoveryUser = true;
-        }
-      } catch (e) {}
-    }
+    const menuAccess = parseMenuAccess(dbUser?.menuAccess);
+    const canUseFullEmployeeList =
+      isOwnerOrDirector ||
+      isHR ||
+      isAdministration ||
+      menuAccess.includes("employees") ||
+      menuAccess.includes("admin-access") ||
+      menuAccess.includes("Administration & IT");
 
     const isManager = userRole === "department manager" || userRole.includes("manager") || userRole.includes("head") || userRole === "dsm" ||
                       designation === "department manager" || designation.includes("manager") || designation.includes("head") || designation === "dsm";
@@ -179,10 +191,8 @@ export async function GET(req: Request) {
       };
     });
 
-    const showAllCompanies = searchParams.get("all") === "true" || searchParams.get("all") === "1" || searchParams.get("allCompanies") === "true";
-
     let filteredMergedData = mergedData;
-    if (!isOwnerOrDirector && !isHR && !showAllCompanies) {
+    if (!canUseFullEmployeeList) {
       filteredMergedData = mergedData.filter((emp: any) => {
         let empComps: any[] = [];
         if (Array.isArray(emp.companies)) {
@@ -614,6 +624,7 @@ export async function PUT(req: Request) {
 
     const isOwnerOrDirector = ["owner", "director"].includes(userRole);
     const isHR = ["hr head", "hr-head", "hr executive", "hr-executive"].includes(userRole);
+    const canManageEmployeePermissions = isOwnerOrDirector || isHR;
 
     let isAdministration = false;
     const userProfile = await EmployeeProfile.findOne({ where: { user: userId }, raw: true });
@@ -773,7 +784,7 @@ export async function PUT(req: Request) {
         bankName !== undefined || accountNumber !== undefined || ifscCode !== undefined ||
         pfNumber !== undefined || uanNumber !== undefined || esiNumber !== undefined ||
         role !== undefined || status !== undefined || name !== undefined || email !== undefined ||
-        mobile !== undefined
+        mobile !== undefined || menuAccess !== undefined
       ) {
         return NextResponse.json({ success: false, error: "Forbidden. Administration users can only update asset allocation fields." }, { status: 403 });
       }
@@ -871,6 +882,9 @@ export async function PUT(req: Request) {
           userRec.companies = Array.isArray(companies) ? companies : JSON.parse(companies);
         }
         if (menuAccess !== undefined) {
+          if (!canManageEmployeePermissions) {
+            return NextResponse.json({ success: false, error: "Forbidden. Only Owner, Director, or HR can update page permissions." }, { status: 403 });
+          }
           userRec.menuAccess = Array.isArray(menuAccess) ? menuAccess : JSON.parse(menuAccess);
         }
         await userRec.save();

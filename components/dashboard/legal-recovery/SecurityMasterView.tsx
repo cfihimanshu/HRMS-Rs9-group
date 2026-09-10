@@ -366,7 +366,7 @@ export default function SecurityMasterView({
   // DB Guards Master State
   const [dbGuards, setDbGuards] = useState<any[]>([]);
   const [showAddGuardModal, setShowAddGuardModal] = useState(false);
-  const [newGuardForm, setNewGuardForm] = useState({ name: "", phone: "", photoUrl: "" });
+  const [newGuardForm, setNewGuardForm] = useState({ name: "", phone: "", photoUrl: "", monthlySalary: "" });
   const [savingGuard, setSavingGuard] = useState(false);
   // For additional guard cards - track which card is adding new
   const [addGuardForCard, setAddGuardForCard] = useState<"primary" | number | null>(null);
@@ -1142,6 +1142,7 @@ export default function SecurityMasterView({
           name: newGuardForm.name.trim(),
           phone: newGuardForm.phone.trim(),
           photoUrl: newGuardForm.photoUrl,
+          monthlySalary: newGuardForm.monthlySalary,
         }),
       });
       const data = await res.json();
@@ -1164,7 +1165,7 @@ export default function SecurityMasterView({
           setForm({ ...form, guardName: newGuardForm.name.trim(), guardPhone: newGuardForm.phone });
         }
 
-        setNewGuardForm({ name: "", phone: "", photoUrl: "" });
+        setNewGuardForm({ name: "", phone: "", photoUrl: "", monthlySalary: "" });
         setShowAddGuardModal(false);
         setAddGuardForRosterIdx(null);
         setAddGuardForCard(null);
@@ -4128,6 +4129,18 @@ export default function SecurityMasterView({
                   onChange={(e) => setNewGuardForm({ ...newGuardForm, phone: e.target.value })}
                 />
               </div>
+              <div>
+                <label className="block text-[10px] uppercase font-black text-slate-500 tracking-wider mb-1">Monthly Salary (₹)</label>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-xs font-bold text-slate-900 focus:outline-none focus:border-indigo-500"
+                  placeholder="e.g. 20000"
+                  value={newGuardForm.monthlySalary}
+                  onChange={(e) => setNewGuardForm({ ...newGuardForm, monthlySalary: e.target.value })}
+                />
+              </div>
 
               {/* Guard Photo / Image Upload */}
               <div>
@@ -6432,6 +6445,20 @@ export default function SecurityMasterView({
                   placeholder="e.g. 9876543210"
                   value={newGuardForm.phone}
                   onChange={(e) => setNewGuardForm({ ...newGuardForm, phone: e.target.value })}
+                />
+              </div>
+              <div>
+                <label className="block text-[10px] uppercase font-black text-slate-500 tracking-wider mb-1">
+                  Monthly Salary (₹)
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-xs font-bold text-slate-900 focus:outline-none focus:border-indigo-600"
+                  placeholder="e.g. 20000"
+                  value={newGuardForm.monthlySalary}
+                  onChange={(e) => setNewGuardForm({ ...newGuardForm, monthlySalary: e.target.value })}
                 />
               </div>
 

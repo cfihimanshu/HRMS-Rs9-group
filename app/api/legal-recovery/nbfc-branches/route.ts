@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import NbfcBranch from "@/models/sequelize/NbfcBranch";
 import sequelize from "@/lib/sequelize";
 
+const normalizeBranchValue = (value: unknown) => String(value || "").trim().toLowerCase();
+
 export async function GET() {
   try {
     await sequelize.authenticate();
@@ -23,14 +25,33 @@ export async function POST(request: Request) {
     await sequelize.authenticate();
     await NbfcBranch.sync();
 
-    if (!data.branchCode) {
+    if (!String(data.branchName || "").trim()) {
+      return NextResponse.json({ success: false, error: "Branch Name is required" }, { status: 400 });
+    }
+    if (!String(data.branchCode || "").trim()) {
       return NextResponse.json({ success: false, error: "Branch Code is required" }, { status: 400 });
+    }
+
+    const nbfcId = data.nbfcId || data.bankId || 1;
+    const branchName = String(data.branchName || "").trim();
+    const branchCode = String(data.branchCode).trim();
+    const existingBranches = await NbfcBranch.findAll({ where: { nbfcId } });
+    const duplicate = existingBranches.find(branch =>
+      normalizeBranchValue(branch.branchName) === normalizeBranchValue(branchName) ||
+      normalizeBranchValue(branch.branchCode) === normalizeBranchValue(branchCode)
+    );
+    if (duplicate) {
+      const duplicateField = normalizeBranchValue(duplicate.branchCode) === normalizeBranchValue(branchCode) ? "code" : "name";
+      return NextResponse.json(
+        { success: false, error: `This NBFC already has a branch with the same ${duplicateField}.` },
+        { status: 409 }
+      );
     }
     
     const newBranch = await NbfcBranch.create({
-      nbfcId: data.nbfcId || data.bankId || 1,
-      branchName: data.branchName,
-      branchCode: data.branchCode,
+      nbfcId,
+      branchName,
+      branchCode,
       branchEmail: data.branchEmail || null,
       branchManager: data.branchManager || null,
       branchManagerContact: data.branchManagerContact || null,

@@ -6,16 +6,29 @@ import DocumentRegister from "@/models/sequelize/DocumentRegister";
 import Notification from "@/models/sequelize/Notification";
 import User from "@/models/sequelize/User";
 import { sendEmail } from "@/lib/email";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 
 const ALERT_ROLES = ["Owner", "Director", "HR Head", "HR Executive"] as const;
 const escapeHtml = (value: unknown) => String(value ?? "").replace(/[&<>"']/g, character => ({
   "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
 }[character] || character));
 
-export async function POST() {
+async function isAuthorized(request: Request) {
+  const secret = process.env.CRON_SECRET;
+  const supplied = new URL(request.url).searchParams.get("secret");
+  if (secret && (supplied === secret || request.headers.get("authorization") === `Bearer ${secret}`)) return true;
+  const session: any = await getServerSession(authOptions);
+  const role = String(session?.user?.role || "").toLowerCase();
+  return /owner|director|hr/.test(role);
+}
+
+export async function POST(request: Request) {
   try {
-    const auth = await requireApiSession(ALERT_ROLES);
-    if (auth.response) return auth.response;
+    if (!(await isAuthorized(request))) {
+      const auth = await requireApiSession(ALERT_ROLES);
+      if (auth.response) return auth.response;
+    }
     const today = new Date().toISOString().slice(0, 10);
     const inThirtyDays = new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10);
     const documents = await DocumentRegister.findAll({
@@ -56,4 +69,8 @@ export async function POST() {
   } catch (error: any) {
     return NextResponse.json({ success: false, error: error.message || "Alert scan failed" }, { status: 500 });
   }
+}
+
+export async function GET(request: Request) {
+  return POST(request);
 }

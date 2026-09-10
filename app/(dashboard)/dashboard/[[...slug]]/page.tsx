@@ -80,6 +80,25 @@ import DocumentMovement from "@/components/dashboard/DocumentMovement";
 import VehicleRegistry from "@/components/dashboard/VehicleRegistry";
 import DomainRecordPanels from "@/components/dashboard/DomainRecordPanels";
 
+const parseMenuAccess = (value: unknown): string[] | null => {
+  if (Array.isArray(value)) return value.map(String);
+  if (typeof value === "string" && value.trim()) {
+    try {
+      const parsed = JSON.parse(value);
+      return Array.isArray(parsed) ? parsed.map(String) : null;
+    } catch {
+      return null;
+    }
+  }
+  return null;
+};
+
+const hasMenuAccess = (value: unknown, pageId: string, category: string): boolean => {
+  const access = parseMenuAccess(value);
+  if (!access) return false;
+  return access.includes(pageId) || access.includes(category);
+};
+
 export default function UnifiedEnterpriseDashboard() {
   const { data: session, status } = useSession();
   const router = useRouter();
@@ -1432,11 +1451,17 @@ export default function UnifiedEnterpriseDashboard() {
           )}
 
           {activeTab === "admin-access" && (
-            <AdministratorAccess
-              userRole={userRole}
-              triggerToast={triggerToast}
-              sessionUser={session?.user}
-            />
+            userRole === "Owner" ? (
+              <AdministratorAccess
+                userRole={userRole}
+                triggerToast={triggerToast}
+                sessionUser={session?.user}
+              />
+            ) : (
+              <div className="p-8 text-center text-red-500 font-bold bg-white rounded-xl shadow border border-red-100">
+                Access Denied: Only Owner users can manage administrator permissions.
+              </div>
+            )
           )}
 
           {activeTab === "audit-trail" && <AuditTrail />}
@@ -1454,16 +1479,7 @@ export default function UnifiedEnterpriseDashboard() {
             const userDesig = (session?.user as any)?.jobTitle || (session?.user as any)?.designation || "";
             const isAdministration = userDept.toLowerCase().includes("administration");
             const isSalesHead = userRole.toLowerCase().includes("sales head") || userDesig.toLowerCase().includes("sales head") || (userRole.toLowerCase().includes("head") && userDept.toLowerCase().includes("sales"));
-            let allowedPageIds: string[] | null = null;
-            if (Array.isArray(liveMenuAccess)) {
-              allowedPageIds = liveMenuAccess;
-            } else if (typeof liveMenuAccess === "string" && liveMenuAccess) {
-              try {
-                const parsed = JSON.parse(liveMenuAccess);
-                if (Array.isArray(parsed)) allowedPageIds = parsed;
-              } catch { }
-            }
-            const hasExplicitAccess = allowedPageIds && allowedPageIds.includes("legal-recovery");
+            const hasExplicitAccess = hasMenuAccess(liveMenuAccess, "legal-recovery", "Administration & IT");
             const hasAccess = userRole === "Owner" || isAdministration || isSalesHead || hasExplicitAccess;
 
             if (!hasAccess) {
@@ -1489,16 +1505,7 @@ export default function UnifiedEnterpriseDashboard() {
             const userDesig = (session?.user as any)?.jobTitle || (session?.user as any)?.designation || "";
             const isAdministration = userDept.toLowerCase().includes("administration");
             const isSalesHead = userRole.toLowerCase().includes("sales head") || userDesig.toLowerCase().includes("sales head") || (userRole.toLowerCase().includes("head") && userDept.toLowerCase().includes("sales"));
-            let allowedPageIds: string[] | null = null;
-            if (Array.isArray(liveMenuAccess)) {
-              allowedPageIds = liveMenuAccess;
-            } else if (typeof liveMenuAccess === "string" && liveMenuAccess) {
-              try {
-                const parsed = JSON.parse(liveMenuAccess);
-                if (Array.isArray(parsed)) allowedPageIds = parsed;
-              } catch { }
-            }
-            const hasExplicitAccess = allowedPageIds && allowedPageIds.includes("security");
+            const hasExplicitAccess = hasMenuAccess(liveMenuAccess, "security", "Administration & IT");
             const hasAccess = userRole === "Owner" || isAdministration || isSalesHead || hasExplicitAccess;
 
             if (!hasAccess) {
