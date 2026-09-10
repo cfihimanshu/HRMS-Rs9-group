@@ -14,6 +14,14 @@ LegalRecoveryPayment.init(
       type: DataTypes.INTEGER, // Link to LegalRecoveryMaster
       allowNull: false,
     },
+    invoiceId: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+    },
+    invoiceNo: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
     bankName: {
       type: DataTypes.STRING,
       allowNull: true,
@@ -29,6 +37,11 @@ LegalRecoveryPayment.init(
     amount: {
       type: DataTypes.DECIMAL(15, 2),
       allowNull: false,
+    },
+    tdsAmount: {
+      type: DataTypes.DECIMAL(15, 2),
+      allowNull: false,
+      defaultValue: 0,
     },
     paymentDate: {
       type: DataTypes.DATE,
@@ -57,6 +70,7 @@ LegalRecoveryPayment.init(
     timestamps: true,
     indexes: [
       { fields: ["masterId"] },
+      { fields: ["invoiceId"] },
       { name: "idx_lrp_payment_date", fields: ["paymentDate"] },
       { name: "idx_lrp_receiver_date", fields: ["receivedBy", "paymentDate"] }
     ]

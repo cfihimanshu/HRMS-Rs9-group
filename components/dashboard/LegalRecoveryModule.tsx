@@ -141,9 +141,15 @@ export default function LegalRecoveryModule({ userRole, triggerToast, sessionUse
   const [audioFile, setAudioFile] = useState<File | null>(null);
 
   const [paymentForm, setPaymentForm] = useState({
-    amount: "", paymentDate: new Date().toISOString().split('T')[0], paymentMode: "NEFT/RTGS", otherPaymentMode: "", transactionId: "", remarks: ""
+    invoiceId: "", amount: "", tdsAmount: "", paymentDate: new Date().toISOString().split('T')[0], paymentMode: "NEFT/RTGS", otherPaymentMode: "", transactionId: "", remarks: ""
   });
   const [proofFile, setProofFile] = useState<File | null>(null);
+
+  useEffect(() => {
+    if (!showPaymentForm.show) return;
+    setPaymentForm(previous => ({ ...previous, invoiceId: "", amount: "", tdsAmount: "" }));
+    setProofFile(null);
+  }, [showPaymentForm.show, showPaymentForm.master?.id]);
 
   const fetchCases = async () => {
     try {
@@ -832,7 +838,7 @@ export default function LegalRecoveryModule({ userRole, triggerToast, sessionUse
       if (data.success) {
         triggerToast("Payment recorded successfully!");
         setShowPaymentForm({ show: false, master: null });
-        setPaymentForm({ amount: "", paymentDate: new Date().toISOString().split('T')[0], paymentMode: "NEFT/RTGS", otherPaymentMode: "", transactionId: "", remarks: "" });
+        setPaymentForm({ invoiceId: "", amount: "", tdsAmount: "", paymentDate: new Date().toISOString().split('T')[0], paymentMode: "NEFT/RTGS", otherPaymentMode: "", transactionId: "", remarks: "" });
         setProofFile(null);
         if (activeSubModule === "collections") {
           fetchPayments();
@@ -840,7 +846,7 @@ export default function LegalRecoveryModule({ userRole, triggerToast, sessionUse
           fetchCases(); // Refresh pending amounts
         }
       } else {
-        triggerToast("Error recording payment");
+        triggerToast(data.error || "Error recording payment");
       }
     } catch (error) {
       console.error(error);
@@ -984,6 +990,11 @@ export default function LegalRecoveryModule({ userRole, triggerToast, sessionUse
   }
 
   // INNER MODULE VIEW
+  const paymentInvoices = (showPaymentForm.master?.importedBills || []).filter((invoice: any) =>
+    String(invoice.status).trim().toLowerCase() === "pending" && Number(invoice.dueAmount || 0) > 0
+  );
+  const selectedPaymentInvoice = paymentInvoices.find((invoice: any) => String(invoice.id) === paymentForm.invoiceId);
+
   return (
     <>
       <div className="space-y-6 animate-fade-in text-[#1C1C1A] ">
@@ -2114,12 +2125,40 @@ export default function LegalRecoveryModule({ userRole, triggerToast, sessionUse
               </div>
 
               <form onSubmit={handlePaymentSubmit} className="p-5 space-y-4">
+                {showPaymentForm.master?.importedBillCount > 0 && (
+                  <div>
+                    <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Invoice Number *</label>
+                    <select
+                      required
+                      value={paymentForm.invoiceId}
+                      onChange={e => setPaymentForm({ ...paymentForm, invoiceId: e.target.value })}
+                      className="w-full bg-white border border-[#E8E4DF] focus:border-emerald-500 rounded-lg px-3 py-2.5 text-xs focus:outline-none font-semibold text-slate-700"
+                    >
+                      <option value="">-- Select pending invoice --</option>
+                      {paymentInvoices.map((invoice: any) => (
+                        <option key={invoice.id} value={invoice.id}>
+                          {invoice.invoiceNo} — Due ₹{Number(invoice.dueAmount || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 })}
+                        </option>
+                      ))}
+                    </select>
+                    {selectedPaymentInvoice && (
+                      <div className="mt-2 grid grid-cols-3 gap-2 rounded-lg border border-emerald-100 bg-emerald-50/60 p-2 text-[10px]">
+                        <span>Bill: <b>₹{Number(selectedPaymentInvoice.billAmount || 0).toLocaleString('en-IN')}</b></span>
+                        <span>Received: <b>₹{Number(selectedPaymentInvoice.receivedAmount || 0).toLocaleString('en-IN')}</b></span>
+                        <span className="text-rose-700">Due: <b>₹{Number(selectedPaymentInvoice.dueAmount || 0).toLocaleString('en-IN')}</b></span>
+                      </div>
+                    )}
+                    {!paymentInvoices.length && <p className="mt-1 text-[10px] font-semibold text-emerald-700">No pending invoice is available for this branch.</p>}
+                  </div>
+                )}
+
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Amount Received (₹) *</label>
                     <input
                       type="number"
                       step="0.01"
+                      min="0"
                       required
                       value={paymentForm.amount}
                       onChange={e => setPaymentForm({ ...paymentForm, amount: e.target.value })}
@@ -2127,6 +2166,20 @@ export default function LegalRecoveryModule({ userRole, triggerToast, sessionUse
                     />
                   </div>
                   <div>
+                    <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">TDS Adjusted (₹)</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={paymentForm.tdsAmount}
+                      onChange={e => setPaymentForm({ ...paymentForm, tdsAmount: e.target.value })}
+                      className="w-full bg-white border border-[#E8E4DF] focus:border-amber-500 rounded-lg px-3 py-2 text-xs focus:outline-none font-semibold text-amber-700"
+                      placeholder="0.00"
+                    />
+                  </div>
+                </div>
+
+                <div>
                     <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Payment Date *</label>
                     <input
                       type="date"
@@ -2135,7 +2188,6 @@ export default function LegalRecoveryModule({ userRole, triggerToast, sessionUse
                       onChange={e => setPaymentForm({ ...paymentForm, paymentDate: e.target.value })}
                       className="w-full bg-white border border-[#E8E4DF] focus:border-emerald-500 rounded-lg px-3 py-2 text-xs focus:outline-none"
                     />
-                  </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
@@ -2203,7 +2255,7 @@ export default function LegalRecoveryModule({ userRole, triggerToast, sessionUse
                   <button type="button" onClick={() => setShowPaymentForm({ show: false, master: null })} className="px-4 py-2 border border-[#E8E4DF] rounded-lg text-xs font-semibold text-slate-600 hover:bg-slate-50">
                     Cancel
                   </button>
-                  <button disabled={submittingPayment} type="submit" className="px-4 py-2 bg-emerald-600 text-white rounded-lg text-xs font-semibold uppercase tracking-wider hover:bg-emerald-700 disabled:opacity-50">
+                  <button disabled={submittingPayment || (showPaymentForm.master?.importedBillCount > 0 && !paymentInvoices.length)} type="submit" className="px-4 py-2 bg-emerald-600 text-white rounded-lg text-xs font-semibold uppercase tracking-wider hover:bg-emerald-700 disabled:opacity-50">
                     {submittingPayment ? "Saving..." : "Save Payment"}
                   </button>
                 </div>

@@ -266,6 +266,7 @@ export default function PaymentCollectionsView({
                     <td className="p-4">
                       <div className="font-bold text-slate-800">{bankName}</div>
                       <div className="text-slate-500 mt-1">{branchName} {caseObj?.branchId ? `(${caseObj.branchId})` : ''}</div>
+                      {p.invoiceNo && <div className="mt-1 text-[10px] font-bold text-indigo-600">Invoice: {p.invoiceNo}</div>}
                     </td>
                     <td className="p-4">
                       <div className="flex items-center gap-2 mb-1">
@@ -277,6 +278,7 @@ export default function PaymentCollectionsView({
                     </td>
                     <td className="p-4">
                       <div className="font-bold text-emerald-600 text-sm">₹{parseFloat(p.amount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</div>
+                      {Number(p.tdsAmount || 0) > 0 && <div className="mt-0.5 text-[10px] font-bold text-amber-600">TDS: ₹{Number(p.tdsAmount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</div>}
                       <div className="text-[9px] uppercase tracking-wider font-semibold text-slate-400 mt-1">By: {p.receivedBy}</div>
                     </td>
                     <td className="p-4 text-center">

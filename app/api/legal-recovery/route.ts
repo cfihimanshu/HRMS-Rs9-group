@@ -365,18 +365,21 @@ export async function GET() {
       const rawTotalBill = parseFloat(c.totalBillAmount);
       const caseImportedBills = importedBillsByMaster[caseId] || [];
       const hasImportedBills = caseImportedBills.length > 0;
-      // Total billed mirrors the spreadsheet Bill Amount column, including
-      // cancelled historical invoices. Pending is strictly Status=Pending Due.
-      const importedBillTotal = caseImportedBills
+      // The branch summary is the active recovery position. Cancelled invoices
+      // remain in the bill register, but do not contribute to branch balances.
+      const activeImportedBills = caseImportedBills.filter(
+        (b: any) => String(b.status).trim().toLowerCase() !== "cancelled"
+      );
+      const importedBillTotal = activeImportedBills
         .reduce((sum: number, b: any) => sum + (parseFloat(b.billAmount) || 0), 0);
-      const importedReceivedTotal = caseImportedBills
-        .filter((b: any) => String(b.status).toLowerCase() === "received")
+      const importedReceivedTotal = activeImportedBills
         .reduce((sum: number, b: any) => sum + (parseFloat(b.receivedAmount) || 0), 0);
-      const importedTdsTotal = caseImportedBills
-        .filter((b: any) => String(b.status).toLowerCase() !== "cancelled")
+      const importedTdsTotal = activeImportedBills
         .reduce((sum: number, b: any) => sum + (parseFloat(b.tdsAmount) || 0), 0);
-      const importedPendingTotal = caseImportedBills
-        .filter((b: any) => String(b.status).toLowerCase() === "pending")
+      // Imported Due is the final outstanding value from the bill register.
+      // Received and Cancelled rows must not recreate a branch pending amount.
+      const importedPendingTotal = activeImportedBills
+        .filter((b: any) => String(b.status).trim().toLowerCase() === "pending")
         .reduce((sum: number, b: any) => sum + (parseFloat(b.dueAmount) || 0), 0);
 
       const loggedReceived = directReceived + noticeRcvd;
@@ -407,7 +410,9 @@ export async function GET() {
         : !isNaN(rawTotalBill) && rawTotalBill > 0 && hasStoredPending
         ? Math.max(0, rawTotalBill - pendingAmount)
         : loggedReceived;
-      totalBillAmount = Math.max(totalBillAmount, totalReceived + pendingAmount);
+      if (!hasImportedBills) {
+        totalBillAmount = Math.max(totalBillAmount, totalReceived + pendingAmount);
+      }
       const status = pendingAmount <= 0 && totalBillAmount > 0
         ? "Settled"
         : totalReceived > 0

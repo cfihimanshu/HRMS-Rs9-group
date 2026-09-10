@@ -33,6 +33,8 @@ export default function CasesMasterView({
   const [bankFilter, setBankFilter] = useState("");
   const [branchFilter, setBranchFilter] = useState("");
   const [pocFilter, setPocFilter] = useState("");
+  const [rboFilter, setRboFilter] = useState("");
+  const [aoFilter, setAoFilter] = useState("");
   const [showFilterOptions, setShowFilterOptions] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
   const [openHeaderFilter, setOpenHeaderFilter] = useState("");
@@ -115,6 +117,7 @@ export default function CasesMasterView({
     { key: "foContact", label: "FO Contact" },
     { key: "totalBillAmount", label: "Total Bill Amount (₹)" },
     { key: "receivedAmount", label: "Received Amount (₹)" },
+    { key: "tdsAmount", label: "TDS Adjusted (₹)" },
     { key: "pendingAmount", label: "Pending Amount (₹)" },
     { key: "status", label: "Status" },
     { key: "pendingSince", label: "Pending Since" },
@@ -124,6 +127,7 @@ export default function CasesMasterView({
 
   const handleExport = () => {
     if (selectedColumns.length === 0) return alert("Select at least one column to export");
+    if (filteredCases.length === 0) return alert("No branch records match the current filters");
     
     // Headers
     const headers = allColumns.filter(c => selectedColumns.includes(c.key)).map(c => c.label);
@@ -135,38 +139,45 @@ export default function CasesMasterView({
         if (col.key === 'createdAt' || col.key === 'pendingSince') {
           val = val ? new Date(val).toLocaleDateString() : '';
         }
-        if (['pendingAmount', 'totalBillAmount', 'receivedAmount', 'noticeCount'].includes(col.key)) {
+        if (['pendingAmount', 'totalBillAmount', 'receivedAmount', 'tdsAmount', 'noticeCount'].includes(col.key)) {
           val = val !== undefined && val !== null ? val : 0;
         }
-        // Escape quotes and commas
-        return `"${String(val || '').replace(/"/g, '""')}"`;
+        const text = val === undefined || val === null ? "" : String(val);
+        // Keep spreadsheet software from treating names/codes as formulas.
+        const safeText = /^[=+\-@]/.test(text) ? `'${text}` : text;
+        return `"${safeText.replace(/"/g, '""')}"`;
       }).join(",");
     });
     
-    const csvContent = [headers.join(","), ...rows].join("\n");
+    const csvContent = `\uFEFF${[headers.join(","), ...rows].join("\n")}`;
     
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement("a");
     const url = URL.createObjectURL(blob);
     link.setAttribute("href", url);
-    link.setAttribute("download", `Legal_Recovery_Cases_${new Date().toISOString().split('T')[0]}.csv`);
+    const filtered = bankFilter || branchFilter || pocFilter || rboFilter || aoFilter;
+    link.setAttribute("download", `Legal_Recovery_Branches_${filtered ? "Filtered" : "All"}_${new Date().toISOString().split('T')[0]}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    URL.revokeObjectURL(url);
     setShowExportModal(false);
   };
 
   const uniqueBanks = Array.from(new Set(cases.map(c => c.bankName).filter(Boolean)));
   const uniqueBranches = Array.from(new Set(cases.map(c => c.branchName).filter(Boolean)));
   const uniquePocs = Array.from(new Set(cases.map(c => c.pocName).filter(Boolean)));
+  const uniqueRbos = Array.from(new Set(cases.map(c => String(c.rbo || "").trim()).filter(Boolean))).sort();
+  const uniqueAos = Array.from(new Set(cases.map(c => String(c.aoName || "").trim()).filter(Boolean))).sort();
 
   const getDetailsValue = (c: any) => `${c.bankName || "Unknown Bank"} — ${c.branchName || "General Branch"}`;
   const getOfficialsValue = (c: any) => c.pocName || "Not Assigned";
   const getAmountValue = (c: any) => {
     const total = parseFloat(c.totalBillAmount) || 0;
     const received = parseFloat(c.receivedAmount) || 0;
-    const pending = Number.isFinite(parseFloat(c.pendingAmount)) ? parseFloat(c.pendingAmount) : Math.max(0, total - received);
-    return `Bill ₹${total.toLocaleString("en-IN")} · Received ₹${received.toLocaleString("en-IN")} · Pending ₹${pending.toLocaleString("en-IN")}`;
+    const tds = parseFloat(c.tdsAmount) || 0;
+    const pending = Number.isFinite(parseFloat(c.pendingAmount)) ? parseFloat(c.pendingAmount) : Math.max(0, total - received - tds);
+    return `Active Bill ₹${total.toLocaleString("en-IN")} · Cash ₹${received.toLocaleString("en-IN")} · TDS ₹${tds.toLocaleString("en-IN")} · Pending ₹${pending.toLocaleString("en-IN")}`;
   };
   const getStatusValue = (c: any) => {
     const total = parseFloat(c.totalBillAmount) || 0;
@@ -201,6 +212,8 @@ export default function CasesMasterView({
     if (bankFilter && c.bankName !== bankFilter) return false;
     if (branchFilter && c.branchName !== branchFilter) return false;
     if (pocFilter && c.pocName !== pocFilter) return false;
+    if (rboFilter && String(c.rbo || "").trim() !== rboFilter) return false;
+    if (aoFilter && String(c.aoName || "").trim() !== aoFilter) return false;
     if (headerSelections.details && !headerSelections.details.includes(getDetailsValue(c))) return false;
     if (headerSelections.officials && !headerSelections.officials.includes(getOfficialsValue(c))) return false;
     if (headerSelections.amount && !headerSelections.amount.includes(getAmountValue(c))) return false;
@@ -214,6 +227,7 @@ export default function CasesMasterView({
   const totalNoticesCount = filteredCases.reduce((sum, c) => sum + (parseInt(c.noticeCount) || 0), 0);
   const totalBillSum = filteredCases.reduce((sum, c) => sum + (parseFloat(c.totalBillAmount) || 0), 0);
   const totalReceivedSum = filteredCases.reduce((sum, c) => sum + (parseFloat(c.receivedAmount) || 0), 0);
+  const totalTdsSum = filteredCases.reduce((sum, c) => sum + (parseFloat(c.tdsAmount) || 0), 0);
   const totalPendingSum = filteredCases.reduce((sum, c) => sum + (parseFloat(c.pendingAmount) || 0), 0);
   const settledCount = filteredCases.filter(c => c.status === "Settled" || (parseFloat(c.pendingAmount) <= 0 && parseFloat(c.totalBillAmount) > 0)).length;
   const filteredUniqueBanks = Array.from(new Set(filteredCases.map(c => c.bankName).filter(Boolean)));
@@ -288,16 +302,16 @@ export default function CasesMasterView({
         </div>
 
         <div className="bg-white border border-indigo-100 rounded-xl p-3.5 shadow-2xs">
-          <div className="text-[10px] font-bold uppercase tracking-wider text-indigo-600">Total Invoiced / Bill</div>
+          <div className="text-[10px] font-bold uppercase tracking-wider text-indigo-600">Active Invoiced / Bill</div>
           <div className="text-xl font-black text-indigo-900 mt-1">₹{totalBillSum.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</div>
-          <div className="text-[9px] text-indigo-500 mt-0.5 font-medium">Billed Amount</div>
+          <div className="text-[9px] text-indigo-500 mt-0.5 font-medium">Cancelled bills excluded</div>
         </div>
 
         <div className="bg-white border border-emerald-100 rounded-xl p-3.5 shadow-2xs">
-          <div className="text-[10px] font-bold uppercase tracking-wider text-emerald-600">Total Received</div>
+          <div className="text-[10px] font-bold uppercase tracking-wider text-emerald-600">Cash Received</div>
           <div className="text-xl font-black text-emerald-700 mt-1">₹{totalReceivedSum.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</div>
           <div className="text-[9px] text-emerald-600 mt-0.5 font-medium">
-            {totalBillSum > 0 ? `${Math.min(100, Math.round((totalReceivedSum / totalBillSum) * 100))}% Recovered` : '0%'}
+            TDS adjusted: ₹{totalTdsSum.toLocaleString('en-IN', { maximumFractionDigits: 2 })}
           </div>
         </div>
 
@@ -329,13 +343,13 @@ export default function CasesMasterView({
         <div className="relative flex items-center">
           <button 
             onClick={() => setShowFilterOptions(!showFilterOptions)}
-            className={`px-4 py-3.5 h-full border border-[#E8E4DF] hover:bg-[#F5F0EA] rounded-xl text-[10px] font-semibold tracking-wider uppercase transition-all flex items-center gap-1.5 shadow-sm ${showFilterOptions || bankFilter || branchFilter || pocFilter ? 'bg-[#F5F0EA] text-[#1C1C1A]' : 'bg-[#FCFBF9] text-[#5D5B57]'}`}
+            className={`px-4 py-3.5 h-full border border-[#E8E4DF] hover:bg-[#F5F0EA] rounded-xl text-[10px] font-semibold tracking-wider uppercase transition-all flex items-center gap-1.5 shadow-sm ${showFilterOptions || bankFilter || branchFilter || pocFilter || rboFilter || aoFilter ? 'bg-[#F5F0EA] text-[#1C1C1A]' : 'bg-[#FCFBF9] text-[#5D5B57]'}`}
           >
-            <Filter className="w-3.5 h-3.5" /> {(bankFilter || branchFilter || pocFilter) ? "Filtered" : "Filter"}
+            <Filter className="w-3.5 h-3.5" /> {(bankFilter || branchFilter || pocFilter || rboFilter || aoFilter) ? "Filtered" : "Filter"}
           </button>
           
           {showFilterOptions && (
-            <div className="absolute right-0 top-full mt-2 w-72 bg-white border border-[#E8E4DF] rounded-xl shadow-2xl z-50 overflow-hidden animate-fade-in p-4 grid gap-4">
+            <div className="absolute right-0 top-full mt-2 w-72 max-h-[70vh] overflow-y-auto bg-white border border-[#E8E4DF] rounded-xl shadow-2xl z-50 animate-fade-in p-4 grid gap-4">
               <div>
                 <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 block">Bank</label>
                 <select value={bankFilter} onChange={e => setBankFilter(e.target.value)} className="w-full text-xs p-2.5 border border-[#E8E4DF] rounded-lg bg-slate-50 focus:outline-none focus:border-indigo-400 font-semibold text-slate-700">
@@ -357,12 +371,28 @@ export default function CasesMasterView({
                   {uniquePocs.map(poc => <option key={String(poc)} value={String(poc)}>{String(poc)}</option>)}
                 </select>
               </div>
+              <div>
+                <label className="text-[10px] font-bold text-indigo-600 uppercase tracking-wider mb-1 block">RBO / Zone</label>
+                <select value={rboFilter} onChange={e => setRboFilter(e.target.value)} className="w-full text-xs p-2.5 border border-indigo-200 rounded-lg bg-indigo-50/40 focus:outline-none focus:border-indigo-500 font-semibold text-slate-700">
+                  <option value="">All RBO / Zones</option>
+                  {uniqueRbos.map(rbo => <option key={rbo} value={rbo}>{rbo}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="text-[10px] font-bold text-sky-600 uppercase tracking-wider mb-1 block">AO</label>
+                <select value={aoFilter} onChange={e => setAoFilter(e.target.value)} className="w-full text-xs p-2.5 border border-sky-200 rounded-lg bg-sky-50/40 focus:outline-none focus:border-sky-500 font-semibold text-slate-700">
+                  <option value="">All AOs</option>
+                  {uniqueAos.map(ao => <option key={ao} value={ao}>{ao}</option>)}
+                </select>
+              </div>
               
               <div className="flex justify-end mt-2 pt-3 border-t border-slate-100">
                 <button onClick={() => {
                   setBankFilter("");
                   setBranchFilter("");
                   setPocFilter("");
+                  setRboFilter("");
+                  setAoFilter("");
                   setShowFilterOptions(false);
                 }} className="text-[10px] text-rose-600 font-bold uppercase tracking-wider hover:underline flex items-center gap-1">
                   <RefreshCw className="w-3 h-3" /> Clear Filters
@@ -404,7 +434,17 @@ export default function CasesMasterView({
               </button>
             </div>
             <div className="p-6">
-              <p className="text-xs text-slate-500 mb-4 font-semibold">Select the columns you want to include in the exported file:</p>
+              <div className="mb-4 rounded-xl border border-emerald-100 bg-emerald-50 p-3">
+                <p className="text-xs font-bold text-emerald-900">{filteredCases.length} branch record{filteredCases.length === 1 ? "" : "s"} will be exported</p>
+                <p className="mt-1 text-[10px] text-emerald-700">The CSV follows the Bank, Branch, POC, RBO and AO filters currently applied.</p>
+              </div>
+              <div className="mb-3 flex items-center justify-between">
+                <p className="text-xs text-slate-500 font-semibold">Select CSV columns:</p>
+                <div className="flex gap-3 text-[10px] font-bold uppercase tracking-wide">
+                  <button type="button" onClick={() => setSelectedColumns(allColumns.map(column => column.key))} className="text-emerald-700 hover:underline">Select All</button>
+                  <button type="button" onClick={() => setSelectedColumns([])} className="text-rose-600 hover:underline">Clear</button>
+                </div>
+              </div>
               
               <div className="space-y-3 max-h-60 overflow-y-auto mb-6 pr-2">
                 {allColumns.map(col => (
@@ -535,7 +575,9 @@ export default function CasesMasterView({
               {filteredCases.map(c => {
                 const totalBill = parseFloat(c.totalBillAmount) || (parseFloat(c.pendingAmount) || 0) + (parseFloat(c.receivedAmount) || 0);
                 const received = parseFloat(c.receivedAmount) || 0;
-                const pending = parseFloat(c.pendingAmount) !== undefined ? parseFloat(c.pendingAmount) : Math.max(0, totalBill - received);
+                const tds = parseFloat(c.tdsAmount) || 0;
+                const parsedPending = parseFloat(c.pendingAmount);
+                const pending = Number.isFinite(parsedPending) ? parsedPending : Math.max(0, totalBill - received - tds);
                 const isExpanded = expandedCaseId === c.id;
                 const canEditCase = userRole === "Owner" || (currentUserName && String(c.pocName || "").trim().toLowerCase() === currentUserName.trim().toLowerCase());
 
@@ -617,12 +659,16 @@ export default function CasesMasterView({
                       <td className="py-3.5 px-4 align-top">
                         <div className="space-y-1">
                           <div className="flex items-center justify-between gap-3 text-xs">
-                            <span className="text-slate-500 font-medium">Total Bill:</span>
+                            <span className="text-slate-500 font-medium">Active Bill:</span>
                             <span className="font-bold text-slate-800">₹{totalBill.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</span>
                           </div>
                           <div className="flex items-center justify-between gap-3 text-xs">
-                            <span className="text-emerald-700 font-medium">Received:</span>
+                            <span className="text-emerald-700 font-medium">Cash Received:</span>
                             <span className="font-bold text-emerald-600">₹{received.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</span>
+                          </div>
+                          <div className="flex items-center justify-between gap-3 text-xs">
+                            <span className="text-amber-700 font-medium">TDS Adjusted:</span>
+                            <span className="font-bold text-amber-600">₹{tds.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</span>
                           </div>
                           <div className="flex items-center justify-between gap-3 text-xs border-t border-slate-100 pt-1">
                             <span className="text-rose-700 font-bold">Pending:</span>
