@@ -17,7 +17,10 @@ export const SECURITY_WORKFLOW_STAGES = [
 ] as const;
 
 type StageKey = (typeof SECURITY_WORKFLOW_STAGES)[number]["key"];
-type FollowUpEntry = { id: string; type: string; date: string; time: string; contactName: string; contactDetail: string; details: string; outcome: string; nextFollowUpDate: string; proofUrls: string[] };
+type FollowUpEntry = { id: string; type: string; date: string; time: string; contactName: string; contactDetail: string; details: string; outcome: string; nextFollowUpDate: string; proofUrls: string[]; billingMonth?: string };
+type MonthlyGuardPayment = { guardId: string; guardName: string; amount: number };
+type MoneyLog = { id: string; date: string; amount: number; note: string };
+type MonthlyCycle = { month: string; guardPayable: number; guardPayments?: MonthlyGuardPayment[]; clientPaymentLogs?: MoneyLog[]; guardPaymentLogs?: MoneyLog[]; guardPaidAmount?: number; billNo: string; billDate: string; billAmount: number; billInvoiceUrl: string; receivedAmount: number; paymentStatus: "Due" | "Partially Paid" | "Payment Done"; followUps: FollowUpEntry[] };
 type StageState = { status: "pending" | "in_progress" | "completed" | "rejected"; date: string; notes: string; proofUrls: string[]; followUps?: FollowUpEntry[] };
 type DeployedGuard = { name: string; phone: string; photoUrl: string; monthlySalary: string; shiftType: string; shiftTiming: string; startDate: string; endDate: string; shiftRate: string; allowancePerShift: string };
 const newGuard = (): DeployedGuard => ({ name: "", phone: "", photoUrl: "", monthlySalary: "", shiftType: "8 Hours Morning Shift", shiftTiming: "08:00 AM - 04:00 PM", startDate: "", endDate: "", shiftRate: "", allowancePerShift: "" });
@@ -44,6 +47,23 @@ const parseStages = (item: any) => {
     }
   } catch {}
   return base;
+};
+const parseMonthlyCycles = (item: any): MonthlyCycle[] => {
+  try { const value = JSON.parse(item?.workflowJson || "{}").monthlyCycles; return Array.isArray(value) ? value : []; } catch { return []; }
+};
+const initialBillingMonth = (item: any) => {
+  const cycles = parseMonthlyCycles(item);
+  if (cycles.length) {
+    const latestMonth = [...cycles].sort((a, b) => b.month.localeCompare(a.month))[0].month;
+    const [year, month] = latestMonth.split("-").map(Number);
+    return new Date(Date.UTC(year, month, 1)).toISOString().slice(0, 7);
+  }
+  if (item?.billNo && item?.billDate) {
+    const date = new Date(`${String(item.billDate).slice(0, 10)}T00:00:00Z`);
+    date.setUTCMonth(date.getUTCMonth() - 1);
+    return date.toISOString().slice(0, 7);
+  }
+  return new Date().toISOString().slice(0, 7);
 };
 
 export default function SecurityWorkflowModal({ item, nbfcsList, nbfcBranchesList, onClose, onSaved, triggerToast }: {
@@ -81,7 +101,22 @@ export default function SecurityWorkflowModal({ item, nbfcsList, nbfcBranchesLis
     billNo: String(item?.billNo || ""), billDate: String(item?.billDate || ""),
     billAmount: item?.billAmount ? String(item.billAmount) : "", billInvoiceUrl: String(item?.billInvoiceUrl || ""),
   });
-  const [followUpDraft, setFollowUpDraft] = useState<FollowUpEntry>({ id: "", type: "Call", date: new Date().toISOString().slice(0, 10), time: "", contactName: "", contactDetail: "", details: "", outcome: "", nextFollowUpDate: "", proofUrls: [] });
+  const [billingMonth, setBillingMonth] = useState(() => initialBillingMonth(item));
+  const [monthlyCycles, setMonthlyCycles] = useState<MonthlyCycle[]>(() => parseMonthlyCycles(item));
+  const [guardPayable, setGuardPayable] = useState(0);
+  const guardPayableManuallyEdited = React.useRef(false);
+  const [monthlyReceived, setMonthlyReceived] = useState("");
+  const [monthlyGuardPayments, setMonthlyGuardPayments] = useState<MonthlyGuardPayment[]>([]);
+  const [manualGuardId, setManualGuardId] = useState("");
+  const [manualGuardAmount, setManualGuardAmount] = useState("");
+  const [clientPaymentLogs, setClientPaymentLogs] = useState<MoneyLog[]>([]);
+  const [guardPaymentLogs, setGuardPaymentLogs] = useState<MoneyLog[]>([]);
+  const [paymentEditMonth, setPaymentEditMonth] = useState<string | null>(null);
+  const [paymentModalMonth, setPaymentModalMonth] = useState<string | null>(null);
+  const [popupClientAmount, setPopupClientAmount] = useState("");
+  const [popupGuardAmount, setPopupGuardAmount] = useState("");
+  const [popupPaymentDate, setPopupPaymentDate] = useState(new Date().toISOString().slice(0, 10));
+  const [followUpDraft, setFollowUpDraft] = useState<FollowUpEntry>({ id: "", type: "Call", date: new Date().toISOString().slice(0, 10), time: "", contactName: "", contactDetail: "", details: "", outcome: "", nextFollowUpDate: "", proofUrls: [], billingMonth: new Date().toISOString().slice(0, 7) });
   const [customCommunicationType, setCustomCommunicationType] = useState("");
   const [guards, setGuards] = useState<DeployedGuard[]>(() => {
     try {
@@ -113,6 +148,116 @@ export default function SecurityWorkflowModal({ item, nbfcsList, nbfcBranchesLis
       .then((result) => setDbGuards(Array.isArray(result.data) ? result.data : []))
       .catch(() => setDbGuards([]));
   }, []);
+
+  useEffect(() => {
+    if (!item?.id || !billingMonth) return setGuardPayable(0);
+    let cancelled = false;
+    guardPayableManuallyEdited.current = false;
+    const cycle = monthlyCycles.find((entry) => entry.month === billingMonth);
+    if (cycle) {
+      setGuardPayable(Number(cycle.guardPayable || 0));
+      guardPayableManuallyEdited.current = true;
+    }
+    fetch(`/api/legal-recovery/security/guard-attendance?securityId=${item.id}&month=${billingMonth}`)
+      .then((response) => response.json())
+      .then((result) => {
+        if (!cancelled && !cycle && !guardPayableManuallyEdited.current) setGuardPayable((result.data || []).reduce((sum: number, row: any) => sum + Number(row.payoutAmount || 0), 0));
+      })
+      .catch(() => { if (!cancelled && !cycle && !guardPayableManuallyEdited.current) setGuardPayable(0); });
+    if (cycle) {
+      setBillDetails({ billNo: cycle.billNo, billDate: cycle.billDate, billAmount: String(cycle.billAmount || ""), billInvoiceUrl: cycle.billInvoiceUrl });
+      setMonthlyReceived(String(cycle.receivedAmount || ""));
+      setMonthlyGuardPayments(cycle.guardPayments || []);
+      setClientPaymentLogs(cycle.clientPaymentLogs || []);
+      setGuardPaymentLogs(cycle.guardPaymentLogs || []);
+    } else if (monthlyCycles.length > 0 || !item?.billNo) {
+      setBillDetails({ billNo: "", billDate: "", billAmount: "", billInvoiceUrl: "" });
+      setMonthlyReceived("");
+      setMonthlyGuardPayments([]);
+      setClientPaymentLogs([]);
+      setGuardPaymentLogs([]);
+    }
+    return () => { cancelled = true; };
+  }, [billingMonth, item?.id]);
+
+  const addManualGuardPayment = () => {
+    const guard = dbGuards.find((entry) => String(entry.id) === manualGuardId);
+    const amount = Number(manualGuardAmount || 0);
+    if (!guard || amount <= 0) return triggerToast("Select guard and enter a valid payable amount");
+    setMonthlyGuardPayments((current) => [...current.filter((entry) => entry.guardId !== manualGuardId), { guardId: manualGuardId, guardName: guard.name, amount }]);
+    setManualGuardId(""); setManualGuardAmount("");
+  };
+
+  const saveMonthlyCycle = () => {
+    const billAmount = Number(billDetails.billAmount || 0);
+    const loggedReceived = clientPaymentLogs.reduce((sum, log) => sum + log.amount, 0);
+    const receivedAmount = clientPaymentLogs.length ? loggedReceived : Number(monthlyReceived || 0);
+    if (!billingMonth || !billDetails.billNo.trim() || !billDetails.billDate || billAmount <= 0 || !billDetails.billInvoiceUrl) return triggerToast("Month, invoice number, date, bill amount and bill copy are required");
+    if (receivedAmount < 0 || receivedAmount > billAmount) return triggerToast("Received amount cannot exceed bill amount");
+    const previous = monthlyCycles.find((entry) => entry.month === billingMonth);
+    const manualPayable = monthlyGuardPayments.reduce((sum, payment) => sum + payment.amount, 0);
+    const effectiveGuardPayable = monthlyGuardPayments.length ? manualPayable : guardPayable;
+    const guardPaidAmount = guardPaymentLogs.reduce((sum, log) => sum + log.amount, 0);
+    if (guardPaidAmount > effectiveGuardPayable) return triggerToast("Guard paid amount cannot exceed guard payable amount");
+    const cycle: MonthlyCycle = { month: billingMonth, guardPayable: effectiveGuardPayable, guardPayments: monthlyGuardPayments, clientPaymentLogs, guardPaymentLogs, guardPaidAmount, billNo: billDetails.billNo.trim(), billDate: billDetails.billDate, billAmount, billInvoiceUrl: billDetails.billInvoiceUrl, receivedAmount, paymentStatus: receivedAmount >= billAmount ? "Payment Done" : receivedAmount > 0 ? "Partially Paid" : "Due", followUps: previous?.followUps || [] };
+    setMonthlyCycles((current) => [...current.filter((entry) => entry.month !== billingMonth), cycle].sort((a, b) => b.month.localeCompare(a.month)));
+    const [year, month] = billingMonth.split("-").map(Number);
+    const nextMonth = new Date(Date.UTC(year, month, 1)).toISOString().slice(0, 7);
+    setBillingMonth(nextMonth);
+    setPaymentEditMonth(null);
+    setBillDetails({ billNo: "", billDate: "", billAmount: "", billInvoiceUrl: "" });
+    setGuardPayable(0); setMonthlyReceived(""); setMonthlyGuardPayments([]); setClientPaymentLogs([]); setGuardPaymentLogs([]);
+    setManualGuardId(""); setManualGuardAmount("");
+    triggerToast("Monthly entry added. The form is ready for the next month; click Update Workflow to save all entries.");
+  };
+
+  const cancelPaymentEntry = () => {
+    const sourceMonth = paymentEditMonth || billingMonth;
+    const [year, month] = sourceMonth.split("-").map(Number);
+    const nextMonth = new Date(Date.UTC(year, month, 1)).toISOString().slice(0, 7);
+    setPaymentEditMonth(null);
+    setBillingMonth(nextMonth);
+    setBillDetails({ billNo: "", billDate: `${nextMonth}-01`, billAmount: "", billInvoiceUrl: "" });
+    setGuardPayable(0); setMonthlyReceived(""); setMonthlyGuardPayments([]); setClientPaymentLogs([]); setGuardPaymentLogs([]);
+    triggerToast("Payment entry cancelled. No monthly record was changed.");
+  };
+
+  const savePaymentPopup = () => {
+    const clientAmount = Number(popupClientAmount || 0);
+    const guardAmount = Number(popupGuardAmount || 0);
+    if (!paymentModalMonth || !popupPaymentDate || clientAmount < 0 || guardAmount < 0 || clientAmount + guardAmount <= 0) return triggerToast("Enter client received or guard paid amount");
+    const cycle = monthlyCycles.find((entry) => entry.month === paymentModalMonth);
+    if (!cycle) return triggerToast("Monthly invoice not found");
+    const nextReceived = Number(cycle.receivedAmount || 0) + clientAmount;
+    const nextGuardPaid = Number(cycle.guardPaidAmount || 0) + guardAmount;
+    if (nextReceived > cycle.billAmount) return triggerToast("Client received cannot exceed bill amount");
+    if (nextGuardPaid > cycle.guardPayable) return triggerToast("Guard paid cannot exceed guard payable");
+    setMonthlyCycles((current) => current.map((entry) => entry.month !== paymentModalMonth ? entry : {
+      ...entry,
+      receivedAmount: nextReceived,
+      guardPaidAmount: nextGuardPaid,
+      clientPaymentLogs: clientAmount > 0 ? [...(entry.clientPaymentLogs || []), { id: `client_${Date.now()}`, date: popupPaymentDate, amount: clientAmount, note: "Client payment received" }] : (entry.clientPaymentLogs || []),
+      guardPaymentLogs: guardAmount > 0 ? [...(entry.guardPaymentLogs || []), { id: `guard_${Date.now()}`, date: popupPaymentDate, amount: guardAmount, note: "Guard payment paid" }] : (entry.guardPaymentLogs || []),
+      paymentStatus: nextReceived >= entry.billAmount ? "Payment Done" : nextReceived > 0 ? "Partially Paid" : "Due"
+    }));
+    setPaymentModalMonth(null); setPopupClientAmount(""); setPopupGuardAmount("");
+    triggerToast("Payment added. Click Update Workflow to save it.");
+  };
+
+  const deleteMonthlyCycle = (month: string) => {
+    if (!window.confirm("Delete this monthly bill and its payment history?")) return;
+    setMonthlyCycles((current) => current.filter((cycle) => cycle.month !== month));
+    if (billingMonth === month || paymentEditMonth === month) {
+      const [year, monthNumber] = month.split("-").map(Number);
+      const nextMonth = new Date(Date.UTC(year, monthNumber, 1)).toISOString().slice(0, 7);
+      setPaymentEditMonth(null);
+      setBillingMonth(nextMonth);
+      setBillDetails({ billNo: "", billDate: `${nextMonth}-01`, billAmount: "", billInvoiceUrl: "" });
+      setGuardPayable(0); setMonthlyReceived(""); setMonthlyGuardPayments([]); setClientPaymentLogs([]); setGuardPaymentLogs([]);
+    }
+    if (paymentModalMonth === month) setPaymentModalMonth(null);
+    triggerToast("Monthly entry removed. Click Update Workflow to confirm.");
+  };
 
   const addToMaster = async () => {
     if (!masterForm.name.trim()) return triggerToast("Name required hai");
@@ -233,19 +378,42 @@ export default function SecurityWorkflowModal({ item, nbfcsList, nbfcBranchesLis
   };
 
   const addFollowUpEntry = () => {
+    const selectedInvoice = monthlyCycles.find((cycle) => cycle.month === billingMonth);
+    if (!selectedInvoice) return triggerToast("Select a saved invoice before adding a payment follow-up");
     if (followUpDraft.type === "Other" && !customCommunicationType.trim()) return triggerToast("Custom communication type required hai");
     if (!followUpDraft.date || !followUpDraft.contactName.trim() || !followUpDraft.contactDetail.trim() || !followUpDraft.details.trim()) return triggerToast("Date, contact person, contact detail aur communication details required hain");
     if (!followUpDraft.proofUrls.length) return triggerToast("Har follow-up ke saath kam se kam ek proof required hai");
-    const entry = { ...followUpDraft, type: followUpDraft.type === "Other" ? customCommunicationType.trim() : followUpDraft.type, id: `followup_${Date.now()}` };
+    const entry = { ...followUpDraft, billingMonth, type: followUpDraft.type === "Other" ? customCommunicationType.trim() : followUpDraft.type, id: `followup_${Date.now()}` };
     updateStage("payment_followup", { status: "in_progress", date: entry.date, followUps: [...(stages.payment_followup.followUps || []), entry] });
-    setFollowUpDraft({ id: "", type: "Call", date: new Date().toISOString().slice(0, 10), time: "", contactName: "", contactDetail: "", details: "", outcome: "", nextFollowUpDate: "", proofUrls: [] });
+    setMonthlyCycles((current) => current.map((cycle) => cycle.month === billingMonth ? { ...cycle, followUps: [...cycle.followUps, entry] } : cycle));
+    setFollowUpDraft({ id: "", type: "Call", date: new Date().toISOString().slice(0, 10), time: "", contactName: "", contactDetail: "", details: "", outcome: "", nextFollowUpDate: "", proofUrls: [], billingMonth });
     setCustomCommunicationType("");
     triggerToast("Payment follow-up entry added; Update Workflow karke save karein");
   };
 
   const save = async () => {
     if (!company.trim() || !nbfcName.trim()) return triggerToast("Company aur Bank / NBFC name required hai");
-    if (stages.guard_deployment.status === "completed" && !guards.some((guard) => guard.name.trim())) {
+    const draftBillComplete = Boolean(billingMonth && billDetails.billNo.trim() && billDetails.billDate && Number(billDetails.billAmount) > 0 && billDetails.billInvoiceUrl);
+    const manualPayable = monthlyGuardPayments.reduce((sum, payment) => sum + payment.amount, 0);
+    const effectiveGuardPayable = monthlyGuardPayments.length ? manualPayable : guardPayable;
+    const loggedReceived = clientPaymentLogs.reduce((sum, log) => sum + log.amount, 0);
+    const receivedAmount = clientPaymentLogs.length ? loggedReceived : Number(monthlyReceived || 0);
+    const guardPaidAmount = guardPaymentLogs.reduce((sum, log) => sum + log.amount, 0);
+    if (draftBillComplete && receivedAmount > Number(billDetails.billAmount)) return triggerToast("Received amount cannot exceed bill amount");
+    if (draftBillComplete && guardPaidAmount > effectiveGuardPayable) return triggerToast("Guard paid amount cannot exceed guard payable amount");
+    const existingDraftCycle = monthlyCycles.find((cycle) => cycle.month === billingMonth);
+    const draftCycle: MonthlyCycle | null = draftBillComplete ? {
+      month: billingMonth, guardPayable: effectiveGuardPayable, guardPayments: monthlyGuardPayments,
+      clientPaymentLogs, guardPaymentLogs, guardPaidAmount, billNo: billDetails.billNo.trim(),
+      billDate: billDetails.billDate, billAmount: Number(billDetails.billAmount), billInvoiceUrl: billDetails.billInvoiceUrl,
+      receivedAmount, paymentStatus: receivedAmount >= Number(billDetails.billAmount) ? "Payment Done" : receivedAmount > 0 ? "Partially Paid" : "Due",
+      followUps: existingDraftCycle?.followUps || []
+    } : null;
+    const cyclesToSave = draftCycle
+      ? [...monthlyCycles.filter((cycle) => cycle.month !== billingMonth), draftCycle].sort((a, b) => b.month.localeCompare(a.month))
+      : monthlyCycles;
+    const hasMonthlyGuard = cyclesToSave.some((cycle) => (cycle.guardPayments || []).some((guard) => guard.guardName.trim()) || cycle.guardPayable > 0);
+    if (stages.guard_deployment.status === "completed" && !guards.some((guard) => guard.name.trim()) && !hasMonthlyGuard) {
       return triggerToast("Guards Deployed complete karne se pehle kam se kam ek guard add karein");
     }
     if (stages.authority_letter.status === "completed" && !siteLocation.trim()) {
@@ -253,12 +421,14 @@ export default function SecurityWorkflowModal({ item, nbfcsList, nbfcBranchesLis
     }
     setSaving(true);
     try {
-      const billIsComplete = !!(billDetails.billNo.trim() && billDetails.billDate && Number(billDetails.billAmount) > 0 && billDetails.billInvoiceUrl);
+      const latestCycle = cyclesToSave[0];
+      const billIsComplete = Boolean(latestCycle || (billDetails.billNo.trim() && billDetails.billDate && Number(billDetails.billAmount) > 0 && billDetails.billInvoiceUrl));
       const stagesToSave = {
         ...stages,
-        billing: { ...stages.billing, status: billIsComplete ? "completed" as const : "pending" as const, date: billIsComplete ? billDetails.billDate : "", notes: "", proofUrls: [] },
+        billing: { ...stages.billing, status: billIsComplete ? "completed" as const : "pending" as const, date: billIsComplete ? (latestCycle?.billDate || billDetails.billDate) : "", notes: "", proofUrls: [] },
         payment_followup: { ...stages.payment_followup, status: stages.payment_followup.status === "completed" ? "completed" as const : (stages.payment_followup.followUps?.length ? "in_progress" as const : "pending" as const), notes: "", proofUrls: [] },
       };
+      (stagesToSave as any).monthlyCycles = cyclesToSave;
       for (const stageMeta of SECURITY_WORKFLOW_STAGES) {
         const stage = stagesToSave[stageMeta.key];
         if (stage.status !== "completed" && stage.status !== "rejected") continue;
@@ -290,8 +460,8 @@ export default function SecurityWorkflowModal({ item, nbfcsList, nbfcBranchesLis
           shiftHours: guards[0]?.shiftType?.match(/\d+/)?.[0] || null,
           shiftRate: guards.reduce((sum, guard) => sum + Number(guard.shiftRate || 0), 0),
           allowancePerShift: guards.reduce((sum, guard) => sum + Number(guard.allowancePerShift || 0), 0),
-          billNo: billDetails.billNo.trim(), billDate: billDetails.billDate || null,
-          billAmount: Number(billDetails.billAmount || 0), billInvoiceUrl: billDetails.billInvoiceUrl,
+          billNo: latestCycle?.billNo || billDetails.billNo.trim(), billDate: latestCycle?.billDate || billDetails.billDate || null,
+          billAmount: latestCycle?.billAmount || Number(billDetails.billAmount || 0), billInvoiceUrl: latestCycle?.billInvoiceUrl || billDetails.billInvoiceUrl,
         }),
       });
       const result = await response.json();
@@ -305,6 +475,7 @@ export default function SecurityWorkflowModal({ item, nbfcsList, nbfcBranchesLis
 
   const active = stages[activeKey];
   const meta = SECURITY_WORKFLOW_STAGES.find((stage) => stage.key === activeKey)!;
+  const selectedFollowUpInvoice = monthlyCycles.find((cycle) => cycle.month === billingMonth);
   return (
     <div className="fixed inset-0 z-[100000] bg-slate-950/55 backdrop-blur-sm p-3 sm:p-6 flex items-center justify-center">
       <div className="bg-white w-full max-w-6xl max-h-[94vh] rounded-2xl shadow-2xl overflow-hidden flex flex-col">
@@ -356,7 +527,21 @@ export default function SecurityWorkflowModal({ item, nbfcsList, nbfcBranchesLis
                 </div>)}</div>}
               </div>}
               {activeKey === "billing" && <div className="mt-5 border-t pt-4">
-                <div><h4 className="text-sm font-black text-slate-900">Invoice & Bill Details</h4><p className="text-[11px] text-slate-500">Generated bill ka invoice number, date, amount aur signed bill copy add karein.</p></div>
+                <div><h4 className="text-sm font-black text-slate-900">Monthly Invoice & Guard Payment</h4><p className="text-[11px] text-slate-500">Har month ka client invoice, attendance-based guard payable aur payment status save karein.</p></div>
+                {paymentEditMonth && <div className="mt-3 flex items-center justify-between rounded-xl border border-indigo-200 bg-indigo-50 px-3 py-2"><span className="text-xs font-bold text-indigo-900">Editing bill for {new Date(`${paymentEditMonth}-01T00:00:00`).toLocaleDateString("en-IN", { month: "long", year: "numeric" })}</span><button type="button" onClick={cancelPaymentEntry} className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-[10px] font-black text-slate-700">Cancel Edit</button></div>}
+                <div className="grid sm:grid-cols-2 gap-3 mt-3 rounded-xl border border-indigo-100 bg-indigo-50/50 p-3">
+                  <label className="text-[11px] font-bold text-slate-600">Billing Month *<input type="month" value={billingMonth} onChange={(e) => setBillingMonth(e.target.value)} className="mt-1 w-full border rounded-lg p-2.5 bg-white"/></label>
+                  <label className="text-[11px] font-bold text-slate-600">Guard Payable (Attendance / Manual)<div className="relative mt-1"><span className="absolute left-3 top-2.5 text-sm font-black text-amber-700">₹</span><input type="number" min="0" step="0.01" value={guardPayable} onChange={(e) => { guardPayableManuallyEdited.current = true; setGuardPayable(Math.max(0, Number(e.target.value || 0))); }} className="w-full rounded-lg border bg-white py-2.5 pl-7 pr-2 text-sm font-black text-amber-700 focus:border-amber-500 focus:outline-none"/></div></label>
+                </div>
+                <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50/50 p-3">
+                  <div><h5 className="text-xs font-black text-slate-800">Manual Guard Payment for Old Month</h5><p className="mt-0.5 text-[10px] text-slate-500">If attendance is unavailable, select a guard and enter the payable amount.</p></div>
+                  <div className="mt-2 grid gap-2 sm:grid-cols-[1fr_180px_auto]">
+                    <select value={manualGuardId} onChange={(e) => setManualGuardId(e.target.value)} className="border rounded-lg p-2.5 bg-white text-xs"><option value="">-- Select Guard --</option>{dbGuards.map((guard) => <option key={guard.id} value={guard.id}>{guard.name}{guard.phone ? ` (${guard.phone})` : ""}</option>)}</select>
+                    <input type="number" min="0" step="0.01" value={manualGuardAmount} onChange={(e) => setManualGuardAmount(e.target.value)} placeholder="Payable amount ₹" className="border rounded-lg p-2.5 bg-white text-xs"/>
+                    <button type="button" onClick={addManualGuardPayment} className="rounded-lg bg-amber-600 px-4 py-2 text-xs font-black text-white">Add Guard</button>
+                  </div>
+                  {monthlyGuardPayments.length > 0 && <div className="mt-2 space-y-1">{monthlyGuardPayments.map((payment) => <div key={payment.guardId} className="flex items-center justify-between rounded-lg border bg-white px-3 py-2 text-[11px]"><span><b>{payment.guardName}</b> · ₹{payment.amount.toLocaleString("en-IN")}</span><button type="button" onClick={() => setMonthlyGuardPayments((current) => current.filter((entry) => entry.guardId !== payment.guardId))}><Trash2 className="h-4 w-4 text-rose-600"/></button></div>)}<div className="text-right text-xs font-black text-amber-800">Manual Total: ₹{monthlyGuardPayments.reduce((sum, payment) => sum + payment.amount, 0).toLocaleString("en-IN")}</div></div>}
+                </div>
                 <div className="grid sm:grid-cols-2 gap-3 mt-3">
                   <label className="text-[11px] font-bold text-slate-600">Invoice Number *<input value={billDetails.billNo} onChange={(e) => setBillDetails((prev) => ({ ...prev, billNo: e.target.value }))} placeholder="e.g. SEC/2026/001" className="mt-1 w-full border rounded-lg p-2.5"/></label>
                   <label className="text-[11px] font-bold text-slate-600">Invoice Date *<input type="date" value={billDetails.billDate} onChange={(e) => setBillDetails((prev) => ({ ...prev, billDate: e.target.value }))} className="mt-1 w-full border rounded-lg p-2.5"/></label>
@@ -364,9 +549,13 @@ export default function SecurityWorkflowModal({ item, nbfcsList, nbfcBranchesLis
                   <label className="text-[11px] font-bold text-slate-600">Upload Bill Copy *<span className="mt-1 flex items-center gap-2 border rounded-lg p-2 bg-white"><Receipt className="w-4 h-4 text-indigo-600"/><span className="flex-1 truncate font-normal">{billDetails.billInvoiceUrl ? "Bill uploaded" : "Choose PDF / image / document"}</span><input type="file" accept=".pdf,.jpg,.jpeg,.png,.webp,.doc,.docx,.xls,.xlsx" className="max-w-[105px] text-[9px]" onChange={(e) => uploadBillCopy(e.target.files?.[0])}/></span></label>
                 </div>
                 {billDetails.billInvoiceUrl && <div className="mt-3 flex items-center gap-2 bg-indigo-50 border border-indigo-200 rounded-lg p-2"><FileText className="w-4 h-4 text-indigo-600"/><button type="button" onClick={() => setPreviewUrl(billDetails.billInvoiceUrl)} className="text-xs font-bold text-indigo-700 underline">View Uploaded Bill</button><button type="button" onClick={() => setBillDetails((prev) => ({ ...prev, billInvoiceUrl: "" }))} className="ml-auto text-rose-600"><Trash2 className="w-4 h-4"/></button></div>}
+                <div className="mt-3 flex justify-end"><button type="button" onClick={saveMonthlyCycle} className="rounded-lg bg-indigo-600 px-4 py-2 text-xs font-black text-white">Save This Month</button></div>
+                <div className="mt-4 space-y-2"><h4 className="text-xs font-black text-slate-800">Monthly History ({monthlyCycles.length})</h4>{monthlyCycles.map((cycle) => { const guardPaid = Number(cycle.guardPaidAmount || 0); return <div key={cycle.month} className="grid grid-cols-2 gap-2 rounded-xl border bg-white p-3 text-[11px] sm:grid-cols-4 lg:grid-cols-9"><b>{new Date(`${cycle.month}-01T00:00:00`).toLocaleDateString("en-IN", { month: "long", year: "numeric" })}</b><span>Invoice: <b>{cycle.billNo}</b><button type="button" onClick={() => setPreviewUrl(cycle.billInvoiceUrl)} className="mt-1 flex items-center gap-1 font-black text-indigo-700 underline"><FileText className="h-3 w-3"/> View Proof</button></span><span>Bill: <b>₹{cycle.billAmount.toLocaleString("en-IN")}</b></span><span>Received: <b>₹{cycle.receivedAmount.toLocaleString("en-IN")}</b></span><span>Guard Payable: <b>₹{cycle.guardPayable.toLocaleString("en-IN")}</b></span><span>Guard Paid: <b>₹{guardPaid.toLocaleString("en-IN")}</b><br/>Due ₹{Math.max(0, cycle.guardPayable-guardPaid).toLocaleString("en-IN")}</span><span className="text-indigo-700">Cash Profit: <b>₹{(cycle.receivedAmount-guardPaid).toLocaleString("en-IN")}</b></span><span className={cycle.paymentStatus === "Payment Done" ? "text-emerald-700" : "text-rose-700"}><b>{cycle.paymentStatus}</b><br/>Client Pending ₹{Math.max(0, cycle.billAmount-cycle.receivedAmount).toLocaleString("en-IN")}</span><div className="flex flex-wrap gap-1"><button type="button" onClick={() => { setPaymentModalMonth(cycle.month); setPopupClientAmount(""); setPopupGuardAmount(""); setPopupPaymentDate(new Date().toISOString().slice(0, 10)); }} className="rounded-lg bg-emerald-600 px-2 py-1.5 text-[10px] font-black text-white">Log Payment</button><button type="button" onClick={() => { setPaymentEditMonth(cycle.month); setBillingMonth(cycle.month); setActiveKey("billing"); }} className="rounded-lg border border-indigo-200 bg-indigo-50 px-2 py-1.5 text-[10px] font-black text-indigo-700">Edit</button><button type="button" onClick={() => deleteMonthlyCycle(cycle.month)} className="rounded-lg border border-rose-200 bg-rose-50 px-2 py-1.5 text-[10px] font-black text-rose-700">Delete</button></div></div>})}</div>
               </div>}
               {activeKey === "payment_followup" && <div className="mt-5 border-t pt-4 space-y-4">
                 <div><h4 className="text-sm font-black text-slate-900">Add Payment Follow-up</h4><p className="text-[11px] text-slate-500">Call, visit, WhatsApp, email, reminder letter ya kisi bhi communication ka complete proof record karein.</p></div>
+                <label className="block text-[11px] font-bold text-slate-600">Invoice / Bill *<select value={selectedFollowUpInvoice ? billingMonth : ""} onChange={(e) => setBillingMonth(e.target.value)} className="mt-1 w-full border rounded-lg p-2.5 bg-white"><option value="">-- Select saved invoice --</option>{monthlyCycles.map((cycle) => <option key={cycle.month} value={cycle.month}>{new Date(`${cycle.month}-01T00:00:00`).toLocaleDateString("en-IN", { month: "long", year: "numeric" })} · {cycle.billNo} · Invoice date {new Date(`${cycle.billDate}T00:00:00`).toLocaleDateString("en-IN")} · Pending ₹{Math.max(0, cycle.billAmount-cycle.receivedAmount).toLocaleString("en-IN")}</option>)}</select></label>
+                {selectedFollowUpInvoice && <div className="grid grid-cols-2 gap-2 rounded-xl border border-indigo-100 bg-indigo-50 p-3 text-[11px] sm:grid-cols-4"><span>Service Month<br/><b>{new Date(`${selectedFollowUpInvoice.month}-01T00:00:00`).toLocaleDateString("en-IN", { month: "long", year: "numeric" })}</b></span><span>Invoice Number<br/><b>{selectedFollowUpInvoice.billNo}</b></span><span>Invoice Date<br/><b>{new Date(`${selectedFollowUpInvoice.billDate}T00:00:00`).toLocaleDateString("en-IN")}</b></span><span>Client Pending<br/><b className="text-rose-700">₹{Math.max(0, selectedFollowUpInvoice.billAmount-selectedFollowUpInvoice.receivedAmount).toLocaleString("en-IN")}</b></span></div>}
                 <div className="bg-slate-50 border rounded-xl p-3 grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
                   <label className="text-[11px] font-bold text-slate-600">Communication Type *<select value={followUpDraft.type} onChange={(e) => setFollowUpDraft((prev) => ({ ...prev, type: e.target.value }))} className="mt-1 w-full border rounded-lg p-2.5 bg-white"><option>Call</option><option>Bank Visit</option><option>WhatsApp</option><option>Email</option><option>Reminder Letter</option><option>Video Meeting</option><option>Other</option></select></label>
                   {followUpDraft.type === "Other" && <label className="text-[11px] font-bold text-slate-600">Type Communication *<input autoFocus value={customCommunicationType} onChange={(e) => setCustomCommunicationType(e.target.value)} placeholder="e.g. Courier, SMS, Portal Message" className="mt-1 w-full border border-indigo-300 rounded-lg p-2.5 bg-white"/></label>}
@@ -392,6 +581,26 @@ export default function SecurityWorkflowModal({ item, nbfcsList, nbfcBranchesLis
         </div>
         <footer className="p-4 border-t bg-slate-50 flex justify-end gap-2"><button onClick={onClose} className="px-4 py-2 rounded-lg bg-white border text-xs font-bold">Cancel</button><button onClick={save} disabled={saving || uploading} className="px-5 py-2 rounded-lg bg-indigo-600 text-white text-xs font-black disabled:opacity-50">{saving ? "Saving..." : item?.id ? "Update Workflow" : "Create Workflow"}</button></footer>
       </div>
+      {paymentModalMonth && (() => {
+        const cycle = monthlyCycles.find((entry) => entry.month === paymentModalMonth);
+        if (!cycle) return null;
+        const clientAmount = Number(popupClientAmount || 0);
+        const guardAmount = Number(popupGuardAmount || 0);
+        const totalReceived = Number(cycle.receivedAmount || 0) + clientAmount;
+        const totalGuardPaid = Number(cycle.guardPaidAmount || 0) + guardAmount;
+        return <div className="fixed inset-0 z-[100020] flex items-center justify-center bg-slate-950/70 p-4">
+          <div className="w-full max-w-xl overflow-hidden rounded-2xl bg-white shadow-2xl">
+            <div className="flex items-center justify-between border-b bg-slate-50 px-5 py-4"><div><h3 className="font-black text-slate-900">Log Monthly Payment</h3><p className="mt-1 text-xs text-slate-500">{new Date(`${cycle.month}-01T00:00:00`).toLocaleDateString("en-IN", { month: "long", year: "numeric" })} · Invoice {cycle.billNo}</p></div><button type="button" onClick={() => setPaymentModalMonth(null)} className="rounded-lg p-2 hover:bg-slate-200"><X className="h-5 w-5"/></button></div>
+            <div className="space-y-4 p-5">
+              <div className="grid grid-cols-2 gap-2 rounded-xl border bg-slate-50 p-3 text-xs sm:grid-cols-4"><span>Bill<br/><b>₹{cycle.billAmount.toLocaleString("en-IN")}</b></span><span>Client Pending<br/><b className="text-rose-700">₹{Math.max(0, cycle.billAmount-cycle.receivedAmount).toLocaleString("en-IN")}</b></span><span>Guard Payable<br/><b>₹{cycle.guardPayable.toLocaleString("en-IN")}</b></span><span>Guard Due<br/><b className="text-amber-700">₹{Math.max(0, cycle.guardPayable-Number(cycle.guardPaidAmount || 0)).toLocaleString("en-IN")}</b></span></div>
+              <label className="block text-xs font-bold text-slate-600">Payment Date *<input type="date" value={popupPaymentDate} onChange={(e) => setPopupPaymentDate(e.target.value)} className="mt-1 w-full rounded-lg border p-2.5"/></label>
+              <div className="grid gap-3 sm:grid-cols-2"><label className="text-xs font-bold text-emerald-800">Client Payment Received (₹)<input type="number" min="0" step="0.01" value={popupClientAmount} onChange={(e) => setPopupClientAmount(e.target.value)} placeholder="Enter received amount" className="mt-1 w-full rounded-lg border border-emerald-200 p-2.5"/></label><label className="text-xs font-bold text-amber-800">Guard Payment Paid (₹)<input type="number" min="0" step="0.01" value={popupGuardAmount} onChange={(e) => setPopupGuardAmount(e.target.value)} placeholder="Enter paid amount" className="mt-1 w-full rounded-lg border border-amber-200 p-2.5"/></label></div>
+              <div className="grid grid-cols-2 gap-2 rounded-xl border border-indigo-100 bg-indigo-50 p-3 text-xs sm:grid-cols-4"><span>Total Received<br/><b>₹{totalReceived.toLocaleString("en-IN")}</b></span><span>Total Guard Paid<br/><b>₹{totalGuardPaid.toLocaleString("en-IN")}</b></span><span>Client Pending<br/><b>₹{Math.max(0, cycle.billAmount-totalReceived).toLocaleString("en-IN")}</b></span><span>Cash Profit<br/><b className="text-indigo-700">₹{(totalReceived-totalGuardPaid).toLocaleString("en-IN")}</b></span></div>
+            </div>
+            <div className="flex justify-end gap-2 border-t bg-slate-50 px-5 py-4"><button type="button" onClick={() => { setPaymentModalMonth(null); setPopupClientAmount(""); setPopupGuardAmount(""); }} className="rounded-lg border bg-white px-4 py-2 text-xs font-bold">Cancel</button><button type="button" onClick={savePaymentPopup} className="rounded-lg bg-emerald-600 px-4 py-2 text-xs font-black text-white">Save Payment</button></div>
+          </div>
+        </div>;
+      })()}
       {previewUrl && <div className="fixed inset-0 z-[100010] bg-slate-950/70 p-4 flex items-center justify-center"><div className="bg-white rounded-2xl w-full max-w-5xl h-[88vh] flex flex-col overflow-hidden"><div className="p-3 border-b flex justify-between items-center"><b className="text-sm">Document Preview</b><div className="flex gap-2"><a href={previewUrl} target="_blank" rel="noreferrer" className="px-3 py-1.5 bg-indigo-600 text-white rounded-lg text-xs font-bold">Open Original</a><button onClick={() => setPreviewUrl(null)} className="p-1.5 bg-slate-100 rounded-lg"><X className="w-4 h-4"/></button></div></div>{/\.(png|jpe?g|gif|webp|bmp)(\?|$)/i.test(previewUrl) ? <div className="flex-1 overflow-auto bg-slate-100 p-4 flex justify-center"><img src={previewUrl} alt="Proof document" className="max-w-full h-auto object-contain"/></div> : <iframe title="Proof document preview" src={previewUrl} className="w-full flex-1 border-0"/>}</div></div>}
     </div>
   );

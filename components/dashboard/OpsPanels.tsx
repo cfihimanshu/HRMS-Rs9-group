@@ -3181,6 +3181,48 @@ export function PerformanceCompliance({
     return text.replace(/\r?\n/g, " | ");
   };
 
+  const getTaskWorkDetails = (task: any): Array<{ label: string; value: string }> => {
+    const details: Array<{ label: string; value: string }> = [];
+    const seen = new Set<string>();
+    const add = (label: string, value: any) => {
+      const cleanValue = String(value || "").trim();
+      if (!cleanValue || cleanValue.toLowerCase() === "n/a") return;
+      const key = label.toLowerCase();
+      if (seen.has(key)) return;
+      seen.add(key);
+      details.push({ label, value: cleanValue });
+    };
+
+    add("Call / Task Mode", task.subType);
+    add("Bank / NBFC", task.bankName || task.nbfcName);
+    add("Branch", task.branchName);
+    add("AO", task.aoName);
+    add("RBO", task.rboName);
+    add("Case Details", task.caseDetails);
+
+    const labelMap: Record<string, string> = {
+      category: "Category",
+      "call mode": "Call / Task Mode",
+      "task mode": "Call / Task Mode",
+      bank: "Bank / NBFC",
+      nbfc: "Bank / NBFC",
+      branch: "Branch",
+      ao: "AO",
+      rbo: "RBO",
+      "case details": "Case Details",
+      "officer name": "Officer",
+      "officer phone": "Officer Phone",
+      remark: "Remark",
+    };
+    String(task.description || "").split(/\r?\n/).forEach((line) => {
+      const match = line.match(/^([^:]+):\s*(.+)$/);
+      if (!match) return;
+      const mappedLabel = labelMap[match[1].trim().toLowerCase()];
+      if (mappedLabel) add(mappedLabel, match[2]);
+    });
+    return details;
+  };
+
   const collectTaskProofUrls = (task: any): string[] => {
     const urls: string[] = [];
 
@@ -6908,7 +6950,14 @@ export function PerformanceCompliance({
                                                 </span>
                                               )}
                                             </div>
-                                            {task.description && (
+                                            {(() => {
+                                              const workDetails = getTaskWorkDetails(task);
+                                              if (!workDetails.length) return null;
+                                              return <div className="grid grid-cols-1 gap-1 rounded-lg border border-purple-100 bg-purple-50/60 p-2 text-[10px] sm:grid-cols-2">
+                                                {workDetails.map((detail) => <div key={detail.label} className={detail.label === "Remark" || detail.label === "Case Details" ? "sm:col-span-2" : ""}><span className="font-black text-purple-700">{detail.label}:</span> <span className="font-semibold text-slate-700">{detail.value}</span></div>)}
+                                              </div>;
+                                            })()}
+                                            {task.description && getTaskWorkDetails(task).length === 0 && (
                                               <p className="text-[10px] text-slate-505 bg-slate-55 p-2 rounded italic border border-slate-100">
                                                 {task.description}
                                               </p>
