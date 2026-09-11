@@ -48,6 +48,7 @@ export default function CasesMasterView({
   const [expandedCaseId, setExpandedCaseId] = useState<number | null>(null);
   const [localHistory, setLocalHistory] = useState<any[]>([]);
   const [localWorkLogs, setLocalWorkLogs] = useState<any[]>([]);
+  const [localPayments, setLocalPayments] = useState<any[]>([]);
   const [loadingLocalHistory, setLoadingLocalHistory] = useState(false);
 
   const handleToggleLogs = async (caseItem: any) => {
@@ -60,6 +61,7 @@ export default function CasesMasterView({
     setLoadingLocalHistory(true);
     setLocalHistory([]);
     setLocalWorkLogs([]);
+    setLocalPayments([]);
     try {
       const isRealMaster = caseId && Number(caseId) > 0;
       const followUpUrl = isRealMaster
@@ -68,13 +70,18 @@ export default function CasesMasterView({
       const workLogUrl = isRealMaster
         ? `/api/legal-recovery/work-log?masterId=${caseId}`
         : `/api/legal-recovery/work-log`;
+      const paymentUrl = isRealMaster
+        ? `/api/legal-recovery/payment?masterId=${caseId}`
+        : `/api/legal-recovery/payment`;
 
-      const [resFollowup, resWorkLogs] = await Promise.all([
+      const [resFollowup, resWorkLogs, resPayments] = await Promise.all([
         fetch(followUpUrl),
-        fetch(workLogUrl)
+        fetch(workLogUrl),
+        fetch(paymentUrl)
       ]);
       const resultFollowup = await resFollowup.json();
       const resultWorkLogs = await resWorkLogs.json();
+      const resultPayments = await resPayments.json();
       if (resultFollowup.success) {
         let fData = resultFollowup.data || [];
         if (!isRealMaster && caseItem?.bankName) {
@@ -94,6 +101,18 @@ export default function CasesMasterView({
           );
         }
         setLocalWorkLogs(wData);
+      }
+      if (resultPayments.success) {
+        let pData = resultPayments.data || [];
+        if (!isRealMaster && caseItem?.bankName) {
+          const bNorm = caseItem.bankName.toLowerCase().trim();
+          const brNorm = (caseItem.branchName || "").toLowerCase().trim();
+          pData = pData.filter((payment: any) =>
+            (payment.bankName || "").toLowerCase().trim().includes(bNorm) &&
+            (!brNorm || (payment.branchName || "").toLowerCase().trim().includes(brNorm))
+          );
+        }
+        setLocalPayments(pData);
       }
     } catch (error) {
       console.error("Error loading history:", error);
@@ -837,7 +856,59 @@ export default function CasesMasterView({
                               <RefreshCw className="w-4 h-4 animate-spin mr-1.5" /> Loading history logs...
                             </div>
                           ) : (
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
+                            <div className="space-y-4 pt-1">
+                              <div className="space-y-2">
+                                <h4 className="text-[10px] font-black text-[#5D5B57] uppercase tracking-wider flex items-center gap-1.5">
+                                  <Banknote className="w-3.5 h-3.5 text-emerald-600" /> Payment Received History ({localPayments.length})
+                                </h4>
+                                {localPayments.length === 0 ? (
+                                  <div className="text-center py-5 text-slate-400 text-[10px] font-bold bg-white rounded-xl border border-slate-200 border-dashed">
+                                    No payments recorded yet.
+                                  </div>
+                                ) : (
+                                  <div className="overflow-x-auto bg-white border border-emerald-200 rounded-xl shadow-2xs">
+                                    <table className="w-full min-w-[920px] text-left text-xs border-collapse">
+                                      <thead>
+                                        <tr className="bg-emerald-50 border-b border-emerald-200 text-[9px] uppercase font-bold text-slate-600 tracking-wider">
+                                          <th className="py-2.5 px-3">Invoice</th>
+                                          <th className="py-2.5 px-3">Payment Date</th>
+                                          <th className="py-2.5 px-3 text-right">Amount Received</th>
+                                          <th className="py-2.5 px-3 text-right">TDS</th>
+                                          <th className="py-2.5 px-3">Mode / Reference</th>
+                                          <th className="py-2.5 px-3">Received By</th>
+                                          <th className="py-2.5 px-3">Remarks</th>
+                                          <th className="py-2.5 px-3 text-center">Proof</th>
+                                        </tr>
+                                      </thead>
+                                      <tbody className="divide-y divide-slate-100">
+                                        {localPayments.map((payment: any) => (
+                                          <tr key={payment.id} className="hover:bg-emerald-50/30">
+                                            <td className="py-2.5 px-3 font-bold text-slate-800">{payment.invoiceNo || "Branch payment"}</td>
+                                            <td className="py-2.5 px-3 text-slate-600">{payment.paymentDate ? new Date(payment.paymentDate).toLocaleDateString("en-IN") : "—"}</td>
+                                            <td className="py-2.5 px-3 text-right font-extrabold text-emerald-700">₹{Number(payment.amount || 0).toLocaleString("en-IN", { maximumFractionDigits: 2 })}</td>
+                                            <td className="py-2.5 px-3 text-right font-bold text-amber-700">₹{Number(payment.tdsAmount || 0).toLocaleString("en-IN", { maximumFractionDigits: 2 })}</td>
+                                            <td className="py-2.5 px-3 text-slate-700">
+                                              <div className="font-semibold">{payment.paymentMode || "—"}</div>
+                                              <div className="text-[9px] text-slate-400">{payment.transactionId || "No reference"}</div>
+                                            </td>
+                                            <td className="py-2.5 px-3 text-slate-700 font-semibold">{payment.receivedBy || payment.employeeName || "System"}</td>
+                                            <td className="py-2.5 px-3 text-slate-600 max-w-[220px] whitespace-pre-wrap">{payment.remarks || "—"}</td>
+                                            <td className="py-2.5 px-3 text-center">
+                                              {payment.proofUrl ? (
+                                                <a href={payment.proofUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 rounded-lg border border-emerald-200 bg-emerald-50 px-2 py-1 text-[9px] font-bold text-emerald-700 hover:bg-emerald-100">
+                                                  <FileText className="w-3 h-3" /> View Proof
+                                                </a>
+                                              ) : <span className="text-[9px] text-slate-400">Not uploaded</span>}
+                                            </td>
+                                          </tr>
+                                        ))}
+                                      </tbody>
+                                    </table>
+                                  </div>
+                                )}
+                              </div>
+
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                               {/* Follow Up Calls */}
                               <div className="space-y-2">
                                 <h4 className="text-[10px] font-black text-[#5D5B57] uppercase tracking-wider flex items-center gap-1.5">
@@ -912,6 +983,7 @@ export default function CasesMasterView({
                                     ))}
                                   </div>
                                 )}
+                              </div>
                               </div>
                             </div>
                           )}

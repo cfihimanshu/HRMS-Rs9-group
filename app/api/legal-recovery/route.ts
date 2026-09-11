@@ -463,6 +463,8 @@ export async function GET() {
 // POST a new case
 export async function POST(request: Request) {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user) return NextResponse.json({ success: false, error: "Unauthorized access" }, { status: 401 });
     const data = await request.json();
     const isDbConnected = await safeAuthenticate(6000);
     if (!isDbConnected) {
@@ -470,10 +472,30 @@ export async function POST(request: Request) {
     }
 
     await LegalRecoveryMaster.sync();
+    await LegalRecoveryBill.sync();
     await ensureLegalRecoveryColumns();
 
     const totalBill = data.totalBillAmount ? parseFloat(data.totalBillAmount) : (data.pendingAmount ? parseFloat(data.pendingAmount) : 0);
     const pendingAmt = data.pendingAmount !== undefined && data.pendingAmount !== "" ? parseFloat(data.pendingAmount) : totalBill;
+    const invoiceNo = String(data.invoiceNo || "").trim();
+    const invoiceDate = String(data.invoiceDate || data.pendingSince || "").trim();
+    if (!invoiceNo) return NextResponse.json({ success: false, error: "Invoice number is required" }, { status: 400 });
+    if (!invoiceDate) return NextResponse.json({ success: false, error: "Invoice date is required" }, { status: 400 });
+    if (!Number.isFinite(totalBill) || totalBill <= 0) return NextResponse.json({ success: false, error: "Enter a valid invoice amount" }, { status: 400 });
+    if (!Number.isFinite(pendingAmt) || pendingAmt < 0 || pendingAmt > totalBill) return NextResponse.json({ success: false, error: "Pending amount must be between zero and the invoice amount" }, { status: 400 });
+
+    const bank = await BankMaster.findOne({ where: { bankName: data.bankName }, raw: true }) as any;
+    const branch = await BranchMaster.findOne({
+      where: {
+        ...(bank?.id ? { bankId: bank.id } : {}),
+        [Op.or]: [{ branchCode: data.branchId }, { branchName: data.branchName }]
+      },
+      raw: true
+    }) as any;
+    if (!bank || !branch) return NextResponse.json({ success: false, error: "Select a registered bank and branch" }, { status: 400 });
+
+    const duplicateInvoice = await LegalRecoveryBill.findOne({ where: { companyId: `MANUAL-${bank.id}`, invoiceNo } });
+    if (duplicateInvoice) return NextResponse.json({ success: false, error: "This invoice number is already registered for the selected bank" }, { status: 409 });
 
     const payload = {
       ...data,
@@ -482,8 +504,52 @@ export async function POST(request: Request) {
       status: data.status || (pendingAmt <= 0 ? "Settled" : "Open")
     };
 
-    const newCase = await LegalRecoveryMaster.create(payload);
-    return NextResponse.json({ success: true, data: newCase });
+    const transaction = await sequelize.transaction();
+    try {
+      let recoveryCase = await LegalRecoveryMaster.findOne({
+        where: {
+          bankName: data.bankName,
+          [Op.or]: [{ branchId: data.branchId }, { branchName: data.branchName }]
+        },
+        order: [["id", "DESC"]],
+        transaction,
+        lock: transaction.LOCK.UPDATE
+      });
+      if (recoveryCase) {
+        const nextTotal = Number(recoveryCase.totalBillAmount || 0) + totalBill;
+        const nextPending = Number(recoveryCase.pendingAmount || 0) + pendingAmt;
+        await recoveryCase.update({
+          ...payload,
+          totalBillAmount: nextTotal,
+          pendingAmount: nextPending,
+          pendingSince: recoveryCase.pendingSince || invoiceDate,
+          status: nextPending <= 0 ? "Settled" : (Number(recoveryCase.receivedAmount || 0) > 0 ? "In Progress" : "Open")
+        }, { transaction });
+      } else {
+        recoveryCase = await LegalRecoveryMaster.create(payload, { transaction });
+      }
+      const receivedAmount = Math.max(0, totalBill - pendingAmt);
+      const invoice = await LegalRecoveryBill.create({
+        masterId: recoveryCase.id,
+        companyId: `MANUAL-${bank.id}`,
+        companyCode: "MANUAL",
+        bankId: bank.id,
+        branchId: branch.id,
+        invoiceNo,
+        billDate: invoiceDate,
+        billAmount: totalBill,
+        receivedAmount,
+        tdsAmount: 0,
+        dueAmount: pendingAmt,
+        status: pendingAmt <= 0 ? "Received" : "Pending",
+        importBatchId: "MANUAL"
+      }, { transaction });
+      await transaction.commit();
+      return NextResponse.json({ success: true, data: recoveryCase, invoice });
+    } catch (createError) {
+      await transaction.rollback();
+      throw createError;
+    }
   } catch (error: any) {
     console.error("Legal Recovery POST Error:", error);
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });

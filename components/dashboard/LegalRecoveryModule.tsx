@@ -122,7 +122,7 @@ export default function LegalRecoveryModule({ userRole, triggerToast, sessionUse
   const [caseForm, setCaseForm] = useState({
     bankName: "", branchName: "", branchId: "", aoName: "",
     deptManagerName: "", contactNumber: "", branchEmail: "", foName: "", foContact: "", rbo: "",
-    pocName: "", totalBillAmount: "", pendingAmount: "", pendingSince: "", status: "Open"
+    pocName: "", invoiceNo: "", invoiceDate: "", totalBillAmount: "", pendingAmount: "", pendingSince: "", status: "Open"
   });
   const [editCaseId, setEditCaseId] = useState<number | null>(null);
   const [selectedBankIdForCase, setSelectedBankIdForCase] = useState("");
@@ -553,7 +553,7 @@ export default function LegalRecoveryModule({ userRole, triggerToast, sessionUse
         setCaseForm({
           bankName: "", branchName: "", branchId: "", aoName: "",
           deptManagerName: "", contactNumber: "", branchEmail: "", foName: "", foContact: "", rbo: "",
-          pocName: "", totalBillAmount: "", pendingAmount: "", pendingSince: "", status: "Open"
+          pocName: "", invoiceNo: "", invoiceDate: "", totalBillAmount: "", pendingAmount: "", pendingSince: "", status: "Open"
         });
         fetchCases();
       } else {
@@ -630,6 +630,8 @@ export default function LegalRecoveryModule({ userRole, triggerToast, sessionUse
       foContact: c.foContact || "",
       rbo: c.rbo || "",
       pocName: c.pocName || "",
+      invoiceNo: "",
+      invoiceDate: "",
       totalBillAmount: c.totalBillAmount !== undefined && c.totalBillAmount !== null ? String(c.totalBillAmount) : "",
       pendingAmount: c.pendingAmount !== undefined && c.pendingAmount !== null ? String(c.pendingAmount) : "",
       pendingSince: c.pendingSince ? new Date(c.pendingSince).toISOString().split('T')[0] : "",
@@ -1260,7 +1262,7 @@ export default function LegalRecoveryModule({ userRole, triggerToast, sessionUse
                   setCaseForm({
                     bankName: "", branchName: "", branchId: "", aoName: "",
                     deptManagerName: "", contactNumber: "", branchEmail: "", foName: "", foContact: "", rbo: "",
-                    pocName: "", totalBillAmount: "", pendingAmount: "", pendingSince: "", status: "Open"
+                    pocName: "", invoiceNo: "", invoiceDate: "", totalBillAmount: "", pendingAmount: "", pendingSince: "", status: "Open"
                   });
                 }}
                 className="text-slate-400 hover:text-slate-600"
@@ -1327,11 +1329,38 @@ export default function LegalRecoveryModule({ userRole, triggerToast, sessionUse
                 </div>
               </div>
 
+              {!editCaseId && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-3 bg-indigo-50/40 border border-indigo-100 rounded-xl">
+                  <div>
+                    <label className="block text-[9px] uppercase tracking-wider text-indigo-800 font-bold mb-1">Invoice Number *</label>
+                    <input
+                      required
+                      type="text"
+                      placeholder="e.g. RAA/2026-27/001"
+                      value={caseForm.invoiceNo}
+                      onChange={e => setCaseForm({ ...caseForm, invoiceNo: e.target.value })}
+                      className="w-full bg-white border border-indigo-200 focus:border-indigo-500 rounded-lg px-3 py-2 text-xs focus:outline-none font-bold text-slate-800"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[9px] uppercase tracking-wider text-indigo-800 font-bold mb-1">Invoice Date *</label>
+                    <input
+                      required
+                      type="date"
+                      value={caseForm.invoiceDate}
+                      onChange={e => setCaseForm({ ...caseForm, invoiceDate: e.target.value, pendingSince: caseForm.pendingSince || e.target.value })}
+                      className="w-full bg-white border border-indigo-200 focus:border-indigo-500 rounded-lg px-3 py-2 text-xs focus:outline-none font-semibold text-slate-800"
+                    />
+                  </div>
+                </div>
+              )}
+
               {/* Row 2: Financial Details */}
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4 p-3 bg-emerald-50/40 border border-emerald-100 rounded-xl">
                 <div>
-                  <label className="block text-[9px] uppercase tracking-wider text-emerald-800 font-bold mb-1">Total Bill Amount (₹)</label>
+                  <label className="block text-[9px] uppercase tracking-wider text-emerald-800 font-bold mb-1">Invoice / Bill Amount (₹) *</label>
                   <input
+                    required
                     type="number"
                     step="0.01"
                     placeholder="0.00"

@@ -76,6 +76,13 @@ export async function POST(req: Request) {
       replacementGuardId ? LegalGuard.findByPk(replacementGuardId) : Promise.resolve(null),
     ]);
     if (!site || !guard) return NextResponse.json({ success: false, error: "Selected site or guard no longer exists" }, { status: 404 });
+    try {
+      const workflow = JSON.parse(String(site.workflowJson || "{}"));
+      const closure = workflow?.site_closure;
+      if (closure?.status === "completed" && closure.date && String(body.attendanceDate) > String(closure.date)) {
+        return NextResponse.json({ success: false, error: `Site was closed on ${closure.date}. Attendance cannot be marked after closure.` }, { status: 409 });
+      }
+    } catch {}
     if (status === "Absent" && replacementGuardId && (!replacementGuard || replacementGuardId === guardId)) {
       return NextResponse.json({ success: false, error: "Please select a valid replacement guard" }, { status: 400 });
     }

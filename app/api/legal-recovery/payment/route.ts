@@ -12,15 +12,26 @@ import { DataTypes, Op } from "sequelize";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 
-let paymentColumnsEnsured = false;
+let paymentSchemaPromise: Promise<void> | null = null;
 async function ensurePaymentInvoiceColumns() {
-  if (paymentColumnsEnsured) return;
-  const queryInterface = sequelize.getQueryInterface();
-  const columns = await queryInterface.describeTable("legal_recovery_payments");
-  if (!columns.invoiceId) await queryInterface.addColumn("legal_recovery_payments", "invoiceId", { type: DataTypes.INTEGER, allowNull: true });
-  if (!columns.invoiceNo) await queryInterface.addColumn("legal_recovery_payments", "invoiceNo", { type: DataTypes.STRING, allowNull: true });
-  if (!columns.tdsAmount) await queryInterface.addColumn("legal_recovery_payments", "tdsAmount", { type: DataTypes.DECIMAL(15, 2), allowNull: false, defaultValue: 0 });
-  paymentColumnsEnsured = true;
+  if (paymentSchemaPromise) return paymentSchemaPromise;
+  paymentSchemaPromise = (async () => {
+    const queryInterface = sequelize.getQueryInterface();
+    const [tables]: any = await sequelize.query("SHOW TABLES LIKE 'legal_recovery_payments'");
+    if (!Array.isArray(tables) || tables.length === 0) {
+      await LegalRecoveryPayment.sync();
+      return;
+    }
+    const columns = await queryInterface.describeTable("legal_recovery_payments");
+    if (!columns.invoiceId) await queryInterface.addColumn("legal_recovery_payments", "invoiceId", { type: DataTypes.INTEGER, allowNull: true });
+    if (!columns.invoiceNo) await queryInterface.addColumn("legal_recovery_payments", "invoiceNo", { type: DataTypes.STRING, allowNull: true });
+    if (!columns.tdsAmount) await queryInterface.addColumn("legal_recovery_payments", "tdsAmount", { type: DataTypes.DECIMAL(15, 2), allowNull: false, defaultValue: 0 });
+    await LegalRecoveryPayment.sync();
+  })().catch((error) => {
+    paymentSchemaPromise = null;
+    throw error;
+  });
+  return paymentSchemaPromise;
 }
 
 async function refreshMasterBalance(masterId: number, transaction: any) {
@@ -114,10 +125,9 @@ export async function POST(request: Request) {
     const data = await request.json();
     await sequelize.authenticate();
 
-    await LegalRecoveryPayment.sync();
+    await ensurePaymentInvoiceColumns();
     await LegalRecoveryBill.sync();
     await TaskLog.sync();
-    await ensurePaymentInvoiceColumns();
     const transaction = await sequelize.transaction();
 
     try {
@@ -219,12 +229,21 @@ export async function POST(request: Request) {
   }
 }
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user) return NextResponse.json({ success: false, error: "Unauthorized access" }, { status: 401 });
+
+    const rawMasterId = new URL(request.url).searchParams.get("masterId");
+    const masterId = rawMasterId ? Number(rawMasterId) : null;
+    if (rawMasterId && (!Number.isInteger(masterId) || Number(masterId) <= 0)) {
+      return NextResponse.json({ success: false, error: "Invalid recovery master ID" }, { status: 400 });
+    }
+
     await sequelize.authenticate();
-    await LegalRecoveryPayment.sync();
     await ensurePaymentInvoiceColumns();
     const payments = await LegalRecoveryPayment.findAll({
+      ...(masterId ? { where: { masterId } } : {}),
       order: [["createdAt", "DESC"]],
       raw: true
     });
@@ -276,9 +295,8 @@ export async function PUT(request: Request) {
     }
 
     await sequelize.authenticate();
-    await LegalRecoveryPayment.sync();
-    await LegalRecoveryBill.sync();
     await ensurePaymentInvoiceColumns();
+    await LegalRecoveryBill.sync();
     const dbTransaction = await sequelize.transaction();
     try {
       const payment = await LegalRecoveryPayment.findByPk(id, { transaction: dbTransaction, lock: dbTransaction.LOCK.UPDATE });
@@ -355,9 +373,8 @@ export async function DELETE(request: Request) {
     }
 
     await sequelize.authenticate();
-    await LegalRecoveryPayment.sync();
-    await LegalRecoveryBill.sync();
     await ensurePaymentInvoiceColumns();
+    await LegalRecoveryBill.sync();
     const transaction = await sequelize.transaction();
     try {
       const payment = await LegalRecoveryPayment.findByPk(id, { transaction, lock: transaction.LOCK.UPDATE });

@@ -21,6 +21,7 @@ const WORKFLOW_STAGE_LABELS: Record<string, string> = {
   guard_deployment: "Guards Deployed",
   billing: "Bill Generated",
   payment_followup: "Payment Follow-up",
+  site_closure: "Site Closure",
 };
 
 const parseJsonObject = (value: unknown) => {
@@ -81,6 +82,12 @@ async function syncGuardDeploymentProjects(record: any, actorId: string) {
     if (existing) await existing.update(values);
     else await SecurityProject.create({ ...values, status: "Ongoing" });
   }
+}
+
+async function syncSiteClosureStatus(record: any) {
+  const workflow = parseJsonObject(record.workflowJson);
+  if (workflow.site_closure?.status !== "completed") return;
+  await SecurityProject.update({ status: "Completed" }, { where: { sourceSecurityId: record.id } });
 }
 
 async function notifyWorkflowChanges(record: any, previousWorkflowValue: unknown, actorName: string, eventPrefix: string) {
@@ -377,6 +384,7 @@ export async function POST(req: Request) {
 
     await syncWorkflowTasks(newEntry, String(createdBy), session.user.name || "System User");
     await syncGuardDeploymentProjects(newEntry, String(createdBy));
+    await syncSiteClosureStatus(newEntry);
     await syncSecurityFollowUpTask(newEntry, String(createdBy));
     await notifyWorkflowChanges(newEntry, "", session.user.name || "System User", `security_workflow_${newEntry.id}_${Date.now()}`);
 
@@ -450,6 +458,23 @@ export async function PUT(req: Request) {
 
     const previousWorkflowJson = record.workflowJson;
     const previousFollowUpAt = record.followUpAt;
+    if (workflowJson !== undefined) {
+      const previousWorkflow = parseJsonObject(previousWorkflowJson);
+      const incomingWorkflow = parseJsonObject(workflowJson);
+      const previousCycles = Array.isArray(previousWorkflow.monthlyCycles) ? previousWorkflow.monthlyCycles : [];
+      const incomingCycles = Array.isArray(incomingWorkflow.monthlyCycles) ? incomingWorkflow.monthlyCycles : [];
+      if (previousWorkflow.site_closure?.status === "completed") {
+        const previousMonths = new Set(previousCycles.map((cycle: any) => String(cycle.month || "")));
+        const addedAfterClosure = incomingCycles.some((cycle: any) => cycle?.month && !previousMonths.has(String(cycle.month)));
+        if (addedAfterClosure) return NextResponse.json({ success: false, error: "This site is closed. New monthly bills cannot be added." }, { status: 409 });
+      }
+      if (incomingWorkflow.site_closure?.status === "completed" && incomingWorkflow.site_closure?.lastWorkingMonth) {
+        const lastWorkingMonth = String(incomingWorkflow.site_closure.lastWorkingMonth);
+        if (incomingCycles.some((cycle: any) => String(cycle?.month || "") > lastWorkingMonth)) {
+          return NextResponse.json({ success: false, error: "A bill exists after the selected last working month. Correct the closure month first." }, { status: 400 });
+        }
+      }
+    }
     await record.update({
       company: company ?? record.company,
       billNo: billNo ?? record.billNo,
@@ -493,6 +518,7 @@ export async function PUT(req: Request) {
     const actorId = String((session.user as any).id || session.user.name || "system");
     await syncWorkflowTasks(record, actorId, session.user.name || "System User");
     await syncGuardDeploymentProjects(record, actorId);
+    await syncSiteClosureStatus(record);
     await syncSecurityFollowUpTask(record, actorId, previousFollowUpAt);
     await notifyWorkflowChanges(record, previousWorkflowJson, session.user.name || "System User", `security_workflow_${record.id}_${Date.now()}`);
 
