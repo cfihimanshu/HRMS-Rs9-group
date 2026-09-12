@@ -20,7 +20,6 @@ import {
 // Import modular panels
 import DashboardSidebar from "@/components/dashboard/Sidebar";
 import Topbar from "@/components/dashboard/Topbar";
-import IncompleteWorkAlert from "@/components/dashboard/IncompleteWorkAlert";
 import HiringRequisitionModal from "@/components/dashboard/HiringRequisitionModal";
 import { HrDashboard, DepartmentDashboard } from "@/components/dashboard/OverviewPanels";
 import OwnerCommandCentre from "@/components/dashboard/OwnerCommandCentre";
@@ -1290,8 +1289,6 @@ export default function UnifiedEnterpriseDashboard() {
 
         {/* Tab Panel Body container */}
         <div className="flex-1 overflow-y-auto px-4 py-4 md:px-8 md:py-8 custom-scrollbar">
-
-          <IncompleteWorkAlert onOpenTasks={() => handleNavigateTab("tasks", "__overdue__")} />
 
           {activeTab === "dashboard" && (
             <OwnerCommandCentre

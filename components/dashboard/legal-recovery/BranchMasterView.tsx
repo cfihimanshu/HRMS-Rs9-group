@@ -43,7 +43,8 @@ export default function BranchMasterView({
       searchQuery &&
       !(
         br.branchName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        parentBank?.bankName?.toLowerCase().includes(searchQuery.toLowerCase())
+        parentBank?.bankName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        br.network?.toLowerCase().includes(searchQuery.toLowerCase())
       )
     )
       return false;
@@ -233,7 +234,7 @@ export default function BranchMasterView({
           <input
             type="text"
             className="bg-transparent border-none focus:outline-none text-xs w-full font-semibold text-slate-700 placeholder:text-[#9C9890] placeholder:font-normal"
-            placeholder="Search Branches by Name or Bank..."
+            placeholder="Search Branches by Name, Bank or Network..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
@@ -295,6 +296,7 @@ export default function BranchMasterView({
               <th className="py-3.5 px-4 bg-[#F5F0EA]">Manager Details</th>
               <th className="py-3.5 px-4 bg-[#F5F0EA]">Recovery Officers</th>
               <th className="py-3.5 px-4 bg-[#F5F0EA]">RBO Details</th>
+              <th className="py-3.5 px-4 bg-[#F5F0EA]">Network</th>
               <th className="py-3.5 px-4 text-right bg-[#F5F0EA]">Created On</th>
               <th className="py-3.5 px-4 text-center bg-[#F5F0EA]">Actions</th>
             </tr>
@@ -328,6 +330,7 @@ export default function BranchMasterView({
                   <td className="py-3 px-4">
                     <div className="text-slate-600 font-semibold mt-1">RBO: {br.rbo || "N/A"}</div>
                   </td>
+                  <td className="py-3 px-4 font-semibold text-slate-700">{br.network || "N/A"}</td>
                   <td className="py-3 px-4 text-[#9C9890] text-right">
                     {new Date(br.createdAt).toLocaleDateString()}
                   </td>
@@ -350,7 +353,7 @@ export default function BranchMasterView({
             })}
             {filteredBranches.length === 0 && !loading && (
               <tr>
-                <td colSpan={6} className="text-center py-12 text-[#9C9890] text-xs uppercase tracking-wider">
+                <td colSpan={7} className="text-center py-12 text-[#9C9890] text-xs uppercase tracking-wider">
                   No Branches Added Yet.
                 </td>
               </tr>

@@ -1,7 +1,20 @@
 import { NextResponse } from "next/server";
+import LegalNetwork from "@/models/sequelize/LegalNetwork";
 import BranchMaster from "@/models/sequelize/BranchMaster";
 import sequelize from "@/lib/sequelize";
 import { requireApiSession, MANAGEMENT_ROLES } from "@/lib/apiAuth";
+
+async function validateNetwork(data: Record<string, any>): Promise<string | null> {
+  if (data.network === undefined) return null;
+  if (data.network === null || data.network === "") { data.network = null; return null; }
+  if (typeof data.network !== "string" || data.network.trim().length > 255) return "Enter a valid network";
+  const name = data.network.trim().replace(/\s+/g, " ");
+  if (!name) { data.network = null; return null; }
+  const network = await LegalNetwork.findOne({ where: { name } });
+  if (!network) return "Select an existing network or add it using Add Network first";
+  data.network = network.name;
+  return null;
+}
 
 const normalizeBranchValue = (value: unknown) => String(value || "").trim().toLowerCase();
 
@@ -58,6 +71,9 @@ export async function POST(request: Request) {
       );
     }
     
+    const networkError = await validateNetwork(data);
+    if (networkError) return NextResponse.json({ success: false, error: networkError }, { status: 400 });
+
     const newBranch = await BranchMaster.create({
       ...data,
       branchName,
@@ -88,6 +104,8 @@ export async function PUT(request: Request) {
       return NextResponse.json({ success: false, error: "Branch not found" }, { status: 404 });
     }
 
+    const networkError = await validateNetwork(updateData);
+    if (networkError) return NextResponse.json({ success: false, error: networkError }, { status: 400 });
     await branch.update(updateData);
     return NextResponse.json({ success: true, data: branch });
   } catch (error: any) {

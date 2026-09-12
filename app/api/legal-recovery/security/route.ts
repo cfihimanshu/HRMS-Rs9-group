@@ -34,6 +34,31 @@ const parseJsonObject = (value: unknown) => {
   }
 };
 
+// Monthly payments, including TDS, are persisted in legal_securities.workflowJson.
+function validateMonthlyPayments(workflowValue: unknown): string | null {
+  const workflow = parseJsonObject(workflowValue);
+  if (!Array.isArray(workflow.monthlyCycles)) return null;
+  for (const cycle of workflow.monthlyCycles) {
+    const bill = Number(cycle.billAmount || 0);
+    const received = Number(cycle.receivedAmount || 0);
+    const tds = Number(cycle.tdsAmount ?? 0);
+    if (![bill, received, tds].every((value) => Number.isFinite(value) && value >= 0)) {
+      return "Monthly bill, received and TDS amounts must be valid non-negative numbers";
+    }
+    if (Math.round((received + tds) * 100) > Math.round(bill * 100)) {
+      return "Monthly received amount plus TDS cannot exceed bill amount";
+    }
+    for (const log of Array.isArray(cycle.clientPaymentLogs) ? cycle.clientPaymentLogs : []) {
+      if (![Number(log.amount ?? 0), Number(log.tdsAmount ?? 0)].every((value) => Number.isFinite(value) && value >= 0)) {
+        return "Client payment and TDS log amounts must be valid non-negative numbers";
+      }
+    }
+    cycle.paymentStatus = Math.round((received + tds) * 100) >= Math.round(bill * 100)
+      ? "Payment Done" : received + tds > 0 ? "Partially Paid" : "Due";
+  }
+  return null;
+}
+
 const uniq = (values: unknown[]) => [...new Set(values.filter((value): value is string => typeof value === "string" && Boolean(value.trim())).map((value) => value.trim()))];
 
 async function syncGuardDeploymentProjects(record: any, actorId: string) {
@@ -297,6 +322,12 @@ export async function POST(req: Request) {
     await syncSecurityTableSchema();
 
     const body = await req.json();
+    if (body.workflowJson !== undefined) {
+      const workflow = parseJsonObject(body.workflowJson);
+      const paymentError = validateMonthlyPayments(workflow);
+      if (paymentError) return NextResponse.json({ success: false, error: paymentError }, { status: 400 });
+      body.workflowJson = JSON.stringify(workflow);
+    }
     const {
       company,
       billNo,
@@ -406,6 +437,12 @@ export async function PUT(req: Request) {
     await syncSecurityTableSchema();
 
     const body = await req.json();
+    if (body.workflowJson !== undefined) {
+      const workflow = parseJsonObject(body.workflowJson);
+      const paymentError = validateMonthlyPayments(workflow);
+      if (paymentError) return NextResponse.json({ success: false, error: paymentError }, { status: 400 });
+      body.workflowJson = JSON.stringify(workflow);
+    }
     const {
       id,
       company,

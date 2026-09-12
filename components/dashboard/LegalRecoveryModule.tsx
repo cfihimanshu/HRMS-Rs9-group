@@ -7,6 +7,8 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import BankMasterView from "./legal-recovery/BankMasterView";
+import NetworkSelect from "./legal-recovery/NetworkSelect";
+import RboSelect from "./legal-recovery/RboSelect";
 import BranchMasterView from "./legal-recovery/BranchMasterView";
 import CasesMasterView from "./legal-recovery/CasesMasterView";
 import LegalWorkLogsView from "./legal-recovery/LegalWorkLogsView";
@@ -117,7 +119,7 @@ export default function LegalRecoveryModule({ userRole, triggerToast, sessionUse
   // Forms
   const [bankForm, setBankForm] = useState({ bankName: "", bankCode: "" });
   const [nbfcForm, setNbfcForm] = useState({ nbfcName: "", nbfcCode: "" });
-  const [branchForm, setBranchForm] = useState({ bankId: "", branchName: "", branchCode: "", branchEmail: "", branchManager: "", branchManagerContact: "", aoName: "", foName: "", foContact: "", rbo: "" });
+  const [branchForm, setBranchForm] = useState({ bankId: "", branchName: "", branchCode: "", branchEmail: "", branchManager: "", branchManagerContact: "", aoName: "", foName: "", foContact: "", rbo: "", network: "" });
   const [nbfcBranchForm, setNbfcBranchForm] = useState({ nbfcId: "", branchName: "", branchCode: "", branchEmail: "", branchManager: "", branchManagerContact: "", aoName: "", foName: "", foContact: "", rbo: "" });
   const [caseForm, setCaseForm] = useState({
     bankName: "", branchName: "", branchId: "", aoName: "",
@@ -496,7 +498,7 @@ export default function LegalRecoveryModule({ userRole, triggerToast, sessionUse
           triggerToast("Branch Updated Successfully!");
           setShowAddBranchForm(false);
           setEditBranchId(null);
-          setBranchForm({ bankId: "", branchName: "", branchCode: "", branchEmail: "", branchManager: "", branchManagerContact: "", aoName: "", foName: "", foContact: "", rbo: "" });
+          setBranchForm({ bankId: "", branchName: "", branchCode: "", branchEmail: "", branchManager: "", branchManagerContact: "", aoName: "", foName: "", foContact: "", rbo: "", network: "" });
           fetchBranches();
         } else {
           triggerToast(result.error || "Failed to update branch");
@@ -515,7 +517,7 @@ export default function LegalRecoveryModule({ userRole, triggerToast, sessionUse
         if (result.success) {
           triggerToast(`Branch Registered Successfully! ID: ${result.data.branchCode}`);
           setShowAddBranchForm(false);
-          setBranchForm({ bankId: "", branchName: "", branchCode: "", branchEmail: "", branchManager: "", branchManagerContact: "", aoName: "", foName: "", foContact: "", rbo: "" });
+          setBranchForm({ bankId: "", branchName: "", branchCode: "", branchEmail: "", branchManager: "", branchManagerContact: "", aoName: "", foName: "", foContact: "", rbo: "", network: "" });
           fetchBranches();
         } else {
           triggerToast(result.error || "Failed to add branch");
@@ -1049,7 +1051,7 @@ export default function LegalRecoveryModule({ userRole, triggerToast, sessionUse
                   if (showAddBranchForm) {
                     setShowAddBranchForm(false);
                     setEditBranchId(null);
-                    setBranchForm({ bankId: "", branchName: "", branchCode: "", branchEmail: "", branchManager: "", branchManagerContact: "", aoName: "", foName: "", foContact: "", rbo: "" });
+                    setBranchForm({ bankId: "", branchName: "", branchCode: "", branchEmail: "", branchManager: "", branchManagerContact: "", aoName: "", foName: "", foContact: "", rbo: "", network: "" });
                   } else {
                     setShowAddBranchForm(true);
                   }
@@ -1168,7 +1170,7 @@ export default function LegalRecoveryModule({ userRole, triggerToast, sessionUse
               <h3 className="text-sm font-bold text-slate-800 flex items-center gap-1.5">
                 <Network className="w-4 h-4 text-pink-600" /> {editBranchId ? "✏️ Edit Branch Details" : "Register New Branch"}
               </h3>
-              <button onClick={() => { setShowAddBranchForm(false); setEditBranchId(null); setBranchForm({ bankId: "", branchName: "", branchCode: "", branchEmail: "", branchManager: "", branchManagerContact: "", aoName: "", foName: "", foContact: "", rbo: "" }); }} className="text-slate-400 hover:text-slate-600">
+              <button onClick={() => { setShowAddBranchForm(false); setEditBranchId(null); setBranchForm({ bankId: "", branchName: "", branchCode: "", branchEmail: "", branchManager: "", branchManagerContact: "", aoName: "", foName: "", foContact: "", rbo: "", network: "" }); }} className="text-slate-400 hover:text-slate-600">
                 <X className="w-4 h-4" />
               </button>
             </div>
@@ -1223,7 +1225,7 @@ export default function LegalRecoveryModule({ userRole, triggerToast, sessionUse
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
                 <div>
                   <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">FO Name</label>
                   <input type="text" placeholder="Field Officer Name" value={branchForm.foName} onChange={e => setBranchForm({ ...branchForm, foName: e.target.value })} className="w-full bg-white border border-[#E8E4DF] focus:border-pink-500 rounded-lg px-3 py-2 text-xs focus:outline-none" />
@@ -1234,7 +1236,11 @@ export default function LegalRecoveryModule({ userRole, triggerToast, sessionUse
                 </div>
                 <div>
                   <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">RBO</label>
-                  <input type="text" placeholder="Regional Business Office" value={branchForm.rbo} onChange={e => setBranchForm({ ...branchForm, rbo: e.target.value })} className="w-full bg-white border border-[#E8E4DF] focus:border-pink-500 rounded-lg px-3 py-2 text-xs focus:outline-none" />
+                  <RboSelect value={branchForm.rbo} onChange={rbo => setBranchForm(current => ({ ...current, rbo }))} />
+                </div>
+                <div>
+                  <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Network</label>
+                  <NetworkSelect value={branchForm.network} onChange={network => setBranchForm(current => ({ ...current, network }))} />
                 </div>
               </div>
 
@@ -1536,7 +1542,8 @@ export default function LegalRecoveryModule({ userRole, triggerToast, sessionUse
                 aoName: br.aoName || "",
                 foName: br.foName || "",
                 foContact: br.foContact || "",
-                rbo: br.rbo || ""
+                rbo: br.rbo || "",
+                network: br.network || ""
               });
               setEditBranchId(br.id);
               setShowAddBranchForm(true);

@@ -28,6 +28,7 @@ BranchMaster.init(
     aoName: { type: DataTypes.STRING, allowNull: true },
     foName: { type: DataTypes.STRING, allowNull: true },
     foContact: { type: DataTypes.STRING, allowNull: true },
+    network: { type: DataTypes.STRING, allowNull: true },
     rbo: { type: DataTypes.STRING, allowNull: true },
     isActive: {
       type: DataTypes.BOOLEAN,
