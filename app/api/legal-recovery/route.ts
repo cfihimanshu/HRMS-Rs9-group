@@ -133,9 +133,10 @@ export async function GET() {
       }).catch(() => []),
       LegalRecoveryBill.findAll({ raw: true }).catch(() => [])
     ]);
+    const assignedMasterIds = new Set(importedBills.filter((bill: any) => String(bill.assignedTo || "").trim().toLowerCase() === loggedInName).map((bill: any) => Number(bill.masterId)));
     const cases = canViewAll
       ? allCases
-      : allCases.filter((caseItem: any) => String(caseItem.pocName || "").trim().toLowerCase() === loggedInName);
+      : allCases.filter((caseItem: any) => String(caseItem.pocName || "").trim().toLowerCase() === loggedInName || assignedMasterIds.has(Number(caseItem.id)));
 
     const importedBillsByMaster: Record<number, any[]> = {};
     importedBills.forEach((bill: any) => {
@@ -361,8 +362,9 @@ export async function GET() {
 
       const rawPending = parseFloat(c.pendingAmount);
       const rawTotalBill = parseFloat(c.totalBillAmount);
-      const caseImportedBills = importedBillsByMaster[caseId] || [];
-      const hasImportedBills = caseImportedBills.length > 0;
+      const allCaseBills = importedBillsByMaster[caseId] || [];
+      const caseImportedBills = canViewAll ? allCaseBills : allCaseBills.filter((bill: any) => String(bill.assignedTo || c.pocName || "").trim().toLowerCase() === loggedInName);
+      const hasImportedBills = allCaseBills.length > 0;
       // The branch summary is the active recovery position. Cancelled invoices
       // remain in the bill register, but do not contribute to branch balances.
       const activeImportedBills = caseImportedBills.filter(
@@ -464,6 +466,7 @@ export async function POST(request: Request) {
     const session = await getServerSession(authOptions);
     if (!session?.user) return NextResponse.json({ success: false, error: "Unauthorized access" }, { status: 401 });
     const data = await request.json();
+    const entryUserName = String(session.user.name || session.user.email || (session.user as any).id || "").trim();
     const isDbConnected = await safeAuthenticate(6000);
     if (!isDbConnected) {
       return NextResponse.json({ success: false, error: "Database connection timeout" }, { status: 503 });
@@ -494,6 +497,7 @@ export async function POST(request: Request) {
 
     const payload = {
       ...data,
+      pocName: entryUserName,
       bankName: bank.bankName,
       branchName: branch.branchName,
       branchId: String(branch.branchCode || branch.id),
@@ -522,6 +526,7 @@ export async function POST(request: Request) {
         const nextPending = Number(recoveryCase.pendingAmount || 0) + pendingAmt;
         await recoveryCase.update({
           ...payload,
+          pocName: recoveryCase.pocName,
           totalBillAmount: nextTotal,
           pendingAmount: nextPending,
           pendingSince: recoveryCase.pendingSince || invoiceDate,
@@ -544,6 +549,7 @@ export async function POST(request: Request) {
         tdsAmount: 0,
         dueAmount: pendingAmt,
         status: pendingAmt <= 0 ? "Received" : "Pending",
+        assignedTo: entryUserName,
         importBatchId: "MANUAL"
       }, { transaction });
       await transaction.commit();
@@ -577,18 +583,19 @@ export async function PUT(request: Request) {
 
     await ensureLegalRecoveryColumns();
     if (Array.isArray(data.ids)) {
-      if (!canManageAll) {
-        return NextResponse.json({ success: false, error: "Only authorized managers can bulk assign POC" }, { status: 403 });
+      if (role !== "owner") {
+        return NextResponse.json({ success: false, error: "Only the Owner can forward or assign invoices" }, { status: 403 });
       }
       const ids = data.ids.map(Number).filter((id: number) => Number.isInteger(id) && id > 0);
       const pocName = String(data.pocName || "").trim();
       if (!ids.length || !pocName) {
         return NextResponse.json({ success: false, error: "Case IDs and POC Employee are required" }, { status: 400 });
       }
-      const [updatedCount] = await LegalRecoveryMaster.update(
-        { pocName },
-        { where: { id: { [Op.in]: ids } } }
-      );
+      const updatedCount = await sequelize.transaction(async transaction => {
+        const [count] = await LegalRecoveryMaster.update({ pocName }, { where: { id: { [Op.in]: ids } }, transaction });
+        await LegalRecoveryBill.update({ assignedTo: pocName }, { where: { masterId: { [Op.in]: ids } }, transaction });
+        return count;
+      });
       return NextResponse.json({ success: true, updatedCount });
     }
     const caseItem = await LegalRecoveryMaster.findByPk(data.id);
@@ -602,7 +609,9 @@ export async function PUT(request: Request) {
     const updates = { ...data };
     delete updates.id;
     delete updates.ids;
-    if (!canManageAll) delete updates.pocName;
+    const assignmentChanged = data.pocName !== undefined && String(data.pocName || "").trim() !== String(caseItem.pocName || "").trim();
+    if (assignmentChanged && role !== "owner") return NextResponse.json({ success: false, error: "Only the Owner can forward or assign invoices" }, { status: 403 });
+    if (role !== "owner") delete updates.pocName;
     delete updates.branchMasterId;
     if (data.branchMasterId !== undefined) {
       const bank = await BankMaster.findOne({ where: { bankName: data.bankName || caseItem.bankName } });
@@ -615,7 +624,10 @@ export async function PUT(request: Request) {
       updates.branchName = branch.branchName;
       updates.branchId = String(branch.branchCode || branch.id);
     }
-    await caseItem.update(updates);
+    await sequelize.transaction(async transaction => {
+      await caseItem.update(updates, { transaction });
+      if (assignmentChanged) await LegalRecoveryBill.update({ assignedTo: String(data.pocName || "").trim() }, { where: { masterId: caseItem.id }, transaction });
+    });
     return NextResponse.json({ success: true, data: caseItem });
   } catch (error: any) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });

@@ -1,6 +1,8 @@
+import { validateCollectionUpdate } from "@/lib/invoice-collection";
 import { NextResponse } from "next/server";
 import { Op, QueryTypes } from "sequelize";
 import sequelize, { safeAuthenticate } from "@/lib/sequelize";
+import User from "@/models/sequelize/User";
 import Company from "@/models/sequelize/Company";
 import BankMaster from "@/models/sequelize/BankMaster";
 import BranchMaster from "@/models/sequelize/BranchMaster";
@@ -56,7 +58,7 @@ export async function GET(request: Request) {
     if (!(await safeAuthenticate(6000))) return NextResponse.json({ success: false, error: "Database connection timeout" }, { status: 503 });
     const data = await sequelize.query<any>(`
       SELECT bills.*,
-        COALESCE(master.pocName, '') AS pocName,
+        COALESCE(NULLIF(TRIM(bills.assignedTo), ''), master.pocName, '') AS pocName,
         COALESCE(NULLIF(bills.companyCode, ''), company.code, company.name, '') AS company,
         COALESCE(bank.bankName, '') AS bankName,
         COALESCE(branch.branchName, '') AS branchName,
@@ -67,7 +69,7 @@ export async function GET(request: Request) {
       LEFT JOIN companys AS company ON company.id = bills.companyId
       LEFT JOIN bank_masters AS bank ON bank.id = bills.bankId
       LEFT JOIN branch_masters AS branch ON branch.id = bills.branchId
-      WHERE (:canViewAll = 1 OR LOWER(TRIM(COALESCE(master.pocName, ''))) = :loggedInName)
+      WHERE (:canViewAll = 1 OR LOWER(TRIM(COALESCE(NULLIF(TRIM(bills.assignedTo), ''), master.pocName, ''))) = :loggedInName)
       ORDER BY bills.billDate ASC, bills.id ASC
     `, { type: QueryTypes.SELECT, replacements: { canViewAll: canViewAll ? 1 : 0, loggedInName } });
     if (canViewAll) billRegisterCache = { data, expiresAt: Date.now() + 30_000 };
@@ -82,6 +84,11 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user) return NextResponse.json({ success: false, error: "Unauthorized access" }, { status: 401 });
+    const entryUserName = String(session.user.name || session.user.email || (session.user as any).id || "").trim();
+    const importRole = String((session.user as any).role || "").trim().toLowerCase();
+
     if (!(await safeAuthenticate(6000))) return NextResponse.json({ success: false, error: "Database connection timeout" }, { status: 503 });
     const { rows = [], commit = false } = await request.json();
     if (!Array.isArray(rows) || !rows.length) return NextResponse.json({ success: false, error: "No rows found in the file" }, { status: 400 });
@@ -90,7 +97,7 @@ export async function POST(request: Request) {
     await Promise.all([Company.sync(), BankMaster.sync(), BranchMaster.sync(), LegalRecoveryMaster.sync(), LegalRecoveryBill.sync()]);
     const [companies, banks, branches, existingBills] = await Promise.all([
       Company.findAll({ raw: true }), BankMaster.findAll({ raw: true }), BranchMaster.findAll({ raw: true }),
-      LegalRecoveryBill.findAll({ attributes: ["id", "companyId", "invoiceNo"], raw: true }),
+      LegalRecoveryBill.findAll({ attributes: ["id", "companyId", "invoiceNo", "assignedTo", "masterId"], raw: true }),
     ]);
     const companyMap = new Map<string, any>();
     companies.forEach((c: any) => { companyMap.set(norm(c.code), c); companyMap.set(norm(c.name), c); });
@@ -163,7 +170,7 @@ export async function POST(request: Request) {
       if (key && seen.has(key)) errors.push("Duplicate company + invoice number inside this file");
       else if (existingBill) warnings.push("Existing invoice will be updated with this file");
       if (key) seen.add(key);
-      return { rowNumber: index + 2, sourceSheet: clean(row.sourceSheet), rawCompany: clean(row.company), rawBank: clean(row.bank), rawBranch, company, bank, branch, existingBill, invoiceNo, billDate, billAmount, paymentReceivedDate: isoDate(row.paymentReceivedDate), receivedAmount, tdsAmount, tdsPercent: amount(row.tdsPercent), dueAmount, remark: clean(row.remark), status, revenueType: clean(row.revenueType), revenueAmount: amount(row.revenueAmount), internalRemark: clean(row.internalRemark), assignedTo: clean(row.assignedTo), errors, warnings };
+      return { rowNumber: index + 2, sourceSheet: clean(row.sourceSheet), rawCompany: clean(row.company), rawBank: clean(row.bank), rawBranch, company, bank, branch, existingBill, invoiceNo, billDate, billAmount, paymentReceivedDate: isoDate(row.paymentReceivedDate), receivedAmount, tdsAmount, tdsPercent: amount(row.tdsPercent), dueAmount, remark: clean(row.remark), status, revenueType: clean(row.revenueType), revenueAmount: amount(row.revenueAmount), internalRemark: clean(row.internalRemark), assignedTo: existingBill ? existingBill.assignedTo : entryUserName, errors, warnings };
     });
 
     const valid = checked.filter((r: any) => !r.errors.length);
@@ -203,9 +210,14 @@ export async function POST(request: Request) {
             ? { [Op.or]: [{ branchId: clean(resolvedBranch.branchCode) }, { branchName: resolvedBranch.branchName }] }
             : { branchName: resolvedBranch.branchName };
           let master = await LegalRecoveryMaster.findOne({ where: { archivedAt: null, bankName: resolvedBank.bankName, ...masterBranchMatch }, transaction });
-          if (!master) master = await LegalRecoveryMaster.create({ bankName: resolvedBank.bankName, branchName: resolvedBranch.branchName, branchId: clean(resolvedBranch.branchCode) || String(resolvedBranch.id), totalBillAmount: 0, pendingAmount: 0, pendingSince: row.billDate, status: "Open" }, { transaction });
-          const billPayload = { masterId: master.id, companyId: row.company.id, companyCode: row.company.code || row.company.name, bankId: resolvedBank.id, branchId: resolvedBranch.id, invoiceNo: row.invoiceNo, billDate: row.billDate, billAmount: row.billAmount, paymentReceivedDate: row.paymentReceivedDate, receivedAmount: row.receivedAmount, tdsAmount: row.tdsAmount, tdsPercent: row.tdsPercent, dueAmount: row.dueAmount, remark: row.remark, status: row.status, revenueType: row.revenueType, revenueAmount: row.revenueAmount, internalRemark: row.internalRemark, assignedTo: row.assignedTo, importBatchId: batchId };
-          if (row.existingBill?.id) await LegalRecoveryBill.update(billPayload, { where: { id: row.existingBill.id }, transaction });
+          if (!master) master = await LegalRecoveryMaster.create({ bankName: resolvedBank.bankName, branchName: resolvedBranch.branchName, branchId: clean(resolvedBranch.branchCode) || String(resolvedBranch.id), totalBillAmount: 0, pendingAmount: 0, pendingSince: row.billDate, status: "Open", pocName: entryUserName }, { transaction });
+          const billPayload = { masterId: master.id, companyId: row.company.id, companyCode: row.company.code || row.company.name, bankId: resolvedBank.id, branchId: resolvedBranch.id, invoiceNo: row.invoiceNo, billDate: row.billDate, billAmount: row.billAmount, paymentReceivedDate: row.paymentReceivedDate, receivedAmount: row.receivedAmount, tdsAmount: row.tdsAmount, tdsPercent: row.tdsPercent, dueAmount: row.dueAmount, remark: row.remark, status: row.status, revenueType: row.revenueType, revenueAmount: row.revenueAmount, internalRemark: row.internalRemark, assignedTo: row.existingBill ? row.existingBill.assignedTo : entryUserName, importBatchId: batchId };
+          if (row.existingBill?.id) {
+            const existingMaster = await LegalRecoveryMaster.findByPk(row.existingBill.masterId, { transaction });
+            const canManageImport = ["owner", "director"].includes(importRole) || importRole.includes("head") || importRole.includes("manager") || importRole.includes("admin");
+            if (!canManageImport && String(row.existingBill.assignedTo || existingMaster?.pocName || "").trim().toLowerCase() !== entryUserName.toLowerCase()) throw new Error("You can update only invoices assigned to you");
+            await LegalRecoveryBill.update(billPayload, { where: { id: row.existingBill.id }, transaction });
+          }
           else await LegalRecoveryBill.create(billPayload, { transaction });
           imported++;
         }
@@ -235,8 +247,32 @@ export async function PUT(request: Request) {
 
     const master = await LegalRecoveryMaster.findByPk(Number(bill.masterId), { raw: true });
     if (!master) return NextResponse.json({ success: false, error: "Recovery case not found" }, { status: 404 });
-    if (!canManageAll && String((master as any).pocName || "").trim().toLowerCase() !== loggedInName) {
+    if (!canManageAll && String(bill.assignedTo || (master as any).pocName || "").trim().toLowerCase() !== loggedInName) {
       return NextResponse.json({ success: false, error: "You can edit only invoices assigned to you" }, { status: 403 });
+    }
+
+    if (data.action === "forward") {
+      if (role !== "owner") return NextResponse.json({ success: false, error: "Only the Owner can forward invoices" }, { status: 403 });
+      const employee = await User.findByPk(String(data.employeeId || ""), { attributes: ["id", "name", "status"] });
+      if (!employee?.name || String(employee.status || "").toLowerCase() !== "active") return NextResponse.json({ success: false, error: "Select an active employee" }, { status: 400 });
+      await bill.update({ assignedTo: employee.name });
+      billRegisterCache = null;
+      return NextResponse.json({ success: true, data: { ...bill.toJSON(), pocName: employee.name } });
+    }
+
+    if (request.method === "PATCH") {
+      const collectionRemark = data.collectionRemark ?? "";
+      const error = validateCollectionUpdate(data.collectionStatus, collectionRemark);
+      if (error) return NextResponse.json({ success: false, error }, { status: 400 });
+      await bill.update({
+        collectionStatus: data.collectionStatus,
+        collectionRemark: collectionRemark.trim(),
+        collectionUpdatedById: String(sessionUser.id || sessionUser.email || sessionUser.name),
+        collectionUpdatedByName: String(sessionUser.name || sessionUser.email || sessionUser.id),
+        collectionUpdatedAt: new Date(),
+      });
+      billRegisterCache = null;
+      return NextResponse.json({ success: true, data: bill.toJSON() });
     }
 
     const billAmount = amount(data.billAmount);
@@ -266,4 +302,9 @@ export async function PUT(request: Request) {
     console.error("Legal recovery invoice update error:", error);
     return NextResponse.json({ success: false, error: error.message || "Invoice update failed" }, { status: 500 });
   }
+}
+
+// Collection updates share invoice access checks but only change collection fields.
+export async function PATCH(request: Request) {
+  return PUT(request);
 }

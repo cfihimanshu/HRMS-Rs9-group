@@ -19,6 +19,9 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
     }
     const data = await request.json();
+    if (data.forwardedTo && String((session.user as any).role || "").trim().toLowerCase() !== "owner") {
+      return NextResponse.json({ success: false, error: "Only the Owner can forward follow-ups" }, { status: 403 });
+    }
     const callerId = String((session.user as any).id || "");
     const callerName = String(session.user.name || "Employee");
     await sequelize.authenticate();

@@ -1119,7 +1119,7 @@ export default function LegalRecoveryModule({ userRole, triggerToast, sessionUse
         </div>
 
         {showImportBills && <ImportBillsModal onClose={() => setShowImportBills(false)} onImported={fetchCases} />}
-        {showBillsExcelView && <BillsExcelViewModal onClose={() => setShowBillsExcelView(false)} />}
+        {showBillsExcelView && <BillsExcelViewModal userRole={userRole} employees={taskForwardEmployees} onClose={() => { setShowBillsExcelView(false); fetchCases(); }} />}
 
         {/* Add New Bank Form */}
         {showAddBankForm && activeSubModule === "banks" && (
@@ -1343,6 +1343,7 @@ export default function LegalRecoveryModule({ userRole, triggerToast, sessionUse
 
               {!editCaseId && (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-3 bg-indigo-50/40 border border-indigo-100 rounded-xl">
+                  <p className="text-xs font-semibold text-indigo-800 md:col-span-2">New invoices are automatically assigned to {sessionUser?.name || "the signed-in user"}.</p>
                   <div>
                     <label className="block text-[9px] uppercase tracking-wider text-indigo-800 font-bold mb-1">Invoice Number *</label>
                     <input
@@ -1732,7 +1733,7 @@ export default function LegalRecoveryModule({ userRole, triggerToast, sessionUse
                   ></textarea>
                 </div>
 
-                <div>
+                {String(userRole || "").toLowerCase() === "owner" && <div>
                   <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Forward To (Optional)</label>
                   <select
                     value={followUpForm.forwardedTo}
@@ -1749,7 +1750,7 @@ export default function LegalRecoveryModule({ userRole, triggerToast, sessionUse
                       ))}
                   </select>
                   <p className="mt-1 text-[9px] text-slate-400">Select an employee to create a new Legal Follow-up task in their My Tasks.</p>
-                </div>
+                </div>}
 
                 <div>
                   <div className="flex items-center justify-between mb-1">
