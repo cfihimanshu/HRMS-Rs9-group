@@ -1,3 +1,4 @@
+import { resolveRecoveryBranch } from "@/lib/legal-recovery-branch";
 import { NextResponse } from "next/server";
 export const dynamic = "force-dynamic";
 import LegalRecoveryMaster from "@/models/sequelize/LegalRecoveryMaster";
@@ -154,10 +155,8 @@ export async function GET() {
     });
 
     // Build branch maps
-    const branchMapByCode: Record<string, any> = {};
     const branchMapById: Record<string, any> = {};
     branches.forEach((b: any) => {
-      if (b.branchCode) branchMapByCode[String(b.branchCode).toLowerCase().trim()] = b;
       if (b.id) branchMapById[String(b.id)] = b;
     });
 
@@ -335,10 +334,9 @@ export async function GET() {
       const directReceived = directPaymentsByMasterId[caseId] || 0;
 
       // Find linked branch details
-      const bKey = c.branchId ? String(c.branchId).toLowerCase().trim() : "";
-      const linkedBranch = branchMapByCode[bKey] || branchMapById[String(c.branchId)] || null;
       const bankKey = c.bankName ? c.bankName.trim().toLowerCase() : "";
       const linkedBank = bankMapByName[bankKey] || (c.bankId ? bankMapById[String(c.bankId)] : null);
+      const linkedBranch = linkedBank ? resolveRecoveryBranch(branches, linkedBank.id, c.branchId, c.branchName) : null;
 
       const resolvedBankName = c.bankName || linkedBank?.bankName || "Registered Bank";
       const resolvedBranchName = c.branchName || linkedBranch?.branchName || "General Branch";
@@ -485,13 +483,10 @@ export async function POST(request: Request) {
     if (!Number.isFinite(pendingAmt) || pendingAmt < 0 || pendingAmt > totalBill) return NextResponse.json({ success: false, error: "Pending amount must be between zero and the invoice amount" }, { status: 400 });
 
     const bank = await BankMaster.findOne({ where: { bankName: data.bankName }, raw: true }) as any;
-    const branch = await BranchMaster.findOne({
-      where: {
-        ...(bank?.id ? { bankId: bank.id } : {}),
-        [Op.or]: [{ branchCode: data.branchId }, { branchName: data.branchName }]
-      },
-      raw: true
-    }) as any;
+    const bankBranches = bank ? await BranchMaster.findAll({ where: { bankId: bank.id }, raw: true }) : [];
+    const branch = data.branchMasterId !== undefined
+      ? bankBranches.find((entry: any) => String(entry.id) === String(data.branchMasterId))
+      : resolveRecoveryBranch(bankBranches, bank?.id, data.branchId, data.branchName);
     if (!bank || !branch) return NextResponse.json({ success: false, error: "Select a registered bank and branch" }, { status: 400 });
 
     const duplicateInvoice = await LegalRecoveryBill.findOne({ where: { companyId: `MANUAL-${bank.id}`, invoiceNo } });
@@ -499,6 +494,9 @@ export async function POST(request: Request) {
 
     const payload = {
       ...data,
+      bankName: bank.bankName,
+      branchName: branch.branchName,
+      branchId: String(branch.branchCode || branch.id),
       totalBillAmount: totalBill,
       pendingAmount: pendingAmt,
       status: data.status || (pendingAmt <= 0 ? "Settled" : "Open")
@@ -508,8 +506,12 @@ export async function POST(request: Request) {
     try {
       let recoveryCase = await LegalRecoveryMaster.findOne({
         where: {
-          bankName: data.bankName,
-          [Op.or]: [{ branchId: data.branchId }, { branchName: data.branchName }]
+          archivedAt: null,
+          bankName: bank.bankName,
+          [Op.or]: [
+            { branchName: branch.branchName },
+            { branchId: String(branch.branchCode || branch.id), branchName: { [Op.or]: [null, ""] } }
+          ]
         },
         order: [["id", "DESC"]],
         transaction,
@@ -601,6 +603,18 @@ export async function PUT(request: Request) {
     delete updates.id;
     delete updates.ids;
     if (!canManageAll) delete updates.pocName;
+    delete updates.branchMasterId;
+    if (data.branchMasterId !== undefined) {
+      const bank = await BankMaster.findOne({ where: { bankName: data.bankName || caseItem.bankName } });
+      const branch = bank ? await BranchMaster.findOne({ where: { id: data.branchMasterId, bankId: bank.id } }) : null;
+      if (!branch) return NextResponse.json({ success: false, error: "Select a registered bank and branch" }, { status: 400 });
+      // Existing invoices must keep their registered bank/branch identity.
+      const mismatchedBill = await LegalRecoveryBill.findOne({ where: { masterId: caseItem.id, [Op.or]: [{ bankId: { [Op.ne]: bank!.id } }, { branchId: { [Op.ne]: branch.id } }] } });
+      if (mismatchedBill) return NextResponse.json({ success: false, error: "This case has invoices for another branch. Add a new invoice under the required branch instead." }, { status: 409 });
+      updates.bankName = bank!.bankName;
+      updates.branchName = branch.branchName;
+      updates.branchId = String(branch.branchCode || branch.id);
+    }
     await caseItem.update(updates);
     return NextResponse.json({ success: true, data: caseItem });
   } catch (error: any) {

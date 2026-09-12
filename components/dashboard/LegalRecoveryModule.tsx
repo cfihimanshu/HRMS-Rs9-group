@@ -5,6 +5,7 @@ import {
   FileAudio, History, Calendar, CheckCircle, ArrowLeft, LayoutGrid, FileText,
   Landmark, Network, Filter, Briefcase, Building2, ShieldCheck, Upload, TableProperties
 } from "lucide-react";
+import { resolveRecoveryBranch } from "@/lib/legal-recovery-branch";
 import { cn } from "@/lib/utils";
 import BankMasterView from "./legal-recovery/BankMasterView";
 import NetworkSelect from "./legal-recovery/NetworkSelect";
@@ -537,6 +538,10 @@ export default function LegalRecoveryModule({ userRole, triggerToast, sessionUse
       triggerToast("Bank Name is required.");
       return;
     }
+    if (!resolveRecoveryBranch(branchesList, selectedBankIdForCase, caseForm.branchId, caseForm.branchName)) {
+      triggerToast("Select a registered branch for this bank.");
+      return;
+    }
     if (submittingCase) return;
     try {
       setSubmittingCase(true);
@@ -544,11 +549,11 @@ export default function LegalRecoveryModule({ userRole, triggerToast, sessionUse
       const res = await fetch("/api/legal-recovery", {
         method: isEdit ? "PUT" : "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(isEdit ? { ...caseForm, id: editCaseId } : caseForm)
+        body: JSON.stringify({ ...caseForm, branchMasterId: resolveRecoveryBranch(branchesList, selectedBankIdForCase, caseForm.branchId, caseForm.branchName)?.id, ...(isEdit ? { id: editCaseId } : {}) })
       });
       const result = await res.json();
       if (result.success) {
-        triggerToast(isEdit ? "Case Updated Successfully!" : "New Case Registered Successfully!");
+        triggerToast(isEdit ? "Case Updated Successfully!" : "Invoice saved for this branch. Available in Excel View.");
         setShowAddCaseForm(false);
         setEditCaseId(null);
         setSelectedBankIdForCase("");
@@ -1304,10 +1309,11 @@ export default function LegalRecoveryModule({ userRole, triggerToast, sessionUse
                 <div>
                   <label className="block text-[9px] uppercase tracking-wider text-[#9C9890] font-bold mb-1">Select Branch (Auto-Populates Details)</label>
                   <select
-                    value={caseForm.branchId}
+                    required
+                    value={String(resolveRecoveryBranch(branchesList, selectedBankIdForCase, caseForm.branchId, caseForm.branchName)?.id || "")}
                     onChange={e => {
                       const brId = e.target.value;
-                      const branch = branchesList.find(br => br.branchCode === brId || String(br.id) === brId);
+                      const branch = branchesList.find(br => String(br.bankId) === selectedBankIdForCase && String(br.id) === brId);
                       setCaseForm({
                         ...caseForm,
                         branchId: branch ? (branch.branchCode || String(branch.id)) : brId,
@@ -1326,7 +1332,7 @@ export default function LegalRecoveryModule({ userRole, triggerToast, sessionUse
                   >
                     <option value="">-- Select Branch --</option>
                     {branchesList.filter(br => br.bankId.toString() === selectedBankIdForCase).map(br => (
-                      <option key={br.id} value={br.branchCode || br.id}>{br.branchName} ({br.branchCode || 'No Code'})</option>
+                      <option key={br.id} value={String(br.id)}>{br.branchName} ({br.branchCode || 'No Code'})</option>
                     ))}
                   </select>
                   {selectedBankIdForCase && branchesList.filter(br => br.bankId.toString() === selectedBankIdForCase).length === 0 && (
