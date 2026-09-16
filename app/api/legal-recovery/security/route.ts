@@ -59,6 +59,31 @@ function validateMonthlyPayments(workflowValue: unknown): string | null {
   return null;
 }
 
+function getMonthlyBillingSummary(workflowValue: unknown) {
+  const workflow = parseJsonObject(workflowValue);
+  const cycles = Array.isArray(workflow.monthlyCycles) ? workflow.monthlyCycles : [];
+  if (!cycles.length) return null;
+
+  const billAmount = cycles.reduce((sum, cycle) => sum + (Number(cycle?.billAmount || 0) || 0), 0);
+  const receivedAmount = cycles.reduce((sum, cycle) => sum + (Number(cycle?.receivedAmount || 0) || 0), 0);
+  const tdsAmount = cycles.reduce((sum, cycle) => sum + (Number(cycle?.tdsAmount || 0) || 0), 0);
+  const receivedDates = cycles.flatMap((cycle) =>
+    (Array.isArray(cycle?.clientPaymentLogs) ? cycle.clientPaymentLogs : [])
+      .map((log: any) => String(log?.date || ""))
+      .filter(Boolean),
+  ).sort();
+
+  return {
+    billAmount,
+    receivedAmount,
+    tdsAmount,
+    receivedDate: receivedDates.at(-1) || null,
+    paymentStatus: billAmount > 0 && receivedAmount + tdsAmount >= billAmount
+      ? "Payment Done"
+      : receivedAmount + tdsAmount > 0 ? "Partially Paid" : "Due",
+  };
+}
+
 const uniq = (values: unknown[]) => [...new Set(values.filter((value): value is string => typeof value === "string" && Boolean(value.trim())).map((value) => value.trim()))];
 
 async function syncGuardDeploymentProjects(record: any, actorId: string) {
@@ -272,6 +297,7 @@ async function syncSecurityTableSchema() {
       { name: "workflowJson", definition: "LONGTEXT NULL" },
       { name: "agentName", definition: "VARCHAR(255) NULL" },
       { name: "followUpAt", definition: "DATETIME NULL" },
+      { name: "tdsAmount", definition: "DECIMAL(12,2) NULL DEFAULT 0" },
     ]) {
       try {
         const [columns]: any = await sequelize.query(`SHOW COLUMNS FROM legal_securities LIKE '${column.name}'`);
@@ -302,7 +328,29 @@ export async function GET(req: Request) {
       raw: true,
     });
 
-    return NextResponse.json({ success: true, data: entries });
+    // Workflow billing stores one invoice per month. Expose its aggregate here so
+    // dashboard cards immediately include payments logged from that workflow.
+    const data = entries.map((entry: any) => {
+      const monthly = getMonthlyBillingSummary(entry.workflowJson);
+      if (!monthly) return entry;
+      const billAmount = Math.max(Number(entry.billAmount || 0), monthly.billAmount);
+      const receivedAmount = Math.max(Number(entry.receivedAmount || 0), monthly.receivedAmount);
+      const tdsAmount = Math.max(Number(entry.tdsAmount || 0), monthly.tdsAmount);
+      return {
+        ...entry,
+        billAmount,
+        receivedAmount,
+        tdsAmount,
+        receivedDate: monthly.receivedAmount >= Number(entry.receivedAmount || 0)
+          ? (monthly.receivedDate || entry.receivedDate)
+          : entry.receivedDate,
+        paymentStatus: billAmount > 0 && receivedAmount + tdsAmount >= billAmount
+          ? "Payment Done"
+          : receivedAmount + tdsAmount > 0 ? "Partially Paid" : "Due",
+      };
+    });
+
+    return NextResponse.json({ success: true, data });
   } catch (error: any) {
     console.error("[/api/legal-recovery/security GET]", error.message);
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
@@ -495,6 +543,7 @@ export async function PUT(req: Request) {
 
     const previousWorkflowJson = record.workflowJson;
     const previousFollowUpAt = record.followUpAt;
+    const monthlySummary = workflowJson !== undefined ? getMonthlyBillingSummary(workflowJson) : null;
     if (workflowJson !== undefined) {
       const previousWorkflow = parseJsonObject(previousWorkflowJson);
       const incomingWorkflow = parseJsonObject(workflowJson);
@@ -516,7 +565,9 @@ export async function PUT(req: Request) {
       company: company ?? record.company,
       billNo: billNo ?? record.billNo,
       billDate: billDate !== undefined ? (billDate || null) : record.billDate,
-      billAmount: billAmount !== undefined ? Number(billAmount) : record.billAmount,
+      billAmount: monthlySummary
+        ? Math.max(Number(record.billAmount || 0), monthlySummary.billAmount)
+        : (billAmount !== undefined ? Number(billAmount) : record.billAmount),
       nbfcId: nbfcId !== undefined ? (nbfcId ? String(nbfcId) : null) : record.nbfcId,
       nbfcName: nbfcName ?? record.nbfcName,
       branchId: branchId !== undefined ? (branchId ? String(branchId) : null) : record.branchId,
@@ -542,11 +593,21 @@ export async function PUT(req: Request) {
       billInvoiceUrl: billInvoiceUrl !== undefined ? billInvoiceUrl : record.billInvoiceUrl,
       paymentMethod: paymentMethod !== undefined ? paymentMethod : record.paymentMethod,
       paymentDays: paymentDays !== undefined ? String(paymentDays) : record.paymentDays,
-      paymentStatus: paymentStatus ?? record.paymentStatus,
+      paymentStatus: monthlySummary
+        ? (Math.max(Number(record.billAmount || 0), monthlySummary.billAmount) > 0 && Math.max(Number(record.receivedAmount || 0), monthlySummary.receivedAmount) + Math.max(Number(record.tdsAmount || 0), monthlySummary.tdsAmount) >= Math.max(Number(record.billAmount || 0), monthlySummary.billAmount)
+          ? "Payment Done" : Math.max(Number(record.receivedAmount || 0), monthlySummary.receivedAmount) + Math.max(Number(record.tdsAmount || 0), monthlySummary.tdsAmount) > 0 ? "Partially Paid" : "Due")
+        : (paymentStatus ?? record.paymentStatus),
       source: source ?? record.source,
       installmentsJson: installmentsJson !== undefined ? installmentsJson : record.installmentsJson,
-      receivedAmount: receivedAmount !== undefined ? Number(receivedAmount) : record.receivedAmount,
-      receivedDate: receivedDate !== undefined ? (receivedDate || null) : record.receivedDate,
+      receivedAmount: monthlySummary
+        ? Math.max(Number(record.receivedAmount || 0), monthlySummary.receivedAmount)
+        : (receivedAmount !== undefined ? Number(receivedAmount) : record.receivedAmount),
+      tdsAmount: monthlySummary
+        ? Math.max(Number(record.tdsAmount || 0), monthlySummary.tdsAmount)
+        : record.tdsAmount,
+      receivedDate: monthlySummary && monthlySummary.receivedAmount >= Number(record.receivedAmount || 0)
+        ? (monthlySummary.receivedDate || record.receivedDate)
+        : (receivedDate !== undefined ? (receivedDate || null) : record.receivedDate),
       remarks: remarks ?? record.remarks,
       workflowStage: workflowStage ?? record.workflowStage,
       workflowJson: workflowJson !== undefined ? workflowJson : record.workflowJson,

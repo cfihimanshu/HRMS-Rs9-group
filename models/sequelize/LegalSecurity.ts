@@ -154,6 +154,11 @@ LegalSecurity.init(
       allowNull: true,
       defaultValue: 0,
     },
+    tdsAmount: {
+      type: DataTypes.DECIMAL(12, 2),
+      allowNull: true,
+      defaultValue: 0,
+    },
     receivedDate: {
       type: DataTypes.DATEONLY,
       allowNull: true,

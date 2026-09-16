@@ -310,6 +310,7 @@ export default function SecurityWorkflowModal({ item, nbfcsList, nbfcBranchesLis
         setClientPaymentLogs(updated.clientPaymentLogs || []);
         setGuardPaymentLogs(updated.guardPaymentLogs || []);
       }
+      onSaved();
       triggerToast(savedToDatabase ? "Payment and TDS saved in the database." : "Payment and TDS added. Create Workflow to save in the database.");
     } catch (error: any) {
       triggerToast(error.message || "Payment could not be saved");

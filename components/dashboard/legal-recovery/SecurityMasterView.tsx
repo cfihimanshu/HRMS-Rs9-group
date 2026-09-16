@@ -390,6 +390,7 @@ export default function SecurityMasterView({
   const [receiveInstallments, setReceiveInstallments] = useState<PaymentInstallment[]>([]);
   const [receiveForm, setReceiveForm] = useState({
     receivedAmount: "",
+    tdsAmount: "",
     receivedDate: new Date().toISOString().split("T")[0],
     paymentMethod: "Bank Transfer (NEFT/RTGS)",
     customPaymentMethod: "",
@@ -1622,9 +1623,10 @@ export default function SecurityMasterView({
       } catch (e) {}
     }
     setReceiveInstallments(existingInsts);
-    const pendingBal = Math.max(0, Number(item.billAmount || 0) - Number(item.receivedAmount || 0));
+    const pendingBal = Math.max(0, Number(item.billAmount || 0) - Number(item.receivedAmount || 0) - Number(item.tdsAmount || 0));
     setReceiveForm({
       receivedAmount: pendingBal > 0 ? String(pendingBal) : (item.receivedAmount ? String(item.receivedAmount) : ""),
+      tdsAmount: "",
       receivedDate: new Date().toISOString().split("T")[0],
       paymentMethod: item.paymentMethod || "Bank Transfer (NEFT/RTGS)",
       customPaymentMethod: "",
@@ -1650,8 +1652,8 @@ export default function SecurityMasterView({
       finalAmount = receivedInsts.reduce((acc, curr) => acc + (Number(curr.amount) || 0), 0);
     } else {
       finalAmount = Number(receiveForm.receivedAmount);
-      if (!finalAmount || finalAmount <= 0) {
-        triggerToast("Please enter a valid received amount");
+      if (finalAmount < 0 || Number(receiveForm.tdsAmount || 0) < 0 || finalAmount + Number(receiveForm.tdsAmount || 0) <= 0) {
+        triggerToast("Please enter a valid received amount or TDS amount");
         return;
       }
     }
@@ -1697,6 +1699,7 @@ export default function SecurityMasterView({
       const payload = {
         securityId: showReceiveModal.item.id,
         amount: finalAmount,
+        tdsAmount: Number(receiveForm.tdsAmount || 0),
         paymentDate: receiveForm.receivedDate,
         paymentMode: effectivePaymentMode,
         transactionId: formattedTransactionId,
@@ -1877,7 +1880,7 @@ export default function SecurityMasterView({
       } else if (filterStatus === "Due" || filterStatus === "Pending") {
         const bAmt = Number(item.billAmount || 0);
         const rAmt = Number(item.receivedAmount || 0);
-        matchesStatus = (bAmt - rAmt > 0) || item.paymentStatus === "Due" || item.paymentStatus === "Partially Paid";
+        matchesStatus = (bAmt - rAmt - Number(item.tdsAmount || 0) > 0) || item.paymentStatus === "Due" || item.paymentStatus === "Partially Paid";
       } else {
         matchesStatus = item.paymentStatus === filterStatus;
       }
@@ -1931,11 +1934,12 @@ export default function SecurityMasterView({
   // Metrics
   const totalBilled = useMemo(() => entries.reduce((acc, curr) => acc + Number(curr.billAmount || 0), 0), [entries]);
   const totalReceived = useMemo(() => entries.reduce((acc, curr) => acc + Number(curr.receivedAmount || 0), 0), [entries]);
-  const totalPendingAmount = useMemo(() => entries.reduce((acc, curr) => acc + Math.max(0, Number(curr.billAmount || 0) - Number(curr.receivedAmount || 0)), 0), [entries]);
+  const totalTds = useMemo(() => entries.reduce((acc, curr) => acc + Number(curr.tdsAmount || 0), 0), [entries]);
+  const totalPendingAmount = useMemo(() => entries.reduce((acc, curr) => acc + Math.max(0, Number(curr.billAmount || 0) - Number(curr.receivedAmount || 0) - Number(curr.tdsAmount || 0)), 0), [entries]);
   const totalDueCount = useMemo(() => entries.filter((item) => {
     const bAmt = Number(item.billAmount || 0);
     const rAmt = Number(item.receivedAmount || 0);
-    return (bAmt - rAmt > 0) || item.paymentStatus === "Due" || item.paymentStatus === "Partially Paid";
+    return (bAmt - rAmt - Number(item.tdsAmount || 0) > 0) || item.paymentStatus === "Due" || item.paymentStatus === "Partially Paid";
   }).length, [entries]);
 
   // Bank-Wise Grouping for Total Entries Modal
@@ -1945,6 +1949,7 @@ export default function SecurityMasterView({
       works: any[];
       totalBillAmount: number;
       totalReceivedAmount: number;
+      totalTdsAmount: number;
       totalPendingAmount: number;
       dueCount: number;
       paidCount: number;
@@ -1959,6 +1964,7 @@ export default function SecurityMasterView({
           works: [],
           totalBillAmount: 0,
           totalReceivedAmount: 0,
+          totalTdsAmount: 0,
           totalPendingAmount: 0,
           dueCount: 0,
           paidCount: 0,
@@ -1969,9 +1975,11 @@ export default function SecurityMasterView({
       group.works.push(item);
       const bAmt = Number(item.billAmount || 0);
       const rAmt = Number(item.receivedAmount || 0);
-      const pAmt = Math.max(0, bAmt - rAmt);
+      const tdsAmt = Number(item.tdsAmount || 0);
+      const pAmt = Math.max(0, bAmt - rAmt - Number(item.tdsAmount || 0));
       group.totalBillAmount += bAmt;
       group.totalReceivedAmount += rAmt;
+      group.totalTdsAmount += tdsAmt;
       group.totalPendingAmount += pAmt;
       if (item.paymentStatus === "Payment Done" || item.paymentStatus === "Paid") group.paidCount++;
       else if (item.paymentStatus === "Partially Paid") group.partialCount++;
@@ -2004,6 +2012,7 @@ export default function SecurityMasterView({
       works: any[];
       totalBillAmount: number;
       totalReceivedAmount: number;
+      totalTdsAmount: number;
       totalPendingAmount: number;
       paidCount: number;
       partialCount: number;
@@ -2011,9 +2020,10 @@ export default function SecurityMasterView({
 
     entries.forEach((item) => {
       const rAmt = Number(item.receivedAmount || 0);
+      const tdsAmt = Number(item.tdsAmount || 0);
       const bAmt = Number(item.billAmount || 0);
-      const pAmt = Math.max(0, bAmt - rAmt);
-      if (rAmt > 0 || item.paymentStatus === "Payment Done" || item.paymentStatus === "Partially Paid" || item.paymentStatus === "Paid") {
+      const pAmt = Math.max(0, bAmt - rAmt - tdsAmt);
+      if (rAmt > 0 || tdsAmt > 0 || item.paymentStatus === "Payment Done" || item.paymentStatus === "Partially Paid" || item.paymentStatus === "Paid") {
         const bankName = (item.nbfcName || item.company || "General / Unassigned").trim();
         if (!map.has(bankName)) {
           map.set(bankName, {
@@ -2021,6 +2031,7 @@ export default function SecurityMasterView({
             works: [],
             totalBillAmount: 0,
             totalReceivedAmount: 0,
+            totalTdsAmount: 0,
             totalPendingAmount: 0,
             paidCount: 0,
             partialCount: 0,
@@ -2030,6 +2041,7 @@ export default function SecurityMasterView({
         group.works.push(item);
         group.totalBillAmount += bAmt;
         group.totalReceivedAmount += rAmt;
+        group.totalTdsAmount += tdsAmt;
         group.totalPendingAmount += pAmt;
         if (item.paymentStatus === "Payment Done" || item.paymentStatus === "Paid") group.paidCount++;
         else group.partialCount++;
@@ -2070,7 +2082,7 @@ export default function SecurityMasterView({
     entries.forEach((item) => {
       const bAmt = Number(item.billAmount || 0);
       const rAmt = Number(item.receivedAmount || 0);
-      const pAmt = Math.max(0, bAmt - rAmt);
+      const pAmt = Math.max(0, bAmt - rAmt - Number(item.tdsAmount || 0));
       if (pAmt > 0 || item.paymentStatus === "Due" || item.paymentStatus === "Partially Paid") {
         const bankName = (item.nbfcName || item.company || "General / Unassigned").trim();
         if (!map.has(bankName)) {
@@ -4220,7 +4232,7 @@ export default function SecurityMasterView({
             </div>
 
             {/* Bill Summary Card */}
-            <div className="bg-slate-50 px-6 py-3 border-b border-slate-200/80 grid grid-cols-3 gap-2 text-center text-xs">
+            <div className="bg-slate-50 px-6 py-3 border-b border-slate-200/80 grid grid-cols-2 sm:grid-cols-4 gap-2 text-center text-xs">
               <div className="bg-white p-2 rounded-lg border border-slate-200 shadow-2xs">
                 <span className="text-[9px] text-slate-500 uppercase font-black block">Total Bill Amount</span>
                 <span className="font-black text-slate-800 font-mono text-sm">₹{Number(showReceiveModal.item.billAmount || 0).toLocaleString("en-IN")}</span>
@@ -4229,10 +4241,14 @@ export default function SecurityMasterView({
                 <span className="text-[9px] text-slate-500 uppercase font-black block">Already Received</span>
                 <span className="font-black text-emerald-700 font-mono text-sm">₹{Number(showReceiveModal.item.receivedAmount || 0).toLocaleString("en-IN")}</span>
               </div>
+              <div className="bg-amber-50 p-2 rounded-lg border border-amber-200 shadow-2xs">
+                <span className="text-[9px] text-amber-700 uppercase font-black block">TDS Deducted</span>
+                <span className="font-black text-amber-800 font-mono text-sm">₹{Number(showReceiveModal.item.tdsAmount || 0).toLocaleString("en-IN")}</span>
+              </div>
               <div className="bg-white p-2 rounded-lg border border-slate-200 shadow-2xs">
                 <span className="text-[9px] text-slate-500 uppercase font-black block">Pending Balance</span>
                 {(() => {
-                  const pending = Math.max(0, Number(showReceiveModal.item.billAmount || 0) - Number(showReceiveModal.item.receivedAmount || 0));
+                  const pending = Math.max(0, Number(showReceiveModal.item.billAmount || 0) - Number(showReceiveModal.item.receivedAmount || 0) - Number(showReceiveModal.item.tdsAmount || 0));
                   return (
                     <span className="font-black text-rose-700 font-mono text-sm">
                       ₹{pending.toLocaleString("en-IN")}
@@ -4494,6 +4510,22 @@ export default function SecurityMasterView({
                         value={receiveForm.receivedAmount}
                         onChange={(e) => setReceiveForm({ ...receiveForm, receivedAmount: e.target.value })}
                       />
+                    </div>
+
+                    <div>
+                      <label className="block text-[10px] uppercase font-black text-amber-700 tracking-wider mb-1">
+                        TDS Deducted (₹)
+                      </label>
+                      <input
+                        type="number"
+                        min="0"
+                        step="any"
+                        className="w-full bg-amber-50 border border-amber-200 rounded-lg p-2.5 text-xs font-bold text-slate-900 focus:outline-none focus:border-amber-500"
+                        placeholder="e.g. 2700"
+                        value={receiveForm.tdsAmount}
+                        onChange={(e) => setReceiveForm({ ...receiveForm, tdsAmount: e.target.value })}
+                      />
+                      <p className="mt-1 text-[9px] font-medium text-amber-700">TDS bhi bill payment mein count hoga.</p>
                     </div>
 
                     {/* Received Date */}
@@ -5186,7 +5218,7 @@ export default function SecurityMasterView({
               <div>
                 <span className="text-[10px] text-slate-500 uppercase font-bold block">Outstanding Balance</span>
                 {(() => {
-                  const pending = Math.max(0, Number(showFollowUpModal.item.billAmount || 0) - Number(showFollowUpModal.item.receivedAmount || 0));
+                  const pending = Math.max(0, Number(showFollowUpModal.item.billAmount || 0) - Number(showFollowUpModal.item.receivedAmount || 0) - Number(showFollowUpModal.item.tdsAmount || 0));
                   return (
                     <span className="font-black text-rose-700 font-mono bg-rose-50 px-2 py-0.5 rounded border border-rose-200">
                       ₹{pending.toLocaleString("en-IN")}
@@ -6690,7 +6722,7 @@ export default function SecurityMasterView({
                                 {bankGroup.works.map((work: any, wIdx: number) => {
                                   const bAmt = Number(work.billAmount || 0);
                                   const rAmt = Number(work.receivedAmount || 0);
-                                  const pAmt = Math.max(0, bAmt - rAmt);
+                                  const pAmt = Math.max(0, bAmt - rAmt - Number(work.tdsAmount || 0));
                                   return (
                                     <tr key={work.id || wIdx} className="hover:bg-slate-50/70 transition-colors">
                                       <td className="py-2.5 px-3 text-slate-400 font-mono">{wIdx + 1}</td>
@@ -6840,6 +6872,9 @@ export default function SecurityMasterView({
                     <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-100 text-emerald-800 border border-emerald-200">
                       ₹{totalReceived.toLocaleString("en-IN")} Total Received
                     </span>
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-amber-100 text-amber-800 border border-amber-200">
+                      ₹{totalTds.toLocaleString("en-IN")} Total TDS
+                    </span>
                   </div>
                   <p className="text-[11px] text-slate-500 font-medium mt-0.5">
                     Click any Bank / NBFC name to view received amount, pending balance, and individual work records.
@@ -6867,9 +6902,13 @@ export default function SecurityMasterView({
                   <span className="text-emerald-600 font-normal">Total Received:</span>
                   <span className="font-black">₹{totalReceived.toLocaleString("en-IN")}</span>
                 </div>
+                <div className="flex items-center gap-1.5 bg-amber-50 px-2.5 py-1.5 rounded-lg border border-amber-200 font-bold text-amber-900">
+                  <span className="text-amber-600 font-normal">Total TDS:</span>
+                  <span className="font-black">₹{totalTds.toLocaleString("en-IN")}</span>
+                </div>
                 <div className="flex items-center gap-1.5 bg-rose-50 px-2.5 py-1.5 rounded-lg border border-rose-200 font-bold text-rose-900">
                   <span className="text-rose-500 font-normal">Remaining Pending:</span>
-                  <span className="font-black">₹{Math.max(0, totalBilled - totalReceived).toLocaleString("en-IN")}</span>
+                  <span className="font-black">₹{totalPendingAmount.toLocaleString("en-IN")}</span>
                 </div>
                 <div className="flex items-center gap-1.5 bg-blue-50 px-2.5 py-1.5 rounded-lg border border-blue-200 font-bold text-blue-900">
                   <span className="text-blue-500 font-normal">Total Billed:</span>
@@ -6947,6 +6986,11 @@ export default function SecurityMasterView({
                             <span className="text-xs font-black text-emerald-800">₹{bankGroup.totalReceivedAmount.toLocaleString("en-IN")}</span>
                           </div>
 
+                          <div className="text-left sm:text-right px-2.5 py-1 bg-amber-50 rounded-lg border border-amber-200">
+                            <span className="text-[9px] uppercase font-bold text-amber-700 font-mono block">TDS Deducted</span>
+                            <span className="text-xs font-black text-amber-800">₹{bankGroup.totalTdsAmount.toLocaleString("en-IN")}</span>
+                          </div>
+
                           <div className="text-left sm:text-right px-2.5 py-1 bg-rose-50 rounded-lg border border-rose-100">
                             <span className="text-[9px] uppercase font-bold text-rose-600 font-mono block">Pending Balance</span>
                             <span className="text-xs font-black text-rose-800">₹{bankGroup.totalPendingAmount.toLocaleString("en-IN")}</span>
@@ -6967,7 +7011,7 @@ export default function SecurityMasterView({
                       {isExpanded && (
                         <div className="border-t border-slate-100 p-3 sm:p-4 bg-slate-50/50 animate-fadeIn">
                           <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-2xs">
-                            <table className="w-full text-left text-xs border-collapse min-w-[720px]">
+                            <table className="w-full text-left text-xs border-collapse min-w-[800px]">
                               <thead>
                                 <tr className="bg-slate-100/90 border-b border-slate-200 text-slate-600 font-black uppercase text-[10px] tracking-wider">
                                   <th className="py-2.5 px-3">#</th>
@@ -6975,6 +7019,7 @@ export default function SecurityMasterView({
                                   <th className="py-2.5 px-3">Bill No. &amp; Date</th>
                                   <th className="py-2.5 px-3 text-right">Bill Amount</th>
                                   <th className="py-2.5 px-3 text-right">Received Amount</th>
+                                  <th className="py-2.5 px-3 text-right">TDS</th>
                                   <th className="py-2.5 px-3 text-right">Pending Balance</th>
                                   <th className="py-2.5 px-3">Payment Details</th>
                                   <th className="py-2.5 px-3 text-center">Status</th>
@@ -6984,7 +7029,8 @@ export default function SecurityMasterView({
                                 {bankGroup.works.map((work: any, wIdx: number) => {
                                   const bAmt = Number(work.billAmount || 0);
                                   const rAmt = Number(work.receivedAmount || 0);
-                                  const pAmt = Math.max(0, bAmt - rAmt);
+                                  const tdsAmt = Number(work.tdsAmount || 0);
+                                  const pAmt = Math.max(0, bAmt - rAmt - Number(work.tdsAmount || 0));
                                   return (
                                     <tr key={work.id || wIdx} className="hover:bg-slate-50/70 transition-colors">
                                       <td className="py-2.5 px-3 text-slate-400 font-mono">{wIdx + 1}</td>
@@ -7026,6 +7072,9 @@ export default function SecurityMasterView({
                                           return null;
                                         })()}
                                       </td>
+                                      <td className="py-2.5 px-3 text-right font-black text-amber-700 bg-amber-50/30">
+                                        ₹{tdsAmt.toLocaleString("en-IN")}
+                                      </td>
                                       <td className="py-2.5 px-3 text-right font-black text-rose-600">
                                         ₹{pAmt.toLocaleString("en-IN")}
                                       </td>
@@ -7059,6 +7108,9 @@ export default function SecurityMasterView({
                                   </td>
                                   <td className="py-2.5 px-3 text-right font-black text-emerald-700">
                                     ₹{bankGroup.totalReceivedAmount.toLocaleString("en-IN")}
+                                  </td>
+                                  <td className="py-2.5 px-3 text-right font-black text-amber-700">
+                                    ₹{bankGroup.totalTdsAmount.toLocaleString("en-IN")}
                                   </td>
                                   <td className="py-2.5 px-3 text-right font-black text-rose-700">
                                     ₹{bankGroup.totalPendingAmount.toLocaleString("en-IN")}
@@ -7261,7 +7313,7 @@ export default function SecurityMasterView({
                                 {bankGroup.works.map((work: any, wIdx: number) => {
                                   const bAmt = Number(work.billAmount || 0);
                                   const rAmt = Number(work.receivedAmount || 0);
-                                  const pAmt = Math.max(0, bAmt - rAmt);
+                                  const pAmt = Math.max(0, bAmt - rAmt - Number(work.tdsAmount || 0));
                                   return (
                                     <tr key={work.id || wIdx} className="hover:bg-slate-50/70 transition-colors">
                                       <td className="py-2.5 px-3 text-slate-400 font-mono">{wIdx + 1}</td>

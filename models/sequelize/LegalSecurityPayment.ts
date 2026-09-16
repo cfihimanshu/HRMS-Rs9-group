@@ -35,6 +35,11 @@ LegalSecurityPayment.init(
       type: DataTypes.DECIMAL(12, 2),
       allowNull: false,
     },
+    tdsAmount: {
+      type: DataTypes.DECIMAL(12, 2),
+      allowNull: true,
+      defaultValue: 0,
+    },
     paymentDate: {
       type: DataTypes.DATEONLY,
       allowNull: false,

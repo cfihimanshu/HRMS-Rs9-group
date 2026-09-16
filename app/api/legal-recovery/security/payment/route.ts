@@ -7,6 +7,13 @@ import LegalSecurity from "@/models/sequelize/LegalSecurity";
 import LegalSecurityPayment from "@/models/sequelize/LegalSecurityPayment";
 import { notifyOwners } from "@/lib/ownerNotification";
 
+async function ensureTdsColumns() {
+  for (const table of ["legal_securities", "legal_security_payments"]) {
+    const [columns]: any = await sequelize.query(`SHOW COLUMNS FROM ${table} LIKE 'tdsAmount'`);
+    if (!columns?.length) await sequelize.query(`ALTER TABLE ${table} ADD COLUMN tdsAmount DECIMAL(12,2) NULL DEFAULT 0`);
+  }
+}
+
 // POST: Log Received Payment
 export async function POST(req: Request) {
   try {
@@ -20,11 +27,13 @@ export async function POST(req: Request) {
     await sequelize.authenticate();
     await LegalSecurity.sync();
     await LegalSecurityPayment.sync();
+    await ensureTdsColumns();
 
     const body = await req.json();
     const {
       securityId,
       amount,
+      tdsAmount,
       paymentDate,
       paymentMode,
       transactionId,
@@ -38,8 +47,9 @@ export async function POST(req: Request) {
     }
 
     const numericAmount = Number(amount);
-    if (isNaN(numericAmount) || numericAmount < 0) {
-      return NextResponse.json({ success: false, error: "Valid Payment Amount is required" }, { status: 400 });
+    const numericTdsAmount = Number(tdsAmount || 0);
+    if (!Number.isFinite(numericAmount) || numericAmount < 0 || !Number.isFinite(numericTdsAmount) || numericTdsAmount < 0 || numericAmount + numericTdsAmount <= 0) {
+      return NextResponse.json({ success: false, error: "Enter a valid received amount or TDS amount" }, { status: 400 });
     }
 
     const record = await LegalSecurity.findByPk(securityId);
@@ -55,6 +65,7 @@ export async function POST(req: Request) {
       billNo: record.billNo || "",
       billAmount: record.billAmount || 0,
       amount: numericAmount,
+      tdsAmount: numericTdsAmount,
       paymentDate: paymentDate || new Date().toISOString().split("T")[0],
       paymentMode: paymentMode || "Bank Transfer (NEFT/RTGS)",
       transactionId: transactionId || "",
@@ -72,9 +83,13 @@ export async function POST(req: Request) {
       newTotalReceived = existingReceived + numericAmount;
     }
     const billAmt = Number(record.billAmount || 0);
+    const newTotalTds = Number(record.tdsAmount || 0) + numericTdsAmount;
+    if (billAmt > 0 && newTotalReceived + newTotalTds > billAmt) {
+      return NextResponse.json({ success: false, error: "Received amount plus TDS cannot exceed the bill amount" }, { status: 400 });
+    }
 
     let updatedStatus = "Partially Paid";
-    if (billAmt > 0 && newTotalReceived >= billAmt) {
+    if (billAmt > 0 && newTotalReceived + newTotalTds >= billAmt) {
       updatedStatus = "Payment Done";
     } else if (newTotalReceived <= 0) {
       updatedStatus = "Due";
@@ -82,17 +97,18 @@ export async function POST(req: Request) {
 
     await record.update({
       receivedAmount: newTotalReceived,
+      tdsAmount: newTotalTds,
       receivedDate: paymentDate || new Date().toISOString().split("T")[0],
       paymentStatus: updatedStatus,
       paymentMethod: paymentMode || record.paymentMethod,
       ...(installmentsJson !== undefined ? { installmentsJson } : {}),
       ...(proofUrl ? { billInvoiceUrl: proofUrl } : {}),
-      ...(remarks ? { remarks: (record.remarks ? `${record.remarks}\n[Payment Logged: ₹${numericAmount} - ${transactionId || ""}]` : `Payment Logged: ₹${numericAmount} - ${transactionId || ""}`) } : {}),
+      ...(remarks ? { remarks: (record.remarks ? `${record.remarks}\n[Payment Logged: ₹${numericAmount}, TDS: ₹${numericTdsAmount} - ${transactionId || ""}]` : `Payment Logged: ₹${numericAmount}, TDS: ₹${numericTdsAmount} - ${transactionId || ""}`) } : {}),
     });
 
     await notifyOwners({
       title: `Security Payment Received: ₹${numericAmount.toLocaleString("en-IN")}`,
-      message: `${session.user.name || "A user"} logged payment from ${record.nbfcName || record.company || "Security client"} / ${record.branchName || record.location || "Site"}. Bill: ${record.billNo || "N/A"}. Total received: ₹${newTotalReceived.toLocaleString("en-IN")}. Pending: ₹${Math.max(0, billAmt - newTotalReceived).toLocaleString("en-IN")}. Status: ${updatedStatus}.`,
+      message: `${session.user.name || "A user"} logged payment from ${record.nbfcName || record.company || "Security client"} / ${record.branchName || record.location || "Site"}. Bill: ${record.billNo || "N/A"}. Total received: ₹${newTotalReceived.toLocaleString("en-IN")}. TDS: ₹${newTotalTds.toLocaleString("en-IN")}. Pending: ₹${Math.max(0, billAmt - newTotalReceived - newTotalTds).toLocaleString("en-IN")}. Status: ${updatedStatus}.`,
       moduleName: "Security Payments",
       actionUrl: "/dashboard/security/payments",
       eventId: `security_payment_${newPayment.id}`,
@@ -118,6 +134,7 @@ export async function GET(req: Request) {
 
     await sequelize.authenticate();
     await LegalSecurityPayment.sync();
+    await ensureTdsColumns();
 
     const whereClause = securityId ? { securityId } : {};
     const payments = await LegalSecurityPayment.findAll({
