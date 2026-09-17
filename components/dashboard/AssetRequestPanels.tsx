@@ -26,6 +26,8 @@ export function AssetRequestLogs({ sessionUser, triggerToast, setActiveTab }: As
   const [activeReqId, setActiveReqId] = useState<any>(null);
   const [activeReqType, setActiveReqType] = useState<string>("");
   const [loadingInventory, setLoadingInventory] = useState(false);
+  const [inventorySearch, setInventorySearch] = useState("");
+  const [inventoryCondition, setInventoryCondition] = useState("");
 
   // Filters
   const [searchTerm, setSearchTerm] = useState("");
@@ -38,6 +40,7 @@ export function AssetRequestLogs({ sessionUser, triggerToast, setActiveTab }: As
   const [customAssetType, setCustomAssetType] = useState("");
   const [priority, setPriority] = useState("Medium");
   const [reason, setReason] = useState("");
+  const [requestedFor, setRequestedFor] = useState("");
 
   // Action remarks modal/input
   const [remarksMap, setRemarksMap] = useState<Record<string, string>>({});
@@ -105,7 +108,8 @@ export function AssetRequestLogs({ sessionUser, triggerToast, setActiveTab }: As
           action: "create",
           asset_type: finalAssetType,
           priority,
-          reason
+          reason,
+          requested_for: requestedFor
         })
       });
 
@@ -116,6 +120,7 @@ export function AssetRequestLogs({ sessionUser, triggerToast, setActiveTab }: As
         setAssetType("Laptop");
         setPriority("Medium");
         setCustomAssetType("");
+        setRequestedFor("");
         fetchRequests();
       } else {
         triggerToast(data.error || "Failed to submit request");
@@ -486,6 +491,18 @@ export function AssetRequestLogs({ sessionUser, triggerToast, setActiveTab }: As
                 )}
 
                 <div>
+                  <label className="block text-[10px] uppercase font-mono font-black text-slate-400 mb-1">Requested For (Optional)</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. John Doe (Leave blank if for yourself)"
+                    className={`w-full p-2.5 rounded-xl border text-xs font-bold focus:outline-none focus:ring-1 focus:ring-[#714B67] ${isDark ? "bg-gray-800 border-gray-700 text-white" : "bg-slate-50 border-slate-200 text-slate-800"
+                      }`}
+                    value={requestedFor}
+                    onChange={(e) => setRequestedFor(e.target.value)}
+                  />
+                </div>
+
+                <div>
                   <div className="flex justify-between items-center mb-1">
                     <label className="block text-[10px] uppercase font-mono font-black text-slate-400">Urgency / Priority *</label>
                     <span className={`text-[9px] font-mono font-bold px-2 py-0.5 rounded-full border ${getPriorityBadge(priority)}`}>
@@ -646,6 +663,25 @@ export function AssetRequestLogs({ sessionUser, triggerToast, setActiveTab }: As
                             <span className="text-[10px] text-slate-400 block mt-0.5">
                               {req.employee?.department || "General"}
                             </span>
+                            {(req.employee?.email || req.employee?.mobile) && (
+                              <div className="mt-1 space-y-0.5">
+                                {req.employee?.email && (
+                                  <span className="text-[9px] text-slate-500 block truncate max-w-[150px]" title={req.employee.email}>
+                                    ✉️ {req.employee.email}
+                                  </span>
+                                )}
+                                {req.employee?.mobile && (
+                                  <span className="text-[9px] text-slate-500 block">
+                                    📱 {req.employee.mobile}
+                                  </span>
+                                )}
+                              </div>
+                            )}
+                            {req.requested_for && (
+                              <span className="text-[9px] bg-[#714B67]/10 text-[#714B67] px-1.5 py-0.5 rounded border border-[#714B67]/20 block w-fit mt-1">
+                                For: {req.requested_for}
+                              </span>
+                            )}
                           </td>
 
                           {/* Specifications & Details */}
@@ -779,9 +815,24 @@ export function AssetRequestLogs({ sessionUser, triggerToast, setActiveTab }: As
 
                       {/* Requester Info */}
                       <div className="py-2.5 flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500">
-                        <div className="font-bold flex items-center gap-1.5 text-slate-800 dark:text-gray-200">
-                          <User className="w-3.5 h-3.5 text-[#714B67]" />
-                          <span>Requested By: <strong>{req.employee?.name || "Employee"}</strong> ({req.employee?.department || "General"})</span>
+                        <div className="flex flex-col gap-1">
+                          <div className="font-bold flex flex-col sm:flex-row sm:items-center gap-1.5 text-slate-800 dark:text-gray-200">
+                            <div className="flex items-center gap-1.5">
+                              <User className="w-3.5 h-3.5 text-[#714B67]" />
+                              <span>Requested By: <strong>{req.employee?.name || "Employee"}</strong> ({req.employee?.department || "General"})</span>
+                            </div>
+                            {req.requested_for && (
+                               <span className="text-[10px] bg-[#714B67]/10 text-[#714B67] px-2 py-0.5 rounded-full border border-[#714B67]/20 w-fit">
+                                 For: {req.requested_for}
+                               </span>
+                            )}
+                          </div>
+                          {(req.employee?.email || req.employee?.mobile) && (
+                            <div className="flex flex-wrap items-center gap-3 text-[10px] text-slate-500 pl-5">
+                              {req.employee?.email && <span className="flex items-center gap-1">✉️ {req.employee.email}</span>}
+                              {req.employee?.mobile && <span className="flex items-center gap-1">📱 {req.employee.mobile}</span>}
+                            </div>
+                          )}
                         </div>
                         <div className="text-[10px] text-slate-400 font-medium font-mono bg-slate-50 dark:bg-gray-800 px-2 py-0.5 rounded border border-slate-150 dark:border-gray-700">
                           📅 {new Date(req.createdAt).toLocaleDateString()} @ {new Date(req.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
@@ -929,7 +980,32 @@ export function AssetRequestLogs({ sessionUser, triggerToast, setActiveTab }: As
             </div>
 
             {/* List */}
-            <div className="p-4 overflow-y-auto flex-1 space-y-3">
+            <div className="p-4 overflow-y-auto flex-1 flex flex-col space-y-3">
+              {/* Filters */}
+              {!loadingInventory && inventoryItems.length > 0 && (
+                <div className="flex flex-col sm:flex-row gap-2 pb-2 border-b border-slate-100 dark:border-gray-850 shrink-0">
+                  <div className="relative flex-1">
+                    <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2.5" />
+                    <input
+                      type="text"
+                      placeholder="Search inventory by type, detail, or serial..."
+                      value={inventorySearch}
+                      onChange={(e) => setInventorySearch(e.target.value)}
+                      className={`w-full pl-8 pr-3 py-2 rounded-lg border text-[11px] font-bold focus:outline-none focus:ring-1 focus:ring-[#714B67] ${isDark ? "bg-gray-800 border-gray-700 text-white" : "bg-white border-slate-200 text-slate-800"}`}
+                    />
+                  </div>
+                  <select
+                    value={inventoryCondition}
+                    onChange={(e) => setInventoryCondition(e.target.value)}
+                    className={`px-3 py-2 rounded-lg border text-[11px] font-bold focus:outline-none focus:ring-1 focus:ring-[#714B67] sm:w-1/3 ${isDark ? "bg-gray-800 border-gray-700 text-white" : "bg-white border-slate-200 text-slate-800"}`}
+                  >
+                    <option value="">All Conditions</option>
+                    <option value="Good">Good</option>
+                    <option value="Needs Repair">Needs Repair</option>
+                    <option value="Damaged">Damaged</option>
+                  </select>
+                </div>
+              )}
               {loadingInventory ? (
                 <div className="text-center py-8 text-xs font-bold text-slate-400 flex items-center justify-center gap-2">
                   <RefreshCw className="w-4 h-4 animate-spin text-indigo-500" /> Loading Available Assets...
@@ -951,7 +1027,26 @@ export function AssetRequestLogs({ sessionUser, triggerToast, setActiveTab }: As
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 dark:divide-gray-850">
-                      {inventoryItems.map((item: any) => {
+                      {(() => {
+                        const filteredModalItems = inventoryItems.filter((item: any) => {
+                          const matchesSearch = (item.assetDetail || "").toLowerCase().includes(inventorySearch.toLowerCase()) || 
+                                                (item.serialNumber || "").toLowerCase().includes(inventorySearch.toLowerCase()) || 
+                                                (item.assetType || "").toLowerCase().includes(inventorySearch.toLowerCase());
+                          const matchesCondition = inventoryCondition ? item.condition === inventoryCondition : true;
+                          return matchesSearch && matchesCondition;
+                        });
+
+                        if (filteredModalItems.length === 0) {
+                          return (
+                            <tr>
+                              <td colSpan={5} className="text-center py-8 text-xs font-bold text-slate-400">
+                                No inventory items match your search.
+                              </td>
+                            </tr>
+                          );
+                        }
+
+                        return filteredModalItems.map((item: any) => {
                         const isMatching = (item.assetType || "").toLowerCase().includes(activeReqType.toLowerCase());
                         return (
                           <tr
@@ -978,7 +1073,14 @@ export function AssetRequestLogs({ sessionUser, triggerToast, setActiveTab }: As
                                 {item.assetType} {item.oldAssetId ? `(Old ID: ${item.oldAssetId})` : ""}
                               </span>
                             </td>
-                            <td className="p-3 max-w-[200px] truncate">{item.assetDetail || "N/A"}</td>
+                            <td className="p-3 max-w-[200px]">
+                              <div className="truncate">{item.assetDetail || "N/A"}</div>
+                              {(item.sim1Number || item.simCompany) && (
+                                <div className="text-[9px] text-slate-500 mt-0.5 truncate" title={`SIM: ${item.simCompany || ''} - ${item.sim1Number || ''}`}>
+                                  📱 {item.simCompany ? `${item.simCompany} ` : ''}{item.sim1Number}
+                                </div>
+                              )}
+                            </td>
                             <td className="p-3 font-mono text-[10px]">{item.serialNumber || "N/A"}</td>
                             <td className="p-3">
                               <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${item.condition === "Good"
@@ -990,7 +1092,8 @@ export function AssetRequestLogs({ sessionUser, triggerToast, setActiveTab }: As
                             </td>
                           </tr>
                         );
-                      })}
+                        });
+                      })()}
                     </tbody>
                   </table>
                 </div>

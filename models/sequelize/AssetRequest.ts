@@ -14,6 +14,10 @@ AssetRequest.init(
       type: DataTypes.STRING, // id
       allowNull: false,
     },
+    requested_for: {
+      type: DataTypes.STRING, // name of the person it is requested for
+      allowNull: true,
+    },
     asset_type: {
       type: DataTypes.STRING,
       allowNull: false,

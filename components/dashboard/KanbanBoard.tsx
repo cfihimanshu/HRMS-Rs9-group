@@ -195,7 +195,6 @@ export default function KanbanBoard({
   };
 
   const [tasks, setTasks] = useState<Task[]>([]);
-  const [overallTaskTotal, setOverallTaskTotal] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
 
@@ -556,40 +555,16 @@ export default function KanbanBoard({
             timerState: "Stopped",
             elapsedSeconds: Number(item.elapsedSeconds || 0),
           })));
-          setOverallTaskTotal(Number(overdueData.count || overdueData.data.length));
         }
         setLoading(false);
         return;
       }
-      // Tier 1: Load Today's tasks for instant 0ms speed
-      const resToday = await fetch("/api/tasks?range=today");
-      const dataToday = await resToday.json();
-      if (dataToday.success && Array.isArray(dataToday.data)) {
-        setTasks(dataToday.data);
-      }
-      setLoading(false); // Hide loading spinner early!
-
-      // Keep the board lightweight: cards show the recent 3-day working set.
-      // Fetch only the exact all-time aggregate instead of downloading thousands
-      // of full task records into the browser.
-      const [recentResult, overallResult] = await Promise.allSettled([
-        fetch("/api/tasks?range=recent").then(res => res.json()),
-        fetch("/api/dashboard/owner-work?scope=overall").then(res => res.json()),
-      ]);
-
-      if (recentResult.status === "fulfilled") {
-        const dataRecent = recentResult.value;
-        if (dataRecent.success && Array.isArray(dataRecent.data)) {
-          setTasks(dataRecent.data);
-        }
-      }
-
-      if (overallResult.status === "fulfilled") {
-        const dataOverall = overallResult.value;
-        const exactTotal = Number(dataOverall?.data?.summary?.total);
-        if (dataOverall?.success && Number.isFinite(exactTotal)) {
-          setOverallTaskTotal(exactTotal);
-        }
+      // Date filters need the complete authorized task set, including older months.
+      const response = await fetch("/api/tasks?limit=all", { cache: "no-store" });
+      const data = await response.json();
+      if (!response.ok || !data.success) throw new Error(data.error || "Tasks could not be loaded");
+      if (Array.isArray(data.data)) {
+        setTasks(data.data);
       }
     } catch (err) {
       console.error(err);
@@ -1379,7 +1354,9 @@ export default function KanbanBoard({
 
   const [filterUser, setFilterUser] = useState<string>(initialUserFilter || "All");
   const [filterDate, setFilterDate] = useState(initialDateFilter || "");
-  const [datePreset, setDatePreset] = useState<string>(initialDateFilter ? "custom" : "recent");
+  const [datePreset, setDatePreset] = useState<string>(
+    initialDateFilter ? "custom" : initialSearchFilter?.trim().toLowerCase() === "pending" ? "month" : "recent"
+  );
   const [searchQuery, setSearchQuery] = useState(initialSearchFilter || "");
 
   useEffect(() => {
@@ -1401,7 +1378,13 @@ export default function KanbanBoard({
 
   useEffect(() => {
     setSearchQuery(initialSearchFilter || "");
-  }, [initialSearchFilter]);
+    if (!initialDateFilter && initialSearchFilter?.trim().toLowerCase() === "pending") {
+      setDatePreset("month");
+      setFilterDate("");
+      setStartDate("");
+      setEndDate("");
+    }
+  }, [initialSearchFilter, initialDateFilter]);
 
   const formatLocalYYYYMMDD = (d: Date) => {
     const year = d.getFullYear();
@@ -1455,7 +1438,7 @@ export default function KanbanBoard({
     let matchUser = filterUser === "All" || tEmpName === selUser;
 
     let matchDate = true;
-    const rawTaskDate = t.scheduledAt || t.date || t.createdAt;
+    const rawTaskDate = t.date || t.createdAt;
     if (rawTaskDate) {
       const taskDate = new Date(rawTaskDate);
       if (!isNaN(taskDate.getTime())) {
@@ -1468,10 +1451,18 @@ export default function KanbanBoard({
           if (startDate && localDateStr < startDate) matchDate = false;
           if (endDate && localDateStr > endDate) matchDate = false;
         } else if (datePreset === "month" || datePreset === "last_month") {
-          if (startDate && localDateStr < startDate) matchDate = false;
-          if (endDate && localDateStr > endDate) matchDate = false;
+          const now = new Date();
+          const month = now.getMonth() - (datePreset === "last_month" ? 1 : 0);
+          const monthStart = new Date(now.getFullYear(), month, 1);
+          const nextMonthStart = new Date(now.getFullYear(), month + 1, 1);
+          matchDate = taskDate >= monthStart && taskDate < nextMonthStart;
         } else if (filterDate) {
           if (localDateStr !== filterDate) matchDate = false;
+        } else if (datePreset === "recent") {
+          const recentStart = new Date();
+          recentStart.setDate(recentStart.getDate() - 3);
+          recentStart.setHours(0, 0, 0, 0);
+          matchDate = taskDate >= recentStart;
         }
       } else if (filterDate || startDate || endDate || datePreset !== "recent") {
         matchDate = false;
@@ -1487,7 +1478,13 @@ export default function KanbanBoard({
       const description = (t.description || "").toLowerCase();
       const taskId = String(t.id || "").toLowerCase();
       const status = String(t.status || "").toLowerCase();
-      matchQuery = title.includes(query) || description.includes(query) || taskId.includes(query) || status.includes(query) || query.includes(title);
+      if (query === "pending") {
+        matchQuery = !["completed", "done", "approved"].includes(status);
+      } else if (["in progress", "completed"].includes(query)) {
+        matchQuery = status === query;
+      } else {
+        matchQuery = title.includes(query) || description.includes(query) || taskId.includes(query) || status.includes(query);
+      }
     }
 
     const deadline = t.deadlineAt
@@ -2092,8 +2089,7 @@ export default function KanbanBoard({
             Export Excel
           </button>
           <div className="bg-slate-100 rounded-lg px-3 py-1.5 text-[10px] font-black text-slate-600 font-mono shadow-sm">
-            {filteredTasks.length} recent loaded
-            {overallTaskTotal !== null && ` · ${overallTaskTotal} overall`}
+            {filteredTasks.length} tasks shown
           </div>
         </div>
       </div>

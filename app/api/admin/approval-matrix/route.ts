@@ -7,7 +7,7 @@ import ApprovalMatrix from "@/models/sequelize/ApprovalMatrix";
 const DEFAULT_WORKFLOWS = [
   { formKey: "expense_claims", formName: "Expense Reimbursement Claims", category: "Employee Self Service", defaultRoles: ["Owner", "Accounts"] },
   { formKey: "leave_requests", formName: "Leave Applications", category: "Employee Self Service", defaultRoles: ["Owner", "HR Head", "Department Manager"] },
-  { formKey: "asset_request", formName: "Asset & Equipment Requests", category: "Administration & IT", defaultRoles: ["Owner", "IT MANAGER"] },
+  { formKey: "asset_requests", formName: "Asset & Equipment Requests", category: "Administration & IT", defaultRoles: ["Owner", "IT MANAGER", "Office Administrator"] },
   { formKey: "hiring_requisition", formName: "Hiring Requisitions", category: "Human Resources (HR)", defaultRoles: ["Owner", "HR Head", "Accounts"] },
   { formKey: "disciplinary_warnings", formName: "Disciplinary Warning Approvals", category: "Compliance & Exit", defaultRoles: ["Owner", "HR Head"] },
   { formKey: "inventory_purchase", formName: "Inventory Purchase Requests", category: "Administration & IT", defaultRoles: ["Owner"] },

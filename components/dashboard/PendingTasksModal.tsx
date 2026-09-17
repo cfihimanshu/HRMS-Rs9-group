@@ -52,8 +52,11 @@ export default function PendingTasksModal({
         const data = await res.json();
         if (isMounted && data.success && Array.isArray(data.data)) {
           const userId = sessionUser.id;
+          const now = new Date();
+          const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+          const nextMonthStart = new Date(now.getFullYear(), now.getMonth() + 1, 1);
 
-          // Filter pending or in-progress tasks assigned to or forwarded to this user
+          // Show only this month's unfinished tasks assigned or forwarded to this user.
           const userTasks = data.data.filter((t: any) => {
             const empId = typeof t.employee === "object" ? t.employee?.id : t.employee;
             const fwdId = typeof t.forwardedUser === "object" ? t.forwardedUser?.id : t.forwardedTo;
@@ -62,8 +65,12 @@ export default function PendingTasksModal({
               String(empId) === String(userId) ||
               (fwdId && String(fwdId) === String(userId));
             const isNotCompleted = t.status !== "Completed";
+            const taskDateValue = t.date || t.createdAt;
+            const taskDate = taskDateValue ? new Date(taskDateValue) : null;
+            const isCurrentMonth = taskDate !== null &&
+              taskDate >= monthStart && taskDate < nextMonthStart;
 
-            return isMine && isNotCompleted;
+            return isMine && isNotCompleted && isCurrentMonth;
           });
 
           setPendingTasks(userTasks);
@@ -104,7 +111,7 @@ export default function PendingTasksModal({
                 )}
               </div>
               <p className="text-[11px] text-purple-200 font-medium mt-0.5">
-                SOD declaration recorded. Review your task list for today.
+                SOD declaration recorded. Review your tasks for this month.
               </p>
             </div>
           </div>
@@ -132,7 +139,7 @@ export default function PendingTasksModal({
               <div>
                 <h4 className="text-sm font-black text-slate-800">All Caught Up!</h4>
                 <p className="text-xs text-slate-500 mt-1 max-w-xs mx-auto">
-                  You have no pending tasks right now. Great job keeping your workload clear!
+                  You have no pending tasks for this month.
                 </p>
               </div>
               <button

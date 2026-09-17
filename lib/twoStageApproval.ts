@@ -25,7 +25,7 @@ async function profilesForUsers(userIds: string[]) {
   return EmployeeProfile.findAll({ raw: true }) as Promise<any[]>;
 }
 
-export async function getTwoStageRoute(applicantId: string) {
+export async function getTwoStageRoute(applicantId: string, formKey?: string) {
   const applicant: any = await User.findByPk(applicantId, { raw: true });
   const applicantProfile: any = await EmployeeProfile.findOne({ where: { user: applicantId }, raw: true });
   const users = await activeUsers();
@@ -53,6 +53,21 @@ export async function getTwoStageRoute(applicantId: string) {
       String(u.email || "").trim().toLowerCase() === normalized
     );
     if (direct && String(direct.id) !== String(applicantId)) recommenders = [direct];
+  }
+
+  if (formKey) {
+    const { getApproversForWorkflow } = await import("./approvalRouting");
+    const routing = await getApproversForWorkflow(formKey, applicantId);
+    const nonOwnerRoles = routing.approverRoles.filter(r => !r.toLowerCase().includes("owner"));
+    
+    if (nonOwnerRoles.length > 0 || routing.approverUserIds.length > 0) {
+      recommenders = users.filter((u: any) => {
+        if (String(u.id) === String(applicantId)) return false;
+        const roleMatch = nonOwnerRoles.some(r => r.toLowerCase() === (u.role || "").toLowerCase());
+        const userMatch = routing.approverUserIds.includes(String(u.id));
+        return (roleMatch || userMatch) && !isOwnerUser(u);
+      });
+    }
   }
 
   const startsWithOwner = isOwnerUser(applicant) || isDepartmentManagerUser({
@@ -97,9 +112,10 @@ export async function processTwoStageApproval(params: {
   requestedStatus: string;
   currentStatus: string;
   finalApprovedStatus?: string;
+  formKey?: string;
 }) {
-  const { applicantId, actorId, requestedStatus, currentStatus } = params;
-  const route = await getTwoStageRoute(applicantId);
+  const { applicantId, actorId, requestedStatus, currentStatus, formKey } = params;
+  const route = await getTwoStageRoute(applicantId, formKey);
   const actor: any = await User.findByPk(actorId, { raw: true });
   if (!actor) return { allowed: false as const, error: "Approver account not found." };
 
@@ -124,7 +140,7 @@ export async function processTwoStageApproval(params: {
 
   const isAssignedRecommender = route.recommenders.some((u: any) => String(u.id) === String(actorId));
   if (!isAssignedRecommender || String(actorId) === String(applicantId)) {
-    return { allowed: false as const, error: "Only the applicant's reporting manager or Department Manager can recommend this request." };
+    return { allowed: false as const, error: "You are not authorized to recommend this request." };
   }
 
   return {

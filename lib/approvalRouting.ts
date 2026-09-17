@@ -14,7 +14,7 @@ export interface ApproverResolutionResult {
 const DEFAULT_RULES: Record<string, { roles: string[]; notifyEmail: boolean; notifyApp: boolean }> = {
   expense_claims: { roles: ["Owner", "Accounts"], notifyEmail: true, notifyApp: true },
   leave_requests: { roles: ["Owner", "HR Head", "Department Manager"], notifyEmail: true, notifyApp: true },
-  asset_requests: { roles: ["Owner", "IT MANAGER"], notifyEmail: true, notifyApp: true },
+  asset_requests: { roles: ["Owner", "IT MANAGER", "Office Administrator"], notifyEmail: true, notifyApp: true },
   hiring_requisition: { roles: ["Owner", "HR Head", "Accounts"], notifyEmail: true, notifyApp: true },
   disciplinary_warnings: { roles: ["Owner", "HR Head"], notifyEmail: true, notifyApp: true },
   inventory_purchase: { roles: ["Owner"], notifyEmail: true, notifyApp: true },

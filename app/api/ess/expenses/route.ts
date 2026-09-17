@@ -6,6 +6,7 @@ import sequelize from "@/lib/sequelize";
 import Expense from "@/models/sequelize/Expense";
 import User from "@/models/sequelize/User";
 import Notification from "@/models/sequelize/Notification";
+import StaffAdvance from "@/models/sequelize/StaffAdvance";
 import { sendEmail } from "@/lib/email";
 
 const PORTAL_URL = process.env.NEXTAUTH_URL || "https://hrms.cfi247.com/";
@@ -15,7 +16,10 @@ export async function GET(request: Request) {
   try {
     const session = await getServerSession(authOptions);
     if (!session || !session.user) {
-      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json(
+        { success: false, error: "Unauthorized" },
+        { status: 401 },
+      );
     }
 
     const userId = (session.user as any).id;
@@ -23,24 +27,34 @@ export async function GET(request: Request) {
 
     await sequelize.authenticate();
     await Expense.sync();
+    await StaffAdvance.sync();
 
     const roleLower = String(userRole || "").toLowerCase();
     const isOwner = roleLower.includes("owner");
 
-    const { getAuthorizedApplicantIdsForApprover } = await import("@/lib/approvalRouting");
+    const { getAuthorizedApplicantIdsForApprover } =
+      await import("@/lib/approvalRouting");
     let whereClause: any = {};
-    const { isGeneralApprover, overrideApplicantIds } = await getAuthorizedApplicantIdsForApprover("expense_claims", userId, userRole);
-    const isDepartmentManager = roleLower === "department manager" || roleLower === "department-manager";
+    const { isGeneralApprover, overrideApplicantIds } =
+      await getAuthorizedApplicantIdsForApprover(
+        "expense_claims",
+        userId,
+        userRole,
+      );
+    const isDepartmentManager =
+      roleLower === "department manager" || roleLower === "department-manager";
     if (isOwner) {
       whereClause = {};
     } else if (isDepartmentManager) {
       const { getDepartmentMemberIds } = await import("@/lib/twoStageApproval");
-      whereClause = { employee: { [Op.in]: await getDepartmentMemberIds(userId) } };
+      whereClause = {
+        employee: { [Op.in]: await getDepartmentMemberIds(userId) },
+      };
     } else if (isGeneralApprover) {
       whereClause = {};
     } else if (overrideApplicantIds.length > 0) {
       whereClause = {
-        employee: { [Op.in]: [userId, ...overrideApplicantIds] }
+        employee: { [Op.in]: [userId, ...overrideApplicantIds] },
       };
     } else {
       whereClause = { employee: userId };
@@ -52,15 +66,19 @@ export async function GET(request: Request) {
       limit: 500,
     });
 
-    const empIds = Array.from(new Set(claims.map((c: any) => c.employee).filter(Boolean)));
+    const empIds = Array.from(
+      new Set(claims.map((c: any) => c.employee).filter(Boolean)),
+    );
     let userMap = new Map();
     if (empIds.length > 0) {
-      const users = await User.findAll({
+      const users = (await User.findAll({
         where: { id: empIds },
         attributes: ["id", "name", "email", "role"],
         raw: true,
-      }) as any[];
-      userMap = new Map(users.map((u: any) => [u.id, u.name || u.email || "Employee"]));
+      })) as any[];
+      userMap = new Map(
+        users.map((u: any) => [u.id, u.name || u.email || "Employee"]),
+      );
     }
 
     const hydratedClaims = claims.map((c: any) => {
@@ -69,10 +87,22 @@ export async function GET(request: Request) {
       return plain;
     });
 
-    return NextResponse.json({ success: true, data: hydratedClaims });
+    const advanceWhere =
+      isOwner || isGeneralApprover
+        ? { status: "Active" }
+        : { employeeId: userId, status: "Active" };
+    const advances = await StaffAdvance.findAll({
+      where: advanceWhere,
+      order: [["issuedDate", "DESC"]],
+      raw: true,
+    });
+    return NextResponse.json({ success: true, data: hydratedClaims, advances });
   } catch (error: any) {
     console.error("[/api/ess/expenses GET] Error:", error.message);
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    return NextResponse.json(
+      { success: false, error: error.message },
+      { status: 500 },
+    );
   }
 }
 
@@ -81,11 +111,15 @@ export async function POST(request: Request) {
   try {
     const session = await getServerSession(authOptions);
     if (!session || !session.user) {
-      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json(
+        { success: false, error: "Unauthorized" },
+        { status: 401 },
+      );
     }
 
     const userId = (session.user as any).id;
     const userName = session.user.name || "Employee";
+    const userRole = (session.user as any).role || "Employee";
 
     const body = await request.json();
     const {
@@ -98,21 +132,64 @@ export async function POST(request: Request) {
       paymentMode,
       receiptUrl,
       advanceAmount,
+      advanceId,
     } = body;
 
     if (!amount || !category) {
-      return NextResponse.json({ success: false, error: "Missing required fields (Amount, Category)" }, { status: 400 });
+      return NextResponse.json(
+        { success: false, error: "Missing required fields (Amount, Category)" },
+        { status: 400 },
+      );
     }
 
     await sequelize.authenticate();
     await Expense.sync();
 
-    const finalCategory = category === "Other" && customCategory ? customCategory : category;
+    const finalCategory =
+      category === "Other" && customCategory ? customCategory : category;
     const numAmount = parseFloat(amount) || 0;
     const numAdvance = parseFloat(advanceAmount) || 0;
     const numNet = Math.max(0, numAmount - numAdvance);
 
-    const nextId = "EXP-" + Date.now().toString().slice(-6) + Math.floor(Math.random() * 100);
+    if (advanceId) {
+      const advance = await StaffAdvance.findByPk(String(advanceId));
+      const balance = advance
+        ? Math.max(
+            0,
+            Number(advance.amount || 0) - Number(advance.recoveredAmount || 0),
+          )
+        : 0;
+      if (
+        !advance ||
+        (String(advance.employeeId) !== String(userId) &&
+          !String(userRole).toLowerCase().includes("owner"))
+      ) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: "Selected advance is not available for this user",
+          },
+          { status: 400 },
+        );
+      }
+      if (numAdvance > balance) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: `Advance balance is only ₹${balance.toLocaleString("en-IN")}`,
+          },
+          { status: 400 },
+        );
+      }
+      advance.recoveredAmount =
+        Number(advance.recoveredAmount || 0) + numAdvance;
+      await advance.save();
+    }
+
+    const nextId =
+      "EXP-" +
+      Date.now().toString().slice(-6) +
+      Math.floor(Math.random() * 100);
 
     const { getTwoStageRoute } = await import("@/lib/twoStageApproval");
     const approvalRoute = await getTwoStageRoute(userId);
@@ -129,7 +206,7 @@ export async function POST(request: Request) {
       advanceAmount: numAdvance,
       netPayable: numNet,
       status: approvalRoute.initialStatus,
-      remarks: `Submitted by ${userName}`,
+      remarks: `Submitted by ${userName}${advanceId ? ` · Advance ${advanceId}` : ""}`,
     });
 
     // Notify designated Approver users via In-App Notification and Email (Dynamic Routing Matrix)
@@ -137,15 +214,21 @@ export async function POST(request: Request) {
       const routing = {
         notifyApp: true,
         notifyEmail: true,
-        approverUserIds: approvalRoute.initialApprovers.map((u: any) => String(u.id)),
-        approverEmails: approvalRoute.initialApprovers.map((u: any) => u.email).filter(Boolean),
+        approverUserIds: approvalRoute.initialApprovers.map((u: any) =>
+          String(u.id),
+        ),
+        approverEmails: approvalRoute.initialApprovers
+          .map((u: any) => u.email)
+          .filter(Boolean),
       };
 
       if (routing.notifyApp && routing.approverUserIds.length > 0) {
         await Notification.sync();
         for (const recipientId of routing.approverUserIds) {
           await Notification.create({
-            id: Date.now().toString() + Math.random().toString(36).substring(2, 8),
+            id:
+              Date.now().toString() +
+              Math.random().toString(36).substring(2, 8),
             recipient: recipientId,
             title: "New Expense Reimbursement Claim",
             message: `${userName} submitted a claim of ₹${numNet.toLocaleString("en-IN")} for "${finalCategory}".`,
@@ -173,9 +256,14 @@ export async function POST(request: Request) {
       const recipientEmails = Array.from(recipientEmailsSet);
 
       if (recipientEmails.length > 0) {
-        const dateStr = new Date(dateIncurred || Date.now()).toLocaleDateString("en-IN", {
-          day: "2-digit", month: "short", year: "numeric",
-        });
+        const dateStr = new Date(dateIncurred || Date.now()).toLocaleDateString(
+          "en-IN",
+          {
+            day: "2-digit",
+            month: "short",
+            year: "numeric",
+          },
+        );
 
         const htmlContent = `<!DOCTYPE html>
 <html>
@@ -246,7 +334,10 @@ export async function POST(request: Request) {
     return NextResponse.json({ success: true, data: newExpense });
   } catch (error: any) {
     console.error("[/api/ess/expenses POST] Error:", error.message);
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    return NextResponse.json(
+      { success: false, error: error.message },
+      { status: 500 },
+    );
   }
 }
 
@@ -255,7 +346,10 @@ export async function PUT(request: Request) {
   try {
     const session = await getServerSession(authOptions);
     if (!session || !session.user) {
-      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json(
+        { success: false, error: "Unauthorized" },
+        { status: 401 },
+      );
     }
 
     const userId = (session.user as any).id;
@@ -266,7 +360,10 @@ export async function PUT(request: Request) {
     const { id, status, remarks } = body;
 
     if (!id || !status) {
-      return NextResponse.json({ success: false, error: "Missing ID or status" }, { status: 400 });
+      return NextResponse.json(
+        { success: false, error: "Missing ID or status" },
+        { status: 400 },
+      );
     }
 
     await sequelize.authenticate();
@@ -274,21 +371,32 @@ export async function PUT(request: Request) {
 
     const claim = await Expense.findByPk(id);
     if (!claim) {
-      return NextResponse.json({ success: false, error: "Claim record not found" }, { status: 404 });
+      return NextResponse.json(
+        { success: false, error: "Claim record not found" },
+        { status: 404 },
+      );
     }
 
     const { processTwoStageApproval } = await import("@/lib/twoStageApproval");
     const decision = await processTwoStageApproval({
-      applicantId: String(claim.employee), actorId: String(userId), requestedStatus: status,
+      applicantId: String(claim.employee),
+      actorId: String(userId),
+      requestedStatus: status,
       currentStatus: String(claim.status || "Pending"),
     });
     if (!decision.allowed) {
-      return NextResponse.json({ success: false, error: decision.error }, { status: 403 });
+      return NextResponse.json(
+        { success: false, error: decision.error },
+        { status: 403 },
+      );
     }
 
     claim.status = decision.nextStatus;
     if (remarks !== undefined) claim.remarks = remarks;
-    if (decision.nextStatus === "Approved" || decision.nextStatus === "Reimbursed") {
+    if (
+      decision.nextStatus === "Approved" ||
+      decision.nextStatus === "Reimbursed"
+    ) {
       claim.approvedBy = userName;
     }
 
@@ -297,19 +405,24 @@ export async function PUT(request: Request) {
     // Fetch employee details to send notification & email
     try {
       await Notification.sync();
-      const empUser = await User.findOne({ where: { id: claim.employee }, raw: true }) as any;
+      const empUser = (await User.findOne({
+        where: { id: claim.employee },
+        raw: true,
+      })) as any;
 
       const claimNet = claim.netPayable || claim.amount || 0;
       const effectiveStatus = decision.nextStatus;
-      const isApproved = effectiveStatus === "Approved" || effectiveStatus === "Reimbursed";
+      const isApproved =
+        effectiveStatus === "Approved" || effectiveStatus === "Reimbursed";
 
       await Notification.create({
         id: Date.now().toString() + Math.random().toString(36).substring(2, 8),
         recipient: claim.employee,
         title: `Expense Claim ${effectiveStatus}`,
-        message: effectiveStatus === "Pending Owner Approval"
-          ? `Your expense claim (${claim.id}) was recommended by ${userName} and sent to the Owner for final approval.`
-          : `Your expense claim (${claim.id}) for ₹${Number(claimNet).toLocaleString("en-IN")} was ${effectiveStatus.toLowerCase()} by ${userName}.`,
+        message:
+          effectiveStatus === "Pending Owner Approval"
+            ? `Your expense claim (${claim.id}) was recommended by ${userName} and sent to the Owner for final approval.`
+            : `Your expense claim (${claim.id}) for ₹${Number(claimNet).toLocaleString("en-IN")} was ${effectiveStatus.toLowerCase()} by ${userName}.`,
         read: false,
       });
 
@@ -317,7 +430,9 @@ export async function PUT(request: Request) {
         for (const owner of decision.notifyUsers) {
           if (String(owner.id) === String(claim.employee)) continue;
           await Notification.create({
-            id: Date.now().toString() + Math.random().toString(36).substring(2, 8),
+            id:
+              Date.now().toString() +
+              Math.random().toString(36).substring(2, 8),
             recipient: owner.id,
             title: "Expense Claim Awaiting Final Approval",
             message: `${userName} recommended claim ${claim.id} for ₹${Number(claimNet).toLocaleString("en-IN")}. Your final decision is required.`,
@@ -392,6 +507,9 @@ export async function PUT(request: Request) {
     return NextResponse.json({ success: true, data: claim });
   } catch (error: any) {
     console.error("[/api/ess/expenses PUT] Error:", error.message);
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    return NextResponse.json(
+      { success: false, error: error.message },
+      { status: 500 },
+    );
   }
 }

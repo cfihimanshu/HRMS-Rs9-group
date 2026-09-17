@@ -194,7 +194,7 @@ export async function GET(req: Request) {
     }
 
     const { getAuthorizedApplicantIdsForApprover } = await import("@/lib/approvalRouting");
-    const { isGeneralApprover, overrideApplicantIds } = await getAuthorizedApplicantIdsForApprover("asset_request", userId, rawRole);
+    const { isGeneralApprover, overrideApplicantIds } = await getAuthorizedApplicantIdsForApprover("asset_requests", userId, rawRole);
 
     let whereClause: any = {};
     if (isOwnerOrDirector || isGeneralApprover) {
@@ -264,7 +264,7 @@ export async function GET(req: Request) {
 
     // Resolve employee details to attach to requests
     const users = await User.findAll({
-      attributes: ["id", "name", "email"],
+      attributes: ["id", "name", "email", "mobile"],
       raw: true
     });
     const profiles = await EmployeeProfile.findAll({
@@ -273,7 +273,7 @@ export async function GET(req: Request) {
     });
 
     const userMap = users.reduce((acc: any, u: any) => {
-      acc[u.id] = { name: u.name, email: u.email };
+      acc[u.id] = { name: u.name, email: u.email, mobile: u.mobile };
       return acc;
     }, {});
 
@@ -284,7 +284,7 @@ export async function GET(req: Request) {
 
     const enrichedRequests = requests.map((r: any) => {
       const rJson = { ...r };
-      const emp = userMap[rJson.employee_id] || { name: "Unknown", email: "" };
+      const emp = userMap[rJson.employee_id] || { name: "Unknown", email: "", mobile: "" };
       return {
         ...rJson,
         employee: {
@@ -373,19 +373,20 @@ export async function POST(req: Request) {
     const { action } = body;
 
     await sequelize.authenticate();
-    await AssetRequest.sync();
+    await AssetRequest.sync({ alter: true });
 
     if (action === "create") {
-      const { asset_type, reason, priority } = body;
+      const { asset_type, reason, priority, requested_for } = body;
 
       if (!asset_type || !reason) {
         return NextResponse.json({ success: false, error: "Asset Type and Reason are required." }, { status: 400 });
       }
 
       const { getTwoStageRoute } = await import("@/lib/twoStageApproval");
-      const approvalRoute = await getTwoStageRoute(userId);
+      const approvalRoute = await getTwoStageRoute(userId, "asset_requests");
       const newRequest = await AssetRequest.create({
         employee_id: userId,
+        requested_for: requested_for || null,
         asset_type,
         reason,
         priority: priority || "Medium",
@@ -540,6 +541,7 @@ export async function POST(req: Request) {
         const decision = await processTwoStageApproval({
           applicantId: String(request.employee_id), actorId: String(userId), requestedStatus: status,
           currentStatus: String(request.status || "Pending"),
+          formKey: "asset_requests",
         });
         if (!decision.allowed) {
           return NextResponse.json({ success: false, error: decision.error }, { status: 403 });
@@ -569,7 +571,7 @@ export async function POST(req: Request) {
             id: Date.now().toString() + Math.random().toString(36).substring(2, 8),
             recipient: owner.id,
             title: "Asset Request Awaiting Final Approval",
-            message: `The Department Manager recommended the ${request.asset_type} request. Your final decision is required.`,
+            message: `The Recommender approved the ${request.asset_type} request. Your final decision is required.`,
             read: false,
           });
         }

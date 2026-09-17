@@ -32,7 +32,7 @@ import {
   Headphones,
   WalletCards,
   UserCheck,
-  ChevronRight
+  ChevronRight,
 } from "lucide-react";
 import StatCard from "./StatCard";
 import StaffMonthlySettlement from "./StaffMonthlySettlement";
@@ -45,18 +45,29 @@ interface ESSProps {
   stats?: any;
 }
 
-export function ESSDashboard({ user, triggerToast, setActiveTab, toggleModal, stats }: ESSProps) {
+export function ESSDashboard({
+  user,
+  triggerToast,
+  setActiveTab,
+  toggleModal,
+  stats,
+}: ESSProps) {
   const [isDark, setIsDark] = React.useState(false);
   const [tasks, setTasks] = React.useState<any[]>([]);
   const [loadingTasks, setLoadingTasks] = React.useState(true);
-  const [matrixModal, setMatrixModal] = React.useState<"productivity" | "tasks" | "sod-eod" | "attendance" | null>(null);
+  const [matrixModal, setMatrixModal] = React.useState<
+    "productivity" | "tasks" | "sod-eod" | "attendance" | null
+  >(null);
 
   React.useEffect(() => {
     setIsDark(document.documentElement.classList.contains("dark"));
     const observer = new MutationObserver(() => {
       setIsDark(document.documentElement.classList.contains("dark"));
     });
-    observer.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ["class"],
+    });
     return () => observer.disconnect();
   }, []);
 
@@ -90,25 +101,60 @@ export function ESSDashboard({ user, triggerToast, setActiveTab, toggleModal, st
   const isMatchUser = (target: any) => {
     if (!target) return false;
     if (typeof target === "object") {
-      const vals = [target.id, target.email, target.employeeId, target.name].filter(Boolean);
-      return vals.some(v => userIdentifiers.has(String(v).toLowerCase().trim()));
+      const vals = [
+        target.id,
+        target.email,
+        target.employeeId,
+        target.name,
+      ].filter(Boolean);
+      return vals.some((v) =>
+        userIdentifiers.has(String(v).toLowerCase().trim()),
+      );
     }
     return userIdentifiers.has(String(target).toLowerCase().trim());
   };
 
   const pendingTasks = React.useMemo(() => {
+    const now = new Date();
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const nextMonthStart = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+
     return tasks.filter((t: any) => {
-      const isMyTask = isMatchUser(t.employee) || isMatchUser(t.employeeId) || isMatchUser(t.assignedTo) || isMatchUser(t.forwardedTo);
-      const isPending = t.status !== "Completed" && t.status !== "Done" && t.status !== "Approved";
-      return isMyTask && isPending;
+      const isMyTask =
+        isMatchUser(t.employee) ||
+        isMatchUser(t.employeeId) ||
+        isMatchUser(t.assignedTo) ||
+        isMatchUser(t.forwardedTo);
+      const isPending =
+        t.status !== "Completed" &&
+        t.status !== "Done" &&
+        t.status !== "Approved";
+      const taskDateValue = t.date || t.createdAt;
+      const taskDate = taskDateValue ? new Date(taskDateValue) : null;
+      const isCurrentMonth = taskDate !== null &&
+        taskDate >= monthStart && taskDate < nextMonthStart;
+
+      return isMyTask && isPending && isCurrentMonth;
     });
   }, [tasks, userIdentifiers]);
 
   const assignedOwnerTasks = React.useMemo(() => {
     return tasks.filter((t: any) => {
-      const isMyTask = isMatchUser(t.employee) || isMatchUser(t.employeeId) || isMatchUser(t.assignedTo) || isMatchUser(t.forwardedTo);
-      const assignerRole = (t.assignedByUser?.role || t.assignedByRole || "").toLowerCase();
-      const assignerName = (t.assignedByUser?.name || t.assignedByName || "").toLowerCase();
+      const isMyTask =
+        isMatchUser(t.employee) ||
+        isMatchUser(t.employeeId) ||
+        isMatchUser(t.assignedTo) ||
+        isMatchUser(t.forwardedTo);
+      const assignerRole = (
+        t.assignedByUser?.role ||
+        t.assignedByRole ||
+        ""
+      ).toLowerCase();
+      const assignerName = (
+        t.assignedByUser?.name ||
+        t.assignedByName ||
+        ""
+      ).toLowerCase();
 
       const isAssignedByOwnerOrManager =
         Boolean(t.isAssignedByOwner) ||
@@ -132,14 +178,28 @@ export function ESSDashboard({ user, triggerToast, setActiveTab, toggleModal, st
     earnedLeave: 0,
   };
 
-  const totalWorkingDaysCount = (dynamicStats?.totalWorkingDays && Number(dynamicStats.totalWorkingDays) > 1) ? Number(dynamicStats.totalWorkingDays) : 26;
+  const totalWorkingDaysCount =
+    dynamicStats?.totalWorkingDays && Number(dynamicStats.totalWorkingDays) > 1
+      ? Number(dynamicStats.totalWorkingDays)
+      : 26;
 
   const myAllTasks = React.useMemo(() => {
-    return tasks.filter((t: any) => isMatchUser(t.employee) || isMatchUser(t.employeeId) || isMatchUser(t.assignedTo) || isMatchUser(t.forwardedTo));
+    return tasks.filter(
+      (t: any) =>
+        isMatchUser(t.employee) ||
+        isMatchUser(t.employeeId) ||
+        isMatchUser(t.assignedTo) ||
+        isMatchUser(t.forwardedTo),
+    );
   }, [tasks, userIdentifiers]);
 
   const completedMyTasks = React.useMemo(() => {
-    return myAllTasks.filter((t: any) => t.status === "Completed" || t.status === "Done" || t.status === "Approved");
+    return myAllTasks.filter(
+      (t: any) =>
+        t.status === "Completed" ||
+        t.status === "Done" ||
+        t.status === "Approved",
+    );
   }, [myAllTasks]);
 
   const overdueMyTasks = React.useMemo(() => {
@@ -149,19 +209,52 @@ export function ESSDashboard({ user, triggerToast, setActiveTab, toggleModal, st
 
   const totalTaskCount = myAllTasks.length || 1;
   const completedTaskCount = completedMyTasks.length;
-  const taskCompletionRate = Math.min(100, Math.max(0, Math.round((completedTaskCount / totalTaskCount) * 100)));
+  const taskCompletionRate = Math.min(
+    100,
+    Math.max(0, Math.round((completedTaskCount / totalTaskCount) * 100)),
+  );
 
   const pendingCount = pendingTasks.length;
   const overdueCount = overdueMyTasks.length;
-  const onTimeRate = pendingCount > 0 ? Math.max(0, Math.min(100, Math.round(((pendingCount - overdueCount) / pendingCount) * 100))) : 100;
+  const onTimeRate =
+    pendingCount > 0
+      ? Math.max(
+          0,
+          Math.min(
+            100,
+            Math.round(((pendingCount - overdueCount) / pendingCount) * 100),
+          ),
+        )
+      : 100;
 
-  const attendancePercent = Math.min(100, Math.max(0, Number(dynamicStats.attendancePercent ?? 100)));
+  const attendancePercent = Math.min(
+    100,
+    Math.max(0, Number(dynamicStats.attendancePercent ?? 100)),
+  );
 
-  const sodEodRate = Math.min(100, Math.max(0, stats?.currentUserCompliance?.hasSod
-    ? (stats?.currentUserCompliance?.hasEod ? 100 : 90)
-    : (dynamicStats.presentDays > 0 ? Math.round((dynamicStats.presentDays / totalWorkingDaysCount) * 100) : 85)));
+  const sodEodRate = Math.min(
+    100,
+    Math.max(
+      0,
+      stats?.currentUserCompliance?.hasSod
+        ? stats?.currentUserCompliance?.hasEod
+          ? 100
+          : 90
+        : dynamicStats.presentDays > 0
+          ? Math.round((dynamicStats.presentDays / totalWorkingDaysCount) * 100)
+          : 85,
+    ),
+  );
 
-  const performanceScore = Math.min(100, Math.max(0, Math.round(attendancePercent * 0.4 + taskCompletionRate * 0.4 + sodEodRate * 0.2)));
+  const performanceScore = Math.min(
+    100,
+    Math.max(
+      0,
+      Math.round(
+        attendancePercent * 0.4 + taskCompletionRate * 0.4 + sodEodRate * 0.2,
+      ),
+    ),
+  );
 
   const pendingCountDisplay = pendingTasks.length;
 
@@ -173,18 +266,51 @@ export function ESSDashboard({ user, triggerToast, setActiveTab, toggleModal, st
   };
   const todayKey = dateKey(new Date());
 
-  const todayTasks = React.useMemo(() => myAllTasks.filter((task: any) => dateKey(task.scheduledAt || task.date || task.createdAt) === todayKey), [myAllTasks, todayKey]);
+  const todayTasks = React.useMemo(
+    () =>
+      myAllTasks.filter(
+        (task: any) =>
+          dateKey(task.scheduledAt || task.date || task.createdAt) === todayKey,
+      ),
+    [myAllTasks, todayKey],
+  );
 
-  const upcomingCallbacks = React.useMemo(() => pendingTasks.filter((task: any) => {
-    const target = task.deadlineAt || task.scheduledAt;
-    return target && dateKey(target) >= todayKey;
-  }).sort((a: any, b: any) => new Date(a.deadlineAt || a.scheduledAt).getTime() - new Date(b.deadlineAt || b.scheduledAt).getTime()).slice(0, 5), [pendingTasks, todayKey]);
+  const upcomingCallbacks = React.useMemo(
+    () =>
+      pendingTasks
+        .filter((task: any) => {
+          const target = task.deadlineAt || task.scheduledAt;
+          return target && dateKey(target) >= todayKey;
+        })
+        .sort(
+          (a: any, b: any) =>
+            new Date(a.deadlineAt || a.scheduledAt).getTime() -
+            new Date(b.deadlineAt || b.scheduledAt).getTime(),
+        )
+        .slice(0, 5),
+    [pendingTasks, todayKey],
+  );
 
-  const profileFields = [user?.name, user?.email, user?.phone || user?.phoneNumber, user?.employeeId || user?.id, user?.department, user?.designation || user?.role];
-  const profileCompletion = Math.round((profileFields.filter(Boolean).length / profileFields.length) * 100);
+  const profileFields = [
+    user?.name,
+    user?.email,
+    user?.phone || user?.phoneNumber,
+    user?.employeeId || user?.id,
+    user?.department,
+    user?.designation || user?.role,
+  ];
+  const profileCompletion = Math.round(
+    (profileFields.filter(Boolean).length / profileFields.length) * 100,
+  );
   const formatScheduleTime = (value: any) => {
     const date = new Date(value);
-    return Number.isNaN(date.getTime()) ? "All day" : date.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: true });
+    return Number.isNaN(date.getTime())
+      ? "All day"
+      : date.toLocaleTimeString("en-IN", {
+          hour: "2-digit",
+          minute: "2-digit",
+          hour12: true,
+        });
   };
 
   return (
@@ -192,31 +318,46 @@ export function ESSDashboard({ user, triggerToast, setActiveTab, toggleModal, st
       {/* Top Action Header Bar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
         <div>
-          <span className="text-[9px] uppercase tracking-widest text-indigo-600 font-bold">Employee Self Service</span>
-          <h1 className="text-xl sm:text-2xl font-light text-[#1C1C1A] tracking-wide font-serif" style={{ fontFamily: "'Playfair Display', serif" }}>
+          <span className="text-[9px] uppercase tracking-widest text-indigo-600 font-bold">
+            Employee Self Service
+          </span>
+          <h1
+            className="text-xl sm:text-2xl font-light text-[#1C1C1A] tracking-wide font-serif"
+            style={{ fontFamily: "'Playfair Display', serif" }}
+          >
             Welcome, {user?.name || "Employee"}
           </h1>
         </div>
         <div className="flex flex-wrap items-center gap-2 sm:gap-3 w-full sm:w-auto">
-          {(!stats?.currentUserCompliance?.hasSod) && (
+          {!stats?.currentUserCompliance?.hasSod && (
             <button
-              onClick={() => toggleModal ? toggleModal("sodModal", true) : setActiveTab?.("attendance")}
+              onClick={() =>
+                toggleModal
+                  ? toggleModal("sodModal", true)
+                  : setActiveTab?.("attendance")
+              }
               className="flex-1 sm:flex-initial bg-indigo-600 hover:bg-indigo-700 text-white px-4 sm:px-5 py-2 sm:py-2.5 rounded-lg text-xs font-bold tracking-wider uppercase transition-all shadow-sm flex items-center justify-center gap-2"
             >
               <Clock className="w-4 h-4" /> Declare SOD
             </button>
           )}
-          {(stats?.currentUserCompliance?.hasSod && !stats?.currentUserCompliance?.hasEod) && (
-            <button
-              onClick={() => toggleModal ? toggleModal("eodModal", true) : setActiveTab?.("attendance")}
-              className="flex-1 sm:flex-initial bg-[#714B67] hover:bg-[#5F3F56] text-white px-4 sm:px-5 py-2 sm:py-2.5 rounded-lg text-xs font-bold tracking-wider uppercase transition-all shadow-sm flex items-center justify-center gap-2"
-            >
-              <CalendarCheck className="w-4 h-4" /> Submit EOD
-            </button>
-          )}
-          {(stats?.currentUserCompliance?.hasEod) && (
+          {stats?.currentUserCompliance?.hasSod &&
+            !stats?.currentUserCompliance?.hasEod && (
+              <button
+                onClick={() =>
+                  toggleModal
+                    ? toggleModal("eodModal", true)
+                    : setActiveTab?.("attendance")
+                }
+                className="flex-1 sm:flex-initial bg-[#714B67] hover:bg-[#5F3F56] text-white px-4 sm:px-5 py-2 sm:py-2.5 rounded-lg text-xs font-bold tracking-wider uppercase transition-all shadow-sm flex items-center justify-center gap-2"
+              >
+                <CalendarCheck className="w-4 h-4" /> Submit EOD
+              </button>
+            )}
+          {stats?.currentUserCompliance?.hasEod && (
             <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-3.5 sm:px-4 py-2 rounded-lg border border-emerald-200/80 flex items-center gap-2 shadow-2xs">
-              <CalendarCheck className="w-4 h-4 text-emerald-600" /> Day Completed
+              <CalendarCheck className="w-4 h-4 text-emerald-600" /> Day
+              Completed
             </span>
           )}
         </div>
@@ -230,8 +371,14 @@ export function ESSDashboard({ user, triggerToast, setActiveTab, toggleModal, st
               <span className="truncate">Present Days</span>
               <CalendarCheck className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-indigo-500 shrink-0" />
             </div>
-            <div className="text-lg sm:text-2xl font-light text-[#1C1C1A] font-serif mt-1 font-mono" style={{ fontFamily: "'Playfair Display', serif" }}>
-              {dynamicStats.presentDays ?? 0} <span className="text-[10px] sm:text-xs text-[#8C8880] font-sans">/ {totalWorkingDaysCount}</span>
+            <div
+              className="text-lg sm:text-2xl font-light text-[#1C1C1A] font-serif mt-1 font-mono"
+              style={{ fontFamily: "'Playfair Display', serif" }}
+            >
+              {dynamicStats.presentDays ?? 0}{" "}
+              <span className="text-[10px] sm:text-xs text-[#8C8880] font-sans">
+                / {totalWorkingDaysCount}
+              </span>
             </div>
           </div>
           <div className="mt-2.5 sm:mt-3 pt-2 sm:pt-2.5 border-t border-[#E8E4DF]/70 flex items-center justify-between">
@@ -242,7 +389,9 @@ export function ESSDashboard({ user, triggerToast, setActiveTab, toggleModal, st
         </div>
 
         <div
-          onClick={() => setActiveTab && setActiveTab("leave-request", "Casual Leave")}
+          onClick={() =>
+            setActiveTab && setActiveTab("leave-request", "Casual Leave")
+          }
           className="p-3 sm:p-4 border border-[#E8E4DF] rounded-xl bg-[#FCFBF9] shadow-[0_2px_12px_rgba(0,0,0,0.03)] flex flex-col justify-between cursor-pointer hover:border-rose-400 hover:scale-[1.01] transition-all group"
         >
           <div>
@@ -250,19 +399,26 @@ export function ESSDashboard({ user, triggerToast, setActiveTab, toggleModal, st
               <span className="truncate">Casual Leave (This Month)</span>
               <FileText className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-rose-500 group-hover:scale-110 transition-transform shrink-0" />
             </div>
-            <div className="text-lg sm:text-2xl font-light text-rose-800 font-serif mt-1 font-mono" style={{ fontFamily: "'Playfair Display', serif" }}>
+            <div
+              className="text-lg sm:text-2xl font-light text-rose-800 font-serif mt-1 font-mono"
+              style={{ fontFamily: "'Playfair Display', serif" }}
+            >
               {dynamicStats.casualLeaveTaken ?? 0}
             </div>
           </div>
           <div className="mt-2.5 sm:mt-3 pt-2 sm:pt-2.5 border-t border-[#E8E4DF]/70 flex items-center justify-between">
             <span className="text-[8px] sm:text-[9px] font-semibold text-[#5D5B57] truncate">
-              {(dynamicStats.casualLeave ?? 12) - (dynamicStats.casualLeaveTaken ?? 0)} days left
+              {(dynamicStats.casualLeave ?? 12) -
+                (dynamicStats.casualLeaveTaken ?? 0)}{" "}
+              days left
             </span>
           </div>
         </div>
 
         <div
-          onClick={() => setActiveTab && setActiveTab("leave-request", "Sick Leave")}
+          onClick={() =>
+            setActiveTab && setActiveTab("leave-request", "Sick Leave")
+          }
           className="p-3 sm:p-4 border border-[#E8E4DF] rounded-xl bg-[#FCFBF9] shadow-[0_2px_12px_rgba(0,0,0,0.03)] flex flex-col justify-between cursor-pointer hover:border-emerald-400 hover:scale-[1.01] transition-all group"
         >
           <div>
@@ -270,33 +426,48 @@ export function ESSDashboard({ user, triggerToast, setActiveTab, toggleModal, st
               <span className="truncate">Sick Leave (This Month)</span>
               <FileText className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-500 group-hover:scale-110 transition-transform shrink-0" />
             </div>
-            <div className="text-lg sm:text-2xl font-light text-emerald-800 font-serif mt-1 font-mono" style={{ fontFamily: "'Playfair Display', serif" }}>
+            <div
+              className="text-lg sm:text-2xl font-light text-emerald-800 font-serif mt-1 font-mono"
+              style={{ fontFamily: "'Playfair Display', serif" }}
+            >
               {dynamicStats.sickLeaveTaken ?? 0}
             </div>
           </div>
           <div className="mt-2.5 sm:mt-3 pt-2 sm:pt-2.5 border-t border-[#E8E4DF]/70 flex items-center justify-between">
             <span className="text-[8px] sm:text-[9px] font-semibold text-[#5D5B57] truncate">
-              {(dynamicStats.sickLeave ?? 12) - (dynamicStats.sickLeaveTaken ?? 0)} days left
+              {(dynamicStats.sickLeave ?? 12) -
+                (dynamicStats.sickLeaveTaken ?? 0)}{" "}
+              days left
             </span>
           </div>
         </div>
 
         <div
-          onClick={() => setActiveTab && setActiveTab("tasks", "Pending", user?.name || user?.email)}
+          onClick={() =>
+            setActiveTab &&
+            setActiveTab("tasks", "Pending", user?.name || user?.email)
+          }
           className="p-3 sm:p-4 border border-[#E8E4DF] rounded-xl bg-[#FCFBF9] shadow-[0_2px_12px_rgba(0,0,0,0.03)] flex flex-col justify-between cursor-pointer hover:border-amber-400 hover:scale-[1.01] transition-all group"
         >
           <div>
             <div className="text-[8px] sm:text-[9px] uppercase tracking-wider text-[#8C8880] font-bold flex items-center justify-between gap-1">
-              <span className="truncate">Pending Tasks</span>
+              <span className="truncate">Pending Tasks (This Month)</span>
               <ListTodo className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-500 group-hover:scale-110 transition-transform shrink-0" />
             </div>
-            <div className="text-lg sm:text-2xl font-light text-amber-800 font-serif mt-1 font-mono" style={{ fontFamily: "'Playfair Display', serif" }}>
+            <div
+              className="text-lg sm:text-2xl font-light text-amber-800 font-serif mt-1 font-mono"
+              style={{ fontFamily: "'Playfair Display', serif" }}
+            >
               {pendingCountDisplay}
             </div>
           </div>
           <div className="mt-2.5 sm:mt-3 pt-2 sm:pt-2.5 border-t border-[#E8E4DF]/70 flex items-center justify-between">
-            <span className={`text-[8px] sm:text-[9px] font-semibold truncate ${pendingCountDisplay > 0 ? "text-amber-700 bg-amber-50 px-1.5 sm:px-2 py-0.5 rounded border border-amber-100" : "text-emerald-700 bg-emerald-50 px-1.5 sm:px-2 py-0.5 rounded border border-emerald-100"}`}>
-              {pendingCountDisplay > 0 ? `${pendingCountDisplay} tasks action` : "All done"}
+            <span
+              className={`text-[8px] sm:text-[9px] font-semibold truncate ${pendingCountDisplay > 0 ? "text-amber-700 bg-amber-50 px-1.5 sm:px-2 py-0.5 rounded border border-amber-100" : "text-emerald-700 bg-emerald-50 px-1.5 sm:px-2 py-0.5 rounded border border-emerald-100"}`}
+            >
+              {pendingCountDisplay > 0
+                ? `${pendingCountDisplay} tasks action`
+                : "All done"}
             </span>
           </div>
         </div>
@@ -305,29 +476,272 @@ export function ESSDashboard({ user, triggerToast, setActiveTab, toggleModal, st
       {/* Daily Employee Workspace */}
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-5">
         <section className="xl:col-span-5 bg-white border border-[#E8E4DF] rounded-2xl p-4 shadow-[0_2px_12px_rgba(0,0,0,0.03)]">
-          <div className="flex items-center justify-between border-b border-[#E8E4DF] pb-3 mb-3"><div><div className="flex items-center gap-2"><Calendar className="w-4 h-4 text-indigo-600" /><h2 className="text-sm font-bold text-slate-900">Today&apos;s Schedule</h2></div><p className="text-[10px] text-slate-500 mt-1">Tasks, meetings, and planned work</p></div><button type="button" onClick={() => setActiveTab?.("tasks", "", user?.name || user?.email)} className="text-[10px] font-black text-indigo-600 flex items-center">Open Kanban <ChevronRight className="w-3.5 h-3.5" /></button></div>
-          <div className="space-y-2 max-h-52 overflow-y-auto custom-scrollbar">{todayTasks.slice(0, 6).map((task: any) => <button type="button" key={task.id} onClick={() => setActiveTab?.("tasks", task.id, user?.name || user?.email)} className="w-full text-left flex items-center gap-3 border rounded-xl p-3 hover:border-indigo-300 hover:bg-indigo-50/40 transition-all"><div className="w-14 shrink-0 text-[10px] font-black text-indigo-700">{formatScheduleTime(task.scheduledAt || task.date)}</div><div className="min-w-0 flex-1"><p className="text-xs font-bold text-slate-800 truncate">{task.taskTitle || "Scheduled task"}</p><p className="text-[10px] text-slate-500 mt-0.5 truncate">{task.taskType || "General"}</p></div><span className={`text-[9px] font-black rounded-full px-2 py-1 ${task.status === "Completed" ? "bg-emerald-50 text-emerald-700" : task.status === "In Progress" ? "bg-blue-50 text-blue-700" : "bg-amber-50 text-amber-700"}`}>{task.status || "Pending"}</span></button>)}{!loadingTasks && todayTasks.length === 0 && <div className="py-10 text-center border border-dashed rounded-xl text-xs text-slate-400">No tasks are scheduled for today.</div>}{loadingTasks && <div className="py-10 text-center text-xs text-slate-400">Schedule loading...</div>}</div>
+          <div className="flex items-center justify-between border-b border-[#E8E4DF] pb-3 mb-3">
+            <div>
+              <div className="flex items-center gap-2">
+                <Calendar className="w-4 h-4 text-indigo-600" />
+                <h2 className="text-sm font-bold text-slate-900">
+                  Today&apos;s Schedule
+                </h2>
+              </div>
+              <p className="text-[10px] text-slate-500 mt-1">
+                Tasks, meetings, and planned work
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() =>
+                setActiveTab?.("tasks", "", user?.name || user?.email)
+              }
+              className="text-[10px] font-black text-indigo-600 flex items-center"
+            >
+              Open Kanban <ChevronRight className="w-3.5 h-3.5" />
+            </button>
+          </div>
+          <div className="space-y-2 max-h-52 overflow-y-auto custom-scrollbar">
+            {todayTasks.slice(0, 6).map((task: any) => (
+              <button
+                type="button"
+                key={task.id}
+                onClick={() =>
+                  setActiveTab?.("tasks", task.id, user?.name || user?.email)
+                }
+                className="w-full text-left flex items-center gap-3 border rounded-xl p-3 hover:border-indigo-300 hover:bg-indigo-50/40 transition-all"
+              >
+                <div className="w-14 shrink-0 text-[10px] font-black text-indigo-700">
+                  {formatScheduleTime(task.scheduledAt || task.date)}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs font-bold text-slate-800 truncate">
+                    {task.taskTitle || "Scheduled task"}
+                  </p>
+                  <p className="text-[10px] text-slate-500 mt-0.5 truncate">
+                    {task.taskType || "General"}
+                  </p>
+                </div>
+                <span
+                  className={`text-[9px] font-black rounded-full px-2 py-1 ${task.status === "Completed" ? "bg-emerald-50 text-emerald-700" : task.status === "In Progress" ? "bg-blue-50 text-blue-700" : "bg-amber-50 text-amber-700"}`}
+                >
+                  {task.status || "Pending"}
+                </span>
+              </button>
+            ))}
+            {!loadingTasks && todayTasks.length === 0 && (
+              <div className="py-10 text-center border border-dashed rounded-xl text-xs text-slate-400">
+                No tasks are scheduled for today.
+              </div>
+            )}
+            {loadingTasks && (
+              <div className="py-10 text-center text-xs text-slate-400">
+                Schedule loading...
+              </div>
+            )}
+          </div>
         </section>
 
         <section className="xl:col-span-4 bg-white border border-[#E8E4DF] rounded-2xl p-4 shadow-[0_2px_12px_rgba(0,0,0,0.03)]">
-          <div className="flex items-center justify-between border-b border-[#E8E4DF] pb-3 mb-3"><div className="flex items-center gap-2"><Clock className="w-4 h-4 text-rose-600" /><div><h2 className="text-sm font-bold text-slate-900">Callback & Deadline Watch</h2><p className="text-[10px] text-slate-500">Upcoming follow-ups</p></div></div>{overdueCount > 0 && <span className="bg-rose-100 text-rose-700 rounded-full px-2 py-1 text-[9px] font-black">{overdueCount} overdue</span>}</div>
-          <div className="space-y-2 max-h-52 overflow-y-auto custom-scrollbar">{upcomingCallbacks.map((task: any) => <button type="button" key={task.id} onClick={() => setActiveTab?.("tasks", task.id, user?.name || user?.email)} className="w-full text-left border rounded-xl p-3 hover:bg-rose-50/40"><div className="flex justify-between gap-2"><p className="text-xs font-bold text-slate-800 truncate">{task.taskTitle}</p><span className="text-[9px] font-black text-rose-600 whitespace-nowrap">{new Date(task.deadlineAt || task.scheduledAt).toLocaleDateString("en-IN", { day: "2-digit", month: "short" })}</span></div><p className="text-[10px] text-slate-500 mt-1 truncate">{task.description || "Follow-up pending"}</p></button>)}{!loadingTasks && upcomingCallbacks.length === 0 && <div className="py-10 text-center border border-dashed rounded-xl text-xs text-slate-400">No upcoming callbacks.</div>}{loadingTasks && <div className="py-10 text-center text-xs text-slate-400">Callbacks loading...</div>}</div>
+          <div className="flex items-center justify-between border-b border-[#E8E4DF] pb-3 mb-3">
+            <div className="flex items-center gap-2">
+              <Clock className="w-4 h-4 text-rose-600" />
+              <div>
+                <h2 className="text-sm font-bold text-slate-900">
+                  Callback & Deadline Watch
+                </h2>
+                <p className="text-[10px] text-slate-500">
+                  Upcoming follow-ups
+                </p>
+              </div>
+            </div>
+            {overdueCount > 0 && (
+              <span className="bg-rose-100 text-rose-700 rounded-full px-2 py-1 text-[9px] font-black">
+                {overdueCount} overdue
+              </span>
+            )}
+          </div>
+          <div className="space-y-2 max-h-52 overflow-y-auto custom-scrollbar">
+            {upcomingCallbacks.map((task: any) => (
+              <button
+                type="button"
+                key={task.id}
+                onClick={() =>
+                  setActiveTab?.("tasks", task.id, user?.name || user?.email)
+                }
+                className="w-full text-left border rounded-xl p-3 hover:bg-rose-50/40"
+              >
+                <div className="flex justify-between gap-2">
+                  <p className="text-xs font-bold text-slate-800 truncate">
+                    {task.taskTitle}
+                  </p>
+                  <span className="text-[9px] font-black text-rose-600 whitespace-nowrap">
+                    {new Date(
+                      task.deadlineAt || task.scheduledAt,
+                    ).toLocaleDateString("en-IN", {
+                      day: "2-digit",
+                      month: "short",
+                    })}
+                  </span>
+                </div>
+                <p className="text-[10px] text-slate-500 mt-1 truncate">
+                  {task.description || "Follow-up pending"}
+                </p>
+              </button>
+            ))}
+            {!loadingTasks && upcomingCallbacks.length === 0 && (
+              <div className="py-10 text-center border border-dashed rounded-xl text-xs text-slate-400">
+                No upcoming callbacks.
+              </div>
+            )}
+            {loadingTasks && (
+              <div className="py-10 text-center text-xs text-slate-400">
+                Callbacks loading...
+              </div>
+            )}
+          </div>
         </section>
 
         <section className="xl:col-span-3 bg-white border border-[#E8E4DF] rounded-2xl p-4 shadow-[0_2px_12px_rgba(0,0,0,0.03)]">
-          <div className="flex items-center gap-2 border-b border-[#E8E4DF] pb-3 mb-3"><UserCheck className="w-4 h-4 text-emerald-600" /><div className="flex-1"><div className="flex justify-between"><h2 className="text-sm font-bold text-slate-900">My Workspace</h2><span className="text-[10px] font-black text-emerald-700">{profileCompletion}% profile</span></div><div className="h-1 bg-slate-100 rounded-full mt-2"><div className="h-full bg-emerald-500 rounded-full" style={{ width: `${profileCompletion}%` }} /></div></div></div>
+          <div className="flex items-center gap-2 border-b border-[#E8E4DF] pb-3 mb-3">
+            <UserCheck className="w-4 h-4 text-emerald-600" />
+            <div className="flex-1">
+              <div className="flex justify-between">
+                <h2 className="text-sm font-bold text-slate-900">
+                  My Workspace
+                </h2>
+                <span className="text-[10px] font-black text-emerald-700">
+                  {profileCompletion}% profile
+                </span>
+              </div>
+              <div className="h-1 bg-slate-100 rounded-full mt-2">
+                <div
+                  className="h-full bg-emerald-500 rounded-full"
+                  style={{ width: `${profileCompletion}%` }}
+                />
+              </div>
+            </div>
+          </div>
           <div className="grid grid-cols-2 gap-2">
-            <button type="button" onClick={() => setActiveTab?.("ess-payroll")} className="border rounded-xl p-3 hover:border-emerald-300 hover:bg-emerald-50 text-left"><WalletCards className="w-4 h-4 text-emerald-600 mb-2" /><p className="text-[10px] font-black text-slate-700">Latest Payslip</p></button>
-            <button type="button" onClick={() => setActiveTab?.("document-movement")} className="border rounded-xl p-3 hover:border-purple-300 hover:bg-purple-50 text-left"><FolderOpen className="w-4 h-4 text-purple-600 mb-2" /><p className="text-[10px] font-black text-slate-700">Documents</p></button>
-            <button type="button" onClick={() => triggerToast("The HR Helpdesk request module can be connected here.")} className="border rounded-xl p-3 hover:border-blue-300 hover:bg-blue-50 text-left"><Headphones className="w-4 h-4 text-blue-600 mb-2" /><p className="text-[10px] font-black text-slate-700">HR Helpdesk</p></button>
-            <button type="button" onClick={() => setActiveTab?.("employees")} className="border rounded-xl p-3 hover:border-amber-300 hover:bg-amber-50 text-left"><UserCheck className="w-4 h-4 text-amber-600 mb-2" /><p className="text-[10px] font-black text-slate-700">My Profile</p></button>
+            <button
+              type="button"
+              onClick={() => setActiveTab?.("ess-payroll")}
+              className="border rounded-xl p-3 hover:border-emerald-300 hover:bg-emerald-50 text-left"
+            >
+              <WalletCards className="w-4 h-4 text-emerald-600 mb-2" />
+              <p className="text-[10px] font-black text-slate-700">
+                Latest Payslip
+              </p>
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab?.("document-movement")}
+              className="border rounded-xl p-3 hover:border-purple-300 hover:bg-purple-50 text-left"
+            >
+              <FolderOpen className="w-4 h-4 text-purple-600 mb-2" />
+              <p className="text-[10px] font-black text-slate-700">Documents</p>
+            </button>
+            <button
+              type="button"
+              onClick={() =>
+                triggerToast(
+                  "The HR Helpdesk request module can be connected here.",
+                )
+              }
+              className="border rounded-xl p-3 hover:border-blue-300 hover:bg-blue-50 text-left"
+            >
+              <Headphones className="w-4 h-4 text-blue-600 mb-2" />
+              <p className="text-[10px] font-black text-slate-700">
+                HR Helpdesk
+              </p>
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab?.("employees")}
+              className="border rounded-xl p-3 hover:border-amber-300 hover:bg-amber-50 text-left"
+            >
+              <UserCheck className="w-4 h-4 text-amber-600 mb-2" />
+              <p className="text-[10px] font-black text-slate-700">
+                My Profile
+              </p>
+            </button>
           </div>
         </section>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-        <section className="bg-gradient-to-r from-indigo-50 to-white border border-indigo-100 rounded-2xl p-4"><div className="flex items-center gap-2 mb-3"><Bell className="w-4 h-4 text-indigo-600" /><h2 className="text-sm font-bold text-slate-900">Alerts & Announcements</h2></div><div className="space-y-2"><div className="bg-white/80 border border-indigo-100 rounded-xl p-3 flex items-center justify-between"><div><p className="text-xs font-bold text-slate-800">Daily declaration status</p><p className="text-[10px] text-slate-500 mt-0.5">{stats?.currentUserCompliance?.hasSod ? (stats?.currentUserCompliance?.hasEod ? "Today's SOD and EOD are complete." : "SOD is complete; EOD still needs to be submitted.") : "Declare SOD before starting work."}</p></div><span className={`text-[9px] px-2 py-1 rounded-full font-black ${stats?.currentUserCompliance?.hasEod ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"}`}>{stats?.currentUserCompliance?.hasEod ? "Done" : "Action"}</span></div>{overdueCount > 0 && <div className="bg-white/80 border border-rose-100 rounded-xl p-3"><p className="text-xs font-bold text-rose-700">{overdueCount} task deadline overdue</p><p className="text-[10px] text-slate-500 mt-0.5">Open Kanban and update the overdue work.</p></div>}</div></section>
-        <section className="bg-white border border-[#E8E4DF] rounded-2xl p-4"><div className="flex items-center gap-2 mb-3"><CalendarCheck className="w-4 h-4 text-[#714B67]" /><h2 className="text-sm font-bold text-slate-900">Today&apos;s Attendance Timeline</h2></div><div className="grid grid-cols-3 gap-2"><div className="rounded-xl bg-indigo-50 border border-indigo-100 p-3"><p className="text-[9px] uppercase font-black text-indigo-600">Start of Day</p><p className="text-xs font-bold text-slate-800 mt-2">{stats?.currentUserCompliance?.hasSod ? "Submitted" : "Pending"}</p></div><div className="rounded-xl bg-slate-50 border p-3"><p className="text-[9px] uppercase font-black text-slate-500">Work Status</p><p className="text-xs font-bold text-slate-800 mt-2">{stats?.currentUserCompliance?.hasSod ? "Active Day" : "Not Started"}</p></div><div className="rounded-xl bg-emerald-50 border border-emerald-100 p-3"><p className="text-[9px] uppercase font-black text-emerald-600">End of Day</p><p className="text-xs font-bold text-slate-800 mt-2">{stats?.currentUserCompliance?.hasEod ? "Submitted" : "Pending"}</p></div></div></section>
+        <section className="bg-gradient-to-r from-indigo-50 to-white border border-indigo-100 rounded-2xl p-4">
+          <div className="flex items-center gap-2 mb-3">
+            <Bell className="w-4 h-4 text-indigo-600" />
+            <h2 className="text-sm font-bold text-slate-900">
+              Alerts & Announcements
+            </h2>
+          </div>
+          <div className="space-y-2">
+            <div className="bg-white/80 border border-indigo-100 rounded-xl p-3 flex items-center justify-between">
+              <div>
+                <p className="text-xs font-bold text-slate-800">
+                  Daily declaration status
+                </p>
+                <p className="text-[10px] text-slate-500 mt-0.5">
+                  {stats?.currentUserCompliance?.hasSod
+                    ? stats?.currentUserCompliance?.hasEod
+                      ? "Today's SOD and EOD are complete."
+                      : "SOD is complete; EOD still needs to be submitted."
+                    : "Declare SOD before starting work."}
+                </p>
+              </div>
+              <span
+                className={`text-[9px] px-2 py-1 rounded-full font-black ${stats?.currentUserCompliance?.hasEod ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"}`}
+              >
+                {stats?.currentUserCompliance?.hasEod ? "Done" : "Action"}
+              </span>
+            </div>
+            {overdueCount > 0 && (
+              <div className="bg-white/80 border border-rose-100 rounded-xl p-3">
+                <p className="text-xs font-bold text-rose-700">
+                  {overdueCount} task deadline overdue
+                </p>
+                <p className="text-[10px] text-slate-500 mt-0.5">
+                  Open Kanban and update the overdue work.
+                </p>
+              </div>
+            )}
+          </div>
+        </section>
+        <section className="bg-white border border-[#E8E4DF] rounded-2xl p-4">
+          <div className="flex items-center gap-2 mb-3">
+            <CalendarCheck className="w-4 h-4 text-[#714B67]" />
+            <h2 className="text-sm font-bold text-slate-900">
+              Today&apos;s Attendance Timeline
+            </h2>
+          </div>
+          <div className="grid grid-cols-3 gap-2">
+            <div className="rounded-xl bg-indigo-50 border border-indigo-100 p-3">
+              <p className="text-[9px] uppercase font-black text-indigo-600">
+                Start of Day
+              </p>
+              <p className="text-xs font-bold text-slate-800 mt-2">
+                {stats?.currentUserCompliance?.hasSod ? "Submitted" : "Pending"}
+              </p>
+            </div>
+            <div className="rounded-xl bg-slate-50 border p-3">
+              <p className="text-[9px] uppercase font-black text-slate-500">
+                Work Status
+              </p>
+              <p className="text-xs font-bold text-slate-800 mt-2">
+                {stats?.currentUserCompliance?.hasSod
+                  ? "Active Day"
+                  : "Not Started"}
+              </p>
+            </div>
+            <div className="rounded-xl bg-emerald-50 border border-emerald-100 p-3">
+              <p className="text-[9px] uppercase font-black text-emerald-600">
+                End of Day
+              </p>
+              <p className="text-xs font-bold text-slate-800 mt-2">
+                {stats?.currentUserCompliance?.hasEod ? "Submitted" : "Pending"}
+              </p>
+            </div>
+          </div>
+        </section>
       </div>
 
       {/* Performance Matrix, Quick Actions & Requests Tracker 3-Section Row */}
@@ -337,7 +751,10 @@ export function ESSDashboard({ user, triggerToast, setActiveTab, toggleModal, st
           <div className="border-b border-[#E8E4DF]/70 pb-2.5">
             <div className="flex items-center gap-2">
               <TrendingUp className="w-4 h-4 text-indigo-600" />
-              <h2 className="text-sm font-bold text-slate-900 font-serif" style={{ fontFamily: "'Playfair Display', serif" }}>
+              <h2
+                className="text-sm font-bold text-slate-900 font-serif"
+                style={{ fontFamily: "'Playfair Display', serif" }}
+              >
                 Performance & Productivity Matrix
               </h2>
             </div>
@@ -351,10 +768,15 @@ export function ESSDashboard({ user, triggerToast, setActiveTab, toggleModal, st
                 <Sparkles className="w-3.5 h-3.5 text-indigo-600" />
               </div>
               <div className="my-1.5 flex items-baseline justify-between">
-                <span className="text-xl font-bold text-indigo-950 font-mono">{performanceScore}%</span>
+                <span className="text-xl font-bold text-indigo-950 font-mono">
+                  {performanceScore}%
+                </span>
               </div>
               <div className="w-full bg-indigo-200/60 rounded-full h-1 overflow-hidden">
-                <div className="bg-indigo-600 h-full rounded-full transition-all duration-500" style={{ width: `${performanceScore}%` }}></div>
+                <div
+                  className="bg-indigo-600 h-full rounded-full transition-all duration-500"
+                  style={{ width: `${performanceScore}%` }}
+                ></div>
               </div>
             </div>
 
@@ -368,13 +790,18 @@ export function ESSDashboard({ user, triggerToast, setActiveTab, toggleModal, st
                 <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 group-hover:scale-110 transition-transform" />
               </div>
               <div className="my-1.5 flex items-baseline justify-between">
-                <span className="text-xl font-bold text-emerald-950 font-mono">{taskCompletionRate}%</span>
+                <span className="text-xl font-bold text-emerald-950 font-mono">
+                  {taskCompletionRate}%
+                </span>
                 <span className="text-[9px] font-bold text-emerald-800">
                   {completedTaskCount} / {totalTaskCount} Done
                 </span>
               </div>
               <div className="w-full bg-emerald-200/60 rounded-full h-1 overflow-hidden">
-                <div className="bg-emerald-600 h-full rounded-full transition-all duration-500" style={{ width: `${taskCompletionRate}%` }}></div>
+                <div
+                  className="bg-emerald-600 h-full rounded-full transition-all duration-500"
+                  style={{ width: `${taskCompletionRate}%` }}
+                ></div>
               </div>
             </div>
 
@@ -389,14 +816,25 @@ export function ESSDashboard({ user, triggerToast, setActiveTab, toggleModal, st
               </div>
               <div className="my-1.5 flex items-baseline justify-between">
                 <span className="text-xl font-bold text-blue-950 font-mono">
-                  {stats?.currentUserCompliance?.hasEod ? "2 / 2" : (stats?.currentUserCompliance?.hasSod ? "1 / 2" : "0 / 2")}
+                  {stats?.currentUserCompliance?.hasEod
+                    ? "2 / 2"
+                    : stats?.currentUserCompliance?.hasSod
+                      ? "1 / 2"
+                      : "0 / 2"}
                 </span>
                 <span className="text-[9px] font-bold text-blue-800">
-                  {stats?.currentUserCompliance?.hasSod ? (stats?.currentUserCompliance?.hasEod ? "SOD & EOD Done ✓" : "SOD Done • EOD Due") : "SOD Pending"}
+                  {stats?.currentUserCompliance?.hasSod
+                    ? stats?.currentUserCompliance?.hasEod
+                      ? "SOD & EOD Done ✓"
+                      : "SOD Done • EOD Due"
+                    : "SOD Pending"}
                 </span>
               </div>
               <div className="w-full bg-blue-200/60 rounded-full h-1 overflow-hidden">
-                <div className="bg-blue-600 h-full rounded-full transition-all duration-500" style={{ width: `${sodEodRate}%` }}></div>
+                <div
+                  className="bg-blue-600 h-full rounded-full transition-all duration-500"
+                  style={{ width: `${sodEodRate}%` }}
+                ></div>
               </div>
             </div>
 
@@ -418,7 +856,10 @@ export function ESSDashboard({ user, triggerToast, setActiveTab, toggleModal, st
                 </span>
               </div>
               <div className="w-full bg-amber-200/60 rounded-full h-1 overflow-hidden">
-                <div className="bg-amber-600 h-full rounded-full transition-all duration-500" style={{ width: `${attendancePercent}%` }}></div>
+                <div
+                  className="bg-amber-600 h-full rounded-full transition-all duration-500"
+                  style={{ width: `${attendancePercent}%` }}
+                ></div>
               </div>
             </div>
           </div>
@@ -438,17 +879,24 @@ export function ESSDashboard({ user, triggerToast, setActiveTab, toggleModal, st
                 <div className="p-2 rounded-lg bg-indigo-50 text-indigo-600 group-hover:bg-indigo-600 group-hover:text-white transition-all">
                   <CalendarCheck className="w-4 h-4" />
                 </div>
-                <span className="font-semibold text-[#1C1C1A] text-[10px] group-hover:text-indigo-600 transition-colors">Apply Leave</span>
+                <span className="font-semibold text-[#1C1C1A] text-[10px] group-hover:text-indigo-600 transition-colors">
+                  Apply Leave
+                </span>
               </button>
 
               <button
-                onClick={() => setActiveTab && setActiveTab("tasks", "Pending", user?.name || user?.email)}
+                onClick={() =>
+                  setActiveTab &&
+                  setActiveTab("tasks", "Pending", user?.name || user?.email)
+                }
                 className="p-3 border border-[#E8E4DF] bg-white rounded-xl hover:bg-[#FAF9F5] hover:border-emerald-400 transition-all text-center flex flex-col items-center justify-center gap-1.5 group shadow-2xs cursor-pointer h-full"
               >
                 <div className="p-2 rounded-lg bg-emerald-50 text-emerald-600 group-hover:bg-emerald-600 group-hover:text-white transition-all">
                   <ListTodo className="w-4 h-4" />
                 </div>
-                <span className="font-semibold text-[#1C1C1A] text-[10px] group-hover:text-emerald-600 transition-colors">My Tasks</span>
+                <span className="font-semibold text-[#1C1C1A] text-[10px] group-hover:text-emerald-600 transition-colors">
+                  My Tasks
+                </span>
               </button>
 
               <button
@@ -458,7 +906,9 @@ export function ESSDashboard({ user, triggerToast, setActiveTab, toggleModal, st
                 <div className="p-2 rounded-lg bg-purple-50 text-purple-600 group-hover:bg-purple-600 group-hover:text-white transition-all">
                   <FileText className="w-4 h-4" />
                 </div>
-                <span className="font-semibold text-[#1C1C1A] text-[10px] group-hover:text-purple-600 transition-colors">Work Report</span>
+                <span className="font-semibold text-[#1C1C1A] text-[10px] group-hover:text-purple-600 transition-colors">
+                  Work Report
+                </span>
               </button>
 
               <button
@@ -468,7 +918,9 @@ export function ESSDashboard({ user, triggerToast, setActiveTab, toggleModal, st
                 <div className="p-2 rounded-lg bg-amber-50 text-amber-600 group-hover:bg-amber-600 group-hover:text-white transition-all">
                   <MapPin className="w-4 h-4" />
                 </div>
-                <span className="font-semibold text-[#1C1C1A] text-[10px] group-hover:text-amber-600 transition-colors">Field Visit Logs</span>
+                <span className="font-semibold text-[#1C1C1A] text-[10px] group-hover:text-amber-600 transition-colors">
+                  Field Visit Logs
+                </span>
               </button>
 
               <button
@@ -476,7 +928,9 @@ export function ESSDashboard({ user, triggerToast, setActiveTab, toggleModal, st
                   if (setActiveTab) {
                     setActiveTab("leave-request");
                     setTimeout(() => {
-                      const el = document.getElementById("absent-fines-section");
+                      const el = document.getElementById(
+                        "absent-fines-section",
+                      );
                       if (el) el.scrollIntoView({ behavior: "smooth" });
                     }, 350);
                   }
@@ -486,17 +940,30 @@ export function ESSDashboard({ user, triggerToast, setActiveTab, toggleModal, st
                 <div className="p-2 rounded-lg bg-rose-100 text-rose-700 group-hover:bg-rose-600 group-hover:text-white transition-all">
                   <AlertCircle className="w-4 h-4" />
                 </div>
-                <span className="font-bold text-rose-900 text-[10px] group-hover:text-rose-700 transition-colors">Absent Fines</span>
+                <span className="font-bold text-rose-900 text-[10px] group-hover:text-rose-700 transition-colors">
+                  Absent Fines
+                </span>
               </button>
 
               <button
-                onClick={() => toggleModal ? toggleModal(!stats?.currentUserCompliance?.hasSod ? "sodModal" : "eodModal", true) : setActiveTab?.("attendance")}
+                onClick={() =>
+                  toggleModal
+                    ? toggleModal(
+                        !stats?.currentUserCompliance?.hasSod
+                          ? "sodModal"
+                          : "eodModal",
+                        true,
+                      )
+                    : setActiveTab?.("attendance")
+                }
                 className="p-3 border border-blue-200/80 bg-blue-50/40 rounded-xl hover:bg-blue-100/70 hover:border-blue-400 transition-all text-center flex flex-col items-center justify-center gap-1.5 group shadow-2xs cursor-pointer h-full"
               >
                 <div className="p-2 rounded-lg bg-blue-100 text-blue-700 group-hover:bg-blue-600 group-hover:text-white transition-all">
                   <Clock className="w-4 h-4" />
                 </div>
-                <span className="font-bold text-blue-900 text-[10px] group-hover:text-blue-700 transition-colors">Fill SOD/EOD</span>
+                <span className="font-bold text-blue-900 text-[10px] group-hover:text-blue-700 transition-colors">
+                  Fill SOD/EOD
+                </span>
               </button>
             </div>
           </div>
@@ -512,7 +979,9 @@ export function ESSDashboard({ user, triggerToast, setActiveTab, toggleModal, st
                   Requests Tracker
                 </h2>
               </div>
-              <span className="text-[9px] font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-100">Live</span>
+              <span className="text-[9px] font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-100">
+                Live
+              </span>
             </div>
 
             <div className="space-y-2 flex-1 flex flex-col justify-between">
@@ -526,8 +995,12 @@ export function ESSDashboard({ user, triggerToast, setActiveTab, toggleModal, st
                     <CalendarCheck className="w-3.5 h-3.5" />
                   </div>
                   <div>
-                    <div className="text-[11px] font-bold text-[#1C1C1A]">Leave Application</div>
-                    <div className="text-[9px] text-slate-500">Casual / Sick Leave</div>
+                    <div className="text-[11px] font-bold text-[#1C1C1A]">
+                      Leave Application
+                    </div>
+                    <div className="text-[9px] text-slate-500">
+                      Casual / Sick Leave
+                    </div>
                   </div>
                 </div>
                 <span className="text-[9px] font-extrabold text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
@@ -545,8 +1018,12 @@ export function ESSDashboard({ user, triggerToast, setActiveTab, toggleModal, st
                     <Coins className="w-3.5 h-3.5" />
                   </div>
                   <div>
-                    <div className="text-[11px] font-bold text-[#1C1C1A]">Expense Claims</div>
-                    <div className="text-[9px] text-slate-500">Reimbursement</div>
+                    <div className="text-[11px] font-bold text-[#1C1C1A]">
+                      Expense Claims
+                    </div>
+                    <div className="text-[9px] text-slate-500">
+                      Reimbursement
+                    </div>
                   </div>
                 </div>
                 <span className="text-[9px] font-extrabold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
@@ -564,8 +1041,12 @@ export function ESSDashboard({ user, triggerToast, setActiveTab, toggleModal, st
                     <FileText className="w-3.5 h-3.5" />
                   </div>
                   <div>
-                    <div className="text-[11px] font-bold text-[#1C1C1A]">Asset Request</div>
-                    <div className="text-[9px] text-slate-500">Equipment & Devices</div>
+                    <div className="text-[11px] font-bold text-[#1C1C1A]">
+                      Asset Request
+                    </div>
+                    <div className="text-[9px] text-slate-500">
+                      Equipment & Devices
+                    </div>
                   </div>
                 </div>
                 <span className="text-[9px] font-extrabold text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-200">
@@ -579,13 +1060,16 @@ export function ESSDashboard({ user, triggerToast, setActiveTab, toggleModal, st
 
       {/* Grid Split Section: My Pending Tasks (50%) | Owner / Manager Assigned Tasks (50%) */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-
         {/* Left Half (50%): My Pending Tasks */}
-        <div className={`p-5 rounded-xl border shadow-sm flex flex-col justify-start ${isDark ? "bg-gray-900 border-gray-800" : "bg-white border-slate-200"}`}>
+        <div
+          className={`p-5 rounded-xl border shadow-sm flex flex-col justify-start ${isDark ? "bg-gray-900 border-gray-800" : "bg-white border-slate-200"}`}
+        >
           <div className="flex items-center justify-between gap-3 mb-4 pb-3 border-b border-slate-100 dark:border-gray-800">
             <div className="flex items-center gap-2">
-              <h2 className={`text-base font-bold ${isDark ? "text-white" : "text-slate-800"}`}>
-                Pending Tasks
+              <h2
+                className={`text-base font-bold ${isDark ? "text-white" : "text-slate-800"}`}
+              >
+                Pending Tasks ({new Date().toLocaleDateString("en-IN", { month: "long", year: "numeric" })})
               </h2>
               <span className="bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300 px-2 py-0.5 rounded-full text-[10px] font-black">
                 {pendingTasks.length} Pending
@@ -593,7 +1077,9 @@ export function ESSDashboard({ user, triggerToast, setActiveTab, toggleModal, st
             </div>
             {setActiveTab && (
               <button
-                onClick={() => setActiveTab("tasks", "Pending", user?.name || user?.email)}
+                onClick={() =>
+                  setActiveTab("tasks", "Pending", user?.name || user?.email)
+                }
                 className="text-xs font-bold text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 flex items-center gap-1"
               >
                 Kanban <ExternalLink className="w-3.5 h-3.5" />
@@ -602,33 +1088,52 @@ export function ESSDashboard({ user, triggerToast, setActiveTab, toggleModal, st
           </div>
 
           {loadingTasks ? (
-            <div className="py-12 text-center text-slate-400 text-xs italic">Loading pending tasks...</div>
+            <div className="py-12 text-center text-slate-400 text-xs italic">
+              Loading pending tasks...
+            </div>
           ) : pendingTasks.length === 0 ? (
             <div className="py-12 text-center text-slate-400 text-xs italic bg-slate-50 dark:bg-gray-800/40 rounded-xl border border-dashed border-slate-200 dark:border-gray-700">
-              🎉 You have no pending tasks right now.
+              🎉 You have no pending tasks for this month.
             </div>
           ) : (
             <div className="overflow-x-auto overflow-y-auto max-h-[340px] pr-1 custom-scrollbar">
               <table className="w-full text-left text-xs border-collapse">
                 <thead className="sticky top-0 z-10">
-                  <tr className={`border-b text-slate-800 dark:text-slate-200 font-black uppercase font-mono tracking-wider text-[10px] ${isDark ? "bg-gray-900 border-gray-800" : "bg-white border-slate-200"}`}>
+                  <tr
+                    className={`border-b text-slate-800 dark:text-slate-200 font-black uppercase font-mono tracking-wider text-[10px] ${isDark ? "bg-gray-900 border-gray-800" : "bg-white border-slate-200"}`}
+                  >
                     <th className="py-2 px-2">Task ID</th>
+                    <th className="py-2 px-2">Task Date</th>
                     <th className="py-2 px-2">Task Title & Details</th>
                     <th className="py-2 px-2">Type</th>
                     <th className="py-2 px-2">Status</th>
                     <th className="py-2 px-2 text-right">Action</th>
                   </tr>
                 </thead>
-                <tbody className={`divide-y font-semibold ${isDark ? "divide-gray-800/60 text-gray-300" : "divide-slate-100 text-slate-700"}`}>
+                <tbody
+                  className={`divide-y font-semibold ${isDark ? "divide-gray-800/60 text-gray-300" : "divide-slate-100 text-slate-700"}`}
+                >
                   {pendingTasks.map((task: any) => (
-                    <tr key={task.id} className={`hover:bg-slate-50/80 dark:hover:bg-gray-800/40 transition-colors ${isDark ? "border-b border-gray-800/50" : "border-b border-slate-100"}`}>
+                    <tr
+                      key={task.id}
+                      className={`hover:bg-slate-50/80 dark:hover:bg-gray-800/40 transition-colors ${isDark ? "border-b border-gray-800/50" : "border-b border-slate-100"}`}
+                    >
                       <td className="py-2.5 px-2 whitespace-nowrap">
                         <span className="font-mono font-black text-[10px] text-indigo-700 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/50 px-1.5 py-0.5 rounded border border-indigo-100 dark:border-indigo-900/50">
                           {task.id}
                         </span>
                       </td>
+                      <td className="py-2.5 px-2 whitespace-nowrap">
+                        {new Date(task.date || task.createdAt).toLocaleDateString("en-IN", {
+                          day: "2-digit",
+                          month: "short",
+                          year: "numeric",
+                        })}
+                      </td>
                       <td className="py-2.5 px-2 max-w-[170px]">
-                        <div className="font-bold text-slate-900 dark:text-slate-100 truncate text-xs">{task.taskTitle}</div>
+                        <div className="font-bold text-slate-900 dark:text-slate-100 truncate text-xs">
+                          {task.taskTitle}
+                        </div>
                         {task.description && (
                           <div className="text-[10px] text-slate-500 dark:text-gray-400 truncate mt-0.5 font-normal">
                             {task.description}
@@ -641,19 +1146,28 @@ export function ESSDashboard({ user, triggerToast, setActiveTab, toggleModal, st
                         </span>
                       </td>
                       <td className="py-2.5 px-2 whitespace-nowrap">
-                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-black border ${task.status === "In Progress"
-                          ? "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-800"
-                          : task.status === "Pending Approval"
-                            ? "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-800"
-                            : "bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-900/30 dark:text-rose-300 dark:border-rose-800"
-                          }`}>
+                        <span
+                          className={`px-2 py-0.5 rounded-full text-[10px] font-black border ${
+                            task.status === "In Progress"
+                              ? "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-800"
+                              : task.status === "Pending Approval"
+                                ? "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-800"
+                                : "bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-900/30 dark:text-rose-300 dark:border-rose-800"
+                          }`}
+                        >
                           {task.status || "Pending"}
                         </span>
                       </td>
                       <td className="py-2.5 px-2 text-right whitespace-nowrap">
                         {setActiveTab && (
                           <button
-                            onClick={() => setActiveTab("tasks", task.id, user?.name || user?.email)}
+                            onClick={() =>
+                              setActiveTab(
+                                "tasks",
+                                task.id,
+                                user?.name || user?.email,
+                              )
+                            }
                             className="px-2 py-1 text-[10px] font-bold bg-indigo-50 hover:bg-indigo-100 text-indigo-700 dark:bg-indigo-900/40 dark:hover:bg-indigo-900/60 dark:text-indigo-300 rounded border border-indigo-200 dark:border-indigo-800 transition-all shadow-xs inline-flex items-center gap-0.5 hover:scale-105"
                           >
                             Kanban <ExternalLink className="w-3 h-3" />
@@ -669,10 +1183,14 @@ export function ESSDashboard({ user, triggerToast, setActiveTab, toggleModal, st
         </div>
 
         {/* Right Half (50%): Tasks Assigned By Owner / Manager */}
-        <div className={`p-5 rounded-xl border shadow-sm flex flex-col justify-start ${isDark ? "bg-gray-900 border-gray-800" : "bg-white border-slate-200"}`}>
+        <div
+          className={`p-5 rounded-xl border shadow-sm flex flex-col justify-start ${isDark ? "bg-gray-900 border-gray-800" : "bg-white border-slate-200"}`}
+        >
           <div className="flex items-center justify-between gap-3 mb-4 pb-3 border-b border-slate-100 dark:border-gray-800">
             <div className="flex items-center gap-2">
-              <h2 className={`text-base font-bold ${isDark ? "text-white" : "text-slate-800"}`}>
+              <h2
+                className={`text-base font-bold ${isDark ? "text-white" : "text-slate-800"}`}
+              >
                 Tasks Assigned by Owner / Manager
               </h2>
               <span className="bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-300 px-2 py-0.5 rounded-full text-[10px] font-black">
@@ -681,7 +1199,9 @@ export function ESSDashboard({ user, triggerToast, setActiveTab, toggleModal, st
             </div>
             {setActiveTab && (
               <button
-                onClick={() => setActiveTab("tasks", "Pending", user?.name || user?.email)}
+                onClick={() =>
+                  setActiveTab("tasks", "Pending", user?.name || user?.email)
+                }
                 className="text-xs font-bold text-purple-600 hover:text-purple-700 dark:text-purple-400 flex items-center gap-1"
               >
                 View All <ExternalLink className="w-3.5 h-3.5" />
@@ -690,7 +1210,9 @@ export function ESSDashboard({ user, triggerToast, setActiveTab, toggleModal, st
           </div>
 
           {loadingTasks ? (
-            <div className="py-12 text-center text-slate-400 text-xs italic">Loading assigned tasks...</div>
+            <div className="py-12 text-center text-slate-400 text-xs italic">
+              Loading assigned tasks...
+            </div>
           ) : assignedOwnerTasks.length === 0 ? (
             <div className="py-12 text-center text-slate-400 text-xs italic bg-slate-50 dark:bg-gray-800/40 rounded-xl border border-dashed border-slate-200 dark:border-gray-700">
               📌 No tasks assigned by Owner / Manager right now.
@@ -699,7 +1221,9 @@ export function ESSDashboard({ user, triggerToast, setActiveTab, toggleModal, st
             <div className="overflow-x-auto overflow-y-auto max-h-[340px] pr-1 custom-scrollbar">
               <table className="w-full text-left text-xs border-collapse">
                 <thead className="sticky top-0 z-10">
-                  <tr className={`border-b text-slate-800 dark:text-slate-200 font-black uppercase font-mono tracking-wider text-[10px] ${isDark ? "bg-gray-900 border-gray-800" : "bg-white border-slate-200"}`}>
+                  <tr
+                    className={`border-b text-slate-800 dark:text-slate-200 font-black uppercase font-mono tracking-wider text-[10px] ${isDark ? "bg-gray-900 border-gray-800" : "bg-white border-slate-200"}`}
+                  >
                     <th className="py-2 px-2">Task ID</th>
                     <th className="py-2 px-2">Assigned By</th>
                     <th className="py-2 px-2">Task Title</th>
@@ -707,9 +1231,14 @@ export function ESSDashboard({ user, triggerToast, setActiveTab, toggleModal, st
                     <th className="py-2 px-2 text-right">Action</th>
                   </tr>
                 </thead>
-                <tbody className={`divide-y font-semibold ${isDark ? "divide-gray-800/60 text-gray-300" : "divide-slate-100 text-slate-700"}`}>
+                <tbody
+                  className={`divide-y font-semibold ${isDark ? "divide-gray-800/60 text-gray-300" : "divide-slate-100 text-slate-700"}`}
+                >
                   {assignedOwnerTasks.map((task: any) => (
-                    <tr key={task.id} className={`hover:bg-slate-50/80 dark:hover:bg-gray-800/40 transition-colors ${isDark ? "border-b border-gray-800/50" : "border-b border-slate-100"}`}>
+                    <tr
+                      key={task.id}
+                      className={`hover:bg-slate-50/80 dark:hover:bg-gray-800/40 transition-colors ${isDark ? "border-b border-gray-800/50" : "border-b border-slate-100"}`}
+                    >
                       <td className="py-2.5 px-2 whitespace-nowrap">
                         <span className="font-mono font-black text-[10px] text-purple-700 dark:text-purple-400 bg-purple-50 dark:bg-purple-950/50 px-1.5 py-0.5 rounded border border-purple-100 dark:border-purple-900/50">
                           {task.id}
@@ -717,26 +1246,40 @@ export function ESSDashboard({ user, triggerToast, setActiveTab, toggleModal, st
                       </td>
                       <td className="py-2.5 px-2 whitespace-nowrap">
                         <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-50 text-amber-800 border border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800 flex items-center gap-1 w-max">
-                          👑 {task.assignedByUser?.name || task.assignedByName || "Owner"}
+                          👑{" "}
+                          {task.assignedByUser?.name ||
+                            task.assignedByName ||
+                            "Owner"}
                         </span>
                       </td>
                       <td className="py-2.5 px-2 max-w-[150px]">
-                        <div className="font-bold text-slate-900 dark:text-slate-100 truncate text-xs">{task.taskTitle}</div>
+                        <div className="font-bold text-slate-900 dark:text-slate-100 truncate text-xs">
+                          {task.taskTitle}
+                        </div>
                       </td>
                       <td className="py-2.5 px-2 whitespace-nowrap">
-                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-black border ${task.status === "In Progress"
-                          ? "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-800"
-                          : task.status === "Completed"
-                            ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300 dark:border-emerald-800"
-                            : "bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-900/30 dark:text-rose-300 dark:border-rose-800"
-                          }`}>
+                        <span
+                          className={`px-2 py-0.5 rounded-full text-[10px] font-black border ${
+                            task.status === "In Progress"
+                              ? "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-800"
+                              : task.status === "Completed"
+                                ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300 dark:border-emerald-800"
+                                : "bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-900/30 dark:text-rose-300 dark:border-rose-800"
+                          }`}
+                        >
                           {task.status || "Pending"}
                         </span>
                       </td>
                       <td className="py-2.5 px-2 text-right whitespace-nowrap">
                         {setActiveTab && (
                           <button
-                            onClick={() => setActiveTab("tasks", task.id, user?.name || user?.email)}
+                            onClick={() =>
+                              setActiveTab(
+                                "tasks",
+                                task.id,
+                                user?.name || user?.email,
+                              )
+                            }
                             className="px-2 py-1 text-[10px] font-bold bg-purple-50 hover:bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:hover:bg-purple-900/60 dark:text-purple-300 rounded border border-purple-200 dark:border-purple-800 transition-all shadow-xs inline-flex items-center gap-0.5 hover:scale-105"
                           >
                             View <ExternalLink className="w-3 h-3" />
@@ -750,7 +1293,6 @@ export function ESSDashboard({ user, triggerToast, setActiveTab, toggleModal, st
             </div>
           )}
         </div>
-
       </div>
 
       {/* Performance Matrix Detail Popup Modal */}
@@ -760,14 +1302,23 @@ export function ESSDashboard({ user, triggerToast, setActiveTab, toggleModal, st
             {/* Modal Header */}
             <div className="p-4 border-b border-[#E8E4DF] bg-[#FAF9F5] flex items-center justify-between">
               <div className="flex items-center gap-2">
-                {matrixModal === "productivity" && <Sparkles className="w-5 h-5 text-indigo-600" />}
-                {matrixModal === "tasks" && <CheckCircle2 className="w-5 h-5 text-emerald-600" />}
-                {matrixModal === "sod-eod" && <Clock className="w-5 h-5 text-blue-600" />}
-                {matrixModal === "attendance" && <CalendarCheck className="w-5 h-5 text-amber-600" />}
+                {matrixModal === "productivity" && (
+                  <Sparkles className="w-5 h-5 text-indigo-600" />
+                )}
+                {matrixModal === "tasks" && (
+                  <CheckCircle2 className="w-5 h-5 text-emerald-600" />
+                )}
+                {matrixModal === "sod-eod" && (
+                  <Clock className="w-5 h-5 text-blue-600" />
+                )}
+                {matrixModal === "attendance" && (
+                  <CalendarCheck className="w-5 h-5 text-amber-600" />
+                )}
                 <h3 className="text-sm font-bold text-[#1C1C1A]">
                   {matrixModal === "tasks" && "Task Completion Rate Details"}
                   {matrixModal === "sod-eod" && "SOD & EOD Compliance Tracker"}
-                  {matrixModal === "attendance" && "Attendance & Leaves Summary"}
+                  {matrixModal === "attendance" &&
+                    "Attendance & Leaves Summary"}
                 </h3>
               </div>
               <button
@@ -780,14 +1331,17 @@ export function ESSDashboard({ user, triggerToast, setActiveTab, toggleModal, st
 
             {/* Modal Body */}
             <div className="p-5 space-y-4">
-
               {/* Task Completion Popup */}
               {matrixModal === "tasks" && (
                 <div className="space-y-4">
                   <div className="p-3.5 bg-emerald-50/70 border border-emerald-100 rounded-xl flex items-center justify-between">
                     <div>
-                      <div className="text-[10px] uppercase font-bold text-emerald-800 tracking-wider">Completion Rate</div>
-                      <div className="text-2xl font-black text-emerald-950 font-mono mt-0.5">{taskCompletionRate}%</div>
+                      <div className="text-[10px] uppercase font-bold text-emerald-800 tracking-wider">
+                        Completion Rate
+                      </div>
+                      <div className="text-2xl font-black text-emerald-950 font-mono mt-0.5">
+                        {taskCompletionRate}%
+                      </div>
                     </div>
                     <span className="text-[10px] font-extrabold text-emerald-800 bg-emerald-100 px-3 py-1 rounded-full border border-emerald-200">
                       {completedTaskCount} of {totalTaskCount} Done
@@ -796,30 +1350,51 @@ export function ESSDashboard({ user, triggerToast, setActiveTab, toggleModal, st
 
                   <div className="grid grid-cols-2 gap-2 text-xs">
                     <div className="p-3 bg-slate-50 border border-slate-100 rounded-xl text-center">
-                      <div className="text-[9px] uppercase font-bold text-slate-500">Total Tasks</div>
-                      <div className="text-lg font-bold text-slate-900 font-mono mt-1">{totalTaskCount}</div>
+                      <div className="text-[9px] uppercase font-bold text-slate-500">
+                        Total Tasks
+                      </div>
+                      <div className="text-lg font-bold text-slate-900 font-mono mt-1">
+                        {totalTaskCount}
+                      </div>
                     </div>
 
                     <div className="p-3 bg-emerald-50 border border-emerald-100 rounded-xl text-center">
-                      <div className="text-[9px] uppercase font-bold text-emerald-700">Completed</div>
-                      <div className="text-lg font-bold text-emerald-900 font-mono mt-1">{completedTaskCount}</div>
+                      <div className="text-[9px] uppercase font-bold text-emerald-700">
+                        Completed
+                      </div>
+                      <div className="text-lg font-bold text-emerald-900 font-mono mt-1">
+                        {completedTaskCount}
+                      </div>
                     </div>
 
                     <div className="p-3 bg-amber-50 border border-amber-100 rounded-xl text-center">
-                      <div className="text-[9px] uppercase font-bold text-amber-700">Pending</div>
-                      <div className="text-lg font-bold text-amber-900 font-mono mt-1">{pendingCount}</div>
+                      <div className="text-[9px] uppercase font-bold text-amber-700">
+                        Pending
+                      </div>
+                      <div className="text-lg font-bold text-amber-900 font-mono mt-1">
+                        {pendingCount}
+                      </div>
                     </div>
 
                     <div className="p-3 bg-rose-50 border border-rose-100 rounded-xl text-center">
-                      <div className="text-[9px] uppercase font-bold text-rose-700">Overdue</div>
-                      <div className="text-lg font-bold text-rose-900 font-mono mt-1">{overdueCount}</div>
+                      <div className="text-[9px] uppercase font-bold text-rose-700">
+                        Overdue
+                      </div>
+                      <div className="text-lg font-bold text-rose-900 font-mono mt-1">
+                        {overdueCount}
+                      </div>
                     </div>
                   </div>
 
                   <button
                     onClick={() => {
                       setMatrixModal(null);
-                      if (setActiveTab) setActiveTab("tasks", "Pending", user?.name || user?.email);
+                      if (setActiveTab)
+                        setActiveTab(
+                          "tasks",
+                          "Pending",
+                          user?.name || user?.email,
+                        );
                     }}
                     className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-xs transition-all shadow-xs cursor-pointer text-center"
                   >
@@ -833,9 +1408,15 @@ export function ESSDashboard({ user, triggerToast, setActiveTab, toggleModal, st
                 <div className="space-y-4">
                   <div className="p-3.5 bg-blue-50/70 border border-blue-100 rounded-xl flex items-center justify-between">
                     <div>
-                      <div className="text-[10px] uppercase font-bold text-blue-800 tracking-wider">Today's Declaration</div>
+                      <div className="text-[10px] uppercase font-bold text-blue-800 tracking-wider">
+                        Today's Declaration
+                      </div>
                       <div className="text-xl font-bold text-blue-950 font-mono mt-0.5">
-                        {stats?.currentUserCompliance?.hasEod ? "2 / 2 (SOD & EOD Done ✓)" : (stats?.currentUserCompliance?.hasSod ? "1 / 2 (SOD Done, EOD Pending)" : "0 / 2 (SOD Pending)")}
+                        {stats?.currentUserCompliance?.hasEod
+                          ? "2 / 2 (SOD & EOD Done ✓)"
+                          : stats?.currentUserCompliance?.hasSod
+                            ? "1 / 2 (SOD Done, EOD Pending)"
+                            : "0 / 2 (SOD Pending)"}
                       </div>
                     </div>
                   </div>
@@ -843,27 +1424,43 @@ export function ESSDashboard({ user, triggerToast, setActiveTab, toggleModal, st
                   <div className="space-y-2.5 text-xs">
                     <div className="p-3 bg-slate-50 border border-slate-100 rounded-xl flex items-center justify-between">
                       <div>
-                        <div className="font-bold text-slate-800">Start of Day (SOD)</div>
-                        <div className="text-[10px] text-slate-500">Plan tasks for the workday</div>
+                        <div className="font-bold text-slate-800">
+                          Start of Day (SOD)
+                        </div>
+                        <div className="text-[10px] text-slate-500">
+                          Plan tasks for the workday
+                        </div>
                       </div>
-                      <span className={`text-[10px] font-extrabold px-2.5 py-1 rounded-full border ${stats?.currentUserCompliance?.hasSod ? "bg-emerald-100 text-emerald-800 border-emerald-200" : "bg-amber-100 text-amber-800 border-amber-200"}`}>
-                        {stats?.currentUserCompliance?.hasSod ? "Filed ✓" : "Pending"}
+                      <span
+                        className={`text-[10px] font-extrabold px-2.5 py-1 rounded-full border ${stats?.currentUserCompliance?.hasSod ? "bg-emerald-100 text-emerald-800 border-emerald-200" : "bg-amber-100 text-amber-800 border-amber-200"}`}
+                      >
+                        {stats?.currentUserCompliance?.hasSod
+                          ? "Filed ✓"
+                          : "Pending"}
                       </span>
                     </div>
 
                     <div className="p-3 bg-slate-50 border border-slate-100 rounded-xl flex items-center justify-between">
                       <div>
-                        <div className="font-bold text-slate-800">End of Day (EOD)</div>
-                        <div className="text-[10px] text-slate-500">Log completed work summary</div>
+                        <div className="font-bold text-slate-800">
+                          End of Day (EOD)
+                        </div>
+                        <div className="text-[10px] text-slate-500">
+                          Log completed work summary
+                        </div>
                       </div>
-                      <span className={`text-[10px] font-extrabold px-2.5 py-1 rounded-full border ${stats?.currentUserCompliance?.hasEod ? "bg-emerald-100 text-emerald-800 border-emerald-200" : "bg-blue-100 text-blue-800 border-blue-200"}`}>
-                        {stats?.currentUserCompliance?.hasEod ? "Submitted ✓" : "Due at Logout"}
+                      <span
+                        className={`text-[10px] font-extrabold px-2.5 py-1 rounded-full border ${stats?.currentUserCompliance?.hasEod ? "bg-emerald-100 text-emerald-800 border-emerald-200" : "bg-blue-100 text-blue-800 border-blue-200"}`}
+                      >
+                        {stats?.currentUserCompliance?.hasEod
+                          ? "Submitted ✓"
+                          : "Due at Logout"}
                       </span>
                     </div>
                   </div>
 
                   <div className="flex gap-2">
-                    {(!stats?.currentUserCompliance?.hasSod) && (
+                    {!stats?.currentUserCompliance?.hasSod && (
                       <button
                         onClick={() => {
                           setMatrixModal(null);
@@ -874,17 +1471,18 @@ export function ESSDashboard({ user, triggerToast, setActiveTab, toggleModal, st
                         Declare SOD Now
                       </button>
                     )}
-                    {(stats?.currentUserCompliance?.hasSod && !stats?.currentUserCompliance?.hasEod) && (
-                      <button
-                        onClick={() => {
-                          setMatrixModal(null);
-                          if (toggleModal) toggleModal("eodModal", true);
-                        }}
-                        className="flex-1 py-2.5 bg-[#714B67] hover:bg-[#5F3F56] text-white rounded-xl font-bold text-xs transition-all shadow-xs cursor-pointer text-center"
-                      >
-                        Submit EOD Now
-                      </button>
-                    )}
+                    {stats?.currentUserCompliance?.hasSod &&
+                      !stats?.currentUserCompliance?.hasEod && (
+                        <button
+                          onClick={() => {
+                            setMatrixModal(null);
+                            if (toggleModal) toggleModal("eodModal", true);
+                          }}
+                          className="flex-1 py-2.5 bg-[#714B67] hover:bg-[#5F3F56] text-white rounded-xl font-bold text-xs transition-all shadow-xs cursor-pointer text-center"
+                        >
+                          Submit EOD Now
+                        </button>
+                      )}
                   </div>
                 </div>
               )}
@@ -894,9 +1492,12 @@ export function ESSDashboard({ user, triggerToast, setActiveTab, toggleModal, st
                 <div className="space-y-4">
                   <div className="p-3.5 bg-amber-50/70 border border-amber-100 rounded-xl flex items-center justify-between">
                     <div>
-                      <div className="text-[10px] uppercase font-bold text-amber-800 tracking-wider">Attendance Count</div>
+                      <div className="text-[10px] uppercase font-bold text-amber-800 tracking-wider">
+                        Attendance Count
+                      </div>
                       <div className="text-2xl font-black text-amber-950 font-mono mt-0.5">
-                        {dynamicStats.presentDays ?? 0} / {totalWorkingDaysCount} Days
+                        {dynamicStats.presentDays ?? 0} /{" "}
+                        {totalWorkingDaysCount} Days
                       </div>
                     </div>
                     <span className="text-[10px] font-extrabold text-amber-800 bg-amber-100 px-3 py-1 rounded-full border border-amber-200">
@@ -906,14 +1507,18 @@ export function ESSDashboard({ user, triggerToast, setActiveTab, toggleModal, st
 
                   <div className="grid grid-cols-2 gap-2 text-xs">
                     <div className="p-3 bg-rose-50 border border-rose-100 rounded-xl text-center">
-                      <div className="text-[9px] uppercase font-bold text-rose-700">Casual Leave (This Month)</div>
+                      <div className="text-[9px] uppercase font-bold text-rose-700">
+                        Casual Leave (This Month)
+                      </div>
                       <div className="text-lg font-bold text-rose-900 font-mono mt-1">
                         {dynamicStats.casualLeaveTaken || 0} Days Taken
                       </div>
                     </div>
 
                     <div className="p-3 bg-emerald-50 border border-emerald-100 rounded-xl text-center">
-                      <div className="text-[9px] uppercase font-bold text-emerald-700">Sick Leave (This Month)</div>
+                      <div className="text-[9px] uppercase font-bold text-emerald-700">
+                        Sick Leave (This Month)
+                      </div>
                       <div className="text-lg font-bold text-emerald-900 font-mono mt-1">
                         {dynamicStats.sickLeaveTaken || 0} Days Taken
                       </div>
@@ -939,7 +1544,13 @@ export function ESSDashboard({ user, triggerToast, setActiveTab, toggleModal, st
   );
 }
 
-export function ESSLeaves({ user, triggerToast, stats, initialSearchFilter, setActiveTab }: ESSProps & { initialSearchFilter?: string }) {
+export function ESSLeaves({
+  user,
+  triggerToast,
+  stats,
+  initialSearchFilter,
+  setActiveTab,
+}: ESSProps & { initialSearchFilter?: string }) {
   const [leaves, setLeaves] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [allEmployees, setAllEmployees] = useState<any[]>([]);
@@ -948,7 +1559,9 @@ export function ESSLeaves({ user, triggerToast, stats, initialSearchFilter, setA
   const [searchTerm, setSearchTerm] = useState(initialSearchFilter || "");
   const [filterUser, setFilterUser] = useState("");
   const [filterStatus, setFilterStatus] = useState("All");
-  const [datePreset, setDatePreset] = useState<"current_month" | "last_month" | "all" | "custom">("all");
+  const [datePreset, setDatePreset] = useState<
+    "current_month" | "last_month" | "all" | "custom"
+  >("all");
   const [filterStartDate, setFilterStartDate] = useState("");
   const [filterEndDate, setFilterEndDate] = useState("");
 
@@ -959,18 +1572,31 @@ export function ESSLeaves({ user, triggerToast, stats, initialSearchFilter, setA
   }, [initialSearchFilter]);
 
   const userRole = (user?.role || "").toLowerCase();
-  const isOwnerOrHR = ["owner", "director", "hr head", "hr executive", "admin", "super admin", "manager"].some(r => userRole.includes(r));
+  const isOwnerOrHR = [
+    "owner",
+    "director",
+    "hr head",
+    "hr executive",
+    "admin",
+    "super admin",
+    "manager",
+  ].some((r) => userRole.includes(r));
 
   useEffect(() => {
     if (isOwnerOrHR) {
       fetch("/api/employees?all=true")
-        .then(res => res.json())
-        .then(data => {
+        .then((res) => res.json())
+        .then((data) => {
           if (data.success && Array.isArray(data.data)) {
             setAllEmployees(data.data);
           }
         })
-        .catch(err => console.error("Failed to load employees list for leave filters:", err));
+        .catch((err) =>
+          console.error(
+            "Failed to load employees list for leave filters:",
+            err,
+          ),
+        );
     }
   }, [isOwnerOrHR]);
 
@@ -1005,7 +1631,8 @@ export function ESSLeaves({ user, triggerToast, stats, initialSearchFilter, setA
     if (!dStr) return null;
     if (dStr instanceof Date) return isNaN(dStr.getTime()) ? null : dStr;
     const str = String(dStr).trim();
-    if (!str || str === "Invalid date" || str === "null" || str === "undefined") return null;
+    if (!str || str === "Invalid date" || str === "null" || str === "undefined")
+      return null;
 
     if (/^\d{4}-\d{2}-\d{2}/.test(str)) {
       const parts = str.slice(0, 10).split("-");
@@ -1039,7 +1666,10 @@ export function ESSLeaves({ user, triggerToast, stats, initialSearchFilter, setA
   const [showFilters, setShowFilters] = useState(false);
 
   const uniqueUsersFromLeaves = useMemo(() => {
-    const map = new Map<string, { id: string; name: string; email?: string; status?: string }>();
+    const map = new Map<
+      string,
+      { id: string; name: string; email?: string; status?: string }
+    >();
     if (allEmployees.length > 0) {
       allEmployees.forEach((emp: any) => {
         const id = String(emp.id || emp._id || "");
@@ -1051,19 +1681,39 @@ export function ESSLeaves({ user, triggerToast, stats, initialSearchFilter, setA
     leaves.forEach((l: any) => {
       const emp = l.employee || l.user;
       if (emp) {
-        const id = typeof emp === "object" ? String(emp.id || emp._id || emp.user || "") : String(emp);
-        const name = typeof emp === "object" ? (emp.name || emp.email || `User #${id}`) : `User #${id}`;
+        const id =
+          typeof emp === "object"
+            ? String(emp.id || emp._id || emp.user || "")
+            : String(emp);
+        const name =
+          typeof emp === "object"
+            ? emp.name || emp.email || `User #${id}`
+            : `User #${id}`;
         const email = typeof emp === "object" ? emp.email : "";
-        const status = typeof emp === "object" ? ((emp.status || "active").toLowerCase()) : "active";
+        const status =
+          typeof emp === "object"
+            ? (emp.status || "active").toLowerCase()
+            : "active";
         if (id && !map.has(id)) {
           map.set(id, { id, name, email, status });
         }
       }
     });
 
-    const allList = Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name));
-    const activeList = allList.filter(u => !["inactive", "archived", "terminated", "disabled", "exited"].includes(u.status || "active"));
-    const inactiveList = allList.filter(u => ["inactive", "archived", "terminated", "disabled", "exited"].includes(u.status || "active"));
+    const allList = Array.from(map.values()).sort((a, b) =>
+      a.name.localeCompare(b.name),
+    );
+    const activeList = allList.filter(
+      (u) =>
+        !["inactive", "archived", "terminated", "disabled", "exited"].includes(
+          u.status || "active",
+        ),
+    );
+    const inactiveList = allList.filter((u) =>
+      ["inactive", "archived", "terminated", "disabled", "exited"].includes(
+        u.status || "active",
+      ),
+    );
 
     return { activeList, inactiveList, allList };
   }, [leaves, allEmployees]);
@@ -1074,19 +1724,29 @@ export function ESSLeaves({ user, triggerToast, stats, initialSearchFilter, setA
       if (searchTerm.trim()) {
         const term = searchTerm.toLowerCase().trim();
         const empName = (l.employee?.name || l.user?.name || "").toLowerCase();
-        const empEmail = (l.employee?.email || l.user?.email || "").toLowerCase();
+        const empEmail = (
+          l.employee?.email ||
+          l.user?.email ||
+          ""
+        ).toLowerCase();
         const leaveType = (l.type || "").toLowerCase();
         const reason = (l.reason || "").toLowerCase();
-        if (!empName.includes(term) && !empEmail.includes(term) && !leaveType.includes(term) && !reason.includes(term)) {
+        if (
+          !empName.includes(term) &&
+          !empEmail.includes(term) &&
+          !leaveType.includes(term) &&
+          !reason.includes(term)
+        ) {
           return false;
         }
       }
 
       // 2. User Filter
       if (filterUser !== "") {
-        const empId = typeof l.employee === "object" && l.employee !== null
-          ? String(l.employee.id || l.employee._id || l.employee.user || "")
-          : String(l.employee || l.user || l.employeeId || "");
+        const empId =
+          typeof l.employee === "object" && l.employee !== null
+            ? String(l.employee.id || l.employee._id || l.employee.user || "")
+            : String(l.employee || l.user || l.employeeId || "");
         if (empId !== String(filterUser)) {
           return false;
         }
@@ -1095,7 +1755,15 @@ export function ESSLeaves({ user, triggerToast, stats, initialSearchFilter, setA
       // 3. Status Filter
       if (filterStatus !== "All") {
         if (filterStatus === "Pending") {
-          if (!["Pending", "Pending Manager Approval", "Pending Recommender Approval", "Pending HR Approval", "Pending Owner Approval"].includes(l.status)) {
+          if (
+            ![
+              "Pending",
+              "Pending Manager Approval",
+              "Pending Recommender Approval",
+              "Pending HR Approval",
+              "Pending Owner Approval",
+            ].includes(l.status)
+          ) {
             return false;
           }
         } else if (l.status !== filterStatus) {
@@ -1108,26 +1776,77 @@ export function ESSLeaves({ user, triggerToast, stats, initialSearchFilter, setA
       const eDate = parseLeaveDate(l.endDate) || sDate;
 
       if (sDate && eDate) {
-        const leaveStart = new Date(sDate.getFullYear(), sDate.getMonth(), sDate.getDate(), 0, 0, 0, 0);
-        const leaveEnd = new Date(eDate.getFullYear(), eDate.getMonth(), eDate.getDate(), 23, 59, 59, 999);
+        const leaveStart = new Date(
+          sDate.getFullYear(),
+          sDate.getMonth(),
+          sDate.getDate(),
+          0,
+          0,
+          0,
+          0,
+        );
+        const leaveEnd = new Date(
+          eDate.getFullYear(),
+          eDate.getMonth(),
+          eDate.getDate(),
+          23,
+          59,
+          59,
+          999,
+        );
         const now = new Date();
 
         if (datePreset === "current_month") {
-          const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
-          const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+          const startOfMonth = new Date(
+            now.getFullYear(),
+            now.getMonth(),
+            1,
+            0,
+            0,
+            0,
+            0,
+          );
+          const endOfMonth = new Date(
+            now.getFullYear(),
+            now.getMonth() + 1,
+            0,
+            23,
+            59,
+            59,
+            999,
+          );
           if (leaveEnd < startOfMonth || leaveStart > endOfMonth) return false;
         } else if (datePreset === "last_month") {
-          const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1, 0, 0, 0, 0);
-          const endOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999);
-          if (leaveEnd < startOfLastMonth || leaveStart > endOfLastMonth) return false;
+          const startOfLastMonth = new Date(
+            now.getFullYear(),
+            now.getMonth() - 1,
+            1,
+            0,
+            0,
+            0,
+            0,
+          );
+          const endOfLastMonth = new Date(
+            now.getFullYear(),
+            now.getMonth(),
+            0,
+            23,
+            59,
+            59,
+            999,
+          );
+          if (leaveEnd < startOfLastMonth || leaveStart > endOfLastMonth)
+            return false;
         } else if (datePreset === "custom") {
           if (filterStartDate) {
-            const customStart = parseLeaveDate(filterStartDate) || new Date(filterStartDate);
+            const customStart =
+              parseLeaveDate(filterStartDate) || new Date(filterStartDate);
             customStart.setHours(0, 0, 0, 0);
             if (leaveEnd < customStart) return false;
           }
           if (filterEndDate) {
-            const customEnd = parseLeaveDate(filterEndDate) || new Date(filterEndDate);
+            const customEnd =
+              parseLeaveDate(filterEndDate) || new Date(filterEndDate);
             customEnd.setHours(23, 59, 59, 999);
             if (leaveStart > customEnd) return false;
           }
@@ -1136,22 +1855,44 @@ export function ESSLeaves({ user, triggerToast, stats, initialSearchFilter, setA
 
       return true;
     });
-  }, [leaves, filterUser, filterStatus, datePreset, filterStartDate, filterEndDate, searchTerm]);
+  }, [
+    leaves,
+    filterUser,
+    filterStatus,
+    datePreset,
+    filterStartDate,
+    filterEndDate,
+    searchTerm,
+  ]);
 
   const hasMultipleUsersInLeaves = useMemo(() => {
     if (uniqueUsersFromLeaves.allList.length > 1) return true;
-    const userIds = new Set(leaves.map(l => typeof l.employee === "object" ? l.employee?.id : (l.employee || l.user)));
+    const userIds = new Set(
+      leaves.map((l) =>
+        typeof l.employee === "object" ? l.employee?.id : l.employee || l.user,
+      ),
+    );
     return userIds.size > 1 || isOwnerOrHR;
   }, [leaves, uniqueUsersFromLeaves, isOwnerOrHR]);
 
-  const isFilterActive = searchTerm || filterUser || filterStatus !== "All" || datePreset !== "all" || filterStartDate || filterEndDate;
+  const isFilterActive =
+    searchTerm ||
+    filterUser ||
+    filterStatus !== "All" ||
+    datePreset !== "all" ||
+    filterStartDate ||
+    filterEndDate;
 
   return (
     <div className="space-y-6 animate-fadeIn text-slate-800">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-black text-slate-800">Leave Management</h1>
-          <p className="text-xs text-slate-500 mt-1">Review leave history, leave balances, and approval status.</p>
+          <h1 className="text-xl font-black text-slate-800">
+            Leave Management
+          </h1>
+          <p className="text-xs text-slate-500 mt-1">
+            Review leave history, leave balances, and approval status.
+          </p>
         </div>
         <button
           className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2.5 rounded-xl text-xs font-bold shadow-md flex items-center gap-2 cursor-pointer transition-all active:scale-[0.98]"
@@ -1206,10 +1947,11 @@ export function ESSLeaves({ user, triggerToast, stats, initialSearchFilter, setA
               <button
                 type="button"
                 onClick={() => setShowFilters(!showFilters)}
-                className={`flex items-center gap-2 border px-4 py-2 text-xs font-bold transition-all rounded-xl shadow-xs focus:outline-none ${showFilters
-                  ? "bg-[#C9A84C] border-[#C9A84C] text-[#FCFBF9]"
-                  : "bg-[#FCFBF9] hover:bg-[#F5F2EC] border-[#E8E4DF] text-[#1C1C1A]"
-                  }`}
+                className={`flex items-center gap-2 border px-4 py-2 text-xs font-bold transition-all rounded-xl shadow-xs focus:outline-none ${
+                  showFilters
+                    ? "bg-[#C9A84C] border-[#C9A84C] text-[#FCFBF9]"
+                    : "bg-[#FCFBF9] hover:bg-[#F5F2EC] border-[#E8E4DF] text-[#1C1C1A]"
+                }`}
               >
                 <Filter className="w-3.5 h-3.5" />
                 <span>Filter Leaves</span>
@@ -1222,7 +1964,9 @@ export function ESSLeaves({ user, triggerToast, stats, initialSearchFilter, setA
               {showFilters && (
                 <div className="absolute right-0 mt-3 z-50 bg-[#FCFBF9] border border-[#E8E4DF] shadow-[0_25px_60px_-15px_rgba(0,0,0,0.15)] rounded-2xl p-5 w-[320px] space-y-4 text-left normal-case font-sans animate-fadeIn">
                   <div className="flex justify-between items-center border-b border-[#E8E4DF] pb-2">
-                    <span className="text-xs font-bold text-[#1C1C1A] tracking-wider uppercase font-mono">Filter Leaves</span>
+                    <span className="text-xs font-bold text-[#1C1C1A] tracking-wider uppercase font-mono">
+                      Filter Leaves
+                    </span>
                     <button
                       type="button"
                       onClick={() => setShowFilters(false)}
@@ -1235,7 +1979,9 @@ export function ESSLeaves({ user, triggerToast, stats, initialSearchFilter, setA
                   <div className="space-y-3.5 text-xs">
                     {/* Search Keyword */}
                     <div>
-                      <label className="text-[9px] uppercase font-bold text-[#9C9890] font-mono tracking-widest block mb-1">Search Keyword</label>
+                      <label className="text-[9px] uppercase font-bold text-[#9C9890] font-mono tracking-widest block mb-1">
+                        Search Keyword
+                      </label>
                       <input
                         type="text"
                         placeholder="Search employee, leave type..."
@@ -1247,7 +1993,9 @@ export function ESSLeaves({ user, triggerToast, stats, initialSearchFilter, setA
 
                     {/* Select Employee Dropdown (Active Users first, Inactive Users grouped at the end) */}
                     <div>
-                      <label className="text-[9px] uppercase font-bold text-[#9C9890] font-mono tracking-widest block mb-1">Select Employee</label>
+                      <label className="text-[9px] uppercase font-bold text-[#9C9890] font-mono tracking-widest block mb-1">
+                        Select Employee
+                      </label>
                       <select
                         value={filterUser}
                         onChange={(e) => setFilterUser(e.target.value)}
@@ -1265,7 +2013,8 @@ export function ESSLeaves({ user, triggerToast, stats, initialSearchFilter, setA
                           <optgroup label="Inactive / Archived Employees">
                             {uniqueUsersFromLeaves.inactiveList.map((u) => (
                               <option key={u.id} value={u.id}>
-                                {u.name} (Inactive) {u.email ? `(${u.email})` : ""}
+                                {u.name} (Inactive){" "}
+                                {u.email ? `(${u.email})` : ""}
                               </option>
                             ))}
                           </optgroup>
@@ -1275,7 +2024,9 @@ export function ESSLeaves({ user, triggerToast, stats, initialSearchFilter, setA
 
                     {/* Status Dropdown */}
                     <div>
-                      <label className="text-[9px] uppercase font-bold text-[#9C9890] font-mono tracking-widest block mb-1">Approval Status</label>
+                      <label className="text-[9px] uppercase font-bold text-[#9C9890] font-mono tracking-widest block mb-1">
+                        Approval Status
+                      </label>
                       <select
                         value={filterStatus}
                         onChange={(e) => setFilterStatus(e.target.value)}
@@ -1290,7 +2041,9 @@ export function ESSLeaves({ user, triggerToast, stats, initialSearchFilter, setA
 
                     {/* Date Preset */}
                     <div>
-                      <label className="text-[9px] uppercase font-bold text-[#9C9890] font-mono tracking-widest block mb-1">Date Preset</label>
+                      <label className="text-[9px] uppercase font-bold text-[#9C9890] font-mono tracking-widest block mb-1">
+                        Date Preset
+                      </label>
                       <select
                         value={datePreset}
                         onChange={(e) => setDatePreset(e.target.value as any)}
@@ -1307,7 +2060,9 @@ export function ESSLeaves({ user, triggerToast, stats, initialSearchFilter, setA
                     {datePreset === "custom" && (
                       <div className="space-y-2 pt-1 border-t border-[#E8E4DF]">
                         <div>
-                          <label className="text-[8px] uppercase font-bold text-[#9C9890] font-mono tracking-widest block mb-1">From Date</label>
+                          <label className="text-[8px] uppercase font-bold text-[#9C9890] font-mono tracking-widest block mb-1">
+                            From Date
+                          </label>
                           <input
                             type="date"
                             value={filterStartDate}
@@ -1316,7 +2071,9 @@ export function ESSLeaves({ user, triggerToast, stats, initialSearchFilter, setA
                           />
                         </div>
                         <div>
-                          <label className="text-[8px] uppercase font-bold text-[#9C9890] font-mono tracking-widest block mb-1">To Date</label>
+                          <label className="text-[8px] uppercase font-bold text-[#9C9890] font-mono tracking-widest block mb-1">
+                            To Date
+                          </label>
                           <input
                             type="date"
                             value={filterEndDate}
@@ -1363,7 +2120,9 @@ export function ESSLeaves({ user, triggerToast, stats, initialSearchFilter, setA
           <table className="w-full text-left text-xs border-collapse">
             <thead>
               <tr className="border-b border-slate-200 bg-slate-50 text-slate-400 font-black uppercase font-mono tracking-wider">
-                {hasMultipleUsersInLeaves && <th className="py-3 px-3">Employee</th>}
+                {hasMultipleUsersInLeaves && (
+                  <th className="py-3 px-3">Employee</th>
+                )}
                 <th className="py-3 px-3">Date</th>
                 <th className="py-3 px-3">Type</th>
                 <th className="py-3 px-3">Days</th>
@@ -1374,45 +2133,73 @@ export function ESSLeaves({ user, triggerToast, stats, initialSearchFilter, setA
             <tbody className="divide-y divide-slate-100 text-slate-700 font-medium">
               {loading ? (
                 <tr>
-                  <td colSpan={hasMultipleUsersInLeaves ? 6 : 5} className="py-8 text-center text-slate-400 italic">
+                  <td
+                    colSpan={hasMultipleUsersInLeaves ? 6 : 5}
+                    className="py-8 text-center text-slate-400 italic"
+                  >
                     Loading leave requests...
                   </td>
                 </tr>
               ) : filteredLeaves.length === 0 ? (
                 <tr>
-                  <td colSpan={hasMultipleUsersInLeaves ? 6 : 5} className="py-8 text-center text-slate-400 italic">
+                  <td
+                    colSpan={hasMultipleUsersInLeaves ? 6 : 5}
+                    className="py-8 text-center text-slate-400 italic"
+                  >
                     No leave records found matching selected criteria.
                   </td>
                 </tr>
               ) : (
                 filteredLeaves.map((l: any) => (
-                  <tr key={l.id} className="hover:bg-slate-50/50 border-b border-slate-50">
+                  <tr
+                    key={l.id}
+                    className="hover:bg-slate-50/50 border-b border-slate-50"
+                  >
                     {hasMultipleUsersInLeaves && (
                       <td className="py-3 px-3">
                         <div className="flex flex-col">
-                          <span className="font-bold text-slate-800">{l.employee?.name || l.user?.name || "Self"}</span>
-                          <span className="text-[10px] text-slate-400 font-mono">{l.employee?.email || l.user?.email || ""}</span>
+                          <span className="font-bold text-slate-800">
+                            {l.employee?.name || l.user?.name || "Self"}
+                          </span>
+                          <span className="text-[10px] text-slate-400 font-mono">
+                            {l.employee?.email || l.user?.email || ""}
+                          </span>
                         </div>
                       </td>
                     )}
                     <td className="py-3 px-3 whitespace-nowrap font-semibold">
-                      {new Date(l.startDate).toLocaleDateString()} {l.endDate && l.endDate !== l.startDate ? ` - ${new Date(l.endDate).toLocaleDateString()}` : ""}
+                      {new Date(l.startDate).toLocaleDateString()}{" "}
+                      {l.endDate && l.endDate !== l.startDate
+                        ? ` - ${new Date(l.endDate).toLocaleDateString()}`
+                        : ""}
                     </td>
                     <td className="py-3 px-3">
                       <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-50 text-indigo-600 border border-indigo-100">
                         {l.type}
                       </span>
                     </td>
-                    <td className="py-3 px-3 font-mono font-bold text-slate-800">{l.days}</td>
+                    <td className="py-3 px-3 font-mono font-bold text-slate-800">
+                      {l.days}
+                    </td>
                     <td className="py-3 px-3">
-                      <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${l.status === 'Approved' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : l.status === 'Rejected' ? 'bg-rose-50 text-rose-700 border border-rose-200' : l.status === 'Pending HR Approval' ? 'bg-blue-50 text-blue-700 border border-blue-200' : 'bg-amber-50 text-amber-700 border border-amber-200'}`}>
+                      <span
+                        className={`px-2 py-0.5 rounded text-[10px] font-bold ${l.status === "Approved" ? "bg-emerald-50 text-emerald-700 border border-emerald-200" : l.status === "Rejected" ? "bg-rose-50 text-rose-700 border border-rose-200" : l.status === "Pending HR Approval" ? "bg-blue-50 text-blue-700 border border-blue-200" : "bg-amber-50 text-amber-700 border border-amber-200"}`}
+                      >
                         {l.status}
                       </span>
                     </td>
                     <td className="py-3 px-3 text-slate-500 text-[11px] italic">
-                      {!['Pending', 'Pending Manager Approval', 'Pending Recommender Approval', 'Pending HR Approval', 'Pending Owner Approval'].includes(l.status) ?
-                        (l.approvedBy?.name ? `By: ${l.approvedBy?.name} ${l.remarks ? `(${l.remarks})` : ''}` : (l.remarks || 'No remarks')) :
-                        'Awaiting Approval'}
+                      {![
+                        "Pending",
+                        "Pending Manager Approval",
+                        "Pending Recommender Approval",
+                        "Pending HR Approval",
+                        "Pending Owner Approval",
+                      ].includes(l.status)
+                        ? l.approvedBy?.name
+                          ? `By: ${l.approvedBy?.name} ${l.remarks ? `(${l.remarks})` : ""}`
+                          : l.remarks || "No remarks"
+                        : "Awaiting Approval"}
                     </td>
                   </tr>
                 ))
@@ -1425,13 +2212,34 @@ export function ESSLeaves({ user, triggerToast, stats, initialSearchFilter, setA
   );
 }
 
-export function ESSPayroll({ user, triggerToast, mode = "self" }: ESSProps & { mode?: "self" | "management" }) {
+export function ESSPayroll({
+  user,
+  triggerToast,
+  mode = "self",
+}: ESSProps & { mode?: "self" | "management" }) {
   const [employees, setEmployees] = useState<any[]>([]);
   const [selectedEmpId, setSelectedEmpId] = useState("");
   const [baseSalary, setBaseSalary] = useState<number | "">(13000);
-  const monthsList = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
-  const [payrollMonth, setPayrollMonth] = useState(monthsList[new Date().getMonth()]);
-  const [payrollYear, setPayrollYear] = useState<number | "">(new Date().getFullYear());
+  const monthsList = [
+    "January",
+    "February",
+    "March",
+    "April",
+    "May",
+    "June",
+    "July",
+    "August",
+    "September",
+    "October",
+    "November",
+    "December",
+  ];
+  const [payrollMonth, setPayrollMonth] = useState(
+    monthsList[new Date().getMonth()],
+  );
+  const [payrollYear, setPayrollYear] = useState<number | "">(
+    new Date().getFullYear(),
+  );
   const [processedPayslips, setProcessedPayslips] = useState<any[]>([]);
   const [sodReports, setSodReports] = useState<any[]>([]);
   const [eodReports, setEodReports] = useState<any[]>([]);
@@ -1443,7 +2251,9 @@ export function ESSPayroll({ user, triggerToast, mode = "self" }: ESSProps & { m
   const [calcOvertime, setCalcOvertime] = useState(true);
   const [hraInput, setHraInput] = useState<number | "">(0);
   const [conveyanceInput, setConveyanceInput] = useState<number | "">(0);
-  const [specialAllowanceInput, setSpecialAllowanceInput] = useState<number | "">(0);
+  const [specialAllowanceInput, setSpecialAllowanceInput] = useState<
+    number | ""
+  >(0);
   const [incentiveInput, setIncentiveInput] = useState<number | "">(0);
   const [pfInput, setPfInput] = useState<number | "">(0);
   const [esiInput, setEsiInput] = useState<number | "">(0);
@@ -1452,11 +2262,32 @@ export function ESSPayroll({ user, triggerToast, mode = "self" }: ESSProps & { m
 
   const [loading, setLoading] = useState(false);
   const roleLower = (user?.role || "").toLowerCase();
-  const isAdmin = mode === "management" && ["owner", "director", "hr head", "hr executive", "payroll executive", "accounts", "cfo", "it admin"].includes(roleLower.trim());
+  const isAdmin =
+    mode === "management" &&
+    [
+      "owner",
+      "director",
+      "hr head",
+      "hr executive",
+      "payroll executive",
+      "accounts",
+      "cfo",
+      "it admin",
+    ].includes(roleLower.trim());
 
   const monthMap: { [key: string]: number } = {
-    "January": 0, "February": 1, "March": 2, "April": 3, "May": 4, "June": 5,
-    "July": 6, "August": 7, "September": 8, "October": 9, "November": 10, "December": 11
+    January: 0,
+    February: 1,
+    March: 2,
+    April: 3,
+    May: 4,
+    June: 5,
+    July: 6,
+    August: 7,
+    September: 8,
+    October: 9,
+    November: 10,
+    December: 11,
   };
 
   const selectedMonthIndex = useMemo(() => {
@@ -1464,7 +2295,11 @@ export function ESSPayroll({ user, triggerToast, mode = "self" }: ESSProps & { m
   }, [payrollMonth]);
 
   const numericYear = useMemo(() => {
-    return typeof payrollYear === "number" && !isNaN(payrollYear) && payrollYear > 0 ? payrollYear : new Date().getFullYear();
+    return typeof payrollYear === "number" &&
+      !isNaN(payrollYear) &&
+      payrollYear > 0
+      ? payrollYear
+      : new Date().getFullYear();
   }, [payrollYear]);
 
   const daysInSelectedMonth = useMemo(() => {
@@ -1491,27 +2326,39 @@ export function ESSPayroll({ user, triggerToast, mode = "self" }: ESSProps & { m
   const employeeSods = useMemo(() => {
     if (!selectedEmpId) return [];
     return sodReports.filter((report: any) => {
-      const empIdStr = report.employee?.id ? String(report.employee.id) : String(report.employee || "");
+      const empIdStr = report.employee?.id
+        ? String(report.employee.id)
+        : String(report.employee || "");
       if (empIdStr !== String(selectedEmpId)) return false;
       const d = new Date(report.date || report.createdAt);
-      return d.getMonth() === selectedMonthIndex && d.getFullYear() === numericYear;
+      return (
+        d.getMonth() === selectedMonthIndex && d.getFullYear() === numericYear
+      );
     });
   }, [sodReports, selectedEmpId, selectedMonthIndex, numericYear]);
 
   const employeeEods = useMemo(() => {
     if (!selectedEmpId) return [];
     return eodReports.filter((report: any) => {
-      const empIdStr = report.employee?.id ? String(report.employee.id) : String(report.employee || "");
+      const empIdStr = report.employee?.id
+        ? String(report.employee.id)
+        : String(report.employee || "");
       if (empIdStr !== String(selectedEmpId)) return false;
       const d = new Date(report.date || report.createdAt);
-      return d.getMonth() === selectedMonthIndex && d.getFullYear() === numericYear;
+      return (
+        d.getMonth() === selectedMonthIndex && d.getFullYear() === numericYear
+      );
     });
   }, [eodReports, selectedEmpId, selectedMonthIndex, numericYear]);
 
   const employeeLeaves = useMemo(() => {
     if (!selectedEmpId) return [];
     return leaveReports.filter((leave: any) => {
-      const empIdStr = leave.employee ? (typeof leave.employee === "object" ? String(leave.employee.id || "") : String(leave.employee)) : "";
+      const empIdStr = leave.employee
+        ? typeof leave.employee === "object"
+          ? String(leave.employee.id || "")
+          : String(leave.employee)
+        : "";
       if (empIdStr !== String(selectedEmpId)) return false;
 
       const st = (leave.status || leave.hrStatus || "").toLowerCase();
@@ -1520,15 +2367,22 @@ export function ESSPayroll({ user, triggerToast, mode = "self" }: ESSProps & { m
       const start = new Date(leave.startDate || leave.createdAt);
       const end = new Date(leave.endDate || leave.startDate || leave.createdAt);
 
-      const startInMonth = start.getMonth() === selectedMonthIndex && start.getFullYear() === numericYear;
-      const endInMonth = end.getMonth() === selectedMonthIndex && end.getFullYear() === numericYear;
+      const startInMonth =
+        start.getMonth() === selectedMonthIndex &&
+        start.getFullYear() === numericYear;
+      const endInMonth =
+        end.getMonth() === selectedMonthIndex &&
+        end.getFullYear() === numericYear;
 
       return startInMonth || endInMonth;
     });
   }, [leaveReports, selectedEmpId, selectedMonthIndex, numericYear]);
 
   const totalAppliedLeaveDays = useMemo(() => {
-    return employeeLeaves.reduce((sum: number, l: any) => sum + Number(l.days || 1), 0);
+    return employeeLeaves.reduce(
+      (sum: number, l: any) => sum + Number(l.days || 1),
+      0,
+    );
   }, [employeeLeaves]);
 
   const employeeFines = useMemo(() => {
@@ -1538,12 +2392,18 @@ export function ESSPayroll({ user, triggerToast, mode = "self" }: ESSProps & { m
       if (empIdStr !== String(selectedEmpId)) return false;
 
       const fineDate = new Date(fine.date || fine.createdAt);
-      return fineDate.getMonth() === selectedMonthIndex && fineDate.getFullYear() === numericYear;
+      return (
+        fineDate.getMonth() === selectedMonthIndex &&
+        fineDate.getFullYear() === numericYear
+      );
     });
   }, [fineReports, selectedEmpId, selectedMonthIndex, numericYear]);
 
   const totalImposedAbsentFineAmount = useMemo(() => {
-    return employeeFines.reduce((sum: number, f: any) => sum + Number(f.amount || 0), 0);
+    return employeeFines.reduce(
+      (sum: number, f: any) => sum + Number(f.amount || 0),
+      0,
+    );
   }, [employeeFines]);
 
   // Sync paidLeavesInput & reset absentFineOverride whenever selected employee or month changes
@@ -1552,20 +2412,44 @@ export function ESSPayroll({ user, triggerToast, mode = "self" }: ESSProps & { m
       .filter((l: any) => (l.type || "").toLowerCase() !== "unpaid leave")
       .reduce((sum: number, leave: any) => {
         const start = new Date(leave.startDate || leave.createdAt);
-        const end = new Date(leave.endDate || leave.startDate || leave.createdAt);
+        const end = new Date(
+          leave.endDate || leave.startDate || leave.createdAt,
+        );
         const today = new Date();
         let paidWorkingDays = 0;
-        for (const date = new Date(start.getFullYear(), start.getMonth(), start.getDate()); date <= end; date.setDate(date.getDate() + 1)) {
-          const isSelectedMonth = date.getMonth() === selectedMonthIndex && date.getFullYear() === numericYear;
-          const isElapsed = numericYear < today.getFullYear() || (numericYear === today.getFullYear() && (selectedMonthIndex < today.getMonth() || (selectedMonthIndex === today.getMonth() && date.getDate() <= today.getDate())));
-          if (isSelectedMonth && isElapsed && date.getDay() !== 0) paidWorkingDays += 1;
+        for (
+          const date = new Date(
+            start.getFullYear(),
+            start.getMonth(),
+            start.getDate(),
+          );
+          date <= end;
+          date.setDate(date.getDate() + 1)
+        ) {
+          const isSelectedMonth =
+            date.getMonth() === selectedMonthIndex &&
+            date.getFullYear() === numericYear;
+          const isElapsed =
+            numericYear < today.getFullYear() ||
+            (numericYear === today.getFullYear() &&
+              (selectedMonthIndex < today.getMonth() ||
+                (selectedMonthIndex === today.getMonth() &&
+                  date.getDate() <= today.getDate())));
+          if (isSelectedMonth && isElapsed && date.getDay() !== 0)
+            paidWorkingDays += 1;
         }
         return sum + paidWorkingDays;
       }, 0);
 
     setPaidLeavesInput(Math.min(1, approvedPaidLeaves));
     setAbsentFineOverride("");
-  }, [selectedEmpId, selectedMonthIndex, payrollYear, numericYear, employeeLeaves]);
+  }, [
+    selectedEmpId,
+    selectedMonthIndex,
+    payrollYear,
+    numericYear,
+    employeeLeaves,
+  ]);
 
   const getLocalDateString = (dateObj: any) => {
     const d = new Date(dateObj);
@@ -1576,7 +2460,9 @@ export function ESSPayroll({ user, triggerToast, mode = "self" }: ESSProps & { m
   };
 
   const dailyWorkSummary = useMemo(() => {
-    const summary: { [dateStr: string]: { sod?: any; eod?: any; minutes: number } } = {};
+    const summary: {
+      [dateStr: string]: { sod?: any; eod?: any; minutes: number };
+    } = {};
 
     employeeSods.forEach((sod) => {
       const dateStr = getLocalDateString(sod.date || sod.createdAt);
@@ -1595,19 +2481,25 @@ export function ESSPayroll({ user, triggerToast, mode = "self" }: ESSProps & { m
     let totalOtMinutes = 0;
     const today = new Date();
     const selectedMonthStart = new Date(numericYear, selectedMonthIndex, 1);
-    const currentMonthStart = new Date(today.getFullYear(), today.getMonth(), 1);
-    const cutoffDay = selectedMonthStart > currentMonthStart
-      ? 0
-      : selectedMonthStart.getTime() === currentMonthStart.getTime()
-        // Do not mark the still-running current day absent before its EOD can
-        // be submitted. Current-month attendance is finalized through yesterday.
-        ? Math.max(0, today.getDate() - 1)
-        : daysInSelectedMonth;
+    const currentMonthStart = new Date(
+      today.getFullYear(),
+      today.getMonth(),
+      1,
+    );
+    const cutoffDay =
+      selectedMonthStart > currentMonthStart
+        ? 0
+        : selectedMonthStart.getTime() === currentMonthStart.getTime()
+          ? // Do not mark the still-running current day absent before its EOD can
+            // be submitted. Current-month attendance is finalized through yesterday.
+            Math.max(0, today.getDate() - 1)
+          : daysInSelectedMonth;
     let expectedWorkingDays = 0;
     for (let dayNumber = 1; dayNumber <= cutoffDay; dayNumber += 1) {
       const date = new Date(numericYear, selectedMonthIndex, dayNumber);
       const dateKey = `${numericYear}-${String(selectedMonthIndex + 1).padStart(2, "0")}-${String(dayNumber).padStart(2, "0")}`;
-      if (date.getDay() !== 0 && !payrollHolidayDates.has(dateKey)) expectedWorkingDays += 1;
+      if (date.getDay() !== 0 && !payrollHolidayDates.has(dateKey))
+        expectedWorkingDays += 1;
     }
 
     Object.keys(summary).forEach((dateStr) => {
@@ -1635,12 +2527,23 @@ export function ESSPayroll({ user, triggerToast, mode = "self" }: ESSProps & { m
       totalOtMinutes += otMins;
     });
 
-    const registeredWorkDays = Object.entries(summary).filter(([dateStr, day]) => {
-      const date = new Date(`${dateStr}T00:00:00`);
-      return Boolean(day.sod && day.eod) && date.getDay() !== 0 && !payrollHolidayDates.has(dateStr) && date.getDate() <= cutoffDay;
-    }).length;
+    const registeredWorkDays = Object.entries(summary).filter(
+      ([dateStr, day]) => {
+        const date = new Date(`${dateStr}T00:00:00`);
+        return (
+          Boolean(day.sod && day.eod) &&
+          date.getDay() !== 0 &&
+          !payrollHolidayDates.has(dateStr) &&
+          date.getDate() <= cutoffDay
+        );
+      },
+    ).length;
     const absentDays = Math.max(0, expectedWorkingDays - registeredWorkDays);
-    const numPaidLeaves = Math.min(1, absentDays, Math.max(0, Number(paidLeavesInput || 0)));
+    const numPaidLeaves = Math.min(
+      1,
+      absentDays,
+      Math.max(0, Number(paidLeavesInput || 0)),
+    );
     const unpaidLeaveDays = Math.max(0, absentDays - numPaidLeaves);
     const payableDays = Math.max(0, daysInSelectedMonth - unpaidLeaveDays);
 
@@ -1654,9 +2557,17 @@ export function ESSPayroll({ user, triggerToast, mode = "self" }: ESSProps & { m
       numPaidLeaves,
       totalMinutes,
       totalBaseMinutes,
-      totalOtMinutes
+      totalOtMinutes,
     };
-  }, [employeeSods, employeeEods, paidLeavesInput, numericYear, selectedMonthIndex, daysInSelectedMonth, payrollHolidayDates]);
+  }, [
+    employeeSods,
+    employeeEods,
+    paidLeavesInput,
+    numericYear,
+    selectedMonthIndex,
+    daysInSelectedMonth,
+    payrollHolidayDates,
+  ]);
 
   const numBaseSalary = Number(baseSalary || 0);
   // Per-day salary follows the actual number of calendar days in the selected month.
@@ -1664,20 +2575,46 @@ export function ESSPayroll({ user, triggerToast, mode = "self" }: ESSProps & { m
   const perMinuteSalary = perDaySalary / 540;
 
   // Unpaid absent days fine calculated from leaves
-  const calculatedUnpaidFine = Math.round(dailyWorkSummary.unpaidLeaveDays * perDaySalary);
+  const calculatedUnpaidFine = Math.round(
+    dailyWorkSummary.unpaidLeaveDays * perDaySalary,
+  );
 
   // Dynamic Absent Fine: Automatically fetches imposed absent fines from "Impose Absent Fine" form + unpaid absent days
-  const dynamicFetchedAbsentFine = Math.max(calculatedUnpaidFine, totalImposedAbsentFineAmount);
+  const dynamicFetchedAbsentFine = Math.max(
+    calculatedUnpaidFine,
+    totalImposedAbsentFineAmount,
+  );
 
   // Absent Fine Amount used in salary deduction (supports manual override if HR edits)
-  const absentFineAmount = absentFineOverride !== "" ? Number(absentFineOverride) : dynamicFetchedAbsentFine;
+  const absentFineAmount =
+    absentFineOverride !== ""
+      ? Number(absentFineOverride)
+      : dynamicFetchedAbsentFine;
 
-  const calculatedBaseAmount = calcBase ? Math.max(0, Math.round(numBaseSalary - absentFineAmount)) : 0;
-  const calculatedOtAmount = calcOvertime ? Math.round(dailyWorkSummary.totalOtMinutes * perMinuteSalary) : 0;
+  const calculatedBaseAmount = calcBase
+    ? Math.max(0, Math.round(numBaseSalary - absentFineAmount))
+    : 0;
+  const calculatedOtAmount = calcOvertime
+    ? Math.round(dailyWorkSummary.totalOtMinutes * perMinuteSalary)
+    : 0;
 
-  const additionalEarnings = Number(hraInput || 0) + Number(conveyanceInput || 0) + Number(specialAllowanceInput || 0) + Number(incentiveInput || 0);
-  const statutoryDeductions = Number(pfInput || 0) + Number(esiInput || 0) + Number(ptInput || 0) + Number(tdsInput || 0);
-  const calculatedNetSalary = Math.max(0, calculatedBaseAmount + calculatedOtAmount + additionalEarnings - statutoryDeductions);
+  const additionalEarnings =
+    Number(hraInput || 0) +
+    Number(conveyanceInput || 0) +
+    Number(specialAllowanceInput || 0) +
+    Number(incentiveInput || 0);
+  const statutoryDeductions =
+    Number(pfInput || 0) +
+    Number(esiInput || 0) +
+    Number(ptInput || 0) +
+    Number(tdsInput || 0);
+  const calculatedNetSalary = Math.max(
+    0,
+    calculatedBaseAmount +
+      calculatedOtAmount +
+      additionalEarnings -
+      statutoryDeductions,
+  );
 
   useEffect(() => {
     fetchData();
@@ -1692,14 +2629,22 @@ export function ESSPayroll({ user, triggerToast, mode = "self" }: ESSProps & { m
         ? fetch("/api/employees?all=true&view=payroll").catch(() => null)
         : Promise.resolve(null);
       const supportingRequests = Promise.all([
-        fetch(isAdmin ? "/api/payroll" : "/api/payroll?scope=self").catch(() => null),
+        fetch(isAdmin ? "/api/payroll" : "/api/payroll?scope=self").catch(
+          () => null,
+        ),
         fetch("/api/reports/work-report").catch(() => null),
         fetch("/api/leaves").catch(() => null),
-        fetch("/api/fines").catch(() => null)
+        fetch("/api/fines").catch(() => null),
       ]);
 
       if (!isAdmin && user?.id) {
-        setEmployees([{ id: user.id, name: user.name || "Employee", email: user.email || "" }]);
+        setEmployees([
+          {
+            id: user.id,
+            name: user.name || "Employee",
+            email: user.email || "",
+          },
+        ]);
         setSelectedEmpId(String(user.id));
       }
 
@@ -1707,17 +2652,36 @@ export function ESSPayroll({ user, triggerToast, mode = "self" }: ESSProps & { m
       if (empRes) {
         try {
           const empData = await empRes.json();
-          if (empData.success && Array.isArray(empData.data) && empData.data.length > 0) {
+          if (
+            empData.success &&
+            Array.isArray(empData.data) &&
+            empData.data.length > 0
+          ) {
             const activeEmployees = empData.data.filter((e: any) => {
               if (!e || !(e.id || e._id)) return false;
-              const st = (e.status || e.employeeProfile?.status || "active").toLowerCase();
-              return !["inactive", "archived", "terminated", "disabled", "exited"].includes(st);
+              const st = (
+                e.status ||
+                e.employeeProfile?.status ||
+                "active"
+              ).toLowerCase();
+              return ![
+                "inactive",
+                "archived",
+                "terminated",
+                "disabled",
+                "exited",
+              ].includes(st);
             });
             setEmployees(activeEmployees);
             if (activeEmployees.length > 0) {
-              const firstId = String(activeEmployees[0].id || activeEmployees[0]._id || "");
-              setSelectedEmpId(prev => prev || firstId);
-              const bSal = activeEmployees[0].employeeProfile?.baseSalary || activeEmployees[0].baseSalary || 13000;
+              const firstId = String(
+                activeEmployees[0].id || activeEmployees[0]._id || "",
+              );
+              setSelectedEmpId((prev) => prev || firstId);
+              const bSal =
+                activeEmployees[0].employeeProfile?.baseSalary ||
+                activeEmployees[0].baseSalary ||
+                13000;
               setBaseSalary(Number(bSal));
             }
           } else if (user?.id) {
@@ -1784,7 +2748,7 @@ export function ESSPayroll({ user, triggerToast, mode = "self" }: ESSProps & { m
 
   const handleEmployeeChange = (empId: string) => {
     setSelectedEmpId(String(empId));
-    const emp = employees.find(e => String(e.id) === String(empId));
+    const emp = employees.find((e) => String(e.id) === String(empId));
     if (emp && emp.employeeProfile?.baseSalary) {
       setBaseSalary(Number(emp.employeeProfile.baseSalary));
     } else if (emp && emp.baseSalary) {
@@ -1796,11 +2760,26 @@ export function ESSPayroll({ user, triggerToast, mode = "self" }: ESSProps & { m
 
   const downloadPayslipPdf = async (slip: any) => {
     const { default: jsPDF } = await import("jspdf");
-    const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
-    const employee = slip.employee || employees.find(emp => String(emp.id || emp._id) === String(slip.employeeId || selectedEmpId));
+    const doc = new jsPDF({
+      orientation: "portrait",
+      unit: "mm",
+      format: "a4",
+    });
+    const employee =
+      slip.employee ||
+      employees.find(
+        (emp) =>
+          String(emp.id || emp._id) ===
+          String(slip.employeeId || selectedEmpId),
+      );
     const employeeName = employee?.name || "Employee";
-    const employeeCode = employee?.employeeProfile?.employeeId || employee?.employeeId || slip.employeeId || "N/A";
-    const money = (value: unknown) => `Rs. ${Number(value || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    const employeeCode =
+      employee?.employeeProfile?.employeeId ||
+      employee?.employeeId ||
+      slip.employeeId ||
+      "N/A";
+    const money = (value: unknown) =>
+      `Rs. ${Number(value || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
     const line = (label: string, value: string, y: number, strong = false) => {
       doc.setFont("helvetica", strong ? "bold" : "normal");
       doc.setFontSize(strong ? 11 : 10);
@@ -1859,8 +2838,12 @@ export function ESSPayroll({ user, triggerToast, mode = "self" }: ESSProps & { m
     doc.setTextColor(100, 116, 139);
     doc.setFont("helvetica", "normal");
     doc.setFontSize(8);
-    doc.text("This is a system-generated payslip from RS9 HRMS.", 105, 274, { align: "center" });
-    const safeName = employeeName.replace(/[^a-zA-Z0-9]+/g, "_").replace(/^_+|_+$/g, "") || "Employee";
+    doc.text("This is a system-generated payslip from RS9 HRMS.", 105, 274, {
+      align: "center",
+    });
+    const safeName =
+      employeeName.replace(/[^a-zA-Z0-9]+/g, "_").replace(/^_+|_+$/g, "") ||
+      "Employee";
     doc.save(`Payslip_${safeName}_${slip.month}_${slip.year}.pdf`);
   };
 
@@ -1886,23 +2869,33 @@ export function ESSPayroll({ user, triggerToast, mode = "self" }: ESSProps & { m
         esiDeduction: Number(esiInput || 0),
         ptDeduction: Number(ptInput || 0),
         tdsDeduction: Number(tdsInput || 0),
-        lossOfPay: absentFineAmount
+        lossOfPay: absentFineAmount,
       };
 
       const res = await fetch("/api/payroll", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload)
+        body: JSON.stringify(payload),
       });
       const data = await res.json();
       if (data.success) {
-        triggerToast(`🎉 Payroll processed successfully for ${payrollMonth} ${payrollYear}`);
-        const selectedEmployee = employees.find(emp => String(emp.id || emp._id) === String(selectedEmpId));
+        triggerToast(
+          `🎉 Payroll processed successfully for ${payrollMonth} ${payrollYear}`,
+        );
+        const selectedEmployee = employees.find(
+          (emp) => String(emp.id || emp._id) === String(selectedEmpId),
+        );
         try {
-          await downloadPayslipPdf({ ...data.data, employee: selectedEmployee, employeeId: selectedEmpId });
+          await downloadPayslipPdf({
+            ...data.data,
+            employee: selectedEmployee,
+            employeeId: selectedEmpId,
+          });
         } catch (pdfError) {
           console.error("Payslip PDF generation failed:", pdfError);
-          triggerToast("Payslip saved, but PDF download failed. Use Download PDF from the registry.");
+          triggerToast(
+            "Payslip saved, but PDF download failed. Use Download PDF from the registry.",
+          );
         }
         await fetchData();
       } else {
@@ -1916,42 +2909,88 @@ export function ESSPayroll({ user, triggerToast, mode = "self" }: ESSProps & { m
   };
 
   const handlePayrollStatus = async (id: string, status: string) => {
-    const transactionRef = status === "Paid" ? window.prompt("Enter the bank transaction/reference number:")?.trim() : "";
+    const transactionRef =
+      status === "Paid"
+        ? window.prompt("Enter the bank transaction/reference number:")?.trim()
+        : "";
     if (status === "Paid" && !transactionRef) return;
     setLoading(true);
     try {
-      const res = await fetch("/api/payroll", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id, status, transactionRef, paymentDate: status === "Paid" ? new Date().toISOString() : undefined }) });
+      const res = await fetch("/api/payroll", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id,
+          status,
+          transactionRef,
+          paymentDate: status === "Paid" ? new Date().toISOString() : undefined,
+        }),
+      });
       const data = await res.json();
-      if (!data.success) throw new Error(data.error || "Payroll status update failed");
+      if (!data.success)
+        throw new Error(data.error || "Payroll status update failed");
       triggerToast(`Payroll status updated to ${status}`);
       await fetchData();
-    } catch (error: any) { triggerToast(error.message || "Payroll status update failed"); } finally { setLoading(false); }
+    } catch (error: any) {
+      triggerToast(error.message || "Payroll status update failed");
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const payrollTotals = useMemo(() => processedPayslips.reduce((summary: any, slip: any) => {
-    summary.gross += Number(slip.totalEarnings || 0);
-    summary.deductions += Number(slip.totalDeductions || 0);
-    summary.net += Number(slip.netPay || 0);
-    if (slip.status === "Paid") summary.paid += 1; else summary.pending += 1;
-    return summary;
-  }, { gross: 0, deductions: 0, net: 0, paid: 0, pending: 0 }), [processedPayslips]);
+  const payrollTotals = useMemo(
+    () =>
+      processedPayslips.reduce(
+        (summary: any, slip: any) => {
+          summary.gross += Number(slip.totalEarnings || 0);
+          summary.deductions += Number(slip.totalDeductions || 0);
+          summary.net += Number(slip.netPay || 0);
+          if (slip.status === "Paid") summary.paid += 1;
+          else summary.pending += 1;
+          return summary;
+        },
+        { gross: 0, deductions: 0, net: 0, paid: 0, pending: 0 },
+      ),
+    [processedPayslips],
+  );
 
   const exportPayrollRegister = () => {
-    const rows = processedPayslips.map((slip: any) => ({ Employee: slip.employee?.name || "Employee", Month: slip.month, Year: slip.year, Gross: slip.totalEarnings || 0, Deductions: slip.totalDeductions || 0, Net: slip.netPay || 0, Status: slip.status, "Payment Date": slip.paymentDate ? new Date(slip.paymentDate).toLocaleDateString("en-IN") : "", "Transaction Ref": slip.transactionRef || "" }));
+    const rows = processedPayslips.map((slip: any) => ({
+      Employee: slip.employee?.name || "Employee",
+      Month: slip.month,
+      Year: slip.year,
+      Gross: slip.totalEarnings || 0,
+      Deductions: slip.totalDeductions || 0,
+      Net: slip.netPay || 0,
+      Status: slip.status,
+      "Payment Date": slip.paymentDate
+        ? new Date(slip.paymentDate).toLocaleDateString("en-IN")
+        : "",
+      "Transaction Ref": slip.transactionRef || "",
+    }));
     if (!rows.length) return triggerToast("No payroll records to export");
     const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(rows), "Payroll Register");
-    XLSX.writeFile(workbook, `Payroll_Register_${new Date().toISOString().slice(0, 10)}.xlsx`);
+    XLSX.utils.book_append_sheet(
+      workbook,
+      XLSX.utils.json_to_sheet(rows),
+      "Payroll Register",
+    );
+    XLSX.writeFile(
+      workbook,
+      `Payroll_Register_${new Date().toISOString().slice(0, 10)}.xlsx`,
+    );
   };
 
   const handleDeletePayslip = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this processed payslip record?")) {
+    if (
+      !confirm("Are you sure you want to delete this processed payslip record?")
+    ) {
       return;
     }
     setLoading(true);
     try {
       const res = await fetch(`/api/payroll?id=${id}`, {
-        method: "DELETE"
+        method: "DELETE",
       });
       const data = await res.json();
       if (data.success) {
@@ -1967,15 +3006,17 @@ export function ESSPayroll({ user, triggerToast, mode = "self" }: ESSProps & { m
     }
   };
 
-
-
   return (
     <div className="space-y-8 animate-fade-in text-[#1C1C1A]">
-
       {/* Header */}
       <div className="border-b border-[#E8E4DF] pb-5">
-        <span className="text-[9px] uppercase tracking-widest text-[#C9A84C] font-bold">Compensation</span>
-        <h1 className="text-xl font-light tracking-wide font-serif" style={{ fontFamily: "'Playfair Display', serif" }}>
+        <span className="text-[9px] uppercase tracking-widest text-[#C9A84C] font-bold">
+          Compensation
+        </span>
+        <h1
+          className="text-xl font-light tracking-wide font-serif"
+          style={{ fontFamily: "'Playfair Display', serif" }}
+        >
           {isAdmin ? "Payroll & Salary Administration" : "My Payslips & Salary"}
         </h1>
         {/* <p className="text-[10px] text-[#9C9890] uppercase tracking-wider mt-1.5 font-semibold">
@@ -1987,7 +3028,43 @@ export function ESSPayroll({ user, triggerToast, mode = "self" }: ESSProps & { m
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
-        {[{ label: "Payroll Records", value: processedPayslips.length, tone: "text-indigo-700 bg-indigo-50" }, { label: "Gross Payroll", value: `₹${payrollTotals.gross.toLocaleString("en-IN")}`, tone: "text-slate-700 bg-slate-50" }, { label: "Deductions", value: `₹${payrollTotals.deductions.toLocaleString("en-IN")}`, tone: "text-rose-700 bg-rose-50" }, { label: "Net Payable", value: `₹${payrollTotals.net.toLocaleString("en-IN")}`, tone: "text-emerald-700 bg-emerald-50" }, { label: "Paid / Pending", value: `${payrollTotals.paid} / ${payrollTotals.pending}`, tone: "text-amber-700 bg-amber-50" }].map(card => <div key={card.label} className={`border border-[#E8E4DF] rounded-xl p-4 ${card.tone}`}><div className="text-[9px] uppercase tracking-wider font-black opacity-70">{card.label}</div><div className="text-lg font-black mt-2">{card.value}</div></div>)}
+        {[
+          {
+            label: "Payroll Records",
+            value: processedPayslips.length,
+            tone: "text-indigo-700 bg-indigo-50",
+          },
+          {
+            label: "Gross Payroll",
+            value: `₹${payrollTotals.gross.toLocaleString("en-IN")}`,
+            tone: "text-slate-700 bg-slate-50",
+          },
+          {
+            label: "Deductions",
+            value: `₹${payrollTotals.deductions.toLocaleString("en-IN")}`,
+            tone: "text-rose-700 bg-rose-50",
+          },
+          {
+            label: "Net Payable",
+            value: `₹${payrollTotals.net.toLocaleString("en-IN")}`,
+            tone: "text-emerald-700 bg-emerald-50",
+          },
+          {
+            label: "Paid / Pending",
+            value: `${payrollTotals.paid} / ${payrollTotals.pending}`,
+            tone: "text-amber-700 bg-amber-50",
+          },
+        ].map((card) => (
+          <div
+            key={card.label}
+            className={`border border-[#E8E4DF] rounded-xl p-4 ${card.tone}`}
+          >
+            <div className="text-[9px] uppercase tracking-wider font-black opacity-70">
+              {card.label}
+            </div>
+            <div className="text-lg font-black mt-2">{card.value}</div>
+          </div>
+        ))}
       </div>
 
       {isAdmin && <StaffMonthlySettlement triggerToast={triggerToast} />}
@@ -2003,7 +3080,9 @@ export function ESSPayroll({ user, triggerToast, mode = "self" }: ESSProps & { m
             <form onSubmit={handleProcessPayroll} className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
-                  <label className="text-[9px] uppercase font-bold text-[#9C9890] tracking-wider">Select Employee</label>
+                  <label className="text-[9px] uppercase font-bold text-[#9C9890] tracking-wider">
+                    Select Employee
+                  </label>
                   <select
                     value={String(selectedEmpId || "")}
                     onChange={(e) => handleEmployeeChange(e.target.value)}
@@ -2011,9 +3090,10 @@ export function ESSPayroll({ user, triggerToast, mode = "self" }: ESSProps & { m
                     required
                   >
                     <option value="">-- Select Employee --</option>
-                    {employees.map(emp => {
+                    {employees.map((emp) => {
                       const idStr = String(emp.id || emp._id || "");
-                      const nameStr = emp.name || emp.email || `Employee #${idStr}`;
+                      const nameStr =
+                        emp.name || emp.email || `Employee #${idStr}`;
                       return (
                         <option key={idStr} value={idStr}>
                           {nameStr}
@@ -2023,24 +3103,47 @@ export function ESSPayroll({ user, triggerToast, mode = "self" }: ESSProps & { m
                   </select>
                 </div>
                 <div>
-                  <label className="text-[9px] uppercase font-bold text-[#9C9890] tracking-wider">Payroll Month</label>
+                  <label className="text-[9px] uppercase font-bold text-[#9C9890] tracking-wider">
+                    Payroll Month
+                  </label>
                   <select
                     value={payrollMonth}
                     onChange={(e) => setPayrollMonth(e.target.value)}
                     className="w-full bg-[#FCFBF9] border border-[#E8E4DF] focus:border-[#C9A84C] p-2.5 rounded-lg text-xs mt-1 text-[#1C1C1A] outline-none"
                     required
                   >
-                    {["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"].map(m => (
-                      <option key={m} value={m}>{m}</option>
+                    {[
+                      "January",
+                      "February",
+                      "March",
+                      "April",
+                      "May",
+                      "June",
+                      "July",
+                      "August",
+                      "September",
+                      "October",
+                      "November",
+                      "December",
+                    ].map((m) => (
+                      <option key={m} value={m}>
+                        {m}
+                      </option>
                     ))}
                   </select>
                 </div>
                 <div>
-                  <label className="text-[9px] uppercase font-bold text-[#9C9890] tracking-wider">Payroll Year</label>
+                  <label className="text-[9px] uppercase font-bold text-[#9C9890] tracking-wider">
+                    Payroll Year
+                  </label>
                   <input
                     type="number"
                     value={payrollYear}
-                    onChange={(e) => setPayrollYear(e.target.value === "" ? "" : Number(e.target.value))}
+                    onChange={(e) =>
+                      setPayrollYear(
+                        e.target.value === "" ? "" : Number(e.target.value),
+                      )
+                    }
                     className="w-full bg-[#FCFBF9] border border-[#E8E4DF] focus:border-[#C9A84C] p-2.5 rounded-lg text-xs mt-1 text-[#1C1C1A] outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                     required
                   />
@@ -2049,49 +3152,113 @@ export function ESSPayroll({ user, triggerToast, mode = "self" }: ESSProps & { m
 
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4 p-4 bg-[#FAFAF7] rounded-xl border border-[#E8E4DF]">
                 <div>
-                  <label className="text-[9px] uppercase font-bold text-[#9C9890] tracking-wider block">Base Salary</label>
+                  <label className="text-[9px] uppercase font-bold text-[#9C9890] tracking-wider block">
+                    Base Salary
+                  </label>
                   <input
                     type="number"
                     value={baseSalary}
-                    onChange={(e) => setBaseSalary(e.target.value === "" ? "" : Number(e.target.value))}
+                    onChange={(e) =>
+                      setBaseSalary(
+                        e.target.value === "" ? "" : Number(e.target.value),
+                      )
+                    }
                     className="w-full bg-[#FCFBF9] border border-[#E8E4DF] focus:border-[#C9A84C] p-2 rounded text-xs mt-1 font-bold text-[#1C1C1A] outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                     placeholder="Enter Base Salary"
                     required
                   />
                 </div>
                 <div>
-                  <label className="text-[9px] uppercase font-bold text-[#9C9890] tracking-wider block">Per-Day Salary</label>
+                  <label className="text-[9px] uppercase font-bold text-[#9C9890] tracking-wider block">
+                    Per-Day Salary
+                  </label>
                   <div className="w-full bg-[#FCFBF9] border border-[#E8E4DF] p-2.5 rounded-lg text-xs mt-1 font-bold text-[#C9A84C]">
                     ₹{perDaySalary.toFixed(2)}
                   </div>
                 </div>
                 <div>
-                  <label className="text-[9px] uppercase font-bold text-[#9C9890] tracking-wider block">Per-Minute Salary</label>
+                  <label className="text-[9px] uppercase font-bold text-[#9C9890] tracking-wider block">
+                    Per-Minute Salary
+                  </label>
                   <div className="w-full bg-[#FCFBF9] border border-[#E8E4DF] p-2.5 rounded-lg text-xs mt-1 font-bold text-[#C9A84C]">
                     ₹{perMinuteSalary.toFixed(4)}
                   </div>
                 </div>
                 <div>
-                  <label className="text-[9px] uppercase font-bold text-[#9C9890] tracking-wider block">Worked Base + Overtime</label>
+                  <label className="text-[9px] uppercase font-bold text-[#9C9890] tracking-wider block">
+                    Worked Base + Overtime
+                  </label>
                   <div className="w-full bg-[#FCFBF9] border border-[#E8E4DF] p-2.5 rounded-lg text-xs mt-1 font-bold text-[#1C1C1A]">
-                    {dailyWorkSummary.totalBaseMinutes} + {dailyWorkSummary.totalOtMinutes} mins
+                    {dailyWorkSummary.totalBaseMinutes} +{" "}
+                    {dailyWorkSummary.totalOtMinutes} mins
                   </div>
                 </div>
               </div>
 
-              <div className="p-4 bg-[#FAFAF7] rounded-xl border border-[#E8E4DF] space-y-3"><div className="flex items-center justify-between"><span className="text-[10px] uppercase font-bold text-[#C9A84C] tracking-wider">Salary Structure & Statutory Components</span><span className="text-[9px] text-[#9C9890]">Monthly amounts (₹)</span></div><div className="grid grid-cols-2 md:grid-cols-4 gap-3">{[
-                ["HRA", hraInput, setHraInput], ["Conveyance", conveyanceInput, setConveyanceInput], ["Special Allowance", specialAllowanceInput, setSpecialAllowanceInput], ["Incentive / Bonus", incentiveInput, setIncentiveInput], ["PF Deduction", pfInput, setPfInput], ["ESI Deduction", esiInput, setEsiInput], ["Professional Tax", ptInput, setPtInput], ["TDS", tdsInput, setTdsInput]
-              ].map(([label, value, setter]: any) => <label key={label} className="text-[9px] uppercase font-bold text-[#77736C]">{label}<input type="number" min="0" value={value} onChange={event => setter(event.target.value === "" ? "" : Math.max(0, Number(event.target.value)))} className="mt-1 w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] p-2 rounded-lg text-xs font-bold outline-none" /></label>)}</div></div>
+              <div className="p-4 bg-[#FAFAF7] rounded-xl border border-[#E8E4DF] space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] uppercase font-bold text-[#C9A84C] tracking-wider">
+                    Salary Structure & Statutory Components
+                  </span>
+                  <span className="text-[9px] text-[#9C9890]">
+                    Monthly amounts (₹)
+                  </span>
+                </div>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  {[
+                    ["HRA", hraInput, setHraInput],
+                    ["Conveyance", conveyanceInput, setConveyanceInput],
+                    [
+                      "Special Allowance",
+                      specialAllowanceInput,
+                      setSpecialAllowanceInput,
+                    ],
+                    ["Incentive / Bonus", incentiveInput, setIncentiveInput],
+                    ["PF Deduction", pfInput, setPfInput],
+                    ["ESI Deduction", esiInput, setEsiInput],
+                    ["Professional Tax", ptInput, setPtInput],
+                    ["TDS", tdsInput, setTdsInput],
+                  ].map(([label, value, setter]: any) => (
+                    <label
+                      key={label}
+                      className="text-[9px] uppercase font-bold text-[#77736C]"
+                    >
+                      {label}
+                      <input
+                        type="number"
+                        min="0"
+                        value={value}
+                        onChange={(event) =>
+                          setter(
+                            event.target.value === ""
+                              ? ""
+                              : Math.max(0, Number(event.target.value)),
+                          )
+                        }
+                        className="mt-1 w-full bg-white border border-[#E8E4DF] focus:border-[#C9A84C] p-2 rounded-lg text-xs font-bold outline-none"
+                      />
+                    </label>
+                  ))}
+                </div>
+              </div>
 
               {/* Month Leaves & Imposed Absent Fines Record Section */}
               <div className="p-4 bg-[#FAFAF7] rounded-xl border border-[#E8E4DF] space-y-4">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[#E8E4DF] pb-2">
                   <div>
                     <span className="text-[10px] uppercase font-bold text-[#C9A84C] tracking-wider block">
-                      🌴 Month Leaves & ⚠️ Imposed Fines ({payrollMonth} {payrollYear})
+                      🌴 Month Leaves & ⚠️ Imposed Fines ({payrollMonth}{" "}
+                      {payrollYear})
                     </span>
                     <span className="text-xs font-bold text-[#1C1C1A]">
-                      Leaves: <span className="text-[#714B67]">{totalAppliedLeaveDays} Days</span> | Imposed Fines: <span className="text-rose-700">₹{totalImposedAbsentFineAmount.toLocaleString()}</span>
+                      Leaves:{" "}
+                      <span className="text-[#714B67]">
+                        {totalAppliedLeaveDays} Days
+                      </span>{" "}
+                      | Imposed Fines:{" "}
+                      <span className="text-rose-700">
+                        ₹{totalImposedAbsentFineAmount.toLocaleString()}
+                      </span>
                     </span>
                   </div>
                   <div className="flex flex-wrap items-center gap-4">
@@ -2104,7 +3271,16 @@ export function ESSPayroll({ user, triggerToast, mode = "self" }: ESSProps & { m
                         min="0"
                         max={1}
                         value={paidLeavesInput}
-                        onChange={(e) => setPaidLeavesInput(e.target.value === "" ? "" : Math.min(1, Math.max(0, Number(e.target.value))))}
+                        onChange={(e) =>
+                          setPaidLeavesInput(
+                            e.target.value === ""
+                              ? ""
+                              : Math.min(
+                                  1,
+                                  Math.max(0, Number(e.target.value)),
+                                ),
+                          )
+                        }
                         className="w-20 bg-[#FCFBF9] border border-[#E8E4DF] focus:border-[#C9A84C] px-2 py-1 rounded text-xs font-bold text-[#1C1C1A] outline-none shadow-inner [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                         placeholder="0"
                       />
@@ -2116,8 +3292,18 @@ export function ESSPayroll({ user, triggerToast, mode = "self" }: ESSProps & { m
                       <input
                         type="number"
                         min="0"
-                        value={absentFineOverride !== "" ? absentFineOverride : absentFineAmount}
-                        onChange={(e) => setAbsentFineOverride(e.target.value === "" ? "" : Math.max(0, Number(e.target.value)))}
+                        value={
+                          absentFineOverride !== ""
+                            ? absentFineOverride
+                            : absentFineAmount
+                        }
+                        onChange={(e) =>
+                          setAbsentFineOverride(
+                            e.target.value === ""
+                              ? ""
+                              : Math.max(0, Number(e.target.value)),
+                          )
+                        }
                         className="w-28 bg-[#FCFBF9] border border-rose-300 focus:border-rose-600 px-2.5 py-1 rounded text-xs font-bold text-rose-700 outline-none shadow-inner [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                         placeholder={String(dynamicFetchedAbsentFine)}
                       />
@@ -2133,11 +3319,19 @@ export function ESSPayroll({ user, triggerToast, mode = "self" }: ESSProps & { m
                     </span>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
                       {employeeFines.map((f: any, idx: number) => (
-                        <div key={idx} className="bg-rose-50/60 border border-rose-200 p-2 rounded-lg flex justify-between items-center text-rose-900 shadow-sm">
+                        <div
+                          key={idx}
+                          className="bg-rose-50/60 border border-rose-200 p-2 rounded-lg flex justify-between items-center text-rose-900 shadow-sm"
+                        >
                           <div>
-                            <span className="font-bold block">₹{f.amount} Fine</span>
+                            <span className="font-bold block">
+                              ₹{f.amount} Fine
+                            </span>
                             <span className="text-[10px] text-rose-700 block font-mono">
-                              {f.date ? new Date(f.date).toLocaleDateString("en-IN") : ""} {f.reason ? `• ${f.reason}` : ""}
+                              {f.date
+                                ? new Date(f.date).toLocaleDateString("en-IN")
+                                : ""}{" "}
+                              {f.reason ? `• ${f.reason}` : ""}
                             </span>
                           </div>
                           <span className="px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-wider bg-rose-200 text-rose-800">
@@ -2157,11 +3351,26 @@ export function ESSPayroll({ user, triggerToast, mode = "self" }: ESSProps & { m
                     </span>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
                       {employeeLeaves.map((l: any, idx: number) => (
-                        <div key={idx} className="bg-white border border-[#E8E4DF] p-2 rounded-lg flex justify-between items-center shadow-sm">
+                        <div
+                          key={idx}
+                          className="bg-white border border-[#E8E4DF] p-2 rounded-lg flex justify-between items-center shadow-sm"
+                        >
                           <div>
-                            <span className="font-bold text-[#1C1C1A]">{l.type || "Leave"}</span>
+                            <span className="font-bold text-[#1C1C1A]">
+                              {l.type || "Leave"}
+                            </span>
                             <span className="text-[10px] text-[#9C9890] block font-mono">
-                              {l.startDate ? new Date(l.startDate).toLocaleDateString("en-IN") : ""} to {l.endDate ? new Date(l.endDate).toLocaleDateString("en-IN") : ""}
+                              {l.startDate
+                                ? new Date(l.startDate).toLocaleDateString(
+                                    "en-IN",
+                                  )
+                                : ""}{" "}
+                              to{" "}
+                              {l.endDate
+                                ? new Date(l.endDate).toLocaleDateString(
+                                    "en-IN",
+                                  )
+                                : ""}
                             </span>
                           </div>
                           <span className="px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-[#F4EFE6] text-[#714B67] border border-[#E8E4DF]">
@@ -2175,14 +3384,17 @@ export function ESSPayroll({ user, triggerToast, mode = "self" }: ESSProps & { m
 
                 {employeeLeaves.length === 0 && employeeFines.length === 0 && (
                   <div className="text-[11px] text-[#9C9890] italic">
-                    No leave applications or imposed fines registered for this employee in {payrollMonth} {payrollYear}.
+                    No leave applications or imposed fines registered for this
+                    employee in {payrollMonth} {payrollYear}.
                   </div>
                 )}
               </div>
 
               {/* Checkboxes Row */}
               <div className="flex gap-6 items-center p-3.5 bg-[#FAFAF7] rounded-xl border border-[#E8E4DF]">
-                <span className="text-[10px] uppercase font-bold text-[#9C9890] tracking-wider">Salary Components:</span>
+                <span className="text-[10px] uppercase font-bold text-[#9C9890] tracking-wider">
+                  Salary Components:
+                </span>
                 <label className="flex items-center gap-2 cursor-pointer select-none text-xs font-semibold text-[#1C1C1A]">
                   <input
                     type="checkbox"
@@ -2206,11 +3418,10 @@ export function ESSPayroll({ user, triggerToast, mode = "self" }: ESSProps & { m
               {/* Dynamic Formula Board */}
               <div className="border border-[#E8E4DF] rounded-xl p-4 space-y-3 bg-[#FCFBF9]">
                 <div className="flex justify-between border-b border-[#E8E4DF]/50 pb-2 text-[11px] font-medium">
-                  <div className="text-[#5D5B57]">
-                    Base Monthly Salary:
-                  </div>
+                  <div className="text-[#5D5B57]">Base Monthly Salary:</div>
                   <div className="text-[#1C1C1A] font-bold">
-                    ₹{baseSalary.toLocaleString()} ({payrollMonth} {payrollYear})
+                    ₹{baseSalary.toLocaleString()} ({payrollMonth} {payrollYear}
+                    )
                   </div>
                 </div>
                 <div className="flex justify-between border-b border-[#E8E4DF]/50 pb-2 text-[11px] font-medium">
@@ -2226,22 +3437,39 @@ export function ESSPayroll({ user, triggerToast, mode = "self" }: ESSProps & { m
                     Attendance & Present Days Breakdown:
                   </div>
                   <div className="text-[#1C1C1A] font-bold">
-                    {dailyWorkSummary.registeredWorkDays} Present / {dailyWorkSummary.expectedWorkingDays} Working Days (Sundays & Holidays excluded)
+                    {dailyWorkSummary.registeredWorkDays} Present /{" "}
+                    {dailyWorkSummary.expectedWorkingDays} Working Days (Sundays
+                    & Holidays excluded)
                   </div>
                 </div>
-                <div className="flex justify-between border-b border-[#E8E4DF]/50 pb-2 text-[11px] font-medium text-amber-700"><div>Auto-detected Absence (excluding Sundays, holidays and future dates):</div><div className="font-bold">{dailyWorkSummary.absentDays} Days — {dailyWorkSummary.numPaidLeaves} Paid + {dailyWorkSummary.unpaidLeaveDays} Unpaid</div></div>
+                <div className="flex justify-between border-b border-[#E8E4DF]/50 pb-2 text-[11px] font-medium text-amber-700">
+                  <div>
+                    Auto-detected Absence (excluding Sundays, holidays and
+                    future dates):
+                  </div>
+                  <div className="font-bold">
+                    {dailyWorkSummary.absentDays} Days —{" "}
+                    {dailyWorkSummary.numPaidLeaves} Paid +{" "}
+                    {dailyWorkSummary.unpaidLeaveDays} Unpaid
+                  </div>
+                </div>
                 <div className="flex justify-between border-b border-[#E8E4DF]/50 pb-2 text-[11px] font-medium">
                   <div className="text-[#5D5B57]">
                     Calculated Total Payable Days:
                   </div>
                   <div className="text-[#1C1C1A] font-bold">
-                    {dailyWorkSummary.payableDays} Paid Days <span className="text-[9px] text-[#9C9890]">({dailyWorkSummary.unpaidLeaveDays} Unpaid Absent Days)</span>
+                    {dailyWorkSummary.payableDays} Paid Days{" "}
+                    <span className="text-[9px] text-[#9C9890]">
+                      ({dailyWorkSummary.unpaidLeaveDays} Unpaid Absent Days)
+                    </span>
                   </div>
                 </div>
                 {absentFineAmount > 0 ? (
                   <div className="flex justify-between border-b border-[#E8E4DF]/50 pb-2 text-[11px] font-medium text-rose-700">
                     <div>
-                      Absent Fine Deduction (Deducted for {dailyWorkSummary.unpaidLeaveDays} Unpaid Days / Imposed Fines):
+                      Absent Fine Deduction (Deducted for{" "}
+                      {dailyWorkSummary.unpaidLeaveDays} Unpaid Days / Imposed
+                      Fines):
                     </div>
                     <div className="font-bold">
                       - ₹{absentFineAmount.toLocaleString()}
@@ -2249,9 +3477,7 @@ export function ESSPayroll({ user, triggerToast, mode = "self" }: ESSProps & { m
                   </div>
                 ) : (
                   <div className="flex justify-between border-b border-[#E8E4DF]/50 pb-2 text-[11px] font-medium text-emerald-700">
-                    <div>
-                      Absent Fine Deduction:
-                    </div>
+                    <div>Absent Fine Deduction:</div>
                     <div className="font-bold">
                       ₹0 (100% Full Attendance Retained)
                     </div>
@@ -2272,15 +3498,25 @@ export function ESSPayroll({ user, triggerToast, mode = "self" }: ESSProps & { m
                   <div className="text-[#1C1C1A] font-bold">
                     {calculatedOtAmount > 0
                       ? `+ ₹${calculatedOtAmount.toLocaleString()} (${dailyWorkSummary.totalOtMinutes} mins OT)`
-                      : "—"
-                    }
+                      : "—"}
                   </div>
                 </div>
                 <div className="flex justify-between pt-2 text-xs font-bold uppercase tracking-widest text-[#1C1C1A]">
                   <div>Calculated Net Payout</div>
-                  <div className="text-[#6B8F71] text-sm">₹{calculatedNetSalary.toLocaleString()}</div>
+                  <div className="text-[#6B8F71] text-sm">
+                    ₹{calculatedNetSalary.toLocaleString()}
+                  </div>
                 </div>
-                <div className="grid grid-cols-2 gap-2 text-[10px]"><div className="bg-emerald-50 text-emerald-700 rounded-lg p-2">Additional earnings: +₹{(additionalEarnings + calculatedOtAmount).toLocaleString()}</div><div className="bg-rose-50 text-rose-700 rounded-lg p-2">Statutory deductions: -₹{statutoryDeductions.toLocaleString()}</div></div>
+                <div className="grid grid-cols-2 gap-2 text-[10px]">
+                  <div className="bg-emerald-50 text-emerald-700 rounded-lg p-2">
+                    Additional earnings: +₹
+                    {(additionalEarnings + calculatedOtAmount).toLocaleString()}
+                  </div>
+                  <div className="bg-rose-50 text-rose-700 rounded-lg p-2">
+                    Statutory deductions: -₹
+                    {statutoryDeductions.toLocaleString()}
+                  </div>
+                </div>
               </div>
 
               <button
@@ -2301,23 +3537,36 @@ export function ESSPayroll({ user, triggerToast, mode = "self" }: ESSProps & { m
 
             <div className="text-[11px] leading-relaxed space-y-3 font-medium text-[#5D5B57]">
               <div className="p-3 bg-[#FAFAF7] rounded-lg border border-[#E8E4DF]">
-                <span className="font-semibold text-[#1C1C1A] block mb-1">📅 Constant Base Monthly Salary</span>
+                <span className="font-semibold text-[#1C1C1A] block mb-1">
+                  📅 Constant Base Monthly Salary
+                </span>
                 Base Salary remains constant.
               </div>
 
               <div className="p-3 bg-[#FAFAF7] rounded-lg border border-[#E8E4DF]">
-                <span className="font-semibold text-[#1C1C1A] block mb-1">⚠️ Dynamic Imposed Absent Fine</span>
-                Absent Fines imposed via "Impose Absent Fine" form & unpaid absent days are dynamically fetched and deducted from the Base Salary.
+                <span className="font-semibold text-[#1C1C1A] block mb-1">
+                  ⚠️ Dynamic Imposed Absent Fine
+                </span>
+                Absent Fines imposed via "Impose Absent Fine" form & unpaid
+                absent days are dynamically fetched and deducted from the Base
+                Salary.
               </div>
 
               <div className="p-3 bg-[#FAFAF7] rounded-lg border border-[#E8E4DF]">
-                <span className="font-semibold text-[#1C1C1A] block mb-1">🌴 Paid Leave Benefit</span>
-                Maximum 1 approved leave per employee per month is paid. Additional leave days are treated as unpaid absence and deducted from salary.
+                <span className="font-semibold text-[#1C1C1A] block mb-1">
+                  🌴 Paid Leave Benefit
+                </span>
+                Maximum 1 approved leave per employee per month is paid.
+                Additional leave days are treated as unpaid absence and deducted
+                from salary.
               </div>
 
               <div className="p-3 bg-[#FAFAF7] rounded-lg border border-[#E8E4DF]">
-                <span className="font-semibold text-[#1C1C1A] block mb-1">⏰ Overtime Payout</span>
-                Adds overtime pay for extra working minutes calculated at (Per-Day ÷ 540) rate when enabled.
+                <span className="font-semibold text-[#1C1C1A] block mb-1">
+                  ⏰ Overtime Payout
+                </span>
+                Adds overtime pay for extra working minutes calculated at
+                (Per-Day ÷ 540) rate when enabled.
               </div>
             </div>
           </div>
@@ -2327,16 +3576,33 @@ export function ESSPayroll({ user, triggerToast, mode = "self" }: ESSProps & { m
       {/* Payslip History Section */}
       <div className="grid grid-cols-1 gap-6">
         <div className="bg-[#FCFBF9] border border-[#E8E4DF] rounded-xl p-6 shadow-[0_2px_20px_rgba(0,0,0,0.02)]">
-          <div className="flex items-center justify-between mb-6"><h2 className="text-[10px] font-bold uppercase text-[#C9A84C] tracking-widest">{isAdmin ? "Processed Payslip Registry" : "My Payslips & Salary"}</h2>{isAdmin && <button type="button" onClick={exportPayrollRegister} className="border border-emerald-200 bg-emerald-50 text-emerald-700 rounded-lg px-3 py-2 text-[9px] uppercase tracking-wider font-black flex items-center gap-1"><Download className="w-3.5 h-3.5" /> Export Register</button>}</div>
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-[10px] font-bold uppercase text-[#C9A84C] tracking-widest">
+              {isAdmin ? "Processed Payslip Registry" : "My Payslips & Salary"}
+            </h2>
+            {isAdmin && (
+              <button
+                type="button"
+                onClick={exportPayrollRegister}
+                className="border border-emerald-200 bg-emerald-50 text-emerald-700 rounded-lg px-3 py-2 text-[9px] uppercase tracking-wider font-black flex items-center gap-1"
+              >
+                <Download className="w-3.5 h-3.5" /> Export Register
+              </button>
+            )}
+          </div>
 
           {!isAdmin && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
               {/* Employee Payout Simulator */}
               <div className="p-5 bg-[#FAFAF7] rounded-xl border border-[#E8E4DF]">
-                <h3 className="text-[10px] font-bold text-[#C9A84C] uppercase mb-4 tracking-widest">Salary Calculator & Simulator</h3>
+                <h3 className="text-[10px] font-bold text-[#C9A84C] uppercase mb-4 tracking-widest">
+                  Salary Calculator & Simulator
+                </h3>
                 <div className="space-y-4 text-[11px] font-medium">
                   <div>
-                    <label className="text-[9px] uppercase font-bold text-[#9C9890] tracking-wider">Base Salary Target</label>
+                    <label className="text-[9px] uppercase font-bold text-[#9C9890] tracking-wider">
+                      Base Salary Target
+                    </label>
                     <input
                       type="number"
                       value={baseSalary}
@@ -2346,17 +3612,27 @@ export function ESSPayroll({ user, triggerToast, mode = "self" }: ESSProps & { m
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <span className="text-[9px] uppercase font-bold text-[#9C9890] tracking-wider block">Per-Day Salary</span>
-                      <div className="text-xs font-bold text-[#C9A84C] mt-1">₹{perDaySalary.toFixed(2)}</div>
+                      <span className="text-[9px] uppercase font-bold text-[#9C9890] tracking-wider block">
+                        Per-Day Salary
+                      </span>
+                      <div className="text-xs font-bold text-[#C9A84C] mt-1">
+                        ₹{perDaySalary.toFixed(2)}
+                      </div>
                     </div>
                     <div>
-                      <span className="text-[9px] uppercase font-bold text-[#9C9890] tracking-wider block">Per-Minute Salary</span>
-                      <div className="text-xs font-bold text-[#C9A84C] mt-1">₹{perMinuteSalary.toFixed(4)}</div>
+                      <span className="text-[9px] uppercase font-bold text-[#9C9890] tracking-wider block">
+                        Per-Minute Salary
+                      </span>
+                      <div className="text-xs font-bold text-[#C9A84C] mt-1">
+                        ₹{perMinuteSalary.toFixed(4)}
+                      </div>
                     </div>
                   </div>
                   {/* Checkboxes Row */}
                   <div className="flex gap-4 items-center p-2.5 bg-[#FCFBF9] rounded-lg border border-[#E8E4DF]">
-                    <span className="text-[9px] uppercase font-bold text-[#9C9890] tracking-wider">Components:</span>
+                    <span className="text-[9px] uppercase font-bold text-[#9C9890] tracking-wider">
+                      Components:
+                    </span>
                     <label className="flex items-center gap-1.5 cursor-pointer select-none text-[11px] font-semibold text-[#1C1C1A]">
                       <input
                         type="checkbox"
@@ -2379,24 +3655,40 @@ export function ESSPayroll({ user, triggerToast, mode = "self" }: ESSProps & { m
 
                   <div className="p-3 bg-[#FCFBF9] rounded-lg space-y-2 border border-[#E8E4DF]">
                     <div className="flex justify-between">
-                      <span className="text-[#5D5B57]">Total Working Days (SOD/EOD):</span>
-                      <span>{Object.keys(dailyWorkSummary.days).length} Days</span>
+                      <span className="text-[#5D5B57]">
+                        Total Working Days (SOD/EOD):
+                      </span>
+                      <span>
+                        {Object.keys(dailyWorkSummary.days).length} Days
+                      </span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-[#5D5B57]">Total Worked Time (Base + OT):</span>
-                      <span>{(dailyWorkSummary.totalMinutes / 60).toFixed(1)} Hours ({dailyWorkSummary.totalBaseMinutes} + {dailyWorkSummary.totalOtMinutes} mins)</span>
+                      <span className="text-[#5D5B57]">
+                        Total Worked Time (Base + OT):
+                      </span>
+                      <span>
+                        {(dailyWorkSummary.totalMinutes / 60).toFixed(1)} Hours
+                        ({dailyWorkSummary.totalBaseMinutes} +{" "}
+                        {dailyWorkSummary.totalOtMinutes} mins)
+                      </span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-[#5D5B57]">Base Portion {calcBase ? "✅" : "❌"}:</span>
-                      <span>₹{calculatedBaseAmount.toLocaleString()} ({dailyWorkSummary.totalBaseMinutes} mins)</span>
+                      <span className="text-[#5D5B57]">
+                        Base Portion {calcBase ? "✅" : "❌"}:
+                      </span>
+                      <span>
+                        ₹{calculatedBaseAmount.toLocaleString()} (
+                        {dailyWorkSummary.totalBaseMinutes} mins)
+                      </span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-[#5D5B57]">Calculate Overtime {calcOvertime ? "✅" : "❌"}:</span>
+                      <span className="text-[#5D5B57]">
+                        Calculate Overtime {calcOvertime ? "✅" : "❌"}:
+                      </span>
                       <span>
                         {calculatedOtAmount > 0
                           ? `₹${calculatedOtAmount.toLocaleString()} (${dailyWorkSummary.totalOtMinutes} mins)`
-                          : "—"
-                        }
+                          : "—"}
                       </span>
                     </div>
                     <div className="flex justify-between">
@@ -2405,7 +3697,9 @@ export function ESSPayroll({ user, triggerToast, mode = "self" }: ESSProps & { m
                     </div>
                     <div className="flex justify-between pt-1 border-t border-[#E8E4DF] text-xs font-semibold uppercase tracking-wider text-[#1C1C1A]">
                       <span>Simulated Net Payout:</span>
-                      <span className="text-[#6B8F71]">₹{calculatedNetSalary.toLocaleString()}</span>
+                      <span className="text-[#6B8F71]">
+                        ₹{calculatedNetSalary.toLocaleString()}
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -2413,12 +3707,28 @@ export function ESSPayroll({ user, triggerToast, mode = "self" }: ESSProps & { m
 
               {/* Explanatory Policy Card */}
               <div className="p-5 bg-[#FAFAF7] rounded-xl border border-[#E8E4DF] text-[11px] leading-relaxed space-y-3 font-medium text-[#5D5B57]">
-                <h3 className="text-[10px] font-bold text-[#C9A84C] uppercase tracking-widest">Salary Payout Policy</h3>
-                <p>Your monthly salary is dynamically calculated based on actual logged working time over a standard <strong>30-day calendar month</strong>:</p>
+                <h3 className="text-[10px] font-bold text-[#C9A84C] uppercase tracking-widest">
+                  Salary Payout Policy
+                </h3>
+                <p>
+                  Your monthly salary is dynamically calculated based on actual
+                  logged working time over a standard{" "}
+                  <strong>30-day calendar month</strong>:
+                </p>
                 <ul className="list-disc pl-4 space-y-1">
-                  <li><strong>Per-Day</strong>: Computed as Base Salary ÷ 30 calendar days.</li>
-                  <li><strong>Per-Minute</strong>: Computed as Per-Day ÷ 540 minutes (standard 9-hour shift).</li>
-                  <li><strong>Dynamic Logging</strong>: Calculated based on the precise duration between your daily EOD and SOD report submissions.</li>
+                  <li>
+                    <strong>Per-Day</strong>: Computed as Base Salary ÷ 30
+                    calendar days.
+                  </li>
+                  <li>
+                    <strong>Per-Minute</strong>: Computed as Per-Day ÷ 540
+                    minutes (standard 9-hour shift).
+                  </li>
+                  <li>
+                    <strong>Dynamic Logging</strong>: Calculated based on the
+                    precise duration between your daily EOD and SOD report
+                    submissions.
+                  </li>
                 </ul>
               </div>
             </div>
@@ -2440,7 +3750,10 @@ export function ESSPayroll({ user, triggerToast, mode = "self" }: ESSProps & { m
               <tbody className="divide-y divide-[#E8E4DF] text-[#5D5B57] font-medium">
                 {processedPayslips.length === 0 ? (
                   <tr>
-                    <td colSpan={isAdmin ? 6 : 5} className="py-8 text-center text-[#9C9890] italic">
+                    <td
+                      colSpan={isAdmin ? 6 : 5}
+                      className="py-8 text-center text-[#9C9890] italic"
+                    >
                       No processed payroll records found.
                     </td>
                   </tr>
@@ -2452,8 +3765,12 @@ export function ESSPayroll({ user, triggerToast, mode = "self" }: ESSProps & { m
                           {slip.employee?.name || "Employee"}
                         </td>
                       )}
-                      <td className="py-4 px-2 font-semibold text-[#1C1C1A]">{slip.month} {slip.year}</td>
-                      <td className="py-4 px-2">₹{(slip.employee?.baseSalary || 13000).toLocaleString()}</td>
+                      <td className="py-4 px-2 font-semibold text-[#1C1C1A]">
+                        {slip.month} {slip.year}
+                      </td>
+                      <td className="py-4 px-2">
+                        ₹{(slip.employee?.baseSalary || 13000).toLocaleString()}
+                      </td>
                       <td className="py-4 px-2 text-center">
                         <span className="px-3 py-1.5 rounded bg-[#C9A84C] text-white font-bold text-xs tracking-wider shadow-[0_2px_10px_rgba(201,168,76,0.15)]">
                           ₹{slip.netPay?.toLocaleString()}
@@ -2464,23 +3781,51 @@ export function ESSPayroll({ user, triggerToast, mode = "self" }: ESSProps & { m
                           {slip.status}
                         </span>
                       </td>
-                      <td className="py-4 pl-2 text-right"><div className="flex justify-end gap-2">
-                          <button onClick={() => downloadPayslipPdf(slip)} className="border border-indigo-300 text-indigo-700 hover:bg-indigo-600 hover:text-white px-3 py-1.5 rounded-lg text-[9px] uppercase tracking-wider font-bold transition-all flex items-center gap-1">
+                      <td className="py-4 pl-2 text-right">
+                        <div className="flex justify-end gap-2">
+                          <button
+                            onClick={() => downloadPayslipPdf(slip)}
+                            className="border border-indigo-300 text-indigo-700 hover:bg-indigo-600 hover:text-white px-3 py-1.5 rounded-lg text-[9px] uppercase tracking-wider font-bold transition-all flex items-center gap-1"
+                          >
                             <Download className="w-3 h-3" /> Download PDF
                           </button>
-                          {isAdmin && <>
-                          {slip.status !== "Paid" && slip.status !== "Locked" && <button onClick={() => handlePayrollStatus(slip.id, "Paid")} disabled={loading} className="border border-emerald-500 text-emerald-600 hover:bg-emerald-500 hover:text-white px-3 py-1.5 rounded-lg text-[9px] uppercase tracking-wider font-bold transition-all">Mark Paid</button>}
-                          {slip.status === "Paid" && <button onClick={() => handlePayrollStatus(slip.id, "Locked")} disabled={loading} className="border border-slate-400 text-slate-600 hover:bg-slate-700 hover:text-white px-3 py-1.5 rounded-lg text-[9px] uppercase tracking-wider font-bold transition-all">Lock</button>}
-                          <button
-                            onClick={() => handleDeletePayslip(slip.id)}
-                            disabled={loading}
-                            className="border border-red-500 text-red-500 hover:bg-red-500 hover:text-white px-3 py-1.5 rounded-lg text-[9px] uppercase tracking-wider font-bold transition-all flex items-center gap-1 ml-auto"
-                          >
-                            <Trash2 className="w-3 h-3" />
-                            Delete
-                          </button>
-                          </>}
-                        </div></td>
+                          {isAdmin && (
+                            <>
+                              {slip.status !== "Paid" &&
+                                slip.status !== "Locked" && (
+                                  <button
+                                    onClick={() =>
+                                      handlePayrollStatus(slip.id, "Paid")
+                                    }
+                                    disabled={loading}
+                                    className="border border-emerald-500 text-emerald-600 hover:bg-emerald-500 hover:text-white px-3 py-1.5 rounded-lg text-[9px] uppercase tracking-wider font-bold transition-all"
+                                  >
+                                    Mark Paid
+                                  </button>
+                                )}
+                              {slip.status === "Paid" && (
+                                <button
+                                  onClick={() =>
+                                    handlePayrollStatus(slip.id, "Locked")
+                                  }
+                                  disabled={loading}
+                                  className="border border-slate-400 text-slate-600 hover:bg-slate-700 hover:text-white px-3 py-1.5 rounded-lg text-[9px] uppercase tracking-wider font-bold transition-all"
+                                >
+                                  Lock
+                                </button>
+                              )}
+                              <button
+                                onClick={() => handleDeletePayslip(slip.id)}
+                                disabled={loading}
+                                className="border border-red-500 text-red-500 hover:bg-red-500 hover:text-white px-3 py-1.5 rounded-lg text-[9px] uppercase tracking-wider font-bold transition-all flex items-center gap-1 ml-auto"
+                              >
+                                <Trash2 className="w-3 h-3" />
+                                Delete
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      </td>
                     </tr>
                   ))
                 )}
@@ -2495,9 +3840,13 @@ export function ESSPayroll({ user, triggerToast, mode = "self" }: ESSProps & { m
 
 export function ESSExpenses({ user, triggerToast }: ESSProps) {
   const [claims, setClaims] = useState<any[]>([]);
+  const [advances, setAdvances] = useState<any[]>([]);
+  const [selectedAdvanceId, setSelectedAdvanceId] = useState("");
   const [loading, setLoading] = useState<boolean>(true);
   const [showClaimModal, setShowClaimModal] = useState<boolean>(false);
-  const [selectedReceiptUrl, setSelectedReceiptUrl] = useState<string | null>(null);
+  const [selectedReceiptUrl, setSelectedReceiptUrl] = useState<string | null>(
+    null,
+  );
 
   // Column Filters State
   const [searchQuery, setSearchQuery] = useState<string>("");
@@ -2514,12 +3863,16 @@ export function ESSExpenses({ user, triggerToast }: ESSProps) {
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
 
   // Active Dropdown Column Filter Popover
-  const [activeFilterDropdown, setActiveFilterDropdown] = useState<string | null>(null);
+  const [activeFilterDropdown, setActiveFilterDropdown] = useState<
+    string | null
+  >(null);
 
   // Form State
   const [category, setCategory] = useState<string>("Travel / Conveyance");
   const [customCategory, setCustomCategory] = useState<string>("");
-  const [dateIncurred, setDateIncurred] = useState<string>(new Date().toISOString().split("T")[0]);
+  const [dateIncurred, setDateIncurred] = useState<string>(
+    new Date().toISOString().split("T")[0],
+  );
   const [amount, setAmount] = useState<string>("");
   const [merchant, setMerchant] = useState<string>("");
   const [paymentMode, setPaymentMode] = useState<string>("Cash");
@@ -2529,7 +3882,22 @@ export function ESSExpenses({ user, triggerToast }: ESSProps) {
   const [uploadingReceipt, setUploadingReceipt] = useState<boolean>(false);
   const [submitting, setSubmitting] = useState<boolean>(false);
 
-  const isOwnerOrAdmin = user?.role === "Owner" || user?.role === "Admin" || user?.role === "HR" || String(user?.role || "").toLowerCase().includes("owner");
+  const isOwnerOrAdmin =
+    user?.role === "Owner" ||
+    user?.role === "Admin" ||
+    user?.role === "HR" ||
+    String(user?.role || "")
+      .toLowerCase()
+      .includes("owner");
+  const isOwner = String(user?.role || "")
+    .toLowerCase()
+    .includes("owner");
+  const pendingStatuses = [
+    "Pending",
+    "Pending Manager Approval",
+    "Pending Recommender Approval",
+    "Pending Owner Approval",
+  ];
 
   const fetchClaims = async () => {
     setLoading(true);
@@ -2538,6 +3906,7 @@ export function ESSExpenses({ user, triggerToast }: ESSProps) {
       const data = await res.json();
       if (data.success) {
         setClaims(data.data || []);
+        setAdvances(data.advances || []);
       }
     } catch (err) {
       console.error("Failed to fetch expenses:", err);
@@ -2570,7 +3939,7 @@ export function ESSExpenses({ user, triggerToast }: ESSProps) {
   // Handle Column Sorting
   const handleSort = (column: string) => {
     if (sortColumn === column) {
-      setSortDirection(prev => (prev === "asc" ? "desc" : "asc"));
+      setSortDirection((prev) => (prev === "asc" ? "desc" : "asc"));
     } else {
       setSortColumn(column);
       setSortDirection("desc");
@@ -2579,69 +3948,89 @@ export function ESSExpenses({ user, triggerToast }: ESSProps) {
 
   // Filter Claims
   const filteredClaims = useMemo(() => {
-    return claims.filter((claim) => {
-      if (categoryFilter && claim.category !== categoryFilter) return false;
-      if (statusFilter) {
-        if (statusFilter === "Approved") {
-          if (claim.status !== "Approved" && claim.status !== "Reimbursed") return false;
-        } else if (claim.status !== statusFilter) {
-          return false;
+    return claims
+      .filter((claim) => {
+        if (categoryFilter && claim.category !== categoryFilter) return false;
+        if (statusFilter) {
+          if (statusFilter === "Approved") {
+            if (claim.status !== "Approved" && claim.status !== "Reimbursed")
+              return false;
+          } else if (
+            statusFilter === "Pending"
+              ? !pendingStatuses.includes(claim.status)
+              : claim.status !== statusFilter
+          ) {
+            return false;
+          }
         }
-      }
-      if (employeeFilter && claim.employeeName !== employeeFilter) return false;
+        if (employeeFilter && claim.employeeName !== employeeFilter)
+          return false;
 
-      const rawDate = claim.dateIncurred || claim.createdAt;
-      if (rawDate) {
-        const claimDateStr = new Date(rawDate).toISOString().split("T")[0];
-        if (startDateFilter && claimDateStr < startDateFilter) return false;
-        if (endDateFilter && claimDateStr > endDateFilter) return false;
-      }
+        const rawDate = claim.dateIncurred || claim.createdAt;
+        if (rawDate) {
+          const claimDateStr = new Date(rawDate).toISOString().split("T")[0];
+          if (startDateFilter && claimDateStr < startDateFilter) return false;
+          if (endDateFilter && claimDateStr > endDateFilter) return false;
+        }
 
-      const claimAmt = Number(claim.amount) || 0;
-      if (minAmountFilter && claimAmt < Number(minAmountFilter)) return false;
-      if (maxAmountFilter && claimAmt > Number(maxAmountFilter)) return false;
+        const claimAmt = Number(claim.amount) || 0;
+        if (minAmountFilter && claimAmt < Number(minAmountFilter)) return false;
+        if (maxAmountFilter && claimAmt > Number(maxAmountFilter)) return false;
 
-      if (searchQuery) {
-        const q = searchQuery.toLowerCase();
-        return (
-          claim.id?.toLowerCase().includes(q) ||
-          claim.category?.toLowerCase().includes(q) ||
-          claim.vendorName?.toLowerCase().includes(q) ||
-          claim.employeeName?.toLowerCase().includes(q) ||
-          claim.description?.toLowerCase().includes(q) ||
-          claim.paymentMode?.toLowerCase().includes(q)
-        );
-      }
-      return true;
-    }).sort((a, b) => {
-      let valA: any = "";
-      let valB: any = "";
+        if (searchQuery) {
+          const q = searchQuery.toLowerCase();
+          return (
+            claim.id?.toLowerCase().includes(q) ||
+            claim.category?.toLowerCase().includes(q) ||
+            claim.vendorName?.toLowerCase().includes(q) ||
+            claim.employeeName?.toLowerCase().includes(q) ||
+            claim.description?.toLowerCase().includes(q) ||
+            claim.paymentMode?.toLowerCase().includes(q)
+          );
+        }
+        return true;
+      })
+      .sort((a, b) => {
+        let valA: any = "";
+        let valB: any = "";
 
-      if (sortColumn === "date") {
-        valA = new Date(a.dateIncurred || a.createdAt).getTime();
-        valB = new Date(b.dateIncurred || b.createdAt).getTime();
-      } else if (sortColumn === "employee") {
-        valA = (a.employeeName || "").toLowerCase();
-        valB = (b.employeeName || "").toLowerCase();
-      } else if (sortColumn === "category") {
-        valA = (a.category || "").toLowerCase();
-        valB = (b.category || "").toLowerCase();
-      } else if (sortColumn === "amount") {
-        valA = Number(a.amount) || 0;
-        valB = Number(b.amount) || 0;
-      } else if (sortColumn === "netPayable") {
-        valA = Number(a.netPayable || a.amount) || 0;
-        valB = Number(b.netPayable || b.amount) || 0;
-      } else if (sortColumn === "status") {
-        valA = (a.status || "Pending").toLowerCase();
-        valB = (b.status || "Pending").toLowerCase();
-      }
+        if (sortColumn === "date") {
+          valA = new Date(a.dateIncurred || a.createdAt).getTime();
+          valB = new Date(b.dateIncurred || b.createdAt).getTime();
+        } else if (sortColumn === "employee") {
+          valA = (a.employeeName || "").toLowerCase();
+          valB = (b.employeeName || "").toLowerCase();
+        } else if (sortColumn === "category") {
+          valA = (a.category || "").toLowerCase();
+          valB = (b.category || "").toLowerCase();
+        } else if (sortColumn === "amount") {
+          valA = Number(a.amount) || 0;
+          valB = Number(b.amount) || 0;
+        } else if (sortColumn === "netPayable") {
+          valA = Number(a.netPayable || a.amount) || 0;
+          valB = Number(b.netPayable || b.amount) || 0;
+        } else if (sortColumn === "status") {
+          valA = (a.status || "Pending").toLowerCase();
+          valB = (b.status || "Pending").toLowerCase();
+        }
 
-      if (valA < valB) return sortDirection === "asc" ? -1 : 1;
-      if (valA > valB) return sortDirection === "asc" ? 1 : -1;
-      return 0;
-    });
-  }, [claims, categoryFilter, statusFilter, employeeFilter, startDateFilter, endDateFilter, minAmountFilter, maxAmountFilter, searchQuery, sortColumn, sortDirection]);
+        if (valA < valB) return sortDirection === "asc" ? -1 : 1;
+        if (valA > valB) return sortDirection === "asc" ? 1 : -1;
+        return 0;
+      });
+  }, [
+    claims,
+    categoryFilter,
+    statusFilter,
+    employeeFilter,
+    startDateFilter,
+    endDateFilter,
+    minAmountFilter,
+    maxAmountFilter,
+    searchQuery,
+    sortColumn,
+    sortDirection,
+  ]);
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -2684,7 +4073,10 @@ export function ESSExpenses({ user, triggerToast }: ESSProps) {
       return;
     }
 
-    const finalCategory = category === "Other" ? (customCategory.trim() || "Other Expense") : category;
+    const finalCategory =
+      category === "Other"
+        ? customCategory.trim() || "Other Expense"
+        : category;
     const parsedAdvance = Number(advanceAmount) || 0;
     const computedNet = Math.max(0, finalAmount - parsedAdvance);
 
@@ -2702,6 +4094,7 @@ export function ESSExpenses({ user, triggerToast }: ESSProps) {
           paymentMode,
           description: description.trim(),
           advanceAmount: parsedAdvance,
+          advanceId: selectedAdvanceId || undefined,
           netPayable: computedNet,
           receiptUrl,
         }),
@@ -2720,6 +4113,7 @@ export function ESSExpenses({ user, triggerToast }: ESSProps) {
         setDescription("");
         setAdvanceAmount("0");
         setReceiptUrl("");
+        setSelectedAdvanceId("");
         fetchClaims();
       } else {
         alert("Failed to submit claim: " + (data.error || "Unknown error"));
@@ -2731,6 +4125,17 @@ export function ESSExpenses({ user, triggerToast }: ESSProps) {
       setSubmitting(false);
     }
   };
+
+  const selectedAdvance = advances.find(
+    (advance) => String(advance.id) === selectedAdvanceId,
+  );
+  const selectedAdvanceBalance = selectedAdvance
+    ? Math.max(
+        0,
+        Number(selectedAdvance.amount || 0) -
+          Number(selectedAdvance.recoveredAmount || 0),
+      )
+    : 0;
 
   const handleUpdateStatus = async (claimId: string, newStatus: string) => {
     try {
@@ -2763,16 +4168,18 @@ export function ESSExpenses({ user, triggerToast }: ESSProps) {
     const exportData = filteredClaims.map((c, idx) => ({
       "S.No": idx + 1,
       "Claim ID": c.id || "",
-      "Employee": c.employeeName || "Employee",
-      "Date Incurred": new Date(c.dateIncurred || c.createdAt).toLocaleDateString("en-IN"),
-      "Category": c.category || "",
+      Employee: c.employeeName || "Employee",
+      "Date Incurred": new Date(
+        c.dateIncurred || c.createdAt,
+      ).toLocaleDateString("en-IN"),
+      Category: c.category || "",
       "Merchant / Vendor": c.vendorName || "N/A",
       "Payment Mode": c.paymentMode || "Cash",
       "Claim Amount (₹)": c.amount || 0,
       "Advance Received (₹)": c.advanceAmount || 0,
       "Net Payable (₹)": c.netPayable || c.amount || 0,
       "Business Purpose": c.description || "",
-      "Status": c.status || "Pending",
+      Status: c.status || "Pending",
       "Approved By": c.approvedBy || "N/A",
       "Receipt Link": c.receiptUrl || "None",
     }));
@@ -2784,9 +4191,23 @@ export function ESSExpenses({ user, triggerToast }: ESSProps) {
     XLSX.writeFile(workbook, `Expense_Claims_${dateStr}.xlsx`);
   };
 
-  const totalClaimed = claims.reduce((acc, curr) => acc + (Number(curr.amount) || 0), 0);
-  const pendingAmount = claims.filter(c => c.status === "Pending").reduce((acc, curr) => acc + (Number(curr.netPayable || curr.amount) || 0), 0);
-  const approvedAmount = claims.filter(c => c.status === "Approved" || c.status === "Reimbursed").reduce((acc, curr) => acc + (Number(curr.netPayable || curr.amount) || 0), 0);
+  const totalClaimed = claims.reduce(
+    (acc, curr) => acc + (Number(curr.amount) || 0),
+    0,
+  );
+  const pendingClaims = claims.filter((c) =>
+    pendingStatuses.includes(c.status),
+  );
+  const pendingAmount = pendingClaims.reduce(
+    (acc, curr) => acc + (Number(curr.netPayable || curr.amount) || 0),
+    0,
+  );
+  const approvedAmount = claims
+    .filter((c) => c.status === "Approved" || c.status === "Reimbursed")
+    .reduce(
+      (acc, curr) => acc + (Number(curr.netPayable || curr.amount) || 0),
+      0,
+    );
 
   const resetAllFilters = () => {
     setStartDateFilter("");
@@ -2800,15 +4221,31 @@ export function ESSExpenses({ user, triggerToast }: ESSProps) {
     setActiveFilterDropdown(null);
   };
 
-  const hasActiveFilters = Boolean(startDateFilter || endDateFilter || categoryFilter || statusFilter || employeeFilter || minAmountFilter || maxAmountFilter || searchQuery);
+  const hasActiveFilters = Boolean(
+    startDateFilter ||
+    endDateFilter ||
+    categoryFilter ||
+    statusFilter ||
+    employeeFilter ||
+    minAmountFilter ||
+    maxAmountFilter ||
+    searchQuery,
+  );
 
   return (
-    <div className="space-y-6 animate-fadeIn text-slate-800" onClick={() => activeFilterDropdown && setActiveFilterDropdown(null)}>
+    <div
+      className="space-y-6 animate-fadeIn text-slate-800"
+      onClick={() => activeFilterDropdown && setActiveFilterDropdown(null)}
+    >
       {/* Header Bar */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-xl font-black text-slate-800">Expense Claims &amp; Reimbursements</h1>
-          <p className="text-xs text-slate-500 mt-1">Submit bills, track approval status, and manage expense claims.</p>
+          <h1 className="text-xl font-black text-slate-800">
+            Expense Claims &amp; Reimbursements
+          </h1>
+          <p className="text-xs text-slate-500 mt-1">
+            Submit bills, track approval status, and manage expense claims.
+          </p>
         </div>
         <button
           className="bg-amber-600 hover:bg-amber-700 text-white px-4 py-2.5 rounded-xl text-xs font-bold shadow-md transition-all flex items-center gap-2 cursor-pointer"
@@ -2823,19 +4260,30 @@ export function ESSExpenses({ user, triggerToast }: ESSProps) {
         {/* Card 1: Total Claims (Click to view all) */}
         <div
           onClick={() => setStatusFilter("")}
-          className={`bg-white border rounded-2xl p-5 shadow-sm flex items-center justify-between cursor-pointer transition-all hover:shadow-md hover:border-slate-400 active:scale-[0.99] ${statusFilter === "" ? "ring-2 ring-[#714B67] border-transparent bg-slate-50/50" : "border-slate-200"
-            }`}
+          className={`bg-white border rounded-2xl p-5 shadow-sm flex items-center justify-between cursor-pointer transition-all hover:shadow-md hover:border-slate-400 active:scale-[0.99] ${
+            statusFilter === ""
+              ? "ring-2 ring-[#714B67] border-transparent bg-slate-50/50"
+              : "border-slate-200"
+          }`}
           title="Click to show All Expense Claims"
         >
           <div>
             <div className="flex items-center gap-2">
-              <p className="text-[10px] font-black uppercase text-slate-500 tracking-wider">Total Claims</p>
+              <p className="text-[10px] font-black uppercase text-slate-500 tracking-wider">
+                Total Claims
+              </p>
               {statusFilter === "" && (
-                <span className="text-[9px] font-bold bg-[#714B67] text-white px-1.5 py-0.2 rounded">Active Filter</span>
+                <span className="text-[9px] font-bold bg-[#714B67] text-white px-1.5 py-0.2 rounded">
+                  Active Filter
+                </span>
               )}
             </div>
-            <h3 className="text-2xl font-serif font-light text-slate-800 mt-1">₹{totalClaimed.toLocaleString("en-IN")}</h3>
-            <p className="text-[11px] text-slate-500 mt-0.5">{claims.length} Entries Filed</p>
+            <h3 className="text-2xl font-serif font-light text-slate-800 mt-1">
+              ₹{totalClaimed.toLocaleString("en-IN")}
+            </h3>
+            <p className="text-[11px] text-slate-500 mt-0.5">
+              {claims.length} Entries Filed
+            </p>
           </div>
           <div className="w-10 h-10 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center">
             <Coins className="w-5 h-5" />
@@ -2844,20 +4292,33 @@ export function ESSExpenses({ user, triggerToast }: ESSProps) {
 
         {/* Card 2: Pending Approval (Click to filter pending) */}
         <div
-          onClick={() => setStatusFilter(statusFilter === "Pending" ? "" : "Pending")}
-          className={`bg-white border rounded-2xl p-5 shadow-sm flex items-center justify-between cursor-pointer transition-all hover:shadow-md hover:border-amber-400 active:scale-[0.99] ${statusFilter === "Pending" ? "ring-2 ring-amber-500 border-transparent bg-amber-50/30" : "border-slate-200"
-            }`}
+          onClick={() =>
+            setStatusFilter(statusFilter === "Pending" ? "" : "Pending")
+          }
+          className={`bg-white border rounded-2xl p-5 shadow-sm flex items-center justify-between cursor-pointer transition-all hover:shadow-md hover:border-amber-400 active:scale-[0.99] ${
+            statusFilter === "Pending"
+              ? "ring-2 ring-amber-500 border-transparent bg-amber-50/30"
+              : "border-slate-200"
+          }`}
           title="Click to filter by Pending Approval"
         >
           <div>
             <div className="flex items-center gap-2">
-              <p className="text-[10px] font-black uppercase text-amber-600 tracking-wider">Pending Approval</p>
+              <p className="text-[10px] font-black uppercase text-amber-600 tracking-wider">
+                Pending Approval
+              </p>
               {statusFilter === "Pending" && (
-                <span className="text-[9px] font-bold bg-amber-600 text-white px-1.5 py-0.2 rounded">Active Filter</span>
+                <span className="text-[9px] font-bold bg-amber-600 text-white px-1.5 py-0.2 rounded">
+                  Active Filter
+                </span>
               )}
             </div>
-            <h3 className="text-2xl font-serif font-light text-amber-950 mt-1">₹{pendingAmount.toLocaleString("en-IN")}</h3>
-            <p className="text-[11px] text-amber-700 mt-0.5">{claims.filter(c => c.status === "Pending").length} Claims Awaiting Review</p>
+            <h3 className="text-2xl font-serif font-light text-amber-950 mt-1">
+              ₹{pendingAmount.toLocaleString("en-IN")}
+            </h3>
+            <p className="text-[11px] text-amber-700 mt-0.5">
+              {pendingClaims.length} Claims Awaiting Review
+            </p>
           </div>
           <div className="w-10 h-10 rounded-2xl bg-amber-100 text-amber-700 flex items-center justify-center">
             <Clock className="w-5 h-5" />
@@ -2866,20 +4327,38 @@ export function ESSExpenses({ user, triggerToast }: ESSProps) {
 
         {/* Card 3: Approved / Reimbursed (Click to filter approved) */}
         <div
-          onClick={() => setStatusFilter(statusFilter === "Approved" ? "" : "Approved")}
-          className={`bg-white border rounded-2xl p-5 shadow-sm flex items-center justify-between cursor-pointer transition-all hover:shadow-md hover:border-emerald-400 active:scale-[0.99] ${statusFilter === "Approved" ? "ring-2 ring-emerald-500 border-transparent bg-emerald-50/30" : "border-slate-200"
-            }`}
+          onClick={() =>
+            setStatusFilter(statusFilter === "Approved" ? "" : "Approved")
+          }
+          className={`bg-white border rounded-2xl p-5 shadow-sm flex items-center justify-between cursor-pointer transition-all hover:shadow-md hover:border-emerald-400 active:scale-[0.99] ${
+            statusFilter === "Approved"
+              ? "ring-2 ring-emerald-500 border-transparent bg-emerald-50/30"
+              : "border-slate-200"
+          }`}
           title="Click to filter by Approved / Reimbursed"
         >
           <div>
             <div className="flex items-center gap-2">
-              <p className="text-[10px] font-black uppercase text-emerald-600 tracking-wider">Approved / Reimbursed</p>
+              <p className="text-[10px] font-black uppercase text-emerald-600 tracking-wider">
+                Approved / Reimbursed
+              </p>
               {statusFilter === "Approved" && (
-                <span className="text-[9px] font-bold bg-emerald-600 text-white px-1.5 py-0.2 rounded">Active Filter</span>
+                <span className="text-[9px] font-bold bg-emerald-600 text-white px-1.5 py-0.2 rounded">
+                  Active Filter
+                </span>
               )}
             </div>
-            <h3 className="text-2xl font-serif font-light text-emerald-950 mt-1">₹{approvedAmount.toLocaleString("en-IN")}</h3>
-            <p className="text-[11px] text-emerald-700 mt-0.5">{claims.filter(c => c.status === "Approved" || c.status === "Reimbursed").length} Approved Claims</p>
+            <h3 className="text-2xl font-serif font-light text-emerald-950 mt-1">
+              ₹{approvedAmount.toLocaleString("en-IN")}
+            </h3>
+            <p className="text-[11px] text-emerald-700 mt-0.5">
+              {
+                claims.filter(
+                  (c) => c.status === "Approved" || c.status === "Reimbursed",
+                ).length
+              }{" "}
+              Approved Claims
+            </p>
           </div>
           <div className="w-10 h-10 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
             <CheckCircle2 className="w-5 h-5" />
@@ -2900,7 +4379,12 @@ export function ESSExpenses({ user, triggerToast }: ESSProps) {
             onChange={(e) => setSearchQuery(e.target.value)}
           />
           {searchQuery && (
-            <button onClick={() => setSearchQuery("")} className="text-slate-400 hover:text-slate-600 text-xs">✕</button>
+            <button
+              onClick={() => setSearchQuery("")}
+              className="text-slate-400 hover:text-slate-600 text-xs"
+            >
+              ✕
+            </button>
           )}
         </div>
 
@@ -2938,7 +4422,9 @@ export function ESSExpenses({ user, triggerToast }: ESSProps) {
         <div className="p-4 border-b border-slate-100 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <h3 className="text-xs font-black tracking-wider text-slate-700">
-              {isOwnerOrAdmin ? "All Expense Claims (Review & Approvals)" : "My Submitted Claims"}
+              {isOwnerOrAdmin
+                ? "All Expense Claims (Review & Approvals)"
+                : "My Submitted Claims"}
             </h3>
             {statusFilter && (
               <span className="text-[10px] font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">
@@ -2946,14 +4432,15 @@ export function ESSExpenses({ user, triggerToast }: ESSProps) {
               </span>
             )}
           </div>
-          <span className="text-xs font-bold text-slate-500">{filteredClaims.length} records</span>
+          <span className="text-xs font-bold text-slate-500">
+            {filteredClaims.length} records
+          </span>
         </div>
 
         <div className="overflow-x-auto min-h-[380px]">
           <table className="w-full text-left border-collapse min-w-max">
             <thead className="bg-slate-100/90 border-b border-slate-200 select-none">
               <tr className="text-[11px] font-bold text-slate-700 tracking-wide">
-
                 {/* Column 1: Date Incurred Filter & Sort */}
                 <th className="py-3 px-3 relative">
                   <div className="flex items-center justify-between gap-1">
@@ -2961,13 +4448,17 @@ export function ESSExpenses({ user, triggerToast }: ESSProps) {
                       onClick={() => handleSort("date")}
                       className="cursor-pointer hover:text-slate-900 flex items-center gap-1"
                     >
-                      Date Incurred {sortColumn === "date" && (sortDirection === "asc" ? "▲" : "▼")}
+                      Date Incurred{" "}
+                      {sortColumn === "date" &&
+                        (sortDirection === "asc" ? "▲" : "▼")}
                     </span>
                     <button
                       type="button"
                       onClick={(e) => {
                         e.stopPropagation();
-                        setActiveFilterDropdown(activeFilterDropdown === "date" ? null : "date");
+                        setActiveFilterDropdown(
+                          activeFilterDropdown === "date" ? null : "date",
+                        );
                       }}
                       className={`p-1 rounded hover:bg-slate-200 transition-colors ${startDateFilter || endDateFilter ? "text-amber-600 font-black bg-amber-50" : "text-slate-400"}`}
                       title="Filter by Date Range"
@@ -2982,9 +4473,13 @@ export function ESSExpenses({ user, triggerToast }: ESSProps) {
                       onClick={(e) => e.stopPropagation()}
                       className="absolute left-2 top-full mt-1 bg-white border border-slate-200 rounded-xl shadow-xl p-3 z-50 w-64 space-y-2.5 text-xs text-slate-700"
                     >
-                      <div className="font-bold text-[10px] uppercase text-slate-400 font-mono">Date Range Filter</div>
+                      <div className="font-bold text-[10px] uppercase text-slate-400 font-mono">
+                        Date Range Filter
+                      </div>
                       <div>
-                        <label className="text-[10px] font-bold text-slate-500">From Date:</label>
+                        <label className="text-[10px] font-bold text-slate-500">
+                          From Date:
+                        </label>
                         <input
                           type="date"
                           value={startDateFilter}
@@ -2993,7 +4488,9 @@ export function ESSExpenses({ user, triggerToast }: ESSProps) {
                         />
                       </div>
                       <div>
-                        <label className="text-[10px] font-bold text-slate-500">To Date:</label>
+                        <label className="text-[10px] font-bold text-slate-500">
+                          To Date:
+                        </label>
                         <input
                           type="date"
                           value={endDateFilter}
@@ -3003,7 +4500,10 @@ export function ESSExpenses({ user, triggerToast }: ESSProps) {
                       </div>
                       <div className="flex justify-between items-center pt-1 border-t border-slate-100">
                         <button
-                          onClick={() => { setStartDateFilter(""); setEndDateFilter(""); }}
+                          onClick={() => {
+                            setStartDateFilter("");
+                            setEndDateFilter("");
+                          }}
                           className="text-[10px] text-rose-600 font-bold hover:underline"
                         >
                           Clear
@@ -3027,13 +4527,19 @@ export function ESSExpenses({ user, triggerToast }: ESSProps) {
                         onClick={() => handleSort("employee")}
                         className="cursor-pointer hover:text-slate-900 flex items-center gap-1"
                       >
-                        Submitted By {sortColumn === "employee" && (sortDirection === "asc" ? "▲" : "▼")}
+                        Submitted By{" "}
+                        {sortColumn === "employee" &&
+                          (sortDirection === "asc" ? "▲" : "▼")}
                       </span>
                       <button
                         type="button"
                         onClick={(e) => {
                           e.stopPropagation();
-                          setActiveFilterDropdown(activeFilterDropdown === "employee" ? null : "employee");
+                          setActiveFilterDropdown(
+                            activeFilterDropdown === "employee"
+                              ? null
+                              : "employee",
+                          );
                         }}
                         className={`p-1 rounded hover:bg-slate-200 transition-colors ${employeeFilter ? "text-amber-600 font-black bg-amber-50" : "text-slate-400"}`}
                         title="Filter by Employee"
@@ -3048,7 +4554,9 @@ export function ESSExpenses({ user, triggerToast }: ESSProps) {
                         onClick={(e) => e.stopPropagation()}
                         className="absolute left-2 top-full mt-1 bg-white border border-slate-200 rounded-xl shadow-xl p-3 z-50 w-56 space-y-2 text-xs text-slate-700"
                       >
-                        <div className="font-bold text-[10px] uppercase text-slate-400 font-mono">Select Employee</div>
+                        <div className="font-bold text-[10px] uppercase text-slate-400 font-mono">
+                          Select Employee
+                        </div>
                         <select
                           value={employeeFilter}
                           onChange={(e) => {
@@ -3059,12 +4567,17 @@ export function ESSExpenses({ user, triggerToast }: ESSProps) {
                         >
                           <option value="">(All Employees)</option>
                           {uniqueEmployees.map((emp) => (
-                            <option key={emp} value={emp}>{emp}</option>
+                            <option key={emp} value={emp}>
+                              {emp}
+                            </option>
                           ))}
                         </select>
                         {employeeFilter && (
                           <button
-                            onClick={() => { setEmployeeFilter(""); setActiveFilterDropdown(null); }}
+                            onClick={() => {
+                              setEmployeeFilter("");
+                              setActiveFilterDropdown(null);
+                            }}
                             className="text-[10px] text-rose-600 font-bold hover:underline block"
                           >
                             Clear Filter
@@ -3082,13 +4595,19 @@ export function ESSExpenses({ user, triggerToast }: ESSProps) {
                       onClick={() => handleSort("category")}
                       className="cursor-pointer hover:text-slate-900 flex items-center gap-1"
                     >
-                      Category &amp; Merchant {sortColumn === "category" && (sortDirection === "asc" ? "▲" : "▼")}
+                      Category &amp; Merchant{" "}
+                      {sortColumn === "category" &&
+                        (sortDirection === "asc" ? "▲" : "▼")}
                     </span>
                     <button
                       type="button"
                       onClick={(e) => {
                         e.stopPropagation();
-                        setActiveFilterDropdown(activeFilterDropdown === "category" ? null : "category");
+                        setActiveFilterDropdown(
+                          activeFilterDropdown === "category"
+                            ? null
+                            : "category",
+                        );
                       }}
                       className={`p-1 rounded hover:bg-slate-200 transition-colors ${categoryFilter ? "text-amber-600 font-black bg-amber-50" : "text-slate-400"}`}
                       title="Filter by Category"
@@ -3103,7 +4622,9 @@ export function ESSExpenses({ user, triggerToast }: ESSProps) {
                       onClick={(e) => e.stopPropagation()}
                       className="absolute left-2 top-full mt-1 bg-white border border-slate-200 rounded-xl shadow-xl p-3 z-50 w-64 space-y-2 text-xs text-slate-700"
                     >
-                      <div className="font-bold text-[10px] uppercase text-slate-400 font-mono">Select Category</div>
+                      <div className="font-bold text-[10px] uppercase text-slate-400 font-mono">
+                        Select Category
+                      </div>
                       <select
                         value={categoryFilter}
                         onChange={(e) => {
@@ -3114,12 +4635,17 @@ export function ESSExpenses({ user, triggerToast }: ESSProps) {
                       >
                         <option value="">(All Categories)</option>
                         {uniqueCategories.map((cat) => (
-                          <option key={cat} value={cat}>{cat}</option>
+                          <option key={cat} value={cat}>
+                            {cat}
+                          </option>
                         ))}
                       </select>
                       {categoryFilter && (
                         <button
-                          onClick={() => { setCategoryFilter(""); setActiveFilterDropdown(null); }}
+                          onClick={() => {
+                            setCategoryFilter("");
+                            setActiveFilterDropdown(null);
+                          }}
                           className="text-[10px] text-rose-600 font-bold hover:underline block"
                         >
                           Clear Filter
@@ -3140,13 +4666,17 @@ export function ESSExpenses({ user, triggerToast }: ESSProps) {
                       onClick={() => handleSort("amount")}
                       className="cursor-pointer hover:text-slate-900 flex items-center gap-1"
                     >
-                      Claim Amount {sortColumn === "amount" && (sortDirection === "asc" ? "▲" : "▼")}
+                      Claim Amount{" "}
+                      {sortColumn === "amount" &&
+                        (sortDirection === "asc" ? "▲" : "▼")}
                     </span>
                     <button
                       type="button"
                       onClick={(e) => {
                         e.stopPropagation();
-                        setActiveFilterDropdown(activeFilterDropdown === "amount" ? null : "amount");
+                        setActiveFilterDropdown(
+                          activeFilterDropdown === "amount" ? null : "amount",
+                        );
                       }}
                       className={`p-1 rounded hover:bg-slate-200 transition-colors ${minAmountFilter || maxAmountFilter ? "text-amber-600 font-black bg-amber-50" : "text-slate-400"}`}
                       title="Filter Amount Range"
@@ -3161,10 +4691,14 @@ export function ESSExpenses({ user, triggerToast }: ESSProps) {
                       onClick={(e) => e.stopPropagation()}
                       className="absolute right-0 top-full mt-1 bg-white border border-slate-200 rounded-xl shadow-xl p-3 z-50 w-52 space-y-2 text-xs text-slate-700"
                     >
-                      <div className="font-bold text-[10px] uppercase text-slate-400 font-mono">Amount Range (₹)</div>
+                      <div className="font-bold text-[10px] uppercase text-slate-400 font-mono">
+                        Amount Range (₹)
+                      </div>
                       <div className="grid grid-cols-2 gap-2">
                         <div>
-                          <label className="text-[9px] text-slate-400 font-bold">Min ₹</label>
+                          <label className="text-[9px] text-slate-400 font-bold">
+                            Min ₹
+                          </label>
                           <input
                             type="number"
                             placeholder="Min"
@@ -3174,7 +4708,9 @@ export function ESSExpenses({ user, triggerToast }: ESSProps) {
                           />
                         </div>
                         <div>
-                          <label className="text-[9px] text-slate-400 font-bold">Max ₹</label>
+                          <label className="text-[9px] text-slate-400 font-bold">
+                            Max ₹
+                          </label>
                           <input
                             type="number"
                             placeholder="Max"
@@ -3186,7 +4722,10 @@ export function ESSExpenses({ user, triggerToast }: ESSProps) {
                       </div>
                       <div className="flex justify-between items-center pt-1 border-t border-slate-100">
                         <button
-                          onClick={() => { setMinAmountFilter(""); setMaxAmountFilter(""); }}
+                          onClick={() => {
+                            setMinAmountFilter("");
+                            setMaxAmountFilter("");
+                          }}
                           className="text-[10px] text-rose-600 font-bold hover:underline"
                         >
                           Clear
@@ -3208,7 +4747,9 @@ export function ESSExpenses({ user, triggerToast }: ESSProps) {
                     onClick={() => handleSort("netPayable")}
                     className="cursor-pointer hover:text-slate-900 flex items-center gap-1"
                   >
-                    Net Payable {sortColumn === "netPayable" && (sortDirection === "asc" ? "▲" : "▼")}
+                    Net Payable{" "}
+                    {sortColumn === "netPayable" &&
+                      (sortDirection === "asc" ? "▲" : "▼")}
                   </span>
                 </th>
 
@@ -3221,13 +4762,17 @@ export function ESSExpenses({ user, triggerToast }: ESSProps) {
                       onClick={() => handleSort("status")}
                       className="cursor-pointer hover:text-slate-900 flex items-center gap-1"
                     >
-                      Status {sortColumn === "status" && (sortDirection === "asc" ? "▲" : "▼")}
+                      Status{" "}
+                      {sortColumn === "status" &&
+                        (sortDirection === "asc" ? "▲" : "▼")}
                     </span>
                     <button
                       type="button"
                       onClick={(e) => {
                         e.stopPropagation();
-                        setActiveFilterDropdown(activeFilterDropdown === "status" ? null : "status");
+                        setActiveFilterDropdown(
+                          activeFilterDropdown === "status" ? null : "status",
+                        );
                       }}
                       className={`p-1 rounded hover:bg-slate-200 transition-colors ${statusFilter ? "text-amber-600 font-black bg-amber-50" : "text-slate-400"}`}
                       title="Filter by Status"
@@ -3242,7 +4787,9 @@ export function ESSExpenses({ user, triggerToast }: ESSProps) {
                       onClick={(e) => e.stopPropagation()}
                       className="absolute right-0 top-full mt-1 bg-white border border-slate-200 rounded-xl shadow-xl p-3 z-50 w-48 space-y-2 text-xs text-slate-700"
                     >
-                      <div className="font-bold text-[10px] uppercase text-slate-400 font-mono">Select Status</div>
+                      <div className="font-bold text-[10px] uppercase text-slate-400 font-mono">
+                        Select Status
+                      </div>
                       <select
                         value={statusFilter}
                         onChange={(e) => {
@@ -3259,7 +4806,10 @@ export function ESSExpenses({ user, triggerToast }: ESSProps) {
                       </select>
                       {statusFilter && (
                         <button
-                          onClick={() => { setStatusFilter(""); setActiveFilterDropdown(null); }}
+                          onClick={() => {
+                            setStatusFilter("");
+                            setActiveFilterDropdown(null);
+                          }}
                           className="text-[10px] text-rose-600 font-bold hover:underline block"
                         >
                           Clear Filter
@@ -3269,16 +4819,31 @@ export function ESSExpenses({ user, triggerToast }: ESSProps) {
                   )}
                 </th>
 
-                {(isOwnerOrAdmin || claims.some(c => c.employee && String(c.employee) !== String(user?.id))) && <th className="py-3 px-3 text-center">Actions</th>}
+                {(isOwnerOrAdmin ||
+                  claims.some(
+                    (c) =>
+                      c.employee && String(c.employee) !== String(user?.id),
+                  )) && <th className="py-3 px-3 text-center">Actions</th>}
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 text-xs font-semibold text-slate-700">
               {filteredClaims.map((claim) => (
-                <tr key={claim.id} className="hover:bg-slate-50/70 transition-colors">
+                <tr
+                  key={claim.id}
+                  className="hover:bg-slate-50/70 transition-colors"
+                >
                   <td className="py-3 px-4 text-slate-600">
                     <div className="flex items-center gap-1.5">
                       <Calendar className="w-3.5 h-3.5 text-slate-400" />
-                      <span>{new Date(claim.dateIncurred || claim.createdAt).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}</span>
+                      <span>
+                        {new Date(
+                          claim.dateIncurred || claim.createdAt,
+                        ).toLocaleDateString("en-IN", {
+                          day: "2-digit",
+                          month: "short",
+                          year: "numeric",
+                        })}
+                      </span>
                     </div>
                   </td>
 
@@ -3289,13 +4854,20 @@ export function ESSExpenses({ user, triggerToast }: ESSProps) {
                   )}
 
                   <td className="py-3 px-4">
-                    <div className="font-bold text-slate-800">{claim.category}</div>
+                    <div className="font-bold text-slate-800">
+                      {claim.category}
+                    </div>
                     {claim.vendorName && (
-                      <div className="text-[10px] text-slate-400 font-medium">Merchant: {claim.vendorName}</div>
+                      <div className="text-[10px] text-slate-400 font-medium">
+                        Merchant: {claim.vendorName}
+                      </div>
                     )}
                   </td>
 
-                  <td className="py-3 px-4 max-w-xs truncate text-slate-600 font-medium" title={claim.description}>
+                  <td
+                    className="py-3 px-4 max-w-xs truncate text-slate-600 font-medium"
+                    title={claim.description}
+                  >
                     {claim.description || "N/A"}
                   </td>
 
@@ -3304,7 +4876,10 @@ export function ESSExpenses({ user, triggerToast }: ESSProps) {
                   </td>
 
                   <td className="py-3 px-4 font-mono font-black text-emerald-700">
-                    ₹{(Number(claim.netPayable || claim.amount) || 0).toLocaleString("en-IN")}
+                    ₹
+                    {(
+                      Number(claim.netPayable || claim.amount) || 0
+                    ).toLocaleString("en-IN")}
                   </td>
 
                   <td className="py-3 px-4">
@@ -3319,7 +4894,9 @@ export function ESSExpenses({ user, triggerToast }: ESSProps) {
                         <ExternalLink className="w-2.5 h-2.5 opacity-70" />
                       </button>
                     ) : (
-                      <span className="text-[10px] text-slate-400 italic">No File</span>
+                      <span className="text-[10px] text-slate-400 italic">
+                        No File
+                      </span>
                     )}
                   </td>
 
@@ -3329,7 +4906,8 @@ export function ESSExpenses({ user, triggerToast }: ESSProps) {
                       let badge = "bg-amber-50 text-amber-700 border-amber-200";
                       let icon = "⏳";
                       if (st === "Approved") {
-                        badge = "bg-emerald-50 text-emerald-700 border-emerald-200";
+                        badge =
+                          "bg-emerald-50 text-emerald-700 border-emerald-200";
                         icon = "✅";
                       } else if (st === "Rejected") {
                         badge = "bg-rose-50 text-rose-700 border-rose-200";
@@ -3339,36 +4917,49 @@ export function ESSExpenses({ user, triggerToast }: ESSProps) {
                         icon = "💸";
                       }
                       return (
-                        <span className={`px-2.5 py-1 rounded-lg border text-[10px] font-black tracking-wide inline-flex items-center gap-1 ${badge}`}>
+                        <span
+                          className={`px-2.5 py-1 rounded-lg border text-[10px] font-black tracking-wide inline-flex items-center gap-1 ${badge}`}
+                        >
                           <span>{icon}</span> {st}
                         </span>
                       );
                     })()}
                   </td>
 
-                  {(isOwnerOrAdmin || (claim.employee && String(claim.employee) !== String(user?.id))) && (
+                  {(isOwnerOrAdmin ||
+                    (claim.employee &&
+                      String(claim.employee) !== String(user?.id))) && (
                     <td className="py-3 px-4 text-center">
                       <div className="flex items-center justify-center gap-1.5">
                         {claim.receiptUrl && (
                           <button
-                            onClick={() => setSelectedReceiptUrl(claim.receiptUrl)}
+                            onClick={() =>
+                              setSelectedReceiptUrl(claim.receiptUrl)
+                            }
                             className="px-2 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 text-[10px] font-bold rounded-lg transition-all flex items-center gap-1 cursor-pointer"
                             title="View Attached Receipt Document"
                           >
-                            <Paperclip className="w-3 h-3 text-indigo-600" /> Doc
+                            <Paperclip className="w-3 h-3 text-indigo-600" />{" "}
+                            Doc
                           </button>
                         )}
-                        {claim.status === "Pending" ? (
+                        {claim.status === "Pending" ||
+                        (isOwner &&
+                          claim.status === "Pending Owner Approval") ? (
                           <>
                             <button
-                              onClick={() => handleUpdateStatus(claim.id, "Approved")}
+                              onClick={() =>
+                                handleUpdateStatus(claim.id, "Approved")
+                              }
                               className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-black rounded-lg shadow-xs transition-all flex items-center gap-1 cursor-pointer"
                               title="Approve Claim"
                             >
                               <Check className="w-3 h-3" /> Approve
                             </button>
                             <button
-                              onClick={() => handleUpdateStatus(claim.id, "Rejected")}
+                              onClick={() =>
+                                handleUpdateStatus(claim.id, "Rejected")
+                              }
                               className="px-2.5 py-1 bg-rose-600 hover:bg-rose-700 text-white text-[10px] font-black rounded-lg shadow-xs transition-all flex items-center gap-1 cursor-pointer"
                               title="Reject Claim"
                             >
@@ -3377,7 +4968,9 @@ export function ESSExpenses({ user, triggerToast }: ESSProps) {
                           </>
                         ) : (
                           <span className="text-[10px] font-bold text-slate-400">
-                            {claim.approvedBy ? `By ${claim.approvedBy}` : "Processed"}
+                            {claim.approvedBy
+                              ? `By ${claim.approvedBy}`
+                              : "Processed"}
                           </span>
                         )}
                       </div>
@@ -3388,7 +4981,10 @@ export function ESSExpenses({ user, triggerToast }: ESSProps) {
 
               {filteredClaims.length === 0 && !loading && (
                 <tr>
-                  <td colSpan={isOwnerOrAdmin ? 9 : 8} className="text-center py-12 text-slate-400 text-xs">
+                  <td
+                    colSpan={isOwnerOrAdmin ? 9 : 8}
+                    className="text-center py-12 text-slate-400 text-xs"
+                  >
                     No expense claims match the selected filters.
                   </td>
                 </tr>
@@ -3409,8 +5005,12 @@ export function ESSExpenses({ user, triggerToast }: ESSProps) {
                   <Coins className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-bold tracking-wide">File Expense Reimbursement Claim</h3>
-                  <p className="text-[11px] text-amber-200 font-medium">Fill out the receipt details below for manager approval.</p>
+                  <h3 className="text-sm font-bold tracking-wide">
+                    File Expense Reimbursement Claim
+                  </h3>
+                  <p className="text-[11px] text-amber-200 font-medium">
+                    Fill out the receipt details below for manager approval.
+                  </p>
                 </div>
               </div>
               <button
@@ -3423,8 +5023,10 @@ export function ESSExpenses({ user, triggerToast }: ESSProps) {
             </div>
 
             {/* Modal Form */}
-            <form onSubmit={handleSubmitClaim} className="p-6 space-y-4 max-h-[80vh] overflow-y-auto custom-scrollbar">
-
+            <form
+              onSubmit={handleSubmitClaim}
+              className="p-6 space-y-4 max-h-[80vh] overflow-y-auto custom-scrollbar"
+            >
               {/* Category & Date Grid */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                 <div>
@@ -3436,18 +5038,43 @@ export function ESSExpenses({ user, triggerToast }: ESSProps) {
                     onChange={(e) => setCategory(e.target.value)}
                     className="w-full text-xs p-3 border-2 border-slate-200 focus:border-amber-500 rounded-xl bg-slate-50 focus:bg-white font-bold text-slate-800 focus:outline-none transition-all"
                   >
-                    <option value="Field Visit / Site Travel">🗺️ Field Visit / Site Travel (Local Conveyance, Toll, Parking)</option>
-                    <option value="Fuel & Mileage Allowance">🛵 Fuel &amp; Mileage Allowance (Personal Vehicle)</option>
-                    <option value="Branch / Client Site Visit">🏢 Branch / Client Site Visit Expense</option>
-                    <option value="Legal & Court Work Expense">⚖️ Legal &amp; Official Court Filing Fee</option>
-                    <option value="Printing, Xerox & Courier">📄 Printing, Xerox &amp; Courier Charges</option>
-                    <option value="Travel / Conveyance">🚗 Travel / Conveyance (Cab, Auto, Bus, Train)</option>
-                    <option value="Food & Meals">🍽️ Food &amp; Meals (Field Duty / Meeting)</option>
-                    <option value="Hotel / Accommodation">🏨 Hotel Stay &amp; Accommodation</option>
-                    <option value="Client Meeting / Entertainment">🤝 Client Meeting / Entertainment</option>
-                    <option value="Mobile / Internet Bill">📱 Mobile &amp; Internet Bill</option>
-                    <option value="Office Supplies & Stationary">📝 Office Supplies &amp; Stationary</option>
-                    <option value="Medical Expenses">🏥 Medical Expenses</option>
+                    <option value="Field Visit / Site Travel">
+                      🗺️ Field Visit / Site Travel (Local Conveyance, Toll,
+                      Parking)
+                    </option>
+                    <option value="Fuel & Mileage Allowance">
+                      🛵 Fuel &amp; Mileage Allowance (Personal Vehicle)
+                    </option>
+                    <option value="Branch / Client Site Visit">
+                      🏢 Branch / Client Site Visit Expense
+                    </option>
+                    <option value="Legal & Court Work Expense">
+                      ⚖️ Legal &amp; Official Court Filing Fee
+                    </option>
+                    <option value="Printing, Xerox & Courier">
+                      📄 Printing, Xerox &amp; Courier Charges
+                    </option>
+                    <option value="Travel / Conveyance">
+                      🚗 Travel / Conveyance (Cab, Auto, Bus, Train)
+                    </option>
+                    <option value="Food & Meals">
+                      🍽️ Food &amp; Meals (Field Duty / Meeting)
+                    </option>
+                    <option value="Hotel / Accommodation">
+                      🏨 Hotel Stay &amp; Accommodation
+                    </option>
+                    <option value="Client Meeting / Entertainment">
+                      🤝 Client Meeting / Entertainment
+                    </option>
+                    <option value="Mobile / Internet Bill">
+                      📱 Mobile &amp; Internet Bill
+                    </option>
+                    <option value="Office Supplies & Stationary">
+                      📝 Office Supplies &amp; Stationary
+                    </option>
+                    <option value="Medical Expenses">
+                      🏥 Medical Expenses
+                    </option>
                     <option value="Other">❓ Other Expense (Custom)</option>
                   </select>
                 </div>
@@ -3469,7 +5096,8 @@ export function ESSExpenses({ user, triggerToast }: ESSProps) {
               {category === "Other" && (
                 <div>
                   <label className="text-xs font-black text-slate-700 uppercase tracking-wider block mb-1">
-                    Specify Custom Category Name <span className="text-rose-500">*</span>
+                    Specify Custom Category Name{" "}
+                    <span className="text-rose-500">*</span>
                   </label>
                   <input
                     type="text"
@@ -3486,7 +5114,8 @@ export function ESSExpenses({ user, triggerToast }: ESSProps) {
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5 items-start">
                 <div>
                   <label className="text-xs font-black text-slate-700 uppercase tracking-wider h-5 flex items-center mb-1">
-                    Claim Amount (₹) <span className="text-rose-500 ml-1">*</span>
+                    Claim Amount (₹){" "}
+                    <span className="text-rose-500 ml-1">*</span>
                   </label>
                   <input
                     type="number"
@@ -3524,7 +5153,9 @@ export function ESSExpenses({ user, triggerToast }: ESSProps) {
                     className="w-full text-xs p-3 border-2 border-slate-200 focus:border-amber-500 rounded-xl bg-slate-50 focus:bg-white font-bold text-slate-800 focus:outline-none transition-all"
                   >
                     <option value="Cash">Cash</option>
-                    <option value="UPI / Online">UPI / Online (GPay/Paytm)</option>
+                    <option value="UPI / Online">
+                      UPI / Online (GPay/Paytm)
+                    </option>
                     <option value="Credit Card">Credit Card</option>
                     <option value="Debit Card">Debit Card</option>
                     <option value="Corporate Card">Corporate Card</option>
@@ -3535,6 +5166,54 @@ export function ESSExpenses({ user, triggerToast }: ESSProps) {
               {/* Advance & Net Payable Grid */}
               <div className="p-3.5 bg-amber-50/70 border border-amber-200 rounded-2xl grid grid-cols-1 sm:grid-cols-2 gap-3 items-center">
                 <div>
+                  <label className="text-[10px] font-black uppercase text-amber-800 block mb-1">
+                    Existing Advance Select करें
+                  </label>
+                  <select
+                    value={selectedAdvanceId}
+                    onChange={(e) => {
+                      const id = e.target.value;
+                      setSelectedAdvanceId(id);
+                      const advance = advances.find(
+                        (item) => String(item.id) === id,
+                      );
+                      setAdvanceAmount(
+                        advance
+                          ? String(
+                              Math.max(
+                                0,
+                                Number(advance.amount || 0) -
+                                  Number(advance.recoveredAmount || 0),
+                              ),
+                            )
+                          : "0",
+                      );
+                    }}
+                    className="mb-2 w-full rounded-xl border border-amber-300 bg-white p-2.5 text-xs font-bold text-slate-800"
+                  >
+                    <option value="">कोई advance नहीं</option>
+                    {advances.map((advance) => {
+                      const balance = Math.max(
+                        0,
+                        Number(advance.amount || 0) -
+                          Number(advance.recoveredAmount || 0),
+                      );
+                      return (
+                        <option key={advance.id} value={advance.id}>
+                          {advance.employeeId ? `${advance.employeeId} · ` : ""}
+                          ₹{Number(advance.amount || 0).toLocaleString("en-IN")}{" "}
+                          · {advance.issuedDate} · Balance ₹
+                          {balance.toLocaleString("en-IN")}
+                        </option>
+                      );
+                    })}
+                  </select>
+                  {selectedAdvance && (
+                    <p className="mb-2 text-[10px] font-bold text-amber-800">
+                      Advance date: {selectedAdvance.issuedDate} · Balance: ₹
+                      {selectedAdvanceBalance.toLocaleString("en-IN")}
+                    </p>
+                  )}
                   <label className="text-[10px] font-black uppercase text-amber-800 block mb-1">
                     Advance Amount Received (If Any ₹)
                   </label>
@@ -3549,9 +5228,15 @@ export function ESSExpenses({ user, triggerToast }: ESSProps) {
                   />
                 </div>
                 <div className="bg-white p-3 rounded-xl border border-amber-200 text-right">
-                  <span className="text-[10px] font-black uppercase text-amber-800 block">Net Reimbursement Payable:</span>
+                  <span className="text-[10px] font-black uppercase text-amber-800 block">
+                    Net Reimbursement Payable:
+                  </span>
                   <span className="text-base font-black font-mono text-emerald-700">
-                    ₹{Math.max(0, (Number(amount) || 0) - (Number(advanceAmount) || 0)).toLocaleString("en-IN")}
+                    ₹
+                    {Math.max(
+                      0,
+                      (Number(amount) || 0) - (Number(advanceAmount) || 0),
+                    ).toLocaleString("en-IN")}
                   </span>
                 </div>
               </div>
@@ -3559,7 +5244,8 @@ export function ESSExpenses({ user, triggerToast }: ESSProps) {
               {/* Description / Business Purpose */}
               <div>
                 <label className="text-xs font-black text-slate-700 uppercase tracking-wider block mb-1">
-                  Business Purpose / Details <span className="text-rose-500">*</span>
+                  Business Purpose / Details{" "}
+                  <span className="text-rose-500">*</span>
                 </label>
                 <textarea
                   rows={2}
@@ -3575,7 +5261,11 @@ export function ESSExpenses({ user, triggerToast }: ESSProps) {
               <div>
                 <label className="text-xs font-black text-slate-700 uppercase tracking-wider block mb-1 flex items-center justify-between">
                   <span>Upload Bill / Receipt Photo</span>
-                  {uploadingReceipt && <span className="text-[10px] text-amber-600 font-bold animate-pulse">Uploading file...</span>}
+                  {uploadingReceipt && (
+                    <span className="text-[10px] text-amber-600 font-bold animate-pulse">
+                      Uploading file...
+                    </span>
+                  )}
                 </label>
                 <div className="border-2 border-dashed border-slate-200 hover:border-amber-400 rounded-2xl p-4 text-center bg-slate-50 hover:bg-amber-50/40 transition-all relative cursor-pointer">
                   <input
@@ -3586,14 +5276,25 @@ export function ESSExpenses({ user, triggerToast }: ESSProps) {
                   />
                   <div className="flex flex-col items-center justify-center gap-1">
                     <Paperclip className="w-5 h-5 text-slate-400" />
-                    <p className="text-xs font-bold text-slate-700">Click or Drag &amp; Drop receipt file</p>
-                    <p className="text-[10px] text-slate-400 font-medium">Supports JPG, PNG, PDF</p>
+                    <p className="text-xs font-bold text-slate-700">
+                      Click or Drag &amp; Drop receipt file
+                    </p>
+                    <p className="text-[10px] text-slate-400 font-medium">
+                      Supports JPG, PNG, PDF
+                    </p>
                   </div>
                 </div>
                 {receiptUrl && (
                   <div className="mt-2 text-[11px] font-bold text-emerald-700 bg-emerald-50 p-2 rounded-xl border border-emerald-200 flex items-center justify-between">
                     <span>✓ Receipt attached successfully</span>
-                    <a href={receiptUrl} target="_blank" rel="noreferrer" className="text-amber-700 underline">View</a>
+                    <a
+                      href={receiptUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-amber-700 underline"
+                    >
+                      View
+                    </a>
                   </div>
                 )}
               </div>
@@ -3629,7 +5330,9 @@ export function ESSExpenses({ user, triggerToast }: ESSProps) {
             <div className="flex items-center justify-between border-b pb-3">
               <div className="flex items-center gap-2">
                 <Paperclip className="w-4 h-4 text-amber-600" />
-                <h3 className="text-sm font-bold text-slate-800">Uploaded Bill / Receipt Document</h3>
+                <h3 className="text-sm font-bold text-slate-800">
+                  Uploaded Bill / Receipt Document
+                </h3>
               </div>
               <div className="flex items-center gap-2">
                 <a
@@ -3640,16 +5343,30 @@ export function ESSExpenses({ user, triggerToast }: ESSProps) {
                 >
                   <ExternalLink className="w-3 h-3" /> Open in New Tab
                 </a>
-                <button onClick={() => setSelectedReceiptUrl(null)} className="text-slate-400 hover:text-slate-700 p-1">
+                <button
+                  onClick={() => setSelectedReceiptUrl(null)}
+                  className="text-slate-400 hover:text-slate-700 p-1"
+                >
                   <X className="w-5 h-5" />
                 </button>
               </div>
             </div>
             <div className="max-h-[75vh] overflow-auto flex items-center justify-center bg-slate-100 rounded-2xl p-3 border border-slate-200">
-              {selectedReceiptUrl.toLowerCase().split("?")[0].endsWith(".pdf") ? (
-                <iframe src={selectedReceiptUrl} className="w-full h-[65vh] rounded-xl border-none" title="PDF Receipt Document" />
+              {selectedReceiptUrl
+                .toLowerCase()
+                .split("?")[0]
+                .endsWith(".pdf") ? (
+                <iframe
+                  src={selectedReceiptUrl}
+                  className="w-full h-[65vh] rounded-xl border-none"
+                  title="PDF Receipt Document"
+                />
               ) : (
-                <img src={selectedReceiptUrl} alt="Receipt Document" className="max-w-full max-h-[70vh] object-contain rounded-xl shadow-sm" />
+                <img
+                  src={selectedReceiptUrl}
+                  alt="Receipt Document"
+                  className="max-w-full max-h-[70vh] object-contain rounded-xl shadow-sm"
+                />
               )}
             </div>
           </div>
