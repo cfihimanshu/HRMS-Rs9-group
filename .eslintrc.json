@@ -1,5 +1,22 @@
 {
   "extends": ["next/core-web-vitals", "next/typescript"],
+  "overrides": [
+    {
+      "files": [
+        "checkApiLogic.js",
+        "checkMatrix.js",
+        "checkProfile.js",
+        "checkRequests.js",
+        "fetchAli.js",
+        "fixDb.js",
+        "testGet.js"
+      ],
+      "env": { "node": true },
+      "rules": {
+        "@typescript-eslint/no-require-imports": "off"
+      }
+    }
+  ],
   "rules": {
     "@typescript-eslint/no-explicit-any": "off",
     "@typescript-eslint/no-unused-vars": "off",
